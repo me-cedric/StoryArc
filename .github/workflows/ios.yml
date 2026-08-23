@@ -18,8 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Select Xcode
-        run: sudo xcode-select -switch /Applications/Xcode_26.app
+      - name: Report toolchain
+        # The runner image's default Xcode is the contract. Printing it means a
+        # toolchain drift shows up here rather than as a mysterious compile error.
+        run: xcodebuild -version && swift --version
 
       # The pure-Swift targets build on the host, so the fast gate needs no
       # simulator runtime at all.
@@ -41,8 +43,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Select Xcode
-        run: sudo xcode-select -switch /Applications/Xcode_26.app
+      - name: Report toolchain
+        # The runner image's default Xcode is the contract. Printing it means a
+        # toolchain drift shows up here rather than as a mysterious compile error.
+        run: xcodebuild -version && swift --version
 
       - run: brew install xcodegen
 

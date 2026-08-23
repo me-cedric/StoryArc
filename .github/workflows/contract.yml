@@ -18,9 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # No `version:` — package.json's `packageManager` field is the pin, and
+      # specifying it twice is a hard error in this action.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
 
       - uses: actions/setup-node@v5
         with:
