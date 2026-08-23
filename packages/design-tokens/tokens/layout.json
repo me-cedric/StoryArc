@@ -1,0 +1,57 @@
+{
+  "$description": "Spacing, radius, elevation and motion. 4pt base grid.",
+  "$rhythm": "Spacing is deliberately uneven. A cover grid breathes at `xl`; a metadata stack tightens to `xs`. Uniform padding everywhere is the single fastest way to look like a template.",
+  "space": {
+    "hair": 2, "xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24, "xxl": 32, "xxxl": 48, "huge": 64,
+    "gutter": 20,
+    "section": 32,
+    "coverGap": 14
+  },
+  "radius": {
+    "none": 0,
+    "cover": 4,
+    "sm": 6,
+    "md": 10,
+    "lg": 16,
+    "xl": 22,
+    "sheet": 28,
+    "capsule": 999
+  },
+  "$radiusNote": "`cover` stays tight at 4pt on purpose: a comic cover is printed stock, and rounding it like an app icon reads as wrong.",
+  "elevation": {
+    "flat": 0, "raised": 1, "floating": 3, "overlay": 6, "modal": 12
+  },
+  "$elevationNote": "Android only. iOS 26 expresses depth with Liquid Glass materials and the scroll edge effect, never a drop shadow.",
+  "motion": {
+    "duration": {
+      "instant": 100, "fast": 180, "normal": 260, "slow": 380,
+      "pageTurn": 450, "chromeFade": 220
+    },
+    "easing": {
+      "standard":   "cubic-bezier(0.2, 0, 0, 1)",
+      "emphasized": "cubic-bezier(0.2, 0, 0, 1)",
+      "exit":       "cubic-bezier(0.3, 0, 1, 1)",
+      "spring":     { "response": 0.42, "dampingFraction": 0.86 }
+    },
+    "pageCurl": { "response": 0.35, "dampingFraction": 0.82, "$note": "Interactive: driven by drag translation, not a fixed timeline. The spring only governs the release." }
+  },
+  "grid": {
+    "coverAspect": 0.66,
+    "$coverAspectNote": "2:3 — the North American comic trim. Manga volumes and EPUB covers vary; the grid crops to a consistent cell and letterboxes onto surfaceSunken rather than distorting art.",
+    "minCoverWidth": { "compact": 104, "regular": 132, "large": 158 },
+    "maxContentWidth": 720
+  },
+  "glass": {
+    "chromeTintOpacity": 0.0,
+    "reducedTransparencyFill": "surfaceOverlay",
+    "scrimOpacityDark": 0.6,
+    "scrimOpacityLight": 0.4,
+    "$note": "Liquid Glass is left untinted in chrome so it picks up cover art beneath it. Every glass surface must declare its opaque fallback for Reduce Transparency."
+  },
+  "touch": {
+    "minTarget": 44,
+    "$minTargetNote": "44pt on iOS (HIG) and 48dp on Android (Material) — the generator emits each platform's own floor.",
+    "androidMinTarget": 48,
+    "readerEdgeTapZone": 0.28
+  }
+}

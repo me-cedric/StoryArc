@@ -1,0 +1,23 @@
+{
+  "$description": "Type roles, not pixel values. Both platforms scale these with the OS accessibility setting; the numbers are the size at the default setting.",
+  "$pairing": "System sans for every piece of chrome, so the app reads as stock. A serif carries editorial weight on titles, series names, and long-form reading — the one place StoryArc has a voice of its own.",
+  "families": {
+    "ui":        { "ios": "SF Pro (system)", "android": "Roboto (system)", "use": "All chrome. Never overridden — this is what makes the app feel native." },
+    "editorial": { "ios": "New York (system serif)", "android": "Source Serif 4 (bundled)", "use": "Publication titles, series headers, About. Sparingly." },
+    "reading":   { "ios": "user choice", "android": "user choice", "use": "Reflowable body text. Ships Literata, Charter/Source Serif, system sans, and Atkinson Hyperlegible." },
+    "mono":      { "ios": "SF Mono", "android": "Roboto Mono", "use": "Server URLs, file paths, diagnostics." }
+  },
+  "scale": {
+    "display":     { "size": 34, "lineHeight": 41, "weight": "semibold", "family": "editorial", "tracking": -0.4 },
+    "title1":      { "size": 28, "lineHeight": 34, "weight": "bold",     "family": "ui",        "tracking": -0.3 },
+    "title2":      { "size": 22, "lineHeight": 28, "weight": "bold",     "family": "ui",        "tracking": -0.2 },
+    "title3":      { "size": 20, "lineHeight": 25, "weight": "semibold", "family": "ui",        "tracking": -0.1 },
+    "headline":    { "size": 17, "lineHeight": 22, "weight": "semibold", "family": "ui",        "tracking": 0 },
+    "body":        { "size": 17, "lineHeight": 22, "weight": "regular",  "family": "ui",        "tracking": 0 },
+    "callout":     { "size": 16, "lineHeight": 21, "weight": "regular",  "family": "ui",        "tracking": 0 },
+    "subheadline": { "size": 15, "lineHeight": 20, "weight": "regular",  "family": "ui",        "tracking": 0 },
+    "footnote":    { "size": 13, "lineHeight": 18, "weight": "regular",  "family": "ui",        "tracking": 0 },
+    "caption":     { "size": 12, "lineHeight": 16, "weight": "regular",  "family": "ui",        "tracking": 0.1 },
+    "caption2":    { "size": 11, "lineHeight": 13, "weight": "regular",  "family": "ui",        "tracking": 0.2 }
+  }
+}

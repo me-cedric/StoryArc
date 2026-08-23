@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- surfaceCanvas, dark. Mirrors packages/design-tokens. -->
+    <color name="launch_background">#0F0D0B</color>
+</resources>

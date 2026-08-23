@@ -1,0 +1,49 @@
+{
+  "$description": "StoryArc colour tokens. Authored in OKLCH, generated to sRGB hex for Swift and Kotlin. Never hardcode a colour in app code — reference a token.",
+  "$direction": "Editorial darkroom. Chrome recedes so cover art and pages are the loudest thing on screen. Neutrals carry a warm ink tilt (hue ~70) rather than the clinical blue-grey most reader apps default to; light theme is book stock, not paper-white.",
+  "brand": {
+    "ember":        { "oklch": "oklch(70% 0.165 52)",  "use": "Primary accent. Reading-lamp amber. Chrome-only — in-content accents defer to cover-derived colour." },
+    "emberStrong":  { "oklch": "oklch(62% 0.165 48)",  "use": "Pressed state, and the light-theme accent where 70% lightness would fail contrast on paper." },
+    "emberMuted":   { "oklch": "oklch(45% 0.090 52)",  "use": "Accent at rest on dark surfaces: progress rails, unselected indicators." },
+    "ink":          { "oklch": "oklch(48% 0.130 275)", "use": "Secondary. Indigo ink for links, informational chips, and the second series in charts." }
+  },
+  "dark": {
+    "surfaceCanvas":  { "oklch": "oklch(16% 0.006 70)", "use": "App background." },
+    "surfaceRaised":  { "oklch": "oklch(21% 0.007 70)", "use": "Cards, list rows, sheets." },
+    "surfaceOverlay": { "oklch": "oklch(26% 0.008 70)", "use": "Menus, popovers, the fallback fill behind Liquid Glass when transparency is reduced." },
+    "surfaceReader":  { "oklch": "oklch(11% 0.004 70)", "use": "Reader background. Deliberately not #000 — pure black smears on OLED during page turns and kills glass refraction." },
+    "surfaceSunken":  { "oklch": "oklch(13% 0.005 70)", "use": "Inset wells: search fields, empty states." },
+    "borderSubtle":   { "oklch": "oklch(30% 0.008 70)", "use": "Hairlines, separators." },
+    "borderStrong":   { "oklch": "oklch(42% 0.010 70)", "use": "Focus rings, selected outlines." },
+    "textPrimary":    { "oklch": "oklch(95% 0.006 70)", "use": "Titles and body." },
+    "textSecondary":  { "oklch": "oklch(74% 0.008 70)", "use": "Metadata, subtitles." },
+    "textTertiary":   { "oklch": "oklch(58% 0.008 70)", "use": "Timestamps, disabled, placeholder." },
+    "scrim":          { "oklch": "oklch(8% 0.004 70)",  "use": "Modal scrim at 60% alpha; reader chrome gradient." }
+  },
+  "light": {
+    "surfaceCanvas":  { "oklch": "oklch(97.5% 0.004 75)", "use": "App background. Warm paper, not #FFF." },
+    "surfaceRaised":  { "oklch": "oklch(100% 0 0)",       "use": "Cards, list rows, sheets." },
+    "surfaceOverlay": { "oklch": "oklch(99% 0.003 75)",   "use": "Menus, popovers, reduced-transparency fallback." },
+    "surfaceReader":  { "oklch": "oklch(94% 0.006 75)",   "use": "Reflowable-text reader background. Book stock cream." },
+    "surfaceSunken":  { "oklch": "oklch(94.5% 0.005 75)", "use": "Inset wells." },
+    "borderSubtle":   { "oklch": "oklch(90% 0.006 75)",   "use": "Hairlines, separators." },
+    "borderStrong":   { "oklch": "oklch(78% 0.008 75)",   "use": "Focus rings, selected outlines." },
+    "textPrimary":    { "oklch": "oklch(20% 0.008 70)",   "use": "Titles and body." },
+    "textSecondary":  { "oklch": "oklch(45% 0.010 70)",   "use": "Metadata, subtitles." },
+    "textTertiary":   { "oklch": "oklch(60% 0.010 70)",   "use": "Timestamps, disabled, placeholder." },
+    "scrim":          { "oklch": "oklch(30% 0.006 70)",   "use": "Modal scrim at 40% alpha." }
+  },
+  "status": {
+    "success":    { "oklch": "oklch(70% 0.150 150)", "use": "Sync succeeded, source reachable." },
+    "warning":    { "oklch": "oklch(78% 0.150 78)",  "use": "Stale cache, partial download, degraded connection." },
+    "danger":     { "oklch": "oklch(63% 0.200 25)",  "use": "Auth failure, unreadable file, destructive action." },
+    "offline":    { "oklch": "oklch(60% 0.020 70)",  "use": "Source disconnected. Neutral, never red — offline is normal, not an error." },
+    "downloaded": { "oklch": "oklch(72% 0.140 165)", "use": "Available offline. The one badge allowed to compete with cover art." }
+  },
+  "reader": {
+    "themePaper":    { "bg": "oklch(94% 0.006 75)",  "fg": "oklch(22% 0.008 70)", "use": "Default reflowable theme." },
+    "themeSepia":    { "bg": "oklch(90% 0.030 78)",  "fg": "oklch(28% 0.020 55)", "use": "Warm low-glare." },
+    "themeNight":    { "bg": "oklch(14% 0.005 70)",  "fg": "oklch(84% 0.006 70)", "use": "Dark reflowable theme. Text is not pure white — reduces halation." },
+    "themeContrast": { "bg": "oklch(0% 0 0)",        "fg": "oklch(100% 0 0)",     "use": "Maximum-contrast accessibility theme. The only place pure black/white is allowed." }
+  }
+}

@@ -1,0 +1,44 @@
+schema: spec-driven
+
+context: |
+  StoryArc — native comic, manga and ebook readers for iOS (Swift/SwiftUI) and
+  Android (Kotlin/Compose). Read openspec/project.md before proposing a change.
+
+  Hard constraints on every proposal:
+  - Two independent native codebases. Never propose a shared UI layer, a
+    cross-platform toolkit, or a web view for anything but reflowable EPUB
+    content. See docs/decisions/0001-independent-native-cores.md.
+  - iOS floor is 26.0 (Liquid Glass, no compatibility shims). Android floor is
+    API 31, target API 36 (Material 3 Expressive).
+  - No backend, no account, no analytics, no crash reporting. Data leaves the
+    device only to sources the user configured.
+  - Requirements describe user-observable behaviour, not implementation. Put
+    library and API choices in design.md, never in spec.md.
+  - Every capability that ships on both platforms needs its requirements to hold
+    on both, or to say explicitly which platform they apply to.
+
+  Language: en
+  All artifacts must be written in en.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+githubCopilot:
+  cloudAgent: false
+
+rules:
+  proposal:
+    - State which platforms the change affects. "Both" is an answer; silence is not.
+    - Include a Non-goals section.
+  specs:
+    - Requirements describe user-observable behaviour. No class, framework or library names.
+    - Every requirement needs at least one scenario covering the failure or offline path.
+  design:
+    - Name the concrete library or API per platform, with the version, and label anything unverified as Assumed.
+    - State the accessibility consequence of the design, not only the happy path.
+  tasks:
+    - A task that changes a screen owes a simulator or emulator screenshot, not a preview.
+
+operations:
+  apply:
+    guidance:
+      - Run the platform's own lint, typecheck and test commands from agent-compass.commands.json.
+      - Report validation honestly against the Completion Gate in AGENTS.md.

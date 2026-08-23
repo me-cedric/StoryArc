@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "headroom": {
+      "type": "local",
+      "tools": ["headroom_compress", "headroom_retrieve", "headroom_stats"],
+      "command": "headroom",
+      "args": ["mcp"]
+    }
+  }
+}

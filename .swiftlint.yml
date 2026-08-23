@@ -1,0 +1,45 @@
+# SwiftLint runs from the repository root so it covers apps/ios in one pass.
+included:
+  - apps/ios
+
+excluded:
+  - apps/ios/Packages/StoryArcKit/Sources/DesignSystem/Generated
+  - apps/ios/Packages/StoryArcKit/.build
+  - apps/ios/StoryArc.xcodeproj
+
+opt_in_rules:
+  - empty_count
+  - explicit_init
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - last_where
+  - modifier_order
+  - operator_usage_whitespace
+  - redundant_nil_coalescing
+  - toggle_bool
+  - unneeded_parentheses_in_closure_argument
+  - vertical_parameter_alignment_on_call
+
+disabled_rules:
+  # SwiftUI bodies nest deeply by nature; the type checker is the real guard.
+  - type_body_length
+  # Trailing commas in multi-line literals keep diffs to one line per change.
+  - trailing_comma
+
+line_length:
+  warning: 120
+  error: 160
+  ignores_comments: true
+
+identifier_name:
+  min_length: 2
+  excluded: [id, of, to, x, y]
+
+file_length:
+  warning: 400
+  error: 800
+
+function_body_length:
+  warning: 50
+  error: 100

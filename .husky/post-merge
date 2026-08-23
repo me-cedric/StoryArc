@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+
+# agent-compass: cheap, cached update check after a pull/merge. Silent when
+# current; prints one line when the vendored standards have moved. No LLM tokens.
+if [ -f docs/agent-compass/scripts/check-update.mjs ]; then
+  node docs/agent-compass/scripts/check-update.mjs . --quiet || true
+fi
+
+# agent-compass: fold teammates' shared projectmem events into the local summary.
+# events.jsonl is the committed source of truth (union-merged); the projections
+# (summary.md, PROJECT_MAP.md, ...) are local and rebuilt from the merged log.
+if [ -f .projectmem/events.jsonl ]; then
+  if command -v pjm >/dev/null 2>&1; then
+    pjm regenerate >/dev/null 2>&1 || true
+  elif [ -x .venv/bin/pjm ]; then
+    .venv/bin/pjm regenerate >/dev/null 2>&1 || true
+  fi
+fi

@@ -1,0 +1,45 @@
+# Copy selected servers into ~/.codex/config.toml or a repo-local .codex/config.toml.
+
+[mcp_servers.projectmem]
+enabled = true
+required = false
+command = "uvx"
+args = ["--from", "projectmem", "--with", "mcp<2", "pjm-mcp"]
+cwd = "."
+enabled_tools = ["get_instructions", "get_summary", "get_project_map", "precheck_file", "get_issue", "log_issue", "record_attempt", "record_fix", "add_decision", "add_note"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.figma]
+enabled = true
+required = false
+url = "http://127.0.0.1:3845/mcp"
+enabled_tools = ["get_file", "get_selection", "get_code_connect_map"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.figma_go]
+enabled = true
+required = false
+command = "npx"
+args = ["-y", "@vkhanhqui/figma-mcp-go@latest"]
+enabled_tools = [
+    "get_metadata",
+    "get_pages",
+    "get_document",
+    "get_selection",
+    "get_node",
+    "get_nodes_info",
+    "get_design_context",
+    "search_nodes",
+    "scan_text_nodes",
+    "scan_nodes_by_types",
+    "get_viewport",
+    "get_styles",
+    "get_variable_defs",
+    "get_local_components",
+    "get_annotations",
+    "get_fonts",
+    "get_reactions",
+    "get_screenshot",
+    "export_tokens",
+]
+default_tools_approval_mode = "prompt"

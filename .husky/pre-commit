@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Cheap, local-only guards. Anything slower belongs in pre-push or CI.
+node scripts/verify-tokens-in-sync.mjs || exit 1

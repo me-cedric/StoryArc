@@ -1,0 +1,18 @@
+{
+  "name": "storyarc",
+  "scope": "@scope",
+  "packageManager": "npm",
+  "stacks": [
+    "swift-ios"
+  ],
+  "providers": [
+    "claude",
+    "codex",
+    "gemini",
+    "copilot"
+  ],
+  "useSpecKit": true,
+  "codeIntelligence": "none",
+  "skillSync": "copy",
+  "skillScope": "fit+style"
+}

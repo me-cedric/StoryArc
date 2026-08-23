@@ -1,0 +1,16 @@
+node_modules/
+coverage/
+**/coverage/
+dist/
+build/
+
+# Generated/project-local files.
+.turbo/
+.scannerwork/
+sonar-report/
+
+# projectmem generated summary
+.projectmem/summary.md
+
+# projectmem generated files
+.projectmem/

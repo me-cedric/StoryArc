@@ -1,0 +1,22 @@
+# OSV Scanner configuration
+# https://google.github.io/osv-scanner/configuration/
+#
+# The table is `IgnoredVulns`. Version 1 used `IgnoreVulns`; version 2 renamed it
+# and no longer accepts the old key, so a config that still uses it suppresses
+# nothing. Check the table name first when a suppression appears to be ignored.
+#
+# Add entries here to suppress known and accepted vulnerabilities that cannot
+# currently be fixed (no upstream fix, breaking upgrade, transitive dep).
+#
+# State a reason for every entry. An entry with no fix and no `ignoreUntil` is a
+# standing decision, not an oversight, so say which one it is.
+#
+# Example:
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-yyyy-zzzz"
+# ignoreUntil = 2026-12-31   # optional: re-surface after this date
+# reason = "No fix available; transitive dep of the mobile build toolchain"
+#
+# The scanner reads a config from the directory of each scanned file, and that
+# lookup does not propagate to child directories. A nested lockfile therefore
+# never sees this file. Pass `--config .osv-scanner.toml` to apply it everywhere.

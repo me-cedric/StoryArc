@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# The contract layer only — it is fast and has no toolchain prerequisites.
+# The iOS and Android gates need Xcode and the Android SDK, so they run in CI
+# rather than blocking a push from a machine that may not have both.
+echo "Validating specs and design tokens…"
+
+pnpm lint || {
+  echo "Contract validation failed. Push aborted."
+  exit 1
+}
+
+echo "Contract OK. iOS and Android gates run in CI."

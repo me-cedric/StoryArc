@@ -1,0 +1,59 @@
+{
+  "permissions": {
+    "defaultMode": "default",
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.*.local)",
+      "Read(**/.env.development)",
+      "Read(**/.env.production)",
+      "Read(./secrets/**)",
+      "Read(./**/*.pem)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(rm:*)",
+      "Bash(npx:*)"
+    ],
+    "allow": [
+      "Bash(npm run lint:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm test:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && test -f .agent/hooks/check-agent-compass-updates.sh && sh .agent/hooks/check-agent-compass-updates.sh || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && .claude/hooks/protect-agent-files.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && .claude/hooks/remind-completion-gate.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

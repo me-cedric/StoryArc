@@ -1,0 +1,60 @@
+name: Agent-ready task
+description: Describe work so an AI coding agent can start without a clarification loop.
+title: "task: "
+labels: ["agent-ready"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill every required field. A sensible default counts as answered.
+        See the Agent Compass contract `AGENTS.md` section 1 (Intake).
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: The outcome in one sentence. Not the method.
+      placeholder: Users can reset their password from the login screen.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Paths, modules, related specs/PRs, and prior attempts.
+      placeholder: |
+        - apps/api/src/auth/
+        - specs/password-reset/spec.md
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: What must stay true. APIs to preserve, files not to touch, limits, no new dependencies.
+    validations:
+      required: true
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done when
+      description: The observable acceptance check.
+      placeholder: New e2e test for the reset flow passes and existing auth tests stay green.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation commands
+      description: Exact commands the agent must run and report. Prefer agent-compass.commands.json entries.
+      placeholder: |
+        - <PM> --filter api lint
+        - <PM> --filter api test
+    validations:
+      required: true
+  - type: textarea
+    id: long-running
+    attributes:
+      label: Long-running work (optional)
+      description: Stopping condition, checkpoint cadence, and what is out of scope.
+    validations:
+      required: false

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- The adaptive-icon folder is conventionally -v26 even when minSdk is
+         higher; moving it breaks launcher-icon resolution. -->
+    <issue id="ObsoleteSdkInt">
+        <ignore path="src/main/res/mipmap-anydpi-v26" />
+    </issue>
+    <!-- localeConfig and enableOnBackInvokedCallback are inert below API 33 and
+         correct above it. Declaring them is the intent. -->
+    <issue id="UnusedAttribute" severity="ignore" />
+</lint>

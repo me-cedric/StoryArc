@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- `offline-downloads`: downloaded publications are re-downloadable and would
+     otherwise dominate a backup. Reading progress is small and worth restoring. -->
+<full-backup-content>
+    <exclude domain="file" path="downloads/" />
+    <exclude domain="file" path="cache/" />
+</full-backup-content>

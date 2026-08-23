@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "projectmem": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "projectmem",
+        "--with",
+        "mcp<2",
+        "pjm-mcp"
+      ],
+      "cwd": "."
+    }
+  }
+}

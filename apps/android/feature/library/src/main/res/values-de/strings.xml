@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_title">Bibliothek</string>
+    <string name="library_empty_title">Noch nichts hier</string>
+    <string name="library_empty_subtitle">Fügen Sie eine Quelle hinzu oder öffnen Sie einfach eine Datei – StoryArc funktioniert ohne Einrichtung.</string>
+    <string name="source_kind_local_folder_title">Dateien und Ordner</string>
+    <string name="source_kind_local_folder_explanation">Auf diesem Gerät, in Google Drive oder bei jedem Speicheranbieter</string>
+    <string name="source_kind_network_share_title">Netzwerkfreigabe</string>
+    <string name="source_kind_network_share_explanation">Eine SMB-Freigabe auf einem NAS oder einem anderen Computer</string>
+    <string name="source_kind_opds_title">OPDS-Katalog</string>
+    <string name="source_kind_opds_explanation">Jeder Server, der OPDS spricht, etwa Calibre-Web oder Komga</string>
+    <string name="source_kind_kavita_title">Kavita-Server</string>
+    <string name="source_kind_kavita_explanation">Sammlungen, Leselisten und synchronisierter Fortschritt</string>
+    <string name="source_state_connected">Verbunden</string>
+    <string name="source_state_connecting">Verbinden …</string>
+    <string name="source_state_unreachable">Offline – zwischengespeicherte Inhalte</string>
+    <string name="source_state_unauthorized">Anmeldung erforderlich</string>
+</resources>

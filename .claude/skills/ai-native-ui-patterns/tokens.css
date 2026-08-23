@@ -1,0 +1,145 @@
+/* AI-native UI token layer.
+ *
+ * A surface ladder (page > canvas > surface > inset), a three-step ink ladder,
+ * hairline borders instead of drop shadows, and four semantic hues that each
+ * carry a low-alpha tint for chip backgrounds. Both themes are declared; the
+ * dark set is not an inversion of the light set — surfaces get lighter as they
+ * rise in both, which is why `--surface` is darker than nothing and lighter
+ * than `--page` on dark.
+ *
+ * Copy into the host design system and rename to its conventions. Keep the
+ * ladder shape even when the palette changes: the primitives below assume
+ * four surface levels and three ink levels exist.
+ */
+
+:root {
+  /* Surfaces — page is the backdrop, surface is a card, inset is a well. */
+  --page: #fafafb;
+  --canvas: #f1f2f3;
+  --surface: #ffffff;
+  --inset: #f7f8f9;
+  --hover: #f4f5f6;
+  --hover-strong: #e7e9eb;
+  --field: #f2f2f3;
+
+  /* Ink — primary copy, secondary/meta, disabled or placeholder. */
+  --ink: #1f2124;
+  --ink-2: #62656b;
+  --ink-3: #9a9da3;
+
+  /* Borders carry the structure. Shadows only lift overlays. */
+  --line: #ecedef;
+  --line-strong: #e0e2e5;
+
+  /* Semantic hues. `-tint` is the chip/undertone fill, never body text. */
+  --accent: #0285ff;
+  --accent-ink: #0170dd;
+  --accent-tint: #e9f3ff;
+  --green: #189a4d;
+  --green-tint: #e8f5ed;
+  --orange: #ef720c;
+  --orange-tint: #fdf1e5;
+  --red: #e3474c;
+  --red-tint: #fcecec;
+
+  /* Elevation: a hairline ring first, blur second. */
+  --shadow-hairline: 0 0 0 1px var(--line);
+  --shadow-btn: 0 0 0 1px var(--line-strong), 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-card: 0 0 0 1px var(--line), 0 1px 2px rgba(16, 24, 40, 0.04), 0 2px 6px rgba(16, 24, 40, 0.03);
+  --shadow-raised: 0 0 0 1px var(--line), 0 2px 10px rgba(0, 0, 0, 0.04);
+  --shadow-overlay: 0 0 0 1px var(--line), 0 8px 28px rgba(0, 0, 0, 0.06);
+  --shadow-inset-field: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+
+  /* Radii. Chips and inputs stay small; only avatars and toggles go round. */
+  --radius-chip: 6px;
+  --radius-field: 8px;
+  --radius-card: 12px;
+  --radius-panel: 14px;
+  --radius-round: 999px;
+
+  /* Motion. Movement uses expo-out; colour uses the standard curve. */
+  --ease-move: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-color: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-instant: 100ms;
+  --dur-state: 150ms;
+  --dur-move: 200ms;
+  --dur-layout: 300ms;
+  --dur-expand: 400ms;
+  --dur-enter: 600ms;
+
+  /* Type. One UI sans, one mono for anything the machine produced. */
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --text-ui: 14px;
+  --text-meta: 12px;
+}
+
+:root.dark,
+:root[data-theme="dark"] {
+  --page: #17181a;
+  --canvas: #1c1d1f;
+  --surface: #232427;
+  --inset: #1f2022;
+  --hover: #2a2b2e;
+  --hover-strong: #313236;
+  --field: #2b2c2f;
+
+  --ink: #f2f3f4;
+  --ink-2: #a5a8ad;
+  --ink-3: #6c6f75;
+
+  --line: #2e3033;
+  --line-strong: #3a3c40;
+
+  /* Dark tints are alpha, not solid — they sit over any surface level. */
+  --accent: #3d9aff;
+  --accent-ink: #7ec0ff;
+  --accent-tint: rgba(61, 154, 255, 0.16);
+  --green: #3dbb72;
+  --green-tint: rgba(61, 187, 114, 0.14);
+  --orange: #f68f3c;
+  --orange-tint: rgba(246, 143, 60, 0.14);
+  --red: #ee5c61;
+  --red-tint: rgba(238, 92, 97, 0.14);
+
+  --shadow-btn: 0 0 0 1px var(--line-strong), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 0 0 1px var(--line), 0 1px 2px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.2);
+  --shadow-overlay: 0 0 0 1px var(--line-strong), 0 8px 28px rgba(0, 0, 0, 0.34);
+}
+
+/* Keyframes the primitives rely on. Every one of them is opacity/transform
+ * only, so they stay on the compositor. */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes stream-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Shimmer runs on a masked gradient over text that has not arrived yet.
+ * It must never be the only signal that work is happening — pair it with an
+ * elapsed counter and a phase label. */
+@keyframes shimmer-text {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Streaming still streams; it just stops moving. Token text appears with no
+   * transform, loaders fall back to a static label plus elapsed time. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

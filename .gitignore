@@ -1,0 +1,93 @@
+# ── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Xcode / Swift ────────────────────────────────────────────────────────────
+*.xcodeproj/
+*.xcworkspace/
+!*.xcodeproj/project.pbxproj
+xcuserdata/
+DerivedData/
+build/
+.build/
+*.xcuserstate
+*.xcscmblueprint
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+Package.resolved.bak
+apps/ios/StoryArc.xcodeproj/
+
+# ── Android / Gradle / Kotlin ────────────────────────────────────────────────
+.gradle/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.aar
+*.jks
+*.keystore
+!debug.keystore
+
+# ── IDE ──────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+!.vscode/extensions.json
+.kotlin/
+
+# ── Node (token pipeline, tooling only) ──────────────────────────────────────
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ── Generated design tokens (regenerate with pnpm tokens:build) ──────────────
+packages/design-tokens/dist/
+
+# ── Agent + tooling scratch ──────────────────────────────────────────────────
+.agent/report.html
+.agent/context.json
+.claude/settings.local.json
+.claude/worktrees/
+*.log
+
+# ── Secrets — never commit ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+secrets/
+*.p12
+*.mobileprovision
+
+# projectmem regenerated projections (rebuilt by pjm regenerate)
+.venv/
+.projectmem/summary.md
+.projectmem/PROJECT_MAP.md
+.projectmem/AI_INSTRUCTIONS.md
+.projectmem/issues/
+.projectmem/watch.*
+.projectmem/data/
+.projectmem/*.db
+.projectmem/*.db-*
+.projectmem/*.sqlite
+.projectmem/*.sqlite-*
+.projectmem/*.sqlite3
+.projectmem/*.sqlite3-*
+
+# ── agent-compass generated reports (regenerate with `agent-compass onboard`) ─
+.agent/report.html
+.agent/context.json
+.agent/doctor-report.md
+.agent/recommendations.md
+.agent/quality-gates.md
+.agent/migration-plan.md
+.agent/mcp-readiness.md
+.agent/failure-mining.md
+.agent/provider-verification.md
+.agent/spec-validation-map.md

@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "sources": {
+    "taste-skill": {
+      "repository": "https://github.com/Leonxlnx/taste-skill",
+      "commit": "72e299530e2eb31ed8da06181bc19f6c18a00821",
+      "skills": [
+        "high-end-visual-design",
+        "imagegen-frontend-mobile",
+        "minimalist-ui"
+      ],
+      "targets": [
+        ".agents/skills",
+        ".claude/skills"
+      ],
+      "installedAt": "2026-08-23T23:21:38.099Z"
+    },
+    "asd-ste100": {
+      "repository": "https://github.com/danyuchn/asd-ste100-skill",
+      "commit": "d5ce157870cf9c41efd1d6e836706a2be3c7b9da",
+      "skills": [
+        "asd-ste100"
+      ],
+      "targets": [
+        ".agents/skills",
+        ".claude/skills"
+      ],
+      "installedAt": "2026-08-23T23:21:38.959Z"
+    },
+    "caveman": {
+      "repository": "https://github.com/JuliusBrussee/caveman",
+      "commit": "7bb71309e8749a4f112aacd3a54b3941d8689905",
+      "skills": [
+        "caveman",
+        "caveman-commit",
+        "caveman-review"
+      ],
+      "targets": [
+        ".agents/skills",
+        ".claude/skills"
+      ],
+      "installedAt": "2026-08-23T23:21:40.925Z"
+    },
+    "i-have-adhd": {
+      "repository": "https://github.com/ayghri/i-have-adhd",
+      "commit": "b42a45a068e080294924bfba19a7a2e8944c48ff",
+      "skills": [
+        "i-have-adhd"
+      ],
+      "targets": [
+        ".agents/skills",
+        ".claude/skills"
+      ],
+      "installedAt": "2026-08-23T23:21:41.857Z"
+    },
+    "ponytail": {
+      "repository": "https://github.com/DietrichGebert/ponytail",
+      "commit": "2ed6c52c9d7e5e56942508591085fd45dea277d3",
+      "skills": [
+        "ponytail",
+        "ponytail-audit",
+        "ponytail-debt",
+        "ponytail-help",
+        "ponytail-review"
+      ],
+      "targets": [
+        ".agents/skills",
+        ".claude/skills"
+      ],
+      "installedAt": "2026-08-23T23:21:43.003Z"
+    }
+  },
+  "updatedAt": "2026-08-23T23:21:43.003Z"
+}

@@ -1,0 +1,114 @@
+name: StoryArc
+options:
+  bundleIdPrefix: app.storyarc
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+    CLANG_ENABLE_MODULES: YES
+    GCC_TREAT_WARNINGS_AS_ERRORS: YES
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # No signing identity yet — see README. Device builds need a team set.
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGNING_ALLOWED: NO
+
+packages:
+  StoryArcKit:
+    path: Packages/StoryArcKit
+
+targets:
+  StoryArc:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    dependencies:
+      - package: StoryArcKit
+        product: DesignSystem
+      - package: StoryArcKit
+        product: StoryArcCore
+      - package: StoryArcKit
+        product: LibraryFeature
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: StoryArc
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIApplicationSupportsIndirectInputEvents: true
+        # `local-library`: open a file where it lives rather than copying it in.
+        LSSupportsOpeningDocumentsInPlace: true
+        ITSAppUsesNonExemptEncryption: false
+        # `local-library` requires StoryArc to appear as a handler for every
+        # format it can read, so an "Open with" from Files reaches the reader.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Comic archive
+            LSHandlerRank: Owner
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes:
+              - app.storyarc.cbz
+              - app.storyarc.cbr
+              - app.storyarc.cb7
+              - app.storyarc.cbt
+          - CFBundleTypeName: EPUB publication
+            LSHandlerRank: Alternate
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes:
+              - org.idpf.epub-container
+          - CFBundleTypeName: PDF document
+            LSHandlerRank: Alternate
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes:
+              - com.adobe.pdf
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: app.storyarc.cbz
+            UTTypeDescription: Comic Book ZIP
+            UTTypeConformsTo: [public.zip-archive]
+            UTTypeTagSpecification: { public.filename-extension: [cbz] }
+          - UTTypeIdentifier: app.storyarc.cbr
+            UTTypeDescription: Comic Book RAR
+            UTTypeConformsTo: [public.archive]
+            UTTypeTagSpecification: { public.filename-extension: [cbr] }
+          - UTTypeIdentifier: app.storyarc.cb7
+            UTTypeDescription: Comic Book 7-Zip
+            UTTypeConformsTo: [public.archive]
+            UTTypeTagSpecification: { public.filename-extension: [cb7] }
+          - UTTypeIdentifier: app.storyarc.cbt
+            UTTypeDescription: Comic Book TAR
+            UTTypeConformsTo: [public.tar-archive]
+            UTTypeTagSpecification: { public.filename-extension: [cbt] }
+        # `network-share` needs this to discover SMB hosts on the local network.
+        NSLocalNetworkUsageDescription: >-
+          StoryArc looks for SMB shares on your local network so you can add one
+          without typing its address. You can always enter it by hand instead.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.storyarc.StoryArc
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDefault

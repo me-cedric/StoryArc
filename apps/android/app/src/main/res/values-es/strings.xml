@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The product name is not translated. -->
+    <string name="app_name">StoryArc</string>
+</resources>

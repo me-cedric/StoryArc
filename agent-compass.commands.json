@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "packageManager": "pnpm",
+  "install": "pnpm install",
+  "check": "pnpm check",
+  "agentConformance": "node docs/agent-compass/scripts/agent-conformance.mjs --root . --write",
+  "agentEvals": "node docs/agent-compass/scripts/agent-evals.mjs --root docs/agent-compass",
+  "context": null,
+  "doctorReport": null,
+  "setupHost": "node docs/agent-compass/scripts/setup-host.mjs . --strict",
+  "setupWizard": "node docs/agent-compass/scripts/setup-wizard.mjs .",
+  "applyRecommendations": "node docs/agent-compass/scripts/apply-recommendations.mjs .",
+  "globalSetupDry": "node docs/agent-compass/scripts/global-setup.mjs $HOME --dry",
+  "providerVerify": "node docs/agent-compass/scripts/provider-verify.mjs . --write",
+  "skillsSyncCopy": "node docs/agent-compass/scripts/skills-sync.mjs . --copy",
+  "skillsSyncSymlink": "node docs/agent-compass/scripts/skills-sync.mjs . --symlink",
+  "skillsListPacks": "node docs/agent-compass/scripts/cli.mjs skills-sync --list-packs",
+  "capabilityPackCatalog": "node docs/agent-compass/scripts/cli.mjs catalog --type capability-pack --md",
+  "skillsSearch": "node docs/agent-compass/scripts/cli.mjs skills --list",
+  "skillQuality": "node docs/agent-compass/scripts/cli.mjs check-skill-quality docs/agent-compass",
+  "skillDocsCheck": "node docs/agent-compass/scripts/cli.mjs skill-docs docs/agent-compass --check",
+  "upstreamSkillsVerify": "node docs/agent-compass/scripts/cli.mjs upstream-skills docs/agent-compass --verify",
+  "upstreamSkillsCheck": "node docs/agent-compass/scripts/cli.mjs upstream-skills docs/agent-compass --check-updates",
+  "doctorFix": "node docs/agent-compass/scripts/doctor-fix.mjs .",
+  "taskLog": "node docs/agent-compass/scripts/task-log.mjs . --list --markdown",
+  "recommend": "node docs/agent-compass/scripts/recommend.mjs . --write",
+  "qualityGates": "node docs/agent-compass/scripts/quality-gates.mjs . --write",
+  "dashboard": "node docs/agent-compass/scripts/dashboard.mjs . --write",
+  "migrationPlan": "node docs/agent-compass/scripts/migration-plan.mjs . --write",
+  "policyPackList": "node docs/agent-compass/scripts/policy-pack.mjs . --list",
+  "failureMine": "node docs/agent-compass/scripts/failure-mine.mjs . --write",
+  "mcpProbe": "node docs/agent-compass/scripts/mcp-probe.mjs . --write",
+  "codeIntelStatus": "node docs/agent-compass/scripts/code-intel.mjs status .",
+  "codeIntelSetup": "node docs/agent-compass/scripts/code-intel.mjs setup .",
+  "codeIntelDoctor": "node docs/agent-compass/scripts/code-intel.mjs doctor .",
+  "mcpFigmaGo": "npx -y @vkhanhqui/figma-mcp-go@latest",
+  "mcpFigmaGoHelp": "npx -y @vkhanhqui/figma-mcp-go@latest --help",
+  "specValidationMap": "node docs/agent-compass/scripts/spec-validation-map.mjs . --write",
+  "designImporter": "node docs/agent-compass/scripts/design-importer.mjs . --write",
+  "validateChanged": null,
+  "lint": "pnpm lint",
+  "lintActions": null,
+  "typecheck": null,
+  "test": "pnpm test:ios && pnpm test:android",
+  "build": "pnpm build:ios && pnpm build:android",
+  "projectMemory": {
+    "setup": "uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python projectmem && .venv/bin/pjm init",
+    "brief": "test -x .venv/bin/pjm && .venv/bin/pjm brief || pjm brief",
+    "precheck": "test -x .venv/bin/pjm && .venv/bin/pjm precheck || pjm precheck",
+    "show": "test -x .venv/bin/pjm && .venv/bin/pjm show || pjm show",
+    "regenerateSummary": "test -x .venv/bin/pjm && .venv/bin/pjm regenerate || pjm regenerate",
+    "backfillOptIn": "test -x .venv/bin/pjm && .venv/bin/pjm backfill || pjm backfill"
+  },
+  "runbook": null,
+  "notes": [
+    "Agents must use this file before inventing validation commands.",
+    "Run the smallest set that covers the change \u2014 see AGENTS.md \u00a75.",
+    "typecheck is null on purpose: Swift and Kotlin type-check as part of their build.",
+    "A change to packages/design-tokens must be followed by `pnpm tokens:sync`, and the regenerated app copies committed in the same change.",
+    "A change a user can see also owes a simulator or emulator screenshot \u2014 see AGENTS.md \u00a76."
+  ],
+  "platforms": {
+    "ios": {
+      "lint": "cd apps/ios && swiftlint lint --strict",
+      "test": "cd apps/ios/Packages/StoryArcKit && swift test",
+      "build": "cd apps/ios && xcodegen generate && xcodebuild build -project StoryArc.xcodeproj -scheme StoryArc -destination 'generic/platform=iOS Simulator' -quiet",
+      "generateProject": "cd apps/ios && xcodegen generate",
+      "screenshot": "xcrun simctl io booted screenshot shot.png",
+      "notes": [
+        "swift test runs the pure-Swift targets on the host \u2014 no simulator needed.",
+        "StoryArc.xcodeproj is generated from project.yml and gitignored. Never hand-edit it."
+      ]
+    },
+    "android": {
+      "lint": "cd apps/android && ./gradlew lint",
+      "test": "cd apps/android && ./gradlew test",
+      "build": "cd apps/android && ./gradlew assembleDebug",
+      "install": "cd apps/android && ./gradlew installDebug",
+      "moduleCheck": "cd apps/android && ./gradlew :<module>:lint :<module>:testDebugUnitTest",
+      "screenshot": "adb exec-out screencap -p > shot.png",
+      "notes": [
+        "local.properties must set sdk.dir. It is gitignored.",
+        "Scope to :<module> rather than running the whole build for a single-module change."
+      ]
+    },
+    "contract": {
+      "specValidate": "pnpm spec:validate",
+      "tokensCheck": "pnpm tokens:check",
+      "tokensSync": "pnpm tokens:sync",
+      "tokensVerify": "pnpm tokens:verify"
+    }
+  }
+}

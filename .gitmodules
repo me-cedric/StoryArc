@@ -1,0 +1,3 @@
+[submodule "docs/agent-compass"]
+	path = docs/agent-compass
+	url = https://github.com/me-cedric/agent-compass.git

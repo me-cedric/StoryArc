@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- surfaceCanvas, light. Mirrors packages/design-tokens. -->
+    <color name="launch_background">#FAF9F7</color>
+    <!-- Placeholder brand mark background: brand/ember. -->
+    <color name="ic_launcher_background">#EC7C27</color>
+</resources>

@@ -1,0 +1,41 @@
+name: Contract
+
+# The specs and the design tokens are the only things both apps share. They are
+# also the cheapest thing to check, so they gate every change.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Specs and design tokens
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate capability specs
+        run: pnpm spec:validate
+
+      - name: Design token contrast gate
+        # Fails on any text/surface pair below its WCAG floor, and on any
+        # colour that falls outside the sRGB gamut.
+        run: pnpm tokens:check
+
+      - name: Generated tokens are in sync with their source
+        run: pnpm tokens:verify

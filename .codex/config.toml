@@ -1,0 +1,44 @@
+# Agent Compass Codex template.
+# Copy to a repo-local .codex/config.toml and adapt after reviewing Codex config docs.
+
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+web_search = "cached"
+
+[features]
+hooks = true
+multi_agent = true
+# Enable only when your Codex build exposes /goal.
+goals = true
+
+[sandbox_workspace_write]
+network_access = false
+
+# Permission profiles by task type. Select with `codex --profile careful`.
+# Adapt names/values after reviewing your Codex config docs.
+[profiles.fast]
+approval_policy = "on-failure"
+sandbox_mode = "workspace-write"
+
+[profiles.careful]
+approval_policy = "on-request"
+sandbox_mode = "read-only"
+
+[mcp_servers.projectmem]
+enabled = true
+required = false
+command = "uvx"
+args = ["--from", "projectmem", "--with", "mcp<2", "pjm-mcp"]
+cwd = "."
+enabled_tools = ["get_instructions", "get_summary", "get_project_map", "precheck_file", "get_issue", "log_issue", "record_attempt", "record_fix", "add_decision", "add_note"]
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.figma_go]
+enabled = true
+required = false
+command = "npx"
+args = ["-y", "@vkhanhqui/figma-mcp-go@latest"]
+enabled_tools = ["get_metadata", "get_selection", "get_design_context", "export_tokens"]
+default_tools_approval_mode = "prompt"
+
+# Hooks live in .codex/hooks.json to avoid duplicate inline/file hook sources.

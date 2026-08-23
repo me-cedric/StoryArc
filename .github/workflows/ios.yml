@@ -1,0 +1,60 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/ios/**', 'packages/design-tokens/**', '.github/workflows/ios.yml', '.swiftlint.yml']
+  pull_request:
+    paths: ['apps/ios/**', 'packages/design-tokens/**', '.github/workflows/ios.yml', '.swiftlint.yml']
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: StoryArcKit — build and test
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode_26.app
+
+      # The pure-Swift targets build on the host, so the fast gate needs no
+      # simulator runtime at all.
+      - name: Test
+        working-directory: apps/ios/Packages/StoryArcKit
+        run: swift test
+
+  lint:
+    name: SwiftLint
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+      - run: brew install swiftlint
+      - run: swiftlint lint --strict
+
+  app:
+    name: App — build for simulator
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode_26.app
+
+      - run: brew install xcodegen
+
+      - name: Generate project
+        working-directory: apps/ios
+        run: xcodegen generate
+
+      - name: Build
+        working-directory: apps/ios
+        run: |
+          xcodebuild build \
+            -project StoryArc.xcodeproj \
+            -scheme StoryArc \
+            -destination 'generic/platform=iOS Simulator' \
+            -quiet

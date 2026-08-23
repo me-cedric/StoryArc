@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "projectmem": {
+      "command": "uvx",
+      "args": ["--from", "projectmem", "--with", "mcp<2", "pjm-mcp"],
+      "cwd": "."
+    },
+    "figma": {
+      "httpUrl": "http://127.0.0.1:3845/mcp"
+    },
+    "figma-mcp-go": {
+      "command": "npx",
+      "args": ["-y", "@vkhanhqui/figma-mcp-go@latest"]
+    }
+  }
+}

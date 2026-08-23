@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "codebase-memory-mcp": {
+      "command": "codebase-memory-mcp",
+      "args": [],
+      "cwd": "."
+    }
+  }
+}
