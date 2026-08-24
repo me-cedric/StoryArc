@@ -53,6 +53,12 @@ class ZipReader private constructor(
      * what breaks a reader that assumes the EOCD is the last 22 bytes.
      */
     val hasArchiveComment: Boolean,
+    /**
+     * True when the index was rebuilt by scanning rather than read from a central
+     * directory. Sizes then come from local headers, which are less trustworthy —
+     * so a caller that cares can say "recovered" rather than pretending.
+     */
+    val isRecovered: Boolean = false,
 ) {
     companion object {
         private const val EOCD_SIGNATURE = 0x06054B50
@@ -281,7 +287,12 @@ class ZipReader private constructor(
          */
         fun inflate(compressed: ByteArray, expectedSize: Long): ByteArray {
             if (expectedSize < 0) throw ZipException.Malformed("negative uncompressed size")
-            if (expectedSize == 0L) return ByteArray(0)
+            // Zero can mean two things. An entry that really is empty has no
+            // compressed bytes either; an entry recovered from a local header with
+            // a data descriptor has bytes and no declared size. Only the first is
+            // empty.
+            if (expectedSize == 0L && compressed.isEmpty()) return ByteArray(0)
+            if (expectedSize == 0L) return inflateUnknownSize(compressed)
 
             val capacity = minOf(expectedSize, MAX_INFLATE_BYTES.toLong()).toInt()
             val output = ByteArray(capacity)
@@ -300,6 +311,194 @@ class ZipReader private constructor(
             } finally {
                 inflater.end()
             }
+        }
+
+        /**
+         * Inflates when the uncompressed size is not known.
+         *
+         * Only reachable through recovery: a local header that used a data
+         * descriptor declares no size, and in recovery there is no central
+         * directory to ask. The buffer starts at a generous multiple of the
+         * compressed size and doubles while the result exactly fills it, which is
+         * the signal that it was clipped.
+         */
+        private fun inflateUnknownSize(compressed: ByteArray): ByteArray {
+            var capacity = maxOf(compressed.size * 8, 64 * 1024)
+            while (true) {
+                val output = ByteArray(capacity)
+                val inflater = Inflater(true)
+                val written = try {
+                    inflater.setInput(compressed)
+                    var produced = 0
+                    while (produced < capacity && !inflater.finished()) {
+                        val step = inflater.inflate(output, produced, capacity - produced)
+                        if (step == 0 && (inflater.needsInput() || inflater.needsDictionary())) break
+                        produced += step
+                    }
+                    produced
+                } finally {
+                    inflater.end()
+                }
+                if (written == 0) throw ZipException.InflateFailed()
+                // A result that exactly fills the buffer may have been truncated,
+                // so try again with more room — unless there is no more to give.
+                if (written < capacity || capacity >= MAX_INFLATE_BYTES) {
+                    return if (written == capacity) output else output.copyOf(written)
+                }
+                capacity = minOf(capacity * 2, MAX_INFLATE_BYTES)
+            }
+        }
+
+        /**
+         * Rebuilds an index by scanning for local file headers.
+         *
+         * For an archive whose central directory is gone — a truncated download, a
+         * partial copy off a failing disk. `publication-formats` requires opening
+         * whatever pages can be read and reporting what was skipped, rather than
+         * refusing the publication, and ADR-0008 notes that owning the reader is
+         * what makes this possible at all.
+         *
+         * It reads the archive **linearly**, which is inherent: recovery exists
+         * precisely because there is no index to seek with. That is the one place
+         * this reader gives up the ranged-read property, and why it is a separate
+         * entry point rather than a silent fallback.
+         *
+         * Local headers are trusted here for sizes, which ADR-0008 otherwise
+         * forbids — because in recovery there is nothing better. Where a header
+         * declares no size, the entry runs to the next signature.
+         */
+        suspend fun recovering(source: RandomAccessSource): ZipReader {
+            val found = mutableListOf<ZipEntry>()
+            var offset = 0L
+            // A comic has hundreds of entries. Tens of thousands is a crafted file.
+            val entryLimit = 50_000
+            // Read in windows with an overlap, so a signature straddling a boundary
+            // is still seen whole.
+            val window = 1 shl 20
+            val overlap = 4
+            var pending: Pair<ZipEntry, Long>? = null
+
+            while (offset < source.length && found.size < entryLimit) {
+                val count = minOf(window.toLong(), source.length - offset).toInt()
+                val chunk = source.readExactly(offset, count)
+                var index = 0
+                var reachedDirectory = false
+
+                while (index + 4 <= chunk.size) {
+                    if (chunk[index] != 0x50.toByte() || chunk[index + 1] != 0x4B.toByte()) {
+                        index++
+                        continue
+                    }
+                    val at = offset + index
+                    val third = chunk[index + 2].toInt() and 0xFF
+                    val fourth = chunk[index + 3].toInt() and 0xFF
+
+                    // A central-directory or EOCD signature ends the entry region.
+                    if (third == 0x01 || third == 0x05 || third == 0x06) {
+                        pending?.let { append(found, it, at, source) }
+                        pending = null
+                        reachedDirectory = true
+                        break
+                    }
+                    if (third != 0x03 || fourth != 0x04) {
+                        index++
+                        continue
+                    }
+
+                    // A previous entry with no declared size ends where this starts.
+                    pending?.let { append(found, it, at, source) }
+                    pending = null
+
+                    val parsed = runCatching { localEntry(at, source) }.getOrNull()
+                    if (parsed == null) {
+                        index++
+                        continue
+                    }
+                    if (parsed.first.compressedSize > 0) {
+                        append(found, parsed, null, source)
+                    } else {
+                        // Size unknown until the next signature is found.
+                        pending = parsed
+                    }
+                    index += 4
+                }
+
+                if (reachedDirectory) break
+                if (source.length - offset <= count) break
+                offset += count - overlap
+            }
+
+            // The last entry runs to the end of what survived.
+            pending?.let { append(found, it, source.length, source) }
+            if (found.isEmpty()) throw ZipException.NoCentralDirectory()
+            return ZipReader(source, found, hasArchiveComment = false, isRecovered = true)
+        }
+
+        /**
+         * Adds an entry, dropping it when its data does not fit in what survived.
+         *
+         * A truncated archive's final entry is the common case: its header is
+         * intact and its bytes are not. Dropping it is what makes "opened 10,
+         * skipped 2" truthful rather than a promise the reader cannot keep.
+         */
+        private fun append(
+            found: MutableList<ZipEntry>,
+            parsed: Pair<ZipEntry, Long>,
+            end: Long?,
+            source: RandomAccessSource,
+        ) {
+            val (entry, dataOffset) = parsed
+            val sized = if (end == null) {
+                entry
+            } else {
+                val available = end - dataOffset
+                if (available <= 0) return
+                entry.copy(compressedSize = available)
+            }
+            if (dataOffset + sized.compressedSize > source.length) return
+            found += sized
+        }
+
+        /** Parses one local file header, returning the entry and its data offset. */
+        private suspend fun localEntry(
+            offset: Long,
+            source: RandomAccessSource,
+        ): Pair<ZipEntry, Long> {
+            val header = source.readExactly(offset, minOf(30L, source.length - offset).toInt())
+            val reader = ByteReader(header)
+            if (reader.uint32() != (LOCAL_HEADER_SIGNATURE.toLong() and 0xFFFFFFFFL)) {
+                throw ZipException.Malformed("not a local header")
+            }
+            reader.skip(2)                    // version needed
+            val flags = reader.uint16()
+            val method = reader.uint16()
+            reader.skip(2 + 2 + 4)            // time, date, crc
+            val compressed = reader.uint32()
+            val uncompressed = reader.uint32()
+            val nameLength = reader.uint16()
+            val extraLength = reader.uint16()
+
+            if (nameLength <= 0 || nameLength > 4096) {
+                throw ZipException.Malformed("implausible name length")
+            }
+            val nameBytes = source.readExactly(offset + 30, nameLength)
+            val path = String(
+                nameBytes,
+                if (flags and 0x0800 != 0) Charsets.UTF_8 else Charsets.ISO_8859_1,
+            )
+
+            val dataOffset = offset + 30 + nameLength + extraLength
+            if (dataOffset > source.length) {
+                throw ZipException.Malformed("local header runs past the source")
+            }
+            return ZipEntry(
+                path = path,
+                compressedSize = compressed,
+                uncompressedSize = uncompressed,
+                localHeaderOffset = offset,
+                compressionMethod = method,
+                isEncrypted = flags and 0x0001 != 0,
+            ) to dataOffset
         }
     }
 

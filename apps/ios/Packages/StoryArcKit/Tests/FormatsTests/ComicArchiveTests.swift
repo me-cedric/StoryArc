@@ -52,15 +52,44 @@ struct ComicArchiveTests {
         #expect(archive.skippedPageCount == 0)
     }
 
-    @Test("A truncated archive fails as unreadable rather than crashing or hanging")
-    func truncatedArchive() async {
-        // `publication-formats` wants partial recovery. ADR-0008's own reader
-        // makes forward-scanning recovery possible, but it is not implemented
-        // yet — so the honest behaviour today is a clean `.unreadable`, recorded
-        // here so the day a recovering reader lands, this test is what changes.
-        await #expect(throws: ComicArchiveError.unreadable) {
-            try await open("truncated.cbz")
+    @Test("A truncated archive opens the pages that survived")
+    func truncatedArchive() async throws {
+        // `publication-formats` requires opening whatever can be read rather than
+        // refusing the publication, and ADR-0008's own reader is what makes
+        // forward-scanning recovery possible at all.
+        let archive = try await open("truncated.cbz")
+        let zip = try #require(archive as? ZipComicArchive)
+        #expect(zip.isRecovered)
+
+        // The fixture is 60% of a 12-page archive, so some pages survived and some
+        // did not. Asserting a bound rather than an exact count: the split depends
+        // on DEFLATE output, which differs between zlib builds.
+        #expect(!archive.pages.isEmpty)
+        #expect(archive.pages.count < 12)
+        #expect(archive.pages.map(\.path).allSatisfy { $0.hasPrefix("page") })
+    }
+
+    @Test("Pages recovered from a truncated archive really decode")
+    func truncatedPagesDecode() async throws {
+        // An index rebuilt by scanning is worthless if the bytes behind it do not
+        // come out. Every page the reader claims has to be a page.
+        let archive = try await open("truncated.cbz")
+        for page in archive.pages {
+            let data = try await archive.data(for: page)
+            #expect(
+                Array(data.prefix(8)) == [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+                "\(page.path) did not decode to a PNG"
+            )
         }
+    }
+
+    @Test("An intact archive is not reported as recovered")
+    func intactIsNotRecovered() async throws {
+        let archive = try await open("natural-sort.cbz")
+        let zip = try #require(archive as? ZipComicArchive)
+        // Recovery trusts local headers, which ADR-0008 otherwise forbids. A
+        // caller has to be able to tell the two apart.
+        #expect(!zip.isRecovered)
     }
 
     @Test("Page bytes decode back to the PNG that was packed")

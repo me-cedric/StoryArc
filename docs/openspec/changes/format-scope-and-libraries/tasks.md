@@ -193,6 +193,28 @@ here is RAR, which is the only format that genuinely needs a decoder.
       four-digit number is more often part of a title. A trailing bare number is
       capped at three digits for the same reason — a four-digit chapter needs an
       explicit `c` marker, which every convention that goes that high uses.
+- [x] **2.12** **Truncated-archive recovery**, which was a standing spec
+      violation. `publication-formats` requires opening whatever pages can be read
+      and stating how many were skipped; both readers instead threw `unreadable`
+      when a ZIP's central directory was missing, and the corpus's `truncated.cbz`
+      already recorded `isRecoverable: true` against that.
+
+      `ZipReader.recovering` now rebuilds an index by scanning for local file
+      headers. The fixture is 60% of a twelve-page archive and yields **eleven
+      pages, all of which decode** — asserted rather than assumed, because an index
+      rebuilt by scanning is worthless if the bytes behind it do not come out.
+
+      Two properties are deliberately given up, and both are recorded in the code:
+      the scan is linear, so recovery is the one place this layer abandons ranged
+      reads — inherent, since it exists because there is no index to seek with; and
+      local headers are trusted for sizes, which ADR-0008 otherwise forbids,
+      because in recovery there is nothing better. It is a separate entry point
+      rather than a silent fallback for exactly that reason, and `isRecovered` tells
+      a caller which kind of index it is holding.
+
+      A local header that used a data descriptor declares no size, so `inflate`
+      grew a path for an unknown output length: the buffer starts at a multiple of
+      the compressed size and doubles while the result exactly fills it.
 
 ## Phase 3 — Page decoding
 

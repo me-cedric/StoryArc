@@ -1,6 +1,8 @@
 package app.storyarc.core.format
 
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -61,13 +63,43 @@ class ComicArchiveTest {
     }
 
     @Test
-    fun `a truncated archive fails as unreadable rather than crashing or hanging`() {
-        // `publication-formats` wants partial recovery. ADR-0008's own reader
-        // makes forward-scanning recovery possible, but it is not implemented
-        // yet — so the honest behaviour today is a clean Unreadable, recorded
-        // here so the day a recovering reader lands, this test is what changes.
-        assertThrows(ComicArchiveException.Unreadable::class.java) {
-            kotlinx.coroutines.runBlocking { open("truncated.cbz") }
+    fun `a truncated archive opens the pages that survived`() = runTest {
+        // `publication-formats` requires opening whatever can be read rather than
+        // refusing the publication, and ADR-0008's own reader is what makes
+        // forward-scanning recovery possible at all.
+        open("truncated.cbz").use { archive ->
+            assertTrue((archive as ZipComicArchive).isRecovered)
+            // The fixture is 60% of a 12-page archive, so some pages survived and
+            // some did not. A bound rather than an exact count: the split depends
+            // on DEFLATE output, which differs between zlib builds.
+            assertTrue(archive.pages.isNotEmpty())
+            assertTrue(archive.pages.size < 12)
+            assertTrue(archive.pages.all { it.path.startsWith("page") })
+        }
+    }
+
+    @Test
+    fun `pages recovered from a truncated archive really decode`() = runTest {
+        // An index rebuilt by scanning is worthless if the bytes behind it do not
+        // come out. Every page the reader claims has to be a page.
+        open("truncated.cbz").use { archive ->
+            for (page in archive.pages) {
+                val data = archive.data(page)
+                assertArrayEquals(
+                    "${page.path} did not decode to a PNG",
+                    byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A),
+                    data.copyOfRange(0, 8),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `an intact archive is not reported as recovered`() = runTest {
+        // Recovery trusts local headers, which ADR-0008 otherwise forbids. A caller
+        // has to be able to tell the two apart.
+        open("natural-sort.cbz").use { archive ->
+            assertFalse((archive as ZipComicArchive).isRecovered)
         }
     }
 

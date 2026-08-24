@@ -65,6 +65,11 @@ class ZipComicArchive private constructor(
     /** `ComicInfo.xml` contents when the archive carries one. */
     val comicInfoData: ByteArray?,
     private val pathToEntry: Map<String, ZipEntry>,
+    /**
+     * True when the archive's index was rebuilt by scanning, because its central
+     * directory was gone. The pages are real; the count may be short.
+     */
+    val isRecovered: Boolean,
 ) : ComicArchiveReading {
 
     companion object {
@@ -72,11 +77,17 @@ class ZipComicArchive private constructor(
             val reader = try {
                 ZipReader.open(source)
             } catch (_: ZipException.NoCentralDirectory) {
-                // A ZIP whose central directory is gone. Our own reader makes
-                // forward-scanning recovery *possible* — see ADR-0008 — but that
-                // is not implemented yet, so this stays honest rather than
-                // optimistic.
-                throw ComicArchiveException.Unreadable()
+                // A ZIP whose central directory is gone — a truncated download, a
+                // partial copy. `publication-formats` requires opening whatever can
+                // be read rather than refusing the publication, and owning the
+                // reader is what makes that possible (ADR-0008). The scan is
+                // linear, which is inherent: recovery exists because there is no
+                // index to seek with.
+                try {
+                    ZipReader.recovering(source)
+                } catch (_: ZipException) {
+                    throw ComicArchiveException.Unreadable()
+                }
             }
 
             val candidates = mutableListOf<PageEntry>()
@@ -97,11 +108,28 @@ class ZipComicArchive private constructor(
                 }
                 // A zero-length entry is a page that will never decode. Counting
                 // it as skipped is what lets the reader say "opened 10, skipped 2".
-                if (entry.uncompressedSize == 0L) {
+                //
+                // In a recovered archive a zero *uncompressed* size means unknown
+                // rather than empty — a local header with a data descriptor
+                // declares none — so what matters there is whether bytes survived.
+                val hasBytes = if (reader.isRecovered) {
+                    entry.compressedSize > 0
+                } else {
+                    entry.uncompressedSize > 0
+                }
+                if (!hasBytes) {
                     skipped++
                     continue
                 }
-                candidates += PageEntry(entry.path, entry.uncompressedSize)
+                // A recovered entry's uncompressed size is often unknown, so the
+                // compressed size stands in. It is a lower bound on the page, which
+                // beats zero for laying out a placeholder.
+                val byteCount = if (entry.uncompressedSize > 0) {
+                    entry.uncompressedSize
+                } else {
+                    entry.compressedSize
+                }
+                candidates += PageEntry(entry.path, byteCount)
                 index[entry.path] = entry
             }
 
@@ -112,6 +140,7 @@ class ZipComicArchive private constructor(
                 skippedPageCount = skipped,
                 comicInfoData = comicInfo?.let { reader.data(it) },
                 pathToEntry = index,
+                isRecovered = reader.isRecovered,
             )
         }
     }

@@ -38,6 +38,10 @@ public struct ZipEntry: Sendable, Equatable {
 /// makes the `network-share` streaming requirement achievable (ADR-0008).
 public struct ZipReader: Sendable {
     public let entries: [ZipEntry]
+    /// True when the index was rebuilt by scanning rather than read from a central
+    /// directory. Sizes then come from local headers, which are less trustworthy —
+    /// so a caller that cares can say "recovered" rather than pretending.
+    public private(set) var isRecovered = false
     /// The archive comment length, if any. Kept because its presence is exactly
     /// what breaks a reader that assumes the EOCD is the last 22 bytes.
     public let hasArchiveComment: Bool
@@ -106,6 +110,183 @@ public struct ZipReader: Sendable {
 
         self.entries = try Self.parseCentralDirectory(directory, expectedCount: entryCount)
         self.hasArchiveComment = commentLength > 0
+    }
+
+    // MARK: - Recovery
+
+    /// Rebuilds an index by scanning for local file headers.
+    ///
+    /// For an archive whose central directory is gone — a truncated download, a
+    /// partial copy off a failing disk. `publication-formats` requires opening
+    /// whatever pages can be read and reporting what was skipped, rather than
+    /// refusing the publication, and ADR-0008 notes that owning the reader is what
+    /// makes this possible at all.
+    ///
+    /// It reads the archive **linearly**, which is inherent: recovery exists
+    /// precisely because there is no index to seek with. That is the one place this
+    /// reader gives up the ranged-read property, and it is why it is a separate
+    /// entry point rather than a silent fallback.
+    ///
+    /// Local headers are trusted here for sizes, which ADR-0008 otherwise forbids —
+    /// because in recovery there is nothing better. Where a header declares no size
+    /// (a data descriptor was used), the entry runs to the next signature.
+    public static func recovering(source: any RandomAccessSource) async throws -> ZipReader {
+        var found: [ZipEntry] = []
+        var offset: Int64 = 0
+        // A comic has hundreds of entries. Tens of thousands is a crafted file.
+        let entryLimit = 50_000
+        // Read in windows with an overlap, so a signature straddling a boundary is
+        // still seen whole.
+        let window = 1 << 20
+        let overlap = 4
+
+        var pending: (entry: ZipEntry, dataOffset: Int64)?
+
+        while offset < source.length, found.count < entryLimit {
+            let count = Int(min(Int64(window), source.length - offset))
+            let chunk = try await source.readExactly(offset: offset, count: count)
+            var index = 0
+            let bytes = Array(chunk)
+
+            while index + 4 <= bytes.count {
+                guard bytes[index] == 0x50, bytes[index + 1] == 0x4B else {
+                    index += 1
+                    continue
+                }
+                let at = offset + Int64(index)
+                let third = bytes[index + 2]
+                let fourth = bytes[index + 3]
+
+                // A central-directory or EOCD signature ends the entry region.
+                if third == 0x01 || third == 0x05 || third == 0x06 {
+                    if let waiting = pending {
+                        Self.append(&found, waiting, endingAt: at, source: source)
+                        pending = nil
+                    }
+                    return ZipReader(entries: found, hasArchiveComment: false, source: source, recovered: true)
+                }
+
+                guard third == 0x03, fourth == 0x04 else {
+                    index += 1
+                    continue
+                }
+
+                // A previous entry with no declared size ends where this one starts.
+                if let waiting = pending {
+                    Self.append(&found, waiting, endingAt: at, source: source)
+                    pending = nil
+                }
+
+                if let parsed = try? await Self.localEntry(at: at, source: source) {
+                    if parsed.entry.compressedSize > 0 {
+                        Self.append(&found, parsed, endingAt: nil, source: source)
+                    } else {
+                        // Size unknown until the next signature is found.
+                        pending = parsed
+                    }
+                    index += 4
+                } else {
+                    index += 1
+                }
+            }
+
+            if source.length - offset <= Int64(count) { break }
+            offset += Int64(count - overlap)
+        }
+
+        if let waiting = pending {
+            // The last entry runs to the end of what survived.
+            Self.append(&found, waiting, endingAt: source.length, source: source)
+        }
+        guard !found.isEmpty else { throw ZipError.noCentralDirectory }
+        return ZipReader(entries: found, hasArchiveComment: false, source: source, recovered: true)
+    }
+
+    /// Adds an entry, dropping it when its data does not fit in what survived.
+    ///
+    /// A truncated archive's final entry is the common case: its header is intact
+    /// and its bytes are not. Dropping it is what makes "opened 10, skipped 2"
+    /// truthful rather than a promise the reader cannot keep.
+    private static func append(
+        _ found: inout [ZipEntry],
+        _ parsed: (entry: ZipEntry, dataOffset: Int64),
+        endingAt end: Int64?,
+        source: any RandomAccessSource
+    ) {
+        var entry = parsed.entry
+        if let end {
+            let available = end - parsed.dataOffset
+            guard available > 0 else { return }
+            entry = ZipEntry(
+                path: entry.path,
+                compressedSize: available,
+                // Unknown without inflating. Zero means "ask the decoder", and
+                // callers treat a zero-length page as skipped, so it must not be
+                // used as a page size.
+                uncompressedSize: entry.uncompressedSize,
+                localHeaderOffset: entry.localHeaderOffset,
+                compressionMethod: entry.compressionMethod,
+                isEncrypted: entry.isEncrypted
+            )
+        }
+        guard parsed.dataOffset + entry.compressedSize <= source.length else { return }
+        found.append(entry)
+    }
+
+    /// Parses one local file header. Returns the entry and where its data starts.
+    private static func localEntry(
+        at offset: Int64, source: any RandomAccessSource
+    ) async throws -> (entry: ZipEntry, dataOffset: Int64) {
+        let header = try await source.readExactly(
+            offset: offset, count: Int(min(30, source.length - offset))
+        )
+        var reader = ByteReader(header)
+        guard try reader.uint32() == localHeaderSignature else {
+            throw ZipError.malformed("not a local header")
+        }
+        try reader.skip(2)                       // version needed
+        let flags = try reader.uint16()
+        let method = try reader.uint16()
+        try reader.skip(2 + 2 + 4)               // time, date, crc
+        let compressed = Int64(try reader.uint32())
+        let uncompressed = Int64(try reader.uint32())
+        let nameLength = Int(try reader.uint16())
+        let extraLength = Int(try reader.uint16())
+
+        guard nameLength > 0, nameLength <= 4096 else {
+            throw ZipError.malformed("implausible name length")
+        }
+        let nameData = try await source.readExactly(offset: offset + 30, count: nameLength)
+        var nameReader = ByteReader(nameData)
+        let path = try nameReader.string(nameLength, isUTF8: flags & 0x0800 != 0)
+
+        let dataOffset = offset + 30 + Int64(nameLength) + Int64(extraLength)
+        guard dataOffset <= source.length else {
+            throw ZipError.malformed("local header runs past the source")
+        }
+        return (
+            ZipEntry(
+                path: path,
+                compressedSize: compressed,
+                uncompressedSize: uncompressed,
+                localHeaderOffset: offset,
+                compressionMethod: method,
+                isEncrypted: flags & 0x0001 != 0
+            ),
+            dataOffset
+        )
+    }
+
+    private init(
+        entries: [ZipEntry],
+        hasArchiveComment: Bool,
+        source: any RandomAccessSource,
+        recovered: Bool
+    ) {
+        self.entries = entries
+        self.hasArchiveComment = hasArchiveComment
+        self.source = source
+        self.isRecovered = recovered
     }
 
     // MARK: - Reading an entry
@@ -325,7 +506,14 @@ public struct ZipReader: Sendable {
     /// compression (ADR-0008).
     static func inflate(_ compressed: Data, expectedSize: Int) throws -> Data {
         guard expectedSize >= 0 else { throw ZipError.malformed("negative uncompressed size") }
-        guard expectedSize > 0 else { return Data() }
+        // Zero can mean two things. An entry that really is empty has no compressed
+        // bytes either; an entry recovered from a local header with a data
+        // descriptor has bytes and no declared size. Only the first is empty.
+        guard expectedSize > 0 || !compressed.isEmpty else { return Data() }
+
+        if expectedSize == 0 {
+            return try inflateUnknownSize(compressed)
+        }
 
         // `expectedSize` comes from the central directory, so it is attacker
         // controlled. Capped so a lying header cannot make us allocate the world.
@@ -347,5 +535,36 @@ public struct ZipReader: Sendable {
 
         guard written > 0 else { throw ZipError.inflateFailed }
         return output.prefix(written)
+    }
+
+    /// Inflates when the uncompressed size is not known.
+    ///
+    /// Only reachable through recovery: a local header that used a data descriptor
+    /// declares no size, and in recovery there is no central directory to ask. The
+    /// buffer starts at a generous multiple of the compressed size and doubles
+    /// while the result exactly fills it, which is the signal that it was clipped.
+    private static func inflateUnknownSize(_ compressed: Data) throws -> Data {
+        var capacity = max(compressed.count * 8, 64 * 1024)
+        let ceiling = 512 * 1024 * 1024
+        while true {
+            var output = Data(count: capacity)
+            let written: Int = output.withUnsafeMutableBytes { destination in
+                compressed.withUnsafeBytes { origin in
+                    guard let destinationBase = destination.bindMemory(to: UInt8.self).baseAddress,
+                          let originBase = origin.bindMemory(to: UInt8.self).baseAddress
+                    else { return 0 }
+                    return compression_decode_buffer(
+                        destinationBase, capacity,
+                        originBase, compressed.count,
+                        nil, COMPRESSION_ZLIB
+                    )
+                }
+            }
+            guard written > 0 else { throw ZipError.inflateFailed }
+            // A result that exactly fills the buffer may have been truncated, so
+            // try again with more room — unless there is no more room to give.
+            if written < capacity || capacity >= ceiling { return output.prefix(written) }
+            capacity = min(capacity * 2, ceiling)
+        }
     }
 }

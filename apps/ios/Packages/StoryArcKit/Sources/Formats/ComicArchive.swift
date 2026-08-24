@@ -43,6 +43,9 @@ public struct ZipComicArchive: ComicArchiveReading {
     public let skippedPageCount: Int
     /// `ComicInfo.xml` contents when the archive carries one.
     public let comicInfoData: Data?
+    /// True when the archive's index was rebuilt by scanning, because its central
+    /// directory was gone. The pages are real; the count may be short.
+    public let isRecovered: Bool
 
     private let reader: ZipReader
     private let pathToEntry: [String: ZipEntry]
@@ -51,11 +54,18 @@ public struct ZipComicArchive: ComicArchiveReading {
         do {
             self.reader = try await ZipReader(source: source)
         } catch ZipError.noCentralDirectory {
-            // A ZIP whose central directory is gone. Our own reader makes
-            // forward-scanning recovery *possible* — see ADR-0008 — but that is
-            // not implemented yet, so this stays honest rather than optimistic.
-            throw ComicArchiveError.unreadable
+            // A ZIP whose central directory is gone — a truncated download, a
+            // partial copy. `publication-formats` requires opening whatever can be
+            // read rather than refusing the publication, and owning the reader is
+            // what makes that possible (ADR-0008). The scan is linear, which is
+            // inherent: recovery exists because there is no index to seek with.
+            do {
+                self.reader = try await ZipReader.recovering(source: source)
+            } catch {
+                throw ComicArchiveError.unreadable
+            }
         }
+        self.isRecovered = reader.isRecovered
 
         var candidates: [PageEntry] = []
         var skipped = 0
@@ -75,11 +85,20 @@ public struct ZipComicArchive: ComicArchiveReading {
             }
             // A zero-length entry is a page that will never decode. Counting it
             // as skipped is what lets the reader say "opened 10, skipped 2".
-            if entry.uncompressedSize == 0 {
+            //
+            // In a recovered archive a zero *uncompressed* size means unknown
+            // rather than empty — a local header with a data descriptor declares
+            // none — so what matters there is whether any bytes survived.
+            let hasBytes = reader.isRecovered ? entry.compressedSize > 0 : entry.uncompressedSize > 0
+            if !hasBytes {
                 skipped += 1
                 continue
             }
-            candidates.append(PageEntry(path: entry.path, byteCount: Int(entry.uncompressedSize)))
+            // A recovered entry's uncompressed size is often unknown, so the
+            // compressed size stands in. It is a lower bound on the page, which is
+            // better than zero for laying out a placeholder.
+            let byteCount = entry.uncompressedSize > 0 ? entry.uncompressedSize : entry.compressedSize
+            candidates.append(PageEntry(path: entry.path, byteCount: Int(byteCount)))
             index[entry.path] = entry
         }
 

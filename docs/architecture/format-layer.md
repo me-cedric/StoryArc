@@ -74,6 +74,20 @@ mechanism carries a page that will never decode: a zero-length entry, or a
 compressed RAR entry with no decoder available, counts as skipped rather than
 failing later and looking like corruption.
 
+For a ZIP this goes further than skipping. When the central directory is gone —
+a truncated download, a partial copy off a failing disk — `ZipReader.recovering`
+rebuilds an index by scanning for local file headers. The corpus's
+`truncated.cbz` is 60% of a twelve-page archive and opens eleven of them, all of
+which decode. Owning the reader is what makes that possible at all, which is one
+of the reasons [ADR-0008] gives for owning it.
+
+Recovery is a separate entry point rather than a silent fallback, for two
+reasons. It reads the archive **linearly**, giving up the ranged-read property
+that the rest of this layer is built on — inherent, since recovery exists
+precisely because there is no index to seek with. And it trusts local headers for
+sizes, which [ADR-0008] otherwise forbids, because in recovery there is nothing
+better to trust. `isRecovered` says which kind of index a caller is holding.
+
 **4. A refusal is named.** `Container.displayName` exists so a 7-Zip comic is
 refused as "7-Zip" and not as "could not open file". `publication-formats` forbids
 the generic failure, because the named one tells the user what to do. There are

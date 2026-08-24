@@ -68,7 +68,7 @@ Nothing here is installable yet. There are no releases and no signed builds.
 
 | Format | State | How |
 | --- | --- | --- |
-| **CBZ** | ✅ Reads | Our own ranged-read ZIP reader ([ADR-0008]) — no dependency |
+| **CBZ** | ✅ Reads | Our own ranged-read ZIP reader ([ADR-0008]) — no dependency, and it recovers a truncated archive |
 | **CBT** | ✅ Reads | Our own TAR reader — 512-byte headers need no library |
 | **CBR** | ✅ Reads | Headers parsed by us; entries decompressed by [vendored libarchive](third_party/libarchive/VENDORING.md) |
 | **PDF** | ✅ Reads | PDFKit on iOS, `PdfRenderer` on Android. Text, search and outline are iOS-only, by design |
