@@ -1,0 +1,139 @@
+## Purpose
+
+The theme model both readers share. A theme is a named bundle of typographic and
+colour choices that a reader can adopt in one tap, and then deviate from on any
+single axis. This capability owns the presets, the axes, the custom-colour path,
+and how a reading theme relates to the app's own appearance — deliberately
+loosely, because a dark app chrome around a paper-white page is a legitimate
+preference rather than a mistake.
+
+Presentation of the controls lives in
+[`ebook-reader`](../ebook-reader/spec.md); the platform look of the sheet lives
+in [`native-experience`](../native-experience/spec.md).
+
+## ADDED Requirements
+
+### Requirement: Theme presets
+
+The app SHALL offer six named reading-theme presets, each setting a background
+colour, a text colour, a typeface, and a spacing character.
+
+| Preset | Character |
+| --- | --- |
+| **Original** | The publication as its publisher styled it. Publisher styles on; StoryArc overrides nothing but size. |
+| **Quiet** | Low-contrast dark. Soft off-white text on deep neutral, tightened spacing. |
+| **Paper** | Neutral light. Book-stock white, serif, comfortable default spacing. |
+| **Bold** | High contrast, heavier weight, wider spacing. For low vision without leaving the aesthetic. |
+| **Calm** | Warm dim. Cream-on-brown, generous line height. Long evening sessions. |
+| **Focus** | Narrow measure, high contrast, minimal decoration. Fewest words per line. |
+
+#### Scenario: Applying a preset
+- **WHEN** a user taps a preset
+- **THEN** every axis the preset defines is applied at once and the change is visible immediately in the reader behind the sheet
+- **AND** the preset is remembered for the series, per the per-series rule in [`ebook-reader`](../ebook-reader/spec.md)
+
+#### Scenario: Original respects the publisher
+- **WHEN** a user selects Original
+- **THEN** publisher styles remain enabled and StoryArc overrides no typographic axis except font size
+- **AND** the axes that require publisher styles to be off are shown as unavailable with a one-line explanation, not hidden and not shown as dead controls
+
+#### Scenario: Deviating from a preset
+- **WHEN** a user changes any axis while a preset is active
+- **THEN** the preset stays selected and is marked as modified
+- **AND** a single action restores the preset's own values
+
+#### Scenario: Presets follow the appearance polarity
+- **WHEN** the app appearance switches between light and dark
+- **THEN** the reading theme does **not** change, because appearance and reading theme are independent settings
+- **AND** a user who wants them linked can enable that explicitly in settings
+
+### Requirement: Theme axes
+
+A reading theme SHALL be defined by exactly these axes, and each SHALL be
+independently adjustable.
+
+| Axis | Control | Notes |
+| --- | --- | --- |
+| Font size | Stepped, smaller/larger | Discrete steps with a visible position indicator, not a free slider |
+| Font family | Picker | Bundled families plus the publisher's own and the system face |
+| Bold text | Toggle | Raises weight without changing family |
+| Line spacing | Slider | |
+| Character spacing | Slider | |
+| Word spacing | Slider | |
+| Paragraph spacing | Slider | |
+| Margins | Slider | |
+| Text alignment | Picker | Publisher default, left, justified |
+| Background colour | Swatches + custom | Paired with a text colour that keeps contrast legal |
+| Brightness | Slider | Reader-local screen brightness, independent of the system slider |
+
+#### Scenario: Font size is stepped, not continuous
+- **WHEN** a user taps the smaller or larger control
+- **THEN** the size moves one step and the step position is shown
+- **AND** the step scale spans at least seven steps from smallest to largest
+
+#### Scenario: An axis requires publisher styles to be off
+- **WHEN** an axis that depends on publisher styles being disabled is displayed while they are enabled
+- **THEN** the control is shown unavailable with a one-line reason and a single action that turns publisher styles off
+- **AND** turning them off preserves the reading position
+
+#### Scenario: Brightness is reader-local
+- **WHEN** a user changes reader brightness
+- **THEN** the change applies while the reader is open and is reverted on leaving it
+- **AND** the system brightness is not permanently modified
+
+#### Scenario: Resetting an axis
+- **WHEN** a user long-presses or double-taps a slider
+- **THEN** that axis returns to its preset value
+
+### Requirement: Custom colour
+
+The app SHALL let a user choose a reading background colour beyond the presets,
+and SHALL keep the pairing readable.
+
+#### Scenario: Choosing a background
+- **WHEN** a user picks a background colour
+- **THEN** a text colour is derived that meets at least 7:1 contrast against it, and both are shown in the preview before being applied
+- **AND** the user may override the derived text colour, but a pairing below 4.5:1 is refused with the measured ratio stated
+
+#### Scenario: Custom colour and the four reader themes
+- **WHEN** a custom colour is in use
+- **THEN** it is stored as a seventh, user-named slot alongside the six presets rather than overwriting one
+
+#### Scenario: Fixed-layout and image content
+- **WHEN** a custom background is set and the publication is fixed-layout, a comic, or a scanned PDF
+- **THEN** the background applies to the area around the page and not to the page itself, because tinting artwork is not a reading preference
+
+### Requirement: Live preview
+
+The theme sheet SHALL show what a change will look like before the user commits
+to it.
+
+#### Scenario: Preview content
+- **WHEN** the theme sheet is open
+- **THEN** it shows a chapter title and at least three lines of body text rendered with the pending settings
+- **AND** the preview uses text from the open publication where one is open, and representative sample text otherwise
+
+#### Scenario: Preview updates live
+- **WHEN** a user drags a spacing or margin slider
+- **THEN** the preview reflows continuously during the drag, at the display's refresh rate
+
+#### Scenario: Preview reflects the real renderer
+- **WHEN** the preview shows a setting
+- **THEN** it is rendered by the same engine that renders the publication, so the preview cannot disagree with the result
+
+### Requirement: Theme scope and persistence
+
+A reading theme SHALL persist at the level the user would expect and no wider.
+
+#### Scenario: Per-series memory
+- **WHEN** a user sets a theme while reading a publication
+- **THEN** it applies to every publication in the same series
+- **AND** a global default applies to series never opened before
+
+#### Scenario: Separate defaults for reflowable and fixed-layout
+- **WHEN** a user sets a theme on a reflowable publication
+- **THEN** it does not change the theme used for comics or fixed-layout publications, which have their own default
+
+#### Scenario: Changing the global default
+- **WHEN** a user changes reading defaults in settings
+- **THEN** it applies to publications opened from then on and does not overwrite a per-series choice already made
