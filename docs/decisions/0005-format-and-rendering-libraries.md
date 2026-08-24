@@ -26,11 +26,11 @@ been proven in a spike. Nothing here is *Known* until a spike says so.
 | EPUB, reflowable + fixed-layout | **Readium Swift toolkit** 3.11.x, via SPM | BSD-3-Clause | Known — actively maintained, SPM-distributed, covers ebooks, audiobooks and comics |
 | PDF | **PDFKit** (system) | Apple SDK | Known |
 | ZIP (CBZ, EPUB container) | **Our own reader** over `RandomAccessSource`; inflate from `Compression` | — | **Known** — superseded by [ADR-0008](0008-ranged-reads-and-own-zip-reader.md). ZIPFoundation removed. |
-| RAR (CBR) | **libarchive** via C interop | BSD-2-Clause | **Decided** — its own RAR4/RAR5 readers, not UnRAR-derived. Build unproven; see Phase 0. |
-| TAR (CBT) | **libarchive**, same integration | BSD-2-Clause | **Decided** |
+| RAR (CBR) | **libarchive** 3.8.1, sources compiled by SPM | BSD-2-Clause — verified per file | **Verified** — 131/131 sources compile for device and simulator; 202 KB linked and stripped |
+| TAR (CBT) | **libarchive**, same integration | BSD-2-Clause | **Verified** — reads a real TAR, correct entry names and sizes |
 | 7-Zip (CB7) | — | — | **Not supported.** Dropped on product scope, not difficulty. libarchive's 7-Zip reader is compiled out. |
-| Image decoding | **ImageIO** / `CGImageSource` (system) | Apple SDK | **Decided** — no page decoded to a bitmap yet, so still unproven |
-| SMB | **SMBClient** (kishikawakatsumi), pure Swift, SMB 2 | MIT | Assumed — SMB 3 encryption support to be confirmed in the spike |
+| Image decoding | **ImageIO** / `CGImageSource` (system) | Apple SDK | **Verified** — corpus page decodes; 2000×3000 downsamples to 400×600 |
+| SMB | **AMSMB2** (wraps libsmb2), SMB 2/3 | LGPL-2.1 — **must be dynamically linked**, see below | **Decided** — `contents(atPath:range:)` gives the ranged reads ADR-0008 needs |
 
 ### Android
 
@@ -39,11 +39,11 @@ been proven in a spike. Nothing here is *Known* until a spike says so.
 | EPUB, reflowable + fixed-layout | **Readium Kotlin toolkit** 3.3.x, via Maven Central | BSD-3-Clause | Known |
 | PDF | **System `PdfRenderer`** — images only, no text layer | Android SDK | **Decided.** `androidx.pdf` has text search but ships a whole `PdfViewerFragment`; pdfium costs 5–8 MB per ABI for a capability comic PDFs never use. |
 | ZIP | **Our own reader** over `RandomAccessSource`; inflate from `java.util.zip.Inflater` | — | **Known** — superseded by [ADR-0008](0008-ranged-reads-and-own-zip-reader.md). |
-| TAR (CBT) | **libarchive**, same integration as iOS | BSD-2-Clause | **Decided** — symmetric with iOS rather than a second implementation |
+| TAR (CBT) | **libarchive**, same integration as iOS | BSD-2-Clause | **Verified** — symmetric with iOS rather than a second implementation |
 | 7-Zip (CB7) | — | — | **Not supported** |
-| RAR (CBR) | **libarchive** via JNI | BSD-2-Clause | **Decided** — junrar rejected as UnRAR-derived |
-| Image decoding | **`ImageDecoder`** (system) | Android SDK | **Decided** — Coil rejected: its caching duplicates ADR-0008's sparse cache, and it would make Android's decode path structurally unlike iOS's |
-| SMB | **smbkotlin**, or **smbj** | to confirm | Assumed — smbkotlin advertises coroutine-based SMB 3 with no native dependency on API 26+; smbj is the conservative fallback |
+| RAR (CBR) | **libarchive** 3.8.1 via CMake + NDK | BSD-2-Clause | **Verified** — builds for arm64-v8a; 235 KB stripped per ABI. junrar rejected as UnRAR-derived |
+| Image decoding | **`ImageDecoder`** (system) | Android SDK | **Verified** on an emulator — same corpus page, same 400×600 result. Coil rejected: its caching duplicates ADR-0008's sparse cache, and it would make Android's decode path structurally unlike iOS's |
+| SMB | **smbj** | Apache-2.0 | **Decided** — 822★, most active and most adopted of every candidate; SMB 2.0.2 → 3.1.1 with encryption, and ranged reads |
 
 ### Rejected
 
@@ -84,10 +84,59 @@ ZIP container reader — is real and worth knowing rather than smoothing over.
    header signatures when the central directory is gone — where a library did
    not.
 
-Image decoding stays *Assumed* on both platforms: the corpus tests verify PNG
-magic bytes, not that a page renders.
+**Image decoding is now verified on both platforms.** A 2000×3000 corpus page
+decodes to a bitmap of exactly that size, downsamples to 400×600 when bounded to
+600 on the long edge, refuses to upscale, and rejects non-image bytes with a
+named error rather than a crash. Both platforms produce identical numbers.
+
+The two suites are asymmetric in *kind* rather than in coverage: ImageIO is
+available on the macOS host so iOS tests it as a plain unit test, while
+`ImageDecoder` and `Bitmap` are framework stubs off-device, so Android's decode
+runs as an instrumented test on an emulator. The pure arithmetic — target-size
+computation and spread detection — is unit-tested on both, which is why
+`PageDecoder.targetSize` returns a plain `PageSize` rather than
+`android.util.Size`.
 
 ## Risks
+
+### Phase 0 results — libarchive is proven, with two surprises
+
+Measured rather than estimated.
+
+| Check | Result |
+| --- | --- |
+| Android arm64-v8a, CMake + NDK 29 | Builds. Static archive 7.24 MB. |
+| **Android, linked and stripped** | **235 KB per ABI** — `--gc-sections` drops everything unreachable |
+| iOS device + simulator, arm64 | **131/131 sources compile** |
+| **iOS, linked and stripped** | **202 KB** |
+| Functional | Reads a real TAR: correct entry names, sizes, and format identification |
+| Licence, per file | `rar.c` BSD-2 (Kientzle, Mejia) · `rar5.c` BSD-2 (Antoniak) · `tar.c` BSD-2. **No UnRAR reference in any of them.** |
+
+**Surprise one: trimming is automatic, and better than planned.** libarchive's
+CMake exposes exactly one option — `BUILD_SHARED_LIBS`. There are no per-format
+toggles, so the earlier plan to "compile out 7-Zip" was wrong in mechanism. It is
+right in outcome by a better route: the linker's dead-code stripping takes 7.24 MB
+down to 235 KB because only the RAR, RAR5 and TAR readers are reachable from our
+entry points. That cannot drift the way a hand-maintained file list would.
+
+**Surprise two: `config.h` is not portable across targets.** A host-generated
+config defines `HAVE_BLAKE2_H` when Homebrew's `libb2` is present, and iOS has no
+such library, so `rar5.c` fails to find `<blake2.h>`. Each target needs its own
+generated config — or, minimally, the blake2 defines explicitly undefined so
+libarchive falls back to its own bundled implementation. Reusing one config.h
+across targets is the trap here, and it fails at compile time rather than
+silently.
+
+**iOS should not use libarchive's CMake at all.** Its `CMakeLists.txt` calls
+`add_subdirectory` for the `bsdtar`, `bsdcat`, `bsdcpio` and `bsdunzip` tools
+unconditionally, and their `install()` rules have no `BUNDLE DESTINATION`, which
+fails an iOS configure outright. Compiling the sources directly in an SPM target
+sidesteps it and is the idiomatic Apple integration regardless.
+
+**Still unverified:** reading an actual RAR. That needs a real `.cbr`, and
+generating one requires a RAR *compressor*, which is proprietary. The fixture has
+to be hand-made from freely redistributable input and committed with its
+provenance — Phase 1 of the `format-scope-and-libraries` change.
 
 ### RAR licensing — resolved by choosing libarchive
 
@@ -118,12 +167,67 @@ adding it later costs a registration and a fixture, not an integration. Its
 7-Zip reader is compiled out of the build so a reader nobody reaches is not dead
 weight in every binary.
 
-### SMB 3 encryption
+### SMB — decided, and the deciding factor was not licence
+
+Five candidates were measured rather than argued about:
+
+| Library | ★ | Licence | Dialects | Ranged reads |
+| --- | --- | --- | --- | --- |
+| `hierynomus/smbj` | 822 | Apache-2.0 | 2.0.2 → 3.1.1, encryption | yes |
+| `sahlberg/libsmb2` | 422 | LGPL-2.1 | 2 → 3.1.1, encryption | `smb2_pread` |
+| `AgNO3/jcifs-ng` | 344 | LGPL-2.1 | 1, 2 | yes |
+| `amosavian/AMSMB2` | 308 | LGPL-2.1 | 2/3 via libsmb2 | `contents(atPath:range:)` |
+| `kishikawakatsumi/SMBClient` | 285 | MIT | **2.0 only** | **no** |
+
+**Android takes `smbj`.** Most stars, most active, Apache-2.0, pure Java so it is
+a one-line Gradle dependency with no NDK build, and it covers every dialect
+through 3.1.1 with encryption. It wins on every criterion at once, which is rare
+enough to be worth saying.
+
+**iOS takes `AMSMB2`.** The interesting part is *why not `SMBClient`*, which is
+the only MIT option and would have been the licence-clean choice: it speaks
+**SMB 2.0 only** and exposes no ranged reads — its file API downloads whole
+files. That fails ADR-0008's architecture outright, and no licence preference
+survives a library that cannot do the one thing the design is built on.
+
+So iOS accepts LGPL-2.1, which brings one hard requirement.
+
+#### The LGPL consequence, stated rather than discovered
+
+AMSMB2 statically links libsmb2 by default. **StoryArc must link it dynamically
+as an embedded framework** — which AMSMB2's own README prescribes for App Store
+distribution, so this is a known and handled situation rather than a grey area.
+There is precedent: VLC moved from GPL to LGPL specifically to make App Store
+distribution possible.
+
+Consequences to carry:
+
+- `THIRD_PARTY_NOTICES.md` records the LGPL-2.1 text and states that the library
+  is dynamically linked and therefore replaceable.
+- The iOS build must be verified to embed a framework, not a static archive. A
+  build that silently static-links is a licence violation, so it needs a check
+  rather than a comment.
+- If Apple's rules or the library's licence ever make this untenable, the
+  fallback is `SMBClient` plus our own SMB2 `READ` on its low-level `Session`
+  API — more work, MIT, and it would drop SMB 3 encryption, which
+  `network-share` would then have to report as unavailable rather than absent.
+
+#### Encryption
 
 `network-share` requires the source screen to state whether a connection is
-encrypted. Both SMB library picks are Assumed on this point. If neither
-negotiates SMB 3 encryption, the requirement changes to reporting encryption as
-unavailable — it does not get quietly dropped.
+encrypted. **Both picks support SMB 3 encryption** — libsmb2 exposes an explicit
+seal setting, smbj a `withEncryptData` configuration — so the requirement holds
+as written and needs no softening.
+
+#### Why not symmetric, when RAR was
+
+`libarchive` was chosen for *both* platforms because RAR had no clean native
+option on either. SMB is the opposite: Android has a best-in-class,
+permissively-licensed, actively-maintained library. Forcing libsmb2 onto Android
+for symmetry's sake would trade Apache-2.0 for LGPL and a Gradle line for an NDK
+build, in exchange for nothing. ADR-0001 says each app uses the best library its
+platform has; this is that principle producing an asymmetric answer, not a
+compromise of it.
 
 ## What still blocks acceptance
 
@@ -132,11 +236,11 @@ waiting on execution and on two spikes that do not affect the choices above.
 
 | Outstanding | Kind |
 | --- | --- |
-| libarchive builds and links for all six ABIs | Execution — the only real unknown |
-| Trimmed binary footprint measured per ABI | Execution |
-| A page actually decoded to a bitmap on both platforms | Execution |
-| **SMB library** — `SMBClient` vs alternatives on iOS, `smbkotlin` vs `smbj` on Android, and whether SMB 3 encryption is mandatory or best-effort | Spike |
-| **Readium pagination** compared across the two toolkits on the same EPUB | Spike |
+| libarchive reads an actual RAR | Execution — needs a hand-made `.cbr` fixture |
+| The remaining five ABIs build | Execution — arm64 works on both platforms; the rest is mechanical |
+
+| **iOS build embeds AMSMB2 dynamically, not statically** | Execution — a licence requirement, so it needs a check not a comment |
+| **Readium pagination** compared across the two toolkits on the same EPUB | **Blocked on the reader existing.** Not a decision and not a library question — a rendered-output comparison needs a reader view to render into. An EPUB fixture is now in the corpus so the comparison has an input the moment there is somewhere to put it. |
 
 The two spikes are mine to run and report, not decisions to put to anyone. This
 ADR becomes **Accepted** when every row in the tables above is verified rather
@@ -154,8 +258,9 @@ than decided.
       measure time-to-first-page. Expected to force our own ranged reader.
 - [ ] **4.** Render the same EPUB through both Readium toolkits and compare
       pagination.
-- [ ] **5.** Decode an actual page to a bitmap on both platforms, so image
-      decoding stops being *Assumed*.
+- [x] **5.** Decode an actual page to a bitmap on both platforms. Done — 8 tests
+      on iOS, 7 instrumented on Android, same corpus page and same measured
+      results.
 
 The corpus used by all of these lives in `packages/test-fixtures`.
 

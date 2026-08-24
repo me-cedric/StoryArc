@@ -48,3 +48,46 @@ jobs:
           name: android-lint-reports
           path: apps/android/**/build/reports/lint-results-*.html
           retention-days: 7
+
+  instrumented:
+    name: Instrumented tests
+    # Only on main. Booting an emulator costs several minutes, and the
+    # instrumented suite exists for the handful of things that are framework
+    # stubs off-device — image decoding, chiefly. Pull requests stay fast.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Instrumented tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: cd apps/android && ./gradlew :core:format:connectedDebugAndroidTest
+
+      - name: Upload instrumented reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-instrumented-reports
+          path: apps/android/**/build/reports/androidTests/**
+          retention-days: 7

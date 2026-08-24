@@ -136,6 +136,18 @@
       "usesDataDescriptor": true
     },
     {
+      "file": "comics/large-page.cbz",
+      "pins": "a 2000x3000 page: downsampling and memory-bounded decode have something to do",
+      "expectedPageCount": 1,
+      "expectedPageOrder": [
+        "p1.png"
+      ],
+      "pageDimensions": [
+        2000,
+        3000
+      ]
+    },
+    {
       "file": "comics/truncated.cbz",
       "pins": "a truncated archive opens what it can and reports what it skipped",
       "expectedPageCount": null,
@@ -148,6 +160,17 @@
       "pins": "an archive with no images reports zero pages, not an error",
       "expectedPageCount": 0,
       "expectedPageOrder": []
+    }
+  ],
+  "ebooks": [
+    {
+      "file": "ebooks/fixture.epub",
+      "pins": "a valid EPUB 3: mimetype first and STORED, two spine items, a nav document and a cover",
+      "expectedSpineCount": 2,
+      "expectedTitle": "Fixture Publication",
+      "expectedLanguage": "en",
+      "hasNavDocument": true,
+      "hasCoverImage": true
     }
   ]
 }

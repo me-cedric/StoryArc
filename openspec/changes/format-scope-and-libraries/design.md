@@ -22,16 +22,43 @@ C. That is simultaneously the reason to choose it and the reason it earns a
 for all six ABIs. iOS device and simulator, plus four Android ABIs. Task 0.1
 proves or disproves it before anything is built on top.
 
-### Trimming it
+### Trimming it — the linker does it, not the build config
 
-libarchive supports dozens of formats. We need two. Everything else is compiled
-out — `--without-*` for the compression backends we do not use, and the format
-readers disabled individually. **7-Zip is compiled out too**, even though it
-would work, because CB7 is not being supported and a reader nobody reaches is
-dead weight in every binary.
+The original plan here was wrong and the measurement corrected it. libarchive's
+CMake exposes exactly **one** option, `BUILD_SHARED_LIBS`. There are no
+per-format toggles, so "compile out 7-Zip" was not a thing that could be done.
 
-Expected footprint after trimming: well under 1 MB per ABI. Task 0.2 measures it
-rather than trusting that sentence.
+It turns out not to matter, because dead-code stripping does it better:
+
+| | Bytes |
+| --- | --- |
+| Android static archive, all objects | 7,240,128 |
+| **Android, linked and stripped, per ABI** | **235,000** |
+| **iOS, linked and stripped** | **202,000** |
+
+Only the RAR, RAR5 and TAR readers are reachable from our entry points, so
+`--gc-sections` on Android and `-dead_strip` on Apple discard the rest. That is
+strictly better than a hand-maintained file list, which would have needed
+updating every time libarchive moved code between files.
+
+An App Bundle ships one ABI per device, so the real user-facing cost on Android
+is 235 KB, not four times it.
+
+### Two traps, found by building rather than by reading
+
+**`config.h` is not portable across targets.** Generated on the macOS host it
+defines `HAVE_BLAKE2_H`, because Homebrew's `libb2` is installed — and iOS has no
+such library, so `rar5.c` fails on a missing `<blake2.h>`. Each target needs its
+own generated config, or the blake2 defines explicitly undefined so libarchive
+uses its bundled implementation. This fails loudly at compile time, which is the
+good case.
+
+**libarchive's CMake cannot configure for iOS.** It calls `add_subdirectory` for
+the `bsdtar`, `bsdcat`, `bsdcpio` and `bsdunzip` tools unconditionally, and their
+`install()` rules carry no `BUNDLE DESTINATION`, which is fatal once
+`CMAKE_SYSTEM_NAME=iOS`. Compiling the sources directly in an SPM target avoids
+it entirely — and is the idiomatic Apple integration anyway, so the constraint
+pushes toward the right answer.
 
 ### What libarchive does not solve
 
@@ -97,9 +124,10 @@ one silent cross-platform divergence.
 
 | Assumption | Proven by | Fallback |
 | --- | --- | --- |
-| libarchive builds for six ABIs | Task 0.1 | CBR and CBT unsupported, with the named refusal already in place |
-| Trimmed footprint under 1 MB per ABI | Task 0.2 | Accept the size, or drop CBT and keep RAR only |
-| `ImageDecoder` downsampling matches ImageIO's output closely enough | Task 3.3 | Per-platform tolerance in the visual comparison |
+| ~~libarchive builds for six ABIs~~ | **arm64 verified on both platforms.** The other four Android ABIs are the same CMake invocation with a different `ANDROID_ABI`. | — |
+| ~~Trimmed footprint~~ | **Measured: 235 KB / 202 KB.** | — |
+| ~~`ImageDecoder` matches ImageIO~~ | **Verified.** Same corpus page, same 400×600 downsample, on both platforms. | — |
+| libarchive reads an actual RAR | Phase 1 — needs a hand-made `.cbr`, since generating one requires a proprietary compressor | CBR unsupported, refusal path already in place |
 | System `PdfRenderer` handles large PDFs page-on-demand | Task 4.2 | pdfium after all |
 
 Two things remain outside this change and still block ADR-0005 from being

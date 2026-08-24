@@ -6,22 +6,32 @@ rest of this change does not happen.
 
 ## Phase 0 — libarchive integration spike
 
-- [ ] **0.1** Build libarchive for iOS device and simulator, and for the four
-      Android ABIs. Deliverable: it links and reads a real CBR on both platforms,
-      or a clear reason it cannot.
-- [ ] **0.2** Trim the build: disable every format reader except RAR and TAR,
-      **including 7-Zip**, and every compression backend not needed by those.
-      Deliverable: measured bytes per ABI.
-- [ ] **0.3** Confirm the licence and record it verbatim in
-      `THIRD_PARTY_NOTICES.md`, plus a note that its RAR readers are not
-      UnRAR-derived.
+- [x] **0.1a** Build libarchive for iOS device and simulator, and for Android
+      arm64-v8a. **Done** — 131/131 sources compile for both iOS slices, Android
+      builds via CMake + NDK 29, and a real TAR reads correctly with the right
+      entry names, sizes and format identification.
+- [ ] **0.1b** The remaining three Android ABIs. Same CMake invocation with a
+      different `ANDROID_ABI`; mechanical.
+- [ ] **0.1c** Read an actual RAR. Blocked on a hand-made `.cbr` fixture — see 1.1.
+- [x] **0.2** Trim the build. **Done, and the plan was wrong**: libarchive exposes
+      no per-format CMake toggles, so nothing can be "compiled out". Dead-code
+      stripping does it instead — 7.24 MB of objects becomes **235 KB per Android
+      ABI and 202 KB on iOS**, because only the RAR, RAR5 and TAR readers are
+      reachable.
+- [x] **0.3** Confirm the licence. **Done, per file rather than per project**,
+      because libarchive's own `COPYING` warns of "widely varying licensing
+      terms". The three readers we use are all BSD-2-Clause with no UnRAR
+      reference: `rar.c` (Kientzle, Mejia), `rar5.c` (Antoniak), `tar.c`.
+      Recorded in `THIRD_PARTY_NOTICES.md`.
 - [ ] **0.4** Add a `SECURITY.md` entry: libarchive parses untrusted input in C.
       State the mitigation — bounded reads, no allocation from file-supplied
       lengths, and the fact that it is the most audited RAR implementation
       available.
-- [ ] **0.5** Decide how the library is vendored: a binary XCFramework and
-      prebuilt `.so` set, or built from source in CI. Record it, because the
-      answer determines whether a contributor can build the app.
+- [ ] **0.5** Decide how the library is vendored: sources plus a per-target
+      `config.h`, or prebuilt binaries. Phase 0 found that iOS must compile the
+      sources itself — libarchive's CMake cannot configure for iOS — which argues
+      for sources on both sides with a generated config per target. Record it,
+      because the answer determines whether a contributor can build the app.
 
 ## Phase 1 — Fixture corpus
 

@@ -282,7 +282,116 @@ register(
     usesDataDescriptor=True,
 )
 
-# ── 11. Truncated archive ─────────────────────────────────────────────────────
+# ── 11. A large page ─────────────────────────────────────────────────────────
+# 2000x3000 — a realistic comic page dimension. Solid colour, so zlib squeezes it
+# to a couple of kilobytes: the corpus stays tiny while downsampling has
+# something real to do. The 2x3 pages elsewhere cannot exercise it.
+write_archive("large-page.cbz", [("p1.png", png(2000, 3000, hue(5)))])
+register(
+    "large-page.cbz",
+    "a 2000x3000 page: downsampling and memory-bounded decode have something to do",
+    ["p1.png"],
+    pageDimensions=[2000, 3000],
+)
+
+# ── 12. A real EPUB 3 ─────────────────────────────────────────────────────
+# An EPUB is a ZIP with a mandated shape: an uncompressed `mimetype` entry first,
+# then META-INF/container.xml pointing at the package document. Generated rather
+# than borrowed so the corpus stays free of third-party content, and so the
+# Readium comparison has something both platforms parse identically.
+EPUB_CONTAINER = b"""<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/package.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>
+"""
+
+EPUB_PACKAGE = b"""<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="pub-id">urn:uuid:storyarc-fixture-0001</dc:identifier>
+    <dc:title>Fixture Publication</dc:title>
+    <dc:language>en</dc:language>
+    <dc:creator>StoryArc Fixtures</dc:creator>
+    <meta property="dcterms:modified">2026-01-01T00:00:00Z</meta>
+  </metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
+    <item id="ch2" href="ch2.xhtml" media-type="application/xhtml+xml"/>
+    <item id="cover" href="cover.png" media-type="image/png" properties="cover-image"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+    <itemref idref="ch2"/>
+  </spine>
+</package>
+"""
+
+EPUB_NAV = b"""<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Contents</title></head>
+<body>
+  <nav epub:type="toc" id="toc">
+    <ol>
+      <li><a href="ch1.xhtml">Chapter One</a></li>
+      <li><a href="ch2.xhtml">Chapter Two</a></li>
+    </ol>
+  </nav>
+</body>
+</html>
+"""
+
+
+def chapter(number: int, title: str, paragraphs: int) -> bytes:
+    body = "\n".join(
+        f"    <p>Chapter {number}, paragraph {index}. "
+        "Text long enough that pagination has something to do with it.</p>"
+        for index in range(1, paragraphs + 1)
+    )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<html xmlns="http://www.w3.org/1999/xhtml">\n'
+        f"<head><title>{title}</title></head>\n"
+        f"<body>\n    <h1>{title}</h1>\n{body}\n</body>\n</html>\n"
+    ).encode()
+
+
+epub_path = COMICS.parent / "ebooks" / "fixture.epub"
+if WRITE:
+    epub_path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(epub_path, "w") as archive:
+        # `mimetype` must be first and STORED — the one hard requirement in the
+        # EPUB container spec, and a reader that reorders it produces an invalid file.
+        info = zipfile.ZipInfo("mimetype", date_time=(2026, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_STORED
+        archive.writestr(info, b"application/epub+zip")
+        for name, payload in [
+            ("META-INF/container.xml", EPUB_CONTAINER),
+            ("OEBPS/package.opf", EPUB_PACKAGE),
+            ("OEBPS/nav.xhtml", EPUB_NAV),
+            ("OEBPS/ch1.xhtml", chapter(1, "Chapter One", 40)),
+            ("OEBPS/ch2.xhtml", chapter(2, "Chapter Two", 40)),
+            ("OEBPS/cover.png", page(1)),
+        ]:
+            entry = zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0))
+            entry.compress_type = zipfile.ZIP_DEFLATED
+            archive.writestr(entry, payload)
+
+ebooks: list[dict] = [
+    {
+        "file": "ebooks/fixture.epub",
+        "pins": "a valid EPUB 3: mimetype first and STORED, two spine items, a nav document and a cover",
+        "expectedSpineCount": 2,
+        "expectedTitle": "Fixture Publication",
+        "expectedLanguage": "en",
+        "hasNavDocument": True,
+        "hasCoverImage": True,
+    }
+]
+
+# ── 13. Truncated archive ─────────────────────────────────────────────────────
 # The one that matters most. `publication-formats` requires opening what can be
 # read and reporting what was skipped, rather than refusing the publication.
 intact = COMICS / "natural-sort.cbz"
@@ -311,6 +420,7 @@ manifest = {
     "$noHashes": "Deliberately records no file hashes or sizes: DEFLATE output differs between zlib builds, so either would make this manifest machine-specific. The archives are committed, so git pins their bytes; this file pins their meaning.",
     "pageAspect": {"portrait": [PAGE_W, PAGE_H], "spread": [SPREAD_W, SPREAD_H]},
     "comics": fixtures,
+    "ebooks": ebooks,
 }
 
 

@@ -5,7 +5,20 @@ plugins {
 android {
     namespace = "app.storyarc.core.format"
     compileSdk = 37
-    defaultConfig { minSdk = 31 }
+    defaultConfig {
+        minSdk = 31
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // The shared corpus lives outside this module (ADR-0001). Instrumented tests
+    // run on a device, so the fixtures have to travel with the test APK.
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDir(
+                rootProject.layout.projectDirectory.dir("../../packages/test-fixtures")
+            )
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
@@ -38,6 +51,12 @@ dependencies {
     testImplementation(libs.junit)
     // runBlocking, for driving the suspending reader from JVM unit tests.
     testImplementation(libs.kotlinx.coroutines.test)
+
+    androidTestImplementation(libs.androidx.test.junit)
+    // Explicit: androidx.test.ext:junit does not pull the runner in, and the
+    // testInstrumentationRunner above names a class from it.
+    androidTestRuntimeOnly(libs.androidx.test.runner)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
     // Runtime only — the JsonElement API needs no serialization compiler plugin,
     // so reading the fixture manifest costs no build configuration.
     testImplementation(libs.kotlinx.serialization.json)

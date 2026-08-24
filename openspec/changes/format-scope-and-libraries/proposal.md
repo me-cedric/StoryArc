@@ -56,7 +56,7 @@ Recorded in [ADR-0005](../../../docs/decisions/0005-format-and-rendering-librari
 | --- | --- |
 | CBR (RAR4, RAR5) | **libarchive** via FFI, BSD-2-Clause, both platforms |
 | CBT (TAR) | **libarchive**, same integration |
-| CB7 (7-Zip) | **Not supported.** libarchive's 7-Zip reader is compiled out to keep the binary smaller |
+| CB7 (7-Zip) | **Not supported.** The linker drops its reader automatically, since nothing reaches it |
 | PDF, iOS | **PDFKit** — full text layer |
 | PDF, Android | **System `PdfRenderer`** — images only, no text layer |
 | Page decoding, iOS | **ImageIO** |
@@ -81,7 +81,7 @@ reasoning still covers this case.
 
 | Risk | Detail |
 | --- | --- |
-| **libarchive build engineering** | Six ABIs — iOS device and simulator, four Android. Unproven on both platforms; this is the change's only real unknown. |
-| **Binary size** | Roughly 1 MB per ABI. Trimmed by compiling out every format we do not use, 7-Zip included. |
+| **libarchive build engineering** | **Resolved.** arm64 builds and links on both platforms; the remaining four Android ABIs are mechanical. Two traps found and recorded in ADR-0005: `config.h` is not portable across targets, and libarchive's own CMake cannot configure for iOS. |
+| **Binary size** | **Measured: 235 KB per Android ABI, 202 KB on iOS**, linked and stripped — far below the ~1 MB first assumed. Dead-code stripping does the trimming automatically; libarchive exposes no per-format toggles, so the earlier plan to compile 7-Zip out was wrong in mechanism and right in outcome. |
 | **FFI on untrusted input** | libarchive parses hostile bytes in C. It is the most audited RAR implementation available, which is the reason to prefer it, but `SECURITY.md` gains an entry rather than a footnote. |
 | **A platform-conditional requirement** | The first one in the project. Stated in the spec so it is a decision rather than a gap someone discovers. |
