@@ -61,6 +61,10 @@ tasks.withType<Test>().configureEach {
 
 dependencies {
     implementation(project(":core:model"))
+    // Flow, for LibraryScanner. Already a main dependency of :core:model and on
+    // the app's classpath through Compose, so this declares what is used rather
+    // than adding anything to the build.
+    implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit)
     // runBlocking, for driving the suspending reader from JVM unit tests.

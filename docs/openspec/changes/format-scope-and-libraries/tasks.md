@@ -249,6 +249,25 @@ here is RAR, which is the only format that genuinely needs a decoder.
       three-second requirement outright. `contentDigest` exists for the background
       pass that upgrades an identity later, marked `ponytail:` with the cost of not
       having it yet — a moved file loses its place until then.
+- [x] **2.15** **`LibraryScanner`**, which walks a folder and emits publications as
+      it finds them. `local-library` asks for four things at once — progress as a
+      count, browsing what is already found, cancellation, and resumability — and a
+      stream delivers all four rather than three. `AsyncStream` on iOS, `Flow` on
+      Android.
+
+      A directory holding images and no publication files is **itself one
+      publication**; a directory holding publication files is a shelf. Deciding per
+      directory is what lets an unpacked comic sit beside packed ones.
+
+      A refused publication is reported as *found* and marked unopenable, not
+      skipped: the library should list it and say why. Only a file that could not be
+      indexed at all is skipped, and always with a reason a person can act on.
+
+      One real bug, caught by the cancellation test on Android: emitting from inside
+      a broad `catch` swallowed `AbortFlowException`, so a downstream `take` would
+      appear to cancel while the scan carried on and reported the cancellation
+      itself as a skipped file. The emit is now outside the `try` and
+      `CancellationException` is re-thrown.
 
 ## Phase 3 — Page decoding
 

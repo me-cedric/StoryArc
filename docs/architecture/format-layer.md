@@ -30,8 +30,19 @@ ours, both need no dependency, and both feed the library rather than the reader.
 `PublicationIndexer` is the layer's exit: a file in, a `Publication` out, with
 metadata precedence applied — embedded beats a filename guess, field by field, and
 every record says where it came from so an authoritative source can replace it
-without raising a conflict. It is the only type here that mentions the domain's
-`Publication`, and the only one the library layer needs to know about.
+without raising a conflict. `LibraryScanner` walks a folder and emits those as it
+finds them. Between them they are the only types here that mention the domain's
+`Publication`, and the only ones the library layer needs to know about.
+
+The scan emits rather than returns, which is what satisfies four `local-library`
+requirements at once: progress as a count, browsing what is already found,
+cancellation, and resumability from the events already delivered. iOS uses an
+`AsyncStream` and Android a `Flow` — different idioms, same contract.
+
+One rule in the walk is worth knowing: **a directory holding images and no
+publication files is itself one publication**; a directory holding publication
+files is a shelf. Deciding per directory is what lets an unpacked comic sit beside
+packed ones without either being mistaken for the other.
 
 ## The shape
 
