@@ -10,6 +10,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // The vendored libarchive RAR readers, compiled from the same sources SwiftPM
+    // compiles for iOS. One copy under third_party/, referenced rather than
+    // duplicated — see third_party/libarchive/VENDORING.md.
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
+    }
+
     // The shared corpus lives outside this module (ADR-0001). Instrumented tests
     // run on a device, so the fixtures have to travel with the test APK.
     sourceSets {

@@ -199,14 +199,15 @@ class TarComicArchive private constructor(
 /**
  * A CBR.
  *
- * Opens on headers alone: [RarReader] parses names, sizes and flags without a
- * decoder, so indexing works before any C library is linked. What it cannot do is
- * decompress, which shapes the three refusals here.
+ * Indexes on headers alone: [RarReader] parses names, sizes and flags without a
+ * decoder, so a remote CBR is catalogued without downloading it. Reading a
+ * *compressed* page needs [RarDecoder], which is the only place libarchive is used
+ * and the only part that needs a local file.
  *
- * `publication-formats` requires opening what can be read and reporting what was
- * skipped, so an archive with some stored pages opens with those and counts the
- * rest as skipped. An archive with nothing readable is refused by name rather
- * than opened empty.
+ * That split is why this type takes an optional [File]. Given one, every page is
+ * readable. Without one — a remote source not yet downloaded — stored pages read
+ * and compressed pages count as skipped, which is what `publication-formats` means
+ * by opening what can be read and reporting what was not.
  */
 class RarComicArchive private constructor(
     private val source: RandomAccessSource,
@@ -214,6 +215,8 @@ class RarComicArchive private constructor(
     override val pages: List<PageEntry>,
     override val skippedPageCount: Int,
     private val pathToEntry: Map<String, RarEntry>,
+    /** Where the archive lives on disk, when it does. */
+    private val file: File?,
 ) : ComicArchiveReading {
 
     val generation: RarGeneration get() = reader.generation
@@ -228,7 +231,7 @@ class RarComicArchive private constructor(
     val isStreamable: Boolean get() = !reader.isSolid
 
     companion object {
-        suspend fun open(source: RandomAccessSource): RarComicArchive {
+        suspend fun open(source: RandomAccessSource, file: File? = null): RarComicArchive {
             val reader = try {
                 RarReader.open(source)
             } catch (_: RarException.NotRar) {
@@ -254,11 +257,12 @@ class RarComicArchive private constructor(
             val index = mutableMapOf<String, RarEntry>()
             var skipped = 0
 
+            // A compressed entry is readable only with a local file to hand to
+            // libarchive, and only if the native library is actually there.
+            val canDecode = file != null && RarDecoder.isAvailable
             for (entry in reader.entries) {
                 if (!PageOrdering.isPage(entry.path)) continue
-                // A compressed entry is a page we can see and cannot yet read.
-                // Counting it as skipped is what makes the count honest.
-                if (!entry.isStored || entry.size == 0L) {
+                if ((!entry.isStored && !canDecode) || entry.size == 0L) {
                     skipped++
                     continue
                 }
@@ -278,13 +282,32 @@ class RarComicArchive private constructor(
                 pages = PageOrdering.sorted(candidates),
                 skippedPageCount = skipped,
                 pathToEntry = index,
+                file = file,
             )
         }
     }
 
     override suspend fun data(page: PageEntry): ByteArray {
         val entry = pathToEntry[page.path] ?: throw ComicArchiveException.Unreadable()
-        return reader.data(entry)
+        if (entry.isStored) return reader.data(entry)
+        val file = file ?: throw ComicArchiveException.UnsupportedContainer(
+            FormatSniffer.Container.RAR,
+        )
+        return RarDecoder.data(file, entry.path)
+    }
+
+    /**
+     * Every listed page's bytes in one pass over the archive.
+     *
+     * For a solid archive this is the only affordable shape: reading page 30 there
+     * means decompressing 1 to 29, so asking page by page would be quadratic. The
+     * indexer wants this anyway — it needs a cover and a spread check, not one
+     * page.
+     */
+    fun allPageData(): Map<String, ByteArray> {
+        val file = file ?: return emptyMap()
+        if (!RarDecoder.isAvailable) return emptyMap()
+        return RarDecoder.data(file, pages.map { it.path })
     }
 
     override fun close() = source.close()
@@ -317,6 +340,16 @@ object ComicArchiveOpener {
      * plain folder of ordered images as a publication, and from the caller's side
      * opening one is the same action as opening a file.
      */
-    suspend fun open(file: File): ComicArchiveReading =
-        if (file.isDirectory) ImageFolderArchive.open(file) else open(FileSource(file))
+    suspend fun open(file: File): ComicArchiveReading {
+        if (file.isDirectory) return ImageFolderArchive.open(file)
+        val source = FileSource(file)
+        // A local RAR gets its file, which is what lets libarchive decompress a
+        // page. Every other container reads through the source alone.
+        val probe = source.read(0, FormatSniffer.PROBE_LENGTH)
+        return if (FormatSniffer.container(probe) == FormatSniffer.Container.RAR) {
+            RarComicArchive.open(source, file)
+        } else {
+            open(source)
+        }
+    }
 }

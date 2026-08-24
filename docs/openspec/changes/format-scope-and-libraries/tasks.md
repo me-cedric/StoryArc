@@ -85,13 +85,15 @@ rest of this change does not happen.
 CBT does not need libarchive at all, so it shipped first — see 2.6. What is left
 here is RAR, which is the only format that genuinely needs a decoder.
 
-- [x] **2.1** C interop layer, **iOS done**. `RarDecoder` is the whole of
-      libarchive's job: a path in, entry bytes out, with only the two RAR readers
-      registered so no other parser is reachable. `RarComicArchive` now decodes
-      compressed pages when it has a local file, and reports them as skipped when
-      it does not — so a remote CBR still indexes from headers alone.
-      **Android outstanding**: same sources build for all four ABIs, but the JNI
-      bridge is not written yet.
+- [x] **2.1** C interop layer, **both platforms done**. `RarDecoder` is the whole
+      of libarchive's job on each side — a path in, entry bytes out — with only
+      the two RAR readers registered, so no other parser is reachable. iOS goes
+      through SwiftPM's C target; Android through CMake and a JNI shim built for
+      all four ABIs. `RarComicArchive` decodes compressed pages when it has a
+      local file and reports them as skipped when it does not, so a remote CBR
+      still indexes from headers alone. Android also checks that the native
+      library actually loaded, since a missing `.so` is a packaging problem rather
+      than a bad archive and must not be reported as one.
 - [x] **2.2** Read RAR and TAR entries through `RandomAccessSource`. **Done** —
       both readers take a source rather than a file, so indexing a CBR or CBT on
       an SMB share reads headers only.
@@ -254,6 +256,11 @@ Three consequences:
       | Android armeabi-v7a | 412 kB | **137 kB** |
       | Android x86_64 | 456 kB | **146 kB** |
       | Android x86 | 384 kB | **149 kB** |
+
+      And the packaged `libstoryarc_rar.so` that Gradle actually produces,
+      including the JNI shim: arm64-v8a 219 kB, armeabi-v7a 164 kB, x86_64 231 kB,
+      x86 233 kB. Larger than the stripped-binary figures above because a shared
+      library keeps its dynamic symbol table and relocations.
 
       Better than Phase 0's 202 kB on iOS and 235 kB per Android ABI, because 26
       files are vendored rather than 132 — the linker no longer has to strip what
