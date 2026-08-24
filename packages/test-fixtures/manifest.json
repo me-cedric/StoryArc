@@ -248,6 +248,34 @@
         "test6.bin"
       ],
       "note": "Vendored from libarchive 3.8.1's test suite, BSD-2-Clause; see generate.py for why it is not generated. Its entries are .bin, not images, so the page count is zero by design: it pins solid RAR5 parsing and the solid flag, not a solid comic opening."
+    },
+    {
+      "file": "comics/rar4-compressed.cbr",
+      "pins": "RAR4 compression decodes to known bytes, not just to the right length",
+      "expectedPageCount": 0,
+      "expectedPageOrder": [],
+      "actualContainer": "rar4",
+      "isVendored": true,
+      "expectedEntryNames": [
+        "test.txt",
+        "testlink",
+        "testdir/test.txt",
+        "testdir",
+        "testemptydir"
+      ],
+      "note": "Vendored from libarchive 3.8.1's test suite, BSD-2-Clause. Its entries are not images, so the page count is zero by design: it pins decompression against contents known from libarchive's own assertions."
+    },
+    {
+      "file": "comics/rar5-compressed.cbr",
+      "pins": "RAR5 compression decodes to known bytes, not just to the right length",
+      "expectedPageCount": 0,
+      "expectedPageOrder": [],
+      "actualContainer": "rar5",
+      "isVendored": true,
+      "expectedEntryNames": [
+        "test.bin"
+      ],
+      "note": "Vendored from libarchive 3.8.1's test suite, BSD-2-Clause. Its entries are not images, so the page count is zero by design: it pins decompression against contents known from libarchive's own assertions."
     }
   ],
   "ebooks": [

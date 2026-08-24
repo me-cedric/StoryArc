@@ -19,13 +19,27 @@ let package = Package(
         .library(name: "StoryArcCore", targets: ["StoryArcCore"]),
         .library(name: "LibraryFeature", targets: ["LibraryFeature"]),
     ],
+    dependencies: [
+        // The vendored libarchive RAR readers. A path dependency rather than a
+        // copy inside this package: the same sources are compiled by the Android
+        // build, and one copy is the only way that stays true.
+        .package(path: "../../../../third_party/libarchive")
+    ],
     targets: [
         .target(name: "DesignSystem"),
         .target(name: "StoryArcCore"),
-        // No third-party dependency: ADR-0008 replaced ZIPFoundation with our own
-        // ranged-read ZIP reader, so the container parser is ours and inflate
-        // comes from the platform's Compression framework.
-        .target(name: "Formats", dependencies: ["StoryArcCore"]),
+        // ZIP, TAR, RAR headers and PDF are all ours or the platform's: ADR-0008
+        // replaced ZIPFoundation with our own ranged-read ZIP reader, TAR and RAR
+        // headers need no library, and PDF is PDFKit. libarchive is here for one
+        // job only — decompressing a RAR entry, which is the one thing none of
+        // the above can do.
+        .target(
+            name: "Formats",
+            dependencies: [
+                "StoryArcCore",
+                .product(name: "CLibarchive", package: "libarchive"),
+            ]
+        ),
         .target(
             name: "LibraryFeature",
             dependencies: ["DesignSystem", "StoryArcCore"],

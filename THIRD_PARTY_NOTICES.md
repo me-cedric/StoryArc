@@ -91,7 +91,7 @@ two platforms differ here rather than being forced to match.
 
 | Component | Status |
 | --- | --- |
-| **libarchive 3.8.1** (CBR, CBT) | **Verified, not yet integrated.** See the section below for the per-file licence audit. Unused readers are dropped by the linker, not by build config. Parses untrusted input in C; see [SECURITY.md](SECURITY.md). |
+| **libarchive 3.8.1** (CBR only) | **Vendored and integrated on iOS.** 26 of 132 sources under `third_party/libarchive`; see [VENDORING.md](third_party/libarchive/VENDORING.md) for the file list and refresh steps. CBT no longer needs it — TAR is read by our own `TarReader`. Used for one job: decompressing a RAR entry. See the section below for the per-file licence audit. Unreachable readers are not vendored at all, so 106 of libarchive's sources never enter the build; only `format_rar` and `format_rar5` are ever registered. Parses untrusted input in C; see [SECURITY.md](SECURITY.md). |
 | **Readium** (EPUB) | BSD-3-Clause on both platforms. Lands with the EPUB reader. |
 | **Reading fonts** | Literata, Source Serif 4, EB Garamond, Bitter, Atkinson Hyperlegible — all OFL. Land with the theming work. |
 | **UnRAR-derived decoders** | **Rejected**, not deferred. UnrarKit, Unrar.swift and junrar all carry the reference UnRAR licence, which is not OSI-approved and would sit inside an otherwise-MIT repository. libarchive exists precisely so this is unnecessary. |

@@ -168,14 +168,15 @@ public struct TarComicArchive: ComicArchiveReading {
 
 /// A CBR.
 ///
-/// Opens on headers alone: `RarReader` parses names, sizes and flags without a
-/// decoder, so indexing works before any C library is linked. What it cannot do
-/// is decompress, which shapes the three refusals here.
+/// Indexes on headers alone: `RarReader` parses names, sizes and flags without a
+/// decoder, so a remote CBR is catalogued without downloading it. Reading a
+/// *compressed* page needs `RarDecoder`, which is the only place libarchive is
+/// used and the only part that needs a local file.
 ///
-/// `publication-formats` requires opening what can be read and reporting what
-/// was skipped, so an archive with some stored pages opens with those and counts
-/// the rest as skipped. An archive with nothing readable is refused by name
-/// rather than opened empty.
+/// That split is why this type takes an optional URL. Given one, every page is
+/// readable. Without one — a remote source not yet downloaded — stored pages read
+/// and compressed pages count as skipped, which is what `publication-formats`
+/// means by opening what can be read and reporting what was not.
 public struct RarComicArchive: ComicArchiveReading {
     public let pages: [PageEntry]
     public let skippedPageCount: Int
@@ -189,8 +190,12 @@ public struct RarComicArchive: ComicArchiveReading {
 
     private let reader: RarReader
     private let pathToEntry: [String: RarEntry]
+    /// Where the archive lives on disk, when it does. `nil` means compressed
+    /// entries cannot be decoded yet.
+    private let fileURL: URL?
 
-    public init(source: any RandomAccessSource) async throws {
+    public init(source: any RandomAccessSource, fileURL: URL? = nil) async throws {
+        self.fileURL = fileURL
         do {
             self.reader = try await RarReader(source: source)
         } catch RarError.notRar {
@@ -217,9 +222,11 @@ public struct RarComicArchive: ComicArchiveReading {
         var index: [String: RarEntry] = [:]
 
         for entry in reader.entries where PageOrdering.isPage(path: entry.path) {
-            // A compressed entry is a page we can see and cannot yet read.
-            // Counting it as skipped is what makes the count honest.
-            guard entry.isStored, entry.size > 0 else {
+            // A compressed entry is readable only with a local file to hand to
+            // libarchive. Without one it is a page we can see and cannot read, so
+            // it counts as skipped rather than failing later.
+            let readable = entry.isStored || fileURL != nil
+            guard readable, entry.size > 0 else {
                 skipped += 1
                 continue
             }
@@ -241,7 +248,22 @@ public struct RarComicArchive: ComicArchiveReading {
 
     public func data(for page: PageEntry) async throws -> Data {
         guard let entry = pathToEntry[page.path] else { throw ComicArchiveError.unreadable }
-        return try await reader.data(for: entry)
+        if entry.isStored { return try await reader.data(for: entry) }
+        guard let fileURL else { throw ComicArchiveError.unsupportedContainer(.rar) }
+        return try RarDecoder.data(forEntryAt: entry.path, inArchiveAt: fileURL)
+    }
+
+    /// Every listed page's bytes in one pass over the archive.
+    ///
+    /// For a solid archive this is the only affordable shape: reading page 30
+    /// there means decompressing 1 to 29, so asking page by page would be
+    /// quadratic. The indexer wants this anyway — it needs a cover and a spread
+    /// check, not one page.
+    public func allPageData() throws -> [String: Data] {
+        guard let fileURL else { return [:] }
+        return try RarDecoder.data(
+            forEntriesAt: Set(pages.map(\.path)), inArchiveAt: fileURL
+        )
     }
 }
 
@@ -259,6 +281,8 @@ public enum ComicArchiveOpener {
         case .tar:
             return try await TarComicArchive(source: source)
         case .rar:
+            // No URL here, so compressed pages are reported as skipped. The
+            // file-based entry point below passes one.
             return try await RarComicArchive(source: source)
         case .sevenZip, .pdf:
             // `publication-formats` requires a *named* refusal, never a generic
@@ -280,6 +304,13 @@ public enum ComicArchiveOpener {
            isDirectory.boolValue {
             return try ImageFolderArchive(directory: url)
         }
-        return try await open(source: try FileSource(url: url))
+        let source = try FileSource(url: url)
+        let probe = try await source.read(offset: 0, count: FormatSniffer.probeLength)
+        // A local RAR gets its URL, which is what lets libarchive decompress a
+        // page. Every other container reads through the source alone.
+        if FormatSniffer.container(of: probe) == .rar {
+            return try await RarComicArchive(source: source, fileURL: url)
+        }
+        return try await open(source: source)
     }
 }

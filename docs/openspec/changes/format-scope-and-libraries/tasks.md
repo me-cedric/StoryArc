@@ -10,8 +10,10 @@ rest of this change does not happen.
       arm64-v8a. **Done** — 131/131 sources compile for both iOS slices, Android
       builds via CMake + NDK 29, and a real TAR reads correctly with the right
       entry names, sizes and format identification.
-- [ ] **0.1b** The remaining three Android ABIs. Same CMake invocation with a
-      different `ANDROID_ABI`; mechanical.
+- [x] **0.1b** The remaining three Android ABIs. **Done, and all four build from
+      the vendored sources** with NDK 29 and the hand-authored `config.h`: 26/26
+      files compile clean for `aarch64`, `armv7a`, `x86_64` and `i686`. Sizes in
+      6.2.
 - [x] **0.1c** Read an actual RAR. **Done, and no hand-made fixture was needed.**
       libarchive reads a real WinRAR-produced RAR5 `.cbr` — four entries, right
       names and sizes — and reads all three of the store-mode fixtures in 1.1
@@ -30,11 +32,25 @@ rest of this change does not happen.
       **Done** — `SECURITY.md` records RAR and TAR parsing as an untrusted-input
       surface, with the mitigation and the reason libarchive was chosen over the
       UnRAR-derived decoders.
-- [ ] **0.5** Decide how the library is vendored: sources plus a per-target
-      `config.h`, or prebuilt binaries. Phase 0 found that iOS must compile the
-      sources itself — libarchive's CMake cannot configure for iOS — which argues
-      for sources on both sides with a generated config per target. Record it,
-      because the answer determines whether a contributor can build the app.
+- [x] **0.5** Decide how the library is vendored. **Done — copied sources, one
+      hand-authored `config.h`, one copy shared by both builds.** Recorded in
+      [`third_party/libarchive/VENDORING.md`](../../../../third_party/libarchive/VENDORING.md).
+
+      Not prebuilt binaries: iOS has to compile the sources anyway, and six `.a`
+      files plus an `.xcframework` are blobs no reviewer can check against
+      upstream. Not a submodule: `git clone` without `--recursive` would leave an
+      empty directory, and this task's own test is whether a contributor can
+      build the app. Copied sources make plain `git clone` enough; the price is
+      manual CVE tracking, which `VENDORING.md` states rather than hides.
+
+      The sources live in a nested SwiftPM package because SwiftPM will not
+      compile C outside its own package and the files must be shared with the
+      Android build rather than duplicated. `StoryArcKit` depends on it by
+      relative path; `core:format` compiles the same files with CMake.
+
+      **26 of libarchive's 132 sources**, not all of them. The other 106 are
+      parsers and writers for formats StoryArc never opens, and leaving them out
+      is a smaller attack surface rather than only a smaller repository.
 
 ## Phase 1 — Fixture corpus
 
@@ -69,12 +85,13 @@ rest of this change does not happen.
 CBT does not need libarchive at all, so it shipped first — see 2.6. What is left
 here is RAR, which is the only format that genuinely needs a decoder.
 
-- [ ] **2.1** C interop layer per platform, exposing libarchive behind the same
-      `ComicArchiveReading` interface the ZIP reader already implements. Scope
-      narrowed twice: by 2.6, libarchive is not needed for TAR; by 2.7, it is not
-      needed for RAR *headers* either. What is left is one function — packed bytes
-      in, unpacked bytes out — behind `RarReader.data`, which already throws
-      `needsDecoder` at exactly that seam.
+- [x] **2.1** C interop layer, **iOS done**. `RarDecoder` is the whole of
+      libarchive's job: a path in, entry bytes out, with only the two RAR readers
+      registered so no other parser is reachable. `RarComicArchive` now decodes
+      compressed pages when it has a local file, and reports them as skipped when
+      it does not — so a remote CBR still indexes from headers alone.
+      **Android outstanding**: same sources build for all four ABIs, but the JNI
+      bridge is not written yet.
 - [x] **2.2** Read RAR and TAR entries through `RandomAccessSource`. **Done** —
       both readers take a source rather than a file, so indexing a CBR or CBT on
       an SMB share reads headers only.
@@ -227,7 +244,20 @@ Three consequences:
 
 - [ ] **6.1** `pnpm lint`, `pnpm test:ios`, `pnpm test:android`, both app builds,
       `swiftlint --strict`, `./gradlew lint`.
-- [ ] **6.2** Binary size before and after, per ABI, reported not assumed.
+- [x] **6.2** Binary size, per ABI, **reported not assumed**. Measured from the
+      vendored sources with dead-code stripping on, which is what actually ships:
+
+      | Target | Objects | Contribution to a stripped binary |
+      | --- | --- | --- |
+      | Apple arm64 | 1136 kB | **~180 kB** |
+      | Android arm64-v8a | 444 kB | **140 kB** |
+      | Android armeabi-v7a | 412 kB | **137 kB** |
+      | Android x86_64 | 456 kB | **146 kB** |
+      | Android x86 | 384 kB | **149 kB** |
+
+      Better than Phase 0's 202 kB on iOS and 235 kB per Android ABI, because 26
+      files are vendored rather than 132 — the linker no longer has to strip what
+      was never compiled.
 - [ ] **6.3** Open a real CBR, CBT and PDF on a simulator and an emulator, with
       screenshots. A fixture proves parsing; a screenshot proves reading.
 - [ ] **6.4** Update ADR-0005: promote the rows this change proves, and state

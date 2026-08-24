@@ -663,6 +663,54 @@ fixtures.append(
     }
 )
 
+# ── 15c. Compressed RAR, also vendored ───────────────────────────────────────
+# The fixtures that prove the *decoder*, as opposed to the header reader. Same
+# reason as 15b: producing a compressed RAR needs a proprietary compressor.
+#
+# Provenance, both from libarchive 3.8.1's own test suite, BSD-2-Clause:
+#   rar4-compressed.cbr  <- test_read_format_rar.rar
+#   rar5-compressed.cbr  <- test_read_format_rar5_compressed.rar
+#
+# What makes these worth vendoring rather than round-tripping our own output is
+# that their expected *contents* are known independently, from libarchive's test
+# assertions rather than from our decoder:
+#   - rar4's `test.txt` is the exact string "test text document\r\n".
+#   - rar5's `test.bin` is 1200 bytes of a formula: each little-endian 32-bit word
+#     at index i is max(0, k*k - 3*k + 1) for k = i + 1.
+# Asserting against those is a real check on decompression. Asserting against
+# bytes our own decoder produced would only prove it agrees with itself.
+#
+# Their entries are not images, so the page count is zero by design here too.
+for _name, _entries, _pins in [
+    (
+        "rar4-compressed.cbr",
+        ["test.txt", "testlink", "testdir/test.txt", "testdir", "testemptydir"],
+        "RAR4 compression decodes to known bytes, not just to the right length",
+    ),
+    (
+        "rar5-compressed.cbr",
+        ["test.bin"],
+        "RAR5 compression decodes to known bytes, not just to the right length",
+    ),
+]:
+    if ARGS.check and not (COMICS / _name).is_file():
+        raise SystemExit(
+            f"comics/{_name} is missing. It is vendored, not generated — "
+            "restore it from git rather than expecting this script to write it."
+        )
+    fixtures.append(
+        {
+            "file": f"comics/{_name}",
+            "pins": _pins,
+            "expectedPageCount": 0,
+            "expectedPageOrder": [],
+            "actualContainer": "rar4" if _name.startswith("rar4") else "rar5",
+            "isVendored": True,
+            "expectedEntryNames": _entries,
+            "note": "Vendored from libarchive 3.8.1's test suite, BSD-2-Clause. Its entries are not images, so the page count is zero by design: it pins decompression against contents known from libarchive's own assertions.",
+        }
+    )
+
 # ── 16. PDF ──────────────────────────────────────────────────────────────────
 # PDF is its own container: no archive, no entries, a cross-reference table at
 # the end. Both platforms render it with a system framework — PDFKit on iOS,
