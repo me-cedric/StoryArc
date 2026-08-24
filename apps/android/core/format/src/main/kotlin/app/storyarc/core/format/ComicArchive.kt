@@ -22,7 +22,44 @@ interface ComicArchiveReading : AutoCloseable {
     /** Raw bytes for one page. */
     suspend fun data(page: PageEntry): ByteArray
 
+    /**
+     * The page to show as the publication's cover.
+     *
+     * `publication-formats`: the first page in reading order, *unless*
+     * `ComicInfo.xml` designates a different one. Containers that carry no
+     * metadata keep this default.
+     */
+    val coverPage: PageEntry?
+        get() = pages.firstOrNull()
+
     override fun close() {}
+}
+
+/**
+ * Resolves which page is the cover.
+ *
+ * Its own object rather than a method because every container needs the same rule
+ * and only some of them carry the metadata that can change it. Keeping it in one
+ * place is what stops a CBZ and a CBT disagreeing about which page a reader sees
+ * first.
+ */
+object CoverSelection {
+    /**
+     * The designated cover, when one is designated and exists; otherwise the first
+     * page in reading order.
+     *
+     * A designated index outside the page list is ignored rather than clamped.
+     * [ComicInfo]'s indices count *archive* entries, and an archive whose non-page
+     * entries were filtered out can leave a stale index behind — showing an
+     * arbitrary middle page would look like a bug in the reader rather than in the
+     * file.
+     */
+    fun cover(pages: List<PageEntry>, designated: Int?): PageEntry? {
+        if (designated == null || designated < 0 || designated >= pages.size) {
+            return pages.firstOrNull()
+        }
+        return pages[designated]
+    }
 }
 
 sealed class ComicArchiveException(message: String) : Exception(message) {
@@ -71,6 +108,12 @@ class ZipComicArchive private constructor(
      */
     val isRecovered: Boolean,
 ) : ComicArchiveReading {
+
+    /** The archive's parsed metadata, when it carries any. */
+    val comicInfo: ComicInfo? by lazy { comicInfoData?.let(ComicInfo::parse) }
+
+    override val coverPage: PageEntry?
+        get() = CoverSelection.cover(pages, comicInfo?.coverPageIndex)
 
     companion object {
         suspend fun open(source: RandomAccessSource): ZipComicArchive {
@@ -174,6 +217,12 @@ class TarComicArchive private constructor(
     val comicInfoData: ByteArray?,
     private val pathToEntry: Map<String, TarEntry>,
 ) : ComicArchiveReading {
+
+    /** The archive's parsed metadata, when it carries any. */
+    val comicInfo: ComicInfo? by lazy { comicInfoData?.let(ComicInfo::parse) }
+
+    override val coverPage: PageEntry?
+        get() = CoverSelection.cover(pages, comicInfo?.coverPageIndex)
 
     companion object {
         suspend fun open(source: RandomAccessSource): TarComicArchive {

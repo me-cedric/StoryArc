@@ -15,6 +15,8 @@ public struct ImageFolderArchive: ComicArchiveReading {
     public let skippedPageCount: Int
     /// `ComicInfo.xml` contents when the folder carries one.
     public let comicInfoData: Data?
+    /// The folder's parsed metadata, when it carries any.
+    public let comicInfo: ComicInfo?
 
     private let root: URL
 
@@ -65,7 +67,13 @@ public struct ImageFolderArchive: ComicArchiveReading {
 
         self.pages = PageOrdering.sorted(candidates)
         self.skippedPageCount = skipped
-        self.comicInfoData = comicInfo.flatMap { try? Data(contentsOf: $0) }
+        let rawComicInfo = comicInfo.flatMap { try? Data(contentsOf: $0) }
+        self.comicInfoData = rawComicInfo
+        self.comicInfo = rawComicInfo.flatMap(ComicInfo.init(data:))
+    }
+
+    public var coverPage: PageEntry? {
+        CoverSelection.cover(of: pages, designated: self.comicInfo?.coverPageIndex)
     }
 
     public func data(for page: PageEntry) async throws -> Data {

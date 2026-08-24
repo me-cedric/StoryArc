@@ -15,6 +15,37 @@ public protocol ComicArchiveReading: Sendable {
     var skippedPageCount: Int { get }
     /// Raw bytes for one page.
     func data(for page: PageEntry) async throws -> Data
+    /// The page to show as the publication's cover.
+    ///
+    /// `publication-formats`: the first page in reading order, *unless*
+    /// `ComicInfo.xml` designates a different one. Containers that carry no
+    /// metadata get the default from the extension below.
+    var coverPage: PageEntry? { get }
+}
+
+extension ComicArchiveReading {
+    public var coverPage: PageEntry? { pages.first }
+}
+
+/// Resolves which page is the cover.
+///
+/// A free function rather than a method because every container needs the same
+/// rule and only some of them carry the metadata that can change it. Keeping it
+/// in one place is what stops a CBZ and a CBT disagreeing about which page a
+/// reader sees first.
+public enum CoverSelection {
+    /// The designated cover, when one is designated and exists; otherwise the
+    /// first page in reading order.
+    ///
+    /// A designated index that falls outside the page list is ignored rather than
+    /// clamped. `ComicInfo`'s indices count *archive* entries, and an archive whose
+    /// non-page entries were filtered out can leave a stale index behind — showing
+    /// an arbitrary middle page would look like a bug in the reader rather than in
+    /// the file.
+    public static func cover(of pages: [PageEntry], designated index: Int?) -> PageEntry? {
+        guard let index, index >= 0, index < pages.count else { return pages.first }
+        return pages[index]
+    }
 }
 
 public enum ComicArchiveError: Error, Equatable {
@@ -43,6 +74,8 @@ public struct ZipComicArchive: ComicArchiveReading {
     public let skippedPageCount: Int
     /// `ComicInfo.xml` contents when the archive carries one.
     public let comicInfoData: Data?
+    /// The archive's parsed metadata, when it carries any.
+    public let comicInfo: ComicInfo?
     /// True when the archive's index was rebuilt by scanning, because its central
     /// directory was gone. The pages are real; the count may be short.
     public let isRecovered: Bool
@@ -106,10 +139,17 @@ public struct ZipComicArchive: ComicArchiveReading {
         self.skippedPageCount = skipped
         self.pathToEntry = index
         if let comicInfo {
-            self.comicInfoData = try await reader.data(for: comicInfo)
+            let raw = try await reader.data(for: comicInfo)
+            self.comicInfoData = raw
+            self.comicInfo = ComicInfo(data: raw)
         } else {
             self.comicInfoData = nil
+            self.comicInfo = nil
         }
+    }
+
+    public var coverPage: PageEntry? {
+        CoverSelection.cover(of: pages, designated: comicInfo?.coverPageIndex)
     }
 
     public func data(for page: PageEntry) async throws -> Data {
@@ -135,6 +175,8 @@ public struct TarComicArchive: ComicArchiveReading {
     public let skippedPageCount: Int
     /// `ComicInfo.xml` contents when the archive carries one.
     public let comicInfoData: Data?
+    /// The archive's parsed metadata, when it carries any.
+    public let comicInfo: ComicInfo?
 
     private let reader: TarReader
     private let pathToEntry: [String: TarEntry]
@@ -173,10 +215,17 @@ public struct TarComicArchive: ComicArchiveReading {
         self.skippedPageCount = skipped
         self.pathToEntry = index
         if let comicInfo {
-            self.comicInfoData = try await reader.data(for: comicInfo)
+            let raw = try await reader.data(for: comicInfo)
+            self.comicInfoData = raw
+            self.comicInfo = ComicInfo(data: raw)
         } else {
             self.comicInfoData = nil
+            self.comicInfo = nil
         }
+    }
+
+    public var coverPage: PageEntry? {
+        CoverSelection.cover(of: pages, designated: comicInfo?.coverPageIndex)
     }
 
     public func data(for page: PageEntry) async throws -> Data {

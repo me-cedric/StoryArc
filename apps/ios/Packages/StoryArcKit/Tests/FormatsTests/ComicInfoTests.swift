@@ -159,3 +159,70 @@ struct ComicInfoTests {
         #expect(info?.year == nil)
     }
 }
+
+/// Cover selection is its own suite because the rule spans every container: the
+/// first page in reading order, unless `ComicInfo.xml` designates another.
+@Suite("Cover selection")
+struct CoverSelectionTests {
+    @Test("A designated cover wins over the first page")
+    func designatedWins() async throws {
+        let archive = try await ComicArchiveOpener.open(
+            fileAt: FixtureCorpus.url("comics/manga-metadata.cbz")
+        )
+        // The fixture designates index 1, so the second page is the cover.
+        #expect(archive.coverPage?.path == "p2.png")
+        #expect(archive.pages.first?.path == "p1.png")
+    }
+
+    @Test("Without metadata the first page in reading order is the cover", arguments: [
+        "natural-sort.cbz", "tar-store.cbt", "rar5-store.cbr",
+    ])
+    func firstPageByDefault(name: String) async throws {
+        let archive = try await ComicArchiveOpener.open(
+            fileAt: FixtureCorpus.url("comics/\(name)")
+        )
+        #expect(archive.coverPage == archive.pages.first, "\(name)")
+    }
+
+    @Test("Reading order decides, not archive order")
+    func readingOrderNotArchiveOrder() async throws {
+        // natural-sort.cbz stores page10 before page2 in some orderings; the cover
+        // must be page1 either way, because the cover is the first page a reader
+        // sees rather than the first entry a parser meets.
+        let archive = try await ComicArchiveOpener.open(
+            fileAt: FixtureCorpus.url("comics/natural-sort.cbz")
+        )
+        #expect(archive.coverPage?.path == "page1.png")
+    }
+
+    @Test("A designated index outside the page list is ignored, not clamped")
+    func staleIndexIgnored() {
+        let pages = [PageEntry(path: "a.png", byteCount: 1), PageEntry(path: "b.png", byteCount: 1)]
+        // ComicInfo counts archive entries, so filtering out non-page entries can
+        // leave a stale index. An arbitrary middle page would look like a bug in
+        // the reader rather than in the file.
+        #expect(CoverSelection.cover(of: pages, designated: 9)?.path == "a.png")
+        #expect(CoverSelection.cover(of: pages, designated: -1)?.path == "a.png")
+        #expect(CoverSelection.cover(of: pages, designated: 1)?.path == "b.png")
+    }
+
+    @Test("A publication with no pages has no cover")
+    func noPages() async throws {
+        let archive = try await ComicArchiveOpener.open(
+            fileAt: FixtureCorpus.url("comics/no-pages.cbz")
+        )
+        #expect(archive.coverPage == nil)
+    }
+
+    @Test("An EPUB's declared cover is used")
+    func epubCover() async throws {
+        let reader = try await EpubReader(
+            source: try FileSource(url: FixtureCorpus.url("ebooks/fixture.epub"))
+        )
+        #expect(reader.coverHref == "OEBPS/cover.png")
+        // `publication-formats` also says a publication with no declared cover
+        // falls back to rendering the first spine item. That needs a renderer, so
+        // it lands with the reflowable reader — recorded here rather than silently
+        // missing.
+    }
+}

@@ -157,3 +157,64 @@ class ComicInfoTest {
         assertNull(parse("<ComicInfo><Year>MMXXVI</Year></ComicInfo>")?.year)
     }
 }
+
+/**
+ * Cover selection is its own class because the rule spans every container: the
+ * first page in reading order, unless `ComicInfo.xml` designates another.
+ */
+class CoverSelectionTest {
+    @Test
+    fun `a designated cover wins over the first page`() = runTest {
+        ComicArchiveOpener.open(FixtureCorpus.file("comics/manga-metadata.cbz")).use { archive ->
+            // The fixture designates index 1, so the second page is the cover.
+            assertEquals("p2.png", archive.coverPage?.path)
+            assertEquals("p1.png", archive.pages.first().path)
+        }
+    }
+
+    @Test
+    fun `without metadata the first page in reading order is the cover`() = runTest {
+        for (name in listOf("natural-sort.cbz", "tar-store.cbt", "rar5-store.cbr")) {
+            ComicArchiveOpener.open(FixtureCorpus.file("comics/$name")).use { archive ->
+                assertEquals(name, archive.pages.first(), archive.coverPage)
+            }
+        }
+    }
+
+    @Test
+    fun `reading order decides, not archive order`() = runTest {
+        // The cover is the first page a reader sees, not the first entry a parser
+        // meets.
+        ComicArchiveOpener.open(FixtureCorpus.file("comics/natural-sort.cbz")).use { archive ->
+            assertEquals("page1.png", archive.coverPage?.path)
+        }
+    }
+
+    @Test
+    fun `a designated index outside the page list is ignored, not clamped`() {
+        val pages = listOf(PageEntry("a.png", 1), PageEntry("b.png", 1))
+        // ComicInfo counts archive entries, so filtering out non-page entries can
+        // leave a stale index. An arbitrary middle page would look like a bug in
+        // the reader rather than in the file.
+        assertEquals("a.png", CoverSelection.cover(pages, 9)?.path)
+        assertEquals("a.png", CoverSelection.cover(pages, -1)?.path)
+        assertEquals("b.png", CoverSelection.cover(pages, 1)?.path)
+    }
+
+    @Test
+    fun `a publication with no pages has no cover`() = runTest {
+        ComicArchiveOpener.open(FixtureCorpus.file("comics/no-pages.cbz")).use { archive ->
+            assertNull(archive.coverPage)
+        }
+    }
+
+    @Test
+    fun `an epub's declared cover is used`() = runTest {
+        val reader = EpubReader.open(FileSource(FixtureCorpus.file("ebooks/fixture.epub")))
+        assertEquals("OEBPS/cover.png", reader.coverHref)
+        // `publication-formats` also says a publication with no declared cover
+        // falls back to rendering the first spine item. That needs a renderer, so
+        // it lands with the reflowable reader — recorded here rather than silently
+        // missing.
+    }
+}

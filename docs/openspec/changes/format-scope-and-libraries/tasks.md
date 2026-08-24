@@ -215,6 +215,22 @@ here is RAR, which is the only format that genuinely needs a decoder.
       A local header that used a data descriptor declares no size, so `inflate`
       grew a path for an unknown output length: the buffer starts at a multiple of
       the compressed size and doubles while the result exactly fills it.
+- [x] **2.13** **Cover selection**, the rule `publication-formats` states and no
+      container implemented: the first page *in reading order*, unless
+      `ComicInfo.xml` designates another. Now one function shared by every
+      container, so a CBZ and a CBT cannot disagree about which page a reader sees
+      first.
+
+      A designated index outside the page list is **ignored rather than clamped**.
+      `ComicInfo` counts archive entries while the page list has had non-page
+      entries filtered out, so a stale index is a real possibility — and showing an
+      arbitrary middle page would look like a bug in the reader rather than in the
+      file.
+
+      EPUB uses its declared cover. The spec's fallback — render the first spine
+      item when nothing is declared — needs a renderer, so it lands with the
+      reflowable reader; the test says so rather than leaving it silently missing.
+      Lazy extraction is an indexer concern, not a format-layer one.
 
 ## Phase 3 — Page decoding
 

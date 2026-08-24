@@ -22,6 +22,13 @@ class ImageFolderArchive private constructor(
     val comicInfoData: ByteArray?,
 ) : ComicArchiveReading {
 
+    /** The folder's parsed metadata, when it carries any. */
+    val comicInfo: ComicInfo? by lazy { comicInfoData?.let(ComicInfo::parse) }
+
+    override val coverPage: PageEntry?
+        get() = CoverSelection.cover(pages, comicInfo?.coverPageIndex)
+
+
     companion object {
         fun open(directory: File): ImageFolderArchive {
             if (!directory.isDirectory) throw ComicArchiveException.UnrecognisedContainer()
