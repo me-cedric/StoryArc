@@ -268,6 +268,22 @@ here is RAR, which is the only format that genuinely needs a decoder.
       appear to cancel while the scan carried on and reported the cancellation
       itself as a skipped file. The emit is now outside the `try` and
       `CancellationException` is re-thrown.
+- [x] **2.16** **`CoverLoader`**, which is what makes the cover requirement
+      affordable. `publication-formats` asks for the first screen of a 10 000-item
+      scan within three seconds *and* for covers extracted lazily as rows approach
+      the viewport — so indexing records where a cover is and this reads it only
+      when a row is about to be seen. Every load is bounded by the size it will be
+      drawn at, because a 2000×3000 page costs 24 MB of pixels to fill a thumbnail.
+
+      PDF is separated deliberately: its cover is *rendered*, not read, and a caller
+      batching thumbnails should know which it is doing. `anyCover` hides the
+      difference for a grid cell, which has no reason to care.
+
+      **A device-only bug, and the reason the instrumented suite is not optional.**
+      Android's regex engine is ICU rather than the JVM's, and it rejects
+      `\{[^}]*}` where the desktop JVM accepts it — so `FilenameMetadata` passed
+      every unit test and threw `ExceptionInInitializerError` the first time it ran
+      on hardware. A green JVM suite is not evidence that a regex works.
 
 ## Phase 3 — Page decoding
 

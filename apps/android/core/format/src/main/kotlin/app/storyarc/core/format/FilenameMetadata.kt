@@ -27,7 +27,11 @@ data class FilenameMetadata(
     val isInferred: Boolean = true
 
     companion object {
-        private val BRACKETED = listOf(Regex("""\[[^]]*]"""), Regex("""\{[^}]*}"""))
+        // Every metacharacter escaped, including the closing brace and bracket.
+        // Android's ICU regex engine rejects a bare `}` where the desktop JVM
+        // accepts it, so an under-escaped pattern compiles in unit tests and throws
+        // on a device — which is how this was found.
+        private val BRACKETED = listOf(Regex("""\[[^\]]*\]"""), Regex("""\{[^}]*\}"""))
         private val PARENTHESISED_YEAR = Regex("""\((\d{4})\)""")
         private val VOLUME = Regex("""\bv(?:ol)?\.?\s*(\d{1,4})\b""", RegexOption.IGNORE_CASE)
         private val PARENTHESISED_VOLUME = Regex("""\(v(\d{1,4})\)""", RegexOption.IGNORE_CASE)

@@ -182,6 +182,15 @@ Each of these is specified, not accidental:
 | Android's `PdfDocumentReader` has no `hasTextLayer` at all | The platform cannot answer the question, and a property hard-coded to `false` would invite a caller to treat it as an answer |
 | Page-decoding tests are unit tests on iOS, instrumented on Android | ImageIO runs on the macOS host; `ImageDecoder` and `Bitmap` are framework stubs off-device |
 | The RAR decoder is JNI on Android, a SwiftPM C target on iOS | Two build systems, one copy of the sources |
+| Cover loading is one test on iOS and two on Android | The byte-level half is a unit test; decoding to a `Bitmap` needs a device |
+| Android does not read a PDF's page count while indexing | `PdfRenderer` is a framework class, and a folder scan must not need a device |
+
+**A warning the instrumented suite earned.** Android's regex engine is ICU, not
+the JVM's. `\{[^}]*}` compiles on a desktop JVM and throws
+`PatternSyntaxException` on a device, so a filename parser passed every unit test
+and crashed the first time it ran on hardware. Escape every metacharacter in a
+pattern, including closing braces and brackets, and do not treat a green JVM suite
+as evidence that a regex works.
 
 [ADR-0001]: ../decisions/0001-independent-native-cores.md
 [ADR-0005]: ../decisions/0005-format-and-rendering-libraries.md
