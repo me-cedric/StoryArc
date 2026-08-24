@@ -836,6 +836,99 @@ fixtures.append(
     }
 )
 
+# ── 14b. ComicInfo.xml, fully populated ──────────────────────────────────────
+# `publication-formats` requires thirteen fields out of ComicInfo.xml, plus a
+# reading direction, plus the right to designate a cover that is not page 1.
+# `non-image-entries.cbz` carries a minimal ComicInfo to prove it is excluded from
+# the page list; this one exists to be *read*.
+#
+# Deliberately a manga, because the reading-direction rule is the part with real
+# logic in it: an explicit declaration wins, and Japanese with nothing declared
+# opens right-to-left.
+MANGA_COMIC_INFO = b"""<?xml version="1.0" encoding="utf-8"?>
+<ComicInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Series>Fixture Manga</Series>
+  <Number>3</Number>
+  <Volume>2</Volume>
+  <Title>The Third Chapter</Title>
+  <Summary>A summary with an &amp; in it, to prove entities are decoded.</Summary>
+  <Writer>First Writer, Second Writer</Writer>
+  <Penciller>A Penciller</Penciller>
+  <Publisher>Fixture Press</Publisher>
+  <Year>2026</Year>
+  <Month>1</Month>
+  <Day>15</Day>
+  <PageCount>4</PageCount>
+  <LanguageISO>ja</LanguageISO>
+  <Manga>YesAndRightToLeft</Manga>
+  <Pages>
+    <Page Image="0" Type="Story"/>
+    <Page Image="1" Type="FrontCover"/>
+    <Page Image="2" Type="Story" DoublePage="true"/>
+    <Page Image="3" Type="Story"/>
+  </Pages>
+</ComicInfo>
+"""
+
+write_archive(
+    "manga-metadata.cbz",
+    [("ComicInfo.xml", MANGA_COMIC_INFO)]
+    + [(f"p{index}.png", page(index)) for index in range(1, 5)],
+)
+register(
+    "manga-metadata.cbz",
+    "every ComicInfo field the spec names is read, including a cover that is not page 1",
+    ["p1.png", "p2.png", "p3.png", "p4.png"],
+    hasComicInfo=True,
+    expectedSeries="Fixture Manga",
+    expectedComicInfo={
+        "series": "Fixture Manga",
+        "number": "3",
+        "volume": 2,
+        "title": "The Third Chapter",
+        "summary": "A summary with an & in it, to prove entities are decoded.",
+        "writers": ["First Writer", "Second Writer"],
+        "penciller": "A Penciller",
+        "publisher": "Fixture Press",
+        "year": 2026,
+        "month": 1,
+        "day": 15,
+        "pageCount": 4,
+        "language": "ja",
+        "readingDirection": "rightToLeft",
+        # Page 2 in reading order, so index 1. `publication-formats` lets
+        # ComicInfo override the default of "first page in reading order".
+        "coverPageIndex": 1,
+        "doublePageIndices": [2],
+    },
+)
+
+# The direction rule has three branches, and only one of them is a declaration.
+# This fixture takes the second: nothing declared, Japanese language.
+JAPANESE_NO_DIRECTION = b"""<?xml version="1.0" encoding="utf-8"?>
+<ComicInfo>
+  <Series>Undeclared Direction</Series>
+  <LanguageISO>ja-JP</LanguageISO>
+</ComicInfo>
+"""
+
+write_archive(
+    "japanese-no-direction.cbz",
+    [("ComicInfo.xml", JAPANESE_NO_DIRECTION), ("p1.png", page(1))],
+)
+register(
+    "japanese-no-direction.cbz",
+    "Japanese with no declared direction opens right-to-left",
+    ["p1.png"],
+    hasComicInfo=True,
+    expectedSeries="Undeclared Direction",
+    expectedComicInfo={
+        "series": "Undeclared Direction",
+        "language": "ja-JP",
+        "readingDirection": "rightToLeft",
+    },
+)
+
 # ── 15b. The solid RAR5 fixture, vendored rather than generated ──────────────
 # The one fixture in the corpus this script does not write. Solid means nothing
 # without compression, and a RAR *compressor* is proprietary, so an honest solid

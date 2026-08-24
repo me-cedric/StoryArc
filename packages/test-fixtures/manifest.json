@@ -235,6 +235,57 @@
       "note": "Detection fires on the 7z signature before any entry is read, so this fixture carries a valid empty 7z header and no pages."
     },
     {
+      "file": "comics/manga-metadata.cbz",
+      "pins": "every ComicInfo field the spec names is read, including a cover that is not page 1",
+      "expectedPageCount": 4,
+      "expectedPageOrder": [
+        "p1.png",
+        "p2.png",
+        "p3.png",
+        "p4.png"
+      ],
+      "hasComicInfo": true,
+      "expectedSeries": "Fixture Manga",
+      "expectedComicInfo": {
+        "series": "Fixture Manga",
+        "number": "3",
+        "volume": 2,
+        "title": "The Third Chapter",
+        "summary": "A summary with an & in it, to prove entities are decoded.",
+        "writers": [
+          "First Writer",
+          "Second Writer"
+        ],
+        "penciller": "A Penciller",
+        "publisher": "Fixture Press",
+        "year": 2026,
+        "month": 1,
+        "day": 15,
+        "pageCount": 4,
+        "language": "ja",
+        "readingDirection": "rightToLeft",
+        "coverPageIndex": 1,
+        "doublePageIndices": [
+          2
+        ]
+      }
+    },
+    {
+      "file": "comics/japanese-no-direction.cbz",
+      "pins": "Japanese with no declared direction opens right-to-left",
+      "expectedPageCount": 1,
+      "expectedPageOrder": [
+        "p1.png"
+      ],
+      "hasComicInfo": true,
+      "expectedSeries": "Undeclared Direction",
+      "expectedComicInfo": {
+        "series": "Undeclared Direction",
+        "language": "ja-JP",
+        "readingDirection": "rightToLeft"
+      }
+    },
+    {
       "file": "comics/rar5-solid.cbr",
       "pins": "a solid RAR5 parses completely, unlike a solid RAR4",
       "expectedPageCount": 0,

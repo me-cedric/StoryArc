@@ -24,6 +24,9 @@ across the two on purpose, so a reviewer can diff them by eye.
 Page bytes are then decoded by `PageDecoder`, which is ImageIO on Apple and
 `ImageDecoder` on Android — the platform in both cases ([ADR-0005]).
 
+Metadata comes from `ComicInfo` for comics and `EpubReader` for books. Both are
+ours, both need no dependency, and both feed the library rather than the reader.
+
 ## The shape
 
 ```

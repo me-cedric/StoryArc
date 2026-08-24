@@ -156,6 +156,24 @@ here is RAR, which is the only format that genuinely needs a decoder.
 
       Four new fixtures: EPUB 3, EPUB 2, fixed-layout, and one with no package
       document — which is refused by name rather than opened as an empty book.
+- [x] **2.10** **`ComicInfo.xml`, parsed rather than merely excluded.** The archive
+      readers already pulled the bytes out; nothing read them. `ComicInfo` reads
+      every field `publication-formats` names — series, number, volume, title,
+      summary, writer, penciller, publisher, release date, page count, language —
+      plus the two parts of the `<Pages>` list that change behaviour: a designated
+      cover that is not page 1, and explicitly-marked double-page spreads, which
+      are believed in preference to `PageDecoder.isSpread`'s aspect-ratio guess.
+
+      Reading direction resolves through the domain's existing
+      `ReadingDirection.inferred`, so the format layer does not get a second
+      opinion. `Manga=YesAndRightToLeft` declares right-to-left and `Manga=No`
+      declares left-to-right, but **`Manga=Yes` declares nothing** — it says the
+      publication is manga, not which way it reads, and translated manga is
+      routinely left-to-right — so it falls through to the language rule. All three
+      branches are tested.
+
+      Issue number stays a string: "3.5" and "Annual 1" are both real, and turning
+      either into a number loses the publication's identity.
 
 ## Phase 3 — Page decoding
 
