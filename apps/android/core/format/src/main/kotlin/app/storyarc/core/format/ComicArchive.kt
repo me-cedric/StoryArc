@@ -121,6 +121,71 @@ class ZipComicArchive private constructor(
     override fun close() = source.close()
 }
 
+
+/**
+ * A CBT. TAR carries no compression and no encryption, so opening one is header
+ * parsing and nothing else — see [TarReader] for why this needs no C.
+ */
+class TarComicArchive private constructor(
+    private val source: RandomAccessSource,
+    private val reader: TarReader,
+    override val pages: List<PageEntry>,
+    override val skippedPageCount: Int,
+    /** `ComicInfo.xml` contents when the archive carries one. */
+    val comicInfoData: ByteArray?,
+    private val pathToEntry: Map<String, TarEntry>,
+) : ComicArchiveReading {
+
+    companion object {
+        suspend fun open(source: RandomAccessSource): TarComicArchive {
+            val reader = try {
+                TarReader.open(source)
+            } catch (_: TarException.NotTar) {
+                throw ComicArchiveException.UnrecognisedContainer()
+            } catch (_: TarException.Malformed) {
+                throw ComicArchiveException.Unreadable()
+            }
+
+            val candidates = mutableListOf<PageEntry>()
+            val index = mutableMapOf<String, TarEntry>()
+            var skipped = 0
+            var comicInfo: TarEntry? = null
+
+            for (entry in reader.entries) {
+                if (entry.path.lowercase().endsWith("comicinfo.xml")) {
+                    comicInfo = entry
+                    continue
+                }
+                if (!PageOrdering.isPage(entry.path)) continue
+                // A zero-length entry is a page that will never decode. Counting
+                // it as skipped is what lets the reader say "opened 10, skipped 2".
+                if (entry.size == 0L) {
+                    skipped++
+                    continue
+                }
+                candidates += PageEntry(entry.path, entry.size)
+                index[entry.path] = entry
+            }
+
+            return TarComicArchive(
+                source = source,
+                reader = reader,
+                pages = PageOrdering.sorted(candidates),
+                skippedPageCount = skipped,
+                comicInfoData = comicInfo?.let { reader.data(it) },
+                pathToEntry = index,
+            )
+        }
+    }
+
+    override suspend fun data(page: PageEntry): ByteArray {
+        val entry = pathToEntry[page.path] ?: throw ComicArchiveException.Unreadable()
+        return reader.data(entry)
+    }
+
+    override fun close() = source.close()
+}
+
 /** Opens whatever a file turns out to be. */
 object ComicArchiveOpener {
     /** Sniffs the container, then opens it. Extension is never trusted. */
@@ -128,9 +193,11 @@ object ComicArchiveOpener {
         val probe = source.read(0, FormatSniffer.PROBE_LENGTH)
         return when (val container = FormatSniffer.container(probe)) {
             FormatSniffer.Container.ZIP -> ZipComicArchive.open(source)
-            // ADR-0005: the RAR decoder needs a licence review before it ships,
-            // and CB7 needs a spike. Naming the container the user actually has
-            // is more useful than a generic failure.
+            FormatSniffer.Container.TAR -> TarComicArchive.open(source)
+            // `publication-formats` requires a *named* refusal, never a generic
+            // parse failure — `Container.displayName` is what carries the name.
+            // RAR needs a decoder (ADR-0005), 7-Zip is out of scope, and PDF has
+            // its own reader rather than an archive one.
             FormatSniffer.Container.RAR,
             FormatSniffer.Container.SEVEN_ZIP,
             FormatSniffer.Container.PDF,

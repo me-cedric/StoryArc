@@ -63,17 +63,34 @@ rest of this change does not happen.
 
 ## Phase 2 — Format layer
 
+CBT does not need libarchive at all, so it shipped first — see 2.6. What is left
+here is RAR, which is the only format that genuinely needs a decoder.
+
 - [ ] **2.1** C interop layer per platform, exposing libarchive behind the same
-      `ComicArchiveReading` interface the ZIP reader already implements.
+      `ComicArchiveReading` interface the ZIP reader already implements. Scope
+      narrowed by 2.6: libarchive is now needed for RAR decompression only, not
+      for TAR.
 - [ ] **2.2** Read RAR and TAR entries through `RandomAccessSource`, so remote
       sources work wherever the container allows it.
 - [ ] **2.3** Detect solid RAR and record the publication as non-streamable at
       index time, per the new `Streaming capability per format` requirement.
       **Read the finding below first**: for RAR4 the honest outcome is stronger
       than non-streamable, and detection cannot be delegated to libarchive.
-- [ ] **2.4** Remove CB7 from the supported set; assert the named refusal.
+- [x] **2.4** Remove CB7 from the supported set; assert the named refusal.
+      **Done** — `Container.displayName` carries the name on both platforms, so a
+      7-Zip comic is refused as "7-Zip" rather than as a parse failure.
 - [ ] **2.5** Mirror the tests on both platforms against the same fixtures, as
-      the ZIP layer does.
+      the ZIP layer does. Done for TAR; outstanding for RAR.
+- [x] **2.6** **CBT, with no C at all.** TAR is 512-byte blocks with fixed-offset
+      ASCII fields — no compression, no central directory, no bit-packing — so
+      `TarReader` is written on both platforms for the same reason ADR-0008 gives
+      for the ZIP reader. Reads go through `RandomAccessSource`, so indexing a CBT
+      on an SMB share fetches one 512-byte header per entry instead of the file.
+      GNU long names and pax `path=` records are handled, every header checksum is
+      verified, and a header claiming more bytes than the file holds yields no
+      entry. Format sniffing now reads 265 bytes rather than 8, because TAR's
+      magic sits at offset 257 and one 265-byte read is the same single round trip.
+      iOS: 86 tests pass. Android: 73 pass.
 
 ## Phase 3 — Page decoding
 

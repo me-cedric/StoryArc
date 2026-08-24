@@ -102,6 +102,63 @@ public struct ZipComicArchive: ComicArchiveReading {
     }
 }
 
+/// A CBT. TAR carries no compression and no encryption, so opening one is
+/// header parsing and nothing else — see `TarReader` for why this needs no C.
+public struct TarComicArchive: ComicArchiveReading {
+    public let pages: [PageEntry]
+    public let skippedPageCount: Int
+    /// `ComicInfo.xml` contents when the archive carries one.
+    public let comicInfoData: Data?
+
+    private let reader: TarReader
+    private let pathToEntry: [String: TarEntry]
+
+    public init(source: any RandomAccessSource) async throws {
+        do {
+            self.reader = try await TarReader(source: source)
+        } catch TarError.notTar {
+            throw ComicArchiveError.unrecognisedContainer
+        } catch {
+            throw ComicArchiveError.unreadable
+        }
+
+        var candidates: [PageEntry] = []
+        var skipped = 0
+        var comicInfo: TarEntry?
+        var index: [String: TarEntry] = [:]
+
+        for entry in reader.entries {
+            if entry.path.lowercased().hasSuffix("comicinfo.xml") {
+                comicInfo = entry
+                continue
+            }
+            guard PageOrdering.isPage(path: entry.path) else { continue }
+            // A zero-length entry is a page that will never decode. Counting it
+            // as skipped is what lets the reader say "opened 10, skipped 2".
+            if entry.size == 0 {
+                skipped += 1
+                continue
+            }
+            candidates.append(PageEntry(path: entry.path, byteCount: Int(entry.size)))
+            index[entry.path] = entry
+        }
+
+        self.pages = PageOrdering.sorted(candidates)
+        self.skippedPageCount = skipped
+        self.pathToEntry = index
+        if let comicInfo {
+            self.comicInfoData = try await reader.data(for: comicInfo)
+        } else {
+            self.comicInfoData = nil
+        }
+    }
+
+    public func data(for page: PageEntry) async throws -> Data {
+        guard let entry = pathToEntry[page.path] else { throw ComicArchiveError.unreadable }
+        return try await reader.data(for: entry)
+    }
+}
+
 /// Opens whatever a file turns out to be.
 public enum ComicArchiveOpener {
     /// Sniffs the container, then opens it. Extension is never trusted.
@@ -113,10 +170,13 @@ public enum ComicArchiveOpener {
         switch container {
         case .zip:
             return try await ZipComicArchive(source: source)
+        case .tar:
+            return try await TarComicArchive(source: source)
         case .rar, .sevenZip, .pdf:
-            // ADR-0005: the RAR decoder needs a licence review before it ships,
-            // and CB7 needs a spike. Naming the container the user actually has
-            // is more useful than a generic failure.
+            // `publication-formats` requires a *named* refusal, never a generic
+            // parse failure — `Container.displayName` is what carries the name.
+            // RAR needs a decoder (ADR-0005), 7-Zip is out of scope, and PDF has
+            // its own reader rather than an archive one.
             throw ComicArchiveError.unsupportedContainer(container)
         }
     }

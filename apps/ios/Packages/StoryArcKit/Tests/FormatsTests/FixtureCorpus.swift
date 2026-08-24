@@ -37,6 +37,9 @@ enum FixtureCorpus {
         let hasComicInfo: Bool?
         let expectedSeries: String?
         let spreadIndices: [Int]?
+        let isSolid: Bool?
+        let isStreamable: Bool?
+        let expectedRefusal: String?
     }
 
     private struct Manifest: Decodable { let comics: [Fixture] }

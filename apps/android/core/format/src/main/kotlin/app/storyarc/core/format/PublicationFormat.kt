@@ -27,18 +27,43 @@ enum class PublicationFormat {
 /** What a file's leading bytes say it is, regardless of its name. */
 object FormatSniffer {
     /**
-     * Longest signature we need to see. Reading more than this is wasted I/O,
-     * which matters when the file is on the far end of an SMB share.
+     * Longest signature we need to see.
+     *
+     * TAR sets the floor: its `ustar` magic sits at offset 257, where every
+     * other container announces itself in the first eight bytes. 265 bytes is
+     * still one round trip on an SMB share, which is the cost that matters —
+     * reading 8 instead would save nothing and lose CBT detection.
      */
-    const val PROBE_LENGTH = 8
+    const val PROBE_LENGTH = 265
 
-    enum class Container { ZIP, RAR, SEVEN_ZIP, PDF }
+    enum class Container {
+        ZIP, RAR, SEVEN_ZIP, PDF, TAR,
+        ;
+
+        /**
+         * How the container is named to the user when StoryArc refuses it.
+         *
+         * `publication-formats` forbids a generic parse failure: someone handed
+         * a 7-Zip comic to a comic reader and deserves to be told that, not that
+         * the file is broken. These are format names rather than prose, so the
+         * localised string wraps them.
+         */
+        val displayName: String
+            get() = when (this) {
+                ZIP -> "ZIP"
+                RAR -> "RAR"
+                SEVEN_ZIP -> "7-Zip"
+                PDF -> "PDF"
+                TAR -> "TAR"
+            }
+    }
 
     private val ZIP = byteArrayOf(0x50, 0x4B)
     private val RAR4 = byteArrayOf(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00)
     private val RAR5 = byteArrayOf(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00)
     private val SEVEN_ZIP = byteArrayOf(0x37, 0x7A, 0xBC.toByte(), 0xAF.toByte(), 0x27, 0x1C)
     private val PDF = byteArrayOf(0x25, 0x50, 0x44, 0x46)
+    private val USTAR = byteArrayOf(0x75, 0x73, 0x74, 0x61, 0x72) // at offset 257, not 0
 
     /**
      * The container a byte prefix identifies, or `null` when nothing matches.
@@ -57,8 +82,12 @@ object FormatSniffer {
             startsWith(SEVEN_ZIP) -> Container.SEVEN_ZIP
             startsWith(PDF) -> Container.PDF
             startsWith(ZIP) -> Container.ZIP
-            // TAR has no leading magic — its signature sits at offset 257 — so a
-            // `.cbt` is identified by extension and confirmed by a successful parse.
+            // TAR announces itself at offset 257 rather than at the start, so it
+            // is checked last and only when the probe reached that far.
+            prefix.size >= TarReader.MAGIC_OFFSET + USTAR.size &&
+                USTAR.indices.all { prefix[TarReader.MAGIC_OFFSET + it] == USTAR[it] } ->
+                Container.TAR
+
             else -> null
         }
     }

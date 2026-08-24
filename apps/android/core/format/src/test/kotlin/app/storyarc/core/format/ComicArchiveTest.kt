@@ -151,9 +151,15 @@ class FormatSnifferTest {
     }
 
     @Test
-    fun `only the first few bytes are read, so probing a remote file is cheap`() {
-        // The value matters: `network-share` requires opening a 400 MB archive
-        // over SMB without transferring it, and sniffing is the first read.
-        assertTrue(FormatSniffer.PROBE_LENGTH <= 16)
+    fun `probing a remote file stays a single small read`() {
+        // `network-share` requires opening a 400 MB archive over SMB without
+        // transferring it, and sniffing is the first read. What costs money is
+        // the round trip, not the byte count — 265 bytes and 8 bytes are the same
+        // single SMB read, and 265 is the floor because TAR puts its magic at
+        // offset 257. A whole 4 KB page would still be one round trip, so this
+        // bound exists to catch a probe that starts scanning the file rather than
+        // reading its head.
+        assertTrue(FormatSniffer.PROBE_LENGTH <= 512)
+        assertTrue(FormatSniffer.PROBE_LENGTH >= TarReader.MAGIC_OFFSET + 5)
     }
 }

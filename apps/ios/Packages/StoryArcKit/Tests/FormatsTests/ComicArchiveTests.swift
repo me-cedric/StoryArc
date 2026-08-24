@@ -25,6 +25,8 @@ struct ComicArchiveTests {
         "zip64.cbz",
         "archive-comment.cbz",
         "data-descriptor.cbz",
+        "tar-store.cbt",
+        "tar-nested-chapters.cbt",
     ])
     func matchesManifest(name: String) async throws {
         let fixture = FixtureCorpus.comic(name)
@@ -127,10 +129,16 @@ struct FormatSnifferTests {
         }
     }
 
-    @Test("Only the first few bytes are read, so probing a remote file is cheap")
+    @Test("Probing a remote file stays a single small read")
     func probeIsBounded() {
-        // The value matters: `network-share` requires opening a 400 MB archive
-        // over SMB without transferring it, and sniffing is the first read.
-        #expect(FormatSniffer.probeLength <= 16)
+        // `network-share` requires opening a 400 MB archive over SMB without
+        // transferring it, and sniffing is the first read. What costs money is
+        // the round trip, not the byte count — 265 bytes and 8 bytes are the
+        // same single SMB read, and 265 is the floor because TAR puts its magic
+        // at offset 257. A whole 4 KB page would still be one round trip, so
+        // this bound exists to catch a probe that starts scanning the file
+        // rather than reading its head.
+        #expect(FormatSniffer.probeLength <= 512)
+        #expect(FormatSniffer.probeLength >= TarReader.magicOffset + 5)
     }
 }
