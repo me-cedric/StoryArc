@@ -1,0 +1,62 @@
+import Foundation
+import Testing
+
+/// Locates the shared fixture corpus at `packages/test-fixtures`.
+///
+/// The corpus lives outside this SPM package on purpose — both platforms read
+/// the same files, which is what stops the two implementations from quietly
+/// disagreeing about what a correct parse is (ADR-0001). SPM cannot declare a
+/// resource outside its own root, so the path is resolved from `#filePath` at
+/// runtime instead of being copied in.
+enum FixtureCorpus {
+    /// Walks up from this file until it finds the repository root.
+    static let root: URL = {
+        var dir = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        while dir.path != "/" {
+            let corpus = dir.appending(path: "packages/test-fixtures")
+            if FileManager.default.fileExists(atPath: corpus.appending(path: "manifest.json").path) {
+                return corpus
+            }
+            dir = dir.deletingLastPathComponent()
+        }
+        fatalError("fixture corpus not found — expected packages/test-fixtures above \(#filePath)")
+    }()
+
+    static func url(_ relativePath: String) -> URL {
+        root.appending(path: relativePath)
+    }
+
+    /// One entry from `manifest.json`, which records what a correct parse yields.
+    struct Fixture: Decodable {
+        let file: String
+        let pins: String
+        let expectedPageCount: Int?
+        let expectedPageOrder: [String]?
+        let isRecoverable: Bool?
+        let actualContainer: String?
+        let hasComicInfo: Bool?
+        let expectedSeries: String?
+        let spreadIndices: [Int]?
+    }
+
+    private struct Manifest: Decodable { let comics: [Fixture] }
+
+    static let comics: [Fixture] = {
+        do {
+            let data = try Data(contentsOf: url("manifest.json"))
+            return try JSONDecoder().decode(Manifest.self, from: data).comics
+        } catch {
+            // The corpus is a build input, not a runtime condition. If it cannot
+            // be read the test run is meaningless, so failing loudly here beats
+            // every fixture test reporting its own confusing error.
+            fatalError("could not read the fixture manifest: \(error)")
+        }
+    }()
+
+    static func comic(_ name: String) -> Fixture {
+        guard let match = comics.first(where: { $0.file == "comics/\(name)" }) else {
+            fatalError("no fixture named \(name) in manifest.json")
+        }
+        return match
+    }
+}

@@ -1,6 +1,6 @@
 # ADR-0005 — Format and rendering libraries per platform
 
-- **Status:** Proposed — every row marked *Assumed* needs a spike before it is Accepted
+- **Status:** Proposed — the ZIP rows are now *Known*; every remaining *Assumed* row needs a spike before this is Accepted
 - **Date:** 2026-08-24
 - **Deciders:** Cédric Meyer
 
@@ -25,10 +25,10 @@ been proven in a spike. Nothing here is *Known* until a spike says so.
 | --- | --- | --- | --- |
 | EPUB, reflowable + fixed-layout | **Readium Swift toolkit** 3.11.x, via SPM | BSD-3-Clause | Known — actively maintained, SPM-distributed, covers ebooks, audiobooks and comics |
 | PDF | **PDFKit** (system) | Apple SDK | Known |
-| ZIP (CBZ, EPUB container) | **ZIPFoundation** | MIT | Assumed |
+| ZIP (CBZ, EPUB container) | **ZIPFoundation** 0.9.20, via SPM | MIT — read from the repository | **Known** — opens all 8 corpus fixtures; see caveat below |
 | RAR (CBR) | **Unrar.swift**, or UnrarKit | Swift parts MIT; bundled UnRAR source carries its own licence | Assumed — **licence review required before use**, see risk below |
 | 7-Zip (CB7), TAR (CBT) | **SWCompression** | MIT | Assumed — documented to read ZIP, TAR and 7-Zip; no RAR |
-| Image decoding | **ImageIO** / `CGImageSource` (system) | Apple SDK | Known — incremental decode and downsampling without a dependency |
+| Image decoding | **ImageIO** / `CGImageSource` (system) | Apple SDK | Assumed — the API is certain, but no page has been decoded to a bitmap yet |
 | SMB | **SMBClient** (kishikawakatsumi), pure Swift, SMB 2 | MIT | Assumed — SMB 3 encryption support to be confirmed in the spike |
 
 ### Android
@@ -37,7 +37,8 @@ been proven in a spike. Nothing here is *Known* until a spike says so.
 | --- | --- | --- | --- |
 | EPUB, reflowable + fixed-layout | **Readium Kotlin toolkit** 3.3.x, via Maven Central | BSD-3-Clause | Known |
 | PDF | **PdfRenderer** (system) or **pdfium-android** | Apache-2.0 / BSD | Assumed — system `PdfRenderer` first; pdfium only if it proves inadequate |
-| ZIP, TAR, 7-Zip | **Apache Commons Compress** | Apache-2.0 | Assumed |
+| ZIP | **`java.util.zip.ZipFile`** (standard library) | — | **Known** — opens all 8 corpus fixtures. No dependency needed. |
+| TAR, 7-Zip | **Apache Commons Compress** | Apache-2.0 | Assumed |
 | RAR | **junrar** | UnRAR-derived | Assumed — **licence review required**, see risk below |
 | Image decoding | **Coil 3** over the platform decoders | Apache-2.0 | Assumed |
 | SMB | **smbkotlin**, or **smbj** | to confirm | Assumed — smbkotlin advertises coroutine-based SMB 3 with no native dependency on API 26+; smbj is the conservative fallback |
@@ -51,6 +52,34 @@ been proven in a spike. Nothing here is *Known* until a spike says so.
 - **Rolling our own EPUB engine.** Readium exists on both platforms, is
   maintained, and is BSD-licensed. Writing one would be the single largest and
   least differentiated piece of work in the project.
+
+## What the first slice actually proved
+
+The ZIP path is implemented on both platforms and asserted against the shared
+corpus in `packages/test-fixtures` — 23 tests per platform, reading the same
+`manifest.json`. That promoted three rows out of *Assumed*, and changed one
+choice outright.
+
+**Android needs no ZIP dependency.** `java.util.zip.ZipFile` is in the standard
+library, so Commons Compress is now only on the hook for TAR and 7-Zip. The
+asymmetry with iOS — which needs ZIPFoundation because Apple platforms ship no
+ZIP container reader — is real and worth knowing rather than smoothing over.
+
+**Two caveats that are not yet resolved:**
+
+1. **Neither reader does ranged reads.** `network-share` requires rendering page
+   one of a 400 MB archive without transferring 400 MB. `ZIPFoundation` and
+   `ZipFile` both want a local file. A streaming path is very likely our own
+   central-directory reader, which is the one place hand-rolling may still be
+   right. Not a problem for local files, which is all the first slice touches.
+2. **Partial recovery is not implemented.** `publication-formats` asks a
+   truncated archive to yield what it can and report what it skipped. Neither
+   library offers that once the central directory is gone, so today a truncated
+   archive fails cleanly as `unreadable`. Both suites pin that behaviour, so the
+   day a recovering reader lands, those two tests are what change.
+
+Image decoding stays *Assumed* on both platforms: the corpus tests verify PNG
+magic bytes, not that a page renders.
 
 ## Risks
 
@@ -85,11 +114,20 @@ unavailable — it does not get quietly dropped.
 
 ## Spike before accepting
 
-1. Decode a corpus of real CBZ, CBR, CB7 and CBT files on both platforms,
-   including deliberately malformed ones, and record what fails.
-2. Read and record every licence into `THIRD_PARTY_NOTICES.md`.
-3. Stream one page from a 400 MB archive over SMB on both platforms and measure
-   time-to-first-page.
-4. Render the same EPUB through both Readium toolkits and compare pagination.
+- [x] **1a.** Decode CBZ on both platforms, including malformed archives.
+      Done — 8 fixtures, 23 tests per platform.
+- [ ] **1b.** CBR, CB7 and CBT, same corpus treatment. Blocked on 2.
+- [ ] **2.** Read and record every licence into `THIRD_PARTY_NOTICES.md`. The RAR
+      decoder is the one that decides whether CBR ships at all.
+- [ ] **3.** Stream one page from a 400 MB archive over SMB on both platforms and
+      measure time-to-first-page. Expected to force our own ranged reader.
+- [ ] **4.** Render the same EPUB through both Readium toolkits and compare
+      pagination.
+- [ ] **5.** Decode an actual page to a bitmap on both platforms, so image
+      decoding stops being *Assumed*.
 
-The corpus used by all four lives in `packages/test-fixtures`.
+The corpus used by all of these lives in `packages/test-fixtures`.
+
+**This ADR is not accepted until every row above is checked.** Three of thirteen
+library rows are now *Known*; the RAR licence review (2) is the only one that
+could still change the product's scope.

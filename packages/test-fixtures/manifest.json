@@ -1,0 +1,122 @@
+{
+  "$description": "The shared publication corpus. Both test suites read this file and assert the same expected parse \u2014 it is what keeps two independent implementations from disagreeing about what correct means.",
+  "$generatedBy": "packages/test-fixtures/scripts/generate.py",
+  "$doNotEdit": "Generated. Change the script, run it, commit the result.",
+  "pageAspect": {
+    "portrait": [
+      2,
+      3
+    ],
+    "spread": [
+      6,
+      3
+    ]
+  },
+  "comics": [
+    {
+      "file": "comics/natural-sort.cbz",
+      "pins": "page10 sorts after page9, not after page1",
+      "sha256": "491476ca6cdcd1d01263e71bd8d882f36430c079d5f1bd63f949be8c4e62ab36",
+      "bytes": 1972,
+      "expectedPageCount": 12,
+      "expectedPageOrder": [
+        "page1.png",
+        "page2.png",
+        "page3.png",
+        "page4.png",
+        "page5.png",
+        "page6.png",
+        "page7.png",
+        "page8.png",
+        "page9.png",
+        "page10.png",
+        "page11.png",
+        "page12.png"
+      ]
+    },
+    {
+      "file": "comics/nested-chapters.cbz",
+      "pins": "pages order by full path with natural sort, so ch10 follows ch2",
+      "sha256": "75580d8a6463b7888eeb401a5b21af50418d1f603b29da5ede445976c40eb99e",
+      "bytes": 1010,
+      "expectedPageCount": 6,
+      "expectedPageOrder": [
+        "ch1/p1.png",
+        "ch1/p2.png",
+        "ch1/p10.png",
+        "ch2/p1.png",
+        "ch2/p2.png",
+        "ch10/p1.png"
+      ]
+    },
+    {
+      "file": "comics/non-image-entries.cbz",
+      "pins": "ComicInfo.xml, OS cruft and resource forks are excluded from the page list",
+      "sha256": "f6a8a5af7552e454156e0f148d3bc918d1b80f6242c751dfdf2b0e59e18ce321",
+      "bytes": 1034,
+      "expectedPageCount": 2,
+      "expectedPageOrder": [
+        "page1.png",
+        "page2.png"
+      ],
+      "hasComicInfo": true,
+      "expectedSeries": "Fixture Series"
+    },
+    {
+      "file": "comics/mislabelled-zip.cbr",
+      "pins": "a ZIP named .cbr opens, because format comes from content not extension",
+      "sha256": "a5666da1eaae74023ffacf92557c3d84743f71ca9546bb6238430327e4666c65",
+      "bytes": 508,
+      "expectedPageCount": 3,
+      "expectedPageOrder": [
+        "page1.png",
+        "page2.png",
+        "page3.png"
+      ],
+      "actualContainer": "zip"
+    },
+    {
+      "file": "comics/single-page.cbz",
+      "pins": "a one-page publication does not divide by zero",
+      "sha256": "2d37dc9a4b859c1c4da41de7fd5565fb6b51eaec892f7fbd5e2e17e1c3298d56",
+      "bytes": 182,
+      "expectedPageCount": 1,
+      "expectedPageOrder": [
+        "only.png"
+      ]
+    },
+    {
+      "file": "comics/double-page-spread.cbz",
+      "pins": "a wide image is one spread, not two pages",
+      "sha256": "2c63743d21e05517948591ce7b837bee8c6a24302b40e19751d7716970813f47",
+      "bytes": 506,
+      "expectedPageCount": 3,
+      "expectedPageOrder": [
+        "p1.png",
+        "p2-spread.png",
+        "p3.png"
+      ],
+      "spreadIndices": [
+        1
+      ]
+    },
+    {
+      "file": "comics/truncated.cbz",
+      "pins": "a truncated archive opens what it can and reports what it skipped",
+      "sha256": "744cdbfd5d9135d1ac815638d602feee955197de06494840207878bb50984966",
+      "bytes": 1183,
+      "expectedPageCount": null,
+      "expectedPageOrder": null,
+      "isRecoverable": true,
+      "note": "The central directory is gone. A reader must not refuse the whole file."
+    },
+    {
+      "file": "comics/no-pages.cbz",
+      "pins": "an archive with no images reports zero pages, not an error",
+      "sha256": "cf0fd9a8adde86960fde84780737384f74fca0e7740e770fe64fd686328a391b",
+      "bytes": 134,
+      "expectedPageCount": 0,
+      "expectedPageOrder": []
+    }
+  ]
+}

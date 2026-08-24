@@ -15,7 +15,7 @@
     "tokens:verify": "node scripts/verify-tokens-in-sync.mjs",
     "spec:validate": "openspec validate --specs",
     "spec:list": "openspec list --specs",
-    "lint": "pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify",
+    "lint": "pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify && pnpm fixtures:check",
     "lint:ios": "cd apps/ios && swiftlint lint --strict",
     "lint:android": "cd apps/android && ./gradlew lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test",
@@ -23,7 +23,9 @@
     "build:ios": "cd apps/ios && xcodegen generate && xcodebuild build -project StoryArc.xcodeproj -scheme StoryArc -destination 'generic/platform=iOS Simulator' -quiet",
     "build:android": "cd apps/android && ./gradlew assembleDebug",
     "check": "pnpm lint && pnpm test:ios && pnpm lint:android && pnpm test:android",
-    "prepare": "husky"
+    "prepare": "husky",
+    "fixtures:build": "python3 packages/test-fixtures/scripts/generate.py",
+    "fixtures:check": "python3 packages/test-fixtures/scripts/generate.py --check"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",

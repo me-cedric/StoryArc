@@ -12,17 +12,42 @@ expectation drift loudly.
 
 ```
 packages/test-fixtures/
-├── manifest.json          every fixture, its properties, and what a correct parse yields
-├── comics/                CBZ, CBR, CB7, CBT
-├── ebooks/                EPUB 2, EPUB 3, fixed-layout
-├── pdf/                   text-layer and scanned
-└── malformed/             the ones that matter most
+├── scripts/generate.py    the generator — fixtures are generated, not hand-authored
+├── manifest.json          every fixture and what a correct parse yields
+└── comics/                8 archives, 6.5 kB total
 ```
 
 ## Status
 
-**Empty.** The corpus is created with the format layer, alongside
-[ADR-0005](../../docs/decisions/0005-format-and-rendering-libraries.md)'s spike.
+**8 comic archives, covering the ZIP path.** EPUB, PDF, RAR, 7-Zip and TAR
+fixtures land with their format work.
+
+| Fixture | Pins |
+| --- | --- |
+| `natural-sort.cbz` | page10 sorts after page9, not after page1 |
+| `nested-chapters.cbz` | pages order by full path, so ch10 follows ch2 |
+| `non-image-entries.cbz` | `ComicInfo.xml`, `Thumbs.db`, `.DS_Store` and `__MACOSX/` resource forks are never pages |
+| `mislabelled-zip.cbr` | a ZIP named `.cbr` opens — format comes from content |
+| `single-page.cbz` | a one-page publication does not divide by zero |
+| `double-page-spread.cbz` | a wide image is one spread, not two pages |
+| `truncated.cbz` | a damaged archive fails cleanly rather than crashing |
+| `no-pages.cbz` | an archive with no images reports zero pages, not an error |
+
+## Generated, then committed
+
+```bash
+python3 scripts/generate.py           # rewrite comics/ and manifest.json
+python3 scripts/generate.py --check   # fail if the committed output is stale
+```
+
+Fixtures are **generated** so they are deterministic, legally clean, and tiny —
+every page is a 2×3 procedurally-coloured PNG, so there is no real artwork
+anywhere in the repository. The output is then **committed**, so neither test
+suite needs Python to run. Same generate-then-commit pattern as the design
+tokens.
+
+Colours are distinct per page index, so a wrong page order is visible rather
+than merely failing an assertion.
 
 ## Rules for a fixture
 
@@ -42,7 +67,14 @@ packages/test-fixtures/
    open what it can and say what it skipped — that requirement is only real if a
    fixture proves it.
 
-## Generating, not committing
+## How the two suites consume it
 
-Where a fixture can be generated deterministically from a script, prefer that to
-committing a binary. `scripts/` will hold the generators once the corpus exists.
+Both read `manifest.json` and assert against the **same** recorded expectations,
+which is the mechanism that makes divergence loud:
+
+| Platform | Locates the corpus by | Test |
+| --- | --- | --- |
+| iOS | walking up from `#filePath` — SPM cannot declare a resource outside its package root | `Tests/FormatsTests/ComicArchiveTests.swift` |
+| Android | a `storyarc.fixtures` system property set by `core/format/build.gradle.kts`, with a walk-up fallback for IDE runs | `core/format/src/test/.../ComicArchiveTest.kt` |
+
+Neither copies the files. One corpus, two readers.

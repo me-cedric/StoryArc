@@ -39,3 +39,8 @@ jobs:
 
       - name: Generated tokens are in sync with their source
         run: pnpm tokens:verify
+
+      - name: Fixture corpus is in sync with its generator
+        # The corpus is generated then committed, so it can go stale the same way
+        # the tokens can. ubuntu-latest ships Python 3.
+        run: pnpm fixtures:check

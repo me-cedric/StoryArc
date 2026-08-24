@@ -24,7 +24,7 @@ test fixtures — and nothing else.
 | `apps/android/` | Kotlin + Compose. Gradle with a version catalog, four modules. |
 | `apps/desktop-*/` | Planning documents only. **No code.** See [ADR-0004](docs/decisions/0004-desktop-strategy.md). |
 | `packages/design-tokens/` | OKLCH token source → generated Swift and Kotlin. |
-| `packages/test-fixtures/` | Shared publication corpus. Both suites assert against it. |
+| `packages/test-fixtures/` | Shared publication corpus, **generated then committed**. Both suites read its `manifest.json` and assert the same expectations. |
 | `docs/decisions/` | ADRs. Read 0001 before proposing any architecture change. |
 | `docs/design/DESIGN.md` | The design system: what the tokens mean and what is forbidden. |
 
@@ -77,6 +77,7 @@ change** — never the whole repository when one module moved.
 | Changed | Run |
 | --- | --- |
 | `apps/ios/Packages/StoryArcKit` | `pnpm test:ios` (host, no simulator) |
+| `packages/test-fixtures` | `pnpm fixtures:build`, then **commit the regenerated corpus and manifest**, then run both platforms' format tests |
 | `apps/ios` app target or `project.yml` | `pnpm build:ios` |
 | One Android module | `cd apps/android && ./gradlew :<module>:lint :<module>:testDebugUnitTest` |
 | Android across modules | `pnpm lint:android && pnpm test:android` |
@@ -123,6 +124,13 @@ the identical screenshots *are* the proof.
   `pnpm tokens:sync`.
 - **Contrast is a build gate.** `pnpm tokens:check` fails the build on a token
   pair below its WCAG floor. Fix the token, do not lower the floor.
+- **Fixtures are generated too.** Never hand-edit a file under
+  `packages/test-fixtures/comics/` or its `manifest.json`. Change
+  `scripts/generate.py`, run `pnpm fixtures:build`, commit the result.
+  `pnpm fixtures:check` fails CI when they drift.
+- **Page ordering is the drift hotspot.** `PageOrdering` exists in both codebases
+  and both are asserted against the same corpus. Change one, change the other —
+  including the unit tests, which mirror each other case for case.
 
 ## 8. Commits
 

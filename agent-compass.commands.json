@@ -87,7 +87,8 @@
       "specValidate": "pnpm spec:validate",
       "tokensCheck": "pnpm tokens:check",
       "tokensSync": "pnpm tokens:sync",
-      "tokensVerify": "pnpm tokens:verify"
+      "tokensVerify": "pnpm tokens:verify",
+      "fixturesCheck": "pnpm fixtures:check"
     }
   }
 }

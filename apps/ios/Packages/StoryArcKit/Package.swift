@@ -15,12 +15,26 @@ let package = Package(
     ],
     products: [
         .library(name: "DesignSystem", targets: ["DesignSystem"]),
+        .library(name: "Formats", targets: ["Formats"]),
         .library(name: "StoryArcCore", targets: ["StoryArcCore"]),
         .library(name: "LibraryFeature", targets: ["LibraryFeature"]),
+    ],
+    dependencies: [
+        // ADR-0005: ZIP on iOS. Android gets java.util.zip from its standard
+        // library; Apple platforms ship no ZIP container reader, so this is the
+        // reuse-first answer rather than hand-rolling a central-directory parser.
+        .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20"),
     ],
     targets: [
         .target(name: "DesignSystem"),
         .target(name: "StoryArcCore"),
+        .target(
+            name: "Formats",
+            dependencies: [
+                "StoryArcCore",
+                .product(name: "ZIPFoundation", package: "ZIPFoundation"),
+            ]
+        ),
         .target(
             name: "LibraryFeature",
             dependencies: ["DesignSystem", "StoryArcCore"],
@@ -28,6 +42,7 @@ let package = Package(
         ),
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem"]),
         .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),
+        .testTarget(name: "FormatsTests", dependencies: ["Formats"]),
     ]
 )
 
