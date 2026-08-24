@@ -26,7 +26,7 @@ This skill produces questions. It does not produce answers.
 
 ## 1 — Read the specifications
 
-Read every specification under `specs/`. When the host project puts its specs
+Read every specification under `docs/openspec/specs/`. When the host project puts its specs
 somewhere else, use the host path.
 
 Collect four types of finding:

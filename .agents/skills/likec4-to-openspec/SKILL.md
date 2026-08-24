@@ -28,7 +28,7 @@ produces such a file from a sketch.
 
 ## Output — an OpenSpec change
 
-Create a change folder under `specs/changes/<change-id>/` where `<change-id>` is a
+Create a change folder under `docs/openspec/specs/changes/<change-id>/` where `<change-id>` is a
 short kebab-case slug (e.g. `derive-specs-from-c4`). When the project keeps its
 OpenSpec root somewhere else, use that root.
 
@@ -91,7 +91,7 @@ Use `## MODIFIED Requirements` / `## REMOVED Requirements` instead of
 
 1. Parse the `.c4` model: list elements and `a -> b` relationships.
 2. Group into **capabilities** (one per system/major container).
-3. Write `proposal.md`, then one `specs/<capability>/spec.md` per capability with
+3. Write `proposal.md`, then one `docs/openspec/specs/<capability>/spec.md` per capability with
    `### Requirement:` + `#### Scenario:` entries derived from the element's
    relationships (each `a -> b 'verb'` suggests a behavior).
 4. Write `tasks.md`.

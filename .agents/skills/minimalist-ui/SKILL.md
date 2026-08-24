@@ -63,7 +63,7 @@ Color is a scarce resource, utilized only for semantic meaning or subtle accents
 ## 6. Iconography & Imagery Directives
 - System Icons: Use "Phosphor Icons (Bold or Fill weights)" or "Radix UI Icons" for a technical, slightly thicker-stroke aesthetic. Standardize stroke width across all icons.
 - Illustrations: Monochromatic, rough continuous-line ink sketches on a white background, featuring a single offset geometric shape filled with a muted pastel color.
-- Photography: Use high-quality, desaturated images with a warm tone. Apply subtle overlays (`opacity: 0.04` warm grain) to blend photos into the monochrome palette. Never use oversaturated stock photos. Use reliable placeholders like `https://picsum.photos/seed/{context}/1200/800` when real assets are unavailable.
+- Photography: Use high-quality, desaturated images with a warm tone. Apply subtle overlays (`opacity: 0.04` warm grain) to blend photos into the monochrome palette. Never use oversaturated stock photos. Use reliable placeholders like a labelled `<!-- TODO: image -->` slot when real assets are unavailable.
 - Hero & Section Backgrounds: Sections should not feel empty and flat. Use subtle full-width background imagery at very low opacity, soft radial light spots (`radial-gradient` with warm tones at `opacity: 0.03`), or minimal geometric line patterns to add depth without breaking the clean aesthetic.
 
 ## 7. Subtle Motion & Micro-Animations
@@ -83,3 +83,18 @@ When tasked with writing frontend code (HTML, React, Tailwind, Vue) or designing
 5. Add scroll-entry animations to all major content blocks.
 6. Ensure sections have visual depth through imagery, ambient gradients, or subtle textures — no empty flat backgrounds.
 7. Provide code that reflects this high-end, uncluttered, editorial aesthetic natively without requiring manual adjustments.
+
+---
+
+## Provenance
+
+Konvoy vendors this skill from [`Leonxlnx/taste-skill`](https://github.com/Leonxlnx/taste-skill)
+at commit `e988add20dab0fa97d7a76781c48961c8184288e`. The upstream folder is `skills/minimalist-skill`.
+The licence is MIT, © 2026 Leonxlnx. The `LICENSE` file is next to this file.
+
+Konvoy makes two changes to the upstream text:
+
+- Konvoy renames the folder to the frontmatter `name`. An agent harness keys a
+  skill by a slug that is equal to its folder name.
+- Konvoy removes each recommendation of a remote placeholder-image host. A
+  desktop application must not teach an agent to get an image from a remote host.

@@ -28,7 +28,7 @@ first version of the text.
 1. `docs/delivery/tickets.json` — the registry. Each entry carries a state and a
    fingerprint per field.
 2. `docs/delivery/tickets.plan.json` — the operations the sync tool proposes now.
-3. The specification, under `specs/`.
+3. The specification, under `docs/openspec/specs/`.
 4. The patch: `git diff <base>...HEAD -- specs`.
 
 The sync tool computes the drift. It fingerprints the projection that would be

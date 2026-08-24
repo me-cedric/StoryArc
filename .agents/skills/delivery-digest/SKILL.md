@@ -28,7 +28,7 @@ so that forwarding it is safe.
 1. The change: `git diff --stat <base>...HEAD` and `git log <base>..HEAD`.
 2. The developer note, if it exists: `docs/delivery/impacts/`. Reuse its
    findings — do not re-derive them differently.
-3. The requirements the change serves: `specs/`.
+3. The requirements the change serves: `docs/openspec/specs/`.
 4. Who is affected: `docs/delivery/personas.json` and
    `docs/delivery/assignments.json`.
 5. The cost frame, when planning moved: `docs/delivery/costing/*.json`

@@ -30,7 +30,7 @@ fabricating one.
 | --- | --- | --- |
 | Personas | `docs/delivery/personas.json` | the **only** allowed set of profiles (`id`, `name`, `description`, `tjm`) |
 | Costing sheets | `docs/delivery/costing/*.json` | existing features/tasks, `mandays`, `complexity`, `moscow`, `priority`, `personaId`, `predecessorId` |
-| Specs | `specs/` | the requirements that define the work |
+| Specs | `docs/openspec/specs/` | the requirements that define the work |
 | Decisions | `docs/decisions/` | constraints already settled — do not re-open them |
 | Diagrams | `docs/diagrams/` | the module/component boundaries that scopes should follow |
 | Code | the repository | the real directories, so every `scope` entry is a path that exists |

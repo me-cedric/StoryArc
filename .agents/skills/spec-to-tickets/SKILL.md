@@ -35,7 +35,7 @@ text into the tracker. Do not create tickets over an API on your own initiative.
 
 ## Read before you write
 
-1. The specification section, under `specs/`. Read the whole section.
+1. The specification section, under `docs/openspec/specs/`. Read the whole section.
 2. The costing task and the assignment item that reference it, so the ticket
    matches the work that was estimated.
 3. `docs/delivery/tickets.config.json`, for the project and the field names.
@@ -92,7 +92,7 @@ that the specification does not name belongs in a question, not in a ticket. Use
 ## Always link back
 
 Every ticket carries a `specRef`: the repository path of the specification
-section, such as `specs/billing/spec.md`. The sync tool turns that path into a
+section, such as `docs/openspec/specs/billing/spec.md`. The sync tool turns that path into a
 URL with the base in `tickets.config.json`.
 
 The link is never pinned to a commit. A pinned link changes on every commit and

@@ -33,26 +33,26 @@ report.
 
 | Token | Holds | Default path |
 | --- | --- | --- |
-| `{{OPENSPEC_DIR}}` | specifications and requirements | `specs/` |
-| `{{ADR_DIR}}` | decision records | `docs/decisions/` |
-| `{{DELIVERY_DIR}}` | delivery outputs | `docs/delivery/` |
-| `{{DESIGNS_DIR}}` | mockups and HTML prototypes | `docs/designs/` |
-| `{{DESIGN_MD}}` | design system and tokens | `design.md` |
-| `{{DATE}}` | the date of the pass, `YYYY-MM-DD` | — |
+| `docs/openspec` | specifications and requirements | `docs/openspec/specs/` |
+| `docs/decisions` | decision records | `docs/decisions/` |
+| `docs/delivery` | delivery outputs | `docs/delivery/` |
+| `docs/designs` | mockups and HTML prototypes | `docs/designs/` |
+| `docs/DESIGN.md` | design system and tokens | `design.md` |
+| `2026-08-24` | the date of the pass, `YYYY-MM-DD` | — |
 
 ## The three sources of truth
 
 Review against all three. A pass that checks only one of them is not a QA pass.
 
-1. **Behaviour** — the specifications under `{{OPENSPEC_DIR}}`. Every
+1. **Behaviour** — the specifications under `docs/openspec`. Every
    `### Requirement:` with its `#### Scenario:` GIVEN/WHEN/THEN blocks is a test
    case. That mapping is the backbone of the pass.
-2. **Look** — the design document `{{DESIGN_MD}}`, the design token file the
-   project holds, the mockups and HTML prototypes under `{{DESIGNS_DIR}}`, and
+2. **Look** — the design document `docs/DESIGN.md`, the design token file the
+   project holds, the mockups and HTML prototypes under `docs/designs`, and
    any Figma frame the project names. A generated HTML preview counts as a
    reference.
 3. **Contract** — the API contracts, the data models, and the decision records
-   under `{{ADR_DIR}}`, where the change touches them.
+   under `docs/decisions`, where the change touches them.
 
 ## The pass
 
@@ -115,7 +115,7 @@ for the tools, because a coverage table an agent typed cannot be counted — so
 "how much of the specification is actually tested" stays a number nobody has.
 Write both, every time.
 
-File: `{{DELIVERY_DIR}}/qa/{{DATE}}-<kebab-slug>.json`
+File: `docs/delivery/qa/2026-08-24-<kebab-slug>.json`
 
 ```json
 {
@@ -139,7 +139,7 @@ object per row of the table below. A verdict outside the five words is read as
 `not-covered` by anything downstream, which is the safe direction and not the
 one you want to rely on.
 
-File: `{{DELIVERY_DIR}}/qa/{{DATE}}-<kebab-slug>.md`
+File: `docs/delivery/qa/2026-08-24-<kebab-slug>.md`
 
 ```markdown
 ---

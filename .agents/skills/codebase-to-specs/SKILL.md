@@ -58,7 +58,7 @@ local convention.
 
 | Document | Default path | Content |
 | --- | --- | --- |
-| Capability specification | `specs/<capability>/spec.md` | Inputs, outputs, rules, scenarios, questions, and gaps |
+| Capability specification | `docs/openspec/specs/<capability>/spec.md` | Inputs, outputs, rules, scenarios, questions, and gaps |
 | Decision record | `docs/decisions/NNN-<title>.md` | A consequential choice visible in the implementation |
 | Architecture sketch | `docs/diagrams/<system>.c4` | Observed systems, containers, and relationships |
 

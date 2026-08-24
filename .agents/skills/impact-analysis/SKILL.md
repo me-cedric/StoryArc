@@ -29,7 +29,7 @@ artifact somewhere else, use the host path and say so in the report.
 
 | Artifact | Default path |
 | --- | --- |
-| Specs | `specs/` |
+| Specs | `docs/openspec/specs/` |
 | Decisions | `docs/decisions/` |
 | Delivery outputs | `docs/delivery/` |
 
@@ -76,7 +76,7 @@ For each, state `up to date`, `stale — <what to change>`, or `not affected`.
 
 | Artifact | Default path | Goes stale when |
 | --- | --- | --- |
-| Specs | `specs/` | behaviour changed, or a requirement is now implemented |
+| Specs | `docs/openspec/specs/` | behaviour changed, or a requirement is now implemented |
 | Decisions | `docs/decisions/` | a choice was made or reversed that no ADR records |
 | API contracts | the OpenAPI source and request collection | any route, payload, status code or auth rule moved |
 | Data models | `docs/data-models/` | a table, column, relation or enum changed |

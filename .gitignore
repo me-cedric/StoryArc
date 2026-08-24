@@ -91,3 +91,6 @@ secrets/
 .agent/failure-mining.md
 .agent/provider-verification.md
 .agent/spec-validation-map.md
+
+# agent-compass transient update cache
+.agent/.update-check.json

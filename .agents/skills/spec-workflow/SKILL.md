@@ -29,7 +29,7 @@ Use the smallest spec artifact that prevents misunderstanding.
 - User asks for specs, requirements, planning, task breakdown, or clearer agent
   guidance.
 
-Tiny mechanical edits may use an inline spec brief instead of `specs/<id-slug>/`.
+Tiny mechanical edits may use an inline spec brief instead of `docs/openspec/specs/<id-slug>/`.
 
 ## Flow
 
@@ -50,7 +50,7 @@ specs/<id-slug>/
   checklist.md
 ```
 
-Use `specs/000-project/` for new project creation.
+Use `docs/openspec/specs/000-project/` for new project creation.
 
 ## Inline Brief For Small Tasks
 

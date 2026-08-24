@@ -1,0 +1,27 @@
+{
+  "version": 17,
+  "provisioned": true,
+  "date": "2026-08-24",
+  "skills": [
+    "konvoy-workflows",
+    "diagram-to-likec4",
+    "diagram-to-adr",
+    "likec4-to-openspec",
+    "figma-tokens-to-designmd",
+    "generate-network-flows",
+    "docs-to-dbml",
+    "split-tasks-by-profile",
+    "impact-analysis",
+    "codebase-to-specs",
+    "delivery-digest",
+    "spec-to-tickets",
+    "spec-drift-triage",
+    "harvest-questions",
+    "qa-test-plans",
+    "i-have-adhd",
+    "asd-ste100",
+    "ponytail",
+    "caveman"
+  ],
+  "adapter_strategy": "copy"
+}

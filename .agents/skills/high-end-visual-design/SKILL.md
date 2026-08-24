@@ -96,3 +96,18 @@ Evaluate your code against this matrix before delivering. This is the last filte
 - [ ] All animations use only `transform` and `opacity` — no layout-triggering properties
 - [ ] `backdrop-blur` is only applied to fixed/sticky elements, never to scrolling content
 - [ ] The overall impression reads as "$150k agency build", not "template with nice fonts"
+
+---
+
+## Provenance
+
+Konvoy vendors this skill from [`Leonxlnx/taste-skill`](https://github.com/Leonxlnx/taste-skill)
+at commit `e988add20dab0fa97d7a76781c48961c8184288e`. The upstream folder is `skills/soft-skill`.
+The licence is MIT, © 2026 Leonxlnx. The `LICENSE` file is next to this file.
+
+Konvoy makes two changes to the upstream text:
+
+- Konvoy renames the folder to the frontmatter `name`. An agent harness keys a
+  skill by a slug that is equal to its folder name.
+- Konvoy removes each recommendation of a remote placeholder-image host. A
+  desktop application must not teach an agent to get an image from a remote host.
