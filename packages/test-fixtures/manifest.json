@@ -160,6 +160,74 @@
       "pins": "an archive with no images reports zero pages, not an error",
       "expectedPageCount": 0,
       "expectedPageOrder": []
+    },
+    {
+      "file": "comics/rar4-store.cbr",
+      "pins": "a RAR4 container opens and its entries keep archive order",
+      "expectedPageCount": 3,
+      "expectedPageOrder": [
+        "page1.png",
+        "page2.png",
+        "page3.png"
+      ],
+      "actualContainer": "rar4",
+      "isStreamable": true
+    },
+    {
+      "file": "comics/rar5-store.cbr",
+      "pins": "a RAR5 container opens; RAR4 and RAR5 are different formats behind one extension",
+      "expectedPageCount": 3,
+      "expectedPageOrder": [
+        "page1.png",
+        "page2.png",
+        "page3.png"
+      ],
+      "actualContainer": "rar5",
+      "isStreamable": true
+    },
+    {
+      "file": "comics/rar4-solid.cbr",
+      "pins": "a solid RAR4 is refused by name; libarchive cannot read one at all",
+      "expectedPageCount": null,
+      "expectedPageOrder": null,
+      "actualContainer": "rar4",
+      "isSolid": true,
+      "isStreamable": false,
+      "expectedRefusal": "This comic uses solid compression, which cannot be opened",
+      "note": "The first entry is not solid, so a reader that delegates straight to libarchive lists page1.png and then fails fatally. Detection must read FHD_SOLID from the headers first."
+    },
+    {
+      "file": "comics/tar-store.cbt",
+      "pins": "a TAR container opens; CBT is a supported format, not a mislabelled CBZ",
+      "expectedPageCount": 3,
+      "expectedPageOrder": [
+        "page1.png",
+        "page2.png",
+        "page3.png"
+      ],
+      "actualContainer": "tar",
+      "isStreamable": true
+    },
+    {
+      "file": "comics/tar-nested-chapters.cbt",
+      "pins": "chapter directories inside a TAR order by full path, as they do inside a ZIP",
+      "expectedPageCount": 3,
+      "expectedPageOrder": [
+        "ch1/p1.png",
+        "ch1/p2.png",
+        "ch2/p1.png"
+      ],
+      "actualContainer": "tar",
+      "isStreamable": true
+    },
+    {
+      "file": "comics/refused.cb7",
+      "pins": "a 7z container is refused by name, not by a generic parse failure",
+      "expectedPageCount": null,
+      "expectedPageOrder": null,
+      "actualContainer": "7z",
+      "expectedRefusal": "7z archives are not supported",
+      "note": "Detection fires on the 7z signature before any entry is read, so this fixture carries a valid empty 7z header and no pages."
     }
   ],
   "ebooks": [

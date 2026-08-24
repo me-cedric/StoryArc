@@ -15,9 +15,11 @@ Every fixture exists to pin one behaviour and is named after it.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import pathlib
 import struct
+import tarfile
 import zipfile
 import zlib
 
@@ -412,6 +414,215 @@ fixtures.append(
 # ── 8. Empty archive ─────────────────────────────────────────────────────────
 write_archive("no-pages.cbz", [("readme.txt", b"no images here")])
 register("no-pages.cbz", "an archive with no images reports zero pages, not an error", [])
+
+# ── 14. RAR and TAR containers ───────────────────────────────────────────────
+# Everything above is a ZIP. CBR and CBT are the other two containers the
+# `publication-formats` spec accepts, and neither can be produced by the standard
+# library — so the store-mode writers below produce them.
+#
+# Store mode only, deliberately. A RAR *compressor* is proprietary, but the RAR
+# container is documented, and nothing in the corpus needs compressed data: the
+# fixtures pin container parsing, entry order and the solid flag. libarchive
+# reads a store-mode RAR through exactly the same reader it uses for a
+# WinRAR-compressed one, which is what these fixtures exist to exercise.
+#
+# ponytail: store mode has no Huffman and no LZ window, so this is ~80 lines
+# instead of a codec. If a fixture ever needs real compression, shell out to
+# `rar` and commit the output by hand — do not grow this into an encoder.
+
+MTIME = 1767225600  # 2026-01-01T00:00:00Z, fixed so the bytes never drift
+DOS_TIME = 0x5C210000  # the same instant in MS-DOS format, for RAR4
+
+
+def _vint(value: int) -> bytes:
+    """RAR5 variable-length integer: 7 bits per byte, low group first."""
+    out = bytearray()
+    while True:
+        group, value = value & 0x7F, value >> 7
+        out.append(group | 0x80 if value else group)
+        if not value:
+            return bytes(out)
+
+
+def _rar5_block(header_type: int, body: bytes, data: bytes = b"") -> bytes:
+    """One RAR5 block. The CRC covers the header from its size field onwards."""
+    tail = _vint(header_type) + _vint(0x0002 if data else 0)
+    if data:
+        tail += _vint(len(data))
+    sized = _vint(len(tail + body)) + tail + body
+    return struct.pack("<I", zlib.crc32(sized)) + sized + data
+
+
+def rar5(entries: list[tuple[str, bytes]]) -> bytes:
+    out = [b"Rar!\x1a\x07\x01\x00", _rar5_block(1, _vint(0))]
+    for name, payload in entries:
+        encoded = name.encode()
+        body = (
+            _vint(0x0002 | 0x0004)  # mtime present, data CRC32 present
+            + _vint(len(payload))  # unpacked size
+            + _vint(0o100644)  # attributes, Unix mode
+            + struct.pack("<II", MTIME, zlib.crc32(payload))
+            # CompressionInfo: version 0 (RAR 5.0), method 0 (store), not solid.
+            + _vint(0x0000)
+            + _vint(1)  # host OS: Unix
+            + _vint(len(encoded))
+            + encoded
+        )
+        out.append(_rar5_block(2, body, payload))
+    out.append(_rar5_block(5, _vint(0)))  # end of archive
+    return b"".join(out)
+
+
+def _rar4_block(body: bytes) -> bytes:
+    """RAR4 blocks carry a CRC16 of everything from the type byte onwards."""
+    return struct.pack("<H", zlib.crc32(body) & 0xFFFF) + body
+
+
+def rar4(entries: list[tuple[str, bytes]], solid: bool = False) -> bytes:
+    """`solid` marks every entry after the first, as a real compressor does."""
+    out = [
+        b"Rar!\x1a\x07\x00",
+        # Main header: type 0x73, MHD_SOLID is 0x0008, then HighPosAV and PosAV.
+        _rar4_block(struct.pack("<BHHHI", 0x73, 0x0008 if solid else 0, 13, 0, 0)),
+    ]
+    for index, (name, payload) in enumerate(entries):
+        encoded = name.encode()
+        out.append(
+            _rar4_block(
+                struct.pack(
+                    "<BHHIIBIIBBHI",
+                    0x74,  # file header
+                    0x8000 | (0x0010 if solid and index else 0),  # LONG_BLOCK, LHD_SOLID
+                    32 + len(encoded),  # header size, CRC16 included
+                    len(payload),  # packed size, equal to unpacked in store mode
+                    len(payload),
+                    3,  # host OS: Unix
+                    zlib.crc32(payload),
+                    DOS_TIME,
+                    20,  # decoder version 2.0
+                    0x30,  # method: store
+                    len(encoded),
+                    0o100644,
+                )
+                + encoded
+            )
+            + payload
+        )
+    out.append(_rar4_block(struct.pack("<BHH", 0x7B, 0x4000, 7)))  # end of archive
+    return b"".join(out)
+
+
+def cbt(entries: list[tuple[str, bytes]]) -> bytes:
+    """A plain USTAR archive. tarfile is stdlib, so this needs no format work."""
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w", format=tarfile.USTAR_FORMAT) as archive:
+        for name, payload in entries:
+            info = tarfile.TarInfo(name)
+            info.size, info.mtime, info.mode = len(payload), MTIME, 0o644
+            info.uid = info.gid = 0
+            info.uname = info.gname = ""
+            archive.addfile(info, io.BytesIO(payload))
+    return buffer.getvalue()
+
+
+def write_bytes(name: str, payload: bytes) -> None:
+    if WRITE:
+        (COMICS / name).write_bytes(payload)
+
+
+three = [(f"page{i}.png", page(i)) for i in range(1, 4)]
+chapters = [("ch1/p1.png", page(1)), ("ch1/p2.png", page(2)), ("ch2/p1.png", page(3))]
+
+write_bytes("rar4-store.cbr", rar4(three))
+register(
+    "rar4-store.cbr",
+    "a RAR4 container opens and its entries keep archive order",
+    ["page1.png", "page2.png", "page3.png"],
+    actualContainer="rar4",
+    isStreamable=True,
+)
+
+write_bytes("rar5-store.cbr", rar5(three))
+register(
+    "rar5-store.cbr",
+    "a RAR5 container opens; RAR4 and RAR5 are different formats behind one extension",
+    ["page1.png", "page2.png", "page3.png"],
+    actualContainer="rar5",
+    isStreamable=True,
+)
+
+# The solid fixture, and the reason it is RAR4 rather than RAR5.
+#
+# libarchive 3.8.1 refuses a solid RAR4 outright: read_header() in
+# archive_read_support_format_rar.c returns ARCHIVE_FATAL on any file header
+# carrying FHD_SOLID, with no compression-method check and no fallback. So a
+# solid RAR4 is *unsupported*, not merely un-streamable — downloading it changes
+# nothing. The reader must recognise the flag itself and say so, because
+# libarchive's own failure arrives as a generic fatal error after the first entry
+# has already been listed.
+#
+# There is no solid RAR5 counterpart here on purpose. libarchive does implement
+# solid RAR5, but only through the LZ window that store mode never allocates, so
+# a store-mode solid RAR5 fails as "no window buffer initialized yet" — an
+# artefact of this writer, not a real limitation. Solid is also meaningless
+# without compression, so no real compressor emits that combination. A solid
+# RAR5 fixture needs a real compressor and stays a hand-made item.
+write_bytes("rar4-solid.cbr", rar4(three, solid=True))
+fixtures.append(
+    {
+        "file": "comics/rar4-solid.cbr",
+        "pins": "a solid RAR4 is refused by name; libarchive cannot read one at all",
+        "expectedPageCount": None,
+        "expectedPageOrder": None,
+        "actualContainer": "rar4",
+        "isSolid": True,
+        "isStreamable": False,
+        "expectedRefusal": "This comic uses solid compression, which cannot be opened",
+        "note": "The first entry is not solid, so a reader that delegates straight to libarchive lists page1.png and then fails fatally. Detection must read FHD_SOLID from the headers first.",
+    }
+)
+
+write_bytes("tar-store.cbt", cbt(three))
+register(
+    "tar-store.cbt",
+    "a TAR container opens; CBT is a supported format, not a mislabelled CBZ",
+    ["page1.png", "page2.png", "page3.png"],
+    actualContainer="tar",
+    isStreamable=True,
+)
+
+write_bytes("tar-nested-chapters.cbt", cbt(chapters))
+register(
+    "tar-nested-chapters.cbt",
+    "chapter directories inside a TAR order by full path, as they do inside a ZIP",
+    ["ch1/p1.png", "ch1/p2.png", "ch2/p1.png"],
+    actualContainer="tar",
+    isStreamable=True,
+)
+
+# ── 15. CB7, the named refusal ───────────────────────────────────────────────
+# 7-Zip is out of scope. The spec requires a *named* refusal — "7z archives are
+# not supported", never a generic parse failure — so the fixture only has to
+# carry a real 7z signature for detection to fire on.
+#
+# ponytail: a valid empty 7z end header, 32 bytes. Writing a 7z that contains
+# pages would need an LZMA container writer for a format we refuse to read.
+_seven_zip_start = struct.pack("<QQI", 0, 0, zlib.crc32(b""))
+write_bytes(
+    "refused.cb7",
+    b"7z\xbc\xaf\x27\x1c\x00\x04" + struct.pack("<I", zlib.crc32(_seven_zip_start)) + _seven_zip_start,
+)
+fixtures.append(
+    {
+        "file": "comics/refused.cb7",
+        "pins": "a 7z container is refused by name, not by a generic parse failure",
+        "expectedPageCount": None,
+        "expectedPageOrder": None,
+        "actualContainer": "7z",
+        "expectedRefusal": "7z archives are not supported",
+        "note": "Detection fires on the 7z signature before any entry is read, so this fixture carries a valid empty 7z header and no pages.",
+    }
+)
 
 manifest = {
     "$description": "The shared publication corpus. Both test suites read this file and assert the same expected parse — it is what keeps two independent implementations from disagreeing about what correct means.",

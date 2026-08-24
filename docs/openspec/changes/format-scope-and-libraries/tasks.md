@@ -12,7 +12,10 @@ rest of this change does not happen.
       entry names, sizes and format identification.
 - [ ] **0.1b** The remaining three Android ABIs. Same CMake invocation with a
       different `ANDROID_ABI`; mechanical.
-- [ ] **0.1c** Read an actual RAR. Blocked on a hand-made `.cbr` fixture — see 1.1.
+- [x] **0.1c** Read an actual RAR. **Done, and no hand-made fixture was needed.**
+      libarchive reads a real WinRAR-produced RAR5 `.cbr` — four entries, right
+      names and sizes — and reads all three of the store-mode fixtures in 1.1
+      byte-identically. Same reader, same code path.
 - [x] **0.2** Trim the build. **Done, and the plan was wrong**: libarchive exposes
       no per-format CMake toggles, so nothing can be "compiled out". Dead-code
       stripping does it instead — 7.24 MB of objects becomes **235 KB per Android
@@ -35,15 +38,28 @@ rest of this change does not happen.
 
 ## Phase 1 — Fixture corpus
 
-- [ ] **1.1** Extend `packages/test-fixtures/scripts/generate.py` with CBR
-      fixtures: non-solid RAR4, non-solid RAR5, and a **solid** RAR to pin the
-      cannot-stream path. Generating these needs a RAR *compressor*, which is
-      proprietary — so these fixtures are created once, by hand, from freely
-      redistributable input and committed with their provenance recorded.
-- [ ] **1.2** CBT fixtures: plain TAR, and one with nested chapter directories.
-- [ ] **1.3** A CB7 fixture, used only to assert the **named refusal**.
-- [ ] **1.4** Record every expectation in `manifest.json`. No hashes — the
-      manifest pins meaning, not bytes.
+- [x] **1.1** Extend `packages/test-fixtures/scripts/generate.py` with CBR
+      fixtures. **Done, and the premise was wrong**: a RAR *compressor* is
+      proprietary, but the RAR *container* is documented, and store mode has no
+      Huffman coding and no LZ window — so the generator writes its own RAR4 and
+      RAR5 headers in about eighty lines. No hand-made fixture, no downloaded
+      artwork, no new dependency, and the corpus stays synthetic and tiny.
+      `rar4-store.cbr` and `rar5-store.cbr` extract byte-identical pages through
+      libarchive.
+- [x] **1.2** CBT fixtures. **Done** — `tar-store.cbt` and
+      `tar-nested-chapters.cbt`, written with stdlib `tarfile`.
+- [x] **1.3** A CB7 fixture. **Done** — `refused.cb7` carries a valid 7z
+      signature and nothing else, because detection fires on the signature before
+      any entry is read.
+- [x] **1.4** Record every expectation in `manifest.json`. **Done** — 19 comic
+      archives, still no hashes.
+- [ ] **1.5** A **solid RAR5** fixture, which is the one item that still needs a
+      real compressor. Solid means nothing without compression, and libarchive
+      only implements solid RAR5 through the LZ window that store mode never
+      allocates, so the generator cannot produce an honest one. Create it by hand
+      with `rar a -s`, from the same synthetic pages, and record its provenance.
+      Until then Phase 5 rests on `rar4-solid.cbr`, which pins a stronger
+      outcome — see the finding below.
 
 ## Phase 2 — Format layer
 
@@ -53,6 +69,8 @@ rest of this change does not happen.
       sources work wherever the container allows it.
 - [ ] **2.3** Detect solid RAR and record the publication as non-streamable at
       index time, per the new `Streaming capability per format` requirement.
+      **Read the finding below first**: for RAR4 the honest outcome is stronger
+      than non-streamable, and detection cannot be delegated to libarchive.
 - [ ] **2.4** Remove CB7 from the supported set; assert the named refusal.
 - [ ] **2.5** Mirror the tests on both platforms against the same fixtures, as
       the ZIP layer does.
@@ -89,7 +107,33 @@ rest of this change does not happen.
 - [ ] **5.1** Surface streaming capability in the library, so a non-streamable
       remote publication is flagged before the user taps it.
 - [ ] **5.2** The download-instead-of-stream flow, with the size stated.
-- [ ] **5.3** A downloaded solid archive opens with no notice at all.
+- [ ] **5.3** A downloaded solid archive opens with no notice at all. **True for
+      RAR5, false for RAR4** — see the finding below. A solid RAR4 must be
+      refused by name at index time, whether it is remote or already downloaded.
+
+## Finding — libarchive cannot read a solid RAR4 at all
+
+Found while building the 1.1 fixtures, and it changes what Phase 5 can promise.
+
+`read_header()` in `archive_read_support_format_rar.c` (libarchive 3.8.1) returns
+`ARCHIVE_FATAL` on any file header carrying `FHD_SOLID`. There is no
+compression-method check and no fallback: the RAR4 reader does not implement
+solid archives. Downloading the file changes nothing.
+
+Two consequences, both pinned by `rar4-solid.cbr`:
+
+1. **Solid RAR4 is unsupported, not un-streamable.** The `Streaming capability
+   per format` requirement needs a third state — supported, download-only, and
+   refused — rather than a streamable boolean. Task 2.3 and the delta spec both
+   assume two.
+2. **Detection cannot be delegated.** The first entry of a solid archive is not
+   itself solid, so a reader that hands the file straight to libarchive lists
+   page 1 and *then* fails with a generic fatal error. The `FHD_SOLID` flag has
+   to be read from the headers before any entry is surfaced, or the user sees a
+   one-page comic that breaks on the second turn.
+
+Solid RAR5 is unaffected: `rar5.c` implements it through its LZ window. That is
+also why there is no solid RAR5 fixture yet — see 1.5.
 
 ## Phase 6 — Validation
 

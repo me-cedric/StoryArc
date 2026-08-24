@@ -14,13 +14,15 @@ expectation drift loudly.
 packages/test-fixtures/
 ├── scripts/generate.py    the generator — fixtures are generated, not hand-authored
 ├── manifest.json          every fixture and what a correct parse yields
-└── comics/                8 archives, 6.5 kB total
+└── comics/                19 archives, 32 kB total
 ```
 
 ## Status
 
-**8 comic archives, covering the ZIP path.** EPUB, PDF, RAR, 7-Zip and TAR
-fixtures land with their format work.
+**19 comic archives and one EPUB, covering ZIP, RAR4, RAR5, TAR and the 7-Zip
+refusal.** PDF fixtures land with the PDF work.
+
+### ZIP
 
 | Fixture | Pins |
 | --- | --- |
@@ -30,8 +32,49 @@ fixtures land with their format work.
 | `mislabelled-zip.cbr` | a ZIP named `.cbr` opens — format comes from content |
 | `single-page.cbz` | a one-page publication does not divide by zero |
 | `double-page-spread.cbz` | a wide image is one spread, not two pages |
+| `stored-entries.cbz` | STORED entries read — a reader must not assume DEFLATE |
+| `zip64.cbz` | Zip64 extra fields parse |
+| `archive-comment.cbz` | the EOCD is found by scanning backwards, not at a fixed offset |
+| `data-descriptor.cbz` | the central directory is the only authority on sizes |
+| `large-page.cbz` | a 2000×3000 page, for downsampling and bounded decode |
 | `truncated.cbz` | a damaged archive fails cleanly rather than crashing |
 | `no-pages.cbz` | an archive with no images reports zero pages, not an error |
+
+### RAR, TAR and 7-Zip
+
+| Fixture | Pins |
+| --- | --- |
+| `rar4-store.cbr` | a RAR4 container opens and keeps archive order |
+| `rar5-store.cbr` | a RAR5 container opens — RAR4 and RAR5 are different formats behind one extension |
+| `rar4-solid.cbr` | a solid RAR4 is refused **by name**; libarchive cannot read one at all |
+| `tar-store.cbt` | a TAR container opens; CBT is a format, not a mislabelled CBZ |
+| `tar-nested-chapters.cbt` | chapter directories inside a TAR order by full path |
+| `refused.cb7` | a 7z container is refused by name, not by a generic parse failure |
+
+Two of these are worth knowing about before you trust them.
+
+**The RAR fixtures are store-mode, written by `generate.py` itself.** A RAR
+*compressor* is proprietary; the RAR *container* is documented, and store mode has
+no Huffman coding and no LZ window, so the writer is about eighty lines rather
+than a codec. libarchive reads a store-mode RAR through the same reader it uses
+for a WinRAR-compressed one, which is the code path these fixtures exist to
+exercise. Verified: all three non-solid archives extract byte-identical pages
+through `bsdtar` (libarchive 3.7.4). If a fixture ever needs real compression,
+shell out to `rar` and commit the output by hand rather than growing the writer.
+
+**`rar4-solid.cbr` pins a hard libarchive limit, not a preference.**
+`read_header()` in `archive_read_support_format_rar.c` (3.8.1) returns
+`ARCHIVE_FATAL` on any file header carrying `FHD_SOLID`, with no
+compression-method check and no fallback — so a solid RAR4 is *unsupported*, and
+downloading it changes nothing. Because the first entry in a solid archive is
+itself not solid, a reader that delegates straight to libarchive lists page 1 and
+*then* dies with a generic error. Detection has to read the flag first.
+
+**There is no solid RAR5 fixture.** libarchive does implement solid RAR5, but
+only through the LZ window that store mode never allocates, so a store-mode
+solid RAR5 fails as an artefact of the writer rather than a real limitation —
+and no real compressor emits solid-without-compression anyway. That fixture
+needs a real compressor and stays a hand-made item.
 
 ## Generated, then committed
 
