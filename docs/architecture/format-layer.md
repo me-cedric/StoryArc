@@ -27,6 +27,12 @@ Page bytes are then decoded by `PageDecoder`, which is ImageIO on Apple and
 Metadata comes from `ComicInfo` for comics and `EpubReader` for books. Both are
 ours, both need no dependency, and both feed the library rather than the reader.
 
+`PublicationIndexer` is the layer's exit: a file in, a `Publication` out, with
+metadata precedence applied — embedded beats a filename guess, field by field, and
+every record says where it came from so an authoritative source can replace it
+without raising a conflict. It is the only type here that mentions the domain's
+`Publication`, and the only one the library layer needs to know about.
+
 ## The shape
 
 ```

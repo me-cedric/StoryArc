@@ -2,27 +2,9 @@ package app.storyarc.core.format
 
 import java.io.File
 
-/**
- * The container formats StoryArc can open.
- *
- * `publication-formats` requires format to be determined from a file's contents,
- * not its extension — a ZIP called `.cbr` still opens. The extension is only ever
- * a hint used to order the sniffing.
- */
-enum class PublicationFormat {
-    CBZ, CBR, CB7, CBT, EPUB, PDF, IMAGE_FOLDER,
-    ;
-
-    /**
-     * Whether pages are images rather than reflowable text. Drives which reader
-     * opens the publication, and whether a page curl needs a raster.
-     */
-    val isPagedImages: Boolean
-        get() = when (this) {
-            CBZ, CBR, CB7, CBT, IMAGE_FOLDER -> true
-            EPUB, PDF -> false
-        }
-}
+// `PublicationFormat` used to live here. It moved to `:core:model`: the library
+// sorts, filters and explains by format, and none of that should require the
+// parser. This file keeps the sniffer, which is genuinely format-layer work.
 
 /** What a file's leading bytes say it is, regardless of its name. */
 object FormatSniffer {

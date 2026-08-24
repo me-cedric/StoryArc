@@ -231,6 +231,24 @@ here is RAR, which is the only format that genuinely needs a decoder.
       item when nothing is declared — needs a renderer, so it lands with the
       reflowable reader; the test says so rather than leaving it silently missing.
       Lazy extraction is an indexer concern, not a format-layer one.
+- [x] **2.14** **`PublicationIndexer`**, the seam between this layer and the
+      library: a file in, a `Publication` out. Everything below it knows about
+      containers; everything above it knows about books.
+
+      Metadata precedence is the point of it. Embedded beats a filename guess,
+      **field by field rather than wholesale** — a `ComicInfo` carrying only a
+      series must not discard a year the filename knows — and every record carries
+      a `MetadataOrigin` so an authoritative source can replace it later without
+      raising a conflict the app invented.
+
+      Two behaviours are deliberate and easy to mistake for bugs. A solid RAR4 is
+      **indexed and listed** rather than dropped, marked `refused` and not openable,
+      because a comic the user can see in the folder and not in the library sends
+      them hunting. And identity is **path-keyed**, not content-digested: hashing a
+      400 MB archive during a scan of 10 000 files would break `local-library`'s
+      three-second requirement outright. `contentDigest` exists for the background
+      pass that upgrades an identity later, marked `ponytail:` with the cost of not
+      having it yet — a moved file loses its place until then.
 
 ## Phase 3 — Page decoding
 
@@ -299,10 +317,13 @@ and `image-pages.pdf` (the scanned-comic case), both written by `generate.py`.
 
 ## Phase 5 — Streaming honesty
 
-- [ ] **5.1** Surface streaming capability in the library, so a non-streamable
-      remote publication is flagged before the user taps it. The format layer now
-      answers the question — `RarReader.isSolid`, from headers alone — so what is
-      left is carrying it into the library model and the UI.
+- [x] **5.1** Surface streaming capability in the library, so a non-streamable
+      remote publication is flagged before the user taps it. **Done as far as the
+      model goes.** `StreamingCapability` is a domain type with the three states
+      the finding forced, `Publication` carries one, and `PublicationIndexer` sets
+      it from what the container reported — all from headers, so a remote CBR is
+      classified without being transferred. What remains is a UI to show it in,
+      which does not exist yet.
 - [ ] **5.2** The download-instead-of-stream flow, with the size stated.
 - [ ] **5.3** A downloaded solid archive opens with no notice at all. **True for
       RAR5, false for RAR4** — see the finding below, and note that the finding

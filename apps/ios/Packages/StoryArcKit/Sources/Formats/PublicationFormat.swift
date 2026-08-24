@@ -1,22 +1,10 @@
 public import Foundation
 
-/// The container formats StoryArc can open.
-///
-/// `publication-formats` requires format to be determined from a file's
-/// contents, not its extension — a ZIP called `.cbr` still opens. The extension
-/// is only ever a hint used to order the sniffing.
-public enum PublicationFormat: String, Sendable, CaseIterable {
-    case cbz, cbr, cb7, cbt, epub, pdf, imageFolder
+public import StoryArcCore
 
-    /// Whether pages are images rather than reflowable text. Drives which reader
-    /// opens the publication, and whether a page curl needs a raster.
-    public var isPagedImages: Bool {
-        switch self {
-        case .cbz, .cbr, .cb7, .cbt, .imageFolder: true
-        case .epub, .pdf: false
-        }
-    }
-}
+// `PublicationFormat` used to live here. It moved to `StoryArcCore`: the library
+// sorts, filters and explains by format, and none of that should require the
+// parser. This file keeps the sniffer, which is genuinely format-layer work.
 
 /// What a file's leading bytes say it is, regardless of its name.
 public enum FormatSniffer {
