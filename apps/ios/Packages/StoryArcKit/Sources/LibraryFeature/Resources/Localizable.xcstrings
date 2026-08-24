@@ -266,6 +266,66 @@
         }
       }
     },
+    "library.folderUnavailable %@": {
+      "comment": "Names the folder whose permission went stale. local-library requires naming it rather than saying a folder is unavailable.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ kann nicht mehr gelesen werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” can no longer be read"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» ya no se puede leer"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n'est plus lisible"
+          }
+        }
+      }
+    },
+    "library.repick": {
+      "comment": "The single action that restores access to a folder whose permission went stale.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut wählen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir de nuevo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir à nouveau"
+          }
+        }
+      }
+    },
     "library.scanning %lld": {
       "comment": "Scan progress. `local-library` requires progress reported as a count of items found.",
       "extractionState": "manual",

@@ -45,8 +45,30 @@ public final class LibraryModel {
     /// How far through each publication the reader got, keyed by publication id.
     private var progress: [String: ReadingProgress] = [:]
 
-    public init(progress: ProgressStore? = nil) {
+    private let bookmarks: FolderBookmarks?
+    /// Folders that were remembered and can no longer be reached.
+    ///
+    /// `local-library` requires naming the folder and offering a single action to
+    /// re-pick it, so the names are kept rather than the count.
+    public private(set) var unavailableFolders: [String] = []
+
+    public init(progress: ProgressStore? = nil, bookmarks: FolderBookmarks? = nil) {
         self.progressStore = progress
+        self.bookmarks = bookmarks
+    }
+
+    /// Re-opens the folders from a previous launch and scans them.
+    ///
+    /// `local-library`: a picked folder is reachable again "after a device restart
+    /// without asking again". Called once, when the library first appears.
+    public func restoreFolders() {
+        guard let bookmarks, folders.isEmpty else { return }
+        let restored = bookmarks.restore()
+        unavailableFolders = restored.stale.map(\.name)
+        for folder in restored.folders {
+            folders.append(folder)
+            scan(folder)
+        }
     }
 
     /// The fraction read, for a cover's progress indicator.
@@ -85,6 +107,9 @@ public final class LibraryModel {
         guard !folders.contains(url) else { return }
         folders.append(url)
         _ = url.startAccessingSecurityScopedResource()
+        // Remembered before the scan, so a folder added and then immediately
+        // backgrounded is still there next launch.
+        try? bookmarks?.add(url)
         scan(url)
     }
 

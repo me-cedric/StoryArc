@@ -62,7 +62,10 @@ public struct LibraryView: View {
             .navigationTitle(Text("library.title", bundle: .module))
             // Reloaded on every appearance, which is what makes the bar under a
             // cover reflect the page the reader just reached.
-            .task { await model.refreshProgress() }
+            .task {
+                model.restoreFolders()
+                await model.refreshProgress()
+            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -77,7 +80,11 @@ public struct LibraryView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if case let .finished(found, skipped) = model.scanState, skipped > 0 {
+                if let missing = model.unavailableFolders.first {
+                    // Named, per `local-library`. "A folder is no longer available"
+                    // sends someone hunting through four of them.
+                    UnavailableFolderNotice(name: missing) { isPickingFolder = true }
+                } else if case let .finished(found, skipped) = model.scanState, skipped > 0 {
                     // Stated once, at the end, rather than per file — a messy
                     // folder would otherwise be a wall of notices. But stated:
                     // a count that silently omits what it could not read is a lie.
@@ -255,5 +262,36 @@ struct SourceList: View {
             }
         }
         .scrollContentBackground(.hidden)
+    }
+}
+
+/// A folder that was remembered and can no longer be read.
+///
+/// `local-library`: "the source is marked `unauthorized` with a plain-language
+/// explanation naming the folder", and "a single action re-picks the folder,
+/// preserving reading progress for everything inside it". Progress survives
+/// because ADR-0006 keys it on the publication, not on the folder.
+struct UnavailableFolderNotice: View {
+    @Environment(\.theme) private var theme
+
+    let name: String
+    let repick: () -> Void
+
+    var body: some View {
+        HStack(spacing: StoryArcSpace.sm) {
+            Text("library.folderUnavailable \(name)", bundle: .module)
+                .textRole(.footnote)
+                .foregroundStyle(theme.palette.textSecondary)
+
+            Spacer(minLength: 0)
+
+            Button(action: repick) {
+                Text("library.repick", bundle: .module)
+                    .textRole(.footnote)
+            }
+        }
+        .padding(.horizontal, StoryArcSpace.gutter)
+        .padding(.vertical, StoryArcSpace.sm)
+        .background(.thinMaterial)
     }
 }
