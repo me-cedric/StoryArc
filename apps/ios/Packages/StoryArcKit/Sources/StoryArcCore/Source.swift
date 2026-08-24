@@ -1,6 +1,6 @@
 public import Foundation
 
-/// Where publications come from. See `openspec/specs/sources`.
+/// Where publications come from. See `docs/openspec/specs/sources`.
 public enum SourceKind: String, Sendable, Codable, CaseIterable {
     case localFolder
     case networkShare

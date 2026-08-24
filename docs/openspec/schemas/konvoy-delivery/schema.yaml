@@ -1,0 +1,105 @@
+# konvoy-delivery — OpenSpec custom schema
+#
+# GENERATED FILE. Do not edit by hand.
+# Run: node scripts/gen-openspec-schema.mjs
+#
+# The templates are byte-for-byte copies of
+# src-tauri/resources/compass/templates/specs/. One source, no third copy.
+# Konvoy-specific guidance lives in the "instruction" fields below.
+#
+# Install target: <RepoPaths.openspec>/schemas/konvoy-delivery/ — by default
+# docs/openspec/schemas/konvoy-delivery/. Provisioning does not copy it there
+# yet. Konvoy reads this schema itself; the OpenSpec CLI only finds a schema
+# under a repository-root openspec/, which Konvoy does not use
+# (PLAN-DELIVERY-COCKPIT §15 decision 2).
+#
+# Three files another design would generate are absent, on purpose:
+#   estimate — man-days already live in Konvoy's costing model. A per-change
+#              estimate.json would be a second place the same numbers live.
+#   questions — OpenSpec forbids an artifact writing outside its change
+#              directory, and the plan puts questions in the CENTRAL RAID
+#              register, which src/lib/raid.ts already implements.
+#   constitution — it governs the project, not one change, and an artifact
+#              cannot write outside its change directory. The proposal
+#              instruction therefore tells the agent to READ it at
+#              <openspec>/constitution.md before it writes.
+
+
+name: konvoy-delivery
+version: 1
+description: "Spec-kit artifacts on the OpenSpec change lifecycle: proposal, then a spec, plan, checklist and tasks quartet for each capability."
+
+artifacts:
+  - id: proposal
+    generates: "proposal.md"
+    template: "templates/proposal.md"
+    description: "Why the change is worth doing, what it changes, and which capabilities it touches."
+    requires: []
+    instruction: |-
+      Read the project constitution at <openspec>/constitution.md before you write.
+      If that file is absent, ask for the governing rules and do not invent a requirement.
+      Write the proposal before every other artifact.
+      Give the change an id in kebab-case.
+      State the problem in "Why".
+      List the behavior changes in "What Changes".
+      Name each affected capability in "Impact".
+      Do not write a technical decision here.
+  - id: spec
+    generates: "specs/**/spec.md"
+    template: "templates/spec.md"
+    description: "One spec-kit specification for each affected capability: goal, requirements, acceptance criteria."
+    requires: [proposal]
+    instruction: |-
+      Write one spec for each affected capability, at specs/<capability>/spec.md.
+      Keep the headings of the template.
+      Number each requirement REQ-001, REQ-002, and so on.
+      Keep a requirement identifier stable after you publish it.
+      Write [NEEDS CLARIFICATION: question] for each unknown.
+      Do not guess an unknown.
+      Konvoy reads these files itself and does not run the OpenSpec CLI.
+      Therefore this artifact keeps the spec-kit headings and does not use the OpenSpec delta headings.
+  - id: plan
+    generates: "specs/**/plan.md"
+    template: "templates/plan.md"
+    description: "The technical plan for one spec. This is the artifact that plain OpenSpec does not have."
+    requires: [spec]
+    instruction: |-
+      Write the plan beside its spec, at specs/<capability>/plan.md.
+      Put each technical decision here.
+      Do not put a technical decision in the spec.
+      Fill one row of the Technical Context table for each item.
+      Write the exact validation commands in the Validation block.
+      Choose the smallest change that satisfies the spec.
+  - id: checklist
+    generates: "specs/**/checklist.md"
+    template: "templates/checklist.md"
+    description: "The review gate for one spec: clarity, completeness, consistency."
+    requires: [plan]
+    instruction: |-
+      Write the checklist beside its plan, at specs/<capability>/checklist.md.
+      Write the checklist before you write tasks.md.
+      Tick an item only after you verify it.
+      Remove each [NEEDS CLARIFICATION] marker before you tick the Clarity items.
+      Tick the Consistency items after tasks.md exists.
+  - id: tasks
+    generates: "specs/**/tasks.md"
+    template: "templates/tasks.md"
+    description: "Numbered T001 tasks for one plan, with [P] markers on the parallel-safe ones."
+    requires: [checklist]
+    instruction: |-
+      Write the tasks beside their plan, at specs/<capability>/tasks.md.
+      Number each task T001, T002, and so on.
+      Write [P] on a task only when it shares no file and has no order dependency.
+      Name the file or the command that each task touches.
+      Put the test task before the implementation task.
+      Do not write an estimate here.
+      Konvoy holds the man-days in its costing model.
+
+apply:
+  requires: [tasks, checklist]
+  instruction: |-
+    Apply the change task by task, in the order of tasks.md.
+    Tick a task in tasks.md as soon as it passes its validation.
+    Do not archive the change until each checklist item is ticked.
+    When you archive the change, copy each specs/<capability>/ folder, with spec.md, plan.md, checklist.md and tasks.md, into <openspec>/specs/<capability>/.
+    That copy is what makes spec-validation-map.mjs see the quartet.

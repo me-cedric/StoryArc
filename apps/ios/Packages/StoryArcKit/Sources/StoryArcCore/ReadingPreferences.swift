@@ -1,4 +1,4 @@
-/// How pages move. See `openspec/specs/comic-reader`.
+/// How pages move. See `docs/openspec/specs/comic-reader`.
 public enum PageTransition: String, Sendable, Codable, CaseIterable {
     case pageCurl
     case slide

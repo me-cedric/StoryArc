@@ -83,7 +83,7 @@
     "offline":    { "oklch": "oklch(60% 0.020 70)",  "use": "Source disconnected. Neutral, never red — offline is normal, not an error." },
     "downloaded": { "oklch": "oklch(72% 0.140 165)", "use": "Available offline. The one badge allowed to compete with cover art." }
   },
-  "$readingThemesNote": "The six reading-theme presets from openspec/specs/reading-themes. Each is a background and text pair held to WCAG AAA (7:1), because this text is read for hours rather than glanced at. `original` overrides nothing in the publication — its pair exists only to draw its swatch in the preset grid.",
+  "$readingThemesNote": "The six reading-theme presets from docs/openspec/specs/reading-themes. Each is a background and text pair held to WCAG AAA (7:1), because this text is read for hours rather than glanced at. `original` overrides nothing in the publication — its pair exists only to draw its swatch in the preset grid.",
   "readingThemes": {
     "original": { "bg": "oklch(99% 0.002 80)", "fg": "oklch(18% 0.004 70)", "use": "Swatch only. Original leaves publisher styles on and overrides no colour." },
     "quiet":    { "bg": "oklch(19% 0.007 70)", "fg": "oklch(82% 0.007 70)", "use": "Low-contrast dark. Soft off-white on deep neutral, tightened spacing." },

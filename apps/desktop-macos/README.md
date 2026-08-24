@@ -29,7 +29,7 @@ domain, design system and feature modules wholesale.
 ## What it inherits unchanged
 
 `StoryArcCore`, `DesignSystem`, the format layer, the connector layer, and the
-progress store. The specs in [`openspec/specs`](../../openspec/specs) are
+progress store. The specs in [`docs/openspec/specs`](../../docs/openspec/specs) are
 already platform-neutral.
 
 ## Open questions

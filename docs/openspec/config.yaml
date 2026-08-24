@@ -2,7 +2,7 @@ schema: spec-driven
 
 context: |
   StoryArc — native comic, manga and ebook readers for iOS (Swift/SwiftUI) and
-  Android (Kotlin/Compose). Read openspec/project.md before proposing a change.
+  Android (Kotlin/Compose). Read docs/openspec/project.md before proposing a change.
 
   Hard constraints on every proposal:
   - Two independent native codebases. Never propose a shared UI layer, a

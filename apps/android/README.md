@@ -102,5 +102,5 @@ first release.
 ## Not yet implemented
 
 Everything below the shell. The capability specs in
-[`openspec/specs`](../../openspec/specs) are the contract; the reader, the source
+[`docs/openspec/specs`](../../docs/openspec/specs) are the contract; the reader, the source
 connectors, the format layer and persistence are all still to be built.

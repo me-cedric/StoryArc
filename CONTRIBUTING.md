@@ -6,7 +6,7 @@ one unusual rule that shapes everything else.
 ## The rule: specify before you build
 
 **Every behaviour is written down before it is implemented.** The 15 capability
-specs in [`openspec/specs/`](openspec/specs) are the contract both apps are
+specs in [`docs/openspec/specs/`](docs/openspec/specs) are the contract both apps are
 built against — they are what keeps two independent codebases from drifting into
 two different products.
 
@@ -21,7 +21,10 @@ $openspec-propose "add support for <thing>"
 ```
 
 That produces a proposal, delta specs, a design note and a task list under
-`openspec/changes/`. Review it, then implement.
+`docs/openspec/changes/`. Review it, then implement.
+
+The OpenSpec root is `docs/openspec`. The CLI resolves it from `docs/`, so run
+`cd docs` before any `openspec` command, or use the `pnpm spec:*` scripts.
 
 This is not bureaucracy for its own sake. Two native codebases have nothing at
 compile time stopping them from diverging; the spec is the only thing that does.
@@ -51,7 +54,7 @@ Run the **smallest set that covers your change**, not the whole repository.
 | One Android module | `cd apps/android && ./gradlew :<module>:lint :<module>:testDebugUnitTest` |
 | Android across modules | `pnpm lint:android && pnpm test:android` |
 | `packages/design-tokens` | `pnpm tokens:sync`, then commit the regenerated app copies |
-| `openspec/specs` | `pnpm spec:validate` |
+| `docs/openspec/specs` | `pnpm spec:validate` |
 | Not sure | `pnpm check` |
 
 ## Things that will bite you

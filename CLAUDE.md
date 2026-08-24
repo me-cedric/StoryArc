@@ -15,4 +15,7 @@ takes precedence over the agent-compass baseline vendored at
 | `/opsx:archive` | Retire a completed change |
 
 **Every behaviour is specified before it is built.** If what you are about to
-implement is not in `openspec/specs/`, propose it first.
+implement is not in `docs/openspec/specs/`, propose it first.
+
+The OpenSpec root is `docs/openspec`. The CLI resolves it from `docs/`, so run
+`cd docs` before any `openspec` command, or use the `pnpm spec:*` scripts.

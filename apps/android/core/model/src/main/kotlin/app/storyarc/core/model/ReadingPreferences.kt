@@ -1,6 +1,6 @@
 package app.storyarc.core.model
 
-/** How pages move. See `openspec/specs/comic-reader`. */
+/** How pages move. See `docs/openspec/specs/comic-reader`. */
 enum class PageTransition {
     PAGE_CURL,
     SLIDE,

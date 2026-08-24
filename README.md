@@ -98,17 +98,13 @@ default. System, Light, Dark, OLED Dark, plus a textured Natural theme. Dynamic
 Type and font scale to maximum. VoiceOver
 and TalkBack. Reduce Motion and Reduce Transparency respected, not ignored.
 
-The full contract is in [`openspec/specs/`](openspec/specs) — 15 capabilities,
+The full contract is in [`docs/openspec/specs/`](docs/openspec/specs) — 15 capabilities,
 each written as user-observable behaviour with failure and offline paths.
 
 ## Repository layout
 
 ```
 storyarc/
-├── openspec/
-│   ├── project.md                 product context
-│   ├── specs/<capability>/        15 capability specs — the contract
-│   └── changes/                   in-flight proposals
 ├── apps/
 │   ├── ios/                       Swift · SwiftUI · XcodeGen · SPM
 │   ├── android/                   Kotlin · Compose · Gradle version catalog
@@ -119,6 +115,10 @@ storyarc/
 │   ├── design-tokens/             OKLCH source → generated Swift + Kotlin
 │   └── test-fixtures/             one publication corpus, two test suites
 ├── docs/
+│   ├── openspec/
+│   │   ├── project.md             product context
+│   │   ├── specs/<capability>/    15 capability specs — the contract
+│   │   └── changes/               in-flight proposals
 │   ├── decisions/                 ADRs
 │   ├── architecture/              layer model and where the hard problems are
 │   └── design/DESIGN.md           the design system
@@ -135,7 +135,7 @@ Two independent native codebases sharing three declarative artefacts and no code
 
 | Shared | Where | Enforced by |
 | --- | --- | --- |
-| Behaviour contract | `openspec/specs/` | `openspec validate --specs` in CI |
+| Behaviour contract | `docs/openspec/specs/` | `pnpm spec:validate` in CI |
 | Design tokens | `packages/design-tokens` | Generated into both apps; contrast gate in CI |
 | Test fixtures | `packages/test-fixtures` | Both suites assert against the same corpus |
 
@@ -229,11 +229,14 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties
 ## Contributing
 
 The rule that shapes everything else: **every behaviour is specified before it
-is built.** If what you want to add is not in `openspec/specs/`, propose it
+is built.** If what you want to add is not in `docs/openspec/specs/`, propose it
 first rather than implementing it and writing the spec afterwards.
 
+The OpenSpec root is `docs/openspec`, so the CLI resolves it only from `docs/`.
+Run `cd docs` first, or use the `pnpm spec:*` scripts, which do it for you.
+
 ```bash
-pnpm exec openspec init      # if your agent tooling is not set up yet
+cd docs && pnpm exec openspec init   # if your agent tooling is not set up yet
 # then, in Claude Code / Codex / Gemini:
 /opsx:propose "add support for <thing>"
 ```

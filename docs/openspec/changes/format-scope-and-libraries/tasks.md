@@ -23,10 +23,10 @@ rest of this change does not happen.
       terms". The three readers we use are all BSD-2-Clause with no UnRAR
       reference: `rar.c` (Kientzle, Mejia), `rar5.c` (Antoniak), `tar.c`.
       Recorded in `THIRD_PARTY_NOTICES.md`.
-- [ ] **0.4** Add a `SECURITY.md` entry: libarchive parses untrusted input in C.
-      State the mitigation — bounded reads, no allocation from file-supplied
-      lengths, and the fact that it is the most audited RAR implementation
-      available.
+- [x] **0.4** Add a `SECURITY.md` entry: libarchive parses untrusted input in C.
+      **Done** — `SECURITY.md` records RAR and TAR parsing as an untrusted-input
+      surface, with the mitigation and the reason libarchive was chosen over the
+      UnRAR-derived decoders.
 - [ ] **0.5** Decide how the library is vendored: sources plus a per-target
       `config.h`, or prebuilt binaries. Phase 0 found that iOS must compile the
       sources itself — libarchive's CMake cannot configure for iOS — which argues
@@ -59,10 +59,18 @@ rest of this change does not happen.
 
 ## Phase 3 — Page decoding
 
-- [ ] **3.1** iOS: `CGImageSource` decode with `ThumbnailMaxPixelSize`
-      downsampling, and re-decode at higher resolution on zoom.
-- [ ] **3.2** Android: `ImageDecoder` with `setTargetSize`, same behaviour. No
-      Coil.
+- [x] **3.1** iOS: `CGImageSource` decode with `ThumbnailMaxPixelSize`
+      downsampling, and re-decode at higher resolution on zoom. **Done** —
+      `PageDecoder` on ImageIO. A 2000x3000 corpus page decodes to exactly that,
+      downsamples to 400x600 when bounded to 600 on the long edge, refuses to
+      upscale, and rejects non-image bytes with a named error. ImageIO runs on the
+      macOS host, so this is a unit test.
+- [x] **3.2** Android: `ImageDecoder` with `setTargetSize`, same behaviour. No
+      Coil. **Done** — identical numbers to iOS. `ImageDecoder` and `Bitmap` are
+      framework stubs off-device, so the decode assertions run as 7 instrumented
+      tests on an emulator, in a CI job on `main` only. The size arithmetic is
+      unit-tested on both platforms, which is why `targetSize` returns a plain
+      `PageSize` rather than `android.util.Size`.
 - [ ] **3.3** Compare a decoded fixture page across platforms and record the
       tolerance. This is where image decoding stops being *Assumed* in ADR-0005.
 

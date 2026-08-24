@@ -18,8 +18,8 @@ test fixtures — and nothing else.
 
 | Path | What lives there |
 | --- | --- |
-| `openspec/specs/` | **The contract.** 15 capability specs describing user-observable behaviour. |
-| `openspec/changes/` | In-flight proposals. Created with `/opsx:propose`. |
+| `docs/openspec/specs/` | **The contract.** 15 capability specs describing user-observable behaviour. |
+| `docs/openspec/changes/` | In-flight proposals. Created with `/opsx:propose`. |
 | `apps/ios/` | Swift + SwiftUI. XcodeGen spec, one SPM package with three targets. |
 | `apps/android/` | Kotlin + Compose. Gradle with a version catalog, four modules. |
 | `apps/desktop-*/` | Planning documents only. **No code.** See [ADR-0004](docs/decisions/0004-desktop-strategy.md). |
@@ -48,7 +48,7 @@ wrong even if it compiles and passes tests.
 ## 3. Before you write code
 
 1. **Read the capability spec.** Every behaviour is specified in
-   `openspec/specs/<capability>/spec.md` before it is built. If the behaviour you
+   `docs/openspec/specs/<capability>/spec.md` before it is built. If the behaviour you
    are about to implement is not there, stop and propose a change first:
    `/opsx:propose "<what you want to build>"`.
 2. **Read the ADR** if the change touches architecture. ADR-0001 (independent
@@ -82,7 +82,7 @@ change** — never the whole repository when one module moved.
 | One Android module | `cd apps/android && ./gradlew :<module>:lint :<module>:testDebugUnitTest` |
 | Android across modules | `pnpm lint:android && pnpm test:android` |
 | `packages/design-tokens` | `pnpm tokens:sync` — then **commit the regenerated app copies in the same change** |
-| `openspec/specs` | `pnpm spec:validate` |
+| `docs/openspec/specs` | `pnpm spec:validate` |
 
 A task is not complete until you report changed files, the exact commands you
 ran, the result of each, whether a failure is pre-existing or introduced, and

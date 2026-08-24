@@ -2,7 +2,7 @@ package app.storyarc.core.model
 
 import java.util.UUID
 
-/** Where publications come from. See `openspec/specs/sources`. */
+/** Where publications come from. See `docs/openspec/specs/sources`. */
 enum class SourceKind { LOCAL_FOLDER, NETWORK_SHARE, OPDS_CATALOG, KAVITA_SERVER }
 
 /**
