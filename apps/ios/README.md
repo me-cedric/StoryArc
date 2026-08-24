@@ -89,8 +89,32 @@ There is no Apple Developer team configured. `CODE_SIGNING_ALLOWED` is `NO`, so
 the project builds for the simulator out of the box and device builds need a
 team set locally. Signing and notarisation land with the first release.
 
+## The `Formats` target
+
+The one part below the shell that is built. It reads CBZ, CBT, CBR, PDF and plain
+image folders, and it is where the vendored libarchive lives — see
+[docs/architecture/format-layer.md](../../docs/architecture/format-layer.md) for
+the shape and the reasoning.
+
+Two things about it are unusual enough to note here:
+
+- It depends on a **local path package** at
+  [`third_party/libarchive`](../../third_party/libarchive), declared in
+  `Package.swift` as `.package(path: "../../../../third_party/libarchive")`. That
+  is because SwiftPM will not compile C sources living outside the package that
+  declares them, and those sources are shared with the Android build rather than
+  copied. Moving either directory breaks the relative path.
+- `swift test` runs the whole suite on the **macOS host**, including PDF and
+  archive reading, because PDFKit and ImageIO are available there. Android needs
+  an emulator for the equivalent. That asymmetry is in the platforms, not in the
+  coverage.
+
+```bash
+cd apps/ios/Packages/StoryArcKit && swift test
+```
+
 ## Not yet implemented
 
-Everything below the shell. The capability specs in
-[`docs/openspec/specs`](../../docs/openspec/specs) are the contract; the reader, the
-source connectors, the format layer and persistence are all still to be built.
+The reader, the source connectors and persistence. The capability specs in
+[`docs/openspec/specs`](../../docs/openspec/specs) are the contract. EPUB is
+specified and waiting on the reflowable reader.

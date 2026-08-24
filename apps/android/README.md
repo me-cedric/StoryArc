@@ -99,8 +99,39 @@ Never edit that file.
 There is no upload keystore. Release builds are unsigned; signing lands with the
 first release.
 
+## The `:core:format` module
+
+The one part below the shell that is built. It reads CBZ, CBT, CBR, PDF and plain
+image folders — see
+[docs/architecture/format-layer.md](../../docs/architecture/format-layer.md) for
+the shape and the reasoning.
+
+It is also **the only module with native code**, which makes it the only one with
+build requirements beyond the SDK:
+
+- `externalNativeBuild` compiles the vendored libarchive sources from
+  [`third_party/libarchive`](../../third_party/libarchive) — the same copy SwiftPM
+  compiles for iOS — plus the JNI shim in `src/main/cpp/`. The CMake path is
+  relative, so moving either directory breaks it.
+- `ndkVersion` is **pinned**. A miscompile in vendored C surfaces as a corrupt
+  comic page rather than a build error, so the toolchain is not left to AGP's
+  default.
+- A first build of all four ABIs takes a couple of minutes. Afterwards CMake
+  caches.
+
+```bash
+./gradlew :core:format:testDebugUnitTest        # JVM: parsers, ordering, arithmetic
+./gradlew :core:format:connectedDebugAndroidTest # needs a device or emulator
+```
+
+The instrumented suite is not optional coverage. `ImageDecoder`, `Bitmap` and
+`PdfRenderer` are framework stubs off-device, and the RAR decoder is a JNI library
+that does not exist on a host JVM at all — `RarDecoder.isAvailable` is `false`
+there, which is why the JVM suite exercises the header reader instead. CI runs the
+instrumented job on `main` only, because booting an emulator costs minutes.
+
 ## Not yet implemented
 
-Everything below the shell. The capability specs in
-[`docs/openspec/specs`](../../docs/openspec/specs) are the contract; the reader, the source
-connectors, the format layer and persistence are all still to be built.
+The reader, the source connectors and persistence. The capability specs in
+[`docs/openspec/specs`](../../docs/openspec/specs) are the contract. EPUB is
+specified and waiting on the reflowable reader.
