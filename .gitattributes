@@ -12,6 +12,14 @@
 *.jar   binary
 *.keystore binary
 
+# Vendored third-party sources keep their upstream bytes exactly. VENDORING.md
+# claims a reviewer can diff them against the release tarball, and normalising
+# line endings would break that claim for the files that ship with CRLF.
+third_party/**  -text
+
+*.cbt   binary
+*.cb7   binary
+
 gradlew         text eol=lf
 *.bat           text eol=crlf
 *.pbxproj       -text merge=union
