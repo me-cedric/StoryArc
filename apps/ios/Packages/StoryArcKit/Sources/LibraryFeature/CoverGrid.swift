@@ -15,6 +15,10 @@ struct CoverGrid: View {
 
     let publications: [Publication]
     let model: LibraryModel
+    /// What to do when a cover is tapped. The library does not open the reader
+    /// itself — a feature module never depends on another feature module, so the
+    /// app layer wires the two together.
+    let onOpen: (Publication) -> Void
 
     /// The readable range. Below the minimum a cover stops being recognisable;
     /// above the maximum a phone shows one and a half of them.
@@ -36,6 +40,7 @@ struct CoverGrid: View {
                     CoverCell(
                         publication: publication,
                         model: model,
+                        onOpen: onOpen,
                         // Pixels, not points: a cover decoded at point size is
                         // blurry on every device made since 2010.
                         maxPixelSize: Int(maximumWidth * displayScale)
@@ -54,6 +59,7 @@ struct CoverCell: View {
 
     let publication: Publication
     let model: LibraryModel
+    let onOpen: (Publication) -> Void
     let maxPixelSize: Int
 
     @State private var cover: CGImage?
@@ -93,8 +99,13 @@ struct CoverCell: View {
         }
         // One label for the whole cell. Read as three separate elements it would
         // announce the title, then the format, then an unlabelled image.
+        .contentShape(.rect)
+        // A publication that cannot be read is not tappable. Opening it only to
+        // show the same refusal a second time wastes the user's tap.
+        .onTapGesture { if publication.isOpenable { onOpen(publication) } }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
+        .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
         .task(id: publication.id) {
             guard !didAttemptLoad else { return }
             didAttemptLoad = true

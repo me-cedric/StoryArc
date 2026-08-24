@@ -112,6 +112,11 @@ public final class LibraryModel {
         }
     }
 
+    /// Where a publication's file is, so the app layer can hand it to a reader.
+    public func location(of publication: Publication) -> URL? {
+        locations[publication.id]
+    }
+
     // MARK: - Covers
 
     /// The cover for a publication, decoded once and remembered.

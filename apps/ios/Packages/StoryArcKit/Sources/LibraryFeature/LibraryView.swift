@@ -15,16 +15,28 @@ public struct LibraryView: View {
     @State private var isPickingFolder = false
 
     private let sources: [Source]
+    private let onOpen: (Publication, URL) -> Void
 
-    public init(sources: [Source] = []) {
+    /// `onOpen` is how the app layer reaches the reader. The library knows which
+    /// publication was chosen and where it lives; it does not know what a reader
+    /// is.
+    public init(
+        sources: [Source] = [],
+        onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
+    ) {
         self.sources = sources
+        self.onOpen = onOpen
     }
 
     public var body: some View {
         NavigationStack {
             Group {
                 if !model.publications.isEmpty {
-                    CoverGrid(publications: model.publications, model: model)
+                    CoverGrid(publications: model.publications, model: model) { publication in
+                        if let url = model.location(of: publication) {
+                            onOpen(publication, url)
+                        }
+                    }
                 } else if case .scanning = model.scanState {
                     ScanningView(state: model.scanState)
                 } else if sources.isEmpty {

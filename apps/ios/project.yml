@@ -41,6 +41,8 @@ targets:
         product: StoryArcCore
       - package: StoryArcKit
         product: LibraryFeature
+      - package: StoryArcKit
+        product: ReaderFeature
     info:
       path: App/Info.plist
       properties:

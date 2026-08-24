@@ -18,6 +18,7 @@ let package = Package(
         .library(name: "Formats", targets: ["Formats"]),
         .library(name: "StoryArcCore", targets: ["StoryArcCore"]),
         .library(name: "LibraryFeature", targets: ["LibraryFeature"]),
+        .library(name: "ReaderFeature", targets: ["ReaderFeature"]),
     ],
     dependencies: [
         // The vendored libarchive RAR readers. A path dependency rather than a
@@ -42,6 +43,13 @@ let package = Package(
         ),
         .target(
             name: "LibraryFeature",
+            dependencies: ["DesignSystem", "StoryArcCore", "Formats"],
+            resources: [.process("Resources")]
+        ),
+        // One module per screen area, and no feature depends on another
+        // (docs/architecture): the library opens the reader through the app layer.
+        .target(
+            name: "ReaderFeature",
             dependencies: ["DesignSystem", "StoryArcCore", "Formats"],
             resources: [.process("Resources")]
         ),
