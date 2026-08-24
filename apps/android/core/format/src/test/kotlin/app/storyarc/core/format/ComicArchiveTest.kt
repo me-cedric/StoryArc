@@ -134,20 +134,29 @@ class FormatSnifferTest {
     }
 
     @Test
-    fun `a RAR names its container so the user is told what they actually have`() {
-        // ADR-0005: CBR is blocked on a licence review, not on capability. The
-        // exception carries the container so the message can say "RAR", which is
-        // more useful than a generic failure.
+    fun `a RAR with nothing behind its signature is damaged, not unsupported`() {
+        // RAR is readable now, so eight bytes of signature is a damaged file
+        // rather than a container StoryArc declines. Naming it as unsupported
+        // would tell the user to convert a file that is simply broken.
         val tmp = File.createTempFile("fake", ".cbr")
         try {
             tmp.writeBytes(byteArrayOf(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00, 0x00))
-            val thrown = assertThrows(ComicArchiveException.UnsupportedContainer::class.java) {
+            assertThrows(ComicArchiveException.Unreadable::class.java) {
                 kotlinx.coroutines.runBlocking { ComicArchiveOpener.open(tmp) }
             }
-            assertEquals(FormatSniffer.Container.RAR, thrown.container)
         } finally {
             tmp.delete()
         }
+    }
+
+    @Test
+    fun `every container StoryArc refuses is named, never reported generically`() {
+        // `publication-formats` forbids a generic parse failure. Someone who
+        // hands a 7-Zip comic to a comic reader deserves to be told that.
+        for (container in FormatSniffer.Container.entries) {
+            assertTrue(container.name, container.displayName.isNotEmpty())
+        }
+        assertEquals("7-Zip", FormatSniffer.Container.SEVEN_ZIP.displayName)
     }
 
     @Test

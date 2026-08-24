@@ -115,16 +115,28 @@ struct FormatSnifferTests {
         #expect(FormatSniffer.container(of: []) == nil)
     }
 
-    @Test("A RAR names its container so the user is told what they actually have")
-    func rarIsNamed() async throws {
-        // ADR-0005: CBR is blocked on a licence review, not on capability. The
-        // error carries the container so the message can say "RAR", which is
-        // more useful than a generic failure.
+    @Test("Every container StoryArc refuses is named, never reported generically")
+    func refusalsAreNamed() {
+        // `publication-formats` forbids a generic parse failure. Someone who
+        // hands a 7-Zip comic to a comic reader deserves to be told that.
+        for container in [
+            FormatSniffer.Container.zip, .rar, .sevenZip, .pdf, .tar,
+        ] {
+            #expect(!container.displayName.isEmpty)
+        }
+        #expect(FormatSniffer.Container.sevenZip.displayName == "7-Zip")
+    }
+
+    @Test("A RAR with nothing behind its signature is damaged, not unsupported")
+    func truncatedRarIsUnreadable() async throws {
+        // RAR is readable now, so eight bytes of signature is a damaged file
+        // rather than a container StoryArc declines. Naming it as unsupported
+        // would tell the user to convert a file that is simply broken.
         let tmp = URL.temporaryDirectory.appending(path: "fake-\(UUID().uuidString).cbr")
         try Data([0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00, 0x00]).write(to: tmp)
         defer { try? FileManager.default.removeItem(at: tmp) }
 
-        await #expect(throws: ComicArchiveError.unsupportedContainer(.rar)) {
+        await #expect(throws: ComicArchiveError.unreadable) {
             try await ComicArchiveOpener.open(fileAt: tmp)
         }
     }

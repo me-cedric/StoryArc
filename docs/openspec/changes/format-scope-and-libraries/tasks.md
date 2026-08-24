@@ -68,19 +68,26 @@ here is RAR, which is the only format that genuinely needs a decoder.
 
 - [ ] **2.1** C interop layer per platform, exposing libarchive behind the same
       `ComicArchiveReading` interface the ZIP reader already implements. Scope
-      narrowed by 2.6: libarchive is now needed for RAR decompression only, not
-      for TAR.
-- [ ] **2.2** Read RAR and TAR entries through `RandomAccessSource`, so remote
-      sources work wherever the container allows it.
-- [ ] **2.3** Detect solid RAR and record the publication as non-streamable at
-      index time, per the new `Streaming capability per format` requirement.
-      **Read the finding below first**: for RAR4 the honest outcome is stronger
-      than non-streamable, and detection cannot be delegated to libarchive.
+      narrowed twice: by 2.6, libarchive is not needed for TAR; by 2.7, it is not
+      needed for RAR *headers* either. What is left is one function — packed bytes
+      in, unpacked bytes out — behind `RarReader.data`, which already throws
+      `needsDecoder` at exactly that seam.
+- [x] **2.2** Read RAR and TAR entries through `RandomAccessSource`. **Done** —
+      both readers take a source rather than a file, so indexing a CBR or CBT on
+      an SMB share reads headers only.
+- [x] **2.3** Detect solid RAR and record the publication as non-streamable at
+      index time. **Done, natively** — `RarReader` reads the archive-level solid
+      flag and every entry's own flag, on both generations, so the answer arrives
+      before any decoder is involved. That matters because of the finding below:
+      libarchive would list the first entry and only then fail. A solid archive is
+      now refused as `solidArchive`, which is named separately from
+      `unsupportedContainer` because the container *is* supported.
 - [x] **2.4** Remove CB7 from the supported set; assert the named refusal.
       **Done** — `Container.displayName` carries the name on both platforms, so a
       7-Zip comic is refused as "7-Zip" rather than as a parse failure.
-- [ ] **2.5** Mirror the tests on both platforms against the same fixtures, as
-      the ZIP layer does. Done for TAR; outstanding for RAR.
+- [x] **2.5** Mirror the tests on both platforms against the same fixtures, as
+      the ZIP layer does. **Done** for TAR and RAR. iOS 98 tests, Android 85, both
+      reading the same `manifest.json`.
 - [x] **2.6** **CBT, with no C at all.** TAR is 512-byte blocks with fixed-offset
       ASCII fields — no compression, no central directory, no bit-packing — so
       `TarReader` is written on both platforms for the same reason ADR-0008 gives
@@ -91,6 +98,16 @@ here is RAR, which is the only format that genuinely needs a decoder.
       entry. Format sniffing now reads 265 bytes rather than 8, because TAR's
       magic sits at offset 257 and one 265-byte read is the same single round trip.
       iOS: 86 tests pass. Android: 73 pass.
+- [x] **2.7** **RAR headers, also with no C.** Everything indexing needs — page
+      names, page sizes, the cover, solid, encrypted, and whether an entry is
+      stored — lives in RAR headers, and headers carry no compression. `RarReader`
+      parses both RAR4 and RAR5 on both platforms and reads stored entries
+      directly; a compressed entry throws `needsDecoder`, which is the one seam
+      libarchive fills. A CBR therefore indexes today, and `RarComicArchive`
+      opens whatever is stored while counting compressed pages as skipped, which
+      is what `publication-formats` asks for. Guards: entry count capped, header
+      size capped, the vint reader cannot spin on a run of continuation bytes,
+      and a header claiming a size past the end of the file stops the walk.
 
 ## Phase 3 — Page decoding
 
@@ -122,7 +139,9 @@ here is RAR, which is the only format that genuinely needs a decoder.
 ## Phase 5 — Streaming honesty
 
 - [ ] **5.1** Surface streaming capability in the library, so a non-streamable
-      remote publication is flagged before the user taps it.
+      remote publication is flagged before the user taps it. The format layer now
+      answers the question — `RarReader.isSolid`, from headers alone — so what is
+      left is carrying it into the library model and the UI.
 - [ ] **5.2** The download-instead-of-stream flow, with the size stated.
 - [ ] **5.3** A downloaded solid archive opens with no notice at all. **True for
       RAR5, false for RAR4** — see the finding below. A solid RAR4 must be

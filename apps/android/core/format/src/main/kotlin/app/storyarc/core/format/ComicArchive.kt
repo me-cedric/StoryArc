@@ -41,6 +41,13 @@ sealed class ComicArchiveException(message: String) : Exception(message) {
 
     /** Not a single entry could be read, damaged beyond partial recovery. */
     class Unreadable : ComicArchiveException("archive is unreadable")
+
+    /**
+     * A solid archive. Named separately from [UnsupportedContainer] because the
+     * container *is* supported and this particular file still cannot be read —
+     * see the solid-RAR4 finding in the format change's task list.
+     */
+    class SolidArchive : ComicArchiveException("archive uses solid compression")
 }
 
 /**
@@ -186,6 +193,89 @@ class TarComicArchive private constructor(
     override fun close() = source.close()
 }
 
+/**
+ * A CBR.
+ *
+ * Opens on headers alone: [RarReader] parses names, sizes and flags without a
+ * decoder, so indexing works before any C library is linked. What it cannot do is
+ * decompress, which shapes the three refusals here.
+ *
+ * `publication-formats` requires opening what can be read and reporting what was
+ * skipped, so an archive with some stored pages opens with those and counts the
+ * rest as skipped. An archive with nothing readable is refused by name rather
+ * than opened empty.
+ */
+class RarComicArchive private constructor(
+    private val source: RandomAccessSource,
+    private val reader: RarReader,
+    override val pages: List<PageEntry>,
+    override val skippedPageCount: Int,
+    private val pathToEntry: Map<String, RarEntry>,
+) : ComicArchiveReading {
+
+    val generation: RarGeneration get() = reader.generation
+
+    companion object {
+        suspend fun open(source: RandomAccessSource): RarComicArchive {
+            val reader = try {
+                RarReader.open(source)
+            } catch (_: RarException.NotRar) {
+                throw ComicArchiveException.UnrecognisedContainer()
+            } catch (_: RarException) {
+                throw ComicArchiveException.Unreadable()
+            }
+
+            if (reader.isEncrypted) throw ComicArchiveException.PasswordProtected()
+            // Checked before the page list is built: a solid archive's first
+            // entry reads fine and everything after it does not, so surfacing a
+            // one-page comic here would be a lie.
+            if (reader.isSolid) throw ComicArchiveException.SolidArchive()
+            // No entries at all means the headers did not parse — a truncated or
+            // damaged file, not an archive that happens to hold no images. The
+            // ZIP path draws the same line: `no-pages.cbz` has entries and zero
+            // pages.
+            if (reader.entries.isEmpty()) throw ComicArchiveException.Unreadable()
+
+            val candidates = mutableListOf<PageEntry>()
+            val index = mutableMapOf<String, RarEntry>()
+            var skipped = 0
+
+            for (entry in reader.entries) {
+                if (!PageOrdering.isPage(entry.path)) continue
+                // A compressed entry is a page we can see and cannot yet read.
+                // Counting it as skipped is what makes the count honest.
+                if (!entry.isStored || entry.size == 0L) {
+                    skipped++
+                    continue
+                }
+                candidates += PageEntry(entry.path, entry.size)
+                index[entry.path] = entry
+            }
+
+            if (candidates.isEmpty() && skipped > 0) {
+                // Pages exist but none can be read. That is a decoder gap, not a
+                // damaged file, so it is named as the container it is.
+                throw ComicArchiveException.UnsupportedContainer(FormatSniffer.Container.RAR)
+            }
+
+            return RarComicArchive(
+                source = source,
+                reader = reader,
+                pages = PageOrdering.sorted(candidates),
+                skippedPageCount = skipped,
+                pathToEntry = index,
+            )
+        }
+    }
+
+    override suspend fun data(page: PageEntry): ByteArray {
+        val entry = pathToEntry[page.path] ?: throw ComicArchiveException.Unreadable()
+        return reader.data(entry)
+    }
+
+    override fun close() = source.close()
+}
+
 /** Opens whatever a file turns out to be. */
 object ComicArchiveOpener {
     /** Sniffs the container, then opens it. Extension is never trusted. */
@@ -194,11 +284,11 @@ object ComicArchiveOpener {
         return when (val container = FormatSniffer.container(probe)) {
             FormatSniffer.Container.ZIP -> ZipComicArchive.open(source)
             FormatSniffer.Container.TAR -> TarComicArchive.open(source)
+            FormatSniffer.Container.RAR -> RarComicArchive.open(source)
             // `publication-formats` requires a *named* refusal, never a generic
             // parse failure — `Container.displayName` is what carries the name.
-            // RAR needs a decoder (ADR-0005), 7-Zip is out of scope, and PDF has
-            // its own reader rather than an archive one.
-            FormatSniffer.Container.RAR,
+            // 7-Zip is out of scope, and PDF has its own reader rather than an
+            // archive one.
             FormatSniffer.Container.SEVEN_ZIP,
             FormatSniffer.Container.PDF,
             -> throw ComicArchiveException.UnsupportedContainer(container)

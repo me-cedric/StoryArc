@@ -27,6 +27,10 @@ public enum ComicArchiveError: Error, Equatable {
     case passwordProtected
     /// Not a single entry could be read, damaged beyond partial recovery.
     case unreadable
+    /// A solid archive. Named separately from `unsupportedContainer` because the
+    /// container *is* supported and this particular file still cannot be read —
+    /// see the solid-RAR4 finding in the format change's task list.
+    case solidArchive
 }
 
 /// A CBZ, or anything else that turns out to be a ZIP — including a file named
@@ -159,6 +163,77 @@ public struct TarComicArchive: ComicArchiveReading {
     }
 }
 
+/// A CBR.
+///
+/// Opens on headers alone: `RarReader` parses names, sizes and flags without a
+/// decoder, so indexing works before any C library is linked. What it cannot do
+/// is decompress, which shapes the three refusals here.
+///
+/// `publication-formats` requires opening what can be read and reporting what
+/// was skipped, so an archive with some stored pages opens with those and counts
+/// the rest as skipped. An archive with nothing readable is refused by name
+/// rather than opened empty.
+public struct RarComicArchive: ComicArchiveReading {
+    public let pages: [PageEntry]
+    public let skippedPageCount: Int
+    public let generation: RarGeneration
+
+    private let reader: RarReader
+    private let pathToEntry: [String: RarEntry]
+
+    public init(source: any RandomAccessSource) async throws {
+        do {
+            self.reader = try await RarReader(source: source)
+        } catch RarError.notRar {
+            throw ComicArchiveError.unrecognisedContainer
+        } catch {
+            throw ComicArchiveError.unreadable
+        }
+        self.generation = reader.generation
+
+        if reader.isEncrypted { throw ComicArchiveError.passwordProtected }
+        // Checked before the page list is built: a solid archive's first entry
+        // reads fine and everything after it does not, so surfacing a one-page
+        // comic here would be a lie.
+        if reader.isSolid { throw ComicArchiveError.solidArchive }
+
+        // No entries at all means the headers did not parse — a truncated or
+        // damaged file, not an archive that happens to hold no images. The ZIP
+        // path draws the same line: `no-pages.cbz` has entries and zero pages.
+        if reader.entries.isEmpty { throw ComicArchiveError.unreadable }
+
+        var candidates: [PageEntry] = []
+        var skipped = 0
+        var index: [String: RarEntry] = [:]
+
+        for entry in reader.entries where PageOrdering.isPage(path: entry.path) {
+            // A compressed entry is a page we can see and cannot yet read.
+            // Counting it as skipped is what makes the count honest.
+            guard entry.isStored, entry.size > 0 else {
+                skipped += 1
+                continue
+            }
+            candidates.append(PageEntry(path: entry.path, byteCount: Int(entry.size)))
+            index[entry.path] = entry
+        }
+
+        guard !candidates.isEmpty || skipped == 0 else {
+            // Pages exist but none can be read. That is a decoder gap, not a
+            // damaged file, so it is named as the container it is.
+            throw ComicArchiveError.unsupportedContainer(.rar)
+        }
+
+        self.pages = PageOrdering.sorted(candidates)
+        self.skippedPageCount = skipped
+        self.pathToEntry = index
+    }
+
+    public func data(for page: PageEntry) async throws -> Data {
+        guard let entry = pathToEntry[page.path] else { throw ComicArchiveError.unreadable }
+        return try await reader.data(for: entry)
+    }
+}
+
 /// Opens whatever a file turns out to be.
 public enum ComicArchiveOpener {
     /// Sniffs the container, then opens it. Extension is never trusted.
@@ -172,11 +247,13 @@ public enum ComicArchiveOpener {
             return try await ZipComicArchive(source: source)
         case .tar:
             return try await TarComicArchive(source: source)
-        case .rar, .sevenZip, .pdf:
+        case .rar:
+            return try await RarComicArchive(source: source)
+        case .sevenZip, .pdf:
             // `publication-formats` requires a *named* refusal, never a generic
             // parse failure — `Container.displayName` is what carries the name.
-            // RAR needs a decoder (ADR-0005), 7-Zip is out of scope, and PDF has
-            // its own reader rather than an archive one.
+            // 7-Zip is out of scope, and PDF has its own reader rather than an
+            // archive one.
             throw ComicArchiveError.unsupportedContainer(container)
         }
     }

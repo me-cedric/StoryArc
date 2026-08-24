@@ -48,6 +48,9 @@ object FixtureCorpus {
         val hasComicInfo: Boolean?,
         val expectedSeries: String?,
         val spreadIndices: List<Int>?,
+        val isSolid: Boolean?,
+        val isStreamable: Boolean?,
+        val expectedRefusal: String?,
     )
 
     val comics: List<Fixture> by lazy {
@@ -74,6 +77,9 @@ object FixtureCorpus {
                 hasComicInfo = bool("hasComicInfo"),
                 expectedSeries = str("expectedSeries"),
                 spreadIndices = ints("spreadIndices"),
+                isSolid = bool("isSolid"),
+                isStreamable = bool("isStreamable"),
+                expectedRefusal = str("expectedRefusal"),
             )
         }
     }
