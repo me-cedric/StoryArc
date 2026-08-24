@@ -41,6 +41,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.Publication
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 
@@ -66,6 +67,11 @@ import app.storyarc.core.model.SourceKind
 fun LibraryScreen(
     sources: List<Source> = emptyList(),
     viewModel: LibraryViewModel? = null,
+    /**
+     * How the app layer reaches the reader. The library knows which publication
+     * was chosen and where it lives; it does not know what a reader is.
+     */
+    onOpen: (Publication, java.io.File) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -118,7 +124,13 @@ fun LibraryScreen(
             val state = scanState
             when {
                 publications.isNotEmpty() && viewModel != null ->
-                    CoverGrid(publications, viewModel)
+                    CoverGrid(
+                        publications = publications,
+                        viewModel = viewModel,
+                        onOpen = { publication ->
+                            viewModel.location(publication)?.let { onOpen(publication, it) }
+                        },
+                    )
 
                 state is LibraryScanState.Scanning -> Scanning(state.found)
                 sources.isEmpty() -> EmptyLibrary(onScan = { viewModel?.scan() })

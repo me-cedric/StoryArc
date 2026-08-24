@@ -113,6 +113,9 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /** Where a publication's file is, so the app layer can hand it to a reader. */
+    fun location(publication: Publication): File? = locations[publication.id]
+
     /**
      * The cover for a publication, decoded once and remembered.
      *

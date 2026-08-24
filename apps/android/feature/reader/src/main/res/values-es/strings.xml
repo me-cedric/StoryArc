@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reader_page">%1$d de %2$d</string>
+    <string name="reader_close">Cerrar</string>
+    <string name="reader_page_unavailable">No se pudo leer esta página</string>
+    <string name="reader_right_to_left">De derecha a izquierda</string>
+</resources>

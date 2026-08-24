@@ -7,8 +7,17 @@ import androidx.activity.enableEdgeToEdge
 import app.storyarc.core.designsystem.theme.AppearanceMode
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.storyarc.core.model.Publication
 import app.storyarc.feature.library.LibraryScreen
 import app.storyarc.feature.library.LibraryViewModel
+import app.storyarc.feature.reader.ReaderScreen
+import app.storyarc.feature.reader.ReaderViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.activity.compose.BackHandler
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,7 +32,27 @@ class MainActivity : ComponentActivity() {
             // match what that capability specifies: follow the system, and use
             // Material You where the device offers it.
             StoryArcTheme(appearance = AppearanceMode.SYSTEM, useDynamicColor = true) {
-                LibraryScreen(viewModel = viewModel<LibraryViewModel>())
+                // The app layer owns navigation between features, because a
+                // feature module never depends on another feature module
+                // (docs/architecture). The library reports a choice; the reader
+                // accepts one; neither knows the other exists.
+                var reading by remember { mutableStateOf<Pair<Publication, File>?>(null) }
+                val selection = reading
+
+                if (selection == null) {
+                    LibraryScreen(
+                        viewModel = viewModel<LibraryViewModel>(),
+                        onOpen = { publication, file -> reading = publication to file },
+                    )
+                } else {
+                    // Keyed on the publication so opening a different one builds a
+                    // fresh model rather than showing the previous book's pages.
+                    val readerViewModel = remember(selection.first.id) {
+                        ReaderViewModel(selection.first, selection.second)
+                    }
+                    BackHandler { reading = null }
+                    ReaderScreen(viewModel = readerViewModel, onClose = { reading = null })
+                }
             }
         }
     }

@@ -36,7 +36,7 @@ boundaries do not.
 | **Format** | Archive parsing, page extraction, page decoding, PDF rendering. See [format-layer.md](format-layer.md). | `Formats` | `:core:format` |
 | **Source** | Local folder, SMB, OPDS, Kavita connectors. *Not yet built.* | `Sources` (planned) | `:core:source` (planned) |
 | **Persistence** | Progress store, catalogue cache, downloads. *Not yet built.* | SwiftData | Room |
-| **Feature** | One module per screen area. | `LibraryFeature`, … | `:feature:library`, … |
+| **Feature** | One module per screen area. | `LibraryFeature`, `ReaderFeature` | `:feature:library`, `:feature:reader` |
 | **App** | Entry point, navigation host, DI root. | `App/` | `:app` |
 
 ### Rules that hold on both sides

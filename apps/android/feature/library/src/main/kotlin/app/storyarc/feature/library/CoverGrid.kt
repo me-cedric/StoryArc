@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,12 @@ import app.storyarc.core.model.Publication
 internal fun CoverGrid(
     publications: List<Publication>,
     viewModel: LibraryViewModel,
+    /**
+     * What to do when a cover is tapped. The library does not open the reader
+     * itself — a feature module never depends on another feature module, so the
+     * app layer wires the two together.
+     */
+    onOpen: (Publication) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // The readable range. Below the minimum a cover stops being recognisable;
@@ -73,7 +80,7 @@ internal fun CoverGrid(
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
     ) {
         items(publications, key = { it.id }) { publication ->
-            CoverCell(publication, viewModel, maxPixelSize)
+            CoverCell(publication, viewModel, onOpen, maxPixelSize)
         }
     }
 }
@@ -83,6 +90,7 @@ internal fun CoverGrid(
 private fun CoverCell(
     publication: Publication,
     viewModel: LibraryViewModel,
+    onOpen: (Publication) -> Unit,
     maxPixelSize: Int,
     modifier: Modifier = Modifier,
 ) {
@@ -100,6 +108,15 @@ private fun CoverCell(
         // the title, then the format, then an unlabelled image.
         modifier = modifier
             .fillMaxWidth()
+            // A publication that cannot be read is not tappable. Opening it only
+            // to show the same refusal twice wastes the user's tap.
+            .then(
+                if (publication.isOpenable) {
+                    Modifier.clickable { onOpen(publication) }
+                } else {
+                    Modifier
+                },
+            )
             .semantics {
                 contentDescription = listOfNotNull(
                     publication.displayTitle,
