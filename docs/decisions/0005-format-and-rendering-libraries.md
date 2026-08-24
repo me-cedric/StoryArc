@@ -1,6 +1,6 @@
 # ADR-0005 — Format and rendering libraries per platform
 
-- **Status:** Proposed — the ZIP rows are now *Known*; every remaining *Assumed* row needs a spike before this is Accepted
+- **Status:** Proposed — every library is now **chosen**; what remains is execution and two spikes. See *What still blocks acceptance* at the end.
 - **Date:** 2026-08-24
 - **Deciders:** Cédric Meyer
 
@@ -26,9 +26,10 @@ been proven in a spike. Nothing here is *Known* until a spike says so.
 | EPUB, reflowable + fixed-layout | **Readium Swift toolkit** 3.11.x, via SPM | BSD-3-Clause | Known — actively maintained, SPM-distributed, covers ebooks, audiobooks and comics |
 | PDF | **PDFKit** (system) | Apple SDK | Known |
 | ZIP (CBZ, EPUB container) | **Our own reader** over `RandomAccessSource`; inflate from `Compression` | — | **Known** — superseded by [ADR-0008](0008-ranged-reads-and-own-zip-reader.md). ZIPFoundation removed. |
-| RAR (CBR) | **Unrar.swift**, or UnrarKit | Swift parts MIT; bundled UnRAR source carries its own licence | Assumed — **licence review required before use**, see risk below |
-| 7-Zip (CB7), TAR (CBT) | **SWCompression** | MIT | Assumed — documented to read ZIP, TAR and 7-Zip; no RAR |
-| Image decoding | **ImageIO** / `CGImageSource` (system) | Apple SDK | Assumed — the API is certain, but no page has been decoded to a bitmap yet |
+| RAR (CBR) | **libarchive** via C interop | BSD-2-Clause | **Decided** — its own RAR4/RAR5 readers, not UnRAR-derived. Build unproven; see Phase 0. |
+| TAR (CBT) | **libarchive**, same integration | BSD-2-Clause | **Decided** |
+| 7-Zip (CB7) | — | — | **Not supported.** Dropped on product scope, not difficulty. libarchive's 7-Zip reader is compiled out. |
+| Image decoding | **ImageIO** / `CGImageSource` (system) | Apple SDK | **Decided** — no page decoded to a bitmap yet, so still unproven |
 | SMB | **SMBClient** (kishikawakatsumi), pure Swift, SMB 2 | MIT | Assumed — SMB 3 encryption support to be confirmed in the spike |
 
 ### Android
@@ -36,11 +37,12 @@ been proven in a spike. Nothing here is *Known* until a spike says so.
 | Need | Library | Licence | Confidence |
 | --- | --- | --- | --- |
 | EPUB, reflowable + fixed-layout | **Readium Kotlin toolkit** 3.3.x, via Maven Central | BSD-3-Clause | Known |
-| PDF | **PdfRenderer** (system) or **pdfium-android** | Apache-2.0 / BSD | Assumed — system `PdfRenderer` first; pdfium only if it proves inadequate |
+| PDF | **System `PdfRenderer`** — images only, no text layer | Android SDK | **Decided.** `androidx.pdf` has text search but ships a whole `PdfViewerFragment`; pdfium costs 5–8 MB per ABI for a capability comic PDFs never use. |
 | ZIP | **Our own reader** over `RandomAccessSource`; inflate from `java.util.zip.Inflater` | — | **Known** — superseded by [ADR-0008](0008-ranged-reads-and-own-zip-reader.md). |
-| TAR, 7-Zip | **Apache Commons Compress** | Apache-2.0 | Assumed |
-| RAR | **junrar** | UnRAR-derived | Assumed — **licence review required**, see risk below |
-| Image decoding | **Coil 3** over the platform decoders | Apache-2.0 | Assumed |
+| TAR (CBT) | **libarchive**, same integration as iOS | BSD-2-Clause | **Decided** — symmetric with iOS rather than a second implementation |
+| 7-Zip (CB7) | — | — | **Not supported** |
+| RAR (CBR) | **libarchive** via JNI | BSD-2-Clause | **Decided** — junrar rejected as UnRAR-derived |
+| Image decoding | **`ImageDecoder`** (system) | Android SDK | **Decided** — Coil rejected: its caching duplicates ADR-0008's sparse cache, and it would make Android's decode path structurally unlike iOS's |
 | SMB | **smbkotlin**, or **smbj** | to confirm | Assumed — smbkotlin advertises coroutine-based SMB 3 with no native dependency on API 26+; smbj is the conservative fallback |
 
 ### Rejected
@@ -87,27 +89,34 @@ magic bytes, not that a page renders.
 
 ## Risks
 
-### RAR licensing is the sharpest edge here
+### RAR licensing — resolved by choosing libarchive
 
-Every practical RAR decoder derives from the reference UnRAR source, whose
-licence historically forbids using it to create a RAR *compressor*. StoryArc
-only ever decompresses, which is the intended use — but the licence text is not
-a standard OSI licence and it propagates into a repository that is otherwise
-MIT.
+Every *easy* RAR decoder derives from the reference UnRAR source, whose licence
+is not OSI-approved. Shipping one would put a non-OSI component inside a
+repository whose README claims "free and open source" without qualification.
 
-**Required before any CBR code is written:** read the exact licence text shipped
-with the chosen decoder on each platform, record it in `THIRD_PARTY_NOTICES.md`,
-and confirm it is compatible with distributing StoryArc under MIT. If it is not,
-the fallback is to ship CBR support as an optional component rather than to
-quietly ship an incompatible licence.
+`libarchive` avoids it entirely: BSD-2-Clause, with its own RAR4 and RAR5
+readers rather than UnRAR-derived code, and by a wide margin the most audited
+RAR implementation in open source — which matters more than usual, because it
+parses hostile bytes in C.
 
-### CB7 may not have a symmetric answer
+The cost is build engineering: six ABIs, and an FFI boundary this ADR originally
+rejected. That rejection was reasoned — *the parsing layer is the part with good
+native libraries already* — and it stops being true for exactly one format.
+Reversing it for CBR and CBT only, and saying so here, beats pretending the
+original reasoning still covers this case.
 
-SWCompression covers 7-Zip on iOS and Commons Compress covers it on Android, but
-neither has been proven against real CB7 files. If one platform cannot read CB7
-reliably, it is declared unsupported *on that platform* and the UI says so —
-this is already written into the format spec's open questions rather than left
-to be discovered.
+### CB7 — dropped, and the reason matters
+
+Not a licence problem and not a difficulty problem: libarchive reads 7-Zip, and
+enabling it would be a one-line format registration. CB7 is dropped because it is
+rare and because solid 7-Zip is the worst remote-reading case in the entire
+format set.
+
+The consequence of dropping it on *scope* rather than on capability is that
+adding it later costs a registration and a fixture, not an integration. Its
+7-Zip reader is compiled out of the build so a reader nobody reaches is not dead
+weight in every binary.
 
 ### SMB 3 encryption
 
@@ -116,13 +125,31 @@ encrypted. Both SMB library picks are Assumed on this point. If neither
 negotiates SMB 3 encryption, the requirement changes to reporting encryption as
 unavailable — it does not get quietly dropped.
 
+## What still blocks acceptance
+
+Every library is chosen. Nothing here is waiting on a decision any more — it is
+waiting on execution and on two spikes that do not affect the choices above.
+
+| Outstanding | Kind |
+| --- | --- |
+| libarchive builds and links for all six ABIs | Execution — the only real unknown |
+| Trimmed binary footprint measured per ABI | Execution |
+| A page actually decoded to a bitmap on both platforms | Execution |
+| **SMB library** — `SMBClient` vs alternatives on iOS, `smbkotlin` vs `smbj` on Android, and whether SMB 3 encryption is mandatory or best-effort | Spike |
+| **Readium pagination** compared across the two toolkits on the same EPUB | Spike |
+
+The two spikes are mine to run and report, not decisions to put to anyone. This
+ADR becomes **Accepted** when every row in the tables above is verified rather
+than decided.
+
 ## Spike before accepting
 
 - [x] **1a.** Decode CBZ on both platforms, including malformed archives.
       Done — 8 fixtures, 23 tests per platform.
-- [ ] **1b.** CBR, CB7 and CBT, same corpus treatment. Blocked on 2.
-- [ ] **2.** Read and record every licence into `THIRD_PARTY_NOTICES.md`. The RAR
-      decoder is the one that decides whether CBR ships at all.
+- [ ] **1b.** CBR and CBT, same corpus treatment, including a **solid** RAR to
+      pin the cannot-stream path. CB7 needs only a refusal fixture.
+- [x] **2.** The RAR licence question is answered: libarchive, BSD-2-Clause.
+      Recording its text is Phase 0.3 of the `format-scope-and-libraries` change.
 - [ ] **3.** Stream one page from a 400 MB archive over SMB on both platforms and
       measure time-to-first-page. Expected to force our own ranged reader.
 - [ ] **4.** Render the same EPUB through both Readium toolkits and compare
@@ -132,6 +159,7 @@ unavailable — it does not get quietly dropped.
 
 The corpus used by all of these lives in `packages/test-fixtures`.
 
-**This ADR is not accepted until every row above is checked.** Three of thirteen
-library rows are now *Known*; the RAR licence review (2) is the only one that
-could still change the product's scope.
+**This ADR is not accepted until every row above is checked.** The library
+choices are settled; what is left is proving them. The RAR licence question,
+which was the only outstanding item that could have changed the product's scope,
+is closed.

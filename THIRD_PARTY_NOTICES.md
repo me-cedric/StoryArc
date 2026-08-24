@@ -30,9 +30,10 @@ and `kotlinx-coroutines-test`, both Apache-2.0.
 
 | Component | Status |
 | --- | --- |
-| **RAR decoder** (CBR) | **Blocked on a licence review**, and separately unable to stream: solid RAR requires every file before the target, so `download first` is the honest answer there ([ADR-0008](docs/decisions/0008-ranged-reads-and-own-zip-reader.md)). Every practical RAR decoder derives from the reference UnRAR source, whose licence is not a standard OSI licence. Reviewed and recorded here before any CBR code ships; if it is incompatible with distributing StoryArc under MIT, CBR becomes an optional component rather than a quiet licence violation. |
+| **libarchive** (CBR, CBT) | **Chosen, not yet integrated.** BSD-2-Clause, with its own RAR4 and RAR5 readers rather than UnRAR-derived code. Its exact licence text is recorded here before any CBR ships. Every format reader except RAR and TAR — 7-Zip included — is compiled out. Note it parses untrusted input in C; see [SECURITY.md](SECURITY.md). |
 | **Readium** (EPUB) | BSD-3-Clause on both platforms. Lands with the EPUB reader. |
 | **Reading fonts** | Literata, Source Serif 4, EB Garamond, Bitter, Atkinson Hyperlegible — all OFL. Land with the theming work. |
+| **UnRAR-derived decoders** | **Rejected**, not deferred. UnrarKit, Unrar.swift and junrar all carry the reference UnRAR licence, which is not OSI-approved and would sit inside an otherwise-MIT repository. libarchive exists precisely so this is unnecessary. |
 | **SMB client** | Licence to confirm during the connector spike. |
 
 ## Fixture corpus
