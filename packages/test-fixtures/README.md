@@ -40,11 +40,19 @@ python3 scripts/generate.py           # rewrite comics/ and manifest.json
 python3 scripts/generate.py --check   # fail if the committed output is stale
 ```
 
-Fixtures are **generated** so they are deterministic, legally clean, and tiny —
-every page is a 2×3 procedurally-coloured PNG, so there is no real artwork
-anywhere in the repository. The output is then **committed**, so neither test
-suite needs Python to run. Same generate-then-commit pattern as the design
-tokens.
+Fixtures are **generated** so they are reproducible from a readable script,
+legally clean, and tiny — every page is a 2×3 procedurally-coloured PNG, so there
+is no real artwork anywhere in the repository. The output is then **committed**,
+so neither test suite needs Python to run. Same generate-then-commit pattern as
+the design tokens.
+
+**They are not byte-identical across machines.** DEFLATE output differs between
+zlib builds, so regenerating on another machine produces different bytes for the
+same logical fixture. That is why `manifest.json` records **no hashes and no file
+sizes** — either would make the staleness check machine-specific and therefore
+useless. Git pins the archives' bytes; the manifest pins their *meaning*, and
+`--check` compares only that. `--check` never writes, so it cannot itself cause
+the drift it is looking for.
 
 Colours are distinct per page index, so a wrong page order is visible rather
 than merely failing an assertion.

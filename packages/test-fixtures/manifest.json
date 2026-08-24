@@ -2,6 +2,7 @@
   "$description": "The shared publication corpus. Both test suites read this file and assert the same expected parse \u2014 it is what keeps two independent implementations from disagreeing about what correct means.",
   "$generatedBy": "packages/test-fixtures/scripts/generate.py",
   "$doNotEdit": "Generated. Change the script, run it, commit the result.",
+  "$noHashes": "Deliberately records no file hashes or sizes: DEFLATE output differs between zlib builds, so either would make this manifest machine-specific. The archives are committed, so git pins their bytes; this file pins their meaning.",
   "pageAspect": {
     "portrait": [
       2,
@@ -16,8 +17,6 @@
     {
       "file": "comics/natural-sort.cbz",
       "pins": "page10 sorts after page9, not after page1",
-      "sha256": "491476ca6cdcd1d01263e71bd8d882f36430c079d5f1bd63f949be8c4e62ab36",
-      "bytes": 1972,
       "expectedPageCount": 12,
       "expectedPageOrder": [
         "page1.png",
@@ -37,8 +36,6 @@
     {
       "file": "comics/nested-chapters.cbz",
       "pins": "pages order by full path with natural sort, so ch10 follows ch2",
-      "sha256": "75580d8a6463b7888eeb401a5b21af50418d1f603b29da5ede445976c40eb99e",
-      "bytes": 1010,
       "expectedPageCount": 6,
       "expectedPageOrder": [
         "ch1/p1.png",
@@ -52,8 +49,6 @@
     {
       "file": "comics/non-image-entries.cbz",
       "pins": "ComicInfo.xml, OS cruft and resource forks are excluded from the page list",
-      "sha256": "f6a8a5af7552e454156e0f148d3bc918d1b80f6242c751dfdf2b0e59e18ce321",
-      "bytes": 1034,
       "expectedPageCount": 2,
       "expectedPageOrder": [
         "page1.png",
@@ -65,8 +60,6 @@
     {
       "file": "comics/mislabelled-zip.cbr",
       "pins": "a ZIP named .cbr opens, because format comes from content not extension",
-      "sha256": "a5666da1eaae74023ffacf92557c3d84743f71ca9546bb6238430327e4666c65",
-      "bytes": 508,
       "expectedPageCount": 3,
       "expectedPageOrder": [
         "page1.png",
@@ -78,8 +71,6 @@
     {
       "file": "comics/single-page.cbz",
       "pins": "a one-page publication does not divide by zero",
-      "sha256": "2d37dc9a4b859c1c4da41de7fd5565fb6b51eaec892f7fbd5e2e17e1c3298d56",
-      "bytes": 182,
       "expectedPageCount": 1,
       "expectedPageOrder": [
         "only.png"
@@ -88,8 +79,6 @@
     {
       "file": "comics/double-page-spread.cbz",
       "pins": "a wide image is one spread, not two pages",
-      "sha256": "2c63743d21e05517948591ce7b837bee8c6a24302b40e19751d7716970813f47",
-      "bytes": 506,
       "expectedPageCount": 3,
       "expectedPageOrder": [
         "p1.png",
@@ -103,8 +92,6 @@
     {
       "file": "comics/stored-entries.cbz",
       "pins": "STORED entries read correctly \u2014 a reader must not assume DEFLATE",
-      "sha256": "7f3ea5260747b38c89e342bd893bb57f466c1374b8f0674a11f325bc6b4e6a7e",
-      "bytes": 505,
       "expectedPageCount": 3,
       "expectedPageOrder": [
         "p1.png",
@@ -118,8 +105,6 @@
     {
       "file": "comics/zip64.cbz",
       "pins": "Zip64 extra fields parse \u2014 64-bit sizes and offsets",
-      "sha256": "602885b66bcc5c9dd4aca49ff3e0234cb969a4bdad0b45863f3d1598990549a4",
-      "bytes": 550,
       "expectedPageCount": 3,
       "expectedPageOrder": [
         "p1.png",
@@ -131,8 +116,6 @@
     {
       "file": "comics/archive-comment.cbz",
       "pins": "the EOCD is found by scanning backwards for its signature, not at a fixed offset",
-      "sha256": "564d8654ef61b02589002df085746ca59ed4ee34d989d7473f37ca65ee9e5d55",
-      "bytes": 1114,
       "expectedPageCount": 3,
       "expectedPageOrder": [
         "p1.png",
@@ -144,8 +127,6 @@
     {
       "file": "comics/data-descriptor.cbz",
       "pins": "local headers carry zero sizes; the central directory is the only authority",
-      "sha256": "a204744b024f27242ac7fed14de98cbcdfcdb2ba2dcec73578ae3a8a20b56c91",
-      "bytes": 538,
       "expectedPageCount": 3,
       "expectedPageOrder": [
         "p1.png",
@@ -157,8 +138,6 @@
     {
       "file": "comics/truncated.cbz",
       "pins": "a truncated archive opens what it can and reports what it skipped",
-      "sha256": "744cdbfd5d9135d1ac815638d602feee955197de06494840207878bb50984966",
-      "bytes": 1183,
       "expectedPageCount": null,
       "expectedPageOrder": null,
       "isRecoverable": true,
@@ -167,8 +146,6 @@
     {
       "file": "comics/no-pages.cbz",
       "pins": "an archive with no images reports zero pages, not an error",
-      "sha256": "cf0fd9a8adde86960fde84780737384f74fca0e7740e770fe64fd686328a391b",
-      "bytes": 134,
       "expectedPageCount": 0,
       "expectedPageOrder": []
     }

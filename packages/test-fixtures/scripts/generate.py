@@ -15,7 +15,6 @@ Every fixture exists to pin one behaviour and is named after it.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import pathlib
 import struct
@@ -24,6 +23,14 @@ import zlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 COMICS = ROOT / "comics"
+
+_parser = argparse.ArgumentParser()
+_parser.add_argument("--check", action="store_true", help="fail if committed output is stale")
+ARGS = _parser.parse_args()
+# `--check` must not touch the archives. DEFLATE output is not byte-identical
+# across zlib builds, so rewriting them on another machine would produce
+# different bytes and report a false staleness.
+WRITE = not ARGS.check
 
 # A 2x3 page keeps the whole corpus in single-digit kilobytes. The aspect ratio
 # is portrait so spread-detection logic has something honest to look at.
@@ -56,6 +63,8 @@ def hue(index: int) -> tuple[int, int, int]:
 
 def write_archive(name: str, entries: list[tuple[str, bytes]]) -> pathlib.Path:
     path = COMICS / name
+    if not WRITE:
+        return path
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
         for entry_name, payload in entries:
@@ -84,13 +93,17 @@ fixtures: list[dict] = []
 
 
 def register(name: str, why: str, pages: list[str], **extra) -> None:
-    path = COMICS / name
+    """Record what a correct parse of this fixture yields.
+
+    Deliberately no hash and no byte count: DEFLATE output differs between zlib
+    builds, so either field would make this manifest machine-specific and the
+    staleness check useless. The archives are committed, so git pins their bytes;
+    this file pins their *meaning*.
+    """
     fixtures.append(
         {
             "file": f"comics/{name}",
             "pins": why,
-            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-            "bytes": path.stat().st_size,
             "expectedPageCount": len(pages),
             "expectedPageOrder": pages,
             **extra,
@@ -177,7 +190,8 @@ register(
 # ── 7. STORED entries (no compression) ─────────────────────────────────────
 # A perfectly legal CBZ. Our reader must not assume DEFLATE.
 stored_path = COMICS / "stored-entries.cbz"
-with zipfile.ZipFile(stored_path, "w") as archive:
+if WRITE:
+  with zipfile.ZipFile(stored_path, "w") as archive:
     for index in range(1, 4):
         info = zipfile.ZipInfo(f"p{index}.png", date_time=(2026, 1, 1, 0, 0, 0))
         info.compress_type = zipfile.ZIP_STORED
@@ -194,7 +208,8 @@ register(
 # structures for a small entry, which is exactly the parsing path we need to
 # exercise. ADR-0008 makes this ours to get right.
 zip64_path = COMICS / "zip64.cbz"
-with zipfile.ZipFile(zip64_path, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as archive:
+if WRITE:
+  with zipfile.ZipFile(zip64_path, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as archive:
     for index in range(1, 4):
         info = zipfile.ZipInfo(f"p{index}.png", date_time=(2026, 1, 1, 0, 0, 0))
         info.compress_type = zipfile.ZIP_DEFLATED
@@ -211,7 +226,8 @@ register(
 # The EOCD is no longer the last 22 bytes, so a reader that assumes a fixed tail
 # offset instead of scanning backwards for the signature fails here.
 comment_path = COMICS / "archive-comment.cbz"
-with zipfile.ZipFile(comment_path, "w", zipfile.ZIP_DEFLATED) as archive:
+if WRITE:
+  with zipfile.ZipFile(comment_path, "w", zipfile.ZIP_DEFLATED) as archive:
     for index in range(1, 4):
         info = zipfile.ZipInfo(f"p{index}.png", date_time=(2026, 1, 1, 0, 0, 0))
         info.compress_type = zipfile.ZIP_DEFLATED
@@ -251,7 +267,8 @@ class _Unseekable:
 
 
 descriptor_path = COMICS / "data-descriptor.cbz"
-with descriptor_path.open("wb") as raw:
+if WRITE:
+ with descriptor_path.open("wb") as raw:
     sink = _Unseekable(raw)
     with zipfile.ZipFile(sink, "w", zipfile.ZIP_DEFLATED) as archive:
         for index in range(1, 4):
@@ -270,13 +287,12 @@ register(
 # read and reporting what was skipped, rather than refusing the publication.
 intact = COMICS / "natural-sort.cbz"
 truncated = COMICS / "truncated.cbz"
-truncated.write_bytes(intact.read_bytes()[: int(intact.stat().st_size * 0.6)])
+if WRITE:
+    truncated.write_bytes(intact.read_bytes()[: int(intact.stat().st_size * 0.6)])
 fixtures.append(
     {
         "file": "comics/truncated.cbz",
         "pins": "a truncated archive opens what it can and reports what it skipped",
-        "sha256": hashlib.sha256(truncated.read_bytes()).hexdigest(),
-        "bytes": truncated.stat().st_size,
         "expectedPageCount": None,
         "expectedPageOrder": None,
         "isRecoverable": True,
@@ -292,6 +308,7 @@ manifest = {
     "$description": "The shared publication corpus. Both test suites read this file and assert the same expected parse — it is what keeps two independent implementations from disagreeing about what correct means.",
     "$generatedBy": "packages/test-fixtures/scripts/generate.py",
     "$doNotEdit": "Generated. Change the script, run it, commit the result.",
+    "$noHashes": "Deliberately records no file hashes or sizes: DEFLATE output differs between zlib builds, so either would make this manifest machine-specific. The archives are committed, so git pins their bytes; this file pins their meaning.",
     "pageAspect": {"portrait": [PAGE_W, PAGE_H], "spread": [SPREAD_W, SPREAD_H]},
     "comics": fixtures,
 }
@@ -301,21 +318,18 @@ def render() -> str:
     return json.dumps(manifest, indent=2) + "\n"
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--check", action="store_true", help="fail if committed output is stale")
-args = parser.parse_args()
-
 manifest_path = ROOT / "manifest.json"
 rendered = render()
 
-if args.check:
+if ARGS.check:
     current = manifest_path.read_text() if manifest_path.exists() else ""
     if current != rendered:
         raise SystemExit("manifest.json is stale — run scripts/generate.py and commit the result")
     print(f"Fixture corpus is current: {len(fixtures)} archives.")
 else:
     manifest_path.write_text(rendered)
-    total = sum(f["bytes"] for f in fixtures)
+    total = sum((COMICS / pathlib.Path(f["file"]).name).stat().st_size for f in fixtures)
     print(f"Wrote {len(fixtures)} archives, {total} bytes total, plus manifest.json")
     for f in fixtures:
-        print(f"  {f['bytes']:>6}  {f['file']:<34}  {f['pins']}")
+        size = (COMICS / pathlib.Path(f["file"]).name).stat().st_size
+        print(f"  {size:>6}  {f['file']:<34}  {f['pins']}")
