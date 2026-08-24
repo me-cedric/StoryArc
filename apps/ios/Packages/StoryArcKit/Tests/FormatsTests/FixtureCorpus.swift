@@ -77,10 +77,24 @@ enum FixtureCorpus {
         let expectedRefusal: String?
     }
 
+    /// One case from the manifest's `filenames` table. Needs no file on disk:
+    /// filename inference is a pure function over a string, so what the corpus
+    /// pins is the table of cases rather than any bytes.
+    struct FilenameCase: Decodable, Sendable {
+        let filename: String
+        let series: String?
+        let number: String?
+        let volume: Int?
+        let year: Int?
+        /// Why this case is in the table, so a failure says what broke.
+        let why: String
+    }
+
     private struct Manifest: Decodable {
         let comics: [Fixture]
         let pdfs: [PdfFixture]
         let ebooks: [EbookFixture]
+        let filenames: [FilenameCase]
     }
 
     static let comics: [Fixture] = {
@@ -108,6 +122,15 @@ enum FixtureCorpus {
         do {
             let data = try Data(contentsOf: url("manifest.json"))
             return try JSONDecoder().decode(Manifest.self, from: data).ebooks
+        } catch {
+            fatalError("could not read the fixture manifest: \(error)")
+        }
+    }()
+
+    static let filenames: [FilenameCase] = {
+        do {
+            let data = try Data(contentsOf: url("manifest.json"))
+            return try JSONDecoder().decode(Manifest.self, from: data).filenames
         } catch {
             fatalError("could not read the fixture manifest: \(error)")
         }

@@ -457,5 +457,72 @@
       ],
       "note": "No text layer at all, so neither platform may offer selection or search. Page box is 2:3, matching every other fixture page."
     }
+  ],
+  "$filenamesNote": "Cases for filename metadata inference, which needs no file on disk \u2014 it is a pure function over a string. Both platforms assert this same table so neither invents its own idea of what a common naming pattern is. Every value inferred from a filename must be marked inferred, so an authoritative source can replace it later without a conflict prompt.",
+  "filenames": [
+    {
+      "filename": "Saga 003 (2012).cbz",
+      "series": "Saga",
+      "number": "3",
+      "volume": null,
+      "year": 2012,
+      "why": "the common shape: series, zero-padded issue, year in parentheses"
+    },
+    {
+      "filename": "Invincible v02 #011 (2004).cbr",
+      "series": "Invincible",
+      "number": "11",
+      "volume": 2,
+      "year": 2004,
+      "why": "volume and issue together, issue marked with a hash"
+    },
+    {
+      "filename": "One Piece - c1044 (v104) [Scan Group].cbz",
+      "series": "One Piece",
+      "number": "1044",
+      "volume": 104,
+      "year": null,
+      "why": "manga chapter naming, and bracketed groups are not part of the title"
+    },
+    {
+      "filename": "Akira Vol. 3.cbz",
+      "series": "Akira",
+      "number": null,
+      "volume": 3,
+      "year": null,
+      "why": "a spelled-out volume with no issue at all"
+    },
+    {
+      "filename": "Blame! 2001 (2001).cbz",
+      "series": "Blame! 2001",
+      "number": null,
+      "volume": null,
+      "year": 2001,
+      "why": "a series whose own name ends in digits \u2014 the parenthesised year is the year, and the title keeps its number"
+    },
+    {
+      "filename": "Watchmen.cbz",
+      "series": "Watchmen",
+      "number": null,
+      "volume": null,
+      "year": null,
+      "why": "a single volume with nothing to infer beyond the title"
+    },
+    {
+      "filename": "Sandman #01 (1989).cbz",
+      "series": "Sandman",
+      "number": "1",
+      "volume": null,
+      "year": 1989,
+      "why": "a leading zero is dropped, so #01 and #1 are the same issue"
+    },
+    {
+      "filename": "Berserk - Chapter 364.cbz",
+      "series": "Berserk",
+      "number": "364",
+      "volume": null,
+      "year": null,
+      "why": "a spelled-out chapter, separated by a dash"
+    }
   ]
 }

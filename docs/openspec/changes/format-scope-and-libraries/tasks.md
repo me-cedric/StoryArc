@@ -174,6 +174,25 @@ here is RAR, which is the only format that genuinely needs a decoder.
 
       Issue number stays a string: "3.5" and "Annual 1" are both real, and turning
       either into a number loses the publication's identity.
+- [x] **2.11** **Filename metadata, for publications that carry none.**
+      `FilenameMetadata` infers series, volume, issue and year from a filename, and
+      every value it produces is marked inferred — which is the part
+      `publication-formats` actually cares about, because an authoritative source
+      has to be able to replace a guess without raising a conflict the app
+      invented.
+
+      The case table lives in the corpus manifest rather than in either test file,
+      so both platforms agree on what "common naming pattern" means instead of each
+      inventing its own list. Eight real-world shapes, including three awkward ones
+      chosen on purpose: a series whose own name ends in digits, scanlation-group
+      brackets that are not part of the title, and a zero-padded issue that must
+      sort with its unpadded twin.
+
+      Two guesses are deliberately conservative, and both are marked `ponytail:`
+      with their ceiling. A year is only read from parentheses, because a bare
+      four-digit number is more often part of a title. A trailing bare number is
+      capped at three digits for the same reason — a four-digit chapter needs an
+      explicit `c` marker, which every convention that goes that high uses.
 
 ## Phase 3 — Page decoding
 

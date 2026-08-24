@@ -1175,6 +1175,86 @@ PDFS.append(
     }
 )
 
+# ── 17. Filename metadata ────────────────────────────────────────────────────
+# `publication-formats` requires series, volume, chapter and year to be parsed
+# from the filename when a publication carries no embedded metadata, and requires
+# the results to be *marked as inferred* so a later authoritative source can
+# replace them without asking the user to resolve a conflict.
+#
+# There is no file to commit for this: it is a pure function over a string. What
+# the corpus can pin is the table of cases, so both platforms agree on what
+# "common naming patterns" means rather than each inventing its own list.
+#
+# Every case here is a real-world shape. The awkward ones are deliberate: a year
+# that could be mistaken for an issue number, a series whose own name contains
+# digits, and scanlation-group brackets that are not part of the title.
+FILENAME_CASES = [
+    {
+        "filename": "Saga 003 (2012).cbz",
+        "series": "Saga",
+        "number": "3",
+        "volume": None,
+        "year": 2012,
+        "why": "the common shape: series, zero-padded issue, year in parentheses",
+    },
+    {
+        "filename": "Invincible v02 #011 (2004).cbr",
+        "series": "Invincible",
+        "number": "11",
+        "volume": 2,
+        "year": 2004,
+        "why": "volume and issue together, issue marked with a hash",
+    },
+    {
+        "filename": "One Piece - c1044 (v104) [Scan Group].cbz",
+        "series": "One Piece",
+        "number": "1044",
+        "volume": 104,
+        "year": None,
+        "why": "manga chapter naming, and bracketed groups are not part of the title",
+    },
+    {
+        "filename": "Akira Vol. 3.cbz",
+        "series": "Akira",
+        "number": None,
+        "volume": 3,
+        "year": None,
+        "why": "a spelled-out volume with no issue at all",
+    },
+    {
+        "filename": "Blame! 2001 (2001).cbz",
+        "series": "Blame! 2001",
+        "number": None,
+        "volume": None,
+        "year": 2001,
+        "why": "a series whose own name ends in digits — the parenthesised year is the year, and the title keeps its number",
+    },
+    {
+        "filename": "Watchmen.cbz",
+        "series": "Watchmen",
+        "number": None,
+        "volume": None,
+        "year": None,
+        "why": "a single volume with nothing to infer beyond the title",
+    },
+    {
+        "filename": "Sandman #01 (1989).cbz",
+        "series": "Sandman",
+        "number": "1",
+        "volume": None,
+        "year": 1989,
+        "why": "a leading zero is dropped, so #01 and #1 are the same issue",
+    },
+    {
+        "filename": "Berserk - Chapter 364.cbz",
+        "series": "Berserk",
+        "number": "364",
+        "volume": None,
+        "year": None,
+        "why": "a spelled-out chapter, separated by a dash",
+    },
+]
+
 manifest = {
     "$description": "The shared publication corpus. Both test suites read this file and assert the same expected parse — it is what keeps two independent implementations from disagreeing about what correct means.",
     "$generatedBy": "packages/test-fixtures/scripts/generate.py",
@@ -1184,6 +1264,8 @@ manifest = {
     "comics": fixtures,
     "ebooks": ebooks,
     "pdfs": PDFS,
+    "$filenamesNote": "Cases for filename metadata inference, which needs no file on disk — it is a pure function over a string. Both platforms assert this same table so neither invents its own idea of what a common naming pattern is. Every value inferred from a filename must be marked inferred, so an authoritative source can replace it later without a conflict prompt.",
+    "filenames": FILENAME_CASES,
 }
 
 

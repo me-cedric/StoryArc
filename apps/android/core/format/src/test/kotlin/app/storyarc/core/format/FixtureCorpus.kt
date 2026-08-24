@@ -137,6 +137,38 @@ object FixtureCorpus {
         }
     }
 
+    /**
+     * One case from the manifest's `filenames` table. Needs no file on disk:
+     * filename inference is a pure function over a string, so what the corpus pins
+     * is the table of cases rather than any bytes.
+     */
+    data class FilenameCase(
+        val filename: String,
+        val series: String?,
+        val number: String?,
+        val volume: Int?,
+        val year: Int?,
+        /** Why this case is in the table, so a failure says what broke. */
+        val why: String,
+    )
+
+    val filenames: List<FilenameCase> by lazy {
+        val root = Json.parseToJsonElement(file("manifest.json").readText()).jsonObject
+        root.getValue("filenames").jsonArray.map { element ->
+            val obj = element.jsonObject
+            fun str(key: String) = obj[key]?.jsonPrimitive?.contentOrNull
+            fun int(key: String) = obj[key]?.jsonPrimitive?.intOrNull
+            FilenameCase(
+                filename = str("filename")!!,
+                series = str("series"),
+                number = str("number"),
+                volume = int("volume"),
+                year = int("year"),
+                why = str("why")!!,
+            )
+        }
+    }
+
     fun ebook(name: String): Ebook =
         ebooks.firstOrNull { it.file == "ebooks/$name" }
             ?: error("no ebook fixture named $name in manifest.json")

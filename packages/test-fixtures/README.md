@@ -126,6 +126,15 @@ by design**: it pins solid RAR5 *parsing* and the solid flag, not a solid comic
 opening. `generate.py` registers it in the manifest and `--check` verifies it
 exists, but nothing regenerates it.
 
+## Not everything in the corpus is a file
+
+`manifest.json` also carries a **`filenames`** table: eight input strings with the
+series, volume, issue and year each should yield. Filename inference is a pure
+function over a string, so there is nothing to commit — but there is still
+something to agree on, and "common naming pattern" is exactly the kind of phrase
+two implementations would read differently. Both suites drive their tests from
+that table, and each case records *why* it is there so a failure says what broke.
+
 ## Generated, then committed
 
 ```bash
