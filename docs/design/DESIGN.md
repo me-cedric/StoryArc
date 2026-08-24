@@ -49,6 +49,8 @@ Authored in OKLCH, generated to sRGB. See
 | `brand/emberStrong` | `#D2600C` | Pressed state; the light-theme accent, where 70 % lightness would fail on paper. |
 | `brand/emberMuted` | `#7C4521` | Accent at rest: progress rails, unselected indicators. |
 | `brand/ink` | `#4A54A6` | Secondary. Links, informational chips. |
+| `brand/clay` | `#C87C5E` | The **Natural** theme's accent on its dark variant. |
+| `brand/clayStrong` | `#98492C` | Natural's accent on its light variant, where clay would fail on warm paper. |
 
 Amber, not blue. Every comic and reading app defaults to blue or purple;
 StoryArc's accent is the colour of the lamp you read under. It also sits far
@@ -57,9 +59,13 @@ from every status colour, so an accent and a warning are never confused.
 **The accent is chrome-only.** Inside a publication's context — its detail
 screen, its reader — the accent derives from the cover art instead. See §7.
 
+Clay exists so that **Natural is a theme and not the same app in beige.** A warm
+surface ramp under an amber accent reads as a tint; a warm surface ramp under an
+earthier accent reads as a different material.
+
 ### Surfaces
 
-Both themes run the same five roles. Values in
+Five roles, run identically by every ramp. Values in
 [`tokens/color.json`](../../packages/design-tokens/tokens/color.json).
 
 | Role | Purpose |
@@ -67,8 +73,34 @@ Both themes run the same five roles. Values in
 | `surfaceCanvas` | App background |
 | `surfaceRaised` | Cards, list rows, sheets |
 | `surfaceOverlay` | Menus, popovers, **and the opaque fallback behind Liquid Glass under Reduce Transparency** |
-| `surfaceReader` | The reader. Dark is `#0B0A09`-adjacent — deliberately not `#000`: pure black smears on OLED during a page turn and gives glass nothing to refract. |
+| `surfaceReader` | The reader. Never pure black: it smears on OLED during a page turn and gives glass nothing to refract. |
 | `surfaceSunken` | Inset wells: search fields, empty states, cover letterboxing |
+
+### Appearance ramps
+
+Four appearances and one theme, five ramps. Every one passes the same gate.
+
+| Ramp | Canvas | What it is |
+| --- | --- | --- |
+| `light` | `#F8F6F4` | Warm paper neutrals. |
+| `dark` | `#0F0D0B` | Warm ink neutrals. |
+| `oledDark` | `#000000` | True black chrome, for panels where black draws no power. |
+| `naturalLight` | `#F4EEE3` | Natural's light variant. Cream stock, clay accent. |
+| `naturalDark` | `#16100C` | Natural's dark variant. Warm ink, clay accent. |
+
+**`oledDark` does not make the reader pure black.** Chrome does —
+`surfaceCanvas` is `#000000`. `surfaceReader` sits at
+`#010101`, deliberately above it, because pure black
+smears on OLED during a page turn and a page turn is the motion this app is built
+around. The setting is honoured where it helps and explained where it does not.
+
+**Natural is a theme, not an appearance.** It carries texture and an earthier
+accent rather than a light/dark polarity, so it has both variants of its own.
+Its accents reach the whole app so the theme is coherent; its **grain is confined
+to reading surfaces**, because texture behind a dense settings list reads as
+noise rather than as paper. The grain is procedural noise, not a bundled asset —
+cheaper, resolution-independent, and it disables itself under Reduce Transparency
+or Increase Contrast, since grain lowers effective contrast.
 
 ### Status
 
@@ -80,11 +112,35 @@ Both themes run the same five roles. Values in
 | `status/offline` | Source disconnected — **neutral grey, never red.** Offline is a normal state, not a failure. |
 | `status/downloaded` | Available offline. The one badge permitted to compete with cover art. |
 
-### Reader themes
+### Reading themes
 
-Paper, Sepia, Night, High Contrast — all four verified at **WCAG AAA (7:1)** by
-the build gate. High Contrast is the only place pure black and pure white are
-permitted.
+Six named presets, per
+[`reading-themes`](../../openspec/specs/reading-themes/spec.md). A preset is a
+background, a text colour, a typeface and a spacing character applied in one tap.
+
+| Preset | Background | Text | Ratio | Character |
+| --- | --- | --- | --- | --- |
+| **Original** | `#FCFCFA` | `#131110` | swatch only | Publisher styles **on**. Nothing overridden but size. |
+| **Quiet** | `#161310` | `#C7C3BF` | 10.6:1 | Soft off-white on deep neutral, tightened spacing. |
+| **Paper** | `#F5F1EC` | `#1D1A17` | 15.4:1 | Book stock, serif, comfortable default. |
+| **Bold** | `#FCFCFC` | `#060606` | 19.8:1 | Heavier weight, wider spacing. Low vision without leaving the aesthetic. |
+| **Calm** | `#3F3329` | `#E5D9C4` | 8.8:1 | Cream on brown, generous line height. Long evenings. |
+| **Focus** | `#040303` | `#E7E4E0` | 16.3:1 | Narrow measure, minimal decoration. Fewest words per line. |
+
+All six are held to **WCAG AAA (7:1)** by the build gate, because this text is
+read for hours rather than glanced at.
+
+**Original's pair is a swatch, not a setting.** Original leaves publisher styles
+enabled and overrides no colour; those two values exist only to draw its card in
+the preset grid.
+
+That AAA floor has one visible consequence worth naming: **Quiet cannot be as
+low-contrast as its name suggests.** It lands at 10.6:1 rather than the ~5:1 a
+"low contrast" theme would reach unconstrained. Legibility wins; Quiet expresses
+itself through softness of hue and tightened spacing instead.
+
+Each preset is drawn **in its own colours** in the grid — six samples, not six
+labels. That is the single decision that makes the grid readable at a glance.
 
 ### Rules
 
@@ -93,6 +149,9 @@ permitted.
    or a shape.
 3. A cover-derived colour is adjusted until it clears the contrast floor before
    it is used. Never used raw.
+4. A user-chosen reading background gets a **derived** text colour at 7:1. An
+   override below 4.5:1 is refused **with the measured ratio shown** — "not
+   allowed" without a number is just an obstacle.
 
 ---
 
@@ -102,12 +161,32 @@ permitted.
 | --- | --- | --- | --- |
 | `ui` | SF Pro | Roboto | **All chrome.** Never overridden — this is what makes the app feel stock. |
 | `editorial` | New York | Source Serif 4 (bundled) | Publication titles, series headers, About. Sparingly. |
-| `reading` | user choice | user choice | Reflowable body. Ships Literata, a serif, the system sans, and Atkinson Hyperlegible. |
+| `reading` | user choice | user choice | Reflowable body. Five bundled families plus the publisher's own and the system faces — see below. |
 | `mono` | SF Mono | Roboto Mono | Server URLs, file paths, diagnostics. |
 
 Eleven roles, from `display` (34/41, serif, semibold) to `caption2` (11/13). All
 scale with Dynamic Type and the Android font scale — the numbers in the tokens
 are the size at the default setting, not a fixed size.
+
+### Bundled reading families
+
+Apple Books uses commercial faces — Canela among them. StoryArc cannot ship
+those, so every bundled family is openly licensed and its licence appears in
+acknowledgements.
+
+| Family | Licence | Why it is in |
+| --- | --- | --- |
+| **Literata** | OFL | Designed for screen reading. Default for Paper. |
+| **Source Serif 4** | OFL | Clean, wide weight range. Carries Bold. |
+| **EB Garamond** | OFL | Classical. Gives Calm a genuinely different voice. |
+| **Bitter** | OFL | Slab; holds legibility at small sizes and in Focus's narrow measure. |
+| **Atkinson Hyperlegible** | OFL | Designed for low vision. |
+| System serif | — | New York / Noto Serif. Zero bytes. |
+| System sans | — | SF Pro / Roboto. Zero bytes. |
+
+Roughly 2–3 MB across the five, subset to Latin, Latin Extended, Greek and
+Cyrillic. Newsreader and Crimson Pro were considered and cut: they overlap EB
+Garamond's role without adding a distinct one.
 
 ### Rules
 
@@ -194,7 +273,21 @@ recognisably different platforms. That is the goal, not a compromise.
 Easing `standard` `cubic-bezier(0.2, 0, 0, 1)`. Springs for anything a finger
 touches — response 0.42, damping 0.86.
 
-### The page curl
+### Page transitions
+
+Four modes, per
+[`page-transitions`](../../openspec/specs/page-transitions/spec.md). A transition
+belongs to the **container**, not the content, so a comic page and an EPUB page
+turn identically.
+
+| Mode | What it is |
+| --- | --- |
+| **Curl** | Interactive page turn following the finger. Lit leading edge, shadow cast on the page beneath. |
+| **Slide** | Paged translation along the reading axis. |
+| **Fast fade** | Short cross-dissolve, no translation. |
+| **Scroll** | Continuous, no discrete turn. Vertical by default for webtoons and reflowable text. |
+
+### The curl
 
 The signature interaction, and the one thing worth over-engineering.
 
@@ -205,14 +298,31 @@ The signature interaction, and the one thing worth over-engineering.
   position. The page never snaps.
 - Past halfway completes; before halfway springs back; **flick velocity
   completes regardless of distance**, because that is how a real page behaves.
-- Lit page edge, and a shadow cast on the page beneath.
+- Mirrored for right-to-left publications — the curl originates from the
+  opposite edge.
 - Target: the display's refresh rate, including 120 Hz ProMotion.
+
+**It is ours, not a library's.** Readium exposes every typographic preference and
+no transition preference at all. Metal on iOS, AGSL on Android.
+
+**On reflowable text the turning page is a raster.** Readium paginates EPUB
+inside a web view; a deforming surface has to be a texture, so each page is
+rastered at display scale and the raster deformed. Nothing reflows or shifts
+during the turn, and text interaction resumes the instant it completes. Comics
+do not pay this — the page is already a decoded image.
+
+**Curl is absent where it cannot be honest.** AGSL needs API 33 and StoryArc's
+floor is API 31, so on Android 12 the picker has no Curl and Slide is the
+default, with the reason stated in plain language and the user's stored Curl
+preference left intact. Same path if a device cannot hold the frame rate. A
+stuttering curl never ships in preference to a slide that works.
 
 ### Rules
 
 1. Animate transform, opacity and clip only. Never animate layout.
-2. **Reduce Motion replaces page curl and slide with a cross-dissolve**, and the
-   mode picker says why rather than hiding the options.
+2. **Reduce Motion replaces Curl and Slide with Fast fade**, and the mode picker
+   lists them as unavailable *with the reason* rather than hiding them. A control
+   that vanishes teaches the user nothing.
 3. No purely decorative animation. Motion clarifies where something came from or
    where it went, or it does not ship.
 
@@ -261,6 +371,9 @@ StoryArc composes them with a specific intent.
 | **Source row** | Name, type glyph, state dot, and last-sync in `footnote`. An offline source is dimmed, never reddened. |
 | **Reader chrome** | Two floating glass bars over the page, page slider with a thumbnail that follows the drag. Fades after 4 s. The page never reflows when chrome appears. |
 | **Publication detail** | Cover-derived background wash behind a large cover, `editorial` title, then a tight metadata stack. One primary action — *Continue* or *Read* — and everything else in a menu. |
+| **Theme sheet** | Two depths. The first holds the six preset cards, the font-size stepper with step dots, the page-mode control and brightness — the things changed mid-chapter. The fine axes sit behind one *Customise* action. The page stays visible behind the sheet and updates live, so a change is judged on real text rather than only in the preview. |
+| **Preset card** | Drawn **in its own colours** with "Aa" and its name, so the grid reads as six samples rather than six labels. Selected state visible; a preset deviated from is marked *modified*, never shown as cleanly active. |
+| **Axis slider** | Value trailing on iOS, Material's own drag label on Android. Long-press resets to the preset value. An axis inert because publisher styles are on is marked unavailable **with its reason and a one-tap fix** — never a live control that does nothing. |
 | **Empty states** | Say what would be here and offer the one action that fills it. Never an illustration with no action. |
 
 ---
@@ -269,13 +382,22 @@ StoryArc composes them with a specific intent.
 
 Not a section to check at the end. These are build and review gates.
 
-- **Contrast** is verified by `pnpm tokens:check` in CI. 4.5:1 text, 3:1
-  tertiary and accents, **7:1 for reader themes**.
+- **Contrast** is verified by `pnpm tokens:check` in CI across **all five
+  appearance ramps**: 4.5:1 text, 3:1 tertiary and accents, and **7:1 for all six
+  reading themes**. 37 pairs. A palette that fails does not build.
+- **A user-chosen reading background cannot be made illegible.** Its text colour
+  is derived at 7:1; an override below 4.5:1 is refused with the measured ratio
+  shown.
 - **Touch targets** ≥ 44 pt on iOS, ≥ 48 dp on Android — reader chrome included.
 - **Dynamic Type / font scale** to maximum on every screen, no clipping. Library
   falls back to a list.
-- **Reduce Transparency** → opaque fallbacks, stronger borders.
-- **Reduce Motion** → cross-dissolves only.
+- **Reduce Transparency** → opaque fallbacks, stronger borders, and Natural's
+  grain switches itself off, because grain lowers effective contrast.
+- **Reduce Motion** → Fast fade only, with Curl and Slide still listed and their
+  reason given.
+- **Every axis slider** carries an accessibility value and increment actions, so
+  VoiceOver and TalkBack can adjust it. The font-size stepper announces its
+  position out of the total, not just "larger".
 - **VoiceOver / TalkBack** → every control labelled, reading order matches
   visual order, reader announces page and total on each turn.
 - **Colour is never the only signal.**

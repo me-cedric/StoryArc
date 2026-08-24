@@ -31,8 +31,12 @@ values cannot express. The conversion is ~40 lines of arithmetic in
 
 `build.mjs` exits non-zero when a text-on-surface pair falls below its WCAG
 floor: 4.5:1 for primary and secondary text, 3:1 for tertiary and accents, and
-**7:1 (AAA) for every reflowable reader theme**, since that text is read for
-hours. It also reports any token outside the sRGB gamut, because a clipped
+**7:1 (AAA) for every reading theme**, since that text is read for hours.
+
+The pair list is derived from the ramp list rather than enumerated, so adding an
+appearance ramp automatically adds its rows. That is what let OLED Dark and
+Natural land with no change to the gate itself — the six reading-theme presets
+were held to AAA the moment they were authored. It also reports any token outside the sRGB gamut, because a clipped
 colour is not the colour that was authored.
 
 This runs in CI on every pull request. An inaccessible palette fails the build

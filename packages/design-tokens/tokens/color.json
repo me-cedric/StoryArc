@@ -2,17 +2,19 @@
   "$description": "StoryArc colour tokens. Authored in OKLCH, generated to sRGB hex for Swift and Kotlin. Never hardcode a colour in app code — reference a token.",
   "$direction": "Editorial darkroom. Chrome recedes so cover art and pages are the loudest thing on screen. Neutrals carry a warm ink tilt (hue ~70) rather than the clinical blue-grey most reader apps default to; light theme is book stock, not paper-white.",
   "brand": {
-    "ember":        { "oklch": "oklch(70% 0.165 52)",  "use": "Primary accent. Reading-lamp amber. Chrome-only — in-content accents defer to cover-derived colour." },
+    "ember":        { "oklch": "oklch(70% 0.165 52)",  "use": "Primary accent on dark surfaces. Reading-lamp amber. Chrome-only — in-content accents defer to cover-derived colour." },
     "emberStrong":  { "oklch": "oklch(62% 0.165 48)",  "use": "Pressed state, and the light-theme accent where 70% lightness would fail contrast on paper." },
     "emberMuted":   { "oklch": "oklch(45% 0.090 52)",  "use": "Accent at rest on dark surfaces: progress rails, unselected indicators." },
-    "ink":          { "oklch": "oklch(48% 0.130 275)", "use": "Secondary. Indigo ink for links, informational chips, and the second series in charts." }
+    "ink":          { "oklch": "oklch(48% 0.130 275)", "use": "Secondary. Indigo ink for links, informational chips, and the second series in charts." },
+    "clay":         { "oklch": "oklch(66% 0.105 42)",  "use": "The Natural theme's accent on its dark variant. Earthier than ember, so Natural is a theme rather than the same app in beige." },
+    "clayStrong":   { "oklch": "oklch(50% 0.115 40)",  "use": "The Natural theme's accent on its light variant, where clay at 66% lightness would fail on warm paper." }
   },
   "dark": {
     "surfaceCanvas":  { "oklch": "oklch(16% 0.006 70)", "use": "App background." },
     "surfaceRaised":  { "oklch": "oklch(21% 0.007 70)", "use": "Cards, list rows, sheets." },
     "surfaceOverlay": { "oklch": "oklch(26% 0.008 70)", "use": "Menus, popovers, the fallback fill behind Liquid Glass when transparency is reduced." },
     "surfaceReader":  { "oklch": "oklch(11% 0.004 70)", "use": "Reader background. Deliberately not #000 — pure black smears on OLED during page turns and kills glass refraction." },
-    "surfaceSunken":  { "oklch": "oklch(13% 0.005 70)", "use": "Inset wells: search fields, empty states." },
+    "surfaceSunken":  { "oklch": "oklch(13% 0.005 70)", "use": "Inset wells: search fields, empty states, cover letterboxing." },
     "borderSubtle":   { "oklch": "oklch(30% 0.008 70)", "use": "Hairlines, separators." },
     "borderStrong":   { "oklch": "oklch(42% 0.010 70)", "use": "Focus rings, selected outlines." },
     "textPrimary":    { "oklch": "oklch(95% 0.006 70)", "use": "Titles and body." },
@@ -25,13 +27,54 @@
     "surfaceRaised":  { "oklch": "oklch(100% 0 0)",       "use": "Cards, list rows, sheets." },
     "surfaceOverlay": { "oklch": "oklch(99% 0.003 75)",   "use": "Menus, popovers, reduced-transparency fallback." },
     "surfaceReader":  { "oklch": "oklch(94% 0.006 75)",   "use": "Reflowable-text reader background. Book stock cream." },
-    "surfaceSunken":  { "oklch": "oklch(94.5% 0.005 75)", "use": "Inset wells." },
+    "surfaceSunken":  { "oklch": "oklch(94.5% 0.005 75)", "use": "Inset wells, cover letterboxing." },
     "borderSubtle":   { "oklch": "oklch(90% 0.006 75)",   "use": "Hairlines, separators." },
     "borderStrong":   { "oklch": "oklch(78% 0.008 75)",   "use": "Focus rings, selected outlines." },
     "textPrimary":    { "oklch": "oklch(20% 0.008 70)",   "use": "Titles and body." },
     "textSecondary":  { "oklch": "oklch(45% 0.010 70)",   "use": "Metadata, subtitles." },
     "textTertiary":   { "oklch": "oklch(60% 0.010 70)",   "use": "Timestamps, disabled, placeholder." },
     "scrim":          { "oklch": "oklch(30% 0.006 70)",   "use": "Modal scrim at 40% alpha." }
+  },
+  "$oledDarkNote": "True black chrome for OLED panels, where black draws no power. `surfaceReader` deliberately stays above true black: pure black smears during a page turn, which is the exact motion this app is built around. The setting is honoured where it helps and explained where it does not.",
+  "oledDark": {
+    "surfaceCanvas":  { "oklch": "oklch(0% 0 0)",        "use": "App background. True black." },
+    "surfaceRaised":  { "oklch": "oklch(12% 0.005 70)",  "use": "Cards, list rows, sheets — lifted off black so structure is still readable." },
+    "surfaceOverlay": { "oklch": "oklch(18% 0.006 70)",  "use": "Menus, popovers, reduced-transparency fallback." },
+    "surfaceReader":  { "oklch": "oklch(6% 0.003 70)",   "use": "Reader background. Above true black on purpose — see $oledDarkNote." },
+    "surfaceSunken":  { "oklch": "oklch(4% 0.002 70)",   "use": "Inset wells, cover letterboxing." },
+    "borderSubtle":   { "oklch": "oklch(22% 0.006 70)",  "use": "Hairlines. Carries more weight here, since there is no surface tint to separate rows." },
+    "borderStrong":   { "oklch": "oklch(36% 0.008 70)",  "use": "Focus rings, selected outlines." },
+    "textPrimary":    { "oklch": "oklch(93% 0.005 70)",  "use": "Titles and body. Not pure white — reduces halation against true black." },
+    "textSecondary":  { "oklch": "oklch(72% 0.006 70)",  "use": "Metadata, subtitles." },
+    "textTertiary":   { "oklch": "oklch(56% 0.006 70)",  "use": "Timestamps, disabled, placeholder." },
+    "scrim":          { "oklch": "oklch(0% 0 0)",        "use": "Modal scrim at 70% alpha." }
+  },
+  "$naturalNote": "Natural is a theme, not an appearance: it carries paper texture and an earthier accent, and has its own light and dark variants. Accents reach the whole app so the theme is coherent; the grain is confined to reading surfaces, because texture behind a dense settings list reads as noise rather than as paper.",
+  "naturalLight": {
+    "surfaceCanvas":  { "oklch": "oklch(95% 0.016 84)",   "use": "App background. Warm cream stock." },
+    "surfaceRaised":  { "oklch": "oklch(97.5% 0.011 84)", "use": "Cards, list rows, sheets." },
+    "surfaceOverlay": { "oklch": "oklch(98.5% 0.008 84)", "use": "Menus, popovers, reduced-transparency fallback." },
+    "surfaceReader":  { "oklch": "oklch(93% 0.020 84)",   "use": "Reader background. The one surface that carries the paper grain." },
+    "surfaceSunken":  { "oklch": "oklch(91% 0.018 84)",   "use": "Inset wells, cover letterboxing." },
+    "borderSubtle":   { "oklch": "oklch(86% 0.018 84)",   "use": "Hairlines, separators." },
+    "borderStrong":   { "oklch": "oklch(70% 0.022 84)",   "use": "Focus rings, selected outlines." },
+    "textPrimary":    { "oklch": "oklch(24% 0.022 58)",   "use": "Titles and body. Warm near-brown rather than neutral ink." },
+    "textSecondary":  { "oklch": "oklch(45% 0.024 58)",   "use": "Metadata, subtitles." },
+    "textTertiary":   { "oklch": "oklch(58% 0.024 58)",   "use": "Timestamps, disabled, placeholder." },
+    "scrim":          { "oklch": "oklch(32% 0.018 58)",   "use": "Modal scrim at 40% alpha." }
+  },
+  "naturalDark": {
+    "surfaceCanvas":  { "oklch": "oklch(18% 0.013 58)",  "use": "App background. Warm ink." },
+    "surfaceRaised":  { "oklch": "oklch(23% 0.015 58)",  "use": "Cards, list rows, sheets." },
+    "surfaceOverlay": { "oklch": "oklch(28% 0.015 58)",  "use": "Menus, popovers, reduced-transparency fallback." },
+    "surfaceReader":  { "oklch": "oklch(14% 0.011 58)",  "use": "Reader background. The one surface that carries the paper grain." },
+    "surfaceSunken":  { "oklch": "oklch(16% 0.012 58)",  "use": "Inset wells, cover letterboxing." },
+    "borderSubtle":   { "oklch": "oklch(32% 0.015 58)",  "use": "Hairlines, separators." },
+    "borderStrong":   { "oklch": "oklch(44% 0.017 58)",  "use": "Focus rings, selected outlines." },
+    "textPrimary":    { "oklch": "oklch(93% 0.016 84)",  "use": "Titles and body. Warm cream rather than neutral white." },
+    "textSecondary":  { "oklch": "oklch(74% 0.018 84)",  "use": "Metadata, subtitles." },
+    "textTertiary":   { "oklch": "oklch(58% 0.018 84)",  "use": "Timestamps, disabled, placeholder." },
+    "scrim":          { "oklch": "oklch(10% 0.008 58)",  "use": "Modal scrim at 60% alpha." }
   },
   "status": {
     "success":    { "oklch": "oklch(70% 0.150 150)", "use": "Sync succeeded, source reachable." },
@@ -40,10 +83,13 @@
     "offline":    { "oklch": "oklch(60% 0.020 70)",  "use": "Source disconnected. Neutral, never red — offline is normal, not an error." },
     "downloaded": { "oklch": "oklch(72% 0.140 165)", "use": "Available offline. The one badge allowed to compete with cover art." }
   },
-  "reader": {
-    "themePaper":    { "bg": "oklch(94% 0.006 75)",  "fg": "oklch(22% 0.008 70)", "use": "Default reflowable theme." },
-    "themeSepia":    { "bg": "oklch(90% 0.030 78)",  "fg": "oklch(28% 0.020 55)", "use": "Warm low-glare." },
-    "themeNight":    { "bg": "oklch(14% 0.005 70)",  "fg": "oklch(84% 0.006 70)", "use": "Dark reflowable theme. Text is not pure white — reduces halation." },
-    "themeContrast": { "bg": "oklch(0% 0 0)",        "fg": "oklch(100% 0 0)",     "use": "Maximum-contrast accessibility theme. The only place pure black/white is allowed." }
+  "$readingThemesNote": "The six reading-theme presets from openspec/specs/reading-themes. Each is a background and text pair held to WCAG AAA (7:1), because this text is read for hours rather than glanced at. `original` overrides nothing in the publication — its pair exists only to draw its swatch in the preset grid.",
+  "readingThemes": {
+    "original": { "bg": "oklch(99% 0.002 80)", "fg": "oklch(18% 0.004 70)", "use": "Swatch only. Original leaves publisher styles on and overrides no colour." },
+    "quiet":    { "bg": "oklch(19% 0.007 70)", "fg": "oklch(82% 0.007 70)", "use": "Low-contrast dark. Soft off-white on deep neutral, tightened spacing." },
+    "paper":    { "bg": "oklch(96% 0.008 78)", "fg": "oklch(22% 0.008 70)", "use": "Neutral light. Book-stock white, serif, comfortable default spacing." },
+    "bold":     { "bg": "oklch(99% 0 0)",      "fg": "oklch(12% 0 0)",      "use": "High contrast, heavier weight, wider spacing. Low vision without leaving the aesthetic." },
+    "calm":     { "bg": "oklch(33% 0.024 62)", "fg": "oklch(89% 0.032 82)", "use": "Warm dim. Cream on brown, generous line height. Long evening sessions." },
+    "focus":    { "bg": "oklch(10% 0.004 70)", "fg": "oklch(92% 0.006 70)", "use": "Narrow measure, high contrast, minimal decoration. Fewest words per line." }
   }
 }

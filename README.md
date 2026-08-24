@@ -73,11 +73,13 @@ mis-named file still opens. Metadata comes from `ComicInfo.xml`, the EPUB
 package, or the filename — in that order.
 
 **Reading** — A paged image reader with an interactive page curl that follows
-your finger, plus slide, fade, and continuous scroll for webtoons. Right-to-left
-for manga, detected from metadata. Double-page spreads in landscape. Chrome that
-hides itself and never reflows the page. A separate reflowable reader for EPUB
-with full typographic control, four AAA-contrast themes, bookmarks, highlights
-and read-aloud.
+your finger, plus slide, fast fade, and continuous scroll for webtoons.
+Right-to-left for manga, detected from metadata. Double-page spreads in
+landscape. Chrome that hides itself and never reflows the page. A separate
+reflowable reader for EPUB with **six named themes** — Original, Quiet, Paper,
+Bold, Calm, Focus — and per-axis control over typeface, size, line, character,
+word and paragraph spacing, margins, alignment and background colour, all with a
+live preview. Bookmarks, highlights and read-aloud.
 
 **Library** — One view over every source. Search, filter and sort — respecting a
 reading list's curated order rather than forcing it alphabetical. Collections
@@ -92,7 +94,8 @@ directions. The same book read from a folder and from a server resolves to one
 record. Conflicts resolve to the furthest position, and finished stays finished.
 
 **Everywhere** — English, French, German and Spanish, following your system by
-default. System / Light / Dark. Dynamic Type and font scale to maximum. VoiceOver
+default. System, Light, Dark, OLED Dark, plus a textured Natural theme. Dynamic
+Type and font scale to maximum. VoiceOver
 and TalkBack. Reduce Motion and Reduce Transparency respected, not ignored.
 
 The full contract is in [`openspec/specs/`](openspec/specs) — 15 capabilities,
@@ -178,8 +181,9 @@ else drew.
 
 Colour, type, spacing, radius and motion are authored once in OKLCH and
 generated into Swift and Kotlin, so neither app can drift by hand-editing a hex
-code. **Contrast is a build gate**: text below its WCAG floor fails CI, and
-reflowable reader themes are held to AAA because that text is read for hours.
+code. **Contrast is a build gate**: 37 pairs across five appearance ramps, with
+text below its WCAG floor failing CI, and all six reading themes held to AAA
+because that text is read for hours rather than glanced at.
 
 Full system in [`docs/design/DESIGN.md`](docs/design/DESIGN.md).
 

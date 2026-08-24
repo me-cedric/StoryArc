@@ -5,7 +5,7 @@ public import SwiftUI
 
 public enum StoryArcColor {
     public enum Brand {
-        /// Primary accent. Reading-lamp amber. Chrome-only — in-content accents defer to cover-derived colour.
+        /// Primary accent on dark surfaces. Reading-lamp amber. Chrome-only — in-content accents defer to cover-derived colour.
         public static let ember = Color(.sRGB, red: 0.9255, green: 0.4863, blue: 0.1529, opacity: 1)  // #EC7C27
         /// Pressed state, and the light-theme accent where 70% lightness would fail contrast on paper.
         public static let emberStrong = Color(.sRGB, red: 0.8235, green: 0.3765, blue: 0.0471, opacity: 1)  // #D2600C
@@ -13,6 +13,10 @@ public enum StoryArcColor {
         public static let emberMuted = Color(.sRGB, red: 0.4863, green: 0.2706, blue: 0.1294, opacity: 1)  // #7C4521
         /// Secondary. Indigo ink for links, informational chips, and the second series in charts.
         public static let ink = Color(.sRGB, red: 0.2902, green: 0.3294, blue: 0.6510, opacity: 1)  // #4A54A6
+        /// The Natural theme's accent on its dark variant. Earthier than ember, so Natural is a theme rather than the same app in beige.
+        public static let clay = Color(.sRGB, red: 0.7843, green: 0.4863, blue: 0.3686, opacity: 1)  // #C87C5E
+        /// The Natural theme's accent on its light variant, where clay at 66% lightness would fail on warm paper.
+        public static let clayStrong = Color(.sRGB, red: 0.5961, green: 0.2863, blue: 0.1725, opacity: 1)  // #98492C
     }
     public enum Dark {
         /// App background.
@@ -23,7 +27,7 @@ public enum StoryArcColor {
         public static let surfaceOverlay = Color(.sRGB, red: 0.1529, green: 0.1373, blue: 0.1255, opacity: 1)  // #272320
         /// Reader background. Deliberately not #000 — pure black smears on OLED during page turns and kills glass refraction.
         public static let surfaceReader = Color(.sRGB, red: 0.0196, green: 0.0157, blue: 0.0118, opacity: 1)  // #050403
-        /// Inset wells: search fields, empty states.
+        /// Inset wells: search fields, empty states, cover letterboxing.
         public static let surfaceSunken = Color(.sRGB, red: 0.0314, green: 0.0275, blue: 0.0235, opacity: 1)  // #080706
         /// Hairlines, separators.
         public static let borderSubtle = Color(.sRGB, red: 0.1882, green: 0.1765, blue: 0.1647, opacity: 1)  // #302D2A
@@ -47,7 +51,7 @@ public enum StoryArcColor {
         public static let surfaceOverlay = Color(.sRGB, red: 0.9922, green: 0.9843, blue: 0.9804, opacity: 1)  // #FDFBFA
         /// Reflowable-text reader background. Book stock cream.
         public static let surfaceReader = Color(.sRGB, red: 0.9294, green: 0.9216, blue: 0.9059, opacity: 1)  // #EDEBE7
-        /// Inset wells.
+        /// Inset wells, cover letterboxing.
         public static let surfaceSunken = Color(.sRGB, red: 0.9373, green: 0.9255, blue: 0.9137, opacity: 1)  // #EFECE9
         /// Hairlines, separators.
         public static let borderSubtle = Color(.sRGB, red: 0.8784, green: 0.8667, blue: 0.8549, opacity: 1)  // #E0DDDA
@@ -62,6 +66,78 @@ public enum StoryArcColor {
         /// Modal scrim at 40% alpha.
         public static let scrim = Color(.sRGB, red: 0.1882, green: 0.1765, blue: 0.1686, opacity: 1)  // #302D2B
     }
+    public enum OledDark {
+        /// App background. True black.
+        public static let surfaceCanvas = Color(.sRGB, red: 0.0000, green: 0.0000, blue: 0.0000, opacity: 1)  // #000000
+        /// Cards, list rows, sheets — lifted off black so structure is still readable.
+        public static let surfaceRaised = Color(.sRGB, red: 0.0275, green: 0.0196, blue: 0.0157, opacity: 1)  // #070504
+        /// Menus, popovers, reduced-transparency fallback.
+        public static let surfaceOverlay = Color(.sRGB, red: 0.0745, green: 0.0667, blue: 0.0588, opacity: 1)  // #13110F
+        /// Reader background. Above true black on purpose — see $oledDarkNote.
+        public static let surfaceReader = Color(.sRGB, red: 0.0039, green: 0.0039, blue: 0.0039, opacity: 1)  // #010101
+        /// Inset wells, cover letterboxing.
+        public static let surfaceSunken = Color(.sRGB, red: 0.0000, green: 0.0000, blue: 0.0000, opacity: 1)  // #000000
+        /// Hairlines. Carries more weight here, since there is no surface tint to separate rows.
+        public static let borderSubtle = Color(.sRGB, red: 0.1098, green: 0.1020, blue: 0.0941, opacity: 1)  // #1C1A18
+        /// Focus rings, selected outlines.
+        public static let borderStrong = Color(.sRGB, red: 0.2510, green: 0.2353, blue: 0.2235, opacity: 1)  // #403C39
+        /// Titles and body. Not pure white — reduces halation against true black.
+        public static let textPrimary = Color(.sRGB, red: 0.9176, green: 0.9059, blue: 0.8941, opacity: 1)  // #EAE7E4
+        /// Metadata, subtitles.
+        public static let textSecondary = Color(.sRGB, red: 0.6549, green: 0.6431, blue: 0.6314, opacity: 1)  // #A7A4A1
+        /// Timestamps, disabled, placeholder.
+        public static let textTertiary = Color(.sRGB, red: 0.4667, green: 0.4549, blue: 0.4431, opacity: 1)  // #777471
+        /// Modal scrim at 70% alpha.
+        public static let scrim = Color(.sRGB, red: 0.0000, green: 0.0000, blue: 0.0000, opacity: 1)  // #000000
+    }
+    public enum NaturalLight {
+        /// App background. Warm cream stock.
+        public static let surfaceCanvas = Color(.sRGB, red: 0.9569, green: 0.9333, blue: 0.8902, opacity: 1)  // #F4EEE3
+        /// Cards, list rows, sheets.
+        public static let surfaceRaised = Color(.sRGB, red: 0.9804, green: 0.9647, blue: 0.9373, opacity: 1)  // #FAF6EF
+        /// Menus, popovers, reduced-transparency fallback.
+        public static let surfaceOverlay = Color(.sRGB, red: 0.9922, green: 0.9804, blue: 0.9569, opacity: 1)  // #FDFAF4
+        /// Reader background. The one surface that carries the paper grain.
+        public static let surfaceReader = Color(.sRGB, red: 0.9333, green: 0.9059, blue: 0.8510, opacity: 1)  // #EEE7D9
+        /// Inset wells, cover letterboxing.
+        public static let surfaceSunken = Color(.sRGB, red: 0.9059, green: 0.8824, blue: 0.8314, opacity: 1)  // #E7E1D4
+        /// Hairlines, separators.
+        public static let borderSubtle = Color(.sRGB, red: 0.8431, green: 0.8157, blue: 0.7686, opacity: 1)  // #D7D0C4
+        /// Focus rings, selected outlines.
+        public static let borderStrong = Color(.sRGB, red: 0.6471, green: 0.6196, blue: 0.5608, opacity: 1)  // #A59E8F
+        /// Titles and body. Warm near-brown rather than neutral ink.
+        public static let textPrimary = Color(.sRGB, red: 0.1529, green: 0.1137, blue: 0.0824, opacity: 1)  // #271D15
+        /// Metadata, subtitles.
+        public static let textSecondary = Color(.sRGB, red: 0.3765, green: 0.3216, blue: 0.2824, opacity: 1)  // #605248
+        /// Timestamps, disabled, placeholder.
+        public static let textTertiary = Color(.sRGB, red: 0.5255, green: 0.4667, blue: 0.4275, opacity: 1)  // #86776D
+        /// Modal scrim at 40% alpha.
+        public static let scrim = Color(.sRGB, red: 0.2275, green: 0.1922, blue: 0.1647, opacity: 1)  // #3A312A
+    }
+    public enum NaturalDark {
+        /// App background. Warm ink.
+        public static let surfaceCanvas = Color(.sRGB, red: 0.0863, green: 0.0627, blue: 0.0471, opacity: 1)  // #16100C
+        /// Cards, list rows, sheets.
+        public static let surfaceRaised = Color(.sRGB, red: 0.1333, green: 0.1059, blue: 0.0863, opacity: 1)  // #221B16
+        /// Menus, popovers, reduced-transparency fallback.
+        public static let surfaceOverlay = Color(.sRGB, red: 0.1843, green: 0.1529, blue: 0.1333, opacity: 1)  // #2F2722
+        /// Reader background. The one surface that carries the paper grain.
+        public static let surfaceReader = Color(.sRGB, red: 0.0510, green: 0.0314, blue: 0.0196, opacity: 1)  // #0D0805
+        /// Inset wells, cover letterboxing.
+        public static let surfaceSunken = Color(.sRGB, red: 0.0667, green: 0.0471, blue: 0.0314, opacity: 1)  // #110C08
+        /// Hairlines, separators.
+        public static let borderSubtle = Color(.sRGB, red: 0.2235, green: 0.1922, blue: 0.1686, opacity: 1)  // #39312B
+        /// Focus rings, selected outlines.
+        public static let borderStrong = Color(.sRGB, red: 0.3529, green: 0.3137, blue: 0.2863, opacity: 1)  // #5A5049
+        /// Titles and body. Warm cream rather than neutral white.
+        public static let textPrimary = Color(.sRGB, red: 0.9294, green: 0.9059, blue: 0.8627, opacity: 1)  // #EDE7DC
+        /// Metadata, subtitles.
+        public static let textSecondary = Color(.sRGB, red: 0.6902, green: 0.6667, blue: 0.6196, opacity: 1)  // #B0AA9E
+        /// Timestamps, disabled, placeholder.
+        public static let textTertiary = Color(.sRGB, red: 0.4980, green: 0.4784, blue: 0.4353, opacity: 1)  // #7F7A6F
+        /// Modal scrim at 60% alpha.
+        public static let scrim = Color(.sRGB, red: 0.0196, green: 0.0118, blue: 0.0078, opacity: 1)  // #050302
+    }
     public enum Status {
         /// Sync succeeded, source reachable.
         public static let success = Color(.sRGB, red: 0.2980, green: 0.7216, blue: 0.4157, opacity: 1)  // #4CB86A
@@ -74,23 +150,31 @@ public enum StoryArcColor {
         /// Available offline. The one badge allowed to compete with cover art.
         public static let downloaded = Color(.sRGB, red: 0.1765, green: 0.7529, blue: 0.5569, opacity: 1)  // #2DC08E
     }
-    public enum Reader {
-        /// Default reflowable theme.
-        public static let themePaperBg = Color(.sRGB, red: 0.9294, green: 0.9216, blue: 0.9059, opacity: 1)  // #EDEBE7
-        /// Default reflowable theme.
-        public static let themePaperFg = Color(.sRGB, red: 0.1137, green: 0.1020, blue: 0.0902, opacity: 1)  // #1D1A17
-        /// Warm low-glare.
-        public static let themeSepiaBg = Color(.sRGB, red: 0.9137, green: 0.8627, blue: 0.7843, opacity: 1)  // #E9DCC8
-        /// Warm low-glare.
-        public static let themeSepiaFg = Color(.sRGB, red: 0.1922, green: 0.1490, blue: 0.1255, opacity: 1)  // #312620
-        /// Dark reflowable theme. Text is not pure white — reduces halation.
-        public static let themeNightBg = Color(.sRGB, red: 0.0392, green: 0.0353, blue: 0.0275, opacity: 1)  // #0A0907
-        /// Dark reflowable theme. Text is not pure white — reduces halation.
-        public static let themeNightFg = Color(.sRGB, red: 0.8039, green: 0.7922, blue: 0.7765, opacity: 1)  // #CDCAC6
-        /// Maximum-contrast accessibility theme. The only place pure black/white is allowed.
-        public static let themeContrastBg = Color(.sRGB, red: 0.0000, green: 0.0000, blue: 0.0000, opacity: 1)  // #000000
-        /// Maximum-contrast accessibility theme. The only place pure black/white is allowed.
-        public static let themeContrastFg = Color(.sRGB, red: 1.0000, green: 1.0000, blue: 1.0000, opacity: 1)  // #FFFFFF
+    public enum ReadingThemes {
+        /// Swatch only. Original leaves publisher styles on and overrides no colour.
+        public static let originalBg = Color(.sRGB, red: 0.9882, green: 0.9882, blue: 0.9804, opacity: 1)  // #FCFCFA
+        /// Swatch only. Original leaves publisher styles on and overrides no colour.
+        public static let originalFg = Color(.sRGB, red: 0.0745, green: 0.0667, blue: 0.0627, opacity: 1)  // #131110
+        /// Low-contrast dark. Soft off-white on deep neutral, tightened spacing.
+        public static let quietBg = Color(.sRGB, red: 0.0863, green: 0.0745, blue: 0.0627, opacity: 1)  // #161310
+        /// Low-contrast dark. Soft off-white on deep neutral, tightened spacing.
+        public static let quietFg = Color(.sRGB, red: 0.7804, green: 0.7647, blue: 0.7490, opacity: 1)  // #C7C3BF
+        /// Neutral light. Book-stock white, serif, comfortable default spacing.
+        public static let paperBg = Color(.sRGB, red: 0.9608, green: 0.9451, blue: 0.9255, opacity: 1)  // #F5F1EC
+        /// Neutral light. Book-stock white, serif, comfortable default spacing.
+        public static let paperFg = Color(.sRGB, red: 0.1137, green: 0.1020, blue: 0.0902, opacity: 1)  // #1D1A17
+        /// High contrast, heavier weight, wider spacing. Low vision without leaving the aesthetic.
+        public static let boldBg = Color(.sRGB, red: 0.9882, green: 0.9882, blue: 0.9882, opacity: 1)  // #FCFCFC
+        /// High contrast, heavier weight, wider spacing. Low vision without leaving the aesthetic.
+        public static let boldFg = Color(.sRGB, red: 0.0235, green: 0.0235, blue: 0.0235, opacity: 1)  // #060606
+        /// Warm dim. Cream on brown, generous line height. Long evening sessions.
+        public static let calmBg = Color(.sRGB, red: 0.2471, green: 0.2000, blue: 0.1608, opacity: 1)  // #3F3329
+        /// Warm dim. Cream on brown, generous line height. Long evening sessions.
+        public static let calmFg = Color(.sRGB, red: 0.8980, green: 0.8510, blue: 0.7686, opacity: 1)  // #E5D9C4
+        /// Narrow measure, high contrast, minimal decoration. Fewest words per line.
+        public static let focusBg = Color(.sRGB, red: 0.0157, green: 0.0118, blue: 0.0118, opacity: 1)  // #040303
+        /// Narrow measure, high contrast, minimal decoration. Fewest words per line.
+        public static let focusFg = Color(.sRGB, red: 0.9059, green: 0.8941, blue: 0.8784, opacity: 1)  // #E7E4E0
     }
 }
 

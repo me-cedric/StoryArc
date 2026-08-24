@@ -49,17 +49,32 @@ for (const [group, tokens] of entriesOf(color)) {
 // Text tokens that fail WCAG AA are a bug the design system should refuse to
 // ship, not something a reviewer notices in a screenshot six weeks later.
 
+// Every text role on every surface ramp, plus each ramp's accent. Adding a ramp
+// without adding its rows here would ship an untested palette, so the ramp list
+// is derived rather than repeated.
+const TEXT_ON_SURFACE = [
+  ['textPrimary',   'surfaceCanvas',  4.5],
+  ['textPrimary',   'surfaceRaised',  4.5],
+  ['textPrimary',   'surfaceReader',  4.5],
+  ['textSecondary', 'surfaceCanvas',  4.5],
+  ['textTertiary',  'surfaceCanvas',  3.0],
+]
+
+const SURFACE_RAMPS = ['dark', 'light', 'oledDark', 'naturalLight', 'naturalDark']
+
+const ACCENT_PAIRS = [
+  ['brand.ember',       'dark.surfaceCanvas',         3.0],
+  ['brand.emberStrong', 'light.surfaceCanvas',        3.0],
+  ['brand.ember',       'oledDark.surfaceCanvas',     3.0],
+  ['brand.clay',        'naturalDark.surfaceCanvas',  3.0],
+  ['brand.clayStrong',  'naturalLight.surfaceCanvas', 3.0],
+  ['brand.ink',         'light.surfaceCanvas',        3.0],
+]
+
 const PAIRS = [
-  ['dark.textPrimary',   'dark.surfaceCanvas',  4.5],
-  ['dark.textPrimary',   'dark.surfaceRaised',  4.5],
-  ['dark.textSecondary', 'dark.surfaceCanvas',  4.5],
-  ['dark.textTertiary',  'dark.surfaceCanvas',  3.0],
-  ['light.textPrimary',   'light.surfaceCanvas', 4.5],
-  ['light.textPrimary',   'light.surfaceRaised', 4.5],
-  ['light.textSecondary', 'light.surfaceCanvas', 4.5],
-  ['light.textTertiary',  'light.surfaceCanvas', 3.0],
-  ['brand.ember',       'dark.surfaceCanvas',  3.0],
-  ['brand.emberStrong', 'light.surfaceCanvas', 3.0],
+  ...SURFACE_RAMPS.flatMap((ramp) =>
+    TEXT_ON_SURFACE.map(([fg, bg, floor]) => [`${ramp}.${fg}`, `${ramp}.${bg}`, floor])),
+  ...ACCENT_PAIRS,
 ]
 
 const rgbOf = (path) => {
@@ -76,11 +91,12 @@ for (const [fg, bg, floor] of PAIRS) {
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${ratio.toFixed(2).padStart(5)}:1  (min ${floor})  ${fg} on ${bg}`)
 }
 
-for (const [name, theme] of entriesOf(color.reader)) {
-  const ratio = contrastRatio(resolved.reader[name].fg.rgb, resolved.reader[name].bg.rgb)
+// AAA for every reading theme: this text is read for hours, not glanced at.
+for (const [name, theme] of entriesOf(color.readingThemes)) {
+  const ratio = contrastRatio(resolved.readingThemes[name].fg.rgb, resolved.readingThemes[name].bg.rgb)
   const ok = ratio >= 7.0
-  if (!ok) failures.push(`reader.${name}: ${ratio.toFixed(2)}:1 < 7:1`)
-  console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${ratio.toFixed(2).padStart(5)}:1  (min 7.0)  reader.${name} (AAA — long-form body text)`)
+  if (!ok) failures.push(`readingThemes.${name}: ${ratio.toFixed(2)}:1 < 7:1`)
+  console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${ratio.toFixed(2).padStart(5)}:1  (min 7.0)  readingThemes.${name} (AAA — long-form body text)`)
   void theme
 }
 

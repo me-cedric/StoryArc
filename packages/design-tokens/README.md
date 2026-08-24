@@ -8,7 +8,7 @@ app can drift from the palette by hand-editing a hex code.
 
 | Path | Purpose |
 | --- | --- |
-| `tokens/color.json` | Brand, dark/light surface ramps, status colours, reader themes. Authored in OKLCH. |
+| `tokens/color.json` | Brand accents, five surface ramps (light, dark, OLED dark, Natural light/dark), status colours, and the six reading-theme presets. Authored in OKLCH. |
 | `tokens/typography.json` | Font families per platform and the eleven type roles with size, line height, weight and tracking. |
 | `tokens/layout.json` | Spacing scale, radius scale, Android elevation, motion durations and easing, cover-grid metrics, glass and touch-target rules. |
 | `scripts/oklch.mjs` | OKLCH → sRGB conversion and WCAG contrast maths. No dependencies. |
@@ -35,8 +35,11 @@ and both platforms consume plain sRGB.
 
 `build.mjs` exits non-zero when a text-on-surface pair falls below its WCAG
 floor: 4.5:1 for primary and secondary text, 3:1 for tertiary and accents, and
-**7:1 (AAA) for every reflowable reader theme** — that text is read for hours,
-not glanced at.
+**7:1 (AAA) for every reading theme** — that text is read for hours, not glanced
+at.
+
+The pair list is **derived, not repeated**: every text role is checked on every
+surface ramp, so adding a ramp cannot ship an untested palette. 37 pairs today.
 
 It also reports any token that falls outside the sRGB gamut. A clipped colour is
 not the colour you authored, so treat a gamut warning as a bug in the token, not

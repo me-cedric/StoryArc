@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.sp
 
 object StoryArcColor {
     object Brand {
-        /** Primary accent. Reading-lamp amber. Chrome-only — in-content accents defer to cover-derived colour. */
+        /** Primary accent on dark surfaces. Reading-lamp amber. Chrome-only — in-content accents defer to cover-derived colour. */
         val ember = Color(0xFFEC7C27)
         /** Pressed state, and the light-theme accent where 70% lightness would fail contrast on paper. */
         val emberStrong = Color(0xFFD2600C)
@@ -17,6 +17,10 @@ object StoryArcColor {
         val emberMuted = Color(0xFF7C4521)
         /** Secondary. Indigo ink for links, informational chips, and the second series in charts. */
         val ink = Color(0xFF4A54A6)
+        /** The Natural theme's accent on its dark variant. Earthier than ember, so Natural is a theme rather than the same app in beige. */
+        val clay = Color(0xFFC87C5E)
+        /** The Natural theme's accent on its light variant, where clay at 66% lightness would fail on warm paper. */
+        val clayStrong = Color(0xFF98492C)
     }
     object Dark {
         /** App background. */
@@ -27,7 +31,7 @@ object StoryArcColor {
         val surfaceOverlay = Color(0xFF272320)
         /** Reader background. Deliberately not #000 — pure black smears on OLED during page turns and kills glass refraction. */
         val surfaceReader = Color(0xFF050403)
-        /** Inset wells: search fields, empty states. */
+        /** Inset wells: search fields, empty states, cover letterboxing. */
         val surfaceSunken = Color(0xFF080706)
         /** Hairlines, separators. */
         val borderSubtle = Color(0xFF302D2A)
@@ -51,7 +55,7 @@ object StoryArcColor {
         val surfaceOverlay = Color(0xFFFDFBFA)
         /** Reflowable-text reader background. Book stock cream. */
         val surfaceReader = Color(0xFFEDEBE7)
-        /** Inset wells. */
+        /** Inset wells, cover letterboxing. */
         val surfaceSunken = Color(0xFFEFECE9)
         /** Hairlines, separators. */
         val borderSubtle = Color(0xFFE0DDDA)
@@ -66,6 +70,78 @@ object StoryArcColor {
         /** Modal scrim at 40% alpha. */
         val scrim = Color(0xFF302D2B)
     }
+    object OledDark {
+        /** App background. True black. */
+        val surfaceCanvas = Color(0xFF000000)
+        /** Cards, list rows, sheets — lifted off black so structure is still readable. */
+        val surfaceRaised = Color(0xFF070504)
+        /** Menus, popovers, reduced-transparency fallback. */
+        val surfaceOverlay = Color(0xFF13110F)
+        /** Reader background. Above true black on purpose — see $oledDarkNote. */
+        val surfaceReader = Color(0xFF010101)
+        /** Inset wells, cover letterboxing. */
+        val surfaceSunken = Color(0xFF000000)
+        /** Hairlines. Carries more weight here, since there is no surface tint to separate rows. */
+        val borderSubtle = Color(0xFF1C1A18)
+        /** Focus rings, selected outlines. */
+        val borderStrong = Color(0xFF403C39)
+        /** Titles and body. Not pure white — reduces halation against true black. */
+        val textPrimary = Color(0xFFEAE7E4)
+        /** Metadata, subtitles. */
+        val textSecondary = Color(0xFFA7A4A1)
+        /** Timestamps, disabled, placeholder. */
+        val textTertiary = Color(0xFF777471)
+        /** Modal scrim at 70% alpha. */
+        val scrim = Color(0xFF000000)
+    }
+    object NaturalLight {
+        /** App background. Warm cream stock. */
+        val surfaceCanvas = Color(0xFFF4EEE3)
+        /** Cards, list rows, sheets. */
+        val surfaceRaised = Color(0xFFFAF6EF)
+        /** Menus, popovers, reduced-transparency fallback. */
+        val surfaceOverlay = Color(0xFFFDFAF4)
+        /** Reader background. The one surface that carries the paper grain. */
+        val surfaceReader = Color(0xFFEEE7D9)
+        /** Inset wells, cover letterboxing. */
+        val surfaceSunken = Color(0xFFE7E1D4)
+        /** Hairlines, separators. */
+        val borderSubtle = Color(0xFFD7D0C4)
+        /** Focus rings, selected outlines. */
+        val borderStrong = Color(0xFFA59E8F)
+        /** Titles and body. Warm near-brown rather than neutral ink. */
+        val textPrimary = Color(0xFF271D15)
+        /** Metadata, subtitles. */
+        val textSecondary = Color(0xFF605248)
+        /** Timestamps, disabled, placeholder. */
+        val textTertiary = Color(0xFF86776D)
+        /** Modal scrim at 40% alpha. */
+        val scrim = Color(0xFF3A312A)
+    }
+    object NaturalDark {
+        /** App background. Warm ink. */
+        val surfaceCanvas = Color(0xFF16100C)
+        /** Cards, list rows, sheets. */
+        val surfaceRaised = Color(0xFF221B16)
+        /** Menus, popovers, reduced-transparency fallback. */
+        val surfaceOverlay = Color(0xFF2F2722)
+        /** Reader background. The one surface that carries the paper grain. */
+        val surfaceReader = Color(0xFF0D0805)
+        /** Inset wells, cover letterboxing. */
+        val surfaceSunken = Color(0xFF110C08)
+        /** Hairlines, separators. */
+        val borderSubtle = Color(0xFF39312B)
+        /** Focus rings, selected outlines. */
+        val borderStrong = Color(0xFF5A5049)
+        /** Titles and body. Warm cream rather than neutral white. */
+        val textPrimary = Color(0xFFEDE7DC)
+        /** Metadata, subtitles. */
+        val textSecondary = Color(0xFFB0AA9E)
+        /** Timestamps, disabled, placeholder. */
+        val textTertiary = Color(0xFF7F7A6F)
+        /** Modal scrim at 60% alpha. */
+        val scrim = Color(0xFF050302)
+    }
     object Status {
         /** Sync succeeded, source reachable. */
         val success = Color(0xFF4CB86A)
@@ -78,23 +154,31 @@ object StoryArcColor {
         /** Available offline. The one badge allowed to compete with cover art. */
         val downloaded = Color(0xFF2DC08E)
     }
-    object Reader {
-        /** Default reflowable theme. */
-        val themePaperBg = Color(0xFFEDEBE7)
-        /** Default reflowable theme. */
-        val themePaperFg = Color(0xFF1D1A17)
-        /** Warm low-glare. */
-        val themeSepiaBg = Color(0xFFE9DCC8)
-        /** Warm low-glare. */
-        val themeSepiaFg = Color(0xFF312620)
-        /** Dark reflowable theme. Text is not pure white — reduces halation. */
-        val themeNightBg = Color(0xFF0A0907)
-        /** Dark reflowable theme. Text is not pure white — reduces halation. */
-        val themeNightFg = Color(0xFFCDCAC6)
-        /** Maximum-contrast accessibility theme. The only place pure black/white is allowed. */
-        val themeContrastBg = Color(0xFF000000)
-        /** Maximum-contrast accessibility theme. The only place pure black/white is allowed. */
-        val themeContrastFg = Color(0xFFFFFFFF)
+    object ReadingThemes {
+        /** Swatch only. Original leaves publisher styles on and overrides no colour. */
+        val originalBg = Color(0xFFFCFCFA)
+        /** Swatch only. Original leaves publisher styles on and overrides no colour. */
+        val originalFg = Color(0xFF131110)
+        /** Low-contrast dark. Soft off-white on deep neutral, tightened spacing. */
+        val quietBg = Color(0xFF161310)
+        /** Low-contrast dark. Soft off-white on deep neutral, tightened spacing. */
+        val quietFg = Color(0xFFC7C3BF)
+        /** Neutral light. Book-stock white, serif, comfortable default spacing. */
+        val paperBg = Color(0xFFF5F1EC)
+        /** Neutral light. Book-stock white, serif, comfortable default spacing. */
+        val paperFg = Color(0xFF1D1A17)
+        /** High contrast, heavier weight, wider spacing. Low vision without leaving the aesthetic. */
+        val boldBg = Color(0xFFFCFCFC)
+        /** High contrast, heavier weight, wider spacing. Low vision without leaving the aesthetic. */
+        val boldFg = Color(0xFF060606)
+        /** Warm dim. Cream on brown, generous line height. Long evening sessions. */
+        val calmBg = Color(0xFF3F3329)
+        /** Warm dim. Cream on brown, generous line height. Long evening sessions. */
+        val calmFg = Color(0xFFE5D9C4)
+        /** Narrow measure, high contrast, minimal decoration. Fewest words per line. */
+        val focusBg = Color(0xFF040303)
+        /** Narrow measure, high contrast, minimal decoration. Fewest words per line. */
+        val focusFg = Color(0xFFE7E4E0)
     }
 }
 
