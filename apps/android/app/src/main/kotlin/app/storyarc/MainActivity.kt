@@ -21,7 +21,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.activity.compose.BackHandler
-import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,7 +44,7 @@ class MainActivity : ComponentActivity() {
                 // feature module never depends on another feature module
                 // (docs/architecture). The library reports a choice; the reader
                 // accepts one; neither knows the other exists.
-                var reading by remember { mutableStateOf<Pair<Publication, File>?>(null) }
+                var reading by remember { mutableStateOf<Pair<Publication, String>?>(null) }
                 val selection = reading
 
                 if (selection == null) {
@@ -56,13 +55,18 @@ class MainActivity : ComponentActivity() {
                     )
                     LibraryScreen(
                         viewModel = libraryViewModel,
-                        onOpen = { publication, file -> reading = publication to file },
+                        onOpen = { publication, path -> reading = publication to path },
                     )
                 } else {
                     // Keyed on the publication so opening a different one builds a
                     // fresh model rather than showing the previous book's pages.
                     val readerViewModel = remember(selection.first.id) {
-                        ReaderViewModel(selection.first, selection.second, progress)
+                        ReaderViewModel(
+                            selection.first,
+                            contentResolver,
+                            selection.second,
+                            progress,
+                        )
                     }
                     BackHandler { reading = null }
                     ReaderScreen(viewModel = readerViewModel, onClose = { reading = null })

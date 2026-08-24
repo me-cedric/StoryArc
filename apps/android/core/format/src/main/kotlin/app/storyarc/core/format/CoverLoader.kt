@@ -1,6 +1,8 @@
 package app.storyarc.core.format
 
+import android.content.ContentResolver
 import android.graphics.Bitmap
+import android.net.Uri
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import java.io.File
@@ -42,6 +44,28 @@ object CoverLoader {
      * is separate from decoding: it is unit-testable, and [Bitmap] is not.
      */
     suspend fun coverData(publication: Publication, file: File): ByteArray =
+        coverData(publication, { FileSource(file) }, { ComicArchiveOpener.open(file) })
+
+    /** The same, for a document picked through the Storage Access Framework. */
+    suspend fun coverData(
+        publication: Publication,
+        resolver: ContentResolver,
+        uri: Uri,
+    ): ByteArray = coverData(
+        publication,
+        { UriSource(resolver, uri) },
+        { ComicArchiveOpener.open(resolver, uri) },
+    )
+
+    /**
+     * Where a cover comes from, once the difference between a path and a `Uri` is
+     * out of the way. Both callers above are the same three rules.
+     */
+    private suspend fun coverData(
+        publication: Publication,
+        source: () -> RandomAccessSource,
+        archive: suspend () -> ComicArchiveReading,
+    ): ByteArray =
         when (publication.format) {
             // A PDF page is rendered rather than extracted, so there is nothing to
             // read out. `renderedCover` produces one instead.
@@ -49,16 +73,16 @@ object CoverLoader {
 
             PublicationFormat.EPUB -> {
                 val path = publication.coverPath ?: throw CoverException.NoCover()
-                val reader = runCatching { EpubReader.open(FileSource(file)) }.getOrNull()
+                val reader = runCatching { EpubReader.open(source()) }.getOrNull()
                     ?: throw CoverException.Unreadable()
                 runCatching { reader.data(path) }.getOrNull() ?: throw CoverException.Unreadable()
             }
 
             else -> {
                 val path = publication.coverPath ?: throw CoverException.NoCover()
-                val archive = runCatching { ComicArchiveOpener.open(file) }.getOrNull()
+                val opened = runCatching { archive() }.getOrNull()
                     ?: throw CoverException.Unreadable()
-                archive.use {
+                opened.use {
                     val page = it.pages.firstOrNull { entry -> entry.path == path }
                         ?: it.coverPage
                         ?: throw CoverException.NoCover()
@@ -75,7 +99,17 @@ object CoverLoader {
      * display's need rather than nothing is the whole point of the type.
      */
     suspend fun cover(publication: Publication, file: File, maxPixelSize: Int): Bitmap =
-        runCatching { PageDecoder.decode(coverData(publication, file), maxPixelSize) }
+        decode(maxPixelSize) { coverData(publication, file) }
+
+    suspend fun cover(
+        publication: Publication,
+        resolver: ContentResolver,
+        uri: Uri,
+        maxPixelSize: Int,
+    ): Bitmap = decode(maxPixelSize) { coverData(publication, resolver, uri) }
+
+    private suspend fun decode(maxPixelSize: Int, bytes: suspend () -> ByteArray): Bitmap =
+        runCatching { PageDecoder.decode(bytes(), maxPixelSize) }
             .getOrElse { cause ->
                 if (cause is CoverException) throw cause else throw CoverException.Unreadable()
             }
@@ -88,8 +122,14 @@ object CoverLoader {
      * will want to know which it is doing.
      */
     fun renderedCover(file: File, maxPixelSize: Int): Bitmap =
+        renderFirstPage(maxPixelSize) { PdfDocumentReader(file) }
+
+    fun renderedCover(resolver: ContentResolver, uri: Uri, maxPixelSize: Int): Bitmap =
+        renderFirstPage(maxPixelSize) { PdfDocumentReader(resolver, uri) }
+
+    private fun renderFirstPage(maxPixelSize: Int, open: () -> PdfDocumentReader): Bitmap =
         runCatching {
-            PdfDocumentReader(file).use { reader ->
+            open().use { reader ->
                 if (reader.pageCount <= 0) throw CoverException.NoCover()
                 reader.render(0, maxPixelSize)
             }
@@ -109,5 +149,17 @@ object CoverLoader {
             renderedCover(file, maxPixelSize)
         } else {
             cover(publication, file, maxPixelSize)
+        }
+
+    suspend fun anyCover(
+        publication: Publication,
+        resolver: ContentResolver,
+        uri: Uri,
+        maxPixelSize: Int,
+    ): Bitmap =
+        if (publication.format == PublicationFormat.PDF) {
+            renderedCover(resolver, uri, maxPixelSize)
+        } else {
+            cover(publication, resolver, uri, maxPixelSize)
         }
 }

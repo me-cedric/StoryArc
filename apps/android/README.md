@@ -86,6 +86,24 @@ adb exec-out screencap -p > shot.png
 
 Capture light and dark, at default and largest font scale.
 
+## Putting comics in front of the app
+
+The app reads a folder the user picks. There is no path to configure: Android's
+Storage Access Framework hands the app a `Uri`, and the grant is persisted so the
+folder comes back after a reboot.
+
+To try it on an emulator, put files somewhere the picker can reach and choose
+that folder in the app:
+
+```bash
+adb push packages/test-fixtures/comics/. /sdcard/Download/Comics/
+```
+
+Then **Library → the folder button → Download → Comics → Use this folder**.
+
+`getExternalFilesDir` is still scanned when no folder has been picked. That is
+the app's own directory — where a file shared to StoryArc lands — not a library.
+
 ## Design tokens
 
 Colour, type, spacing and motion are generated from

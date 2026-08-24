@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A content provider that exists only for the tests.
+
+    `UriSource` is the adapter between a content `Uri` and the ranged reads every
+    reader is built on, and nothing about it can be exercised without a provider
+    on the other end. `FileProvider` is the smallest real one — it hands back a
+    genuine `ParcelFileDescriptor`, which is exactly what the Storage Access
+    Framework does.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="app.storyarc.core.format.test"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/test_file_paths" />
+        </provider>
+    </application>
+</manifest>

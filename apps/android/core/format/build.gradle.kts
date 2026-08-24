@@ -75,6 +75,9 @@ dependencies {
     // testInstrumentationRunner above names a class from it.
     androidTestRuntimeOnly(libs.androidx.test.runner)
     androidTestImplementation(libs.kotlinx.coroutines.test)
+    // FileProvider, so the instrumented tests have a real content provider to
+    // read a `Uri` out of. Test-only — the module itself needs no androidx.core.
+    androidTestImplementation(libs.androidx.core.ktx)
     // Runtime only — the JsonElement API needs no serialization compiler plugin,
     // so reading the fixture manifest costs no build configuration.
     testImplementation(libs.kotlinx.serialization.json)

@@ -1,7 +1,11 @@
 package app.storyarc.feature.library
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -72,16 +77,41 @@ fun LibraryScreen(
      * How the app layer reaches the reader. The library knows which publication
      * was chosen and where it lives; it does not know what a reader is.
      */
-    onOpen: (Publication, java.io.File) -> Unit = { _, _ -> },
+    onOpen: (Publication, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
+    val context = LocalContext.current
+
+    // Android hands a picked folder over as a tree `Uri` and grants access to it
+    // only for this process — until the app asks for the grant to be persisted,
+    // which can only be done here, with the result in hand. That single call is
+    // what makes `local-library`'s "reachable after a device restart" true.
+    val pickFolder = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { tree ->
+        if (tree != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    tree,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            viewModel?.addFolder(tree)
+        }
+    }
+
     // Reloaded whenever the screen is composed after the reader closes, which is
     // what makes the bar under a cover reflect the page just reached.
-    LaunchedEffect(viewModel) { viewModel?.refreshProgress() }
+    LaunchedEffect(viewModel) {
+        viewModel?.restoreFolders()
+        viewModel?.refreshProgress()
+    }
     val publications by (viewModel?.publications ?: MutableStateFlow(emptyList()))
         .collectAsStateWithLifecycle()
     val scanState by (viewModel?.scanState ?: MutableStateFlow(LibraryScanState.Idle))
+        .collectAsStateWithLifecycle()
+    val unavailable by (viewModel?.unavailableFolders ?: MutableStateFlow(emptyList<String>()))
         .collectAsStateWithLifecycle()
 
     Scaffold(
@@ -92,7 +122,16 @@ fun LibraryScreen(
                 title = { Text(stringResource(R.string.library_title)) },
                 actions = {
                     if (viewModel != null) {
-                        IconButton(onClick = { viewModel.scan() }) {
+                        IconButton(onClick = { pickFolder.launch(null) }) {
+                            Icon(
+                                imageVector = Icons.Filled.CreateNewFolder,
+                                contentDescription = stringResource(
+                                    R.string.library_add_folder,
+                                ),
+                                tint = palette.accent,
+                            )
+                        }
+                        IconButton(onClick = { viewModel.rescan() }) {
                             Icon(
                                 imageVector = Icons.Filled.Refresh,
                                 contentDescription = stringResource(
@@ -107,7 +146,12 @@ fun LibraryScreen(
         },
         bottomBar = {
             val state = scanState
-            if (state is LibraryScanState.Finished && state.skipped > 0) {
+            if (unavailable.isNotEmpty()) {
+                UnavailableFolders(
+                    names = unavailable,
+                    onRepick = { pickFolder.launch(null) },
+                )
+            } else if (state is LibraryScanState.Finished && state.skipped > 0) {
                 // Stated once, at the end, rather than per file — a messy folder
                 // would otherwise be a wall of notices. But stated: a count that
                 // silently omits what it could not read is a lie.
@@ -137,10 +181,41 @@ fun LibraryScreen(
                     )
 
                 state is LibraryScanState.Scanning -> Scanning(state.found)
-                sources.isEmpty() -> EmptyLibrary(onScan = { viewModel?.scan() })
+                sources.isEmpty() -> EmptyLibrary(onScan = { pickFolder.launch(null) })
                 else -> SourceList(sources)
             }
         }
+    }
+}
+
+/**
+ * A folder that was remembered and can no longer be read.
+ *
+ * `local-library`: name the folder and offer one action to pick it again. Never a
+ * silent disappearance — a library that quietly loses half its rows looks broken
+ * rather than disconnected.
+ */
+@Composable
+private fun UnavailableFolders(
+    names: List<String>,
+    onRepick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(StoryArcSpace.md),
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.library_folder_unavailable, names.joinToString(", ")),
+            style = MaterialTheme.typography.labelLarge,
+            color = palette.textSecondary,
+            modifier = Modifier.weight(1f),
+        )
+        Button(onClick = onRepick) { Text(stringResource(R.string.library_repick_folder)) }
     }
 }
 

@@ -1,5 +1,8 @@
 package app.storyarc.core.format
 
+import android.content.ContentResolver
+import android.net.Uri
+
 import java.io.File
 
 /**
@@ -418,6 +421,25 @@ object ComicArchiveOpener {
      * plain folder of ordered images as a publication, and from the caller's side
      * opening one is the same action as opening a file.
      */
+    /**
+     * Convenience for a document the user picked through the Storage Access
+     * Framework.
+     *
+     * Same decisions as [open] for a `File`: a folder of images is a publication,
+     * and a RAR is handed a path so libarchive can decompress it — here
+     * `/proc/self/fd/N`, which is the only path a content `Uri` has.
+     */
+    suspend fun open(resolver: ContentResolver, uri: Uri): ComicArchiveReading {
+        if (SafTree.isDirectory(resolver, uri)) return DocumentFolderArchive.open(resolver, uri)
+        val source = UriSource(resolver, uri)
+        val probe = source.read(0, FormatSniffer.PROBE_LENGTH)
+        return if (FormatSniffer.container(probe) == FormatSniffer.Container.RAR) {
+            RarComicArchive.open(source, File(source.descriptorPath))
+        } else {
+            open(source)
+        }
+    }
+
     suspend fun open(file: File): ComicArchiveReading {
         if (file.isDirectory) return ImageFolderArchive.open(file)
         val source = FileSource(file)

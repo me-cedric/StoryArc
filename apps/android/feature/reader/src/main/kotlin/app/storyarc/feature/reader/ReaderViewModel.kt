@@ -5,10 +5,11 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.lifecycle.ViewModel
-import app.storyarc.core.format.ComicArchiveOpener
+import android.content.ContentResolver
 import app.storyarc.core.format.ComicArchiveReading
 import app.storyarc.core.format.PageDecoder
 import app.storyarc.core.format.PageEntry
+import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.ReadingPosition
@@ -19,7 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
  * One publication, open for reading.
@@ -33,7 +33,12 @@ import java.io.File
  */
 class ReaderViewModel(
     val publication: Publication,
-    private val file: File,
+    private val resolver: ContentResolver,
+    /**
+     * Where the publication lives, as its identity records it: a filesystem path,
+     * or a document `Uri` from a folder the user picked.
+     */
+    private val path: String,
     private val progress: ProgressStore? = null,
 ) : ViewModel() {
 
@@ -81,7 +86,9 @@ class ReaderViewModel(
     suspend fun open(maxPixelSize: Int) {
         this.maxPixelSize = maxPixelSize
         try {
-            val opened = withContext(Dispatchers.IO) { ComicArchiveOpener.open(file) }
+            val opened = withContext(Dispatchers.IO) {
+                PublicationAccess.openArchive(resolver, path)
+            }
             archive = opened
             _pages.value = opened.pages
             publication.coverPath?.let { path ->

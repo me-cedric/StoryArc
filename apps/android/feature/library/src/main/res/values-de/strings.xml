@@ -17,6 +17,9 @@
     <string name="source_state_unauthorized">Anmeldung erforderlich</string>
     <string name="library_cell_cannot_open">Kann nicht geöffnet werden</string>
     <string name="library_scanning">Durchsuchen — %1$d gefunden</string>
-    <string name="library_scan_folder">Ordner durchsuchen</string>
+    <string name="library_scan_folder">Ordner auswählen</string>
+    <string name="library_add_folder">Ordner hinzufügen</string>
+    <string name="library_folder_unavailable">%1$s kann nicht mehr gelesen werden.</string>
+    <string name="library_repick_folder">Erneut auswählen</string>
     <string name="library_skipped">%1$d übersprungen</string>
 </resources>

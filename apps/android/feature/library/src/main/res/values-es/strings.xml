@@ -17,6 +17,9 @@
     <string name="source_state_unauthorized">Se requiere iniciar sesión</string>
     <string name="library_cell_cannot_open">No se puede abrir</string>
     <string name="library_scanning">Analizando — %1$d encontrados</string>
-    <string name="library_scan_folder">Analizar carpeta</string>
+    <string name="library_scan_folder">Elegir una carpeta</string>
+    <string name="library_add_folder">Añadir una carpeta</string>
+    <string name="library_folder_unavailable">Ya no se puede leer %1$s.</string>
+    <string name="library_repick_folder">Elegir de nuevo</string>
     <string name="library_skipped">%1$d omitidos</string>
 </resources>

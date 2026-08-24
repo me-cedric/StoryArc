@@ -1,6 +1,9 @@
 package app.storyarc.core.format
 
+import android.content.ContentResolver
+import android.net.Uri
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationIdentity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -81,6 +84,23 @@ object LibraryScanner {
         scan(folder).mapNotNull { (it as? ScanEvent.Found)?.publication }.toList()
 
     /**
+     * Publications in a folder the user picked, emitted as they are found.
+     *
+     * The same walk, over a content provider. Android hands a picked folder over as
+     * a tree `Uri` with no path behind it, so `local-library`'s "the user picks a
+     * folder" is only reachable this way — the `File` overload above serves the
+     * app's own storage and the tests.
+     *
+     * The rules are identical on purpose: same extensions, same alphabetical order,
+     * same image-folder-is-a-publication decision. A user who moves a shelf from
+     * internal storage to an SD card should see the same library.
+     */
+    fun scan(resolver: ContentResolver, tree: Uri): Flow<ScanEvent> = flow {
+        val tally = walkTree(resolver, tree, SafTree.rootDocumentId(tree)) { emit(it) }
+        emit(ScanEvent.Finished(tally.found, tally.skipped))
+    }
+
+    /**
      * How much a walk found, so counts add up across recursion without shared
      * mutable state.
      */
@@ -119,6 +139,103 @@ object LibraryScanner {
             tally += walk(child, emit)
         }
         return tally
+    }
+
+    private suspend fun walkTree(
+        resolver: ContentResolver,
+        tree: Uri,
+        documentId: String,
+        emit: suspend (ScanEvent) -> Unit,
+    ): Tally {
+        currentCoroutineContext().ensureActive()
+        val children = SafTree.children(resolver, tree, documentId)
+            .filterNot { it.name.startsWith(".") }
+            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+
+        val directories = children.filter { it.isDirectory }
+        val files = children.filterNot { it.isDirectory }
+        val publications = files.filter { extensionOf(it.name) in CANDIDATE_EXTENSIONS }
+        val images = files.filter { extensionOf(it.name) in IMAGE_EXTENSIONS }
+
+        if (publications.isEmpty() && images.isNotEmpty()) {
+            return indexDocumentFolder(resolver, tree, documentId, emit)
+        }
+
+        var tally = Tally()
+        for (entry in publications) {
+            currentCoroutineContext().ensureActive()
+            tally += indexDocument(resolver, tree, entry, emit)
+        }
+        for (child in directories) {
+            currentCoroutineContext().ensureActive()
+            tally += walkTree(resolver, tree, child.documentId, emit)
+        }
+        return tally
+    }
+
+    private fun extensionOf(name: String): String = name.substringAfterLast('.', "").lowercase()
+
+    /**
+     * The identity of a document.
+     *
+     * The document `Uri` stands in for the path. It survives a restart because the
+     * tree permission does (`local-library`), and [PublicationIdentity.matches]
+     * still merges it with a content digest when the background pass that computes
+     * one arrives — the same trade recorded in [PublicationIndexer.identityFor].
+     */
+    private fun identityOf(uri: Uri) = PublicationIdentity(normalizedPath = uri.toString())
+
+    private suspend fun indexDocument(
+        resolver: ContentResolver,
+        tree: Uri,
+        entry: SafTree.Entry,
+        emit: suspend (ScanEvent) -> Unit,
+    ): Tally {
+        val uri = SafTree.documentUri(tree, entry.documentId)
+        val event = try {
+            // Closed as soon as the archive is catalogued: a scan of 2,000 files
+            // holding 2,000 open descriptors exhausts the process limit long
+            // before it finishes. The reader opens its own when a page is asked
+            // for.
+            UriSource(resolver, uri).use { source ->
+                ScanEvent.Found(PublicationIndexer.index(source, entry.name, identityOf(uri)))
+            }
+        } catch (cause: IndexException) {
+            ScanEvent.Skipped(entry.name, reasonFor(cause))
+        } catch (cause: CancellationException) {
+            throw cause
+        } catch (_: Exception) {
+            ScanEvent.Skipped(entry.name, "it could not be read")
+        }
+        emit(event)
+        return if (event is ScanEvent.Found) Tally(found = 1) else Tally(skipped = 1)
+    }
+
+    private suspend fun indexDocumentFolder(
+        resolver: ContentResolver,
+        tree: Uri,
+        documentId: String,
+        emit: suspend (ScanEvent) -> Unit,
+    ): Tally {
+        val uri = SafTree.documentUri(tree, documentId)
+        val name = uri.lastPathSegment?.substringAfterLast('/') ?: documentId
+        val event = try {
+            ScanEvent.Found(
+                PublicationIndexer.index(
+                    DocumentFolderArchive.open(resolver, tree, documentId),
+                    identityOf(uri),
+                    name,
+                ),
+            )
+        } catch (cause: IndexException) {
+            ScanEvent.Skipped(name, reasonFor(cause))
+        } catch (cause: CancellationException) {
+            throw cause
+        } catch (_: Exception) {
+            ScanEvent.Skipped(name, "it could not be read")
+        }
+        emit(event)
+        return if (event is ScanEvent.Found) Tally(found = 1) else Tally(skipped = 1)
     }
 
     /**

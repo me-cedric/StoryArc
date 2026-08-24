@@ -2,7 +2,9 @@ package app.storyarc.core.format
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.content.ContentResolver
 import android.graphics.pdf.PdfRenderer
+import android.net.Uri
 import android.os.ParcelFileDescriptor
 import java.io.File
 
@@ -37,13 +39,14 @@ sealed class PdfException(message: String) : Exception(message) {
  * Not thread-safe, and not made to look like it is: [PdfRenderer] permits one
  * open page at a time, so a caller must serialise access. Close it when done.
  */
-class PdfDocumentReader(file: File) : AutoCloseable {
-    private val descriptor: ParcelFileDescriptor =
-        try {
-            ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-        } catch (cause: Exception) {
-            throw PdfException.Unreadable(cause.message ?: "cannot open file")
-        }
+class PdfDocumentReader private constructor(
+    private val descriptor: ParcelFileDescriptor,
+) : AutoCloseable {
+
+    constructor(file: File) : this(descriptorFor(file))
+
+    /** A PDF inside a folder picked through the Storage Access Framework. */
+    constructor(resolver: ContentResolver, uri: Uri) : this(descriptorFor(resolver, uri))
 
     private val renderer: PdfRenderer =
         try {
@@ -52,6 +55,25 @@ class PdfDocumentReader(file: File) : AutoCloseable {
             descriptor.close()
             throw PdfException.Unreadable(cause.message ?: "not a pdf")
         }
+
+    companion object {
+        private fun descriptorFor(file: File): ParcelFileDescriptor =
+            try {
+                ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            } catch (cause: Exception) {
+                throw PdfException.Unreadable(cause.message ?: "cannot open file")
+            }
+
+        private fun descriptorFor(resolver: ContentResolver, uri: Uri): ParcelFileDescriptor =
+            try {
+                resolver.openFileDescriptor(uri, "r")
+                    ?: throw PdfException.Unreadable("no file descriptor for $uri")
+            } catch (cause: PdfException) {
+                throw cause
+            } catch (cause: Exception) {
+                throw PdfException.Unreadable(cause.message ?: "cannot open document")
+            }
+    }
 
     val pageCount: Int get() = renderer.pageCount
 

@@ -68,6 +68,48 @@ reading order, table of contents, cover and the fixed-layout flag all come out o
 the package document with no dependency, which is everything the *library* needs
 to shelve a book. Readium is needed only when someone opens one to read.
 
+## Reaching the bytes
+
+Every reader above takes a `RandomAccessSource` and nothing else ([ADR-0008]).
+That is what lets the same code read a file, a document handed over by a picker,
+and — later — an SMB share or an HTTP range request.
+
+| Source | Behind it | Used for |
+| --- | --- | --- |
+| `FileSource` | a path | the app's own storage, and every test |
+| `UriSource` (Android) | `ParcelFileDescriptor` + positional channel reads | a folder picked through the Storage Access Framework |
+
+Android needs the second one because a picked folder has **no path at all**. The
+system returns a tree `Uri`, and `java.io.File` cannot see a single byte of it.
+Three small types close that gap:
+
+- `SafTree` — one cursor per directory, with a projection. `DocumentFile` would
+  do the same job with one provider query per child *and* one per attribute; on a
+  folder of 2,000 comics that is the difference between a scan and a hang.
+- `DocumentFolderArchive` — the unpacked-comic case, over documents that were
+  enumerated rather than paths that were constructed. There is no path to escape
+  with, so the traversal check `ImageFolderArchive` needs has nothing to check.
+- `PublicationAccess` — the one place that decides whether a recorded location is
+  a path or a `content://` URI, so nothing above it has to.
+
+Two things learned building it, both cheap to get wrong:
+
+- **libarchive wants a path, and `/proc/self/fd/N` is one.** A descriptor opened
+  from a `Uri` has a real path in the process's own `/proc`, and it resolves to
+  the same open file. That is how a compressed CBR on a storage provider is
+  decoded without being copied anywhere first. It is valid only while the source
+  is open, which is why it is a property of `UriSource` rather than a value a
+  caller can keep.
+- **Read a cursor's columns by name.** A provider answers only the columns it
+  knows, and asking for one it does not have returns a cursor with *no columns*
+  rather than a null value. `getString(0)` then throws. Every column index in
+  `SafTree` is looked up by name for that reason — found by the instrumented test
+  against `FileProvider`, which is not a `DocumentsProvider` and so answers less.
+
+Folder *permission* needs no storage on Android: a persistable URI permission
+comes back from the system after a reboot, so `SafTree.persistedTrees` is the
+whole of what iOS needs security-scoped bookmarks in its defaults for.
+
 ## Four rules, and why each exists
 
 **1. Format comes from content, never from the extension.** A ZIP named `.cbr` is
@@ -184,6 +226,8 @@ Each of these is specified, not accidental:
 | The RAR decoder is JNI on Android, a SwiftPM C target on iOS | Two build systems, one copy of the sources |
 | Cover loading is one test on iOS and two on Android | The byte-level half is a unit test; decoding to a `Bitmap` needs a device |
 | Android does not read a PDF's page count while indexing | `PdfRenderer` is a framework class, and a folder scan must not need a device |
+| Android reaches user folders through a `Uri`, iOS through a URL | The Storage Access Framework gives no path. iOS's security-scoped URL is still a URL, so `FileSource` serves both of its cases |
+| Folder permission is stored on iOS and not on Android | Android's persistable URI permission survives a reboot by itself; a security-scoped bookmark has to be written down |
 
 **A warning the instrumented suite earned.** Android's regex engine is ICU, not
 the JVM's. `\{[^}]*}` compiles on a desktop JVM and throws

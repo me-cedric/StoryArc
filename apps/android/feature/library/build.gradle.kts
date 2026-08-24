@@ -30,6 +30,9 @@ dependencies {
     implementation(project(":core:format"))
 
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    // rememberLauncherForActivityResult, for the folder picker. Android gives no
+    // other way to reach a folder the user owns.
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)

@@ -45,6 +45,107 @@ object PublicationIndexer {
      * not of the whole file. A CBR is catalogued from its headers with nothing
      * decompressed at all.
      */
+    /**
+     * Indexes a publication reached through a [RandomAccessSource].
+     *
+     * The Storage Access Framework hands back a `Uri` rather than a path, so a
+     * user-picked folder cannot be indexed through the `File` overload. Everything
+     * below already takes a source (ADR-0008); this is where that pays off.
+     *
+     * [decoderPath] is the one thing a source cannot provide: libarchive and
+     * `PdfRenderer` want a path. A [UriSource] can offer `/proc/self/fd/N`, and
+     * without one a compressed CBR indexes with its pages marked skipped rather
+     * than failing — the same honest degradation as a remote archive.
+     */
+    suspend fun index(
+        source: RandomAccessSource,
+        name: String,
+        identity: PublicationIdentity,
+        decoderPath: File? = null,
+    ): Publication {
+        val fallback = FilenameMetadata.of(name)
+        // A content `Uri` has no path, and libarchive wants one. `/proc/self/fd/N`
+        // is a real path to the same open file, so a compressed CBR on a provider
+        // decodes without being copied anywhere first.
+        val decoder = decoderPath ?: (source as? UriSource)?.let { File(it.descriptorPath) }
+        val probe = source.read(0, FormatSniffer.PROBE_LENGTH)
+
+        return when (FormatSniffer.container(probe)) {
+            // PdfRenderer needs a real descriptor, which a caller supplies as a
+            // path. Without one the row still exists, with no page count — the
+            // library can show it and the reader can open it from a local copy.
+            FormatSniffer.Container.PDF -> pdf(identity, name, fallback)
+
+            FormatSniffer.Container.ZIP -> {
+                val epub = runCatching { EpubReader.open(source) }.getOrNull()
+                if (epub != null) {
+                    book(epub, identity, name, fallback)
+                } else {
+                    comicFromSource(source, PublicationFormat.CBZ, identity, name, fallback, decoder)
+                }
+            }
+
+            FormatSniffer.Container.TAR ->
+                comicFromSource(source, PublicationFormat.CBT, identity, name, fallback, decoder)
+
+            FormatSniffer.Container.RAR ->
+                comicFromSource(source, PublicationFormat.CBR, identity, name, fallback, decoder)
+
+            FormatSniffer.Container.SEVEN_ZIP ->
+                throw IndexException.Unsupported(PublicationFormat.CB7.displayName)
+
+            null -> throw IndexException.Unreadable("the format was not recognised")
+        }
+    }
+
+    private suspend fun comicFromSource(
+        source: RandomAccessSource,
+        format: PublicationFormat,
+        identity: PublicationIdentity,
+        name: String,
+        fallback: FilenameMetadata,
+        decoderPath: File?,
+    ): Publication {
+        val archive = try {
+            when (format) {
+                PublicationFormat.CBR -> RarComicArchive.open(source, decoderPath)
+                PublicationFormat.CBT -> TarComicArchive.open(source)
+                else -> ZipComicArchive.open(source)
+            }
+        } catch (_: ComicArchiveException.SolidArchive) {
+            return Publication(
+                identity = identity,
+                format = format,
+                displayTitle = title(null, fallback, name),
+                series = fallback.series,
+                number = fallback.number,
+                volume = fallback.volume,
+                year = fallback.year,
+                origin = MetadataOrigin.INFERRED,
+                streaming = StreamingCapability.REFUSED,
+            )
+        } catch (_: ComicArchiveException.PasswordProtected) {
+            throw IndexException.Unreadable("the archive is password protected")
+        } catch (cause: ComicArchiveException.UnsupportedContainer) {
+            throw IndexException.Unsupported(cause.container.displayName)
+        } catch (_: ComicArchiveException) {
+            throw IndexException.Unreadable("the archive could not be read")
+        }
+        return comic(archive, format, identity, name, fallback)
+    }
+
+    /**
+     * Indexes an already-open archive.
+     *
+     * The unpacked-folder case, where there is no single file to sniff. Both the
+     * `File` and the tree walk arrive here for a directory of images.
+     */
+    fun index(
+        archive: ComicArchiveReading,
+        identity: PublicationIdentity,
+        name: String,
+    ): Publication = comic(archive, PublicationFormat.IMAGE_FOLDER, identity, name, FilenameMetadata.of(name))
+
     suspend fun index(file: File): Publication {
         val filename = file.name
         val fallback = FilenameMetadata.of(filename)
@@ -63,13 +164,13 @@ object PublicationIndexer {
         val source = FileSource(file)
         val probe = source.read(0, FormatSniffer.PROBE_LENGTH)
         return when (FormatSniffer.container(probe)) {
-            FormatSniffer.Container.PDF -> pdf(file, filename, fallback)
+            FormatSniffer.Container.PDF -> pdf(identityFor(file), filename, fallback)
 
             FormatSniffer.Container.ZIP -> {
                 // An EPUB is a ZIP too, and only its contents tell the two apart.
                 val epub = runCatching { EpubReader.open(FileSource(file)) }.getOrNull()
                 if (epub != null) {
-                    book(epub, file, filename, fallback)
+                    book(epub, identityFor(file), filename, fallback)
                 } else {
                     comicArchive(file, PublicationFormat.CBZ, filename, fallback)
                 }
@@ -133,6 +234,7 @@ object PublicationIndexer {
             is ZipComicArchive -> archive.comicInfo
             is TarComicArchive -> archive.comicInfo
             is ImageFolderArchive -> archive.comicInfo
+            is DocumentFolderArchive -> archive.comicInfo
             else -> null
         }
 
@@ -165,11 +267,11 @@ object PublicationIndexer {
 
     private fun book(
         epub: EpubReader,
-        file: File,
+        identity: PublicationIdentity,
         filename: String,
         fallback: FilenameMetadata,
     ): Publication = Publication(
-        identity = identityFor(file),
+        identity = identity,
         format = PublicationFormat.EPUB,
         displayTitle = epub.metadata.title ?: fallback.series ?: filename,
         series = epub.metadata.title ?: fallback.series,
@@ -199,9 +301,13 @@ object PublicationIndexer {
      * That asymmetry is in the platforms, and the field is nullable for exactly
      * this reason.
      */
-    private fun pdf(file: File, filename: String, fallback: FilenameMetadata): Publication =
+    private fun pdf(
+        identity: PublicationIdentity,
+        filename: String,
+        fallback: FilenameMetadata,
+    ): Publication =
         Publication(
-            identity = identityFor(file),
+            identity = identity,
             format = PublicationFormat.PDF,
             displayTitle = fallback.series ?: filename,
             series = fallback.series,
@@ -252,7 +358,7 @@ object PublicationIndexer {
      * the two when it arrives. Until that pass exists, a moved file loses its place
      * — which is the honest cost and is recorded here rather than hidden.
      */
-    private fun identityFor(file: File): PublicationIdentity =
+    fun identityFor(file: File): PublicationIdentity =
         PublicationIdentity(normalizedPath = file.absoluteFile.normalize().path)
 
     /**

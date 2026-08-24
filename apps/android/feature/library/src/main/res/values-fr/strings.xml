@@ -17,6 +17,9 @@
     <string name="source_state_unauthorized">Connexion requise</string>
     <string name="library_cell_cannot_open">Impossible à ouvrir</string>
     <string name="library_scanning">Analyse — %1$d trouvés</string>
-    <string name="library_scan_folder">Analyser le dossier</string>
+    <string name="library_scan_folder">Choisir un dossier</string>
+    <string name="library_add_folder">Ajouter un dossier</string>
+    <string name="library_folder_unavailable">%1$s n’est plus lisible.</string>
+    <string name="library_repick_folder">Choisir à nouveau</string>
     <string name="library_skipped">%1$d ignorés</string>
 </resources>

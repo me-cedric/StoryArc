@@ -42,6 +42,22 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   itself — store mode needs no compressor — and three compressed or solid
   archives are vendored from libarchive's own suite with provenance recorded.
 
+- **The apps actually read comics now, on both platforms.** Pick a folder, watch
+  the scan fill a cover grid, open a publication, turn pages, come back and the
+  cover carries a progress bar. Right-to-left reading direction throughout.
+- **Reading progress**, per ADR-0006: SwiftData on iOS, Room on Android, written
+  every page turn rather than on a clean exit — the normal way a phone closes an
+  app is to kill it. Furthest-wins on merge, and finished is sticky.
+- **Picked folders survive a restart.** Security-scoped bookmarks on iOS;
+  on Android the Storage Access Framework's own persistable URI permission, which
+  needs no storage of ours. A folder that can no longer be read is named, with one
+  action to pick it again.
+- **Android reads folders the user owns.** A tree `Uri` has no path, so the format
+  layer gained `UriSource` — ranged reads over a `ParcelFileDescriptor` — plus a
+  `DocumentsContract` walk and a document-backed folder archive. Compressed CBRs
+  decode straight from a storage provider by handing libarchive
+  `/proc/self/fd/N`, with no copy.
+
 ### Fixed
 
 - **`commitlint` never ran.** `commitlint.config.js` used `export default` with
