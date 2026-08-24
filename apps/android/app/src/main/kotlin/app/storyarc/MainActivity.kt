@@ -6,7 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import app.storyarc.core.designsystem.theme.AppearanceMode
 import app.storyarc.core.designsystem.theme.StoryArcTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.storyarc.feature.library.LibraryScreen
+import app.storyarc.feature.library.LibraryViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,7 +23,7 @@ class MainActivity : ComponentActivity() {
             // match what that capability specifies: follow the system, and use
             // Material You where the device offers it.
             StoryArcTheme(appearance = AppearanceMode.SYSTEM, useDynamicColor = true) {
-                LibraryScreen()
+                LibraryScreen(viewModel = viewModel<LibraryViewModel>())
             }
         }
     }

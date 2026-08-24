@@ -15,4 +15,8 @@
     <string name="source_state_connecting">Verbinden …</string>
     <string name="source_state_unreachable">Offline – zwischengespeicherte Inhalte</string>
     <string name="source_state_unauthorized">Anmeldung erforderlich</string>
+    <string name="library_cell_cannot_open">Kann nicht geöffnet werden</string>
+    <string name="library_scanning">Durchsuchen — %1$d gefunden</string>
+    <string name="library_scan_folder">Ordner durchsuchen</string>
+    <string name="library_skipped">%1$d übersprungen</string>
 </resources>

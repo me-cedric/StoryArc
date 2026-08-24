@@ -15,4 +15,8 @@
     <string name="source_state_connecting">Connecting…</string>
     <string name="source_state_unreachable">Offline — showing cached content</string>
     <string name="source_state_unauthorized">Sign-in needed</string>
+    <string name="library_cell_cannot_open">Cannot be opened</string>
+    <string name="library_scanning">Scanning — %1$d found</string>
+    <string name="library_scan_folder">Scan Folder</string>
+    <string name="library_skipped">%1$d skipped</string>
 </resources>

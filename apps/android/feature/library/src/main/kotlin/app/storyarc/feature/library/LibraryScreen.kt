@@ -1,6 +1,15 @@
 package app.storyarc.feature.library
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,29 +51,104 @@ import app.storyarc.core.model.SourceKind
  * Cover grid, search, filtering and sorting land with the `library-browsing`
  * capability; this is the shell they hang off.
  */
+/**
+ * The library.
+ *
+ * Three states, in the order a user meets them: nothing added, a scan running, and
+ * a grid of covers. Search, filtering and sorting are the rest of
+ * `library-browsing` and are not here yet.
+ *
+ * `viewModel` is nullable so previews and the empty-state tests can render without
+ * an Application — the screen is otherwise identical either way.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
     sources: List<Source> = emptyList(),
+    viewModel: LibraryViewModel? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
+    val publications by (viewModel?.publications ?: MutableStateFlow(emptyList()))
+        .collectAsStateWithLifecycle()
+    val scanState by (viewModel?.scanState ?: MutableStateFlow(LibraryScanState.Idle))
+        .collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier,
         containerColor = palette.surfaceCanvas,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.library_title)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.library_title)) },
+                actions = {
+                    if (viewModel != null) {
+                        IconButton(onClick = { viewModel.scan() }) {
+                            Icon(
+                                imageVector = Icons.Filled.Refresh,
+                                contentDescription = stringResource(
+                                    R.string.library_scan_folder,
+                                ),
+                                tint = palette.accent,
+                            )
+                        }
+                    }
+                },
+            )
+        },
+        bottomBar = {
+            val state = scanState
+            if (state is LibraryScanState.Finished && state.skipped > 0) {
+                // Stated once, at the end, rather than per file — a messy folder
+                // would otherwise be a wall of notices. But stated: a count that
+                // silently omits what it could not read is a lie.
+                Text(
+                    text = stringResource(R.string.library_skipped, state.skipped),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = palette.textTertiary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(StoryArcSpace.sm),
+                )
+            }
+        },
     ) { insets ->
         Box(
             modifier = Modifier.fillMaxSize().padding(insets),
             contentAlignment = Alignment.Center,
         ) {
-            if (sources.isEmpty()) {
-                EmptyLibrary()
-            } else {
-                SourceList(sources)
+            val state = scanState
+            when {
+                publications.isNotEmpty() && viewModel != null ->
+                    CoverGrid(publications, viewModel)
+
+                state is LibraryScanState.Scanning -> Scanning(state.found)
+                sources.isEmpty() -> EmptyLibrary(onScan = { viewModel?.scan() })
+                else -> SourceList(sources)
             }
         }
+    }
+}
+
+/**
+ * While a scan runs.
+ *
+ * `local-library` requires progress reported as a count of items found, and
+ * requires that browsing what is already found is not blocked — so this is only
+ * ever seen before the first publication arrives.
+ */
+@Composable
+private fun Scanning(found: Int, modifier: Modifier = Modifier) {
+    val palette = LocalStoryArcPalette.current
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
+    ) {
+        CircularProgressIndicator(color = palette.accent)
+        Text(
+            text = stringResource(R.string.library_scanning, found),
+            style = MaterialTheme.typography.bodySmall,
+            color = palette.textSecondary,
+        )
     }
 }
 
@@ -73,7 +157,7 @@ fun LibraryScreen(
  * explanation of each. Never an illustration with no action — see DESIGN.md §9.
  */
 @Composable
-private fun EmptyLibrary(modifier: Modifier = Modifier) {
+private fun EmptyLibrary(onScan: () -> Unit = {}, modifier: Modifier = Modifier) {
     val palette = LocalStoryArcPalette.current
 
     Column(
@@ -102,6 +186,12 @@ private fun EmptyLibrary(modifier: Modifier = Modifier) {
 
         Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
             SourceKind.entries.forEach { kind -> SourceKindRow(kind) }
+        }
+
+        // `sources` requires the empty state to offer an action rather than only
+        // describe one — see DESIGN.md §9.
+        Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.library_scan_folder))
         }
     }
 }
