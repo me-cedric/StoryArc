@@ -258,8 +258,17 @@ public enum ComicArchiveOpener {
         }
     }
 
-    /// Convenience for a local file — the only source type that exists today.
+    /// Convenience for a local path — the only source type that exists today.
+    ///
+    /// A directory is routed to `ImageFolderArchive`: `publication-formats` lists
+    /// a plain folder of ordered images as a publication, and from the caller's
+    /// side opening one is the same action as opening a file.
     public static func open(fileAt url: URL) async throws -> any ComicArchiveReading {
-        try await open(source: try FileSource(url: url))
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+           isDirectory.boolValue {
+            return try ImageFolderArchive(directory: url)
+        }
+        return try await open(source: try FileSource(url: url))
     }
 }

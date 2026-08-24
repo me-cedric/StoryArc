@@ -108,6 +108,15 @@ here is RAR, which is the only format that genuinely needs a decoder.
       is what `publication-formats` asks for. Guards: entry count capped, header
       size capped, the vint reader cannot spin on a run of continuation bytes,
       and a header claiming a size past the end of the file stops the walk.
+- [x] **2.8** **A plain folder of images**, which `publication-formats` lists
+      alongside the archive formats and which had a name in the enum and no
+      reader. `ImageFolderArchive` sits behind the same `ComicArchiveReading`
+      interface with the same page filter, natural sort and `ComicInfo.xml`
+      handling, so `ch10` follows `ch2` in a folder exactly as it does inside a
+      CBZ. Symbolic links are not followed, and the resolved path is re-checked
+      against the root at read time: a folder is chosen by the user but is still
+      untrusted input, and a link is how one would read a file outside the
+      publication.
 
 ## Phase 3 — Page decoding
 

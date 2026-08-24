@@ -296,6 +296,13 @@ object ComicArchiveOpener {
         }
     }
 
-    /** Convenience for a local file — the only source type that exists today. */
-    suspend fun open(file: File): ComicArchiveReading = open(FileSource(file))
+    /**
+     * Convenience for a local path — the only source type that exists today.
+     *
+     * A directory is routed to [ImageFolderArchive]: `publication-formats` lists a
+     * plain folder of ordered images as a publication, and from the caller's side
+     * opening one is the same action as opening a file.
+     */
+    suspend fun open(file: File): ComicArchiveReading =
+        if (file.isDirectory) ImageFolderArchive.open(file) else open(FileSource(file))
 }
