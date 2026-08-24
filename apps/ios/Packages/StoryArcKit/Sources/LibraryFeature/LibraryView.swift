@@ -1,6 +1,7 @@
 public import SwiftUI
 
 internal import DesignSystem
+public import Persistence
 internal import UniformTypeIdentifiers
 public import StoryArcCore
 
@@ -11,20 +12,31 @@ public import StoryArcCore
 /// `library-browsing` and are not here yet.
 public struct LibraryView: View {
     @Environment(\.theme) private var theme
-    @State private var model = LibraryModel()
     @State private var isPickingFolder = false
+    /// Owned by the app layer, not by this view.
+    ///
+    /// The app is what knows the reader was just dismissed, and a `.task` on this
+    /// view does not fire again when a full-screen cover goes away — so the
+    /// progress bars under the covers never updated. Whoever can observe the
+    /// return has to be the one holding the model.
+    private let model: LibraryModel
 
     private let sources: [Source]
     private let onOpen: (Publication, URL) -> Void
+    private let progress: ProgressStore?
 
     /// `onOpen` is how the app layer reaches the reader. The library knows which
     /// publication was chosen and where it lives; it does not know what a reader
     /// is.
     public init(
+        model: LibraryModel,
         sources: [Source] = [],
+        progress: ProgressStore? = nil,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
     ) {
+        self.model = model
         self.sources = sources
+        self.progress = progress
         self.onOpen = onOpen
     }
 
@@ -48,6 +60,9 @@ public struct LibraryView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(theme.palette.surfaceCanvas)
             .navigationTitle(Text("library.title", bundle: .module))
+            // Reloaded on every appearance, which is what makes the bar under a
+            // cover reflect the page the reader just reached.
+            .task { await model.refreshProgress() }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {

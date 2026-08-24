@@ -19,6 +19,7 @@ let package = Package(
         .library(name: "StoryArcCore", targets: ["StoryArcCore"]),
         .library(name: "LibraryFeature", targets: ["LibraryFeature"]),
         .library(name: "ReaderFeature", targets: ["ReaderFeature"]),
+        .library(name: "Persistence", targets: ["Persistence"]),
     ],
     dependencies: [
         // The vendored libarchive RAR readers. A path dependency rather than a
@@ -43,19 +44,23 @@ let package = Package(
         ),
         .target(
             name: "LibraryFeature",
-            dependencies: ["DesignSystem", "StoryArcCore", "Formats"],
+            dependencies: ["DesignSystem", "StoryArcCore", "Formats", "Persistence"],
             resources: [.process("Resources")]
         ),
         // One module per screen area, and no feature depends on another
         // (docs/architecture): the library opens the reader through the app layer.
         .target(
             name: "ReaderFeature",
-            dependencies: ["DesignSystem", "StoryArcCore", "Formats"],
+            dependencies: ["DesignSystem", "StoryArcCore", "Formats", "Persistence"],
             resources: [.process("Resources")]
         ),
+        // ADR-0006 names SwiftData here and Room on Android. The schema semantics
+        // are shared; the implementations are not.
+        .target(name: "Persistence", dependencies: ["StoryArcCore"]),
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem"]),
         .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),
         .testTarget(name: "FormatsTests", dependencies: ["Formats"]),
+        .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
     ]
 )
 

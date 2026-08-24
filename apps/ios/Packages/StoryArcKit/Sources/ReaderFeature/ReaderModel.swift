@@ -2,6 +2,7 @@ public import CoreGraphics
 public import Foundation
 
 public import Formats
+public import Persistence
 public import StoryArcCore
 
 /// One publication, open for reading.
@@ -32,10 +33,12 @@ public final class ReaderModel {
     private var archive: (any ComicArchiveReading)?
     private let url: URL
     private var maxPixelSize = 2048
+    private let progress: ProgressStore?
 
-    public init(publication: Publication, url: URL) {
+    public init(publication: Publication, url: URL, progress: ProgressStore? = nil) {
         self.publication = publication
         self.url = url
+        self.progress = progress
     }
 
     /// The direction the reader turns pages in.
@@ -63,6 +66,14 @@ public final class ReaderModel {
                let index = pages.firstIndex(where: { $0.path == coverPath }) {
                 currentIndex = index
             }
+            // A recorded position wins over the cover. `reading-progress` is about
+            // picking up where you left off, and a book you are halfway through
+            // should not reopen at its cover.
+            if let recorded = try? await progress?.progress(for: publication.identity),
+               case let .page(index, _) = recorded.position,
+               pages.indices.contains(index) {
+                currentIndex = index
+            }
             await warm(around: currentIndex)
         } catch {
             failure = String(describing: error)
@@ -83,6 +94,27 @@ public final class ReaderModel {
         guard pages.indices.contains(index) else { return }
         currentIndex = index
         await warm(around: index)
+        await record(index)
+    }
+
+    /// Writes the position down.
+    ///
+    /// Every turn, not on leaving: ADR-0006 makes the local store authoritative,
+    /// and a reader that only saves on a clean exit loses the evening when the app
+    /// is killed in the background — which is the normal way a phone closes an app.
+    ///
+    /// The last page marks the publication finished. Finished is sticky, so
+    /// turning back afterwards does not unmark it.
+    private func record(_ index: Int) async {
+        guard let progress, !pages.isEmpty else { return }
+        try? await progress.save(
+            ReadingProgress(
+                identity: publication.identity,
+                position: .page(index: index, of: pages.count),
+                isFinished: index == pages.count - 1,
+                updatedAt: Date()
+            )
+        )
     }
 
     /// The next page in *reading* order, which is not always the next index.

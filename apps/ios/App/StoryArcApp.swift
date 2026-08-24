@@ -1,5 +1,6 @@
 import DesignSystem
 import LibraryFeature
+import Persistence
 import ReaderFeature
 import StoryArcCore
 import SwiftUI
@@ -22,18 +23,41 @@ struct StoryArcApp: App {
     /// reader accepts one, and neither knows the other exists.
     @State private var reading: ReadingSelection?
 
+    /// One store for the whole app. ADR-0006 makes the local record authoritative,
+    /// so the reader writing and the library reading have to be the same store —
+    /// two would disagree about where the user is.
+    private let progress: ProgressStore?
+
+    /// Held here so the app can refresh it when the reader closes.
+    @State private var library: LibraryModel
+
+    init() {
+        let store = try? ProgressStore()
+        self.progress = store
+        _library = State(initialValue: LibraryModel(progress: store))
+    }
+
     var body: some Scene {
         WindowGroup {
-            LibraryView { publication, url in
+            LibraryView(model: library, progress: progress) { publication, url in
                 reading = ReadingSelection(publication: publication, url: url)
             }
             .storyArcTheme()
             .preferredColorScheme(appearance.colorScheme)
-            .fullScreenCover(item: $reading) { selection in
+            .fullScreenCover(item: $reading, onDismiss: {
+                // The one moment progress is known to have changed. Refreshed here
+                // rather than on a timer or on every appearance, because this is
+                // the event, and polling for it would be guessing.
+                Task { await library.refreshProgress() }
+            }) { selection in
                 // Full screen, not a sheet: `comic-reader` wants nothing on screen
                 // while reading, and a sheet keeps a card edge and the view behind
                 // it in view.
-                ReaderView(publication: selection.publication, url: selection.url)
+                ReaderView(
+                    publication: selection.publication,
+                    url: selection.url,
+                    progress: progress
+                )
                     .storyArcTheme()
             }
         }

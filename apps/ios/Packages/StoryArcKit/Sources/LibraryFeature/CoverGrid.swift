@@ -81,6 +81,11 @@ struct CoverCell: View {
                     RoundedRectangle(cornerRadius: StoryArcRadius.md)
                         .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
                 }
+                .overlay(alignment: .bottom) {
+                    if let fraction = model.readFraction(of: publication) {
+                        ProgressBar(fraction: fraction)
+                    }
+                }
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                 Text(publication.displayTitle)
@@ -150,9 +155,47 @@ struct CoverCell: View {
         var parts = [publication.displayTitle]
         if let subtitle { parts.append(subtitle) }
         parts.append(publication.format.displayName)
+        // Progress is spoken, because a bar at the foot of a cover is invisible to
+        // anyone using VoiceOver and "how far in am I" is the whole point of it.
+        if let fraction = model.readFraction(of: publication) {
+            parts.append(
+                String(
+                    localized: "library.cell.progress \(Int(fraction * 100))",
+                    bundle: .module
+                )
+            )
+        }
         if let pageCount = publication.pageCount {
             parts.append(String(localized: "library.cell.pages \(pageCount)", bundle: .module))
         }
         return parts.joined(separator: ", ")
+    }
+}
+
+/// How far through a publication the reader got.
+///
+/// `library-browsing`: "its cover carries an unobtrusive progress indicator", and
+/// "a fully read publication is distinguishable at a glance without a label
+/// covering the artwork". A bar along the foot does both — it never crosses the
+/// artwork, and a full one reads as finished without a word on top of the cover.
+struct ProgressBar: View {
+    @Environment(\.theme) private var theme
+
+    let fraction: Double
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(.black.opacity(0.35))
+                Rectangle()
+                    .fill(fraction >= 1 ? theme.palette.textSecondary : theme.accent)
+                    .frame(width: geometry.size.width * min(1, max(0, fraction)))
+            }
+        }
+        .frame(height: StoryArcSpace.hair * 2)
+        // Decorative: the cell speaks its progress in its own label, and a second
+        // announcement between the title and the format would just be noise.
+        .accessibilityHidden(true)
     }
 }

@@ -35,7 +35,7 @@ boundaries do not.
 | **Design system** | Tokens, palette, type roles, theme. | `DesignSystem` | `:core:designsystem` |
 | **Format** | Archive parsing, page extraction, page decoding, PDF rendering. See [format-layer.md](format-layer.md). | `Formats` | `:core:format` |
 | **Source** | Local folder, SMB, OPDS, Kavita connectors. *Not yet built.* | `Sources` (planned) | `:core:source` (planned) |
-| **Persistence** | Progress store, catalogue cache, downloads. *Not yet built.* | SwiftData | Room |
+| **Persistence** | Progress store, catalogue cache, downloads. Progress built; the rest not. | `Persistence` (SwiftData) | Room |
 | **Feature** | One module per screen area. | `LibraryFeature`, `ReaderFeature` | `:feature:library`, `:feature:reader` |
 | **App** | Entry point, navigation host, DI root. | `App/` | `:app` |
 

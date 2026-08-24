@@ -2,6 +2,7 @@ public import Foundation
 
 public import CoreGraphics
 internal import Formats
+public import Persistence
 public import StoryArcCore
 
 /// What the library is doing, so the UI can say so rather than guess.
@@ -40,8 +41,39 @@ public final class LibraryModel {
     /// Where each publication came from, so a cover can be loaded later.
     private var locations: [String: URL] = [:]
     private var scanTask: Task<Void, Never>?
+    private let progressStore: ProgressStore?
+    /// How far through each publication the reader got, keyed by publication id.
+    private var progress: [String: ReadingProgress] = [:]
 
-    public init() {}
+    public init(progress: ProgressStore? = nil) {
+        self.progressStore = progress
+    }
+
+    /// The fraction read, for a cover's progress indicator.
+    ///
+    /// `nil` for a publication never opened — `library-browsing` wants an
+    /// indicator on a *partially read* cover, and a ring at zero on every unread
+    /// book would be noise rather than information.
+    public func readFraction(of publication: Publication) -> Double? {
+        guard let record = progress[publication.id] else { return nil }
+        if record.isFinished { return 1 }
+        let fraction = record.position.fraction
+        return fraction > 0 ? fraction : nil
+    }
+
+    /// Reloads recorded positions. Called when the library appears, so returning
+    /// from the reader shows the page you reached.
+    public func refreshProgress() async {
+        guard let progressStore else { return }
+        guard let records = try? await progressStore.recent(limit: 500) else { return }
+        var byID: [String: ReadingProgress] = [:]
+        for publication in publications {
+            if let match = records.first(where: { $0.identity.matches(publication.identity) }) {
+                byID[publication.id] = match
+            }
+        }
+        progress = byID
+    }
 
     /// Adds a folder and scans it.
     ///

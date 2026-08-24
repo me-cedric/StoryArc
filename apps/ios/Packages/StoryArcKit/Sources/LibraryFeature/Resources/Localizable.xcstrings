@@ -178,6 +178,36 @@
         }
       }
     },
+    "library.cell.progress %lld": {
+      "comment": "Spoken by VoiceOver as part of a cover cell's label, because the progress bar itself is invisible to it.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Prozent gelesen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld percent read"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld por ciento leído"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld pour cent lu"
+          }
+        }
+      }
+    },
     "library.empty.subtitle": {
       "extractionState": "manual",
       "localizations": {

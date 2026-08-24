@@ -1,6 +1,7 @@
 public import SwiftUI
 
 internal import DesignSystem
+public import Persistence
 public import StoryArcCore
 
 /// The paged comic reader.
@@ -32,8 +33,10 @@ public struct ReaderView: View {
     /// has one writer and cannot desynchronise.
     @State private var displayIndex = 0
 
-    public init(publication: Publication, url: URL) {
-        _model = State(initialValue: ReaderModel(publication: publication, url: url))
+    public init(publication: Publication, url: URL, progress: ProgressStore? = nil) {
+        _model = State(
+            initialValue: ReaderModel(publication: publication, url: url, progress: progress)
+        )
     }
 
     public var body: some View {
