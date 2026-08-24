@@ -6,8 +6,26 @@ deciders: Cédric Meyer
 
 # ADR-0005 — Format and rendering libraries per platform
 
-**Proposed.** Every library is now **chosen**; what remains is execution and two
-spikes. See *What still blocks acceptance* at the end.
+**Proposed.** Every library is **chosen**, and the format libraries are now
+**proven** rather than assumed: RAR, TAR, PDF and image decoding all read real
+files on both platforms, asserted against a shared corpus. What remains is EPUB
+(Readium, blocked on a reader view existing) and the SMB connectors. See *What
+still blocks acceptance* at the end.
+
+**One decision changed on contact with reality.** libarchive was picked for CBR
+*and* CBT. CBT does not need it — TAR is 512-byte blocks with fixed-offset ASCII
+fields and no compression, so it is read by hand on both platforms, the same
+reasoning [ADR-0008](0008-ranged-reads-and-own-zip-reader.md) applies to ZIP. The
+same turned out to be true of RAR *headers*, which carry no compression either:
+everything indexing needs is readable without a decoder. libarchive's scope
+therefore shrank from "two formats" to one function — decompressing a RAR entry —
+and 26 of its 132 sources are vendored rather than all of them. Recorded in
+[VENDORING.md](../../third_party/libarchive/VENDORING.md).
+
+**One finding changed what can be promised.** libarchive does not implement solid
+RAR4 at all, so such a file is refused rather than download-only. Solid RAR5 reads
+completely. That is why the streaming requirement now has three states instead of
+two.
 
 ## Context and problem statement
 
@@ -49,9 +67,9 @@ viewer fragment and 5–8 MB per ABI for a capability comic PDFs never use), Coi
 | EPUB, reflowable + fixed-layout | **Readium Swift toolkit** 3.11.x, via SPM | BSD-3-Clause | Known — actively maintained, SPM-distributed, covers ebooks, audiobooks and comics |
 | PDF | **PDFKit** (system) | Apple SDK | Known |
 | ZIP (CBZ, EPUB container) | **Our own reader** over `RandomAccessSource`; inflate from `Compression` | — | **Known** — superseded by [ADR-0008](0008-ranged-reads-and-own-zip-reader.md). ZIPFoundation removed. |
-| RAR (CBR) | **libarchive** 3.8.1, sources compiled by SPM | BSD-2-Clause — verified per file | **Verified** — 131/131 sources compile for device and simulator; 202 KB linked and stripped |
-| TAR (CBT) | **libarchive**, same integration | BSD-2-Clause | **Verified** — reads a real TAR, correct entry names and sizes |
-| 7-Zip (CB7) | — | — | **Not supported.** Dropped on product scope, not difficulty. libarchive's 7-Zip reader is compiled out. |
+| RAR (CBR) | **libarchive** 3.8.1, 26 vendored sources compiled by SwiftPM | BSD-2-Clause — verified per file | **Proven** — reads RAR4 and RAR5, stored, compressed and solid RAR5, against a shared corpus. ~180 kB linked and stripped |
+| TAR (CBT) | **Our own `TarReader`** | none | **Proven** — libarchive is not needed for TAR. 512-byte headers, no compression; GNU long names and pax `path=` handled |
+| 7-Zip (CB7) | — | — | **Not supported.** Dropped on product scope, not difficulty. libarchive's 7-Zip reader is not vendored at all, so it cannot be reached. Refused by name. |
 | Image decoding | **ImageIO** / `CGImageSource` (system) | Apple SDK | **Verified** — corpus page decodes; 2000×3000 downsamples to 400×600 |
 | SMB | **AMSMB2** (wraps libsmb2), SMB 2/3 | LGPL-2.1 — **must be dynamically linked**, see below | **Decided** — `contents(atPath:range:)` gives the ranged reads ADR-0008 needs |
 
@@ -62,9 +80,9 @@ viewer fragment and 5–8 MB per ABI for a capability comic PDFs never use), Coi
 | EPUB, reflowable + fixed-layout | **Readium Kotlin toolkit** 3.3.x, via Maven Central | BSD-3-Clause | Known |
 | PDF | **System `PdfRenderer`** — images only, no text layer | Android SDK | **Decided.** `androidx.pdf` has text search but ships a whole `PdfViewerFragment`; pdfium costs 5–8 MB per ABI for a capability comic PDFs never use. |
 | ZIP | **Our own reader** over `RandomAccessSource`; inflate from `java.util.zip.Inflater` | — | **Known** — superseded by [ADR-0008](0008-ranged-reads-and-own-zip-reader.md). |
-| TAR (CBT) | **libarchive**, same integration as iOS | BSD-2-Clause | **Verified** — symmetric with iOS rather than a second implementation |
+| TAR (CBT) | **Our own `TarReader`** | none | **Proven** — mirrors iOS file for file, asserted against the same corpus |
 | 7-Zip (CB7) | — | — | **Not supported** |
-| RAR (CBR) | **libarchive** 3.8.1 via CMake + NDK | BSD-2-Clause | **Verified** — builds for arm64-v8a; 235 KB stripped per ABI. junrar rejected as UnRAR-derived |
+| RAR (CBR) | **libarchive** 3.8.1 via CMake + NDK, behind a JNI shim | BSD-2-Clause | **Proven** — all four ABIs build; 11 instrumented tests pass on an emulator; 137–149 kB stripped per ABI. junrar rejected as UnRAR-derived |
 | Image decoding | **`ImageDecoder`** (system) | Android SDK | **Verified** on an emulator — same corpus page, same 400×600 result. Coil rejected: its caching duplicates ADR-0008's sparse cache, and it would make Android's decode path structurally unlike iOS's |
 | SMB | **smbj** | Apache-2.0 | **Decided** — 822★, most active and most adopted of every candidate; SMB 2.0.2 → 3.1.1 with encryption, and ranged reads |
 
@@ -288,9 +306,8 @@ waiting on execution and on two spikes that do not affect the choices above.
 
 | Outstanding | Kind |
 | --- | --- |
-| libarchive reads an actual RAR | Execution — needs a hand-made `.cbr` fixture |
-| The remaining five ABIs build | Execution — arm64 works on both platforms; the rest is mechanical |
-
+| ~~libarchive reads an actual RAR~~ | **Done.** It reads RAR4 and RAR5, stored, compressed and solid RAR5, and the decoded bytes are asserted against libarchive's own documented expected values rather than against our own output |
+| ~~The remaining ABIs build~~ | **Done.** All four Android ABIs and both Apple slices compile the 26 vendored sources; sizes are in the change's task 6.2 |
 | **iOS build embeds AMSMB2 dynamically, not statically** | Execution — a licence requirement, so it needs a check not a comment |
 | **Readium pagination** compared across the two toolkits on the same EPUB | **Blocked on the reader existing.** Not a decision and not a library question — a rendered-output comparison needs a reader view to render into. An EPUB fixture is now in the corpus so the comparison has an input the moment there is somewhere to put it. |
 

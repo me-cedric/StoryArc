@@ -42,23 +42,53 @@ telemetry. If it helps you, you can [support development on Ko-fi](https://ko-fi
 
 ## Status
 
-**Pre-alpha.** The foundation is in place; the reader is not. What exists today
-is the specification, the design system, and a building, tested app shell on both
-platforms.
+**Pre-alpha.** The format layer reads real files on both platforms; the reader UI
+does not exist yet. So StoryArc can open your comics and count their pages — it
+cannot yet show them to you.
 
 | Area | State |
 | --- | --- |
 | Capability specs | ✅ 15 capabilities specified and validating |
 | Design system | ✅ OKLCH token source generating Swift + Kotlin, WCAG-gated in CI |
-| iOS app shell | ✅ Builds, runs, 33 tests passing, SwiftLint clean |
-| Android app shell | ✅ Builds, runs, 22 tests passing, Lint clean (warnings as errors) |
+| Format layer | ✅ CBZ, CBR, CBT, PDF and image folders open on both platforms — see below |
+| Test corpus | ✅ 22 archives and 2 PDFs, one manifest, asserted by both suites |
 | Domain layer | 🟡 Sources, identity, progress and merge rules implemented and tested on both |
-| Format layer | ⬜ CBZ / CBR / CB7 / CBT / EPUB / PDF — specified, not built |
-| Source connectors | ⬜ Local, SMB, OPDS, Kavita — specified, not built |
+| EPUB | ⬜ Specified; the reflowable reader is the next change |
+| Source connectors | ⬜ Local, SMB, OPDS, Kavita — libraries chosen, not built |
 | Readers | ⬜ Paged comic reader and reflowable ebook reader — specified, not built |
 | Desktop | 📄 macOS, Windows and Linux documented; no code by design |
 
+Tests: **131 on iOS** across 21 suites, **96 JVM plus 27 instrumented** on
+Android. The instrumented ones exist because image decoding, PDF rendering and
+the RAR decoder cannot run on a host JVM.
+
 Nothing here is installable yet. There are no releases and no signed builds.
+
+### What the format layer actually does
+
+| Format | State | How |
+| --- | --- | --- |
+| **CBZ** | ✅ Reads | Our own ranged-read ZIP reader ([ADR-0008]) — no dependency |
+| **CBT** | ✅ Reads | Our own TAR reader — 512-byte headers need no library |
+| **CBR** | ✅ Reads | Headers parsed by us; entries decompressed by [vendored libarchive](third_party/libarchive/VENDORING.md) |
+| **PDF** | ✅ Reads | PDFKit on iOS, `PdfRenderer` on Android. Text, search and outline are iOS-only, by design |
+| **Image folder** | ✅ Reads | A directory of ordered images, same page rules as an archive |
+| **CB7** | 🚫 Refused by name | Out of scope. Rare, and the worst streaming case |
+| **EPUB** | ⬜ Not yet | Fixture exists; the reader is the next change |
+
+Two details worth knowing, because they shape everything above:
+
+**A CBR is catalogued without being downloaded.** Page names, page count, sizes,
+the cover, and whether the archive is solid all live in RAR headers, which carry
+no compression — so they are read with ranged reads and no decoder. libarchive is
+used for exactly one thing: turning a compressed entry's bytes into pixels' worth
+of bytes. That is why only 26 of its 132 sources are vendored, and why it adds
+about 140 kB per Android ABI.
+
+**Solid RAR4 is refused, solid RAR5 is not.** The only RAR decoder with an
+OSI-approved licence does not implement solid RAR4 at all, so downloading such a
+file changes nothing and the app says so plainly. Solid RAR5 reads fine; it just
+cannot be streamed.
 
 ## What it will do
 
@@ -67,10 +97,11 @@ SMB share, an OPDS catalogue, or a Kavita server. Every source caches locally,
 so the library opens instantly and stays browsable when a server is unreachable.
 Offline is a normal state, never an error.
 
-**Formats** — CBZ, CBR, CB7, CBT, EPUB (reflowable and fixed-layout), PDF, and a
-plain folder of images. Format is detected from content, not the extension, so a
+**Formats** — CBZ, CBR, CBT, EPUB (reflowable and fixed-layout), PDF, and a plain
+folder of images. Format is detected from content, not the extension, so a
 mis-named file still opens. Metadata comes from `ComicInfo.xml`, the EPUB
-package, or the filename — in that order.
+package, or the filename — in that order. CB7 is refused by name rather than
+half-supported.
 
 **Reading** — A paged image reader with an interactive page curl that follows
 your finger, plus slide, fast fade, and continuous scroll for webtoons.
@@ -122,6 +153,8 @@ storyarc/
 │   ├── decisions/                 ADRs
 │   ├── architecture/              layer model and where the hard problems are
 │   └── design/DESIGN.md           the design system
+├── third_party/
+│   └── libarchive/                26 of 132 sources, for RAR only
 └── scripts/                       cross-cutting tooling
 ```
 
@@ -138,6 +171,14 @@ Two independent native codebases sharing three declarative artefacts and no code
 | Behaviour contract | `docs/openspec/specs/` | `pnpm spec:validate` in CI |
 | Design tokens | `packages/design-tokens` | Generated into both apps; contrast gate in CI |
 | Test fixtures | `packages/test-fixtures` | Both suites assert against the same corpus |
+| Vendored C | `third_party/libarchive` | One copy, compiled by SwiftPM *and* by CMake |
+
+The fourth row is the newest and the one that needed the most care. Two native
+codebases sharing C sources is exactly the coupling ADR-0001 avoids everywhere
+else, so it is allowed only because the alternative — two copies of a RAR
+decoder — would drift, and because the sources are inert: 26 files, one
+hand-written `config.h`, and a single entry point on each side. See
+[VENDORING.md](third_party/libarchive/VENDORING.md).
 
 Kotlin Multiplatform was the strongest alternative and was rejected for reasons
 written down rather than assumed —
@@ -264,3 +305,5 @@ Built by **Cédric Meyer** — [github.com/me-cedric](https://github.com/me-cedr
 StoryArc is completely free, with no paid tier and no advertising. If it is
 useful to you, [a coffee on Ko-fi](https://ko-fi.com/mecedric) is always
 appreciated and never required.
+
+[ADR-0008]: docs/decisions/0008-ranged-reads-and-own-zip-reader.md

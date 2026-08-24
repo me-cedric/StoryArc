@@ -33,7 +33,7 @@ boundaries do not.
 | --- | --- | --- | --- |
 | **Domain** | Publications, sources, identity, progress, preferences. No UI, no I/O. | `StoryArcCore` | `:core:model` |
 | **Design system** | Tokens, palette, type roles, theme. | `DesignSystem` | `:core:designsystem` |
-| **Format** | Archive and ebook parsing, page extraction, metadata. *Not yet built.* | `Formats` (planned) | `:core:format` (planned) |
+| **Format** | Archive parsing, page extraction, page decoding, PDF rendering. See [format-layer.md](format-layer.md). | `Formats` | `:core:format` |
 | **Source** | Local folder, SMB, OPDS, Kavita connectors. *Not yet built.* | `Sources` (planned) | `:core:source` (planned) |
 | **Persistence** | Progress store, catalogue cache, downloads. *Not yet built.* | SwiftData | Room |
 | **Feature** | One module per screen area. | `LibraryFeature`, … | `:feature:library`, … |
@@ -53,12 +53,25 @@ boundaries do not.
    navigation goes through the app layer.
 4. **Generated tokens are never hand-edited.** `pnpm tokens:sync` is the only
    writer.
+5. **The format layer parses; it does not fetch.** Every reader takes a
+   `RandomAccessSource` rather than a path, so nothing below the source layer
+   knows whether bytes came from a file, an SMB share or an HTTP range request
+   ([ADR-0008](../decisions/0008-ranged-reads-and-own-zip-reader.md)). The one
+   exception is documented and deliberate: decompressing a RAR entry needs a
+   local file, because it is sequential by nature.
+6. **A dependency is the last resort in the format layer, not the first.** ZIP,
+   TAR and RAR *headers* are parsed by hand; page decoding and PDF are the
+   platform's; libarchive exists for one function. The test of whether a
+   dependency is warranted is whether the platform or a documented file layout
+   can do it instead.
 
 ## Where the hard problems are
 
 | Problem | Why it is hard | Where it is decided |
 | --- | --- | --- |
-| **Format support** | CBR needs a RAR decoder whose licence is not a standard OSI licence, and CB7 may not have a symmetric answer on both platforms. | [ADR-0005](../decisions/0005-format-and-rendering-libraries.md) |
+| **Format support** | **Largely settled.** CBR needed a RAR decoder with an OSI-approved licence, which narrowed to libarchive. CB7 is refused by name. The surprise was that most of the work needed no library at all: only RAR *decompression* does. | [ADR-0005](../decisions/0005-format-and-rendering-libraries.md), [VENDORING.md](../../third_party/libarchive/VENDORING.md) |
+| **Vendored C in two build systems** | One copy of libarchive is compiled by SwiftPM and by CMake. Two copies would drift; two decoders would drift worse. | [VENDORING.md](../../third_party/libarchive/VENDORING.md) |
+| **Untrusted archive parsing** | Four hand-written parsers read attacker-supplied bytes, and libarchive reads them in C. Every length in every header is a lie until checked. | [SECURITY.md](../../SECURITY.md) |
 | **Progress identity** | The same book arrives from three sources under three names. Path-keyed progress treats them as three books. | [ADR-0006](../decisions/0006-progress-storage-and-sync.md) |
 | **Sync conflicts** | Two devices read offline and both come back with a position. The resolution rule must be predictable without documentation. | [ADR-0006](../decisions/0006-progress-storage-and-sync.md) |
 | **Streaming over SMB** | Rendering page 1 of a 400 MB archive without transferring 400 MB, across a link that drops. | [`network-share`](../openspec/specs/network-share/spec.md) |

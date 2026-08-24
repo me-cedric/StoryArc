@@ -10,6 +10,40 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Added
 
+- **Format layer, both platforms.** CBZ, CBT, CBR, PDF and plain image folders
+  open from real files, asserted against one shared corpus of 22 archives and 2
+  PDFs. Format is detected from content, never from the extension.
+  - **CBZ** through our own ranged-read ZIP reader (ADR-0008).
+  - **CBT** through our own TAR reader: 512-byte headers need no library, so
+    libarchive turned out not to be required for it after all. GNU long names and
+    pax `path=` records handled.
+  - **CBR** through our own RAR header reader plus vendored libarchive for
+    decompression only. A remote CBR is catalogued — pages, sizes, cover, solid
+    flag — without being downloaded, because RAR headers carry no compression.
+    RAR4 and RAR5, stored and compressed.
+  - **PDF** through PDFKit and `PdfRenderer`. Page count, geometry in points, and
+    on-demand rendering bounded by display size on both; text selection, search
+    and outline on iOS only, which `ebook-reader` specifies rather than concedes.
+  - **Plain folders** with the same page rules as an archive, not following
+    symlinks.
+  - **CB7** refused by name, as are solid RAR4, password-protected archives and
+    damaged files — four distinct refusals, because "could not open file" tells
+    the user nothing.
+- **Vendored libarchive**, 26 of 132 sources, compiled by SwiftPM for Apple and
+  CMake for all four Android ABIs from one shared copy. Adds ~180 kB on Apple and
+  137–149 kB per Android ABI. See `third_party/libarchive/VENDORING.md`.
+- **Test corpus** grown to 22 archives and 2 PDFs, including RAR4, RAR5, TAR,
+  PDF and a 7-Zip refusal stub. The RAR containers are written by the generator
+  itself — store mode needs no compressor — and three compressed or solid
+  archives are vendored from libarchive's own suite with provenance recorded.
+
+### Fixed
+
+- **`commitlint` never ran.** `commitlint.config.js` used `export default` with
+  no `"type": "module"`, so Node loaded it as CommonJS, commitlint saw an empty
+  config, and the commit-msg hook rejected every message including valid ones.
+  The scope and body-length rules had never once been applied.
+
 - **Contract.** 15 OpenSpec capability specs covering sources, local libraries,
   SMB shares, OPDS catalogues, Kavita servers, publication formats, library
   browsing, collections and reading lists, both readers, reading progress,
