@@ -61,6 +61,11 @@ targets:
         UIApplicationSupportsIndirectInputEvents: true
         # `local-library`: open a file where it lives rather than copying it in.
         LSSupportsOpeningDocumentsInPlace: true
+        # And the other half of it: `local-library`'s imported copies live in the
+        # app's Documents folder, so that folder has to be reachable from Files and
+        # from Finder. Without this the imports exist and nobody can put anything
+        # there.
+        UIFileSharingEnabled: true
         ITSAppUsesNonExemptEncryption: false
         # `local-library` requires StoryArc to appear as a handler for every
         # format it can read, so an "Open with" from Files reaches the reader.

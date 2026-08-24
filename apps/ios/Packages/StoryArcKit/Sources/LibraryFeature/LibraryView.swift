@@ -1,15 +1,18 @@
 public import SwiftUI
 
 internal import DesignSystem
+internal import UniformTypeIdentifiers
 public import StoryArcCore
 
-/// The library. At this stage it renders the empty state and the source list —
-/// the two surfaces `sources` requires before any content exists.
+/// The library.
 ///
-/// Cover grid, search, filtering and sorting land with the `library-browsing`
-/// capability; this is the shell they hang off.
+/// Three states, in the order a user meets them: nothing added, a scan running,
+/// and a grid of covers. Search, filtering and sorting are the rest of
+/// `library-browsing` and are not here yet.
 public struct LibraryView: View {
     @Environment(\.theme) private var theme
+    @State private var model = LibraryModel()
+    @State private var isPickingFolder = false
 
     private let sources: [Source]
 
@@ -20,8 +23,12 @@ public struct LibraryView: View {
     public var body: some View {
         NavigationStack {
             Group {
-                if sources.isEmpty {
-                    EmptyLibraryView()
+                if !model.publications.isEmpty {
+                    CoverGrid(publications: model.publications, model: model)
+                } else if case .scanning = model.scanState {
+                    ScanningView(state: model.scanState)
+                } else if sources.isEmpty {
+                    EmptyLibraryView { isPickingFolder = true }
                 } else {
                     SourceList(sources: sources)
                 }
@@ -29,7 +36,79 @@ public struct LibraryView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(theme.palette.surfaceCanvas)
             .navigationTitle(Text("library.title", bundle: .module))
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isPickingFolder = true
+                    } label: {
+                        Label {
+                            Text("library.addFolder", bundle: .module)
+                        } icon: {
+                            Image(systemName: "folder.badge.plus")
+                        }
+                    }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if case let .finished(found, skipped) = model.scanState, skipped > 0 {
+                    // Stated once, at the end, rather than per file — a messy
+                    // folder would otherwise be a wall of notices. But stated:
+                    // a count that silently omits what it could not read is a lie.
+                    ScanSummary(found: found, skipped: skipped)
+                }
+            }
         }
+        // `local-library`: a folder picked here is reachable again after a restart,
+        // which is what the security-scoped bookmark in the model is for.
+        .fileImporter(
+            isPresented: $isPickingFolder,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            if case let .success(urls) = result, let folder = urls.first {
+                model.addFolder(folder)
+            }
+        }
+    }
+}
+
+/// While a scan runs.
+///
+/// `local-library` requires progress reported as a count of items found, and
+/// requires that browsing what is already found is not blocked — so this is only
+/// ever seen before the first publication arrives.
+struct ScanningView: View {
+    @Environment(\.theme) private var theme
+
+    let state: LibraryScanState
+
+    var body: some View {
+        VStack(spacing: StoryArcSpace.md) {
+            ProgressView()
+            if case let .scanning(found) = state {
+                Text("library.scanning \(found)", bundle: .module)
+                    .textRole(.subheadline)
+                    .foregroundStyle(theme.palette.textSecondary)
+                    .monospacedDigit()
+            }
+        }
+    }
+}
+
+/// What a finished scan could not read.
+struct ScanSummary: View {
+    @Environment(\.theme) private var theme
+
+    let found: Int
+    let skipped: Int
+
+    var body: some View {
+        Text("library.skipped \(skipped)", bundle: .module)
+            .textRole(.footnote)
+            .foregroundStyle(theme.palette.textTertiary)
+            .padding(.vertical, StoryArcSpace.sm)
+            .frame(maxWidth: .infinity)
+            .background(.thinMaterial)
     }
 }
 
@@ -38,6 +117,10 @@ public struct LibraryView: View {
 /// Never an illustration with no action — see DESIGN.md §9.
 struct EmptyLibraryView: View {
     @Environment(\.theme) private var theme
+
+    /// Offered here as well as in the toolbar. `sources` requires the empty state
+    /// to offer an action rather than only describe one — see DESIGN.md §9.
+    var addFolder: () -> Void = {}
 
     var body: some View {
         VStack(spacing: StoryArcSpace.xl) {
@@ -62,6 +145,17 @@ struct EmptyLibraryView: View {
                 }
             }
             .padding(.top, StoryArcSpace.xs)
+
+            Button(action: addFolder) {
+                Label {
+                    Text("library.addFolder", bundle: .module)
+                } icon: {
+                    Image(systemName: "folder.badge.plus")
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, StoryArcSpace.sm)
+            }
+            .buttonStyle(.borderedProminent)
         }
         .padding(.horizontal, StoryArcSpace.gutter)
         .frame(maxWidth: StoryArcSpace.huge * 8)

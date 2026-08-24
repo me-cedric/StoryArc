@@ -42,7 +42,7 @@ let package = Package(
         ),
         .target(
             name: "LibraryFeature",
-            dependencies: ["DesignSystem", "StoryArcCore"],
+            dependencies: ["DesignSystem", "StoryArcCore", "Formats"],
             resources: [.process("Resources")]
         ),
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem"]),
