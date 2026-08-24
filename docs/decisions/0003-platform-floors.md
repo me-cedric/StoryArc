@@ -1,10 +1,12 @@
+---
+status: accepted
+date: 2026-08-24
+deciders: Cédric Meyer
+---
+
 # ADR-0003 — iOS 26 and Android 12 as the minimum versions
 
-- **Status:** Accepted
-- **Date:** 2026-08-24
-- **Deciders:** Cédric Meyer
-
-## Context
+## Context and problem statement
 
 The two platforms pull in opposite directions here.
 
@@ -24,7 +26,46 @@ You has to fall back to a static palette.
 `compileSdk` and `targetSdk` are both 37: Compose UI 1.12, which the current BOM
 pins, refuses to be consumed by a project compiling against anything lower.
 
-## Decision
+## Considered options
+
+1. iOS 18 floor, chrome written twice.
+2. iOS 26 floor, one material system.
+3. Android floor below API 31.
+4. Android API 31 floor.
+5. One matched floor on both platforms.
+
+### iOS 18 floor, chrome written twice
+
+- Good, because it reaches devices that have not moved to iOS 26.
+- Bad, because every piece of chrome exists in the new material system and in
+  the old one, and both need testing.
+- Bad, because shipping the previous OS's look defeats the premise of the app.
+
+### iOS 26 floor, one material system
+
+- Good, because there is one visual path and no `if #available` branch for design.
+- Bad, because device reach drops until iOS 26 adoption climbs.
+
+### Android floor below API 31
+
+- Good, because it reaches older devices, and Compose renders Material 3
+  Expressive identically that far back.
+- Bad, because dynamic colour arrived in API 31. Below it, Material You falls
+  back to a static palette.
+
+### Android API 31 floor
+
+- Good, because dynamic colour works on every supported version.
+- Good, because it still covers four major versions with one visual path.
+- Bad, because Android 11 and older are dropped.
+
+### One matched floor on both platforms
+
+- Good, because one number is easier to state.
+- Bad, because the platforms need the floor for unrelated reasons. Matching them
+  raises one floor for no requirement.
+
+## Decision Outcome
 
 | Platform | Minimum | Target | Reason for the floor |
 | --- | --- | --- | --- |
@@ -57,3 +98,11 @@ actually requires, not by a wish for them to match.
   floor moves to whatever version the next capability actually needs.
 - A Compose release raises the required `compileSdk` again — that is a routine
   bump of `compileSdk`/`targetSdk`, not a change to the `minSdk` floor.
+
+## Links
+
+- Spec: [`native-experience`](../openspec/specs/native-experience/spec.md) — the
+  platform behaviour these floors buy.
+- Related decisions: [ADR-0001](0001-independent-native-cores.md) makes an
+  asymmetric floor possible, because neither app constrains the other.
+- Contract: `AGENTS.md` §2 — iOS floor 26.0, Android floor API 31, target 37.

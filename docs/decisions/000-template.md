@@ -1,8 +1,15 @@
-# NNN. Decision Title
+---
+# status: proposed | accepted | rejected | deprecated | superseded
+status: proposed
+date: YYYY-MM-DD
+# deciders: who owns / was in the room for this decision
+deciders:
+---
 
-- Status: proposed <!-- proposed | accepted | rejected | deprecated | superseded by NNN -->
-- Date: YYYY-MM-DD
-- Deciders: <!-- who owns / was in the room for this decision -->
+# ADR-NNNN — Decision title
+
+<!-- The frontmatter above is what the Konvoy Decisions page reads. Keep the
+     status to one of the five words; put any qualifier in the body. -->
 
 ## Context and problem statement
 
@@ -35,7 +42,7 @@ the room understands *why this was even a question*.
 
 <!-- one block per option — this is the alternatives + pros/cons record -->
 
-## Decision
+## Decision Outcome
 
 We chose **<option A>**.
 

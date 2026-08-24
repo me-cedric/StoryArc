@@ -1,12 +1,14 @@
+---
+status: accepted
+date: 2026-08-24
+deciders: Cédric Meyer
+---
+
 # ADR-0006 — Local-first reading progress with content-addressed identity
 
-- **Status:** Accepted
-- **Date:** 2026-08-24
-- **Deciders:** Cédric Meyer
+## Context and problem statement
 
-## Context
-
-[`reading-progress`](../../openspec/specs/reading-progress/spec.md) requires that
+[`reading-progress`](../openspec/specs/reading-progress/spec.md) requires that
 progress survive across sources, formats and devices, sync with Kavita, and
 never silently move a user backwards. Two problems underlie all of it.
 
@@ -18,7 +20,40 @@ treats those as three different books. The user does not.
 back with a position. Something has to decide, and the rule has to be one a user
 can predict without reading documentation.
 
-## Decision
+## Considered options
+
+**Authority**
+
+1. Remote store authoritative, local cache behind it.
+   - Bad, because the app must work fully with zero sources configured, and most
+     sources cannot store progress at all.
+2. Local store authoritative, sync as a projection outward. **Chosen.**
+
+**Identity**
+
+3. Path-keyed records.
+   - Bad, because the same publication read from a folder, an SMB share and
+     Kavita becomes three records. The user sees one book.
+   - Kept only as the last-resort key when nothing else is obtainable.
+4. Content hash, with the server identifier taking precedence. **Chosen.**
+   - Good, because it is stable across renames, moves and re-downloads, and
+     costs two ranged reads rather than a full transfer.
+
+**Conflict**
+
+5. Last-write-wins.
+   - Bad, because clock skew between a phone and a NAS is real, and the failure
+     mode is losing an evening's reading.
+6. Furthest position wins, finished is sticky. **Chosen.**
+   - Good, because its failure mode — a few pages ahead — is recoverable.
+
+**Position for reflowable content**
+
+7. Persist the page number.
+   - Bad, because a page number is a function of the reader's typography.
+8. Persist a locator into the content, display a page number. **Chosen.**
+
+## Decision Outcome
 
 ### Local is authoritative; sync is a projection
 
@@ -87,3 +122,12 @@ sync watermark — are specified here so the two implementations agree.
   the one-time notice names both positions so it is recoverable.
 - Sync is queue-based and retried, so a failed push is never surfaced as an
   error — it just happens later.
+
+## Links
+
+- Spec: [`reading-progress`](../openspec/specs/reading-progress/spec.md), and
+  [`kavita-server`](../openspec/specs/kavita-server/spec.md) for the server side.
+- Related decisions: [ADR-0001](0001-independent-native-cores.md) — SwiftData and
+  Room are per-platform choices; only the schema semantics are shared.
+  [ADR-0008](0008-ranged-reads-and-own-zip-reader.md) provides the ranged reads
+  the content hash depends on.

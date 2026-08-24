@@ -1,17 +1,28 @@
+---
+status: accepted
+date: 2026-08-24
+deciders: Cédric Meyer
+---
+
 # ADR-0007 — One OKLCH token source, generated into Swift and Kotlin
 
-- **Status:** Accepted
-- **Date:** 2026-08-24
-- **Deciders:** Cédric Meyer
-
-## Context
+## Context and problem statement
 
 Two independent codebases ([ADR-0001](0001-independent-native-cores.md)) that
 must look like the same product. The naive approach — a `Color.swift` and a
 `Color.kt`, each hand-maintained — guarantees drift, and drift in a palette is
 invisible until someone puts two screenshots side by side.
 
-## Decision
+## Considered options
+
+| Option | Why not |
+| --- | --- |
+| **Style Dictionary** | The standard answer, and a reasonable one. Rejected because it brings a dependency tree and a plugin model to generate two files, and because the contrast gate — the part that actually earns its keep — would be a custom action anyway. |
+| **Figma variables as the source** | Better when a designer owns the palette in Figma. There is no separate designer here, and a JSON file in the repository is reviewable in a pull request. Revisit if a Figma library becomes the working surface. |
+| **Hand-maintained per platform** | The thing this ADR exists to prevent. |
+| **A token package with its own generator** | **Chosen.** One JSON source, ~40 lines of OKLCH arithmetic, a contrast gate in the same script. |
+
+## Decision Outcome
 
 `packages/design-tokens` holds the only definition of StoryArc's colour, type,
 spacing, radius and motion values. `scripts/build.mjs` generates
@@ -48,14 +59,6 @@ Each token has a `use` string saying where it is allowed to appear, and that
 string is emitted as a doc comment in both generated files. A token with no
 stated use gets misused; a token whose use appears in autocomplete does not.
 
-## Alternatives considered
-
-| Option | Why not |
-| --- | --- |
-| **Style Dictionary** | The standard answer, and a reasonable one. Rejected because it brings a dependency tree and a plugin model to generate two files, and because the contrast gate — the part that actually earns its keep — would be a custom action anyway. |
-| **Figma variables as the source** | Better when a designer owns the palette in Figma. There is no separate designer here, and a JSON file in the repository is reviewable in a pull request. Revisit if a Figma library becomes the working surface. |
-| **Hand-maintained per platform** | The thing this ADR exists to prevent. |
-
 ## Consequences
 
 - One place to change a colour; both platforms follow.
@@ -67,4 +70,16 @@ stated use gets misused; a token whose use appears in autocomplete does not.
 - Dynamic colour — Material You on Android, cover-derived accents on both — is
   layered on top of these tokens at runtime, not baked into them. The tokens
   define the floor and the fallback; see
-  [`native-experience`](../../openspec/specs/native-experience/spec.md).
+  [`native-experience`](../openspec/specs/native-experience/spec.md).
+
+## Links
+
+- Spec: [`native-experience`](../openspec/specs/native-experience/spec.md),
+  [`reading-themes`](../openspec/changes/reader-theming-and-page-transitions/specs/reading-themes/spec.md)
+  (delta spec, not yet synced).
+- Source and generator: `packages/design-tokens`, `scripts/build.mjs`,
+  `scripts/oklch.mjs`. Commands: `pnpm tokens:build`, `pnpm tokens:sync`,
+  `pnpm tokens:verify`.
+- Design system: [`docs/design/DESIGN.md`](../design/DESIGN.md).
+- Related decisions: [ADR-0001](0001-independent-native-cores.md) — generated
+  tokens are one of the three artefacts the two apps share.

@@ -1,10 +1,12 @@
+---
+status: accepted
+date: 2026-08-24
+deciders: Cédric Meyer
+---
+
 # ADR-0001 — Two independent native cores, not a shared one
 
-- **Status:** Accepted
-- **Date:** 2026-08-24
-- **Deciders:** Cédric Meyer
-
-## Context
+## Context and problem statement
 
 StoryArc ships the same product on iOS and Android: source connectors (SMB,
 OPDS, Kavita), archive and ebook parsing, a download queue, a progress store
@@ -30,7 +32,16 @@ Three things argue against it here.
    two half-apps behind a shared abstraction that has to satisfy both before
    either works.
 
-## Decision
+## Considered options
+
+| Option | Why not |
+| --- | --- |
+| **Kotlin Multiplatform shared core** | Reasonable, and the strongest alternative. Rejected for the three reasons above, not because it is wrong. Revisit if a second developer joins or if connector logic drifts between platforms. |
+| **Flutter or React Native** | Fails the primary product requirement. The app must feel stock, and the reader must run a finger-tracked page curl at the display refresh rate. |
+| **Swift on Android** | Immature toolchain for app-level code, and no Compose interop story. |
+| **C++ or Rust core via FFI** | Solves the parsing layer, but the parsing layer is the part with good native libraries already. Buys the FFI cost without the FFI benefit. |
+
+## Decision Outcome
 
 **Two independent native codebases.** `apps/ios` is Swift and SwiftUI.
 `apps/android` is Kotlin and Compose. Neither depends on the other or on any
@@ -40,22 +51,13 @@ They share exactly three artefacts, all of them declarative:
 
 | Shared | Where | Enforced by |
 | --- | --- | --- |
-| Behaviour contract | `openspec/specs/` | `openspec validate --specs` in CI |
+| Behaviour contract | `docs/openspec/specs/` | `pnpm spec:validate` in CI |
 | Design tokens | `packages/design-tokens` | Generated into both apps; contrast gate in CI |
 | Test fixtures | `packages/test-fixtures` | Both test suites read the same corpus |
 
 The fixture corpus is what keeps the two implementations honest: the same
 malformed CBZ, the same RTL manga, the same EPUB with a broken spine, asserted
 against the same expected parse on both platforms.
-
-## Alternatives considered
-
-| Option | Why not |
-| --- | --- |
-| **Kotlin Multiplatform shared core** | Reasonable, and the strongest alternative. Rejected for the three reasons above, not because it is wrong. Revisit if a second developer joins or if connector logic drifts between platforms. |
-| **Flutter or React Native** | Fails the primary product requirement. The app must feel stock, and the reader must run a finger-tracked page curl at the display refresh rate. |
-| **Swift on Android** | Immature toolchain for app-level code, and no Compose interop story. |
-| **C++ or Rust core via FFI** | Solves the parsing layer, but the parsing layer is the part with good native libraries already. Buys the FFI cost without the FFI benefit. |
 
 ## Consequences
 
@@ -89,3 +91,12 @@ against the same expected parse on both platforms.
 - A desktop target lands that would share a core with one of the mobile apps —
   note that macOS shares with iOS through SwiftUI, not through KMP. See
   [ADR-0004](0004-desktop-strategy.md).
+
+## Links
+
+- Specs: the whole of [`docs/openspec/specs/`](../openspec/specs) — this ADR is
+  what makes the written contract the only thing the two apps share.
+- Related decisions: [ADR-0002](0002-monorepo-layout.md) puts both codebases in
+  one repository. [ADR-0004](0004-desktop-strategy.md) extends the rule to
+  desktop.
+- Contract: `AGENTS.md` §2, non-negotiable 1 — no cross-platform UI, ever.

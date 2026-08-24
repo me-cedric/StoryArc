@@ -1,10 +1,14 @@
+---
+status: accepted
+date: 2026-08-24
+deciders: Cédric Meyer
+---
+
 # ADR-0004 — Desktop strategy: documented now, built later
 
-- **Status:** Accepted — planning only, no implementation
-- **Date:** 2026-08-24
-- **Deciders:** Cédric Meyer
+**Accepted as planning only. No implementation.**
 
-## Context
+## Context and problem statement
 
 StoryArc is a mobile app first. Desktop is wanted eventually, on macOS, Windows
 and Linux. Deciding the desktop stack now — before either mobile app ships — is
@@ -14,7 +18,19 @@ would be made in ignorance of what desktop later needs.
 This ADR records the direction and the reasoning. **No desktop code is written
 until both mobile apps have shipped a 1.0.**
 
-## Decision
+## Considered options
+
+| Target | Option | Verdict |
+| --- | --- | --- |
+| macOS | Multiplatform SwiftUI target inside `apps/ios` | **Chosen.** Reuses the iOS core wholesale. |
+| macOS | Mac Catalyst | Rejected. Produces an iPad app in a window, which fails the native-feel requirement. |
+| Windows | WinUI 3 via the Windows App SDK | **Assumed**, pending a spike. The platform vendor's own toolkit. |
+| Windows | Avalonia | Runner-up. Draws every pixel itself, so one look everywhere — the wrong trade here, but it would also cover Linux. |
+| Windows | .NET MAUI | Rejected. Renders through WinUI 3 anyway, so it adds a layer without adding a capability. |
+| Linux | GTK4 + libadwaita | **Open.** Native on GNOME, but a third implementation in a third language. |
+| Linux | Avalonia | **Open.** One implementation shared with Windows, at the cost of not looking like a GNOME app. |
+
+## Decision Outcome
 
 Three targets, three answers, because they are genuinely three different
 problems.
@@ -86,3 +102,12 @@ its own merits.
 ## Revisit when
 
 Both mobile apps have shipped 1.0. Not before.
+
+## Links
+
+- Scope per target: `apps/desktop-macos/README.md`,
+  `apps/desktop-windows/README.md`, `apps/desktop-linux/README.md`.
+- Related decisions: [ADR-0001](0001-independent-native-cores.md) — macOS shares
+  the iOS codebase through SwiftUI, not through a cross-platform core.
+- Specs: the capability specs in [`docs/openspec/specs/`](../openspec/specs) are
+  platform-neutral, so a desktop target has a contract from day one.

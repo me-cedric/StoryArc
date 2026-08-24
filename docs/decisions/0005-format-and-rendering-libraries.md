@@ -1,12 +1,17 @@
+---
+status: proposed
+date: 2026-08-24
+deciders: Cédric Meyer
+---
+
 # ADR-0005 — Format and rendering libraries per platform
 
-- **Status:** Proposed — every library is now **chosen**; what remains is execution and two spikes. See *What still blocks acceptance* at the end.
-- **Date:** 2026-08-24
-- **Deciders:** Cédric Meyer
+**Proposed.** Every library is now **chosen**; what remains is execution and two
+spikes. See *What still blocks acceptance* at the end.
 
-## Context
+## Context and problem statement
 
-[`publication-formats`](../../openspec/specs/publication-formats/spec.md)
+[`publication-formats`](../openspec/specs/publication-formats/spec.md)
 requires CBZ, CBR, CB7, CBT, EPUB, PDF and plain image folders, on both
 platforms. Under [ADR-0001](0001-independent-native-cores.md) each platform
 picks its own libraries. This ADR records those picks, their licences, and how
@@ -17,7 +22,25 @@ during implementation is far more expensive than one found now.
 project's own documentation. *Assumed* means a reasonable pick that has not yet
 been proven in a spike. Nothing here is *Known* until a spike says so.
 
-## Decision
+## Considered options
+
+Two whole-layer approaches were weighed before the per-library picks:
+
+- **A single shared C library via FFI** (libarchive, libmupdf). Solves the
+  format layer for both platforms at the cost of two FFI boundaries, two build
+  integrations, and losing every platform-native affordance around it. See
+  [ADR-0001](0001-independent-native-cores.md). Rejected as a whole-layer
+  answer, then accepted for CBR and CBT only — see *RAR licensing* below.
+- **Rolling our own EPUB engine.** Readium exists on both platforms, is
+  maintained, and is BSD-licensed. Writing one would be the single largest and
+  least differentiated piece of work in the project. Rejected.
+
+Per need, the runners-up and the reason each lost are recorded in the tables
+below and in *Risks*: junrar (UnRAR-derived), `androidx.pdf` and pdfium (a
+viewer fragment and 5–8 MB per ABI for a capability comic PDFs never use), Coil
+(duplicates ADR-0008's sparse cache), and four SMB candidates.
+
+## Decision Outcome
 
 ### iOS
 
@@ -44,16 +67,6 @@ been proven in a spike. Nothing here is *Known* until a spike says so.
 | RAR (CBR) | **libarchive** 3.8.1 via CMake + NDK | BSD-2-Clause | **Verified** — builds for arm64-v8a; 235 KB stripped per ABI. junrar rejected as UnRAR-derived |
 | Image decoding | **`ImageDecoder`** (system) | Android SDK | **Verified** on an emulator — same corpus page, same 400×600 result. Coil rejected: its caching duplicates ADR-0008's sparse cache, and it would make Android's decode path structurally unlike iOS's |
 | SMB | **smbj** | Apache-2.0 | **Decided** — 822★, most active and most adopted of every candidate; SMB 2.0.2 → 3.1.1 with encryption, and ranged reads |
-
-### Rejected
-
-- **A single shared C library via FFI** (libarchive, libmupdf). Solves the
-  format layer for both platforms at the cost of two FFI boundaries, two build
-  integrations, and losing every platform-native affordance around it. See
-  [ADR-0001](0001-independent-native-cores.md).
-- **Rolling our own EPUB engine.** Readium exists on both platforms, is
-  maintained, and is BSD-licensed. Writing one would be the single largest and
-  least differentiated piece of work in the project.
 
 ## What the first slice actually proved
 
@@ -229,6 +242,45 @@ build, in exchange for nothing. ADR-0001 says each app uses the best library its
 platform has; this is that principle producing an asymmetric answer, not a
 compromise of it.
 
+## Consequences
+
+**Positive**
+
+- Every format `publication-formats` asks for, except CB7, has a chosen library
+  on both platforms, with the RAR and TAR licences verified file by file.
+- libarchive costs 235 KB per Android ABI and 202 KB on iOS once linked and
+  stripped, rather than the 7.24 MB static archive, and the trimming is the
+  linker's rather than a hand-maintained file list.
+- Both SMB picks support SMB 3 encryption, so `network-share` can state the
+  encryption status as written, with no softening.
+
+**Accepted costs**
+
+- iOS accepts LGPL-2.1 through AMSMB2, which **must** be linked dynamically as
+  an embedded framework. `THIRD_PARTY_NOTICES.md` carries the licence text, and
+  the build needs a check rather than a comment — a silent static link is a
+  licence violation.
+- An FFI boundary this ADR first rejected is accepted for CBR and CBT only, and
+  brings six ABIs of build engineering with it. Each target needs its own
+  generated libarchive `config.h`; iOS compiles the sources in an SPM target
+  instead of using libarchive's CMake.
+- CB7 is unsupported. It is dropped on product scope, so adding it later costs a
+  format registration and a fixture, not an integration.
+- A truncated archive fails cleanly as `unreadable`. The partial recovery
+  `publication-formats` asks for is not implemented, and both suites pin the
+  current behaviour so the change is visible when it lands.
+- Android's PDF path has no text layer, because the system `PdfRenderer` renders
+  images only.
+- The two decode suites are asymmetric in kind: a unit test on iOS, an
+  instrumented emulator test on Android.
+
+**Follow-up**
+
+- The ZIP rows here are superseded by
+  [ADR-0008](0008-ranged-reads-and-own-zip-reader.md).
+- This ADR stays *proposed* until every table row is verified rather than
+  decided.
+
 ## What still blocks acceptance
 
 Every library is chosen. Nothing here is waiting on a decision any more — it is
@@ -263,6 +315,19 @@ than decided.
       results.
 
 The corpus used by all of these lives in `packages/test-fixtures`.
+
+## Links
+
+- Specs: [`publication-formats`](../openspec/specs/publication-formats/spec.md),
+  [`network-share`](../openspec/specs/network-share/spec.md).
+- Change in flight:
+  [`format-scope-and-libraries`](../openspec/changes/format-scope-and-libraries/proposal.md)
+  carries the fixture and licence-recording phases named above.
+- Related decisions: [ADR-0001](0001-independent-native-cores.md) is why the
+  picks are per platform. [ADR-0008](0008-ranged-reads-and-own-zip-reader.md)
+  supersedes the ZIP rows.
+- Licences: [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).
+- Fixtures: `packages/test-fixtures`.
 
 **This ADR is not accepted until every row above is checked.** The library
 choices are settled; what is left is proving them. The RAR licence question,

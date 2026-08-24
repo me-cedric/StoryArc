@@ -1,13 +1,18 @@
+---
+status: accepted
+date: 2026-08-24
+deciders: Cédric Meyer
+supersedes: the ZIP rows of 0005-format-and-rendering-libraries.md
+---
+
 # ADR-0008 — Ranged reads over a random-access source, with our own ZIP reader
 
-- **Status:** Accepted
-- **Date:** 2026-08-24
-- **Deciders:** Cédric Meyer
-- **Supersedes:** the ZIP rows of [ADR-0005](0005-format-and-rendering-libraries.md)
+Supersedes the ZIP rows of
+[ADR-0005](0005-format-and-rendering-libraries.md).
 
-## Context
+## Context and problem statement
 
-[`network-share`](../../openspec/specs/network-share/spec.md) requires the first
+[`network-share`](../openspec/specs/network-share/spec.md) requires the first
 page of a 400 MB archive on an SMB share to render *without transferring
 400 MB*. When the ZIP layer was first built, both platforms used a library that
 wants a local file — `ZIPFoundation` on iOS, `java.util.zip.ZipFile` on Android —
@@ -31,7 +36,17 @@ SMB2's `READ` takes an offset and a length as a first-class operation. HTTP has
 `Range`. Every source type StoryArc targets supports this natively — the missing
 piece was never the transport.
 
-## Decision
+## Considered options
+
+| Option | Why not |
+| --- | --- |
+| **Library for local, our reader for remote** | Two behaviours, one tested. The divergence shape that natural sort already demonstrated. |
+| **Download the whole file first** | Simple and reliable, and it fails the `network-share` requirement outright — minutes of waiting before page one on a slow link. |
+| **Patch ranged reads into ZIPFoundation** | Upstream work on someone else's schedule, and it fixes only one of the two platforms. |
+| **A shared C library via FFI** (libzip, minizip) | Two FFI boundaries to buy a container parser we can write in 350 lines, and it re-opens the question [ADR-0001](0001-independent-native-cores.md) closed. |
+| **Our own ZIP reader over a `RandomAccessSource`** | **Chosen.** One behaviour everywhere, ~350 lines per platform, and the ranged reads the requirement needs. |
+
+## Decision Outcome
 
 ### A `RandomAccessSource` abstraction
 
@@ -119,15 +134,6 @@ For solid RAR and 7-Zip, *download first* is the honest answer, and the app must
 say so rather than stream badly. That behaviour is specified rather than left to
 be discovered on someone's NAS.
 
-## Alternatives considered
-
-| Option | Why not |
-| --- | --- |
-| **Library for local, our reader for remote** | Two behaviours, one tested. The divergence shape that natural sort already demonstrated. |
-| **Download the whole file first** | Simple and reliable, and it fails the `network-share` requirement outright — minutes of waiting before page one on a slow link. |
-| **Patch ranged reads into ZIPFoundation** | Upstream work on someone else's schedule, and it fixes only one of the two platforms. |
-| **A shared C library via FFI** (libzip, minizip) | Two FFI boundaries to buy a container parser we can write in 350 lines, and it re-opens the question [ADR-0001](0001-independent-native-cores.md) closed. |
-
 ## Consequences
 
 **Gained**
@@ -154,3 +160,16 @@ be discovered on someone's NAS.
   library, which would make this code deletable.
 - The corpus catches a container bug our reader gets wrong that a library would
   have got right — which would be evidence the trade was misjudged.
+
+## Links
+
+- Specs: [`network-share`](../openspec/specs/network-share/spec.md),
+  [`publication-formats`](../openspec/specs/publication-formats/spec.md).
+- Related decisions: supersedes the ZIP rows of
+  [ADR-0005](0005-format-and-rendering-libraries.md); relies on
+  [ADR-0001](0001-independent-native-cores.md) for writing the reader twice
+  rather than sharing one through FFI; provides the ranged reads
+  [ADR-0006](0006-progress-storage-and-sync.md) hashes with.
+- Security: [SECURITY.md](../../SECURITY.md) — archive parsing is the largest
+  attack surface in the app.
+- Fixtures: `packages/test-fixtures` carries the Zip64 and data-descriptor cases.

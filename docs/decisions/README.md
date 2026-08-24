@@ -1,4 +1,10 @@
+---
+status: accepted
+---
+
 # Architecture Decision Records
+
+## Context and problem statement
 
 Why StoryArc is built the way it is. Read the relevant one before proposing a
 change that contradicts it — and if the reasoning no longer holds, write a new
@@ -14,6 +20,18 @@ ADR that supersedes it rather than quietly doing something else.
 | [0006](0006-progress-storage-and-sync.md) | Local-first progress with content-addressed identity | Accepted |
 | [0007](0007-design-token-pipeline.md) | One OKLCH token source, generated into Swift and Kotlin | Accepted |
 | [0008](0008-ranged-reads-and-own-zip-reader.md) | Ranged reads over a random-access source, with our own ZIP reader | Accepted |
+
+## Considered options
+
+Not recorded: this file is the index of the folder, so no alternative to the
+conventions below was ever written down. Needed if the index is ever promoted to
+a decision of its own.
+
+## Decision Outcome
+
+Not recorded: the conventions this folder follows are stated in the sections
+below — reading order, supersede in part, confidence labels, and how to write a
+new one. Needed if the index is ever promoted to a decision of its own.
 
 ## Reading order
 
@@ -37,6 +55,11 @@ checking it first.
 
 ## Writing a new one
 
-Number sequentially. Cover context, the decision, alternatives with *why not*,
-and consequences — including the costs you are accepting, not only the benefits.
-An ADR that lists no downside is not an ADR, it is an advert.
+Copy [`000-template.md`](000-template.md) and number sequentially. Keep its YAML
+frontmatter: `status` must be one of *proposed, accepted, rejected, deprecated,
+superseded*, because the Decisions page reads that word and shows it as a badge.
+Any qualifier — "planning only", "needs a spike" — goes in the body.
+
+Cover context, the decision, alternatives with *why not*, and consequences —
+including the costs you are accepting, not only the benefits. An ADR that lists
+no downside is not an ADR, it is an advert.
