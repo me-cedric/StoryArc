@@ -228,6 +228,26 @@
       "actualContainer": "7z",
       "expectedRefusal": "7z archives are not supported",
       "note": "Detection fires on the 7z signature before any entry is read, so this fixture carries a valid empty 7z header and no pages."
+    },
+    {
+      "file": "comics/rar5-solid.cbr",
+      "pins": "a solid RAR5 parses completely, unlike a solid RAR4",
+      "expectedPageCount": 0,
+      "expectedPageOrder": [],
+      "actualContainer": "rar5",
+      "isSolid": true,
+      "isStreamable": false,
+      "isVendored": true,
+      "expectedEntryNames": [
+        "test.bin",
+        "test1.bin",
+        "test2.bin",
+        "test3.bin",
+        "test4.bin",
+        "test5.bin",
+        "test6.bin"
+      ],
+      "note": "Vendored from libarchive 3.8.1's test suite, BSD-2-Clause; see generate.py for why it is not generated. Its entries are .bin, not images, so the page count is zero by design: it pins solid RAR5 parsing and the solid flag, not a solid comic opening."
     }
   ],
   "ebooks": [

@@ -624,6 +624,45 @@ fixtures.append(
     }
 )
 
+# ── 15b. The solid RAR5 fixture, vendored rather than generated ──────────────
+# The one fixture in the corpus this script does not write. Solid means nothing
+# without compression, and a RAR *compressor* is proprietary, so an honest solid
+# RAR5 cannot be generated here — see the ponytail note on the RAR writers.
+#
+# Provenance: `test_read_format_rar5_solid.rar` from libarchive 3.8.1's own test
+# suite (`libarchive/test/test_read_format_rar5_solid.rar.uu`), BSD-2-Clause,
+# 1050 bytes, committed verbatim as `rar5-solid.cbr`. Better provenance than a
+# hand-made file: known origin, known licence, and it is the exact archive
+# libarchive's own suite reads.
+#
+# Its entries are `.bin` files rather than images, so it pins solid **parsing**
+# and the solid flag — not "a solid comic opens". That distinction matters,
+# because RAR4 and RAR5 differ here: libarchive cannot read a solid RAR4 at all,
+# and reads a solid RAR5 completely.
+_solid_rar5 = COMICS / "rar5-solid.cbr"
+if ARGS.check and not _solid_rar5.is_file():
+    raise SystemExit(
+        "comics/rar5-solid.cbr is missing. It is vendored, not generated — "
+        "restore it from git rather than expecting this script to write it."
+    )
+fixtures.append(
+    {
+        "file": "comics/rar5-solid.cbr",
+        "pins": "a solid RAR5 parses completely, unlike a solid RAR4",
+        "expectedPageCount": 0,
+        "expectedPageOrder": [],
+        "actualContainer": "rar5",
+        "isSolid": True,
+        "isStreamable": False,
+        "isVendored": True,
+        "expectedEntryNames": [
+            "test.bin", "test1.bin", "test2.bin", "test3.bin",
+            "test4.bin", "test5.bin", "test6.bin",
+        ],
+        "note": "Vendored from libarchive 3.8.1's test suite, BSD-2-Clause; see generate.py for why it is not generated. Its entries are .bin, not images, so the page count is zero by design: it pins solid RAR5 parsing and the solid flag, not a solid comic opening.",
+    }
+)
+
 # ── 16. PDF ──────────────────────────────────────────────────────────────────
 # PDF is its own container: no archive, no entries, a cross-reference table at
 # the end. Both platforms render it with a system framework — PDFKit on iOS,
@@ -809,7 +848,11 @@ if ARGS.check:
     print(f"Fixture corpus is current: {len(fixtures)} archives.")
 else:
     manifest_path.write_text(rendered)
-    total = sum((COMICS / pathlib.Path(f["file"]).name).stat().st_size for f in fixtures)
+    total = sum(
+        (COMICS / pathlib.Path(f["file"]).name).stat().st_size
+        for f in fixtures
+        if (COMICS / pathlib.Path(f["file"]).name).is_file()
+    )
     print(f"Wrote {len(fixtures)} archives, {total} bytes total, plus manifest.json")
     for f in fixtures:
         size = (COMICS / pathlib.Path(f["file"]).name).stat().st_size

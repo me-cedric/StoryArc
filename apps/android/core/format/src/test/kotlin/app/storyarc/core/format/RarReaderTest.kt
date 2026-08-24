@@ -59,6 +59,9 @@ class RarReaderTest {
             val reader = reader(name)
             assertFalse(name, reader.isSolid)
             assertFalse(name, reader.isEncrypted)
+            assertTrue(name, reader.isReadableWhenLocal)
+            val archive = RarComicArchive.open(FileSource(FixtureCorpus.file("comics/$name")))
+            assertTrue(name, archive.isStreamable)
         }
     }
 
@@ -79,11 +82,40 @@ class RarReaderTest {
     }
 
     @Test
-    fun `a solid archive is refused by name rather than opened`() = runTest {
+    fun `a solid rar4 is refused by name rather than opened`() = runTest {
         val failure = runCatching {
             ComicArchiveOpener.open(FixtureCorpus.file("comics/rar4-solid.cbr"))
         }.exceptionOrNull()
         assertTrue("expected SolidArchive, got $failure", failure is ComicArchiveException.SolidArchive)
+        assertFalse(reader("rar4-solid.cbr").isReadableWhenLocal)
+    }
+
+    @Test
+    fun `a solid rar5 is readable once local, and only then not streamable`() = runTest {
+        // Measured, not assumed. libarchive reads a solid RAR5 completely and
+        // refuses a solid RAR4 outright, so the two generations get different
+        // answers even though the flag is the same flag.
+        val reader = reader("rar5-solid.cbr")
+        assertEquals(RarGeneration.RAR5, reader.generation)
+        assertTrue(reader.isSolid)
+        assertTrue(reader.isReadableWhenLocal)
+
+        val fixture = FixtureCorpus.comic("rar5-solid.cbr")
+        assertEquals(true, fixture.isSolid)
+        assertEquals(false, fixture.isStreamable)
+        assertEquals(fixture.expectedEntryNames, reader.entries.map { it.path })
+    }
+
+    @Test
+    fun `the vendored solid rar5 fixture holds no pages, and says so`() = runTest {
+        // Its entries are .bin, not images. The fixture pins solid *parsing*, so
+        // the comic layer legitimately sees nothing — and must not pretend
+        // otherwise by refusing it as damaged.
+        val fixture = FixtureCorpus.comic("rar5-solid.cbr")
+        assertEquals(0, fixture.expectedPageCount)
+        val archive = RarComicArchive.open(FileSource(FixtureCorpus.file("comics/rar5-solid.cbr")))
+        assertTrue(archive.pages.isEmpty())
+        assertFalse(archive.isStreamable)
     }
 
     @Test

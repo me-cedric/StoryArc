@@ -72,10 +72,24 @@ class RarReader private constructor(
     val isEncrypted: Boolean,
 ) {
     /**
-     * True when any entry cannot be reached without decompressing the ones
-     * before it — the question `Streaming capability per format` asks.
+     * True when any entry cannot be reached without decompressing the ones before
+     * it — the question `Streaming capability per format` asks. A solid archive is
+     * never streamable, on either generation.
      */
     val isSolid: Boolean get() = isSolidArchive || entries.any { it.isSolid }
+
+    /**
+     * Whether the archive can be read at all once it is local.
+     *
+     * This is where the two generations part company, measured rather than
+     * assumed. libarchive reads a solid RAR5 completely — its own test suite's
+     * `test_read_format_rar5_solid.rar` yields all seven entries. It cannot read a
+     * solid RAR4 at all: `read_header()` returns `ARCHIVE_FATAL` on any file
+     * header carrying `FHD_SOLID`, with no compression-method check and no
+     * fallback. So a solid RAR4 is unsupported and downloading it changes nothing,
+     * while a solid RAR5 is merely download-only.
+     */
+    val isReadableWhenLocal: Boolean get() = !(isSolid && generation == RarGeneration.RAR4)
 
     /** A read position, so [vint] can advance it the way an `inout` would. */
     class Cursor(var value: Int)

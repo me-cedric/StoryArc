@@ -43,9 +43,12 @@ sealed class ComicArchiveException(message: String) : Exception(message) {
     class Unreadable : ComicArchiveException("archive is unreadable")
 
     /**
-     * A solid archive. Named separately from [UnsupportedContainer] because the
-     * container *is* supported and this particular file still cannot be read —
-     * see the solid-RAR4 finding in the format change's task list.
+     * A solid archive that cannot be read at all. Named separately from
+     * [UnsupportedContainer] because the container *is* supported and this
+     * particular file still cannot be read.
+     *
+     * Solid RAR4 only. libarchive reads a solid RAR5 completely; it refuses a
+     * solid RAR4 outright. See the finding in the format change's task list.
      */
     class SolidArchive : ComicArchiveException("archive uses solid compression")
 }
@@ -215,6 +218,15 @@ class RarComicArchive private constructor(
 
     val generation: RarGeneration get() = reader.generation
 
+    /**
+     * Whether pages can be read out of order from a remote source.
+     *
+     * False for a solid archive, which has to be decompressed from the start.
+     * `Streaming capability per format` requires flagging that before the user
+     * taps a remote publication, rather than discovering it mid-read.
+     */
+    val isStreamable: Boolean get() = !reader.isSolid
+
     companion object {
         suspend fun open(source: RandomAccessSource): RarComicArchive {
             val reader = try {
@@ -226,10 +238,12 @@ class RarComicArchive private constructor(
             }
 
             if (reader.isEncrypted) throw ComicArchiveException.PasswordProtected()
-            // Checked before the page list is built: a solid archive's first
+            // Checked before the page list is built. For a solid RAR4 the first
             // entry reads fine and everything after it does not, so surfacing a
-            // one-page comic here would be a lie.
-            if (reader.isSolid) throw ComicArchiveException.SolidArchive()
+            // one-page comic here would be a lie. A solid RAR5 is readable once
+            // local, so it passes — `isSolid` is what marks it non-streamable,
+            // separately.
+            if (!reader.isReadableWhenLocal) throw ComicArchiveException.SolidArchive()
             // No entries at all means the headers did not parse — a truncated or
             // damaged file, not an archive that happens to hold no images. The
             // ZIP path draws the same line: `no-pages.cbz` has entries and zero

@@ -51,6 +51,7 @@ object FixtureCorpus {
         val isSolid: Boolean?,
         val isStreamable: Boolean?,
         val expectedRefusal: String?,
+        val expectedEntryNames: List<String>?,
     )
 
     val comics: List<Fixture> by lazy {
@@ -80,6 +81,7 @@ object FixtureCorpus {
                 isSolid = bool("isSolid"),
                 isStreamable = bool("isStreamable"),
                 expectedRefusal = str("expectedRefusal"),
+                expectedEntryNames = strings("expectedEntryNames"),
             )
         }
     }

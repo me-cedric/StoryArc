@@ -27,9 +27,12 @@ public enum ComicArchiveError: Error, Equatable {
     case passwordProtected
     /// Not a single entry could be read, damaged beyond partial recovery.
     case unreadable
-    /// A solid archive. Named separately from `unsupportedContainer` because the
-    /// container *is* supported and this particular file still cannot be read —
-    /// see the solid-RAR4 finding in the format change's task list.
+    /// A solid archive that cannot be read at all. Named separately from
+    /// `unsupportedContainer` because the container *is* supported and this
+    /// particular file still cannot be read.
+    ///
+    /// Solid RAR4 only. libarchive reads a solid RAR5 completely; it refuses a
+    /// solid RAR4 outright. See the finding in the format change's task list.
     case solidArchive
 }
 
@@ -177,6 +180,12 @@ public struct RarComicArchive: ComicArchiveReading {
     public let pages: [PageEntry]
     public let skippedPageCount: Int
     public let generation: RarGeneration
+    /// Whether pages can be read out of order from a remote source.
+    ///
+    /// False for a solid archive, which has to be decompressed from the start.
+    /// `Streaming capability per format` requires flagging that before the user
+    /// taps a remote publication, rather than discovering it mid-read.
+    public let isStreamable: Bool
 
     private let reader: RarReader
     private let pathToEntry: [String: RarEntry]
@@ -192,10 +201,11 @@ public struct RarComicArchive: ComicArchiveReading {
         self.generation = reader.generation
 
         if reader.isEncrypted { throw ComicArchiveError.passwordProtected }
-        // Checked before the page list is built: a solid archive's first entry
+        // Checked before the page list is built. For a solid RAR4 the first entry
         // reads fine and everything after it does not, so surfacing a one-page
-        // comic here would be a lie.
-        if reader.isSolid { throw ComicArchiveError.solidArchive }
+        // comic here would be a lie. A solid RAR5 is readable once local, so it
+        // passes — `isSolid` is what marks it non-streamable, separately.
+        if !reader.isReadableWhenLocal { throw ComicArchiveError.solidArchive }
 
         // No entries at all means the headers did not parse — a truncated or
         // damaged file, not an archive that happens to hold no images. The ZIP
@@ -226,6 +236,7 @@ public struct RarComicArchive: ComicArchiveReading {
         self.pages = PageOrdering.sorted(candidates)
         self.skippedPageCount = skipped
         self.pathToEntry = index
+        self.isStreamable = !reader.isSolid
     }
 
     public func data(for page: PageEntry) async throws -> Data {

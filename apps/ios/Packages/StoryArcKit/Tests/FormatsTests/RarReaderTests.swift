@@ -55,6 +55,11 @@ struct RarReaderTests {
         let reader = try await reader(name)
         #expect(!reader.isSolid)
         #expect(!reader.isEncrypted)
+        #expect(reader.isReadableWhenLocal)
+        let archive = try await RarComicArchive(
+            source: try FileSource(url: FixtureCorpus.url("comics/\(name)"))
+        )
+        #expect(archive.isStreamable)
     }
 
     // MARK: - Solid
@@ -73,12 +78,43 @@ struct RarReaderTests {
         #expect(reader.entries.dropFirst().contains { $0.isSolid })
     }
 
-    @Test("A solid archive is refused by name rather than opened")
-    func solidIsRefused() async throws {
+    @Test("A solid RAR4 is refused by name rather than opened")
+    func solidRar4IsRefused() async throws {
         let url = FixtureCorpus.url("comics/rar4-solid.cbr")
         await #expect(throws: ComicArchiveError.solidArchive) {
             try await ComicArchiveOpener.open(fileAt: url)
         }
+        #expect(try await reader("rar4-solid.cbr").isReadableWhenLocal == false)
+    }
+
+    @Test("A solid RAR5 is readable once local, and only then not streamable")
+    func solidRar5IsReadableButNotStreamable() async throws {
+        // Measured, not assumed. libarchive reads a solid RAR5 completely and
+        // refuses a solid RAR4 outright, so the two generations get different
+        // answers even though the flag is the same flag.
+        let reader = try await reader("rar5-solid.cbr")
+        #expect(reader.generation == .rar5)
+        #expect(reader.isSolid)
+        #expect(reader.isReadableWhenLocal)
+
+        let fixture = FixtureCorpus.comic("rar5-solid.cbr")
+        #expect(fixture.isSolid == true)
+        #expect(fixture.isStreamable == false)
+        #expect(reader.entries.map(\.path) == fixture.expectedEntryNames)
+    }
+
+    @Test("The vendored solid RAR5 fixture holds no pages, and says so")
+    func solidRar5HasNoPages() async throws {
+        // Its entries are .bin, not images. The fixture pins solid *parsing*, so
+        // the comic layer legitimately sees nothing — and must not pretend
+        // otherwise by refusing it as damaged.
+        let fixture = FixtureCorpus.comic("rar5-solid.cbr")
+        #expect(fixture.expectedPageCount == 0)
+        let archive = try await RarComicArchive(
+            source: try FileSource(url: FixtureCorpus.url("comics/rar5-solid.cbr"))
+        )
+        #expect(archive.pages.isEmpty)
+        #expect(archive.isStreamable == false)
     }
 
     @Test("A compressed entry names the decoder it needs rather than failing vaguely")

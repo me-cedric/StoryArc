@@ -53,13 +53,16 @@ rest of this change does not happen.
       any entry is read.
 - [x] **1.4** Record every expectation in `manifest.json`. **Done** — 19 comic
       archives, still no hashes.
-- [ ] **1.5** A **solid RAR5** fixture, which is the one item that still needs a
-      real compressor. Solid means nothing without compression, and libarchive
-      only implements solid RAR5 through the LZ window that store mode never
-      allocates, so the generator cannot produce an honest one. Create it by hand
-      with `rar a -s`, from the same synthetic pages, and record its provenance.
-      Until then Phase 5 rests on `rar4-solid.cbr`, which pins a stronger
-      outcome — see the finding below.
+- [x] **1.5** A **solid RAR5** fixture. **Done, vendored rather than made by
+      hand.** Solid means nothing without compression and a RAR compressor is
+      proprietary, so `generate.py` cannot write an honest one. Instead
+      `comics/rar5-solid.cbr` is `test_read_format_rar5_solid.rar` from
+      libarchive 3.8.1's own test suite, BSD-2-Clause, 1050 bytes, committed
+      verbatim with its provenance in `generate.py` and the corpus README. Better
+      provenance than a hand-made file: known origin, known licence, and the exact
+      archive libarchive's suite reads. Its entries are `.bin` rather than images,
+      so it pins solid *parsing* and the solid flag, not a solid comic opening —
+      recorded in the manifest, and the reason its expected page count is zero.
 
 ## Phase 2 — Format layer
 
@@ -178,32 +181,47 @@ and `image-pages.pdf` (the scanned-comic case), both written by `generate.py`.
       left is carrying it into the library model and the UI.
 - [ ] **5.2** The download-instead-of-stream flow, with the size stated.
 - [ ] **5.3** A downloaded solid archive opens with no notice at all. **True for
-      RAR5, false for RAR4** — see the finding below. A solid RAR4 must be
-      refused by name at index time, whether it is remote or already downloaded.
+      RAR5, false for RAR4** — see the finding below, and note that the finding
+      was corrected once a real solid RAR5 could be tested. The format layer is
+      ready: `isReadableWhenLocal` refuses solid RAR4 only, and `isStreamable`
+      flags both. What is left is the download flow itself.
 
-## Finding — libarchive cannot read a solid RAR4 at all
+## Finding — solid RAR4 is unreadable, solid RAR5 is fine
 
-Found while building the 1.1 fixtures, and it changes what Phase 5 can promise.
+Found while building the 1.1 fixtures, then **corrected** once a real solid RAR5
+could be tested. The first version of this finding said solid archives were
+unreadable in general. That was half right, and the half that was wrong would
+have cost users every solid RAR5 comic they own.
 
-`read_header()` in `archive_read_support_format_rar.c` (libarchive 3.8.1) returns
-`ARCHIVE_FATAL` on any file header carrying `FHD_SOLID`. There is no
-compression-method check and no fallback: the RAR4 reader does not implement
-solid archives. Downloading the file changes nothing.
+What is measured, against libarchive 3.8.1 compiled from source:
 
-Two consequences, both pinned by `rar4-solid.cbr`:
+- **Solid RAR4: unreadable.** `read_header()` in
+  `archive_read_support_format_rar.c` returns `ARCHIVE_FATAL` on any file header
+  carrying `FHD_SOLID`, with no compression-method check and no fallback. The
+  RAR4 reader does not implement solid archives, so downloading the file changes
+  nothing.
+- **Solid RAR5: fully readable.** `test_read_format_rar5_solid.rar` from
+  libarchive's own suite yields all seven entries with correct sizes and data.
+  `rar5.c` implements solid through its LZ window.
 
-1. **Solid RAR4 is unsupported, not un-streamable.** The `Streaming capability
-   per format` requirement needs a third state — supported, download-only, and
-   refused — rather than a streamable boolean. Task 2.3 and the delta spec both
-   assume two.
+The earlier confusion came from a fixture, not from libarchive: a *store-mode*
+solid RAR5 fails as "no window buffer initialized yet", because store mode never
+allocates the window. No real compressor emits solid-without-compression, so that
+combination only ever existed in the generator.
+
+Three consequences:
+
+1. **`Streaming capability per format` needs three states, not a boolean** —
+   streamable, download-only, and refused. Solid RAR5 is download-only; solid
+   RAR4 is refused. The delta spec still assumes two.
 2. **Detection cannot be delegated.** The first entry of a solid archive is not
    itself solid, so a reader that hands the file straight to libarchive lists
-   page 1 and *then* fails with a generic fatal error. The `FHD_SOLID` flag has
-   to be read from the headers before any entry is surfaced, or the user sees a
+   page 1 and *then* fails with a generic fatal error. The `FHD_SOLID` flag has to
+   be read from the headers before any entry is surfaced, or the user sees a
    one-page comic that breaks on the second turn.
-
-Solid RAR5 is unaffected: `rar5.c` implements it through its LZ window. That is
-also why there is no solid RAR5 fixture yet — see 1.5.
+3. **The refusal is generation-specific.** `RarReader.isReadableWhenLocal` is
+   false only for solid RAR4; `isSolid` alone drives the non-streamable flag. Both
+   platforms assert both cases against `rar4-solid.cbr` and `rar5-solid.cbr`.
 
 ## Phase 6 — Validation
 

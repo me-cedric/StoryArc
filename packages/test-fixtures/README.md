@@ -14,12 +14,12 @@ expectation drift loudly.
 packages/test-fixtures/
 ├── scripts/generate.py    the generator — fixtures are generated, not hand-authored
 ├── manifest.json          every fixture and what a correct parse yields
-└── comics/                19 archives and 2 PDFs, 35 kB total
+└── comics/                20 archives and 2 PDFs, 36 kB total
 ```
 
 ## Status
 
-**19 comic archives, two PDFs and one EPUB**, covering ZIP, RAR4, RAR5, TAR, PDF
+**20 comic archives, two PDFs and one EPUB**, covering ZIP, RAR4, RAR5, TAR, PDF
 and the 7-Zip refusal.
 
 ### ZIP
@@ -47,6 +47,7 @@ and the 7-Zip refusal.
 | `rar4-store.cbr` | a RAR4 container opens and keeps archive order |
 | `rar5-store.cbr` | a RAR5 container opens — RAR4 and RAR5 are different formats behind one extension |
 | `rar4-solid.cbr` | a solid RAR4 is refused **by name**; libarchive cannot read one at all |
+| `rar5-solid.cbr` | a solid RAR5 parses completely — vendored, see below |
 | `tar-store.cbt` | a TAR container opens; CBT is a format, not a mislabelled CBZ |
 | `tar-nested-chapters.cbt` | chapter directories inside a TAR order by full path |
 | `refused.cb7` | a 7z container is refused by name, not by a generic parse failure |
@@ -90,11 +91,18 @@ pages as `FlateDecode` RGB samples — PDF has no PNG filter — and its page bo
 an exact number rather than a tolerance. Both platforms sample the centre pixel of
 a rendered page and assert the same `(37, 91, 151)`.
 
-**There is no solid RAR5 fixture.** libarchive does implement solid RAR5, but
-only through the LZ window that store mode never allocates, so a store-mode
-solid RAR5 fails as an artefact of the writer rather than a real limitation —
-and no real compressor emits solid-without-compression anyway. That fixture
-needs a real compressor and stays a hand-made item.
+**`rar5-solid.cbr` is the one vendored fixture, and it proves the opposite.**
+libarchive reads a solid RAR5 completely — so the blanket claim that solid means
+unreadable was wrong, and only RAR4 is affected. Solid means nothing without
+compression and a RAR compressor is proprietary, so `generate.py` cannot write an
+honest one; this file is `test_read_format_rar5_solid.rar` from libarchive
+3.8.1's own test suite, BSD-2-Clause, 1050 bytes, committed verbatim. Known
+origin, known licence, and the exact archive libarchive's suite reads.
+
+Its entries are `.bin` rather than images, so its expected page count is **zero
+by design**: it pins solid RAR5 *parsing* and the solid flag, not a solid comic
+opening. `generate.py` registers it in the manifest and `--check` verifies it
+exists, but nothing regenerates it.
 
 ## Generated, then committed
 
