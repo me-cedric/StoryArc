@@ -26,6 +26,7 @@ android {
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
+    implementation(project(":core:persistence"))
     implementation(project(":core:format"))
 
     implementation(libs.androidx.lifecycle.viewmodel.compose)

@@ -63,6 +63,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":feature:library"))
     implementation(project(":feature:reader"))
+    implementation(project(":core:persistence"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

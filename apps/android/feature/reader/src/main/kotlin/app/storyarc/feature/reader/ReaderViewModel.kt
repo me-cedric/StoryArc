@@ -11,6 +11,9 @@ import app.storyarc.core.format.PageDecoder
 import app.storyarc.core.format.PageEntry
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingDirection
+import app.storyarc.core.model.ReadingPosition
+import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.persistence.ProgressStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +34,7 @@ import java.io.File
 class ReaderViewModel(
     val publication: Publication,
     private val file: File,
+    private val progress: ProgressStore? = null,
 ) : ViewModel() {
 
     private val _pages = MutableStateFlow<List<PageEntry>>(emptyList())
@@ -84,6 +88,13 @@ class ReaderViewModel(
                 val index = opened.pages.indexOfFirst { it.path == path }
                 if (index >= 0) initialIndex = index
             }
+            // A recorded position wins over the cover. `reading-progress` is about
+            // picking up where you left off, and a book you are halfway through
+            // should not reopen at its cover.
+            val recorded = progress?.progress(publication.identity)?.position
+            if (recorded is ReadingPosition.Page && recorded.index in opened.pages.indices) {
+                initialIndex = recorded.index
+            }
         } catch (cause: Exception) {
             _failure.value = cause.message ?: "could not be opened"
         }
@@ -94,8 +105,33 @@ class ReaderViewModel(
     /** Whether a page failed to decode, as opposed to not being ready yet. */
     fun isUnavailable(index: Int): Boolean = index in attempted && decoded[index] == null
 
+    /**
+     * Writes the position down.
+     *
+     * Every turn, not on leaving: ADR-0006 makes the local store authoritative, and
+     * a reader that only saves on a clean exit loses the evening when the app is
+     * killed in the background — which is the normal way a phone closes an app.
+     *
+     * The last page marks the publication finished. Finished is sticky, so turning
+     * back afterwards does not unmark it.
+     */
+    private suspend fun record(index: Int) {
+        val store = progress ?: return
+        val total = _pages.value.size
+        if (total == 0) return
+        store.save(
+            ReadingProgress(
+                identity = publication.identity,
+                position = ReadingPosition.Page(index, total),
+                isFinished = index == total - 1,
+                updatedAtEpochMillis = System.currentTimeMillis(),
+            ),
+        )
+    }
+
     /** Decodes the page at [index] and its neighbours, and drops the rest. */
     suspend fun warm(index: Int) {
+        record(index)
         val pages = _pages.value
         val wanted = ((index - window)..(index + window)).filter { it in pages.indices }.toSet()
         // Dropped before decoding, so peak memory is the window and not the window

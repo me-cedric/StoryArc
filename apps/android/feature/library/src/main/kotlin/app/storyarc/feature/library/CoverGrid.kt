@@ -2,6 +2,10 @@ package app.storyarc.feature.library
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -138,6 +142,7 @@ private fun CoverCell(
             // density.
             border = androidx.compose.foundation.BorderStroke(1.dp, palette.borderSubtle),
         ) {
+            val fraction = viewModel.readFraction(publication)
             val bitmap = cover
             if (bitmap != null) {
                 Image(
@@ -158,6 +163,34 @@ private fun CoverCell(
                         text = publication.format.displayName,
                         style = MaterialTheme.typography.labelLarge,
                         color = palette.textTertiary,
+                    )
+                }
+            }
+
+            // `library-browsing`: "its cover carries an unobtrusive progress
+            // indicator", and "a fully read publication is distinguishable at a
+            // glance without a label covering the artwork". A bar along the foot
+            // does both — it never crosses the artwork, and a full one reads as
+            // finished without a word on top of the cover.
+            if (fraction != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .wrapContentHeight(Alignment.Bottom),
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .background(Color.Black.copy(alpha = 0.35f)),
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                            .height(3.dp)
+                            .background(
+                                if (fraction >= 1f) palette.textSecondary else palette.accent,
+                            ),
                     )
                 }
             }

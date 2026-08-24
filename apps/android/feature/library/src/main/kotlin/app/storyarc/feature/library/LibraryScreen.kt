@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,6 +76,9 @@ fun LibraryScreen(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
+    // Reloaded whenever the screen is composed after the reader closes, which is
+    // what makes the bar under a cover reflect the page just reached.
+    LaunchedEffect(viewModel) { viewModel?.refreshProgress() }
     val publications by (viewModel?.publications ?: MutableStateFlow(emptyList()))
         .collectAsStateWithLifecycle()
     val scanState by (viewModel?.scanState ?: MutableStateFlow(LibraryScanState.Idle))

@@ -5,6 +5,9 @@ agp = "9.3.1"
 # AGP 9 compiles Kotlin itself, but the Compose compiler is still a separate
 # plugin and its version must track the Kotlin version AGP uses.
 kotlin = "2.4.10"
+# KSP's version tracks Kotlin's exactly; the suffix is its own build number.
+ksp = "2.3.9"
+room = "2.8.4"
 coreKtx = "1.19.0"
 lifecycle = "2.11.0"
 activityCompose = "1.13.0"
@@ -26,6 +29,9 @@ kotlinxSerialization = "1.11.0"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 
@@ -52,4 +58,5 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

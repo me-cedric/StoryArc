@@ -110,6 +110,18 @@ Both are per-platform choices under [ADR-0001](0001-independent-native-cores.md)
 and are not shared. The *schema semantics* — identity fields, conflict fields,
 sync watermark — are specified here so the two implementations agree.
 
+**Built, and the schema is what the ADR said it should be.** The three identity
+components are separate columns on both sides rather than one encoded blob,
+because the lookup rule above requires finding a record by *any* of them: a
+publication written against a path is found again by its digest once one is
+computed, and the components fill in as they become known rather than forking into
+two rows. That behaviour has a test on each platform, asserting the same thing.
+
+Two version notes for whoever refreshes the build. Room needs KSP, and KSP's
+release train briefly lagged Kotlin 2.4.10 — the combination that works here is
+**Room 2.8.4 with KSP 2.3.9**, which keeps Gradle's configuration cache intact.
+The earlier KSP versioning scheme (`<kotlin>-<ksp>`) no longer applies.
+
 ## Consequences
 
 - Progress works with no server, which is the common case for a folder of CBZs.

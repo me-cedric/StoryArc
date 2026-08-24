@@ -7,7 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import app.storyarc.core.designsystem.theme.AppearanceMode
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import app.storyarc.core.model.Publication
+import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.feature.library.LibraryScreen
 import app.storyarc.feature.library.LibraryViewModel
 import app.storyarc.feature.reader.ReaderScreen
@@ -26,6 +30,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        // One store for the whole app. ADR-0006 makes the local record
+        // authoritative, so the reader writing and the library reading have to be
+        // the same store — two would disagree about where the user is.
+        val progress = ProgressStore.open(applicationContext)
+
         setContent {
             // Appearance and dynamic-colour preferences move into a settings
             // store with the `settings-and-about` capability. Defaults here
@@ -40,15 +49,20 @@ class MainActivity : ComponentActivity() {
                 val selection = reading
 
                 if (selection == null) {
+                    val libraryViewModel = viewModel<LibraryViewModel>(
+                        factory = viewModelFactory {
+                            initializer { LibraryViewModel(application, progress) }
+                        },
+                    )
                     LibraryScreen(
-                        viewModel = viewModel<LibraryViewModel>(),
+                        viewModel = libraryViewModel,
                         onOpen = { publication, file -> reading = publication to file },
                     )
                 } else {
                     // Keyed on the publication so opening a different one builds a
                     // fresh model rather than showing the previous book's pages.
                     val readerViewModel = remember(selection.first.id) {
-                        ReaderViewModel(selection.first, selection.second)
+                        ReaderViewModel(selection.first, selection.second, progress)
                     }
                     BackHandler { reading = null }
                     ReaderScreen(viewModel = readerViewModel, onClose = { reading = null })

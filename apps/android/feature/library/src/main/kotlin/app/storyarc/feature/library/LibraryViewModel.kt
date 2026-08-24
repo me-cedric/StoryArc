@@ -8,6 +8,8 @@ import app.storyarc.core.format.CoverLoader
 import app.storyarc.core.format.LibraryScanner
 import app.storyarc.core.format.ScanEvent
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.persistence.ProgressStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,7 +40,10 @@ sealed interface LibraryScanState {
  *
  * iOS's `LibraryModel` is the same shape with `AsyncStream` in place of `Flow`.
  */
-class LibraryViewModel(application: Application) : AndroidViewModel(application) {
+class LibraryViewModel(
+    application: Application,
+    private val progressStore: ProgressStore? = null,
+) : AndroidViewModel(application) {
 
     private val _publications = MutableStateFlow<List<Publication>>(emptyList())
     val publications: StateFlow<List<Publication>> = _publications.asStateFlow()
@@ -47,6 +52,13 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     val scanState: StateFlow<LibraryScanState> = _scanState.asStateFlow()
 
     private val covers = mutableMapOf<String, Bitmap>()
+    /**
+     * How far through each publication the reader got, keyed by publication id.
+     *
+     * A state map, so a cover's bar appears when the value arrives. Compose does
+     * not observe a plain map — the reader learned that the hard way.
+     */
+    private val progress = androidx.compose.runtime.mutableStateMapOf<String, ReadingProgress>()
     private val locations = mutableMapOf<String, File>()
     private var scanJob: Job? = null
 
@@ -110,6 +122,36 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         _publications.update { it + publication }
         (_scanState.value as? LibraryScanState.Scanning)?.let {
             _scanState.value = LibraryScanState.Scanning(it.found + 1)
+        }
+    }
+
+    /**
+     * The fraction read, for a cover's progress indicator.
+     *
+     * `null` for a publication never opened — `library-browsing` wants an indicator
+     * on a *partially read* cover, and a bar at zero on every unread book would be
+     * noise rather than information.
+     */
+    fun readFraction(publication: Publication): Float? {
+        val record = progress[publication.id] ?: return null
+        if (record.isFinished) return 1f
+        val fraction = record.position.fraction.toFloat()
+        return if (fraction > 0f) fraction else null
+    }
+
+    /**
+     * Reloads recorded positions. Called when the library appears, so returning
+     * from the reader shows the page you reached.
+     */
+    fun refreshProgress() {
+        val store = progressStore ?: return
+        viewModelScope.launch {
+            val records = runCatching { store.recent(limit = 500) }.getOrDefault(emptyList())
+            progress.clear()
+            for (publication in _publications.value) {
+                records.firstOrNull { it.identity.matches(publication.identity) }
+                    ?.let { progress[publication.id] = it }
+            }
         }
     }
 
