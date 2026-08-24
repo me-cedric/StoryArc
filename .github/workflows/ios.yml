@@ -3,9 +3,9 @@ name: iOS
 on:
   push:
     branches: [main]
-    paths: ['apps/ios/**', 'packages/**', '.github/workflows/ios.yml', '.swiftlint.yml']
+    paths: ['apps/ios/**', 'packages/**', 'third_party/**', '.github/workflows/ios.yml', '.swiftlint.yml']
   pull_request:
-    paths: ['apps/ios/**', 'packages/**', '.github/workflows/ios.yml', '.swiftlint.yml']
+    paths: ['apps/ios/**', 'packages/**', 'third_party/**', '.github/workflows/ios.yml', '.swiftlint.yml']
 
 concurrency:
   group: ios-${{ github.ref }}

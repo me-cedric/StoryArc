@@ -5,6 +5,11 @@ plugins {
 android {
     namespace = "app.storyarc.core.format"
     compileSdk = 37
+    // Pinned because this module compiles vendored C. Letting AGP pick its
+    // default would mean the toolchain that built libarchive changes with the
+    // plugin version, silently, and a miscompile there is a corrupt page rather
+    // than a build error.
+    ndkVersion = "28.2.13676358"
     defaultConfig {
         minSdk = 31
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

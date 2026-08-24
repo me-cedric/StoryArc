@@ -3,9 +3,9 @@ name: Android
 on:
   push:
     branches: [main]
-    paths: ['apps/android/**', 'packages/**', '.github/workflows/android.yml']
+    paths: ['apps/android/**', 'packages/**', 'third_party/**', '.github/workflows/android.yml']
   pull_request:
-    paths: ['apps/android/**', 'packages/**', '.github/workflows/android.yml']
+    paths: ['apps/android/**', 'packages/**', 'third_party/**', '.github/workflows/android.yml']
 
 concurrency:
   group: android-${{ github.ref }}
@@ -52,8 +52,9 @@ jobs:
   instrumented:
     name: Instrumented tests
     # Only on main. Booting an emulator costs several minutes, and the
-    # instrumented suite exists for the handful of things that are framework
-    # stubs off-device — image decoding, chiefly. Pull requests stay fast.
+    # instrumented suite exists for what cannot run on a host JVM: image decoding
+    # and PDF rendering are framework stubs off-device, and the RAR decoder is a
+    # JNI library that does not exist there at all. Pull requests stay fast.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
