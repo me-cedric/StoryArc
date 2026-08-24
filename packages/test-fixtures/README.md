@@ -14,13 +14,13 @@ expectation drift loudly.
 packages/test-fixtures/
 ├── scripts/generate.py    the generator — fixtures are generated, not hand-authored
 ├── manifest.json          every fixture and what a correct parse yields
-└── comics/                19 archives, 32 kB total
+└── comics/                19 archives and 2 PDFs, 35 kB total
 ```
 
 ## Status
 
-**19 comic archives and one EPUB, covering ZIP, RAR4, RAR5, TAR and the 7-Zip
-refusal.** PDF fixtures land with the PDF work.
+**19 comic archives, two PDFs and one EPUB**, covering ZIP, RAR4, RAR5, TAR, PDF
+and the 7-Zip refusal.
 
 ### ZIP
 
@@ -69,6 +69,26 @@ compression-method check and no fallback — so a solid RAR4 is *unsupported*, a
 downloading it changes nothing. Because the first entry in a solid archive is
 itself not solid, a reader that delegates straight to libarchive lists page 1 and
 *then* dies with a generic error. Detection has to read the flag first.
+
+### PDF
+
+| Fixture | Pins |
+| --- | --- |
+| `text-pages.pdf` | a real text layer and an outline — the iOS-only capabilities |
+| `image-pages.pdf` | an image-only PDF reads as a comic on both platforms, text controls hidden |
+
+Written by `generate.py` rather than by a tool, for the same reasons as every
+other fixture. A minimal PDF is a handful of objects and a byte-offset table, so
+these are deterministic and under 2 kB each — where a real PDF writer would emit
+timestamps and producer strings that change on every run.
+
+`text-pages.pdf` exists to make "hidden, not disabled" testable: it genuinely has
+text, so iOS must offer selection, search and the outline over it, and Android
+must render it as images with those controls absent. `image-pages.pdf` embeds its
+pages as `FlateDecode` RGB samples — PDF has no PNG filter — and its page box is
+2:3, matching every other fixture page, so the cross-platform fit assertion has
+an exact number rather than a tolerance. Both platforms sample the centre pixel of
+a rendered page and assert the same `(37, 91, 151)`.
 
 **There is no solid RAR5 fixture.** libarchive does implement solid RAR5, but
 only through the LZ window that store mode never allocates, so a store-mode

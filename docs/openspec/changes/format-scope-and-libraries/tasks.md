@@ -128,13 +128,38 @@ here is RAR, which is the only format that genuinely needs a decoder.
 
 ## Phase 4 — PDF
 
-- [ ] **4.1** iOS: PDFKit, with text selection, in-publication search and outline.
-- [ ] **4.2** Android: system `PdfRenderer`, pages as images, page-on-demand
-      verified on a large document.
+Both platforms render PDF with a system framework, so this phase adds no
+dependency at all. Fixtures: `text-pages.pdf` (a real text layer and an outline)
+and `image-pages.pdf` (the scanned-comic case), both written by `generate.py`.
+
+- [x] **4.1** iOS: PDFKit, with text selection, in-publication search and
+      outline. **Done at the format layer.** `PdfDocumentReader` exposes
+      `hasTextLayer`, per-page `text`, a case-insensitive `search` returning page
+      indices, and the outline with resolved destinations. Text *selection* is a
+      reader-UI affordance over that text layer; the layer is here and tested,
+      the gesture is not, because no reader UI exists yet.
+- [x] **4.2** Android: system `PdfRenderer`, pages as images. **Done**, verified
+      on an emulator: 9 instrumented tests. Page-on-demand is structurally proven
+      — nothing rasterises when a document opens, and any single page renders
+      without touching the others — but **not** yet measured on a
+      several-hundred-megabyte document. That measurement needs a large fixture,
+      which the corpus deliberately does not carry; do it against a real file
+      before 1.0.
 - [ ] **4.3** Hide text-dependent controls on Android. Hidden, never disabled —
-      the spec forbids implying a capability that is absent.
-- [ ] **4.4** Assert the same page renders at the same aspect ratio and fit on
-      both platforms.
+      the spec forbids implying a capability that is absent. **Blocked on the
+      reader UI**, which does not exist yet. The format layer already enforces the
+      strongest version of this: Android's `PdfDocumentReader` has no text, search
+      or outline API and no `hasTextLayer`, so there is nothing for a control to
+      bind to. A property that always returned `false` would have invited a caller
+      to treat it as a real answer.
+- [x] **4.4** Assert the same page renders at the same aspect ratio and fit on
+      both platforms. **Done, exactly rather than within a tolerance.** Both
+      readers report page size in *points* rather than pixels, so both assert 612
+      x 792 and 200 x 300 from the same manifest; both bound the longest edge with
+      the same never-upscale rule and assert 100 x 150 at a 150-pixel bound; and
+      both sample the centre pixel of a rendered page and assert the same
+      `(37, 91, 151)`, which proves the raster happened rather than a blank
+      surface of the right size coming back.
 
 ## Phase 5 — Streaming honesty
 

@@ -42,7 +42,23 @@ enum FixtureCorpus {
         let expectedRefusal: String?
     }
 
-    private struct Manifest: Decodable { let comics: [Fixture] }
+    /// One entry from the manifest's `pdfs` list. PDF is not an archive, so its
+    /// expectations are geometry and text rather than entry order.
+    struct PdfFixture: Decodable {
+        let file: String
+        let pins: String
+        let expectedPageCount: Int
+        let expectedPageSizePoints: [Int]?
+        let hasTextLayer: Bool
+        let expectedPageText: [String]?
+        let expectedOutlineTitles: [String]?
+        let expectedAspect: [Int]?
+    }
+
+    private struct Manifest: Decodable {
+        let comics: [Fixture]
+        let pdfs: [PdfFixture]
+    }
 
     static let comics: [Fixture] = {
         do {
@@ -55,6 +71,19 @@ enum FixtureCorpus {
             fatalError("could not read the fixture manifest: \(error)")
         }
     }()
+
+    static let pdfs: [PdfFixture] = {
+        do {
+            let data = try Data(contentsOf: url("manifest.json"))
+            return try JSONDecoder().decode(Manifest.self, from: data).pdfs
+        } catch {
+            fatalError("could not read the fixture manifest: \(error)")
+        }
+    }()
+
+    static func pdf(_ name: String) -> PdfFixture? {
+        pdfs.first { $0.file == "comics/\(name)" }
+    }
 
     static func comic(_ name: String) -> Fixture {
         guard let match = comics.first(where: { $0.file == "comics/\(name)" }) else {

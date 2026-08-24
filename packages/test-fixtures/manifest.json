@@ -240,5 +240,43 @@
       "hasNavDocument": true,
       "hasCoverImage": true
     }
+  ],
+  "pdfs": [
+    {
+      "file": "comics/text-pages.pdf",
+      "pins": "a PDF with a real text layer and an outline \u2014 the iOS-only capabilities",
+      "expectedPageCount": 3,
+      "expectedPageSizePoints": [
+        612,
+        792
+      ],
+      "hasTextLayer": true,
+      "expectedPageText": [
+        "Chapter One",
+        "Chapter Two",
+        "Chapter Three"
+      ],
+      "expectedOutlineTitles": [
+        "Chapter One",
+        "Chapter Two",
+        "Chapter Three"
+      ],
+      "note": "iOS must offer selection, search and the outline. Android must hide those controls rather than disable them."
+    },
+    {
+      "file": "comics/image-pages.pdf",
+      "pins": "an image-only PDF reads as a comic on both platforms, with text controls hidden",
+      "expectedPageCount": 3,
+      "expectedPageSizePoints": [
+        200,
+        300
+      ],
+      "hasTextLayer": false,
+      "expectedAspect": [
+        2,
+        3
+      ],
+      "note": "No text layer at all, so neither platform may offer selection or search. Page box is 2:3, matching every other fixture page."
+    }
   ]
 }
