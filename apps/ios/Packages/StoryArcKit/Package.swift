@@ -61,6 +61,7 @@ let package = Package(
         .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),
         .testTarget(name: "FormatsTests", dependencies: ["Formats"]),
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
+        .testTarget(name: "ReaderFeatureTests", dependencies: ["ReaderFeature"]),
     ]
 )
 

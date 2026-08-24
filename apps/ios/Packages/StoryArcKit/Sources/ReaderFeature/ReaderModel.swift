@@ -31,6 +31,10 @@ public final class ReaderModel {
 
     private var decoded: [Int: CGImage] = [:]
     private var archive: (any ComicArchiveReading)?
+    /// Set instead of [archive] for a PDF, whose pages are drawn rather than
+    /// stored. `ebook-reader` requires a several-hundred-megabyte PDF to render
+    /// pages as they are needed, so nothing is rasterised until it is asked for.
+    private var pdf: PdfPageRenderer?
     private let url: URL
     private var maxPixelSize = 2048
     private let progress: ProgressStore?
@@ -55,6 +59,10 @@ public final class ReaderModel {
     /// Opens the publication and decodes the first page.
     public func open(maxPixelSize: Int) async {
         self.maxPixelSize = maxPixelSize
+        if publication.format == .pdf {
+            await openPDF()
+            return
+        }
         do {
             let opened = try await ComicArchiveOpener.open(fileAt: url)
             archive = opened
@@ -69,6 +77,30 @@ public final class ReaderModel {
             // A recorded position wins over the cover. `reading-progress` is about
             // picking up where you left off, and a book you are halfway through
             // should not reopen at its cover.
+            if let recorded = try? await progress?.progress(for: publication.identity),
+               case let .page(index, _) = recorded.position,
+               pages.indices.contains(index) {
+                currentIndex = index
+            }
+            await warm(around: currentIndex)
+        } catch {
+            failure = String(describing: error)
+        }
+    }
+
+    /// Opens a PDF.
+    ///
+    /// Its own path because a PDF has no entries to list: the page list is the
+    /// page *count*, and each entry exists only to give the pager something to
+    /// count and to label. A recorded position still wins over page one, exactly
+    /// as it does for an archive.
+    private func openPDF() async {
+        do {
+            let reader = try PdfPageRenderer(url: url)
+            pdf = reader
+            pages = (0..<reader.pageCount).map { index in
+                PageEntry(path: String(index + 1))
+            }
             if let recorded = try? await progress?.progress(for: publication.identity),
                case let .page(index, _) = recorded.position,
                pages.indices.contains(index) {
@@ -143,14 +175,53 @@ public final class ReaderModel {
     }
 
     private func decode(_ index: Int) async {
-        guard let archive, pages.indices.contains(index) else { return }
+        guard pages.indices.contains(index) else { return }
         attempted.insert(index)
-        let page = pages[index]
         let size = maxPixelSize
+
+        if let pdf {
+            if let image = await pdf.image(at: index, maxPixelSize: size) {
+                decoded[index] = image
+            }
+            return
+        }
+
+        guard let archive else { return }
+        let page = pages[index]
         let image = await Task.detached(priority: .userInitiated) {
             guard let data = try? await archive.data(for: page) else { return CGImage?.none }
             return try? PageDecoder.decode(data, maxPixelSize: size)
         }.value
         if let image { decoded[index] = image }
+    }
+}
+
+
+/// A PDF, rendered off the main actor.
+///
+/// `PDFDocument` is not `Sendable`, so the reader cannot be handed to a detached
+/// task — Swift 6 rejects that outright, and it would be a real race rather than
+/// a pedantic one. An actor owns the document instead: it is created inside the
+/// actor and never leaves it, and renders serialise, which is what PDFKit wants
+/// anyway.
+private actor PdfPageRenderer {
+    private let reader: PdfDocumentReader
+
+    /// Page count, read once. Cheap, and it saves an `await` per pager layout.
+    nonisolated let pageCount: Int
+
+    init(url: URL) throws {
+        let reader = try PdfDocumentReader(url: url)
+        self.reader = reader
+        self.pageCount = reader.pageCount
+    }
+
+    /// One page, rasterised at the size it will be drawn.
+    ///
+    /// `nil` rather than a throw: the reader shows a named "page unavailable"
+    /// placeholder for a page it cannot produce, and one bad page in a PDF should
+    /// not close the whole document.
+    func image(at index: Int, maxPixelSize: Int) -> CGImage? {
+        try? reader.render(pageAt: index, maxPixelSize: maxPixelSize)
     }
 }

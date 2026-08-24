@@ -31,6 +31,14 @@ object PublicationAccess {
             ComicArchiveOpener.open(File(path))
         }
 
+    /** A PDF, opened wherever it lives. */
+    fun openPdf(resolver: ContentResolver, path: String): PdfDocumentReader =
+        if (isDocument(path)) {
+            PdfDocumentReader(resolver, path.toUri())
+        } else {
+            PdfDocumentReader(File(path))
+        }
+
     /** The publication's cover, however it has to be produced. */
     suspend fun anyCover(
         resolver: ContentResolver,

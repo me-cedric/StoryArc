@@ -45,6 +45,11 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 - **The apps actually read comics now, on both platforms.** Pick a folder, watch
   the scan fill a cover grid, open a publication, turn pages, come back and the
   cover carries a progress bar. Right-to-left reading direction throughout.
+- **PDFs read like comics**, on both platforms. Pages are rasterised one at a
+  time at the size they are drawn, so a several-hundred-megabyte document opens
+  as fast as a small one. iOS renders on an actor because `PDFDocument` is not
+  `Sendable`; Android serialises with a lock because `PdfRenderer` permits one
+  open page at a time.
 - **Reading progress**, per ADR-0006: SwiftData on iOS, Room on Android, written
   every page turn rather than on a clean exit — the normal way a phone closes an
   app is to kill it. Furthest-wins on merge, and finished is sticky.

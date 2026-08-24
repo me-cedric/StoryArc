@@ -9,8 +9,10 @@ import android.content.ContentResolver
 import app.storyarc.core.format.ComicArchiveReading
 import app.storyarc.core.format.PageDecoder
 import app.storyarc.core.format.PageEntry
+import app.storyarc.core.format.PdfDocumentReader
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
@@ -19,6 +21,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -68,6 +72,20 @@ class ReaderViewModel(
     private val decoded = mutableStateMapOf<Int, Bitmap>()
     private val attempted = mutableStateSetOf<Int>()
     private var archive: ComicArchiveReading? = null
+
+    /**
+     * Set instead of [archive] for a PDF, whose pages are drawn rather than
+     * stored. `ebook-reader` requires a several-hundred-megabyte PDF to render
+     * pages as they are needed, so nothing is rasterised until it is asked for.
+     */
+    private var pdf: PdfDocumentReader? = null
+
+    /**
+     * `PdfRenderer` permits one open page at a time and says so. Warming a window
+     * of three pages would otherwise render them concurrently and throw.
+     */
+    private val pdfLock = Mutex()
+
     private var maxPixelSize = 2048
 
     /**
@@ -85,6 +103,10 @@ class ReaderViewModel(
 
     suspend fun open(maxPixelSize: Int) {
         this.maxPixelSize = maxPixelSize
+        if (publication.format == PublicationFormat.PDF) {
+            openPdf()
+            return
+        }
         try {
             val opened = withContext(Dispatchers.IO) {
                 PublicationAccess.openArchive(resolver, path)
@@ -100,6 +122,29 @@ class ReaderViewModel(
             // should not reopen at its cover.
             val recorded = progress?.progress(publication.identity)?.position
             if (recorded is ReadingPosition.Page && recorded.index in opened.pages.indices) {
+                initialIndex = recorded.index
+            }
+        } catch (cause: Exception) {
+            _failure.value = cause.message ?: "could not be opened"
+        }
+    }
+
+    /**
+     * Opens a PDF.
+     *
+     * Its own path because a PDF has no entries to list: the page list is the page
+     * *count*, and each entry exists only to give the pager something to count and
+     * to label. A recorded position still wins over page one.
+     */
+    private suspend fun openPdf() {
+        try {
+            val reader = withContext(Dispatchers.IO) {
+                PublicationAccess.openPdf(resolver, path)
+            }
+            pdf = reader
+            _pages.value = (0 until reader.pageCount).map { PageEntry("${'$'}{it + 1}", 0L) }
+            val recorded = progress?.progress(publication.identity)?.position
+            if (recorded is ReadingPosition.Page && recorded.index in _pages.value.indices) {
                 initialIndex = recorded.index
             }
         } catch (cause: Exception) {
@@ -156,15 +201,25 @@ class ReaderViewModel(
     }
 
     private suspend fun decode(index: Int, page: PageEntry) {
-        val opened = archive ?: return
-        val bitmap = withContext(Dispatchers.IO) {
-            runCatching { PageDecoder.decode(opened.data(page), maxPixelSize) }.getOrNull()
+        val reader = pdf
+        val bitmap = if (reader != null) {
+            withContext(Dispatchers.IO) {
+                pdfLock.withLock {
+                    runCatching { reader.render(index, maxPixelSize) }.getOrNull()
+                }
+            }
+        } else {
+            val opened = archive ?: return
+            withContext(Dispatchers.IO) {
+                runCatching { PageDecoder.decode(opened.data(page), maxPixelSize) }.getOrNull()
+            }
         }
         if (bitmap != null) decoded[index] = bitmap
     }
 
     override fun onCleared() {
         archive?.close()
+        pdf?.close()
         decoded.clear()
     }
 }

@@ -63,6 +63,14 @@ PDF page is *rendered*, not extracted, and an EPUB's reading order is a list of
 XHTML documents rather than a list of images — pretending either is a comic
 archive would mean inventing bytes for it.
 
+The reader above them takes the difference on itself rather than pushing it back
+down: it holds either an archive or a PDF, and a PDF's page list is its page
+*count*. Making a PDF conform to `ComicArchiveReading` would mean encoding every
+rendered page to PNG and decoding it again on the way out, once per page turn.
+Both platforms serialise PDF rendering, for the same reason stated two different
+ways: `PDFDocument` is not `Sendable`, and `PdfRenderer` permits one open page at
+a time.
+
 `EpubReader` is worth a note: it reads structure, not content layout. Metadata,
 reading order, table of contents, cover and the fixed-layout flag all come out of
 the package document with no dependency, which is everything the *library* needs
