@@ -8,4 +8,13 @@
     <!-- localeConfig and enableOnBackInvokedCallback are inert below API 33 and
          correct above it. Declaring them is the intent. -->
     <issue id="UnusedAttribute" severity="ignore" />
+    <!-- This check fails the build when Google publishes a newer AGP, which
+         means the same commit passes today and fails tomorrow. With
+         warningsAsErrors on, that makes the build non-reproducible for a reason
+         that is not in the repository. Dependency freshness is a deliberate
+         decision, taken by updating the version catalogue, not a lint gate. -->
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <!-- Same reasoning for library versions: a newer dependency existing is
+         information, not a defect in this commit. -->
+    <issue id="GradleDependency" severity="ignore" />
 </lint>
