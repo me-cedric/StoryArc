@@ -101,6 +101,60 @@
       ]
     },
     {
+      "file": "comics/stored-entries.cbz",
+      "pins": "STORED entries read correctly \u2014 a reader must not assume DEFLATE",
+      "sha256": "7f3ea5260747b38c89e342bd893bb57f466c1374b8f0674a11f325bc6b4e6a7e",
+      "bytes": 505,
+      "expectedPageCount": 3,
+      "expectedPageOrder": [
+        "p1.png",
+        "p2.png",
+        "p3.png"
+      ],
+      "compressionMethods": [
+        "stored"
+      ]
+    },
+    {
+      "file": "comics/zip64.cbz",
+      "pins": "Zip64 extra fields parse \u2014 64-bit sizes and offsets",
+      "sha256": "602885b66bcc5c9dd4aca49ff3e0234cb969a4bdad0b45863f3d1598990549a4",
+      "bytes": 550,
+      "expectedPageCount": 3,
+      "expectedPageOrder": [
+        "p1.png",
+        "p2.png",
+        "p3.png"
+      ],
+      "usesZip64": true
+    },
+    {
+      "file": "comics/archive-comment.cbz",
+      "pins": "the EOCD is found by scanning backwards for its signature, not at a fixed offset",
+      "sha256": "564d8654ef61b02589002df085746ca59ed4ee34d989d7473f37ca65ee9e5d55",
+      "bytes": 1114,
+      "expectedPageCount": 3,
+      "expectedPageOrder": [
+        "p1.png",
+        "p2.png",
+        "p3.png"
+      ],
+      "hasArchiveComment": true
+    },
+    {
+      "file": "comics/data-descriptor.cbz",
+      "pins": "local headers carry zero sizes; the central directory is the only authority",
+      "sha256": "a204744b024f27242ac7fed14de98cbcdfcdb2ba2dcec73578ae3a8a20b56c91",
+      "bytes": 538,
+      "expectedPageCount": 3,
+      "expectedPageOrder": [
+        "p1.png",
+        "p2.png",
+        "p3.png"
+      ],
+      "usesDataDescriptor": true
+    },
+    {
       "file": "comics/truncated.cbz",
       "pins": "a truncated archive opens what it can and reports what it skipped",
       "sha256": "744cdbfd5d9135d1ac815638d602feee955197de06494840207878bb50984966",

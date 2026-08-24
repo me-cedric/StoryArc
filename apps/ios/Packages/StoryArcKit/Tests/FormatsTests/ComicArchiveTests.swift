@@ -9,8 +9,8 @@ import Testing
 /// correct parse is.
 @Suite("Comic archive reading")
 struct ComicArchiveTests {
-    private func open(_ name: String) throws -> any ComicArchiveReading {
-        try ComicArchiveOpener.open(fileAt: FixtureCorpus.url("comics/\(name)"))
+    private func open(_ name: String) async throws -> any ComicArchiveReading {
+        try await ComicArchiveOpener.open(fileAt: FixtureCorpus.url("comics/\(name)"))
     }
 
     @Test("Every fixture parses to the page order its manifest records", arguments: [
@@ -21,48 +21,52 @@ struct ComicArchiveTests {
         "single-page.cbz",
         "double-page-spread.cbz",
         "no-pages.cbz",
+        "stored-entries.cbz",
+        "zip64.cbz",
+        "archive-comment.cbz",
+        "data-descriptor.cbz",
     ])
-    func matchesManifest(name: String) throws {
+    func matchesManifest(name: String) async throws {
         let fixture = FixtureCorpus.comic(name)
-        let archive = try open(name)
+        let archive = try await open(name)
 
         #expect(archive.pages.count == fixture.expectedPageCount, "\(name): \(fixture.pins)")
         #expect(archive.pages.map(\.path) == fixture.expectedPageOrder, "\(name): \(fixture.pins)")
     }
 
     @Test("A ZIP named .cbr opens, because format comes from content not extension")
-    func formatFromContent() throws {
+    func formatFromContent() async throws {
         let url = FixtureCorpus.url("comics/mislabelled-zip.cbr")
 
         #expect(try FormatSniffer.container(ofFileAt: url) == .zip)
-        #expect(try open("mislabelled-zip.cbr").pages.count == 3)
+        #expect(try await open("mislabelled-zip.cbr").pages.count == 3)
     }
 
     @Test("An archive with no images reports zero pages rather than failing")
-    func noPagesIsNotAnError() throws {
-        let archive = try open("no-pages.cbz")
+    func noPagesIsNotAnError() async throws {
+        let archive = try await open("no-pages.cbz")
 
         #expect(archive.pages.isEmpty)
         #expect(archive.skippedPageCount == 0)
     }
 
     @Test("A truncated archive fails as unreadable rather than crashing or hanging")
-    func truncatedArchive() {
-        // `publication-formats` wants partial recovery. ZIPFoundation cannot
-        // offer it once the central directory is gone, so the honest behaviour
-        // today is a clean `.unreadable` — recorded here so the day a
-        // recovering reader lands, this test is what changes.
-        #expect(throws: ComicArchiveError.unreadable) {
-            try open("truncated.cbz")
+    func truncatedArchive() async {
+        // `publication-formats` wants partial recovery. ADR-0008's own reader
+        // makes forward-scanning recovery possible, but it is not implemented
+        // yet — so the honest behaviour today is a clean `.unreadable`, recorded
+        // here so the day a recovering reader lands, this test is what changes.
+        await #expect(throws: ComicArchiveError.unreadable) {
+            try await open("truncated.cbz")
         }
     }
 
     @Test("Page bytes decode back to the PNG that was packed")
-    func readsPageBytes() throws {
-        let archive = try open("natural-sort.cbz")
+    func readsPageBytes() async throws {
+        let archive = try await open("natural-sort.cbz")
         let first = try #require(archive.pages.first)
 
-        let data = try archive.data(for: first)
+        let data = try await archive.data(for: first)
 
         #expect(!data.isEmpty)
         // PNG magic — proves the bytes are the page and not a header or padding.
@@ -70,9 +74,9 @@ struct ComicArchiveTests {
     }
 
     @Test("ComicInfo.xml is captured as metadata, not served as a page")
-    func capturesComicInfo() throws {
+    func capturesComicInfo() async throws {
         let archive = try #require(
-            try open("non-image-entries.cbz") as? ZipComicArchive
+            try await open("non-image-entries.cbz") as? ZipComicArchive
         )
 
         #expect(archive.pages.map(\.path) == ["page1.png", "page2.png"])
@@ -82,11 +86,11 @@ struct ComicArchiveTests {
     }
 
     @Test("Reading every page skips nothing in a healthy archive")
-    func readsAllPages() throws {
-        let archive = try open("natural-sort.cbz")
+    func readsAllPages() async throws {
+        let archive = try await open("natural-sort.cbz")
         let zip = try #require(archive as? ZipComicArchive)
 
-        let readable = zip.readableData(for: archive.pages)
+        let readable = await zip.readableData(for: archive.pages)
 
         #expect(readable.count == archive.pages.count)
     }
@@ -110,7 +114,7 @@ struct FormatSnifferTests {
     }
 
     @Test("A RAR names its container so the user is told what they actually have")
-    func rarIsNamed() throws {
+    func rarIsNamed() async throws {
         // ADR-0005: CBR is blocked on a licence review, not on capability. The
         // error carries the container so the message can say "RAR", which is
         // more useful than a generic failure.
@@ -118,8 +122,8 @@ struct FormatSnifferTests {
         try Data([0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00, 0x00]).write(to: tmp)
         defer { try? FileManager.default.removeItem(at: tmp) }
 
-        #expect(throws: ComicArchiveError.unsupportedContainer(.rar)) {
-            try ComicArchiveOpener.open(fileAt: tmp)
+        await #expect(throws: ComicArchiveError.unsupportedContainer(.rar)) {
+            try await ComicArchiveOpener.open(fileAt: tmp)
         }
     }
 

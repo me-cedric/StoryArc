@@ -128,9 +128,18 @@ the identical screenshots *are* the proof.
   `packages/test-fixtures/comics/` or its `manifest.json`. Change
   `scripts/generate.py`, run `pnpm fixtures:build`, commit the result.
   `pnpm fixtures:check` fails CI when they drift.
-- **Page ordering is the drift hotspot.** `PageOrdering` exists in both codebases
-  and both are asserted against the same corpus. Change one, change the other —
-  including the unit tests, which mirror each other case for case.
+- **The format layer is the drift hotspot.** `PageOrdering`, `ZipReader` and
+  `ByteReader` exist in both codebases as deliberate mirrors, asserted against
+  the same corpus. Change one, change the other — including the unit tests, which
+  match case for case. This layer has already produced one silent cross-platform
+  divergence (digit-run overflow in natural sort), which is why it is mirrored
+  rather than merely specified.
+- **The central directory is the only authority in a ZIP.** Local headers carry
+  zeros when a data descriptor is used. Never trust a local header for a size;
+  `data-descriptor.cbz` in the corpus exists to catch it.
+- **Archive parsing runs on untrusted input.** Every read is bounds-checked
+  against the source length, and no length field out of a file is used to
+  allocate. See [ADR-0008](docs/decisions/0008-ranged-reads-and-own-zip-reader.md).
 
 ## 8. Commits
 

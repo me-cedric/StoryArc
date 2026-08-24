@@ -36,6 +36,8 @@ dependencies {
     implementation(project(":core:model"))
 
     testImplementation(libs.junit)
+    // runBlocking, for driving the suspending reader from JVM unit tests.
+    testImplementation(libs.kotlinx.coroutines.test)
     // Runtime only — the JsonElement API needs no serialization compiler plugin,
     // so reading the fixture manifest costs no build configuration.
     testImplementation(libs.kotlinx.serialization.json)

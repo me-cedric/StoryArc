@@ -25,7 +25,7 @@ been proven in a spike. Nothing here is *Known* until a spike says so.
 | --- | --- | --- | --- |
 | EPUB, reflowable + fixed-layout | **Readium Swift toolkit** 3.11.x, via SPM | BSD-3-Clause | Known — actively maintained, SPM-distributed, covers ebooks, audiobooks and comics |
 | PDF | **PDFKit** (system) | Apple SDK | Known |
-| ZIP (CBZ, EPUB container) | **ZIPFoundation** 0.9.20, via SPM | MIT — read from the repository | **Known** — opens all 8 corpus fixtures; see caveat below |
+| ZIP (CBZ, EPUB container) | **Our own reader** over `RandomAccessSource`; inflate from `Compression` | — | **Known** — superseded by [ADR-0008](0008-ranged-reads-and-own-zip-reader.md). ZIPFoundation removed. |
 | RAR (CBR) | **Unrar.swift**, or UnrarKit | Swift parts MIT; bundled UnRAR source carries its own licence | Assumed — **licence review required before use**, see risk below |
 | 7-Zip (CB7), TAR (CBT) | **SWCompression** | MIT | Assumed — documented to read ZIP, TAR and 7-Zip; no RAR |
 | Image decoding | **ImageIO** / `CGImageSource` (system) | Apple SDK | Assumed — the API is certain, but no page has been decoded to a bitmap yet |
@@ -37,7 +37,7 @@ been proven in a spike. Nothing here is *Known* until a spike says so.
 | --- | --- | --- | --- |
 | EPUB, reflowable + fixed-layout | **Readium Kotlin toolkit** 3.3.x, via Maven Central | BSD-3-Clause | Known |
 | PDF | **PdfRenderer** (system) or **pdfium-android** | Apache-2.0 / BSD | Assumed — system `PdfRenderer` first; pdfium only if it proves inadequate |
-| ZIP | **`java.util.zip.ZipFile`** (standard library) | — | **Known** — opens all 8 corpus fixtures. No dependency needed. |
+| ZIP | **Our own reader** over `RandomAccessSource`; inflate from `java.util.zip.Inflater` | — | **Known** — superseded by [ADR-0008](0008-ranged-reads-and-own-zip-reader.md). |
 | TAR, 7-Zip | **Apache Commons Compress** | Apache-2.0 | Assumed |
 | RAR | **junrar** | UnRAR-derived | Assumed — **licence review required**, see risk below |
 | Image decoding | **Coil 3** over the platform decoders | Apache-2.0 | Assumed |
@@ -65,18 +65,22 @@ library, so Commons Compress is now only on the hook for TAR and 7-Zip. The
 asymmetry with iOS — which needs ZIPFoundation because Apple platforms ship no
 ZIP container reader — is real and worth knowing rather than smoothing over.
 
-**Two caveats that are not yet resolved:**
+**One caveat resolved, one still open:**
 
-1. **Neither reader does ranged reads.** `network-share` requires rendering page
-   one of a 400 MB archive without transferring 400 MB. `ZIPFoundation` and
-   `ZipFile` both want a local file. A streaming path is very likely our own
-   central-directory reader, which is the one place hand-rolling may still be
-   right. Not a problem for local files, which is all the first slice touches.
-2. **Partial recovery is not implemented.** `publication-formats` asks a
-   truncated archive to yield what it can and report what it skipped. Neither
-   library offers that once the central directory is gone, so today a truncated
-   archive fails cleanly as `unreadable`. Both suites pin that behaviour, so the
-   day a recovering reader lands, those two tests are what change.
+1. **Ranged reads — resolved by [ADR-0008](0008-ranged-reads-and-own-zip-reader.md).**
+   The library choice recorded here was correct for local files and wrong for the
+   `network-share` requirement, so both libraries are replaced by our own reader
+   over a `RandomAccessSource`. That reversal happened within a day of this ADR
+   being written, which is the confidence labels working rather than failing:
+   ZIP was marked *Known* for "opens local fixtures", and it was a different
+   question that changed the answer.
+2. **Partial recovery is still not implemented.** `publication-formats` asks a
+   truncated archive to yield what it can and report what it skipped. Today a
+   truncated archive fails cleanly as `unreadable`. Both suites pin that
+   behaviour, so the day a recovering reader lands, those two tests are what
+   change. Our own reader makes this *possible* — scanning forward for local
+   header signatures when the central directory is gone — where a library did
+   not.
 
 Image decoding stays *Assumed* on both platforms: the corpus tests verify PNG
 magic bytes, not that a page renders.

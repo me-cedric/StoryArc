@@ -1,18 +1,20 @@
 public import Foundation
 
-internal import ZIPFoundation
-
 /// Reading pages out of a comic archive.
+///
+/// Async throughout because the bytes may be arriving from an SMB share or an
+/// HTTP range request — ADR-0008 makes the source an abstraction, and this is
+/// the layer that stops caring where pages come from.
 ///
 /// `publication-formats` requires a corrupt archive to yield whatever pages can
 /// be read plus a count of what was skipped, rather than refusing the whole
-/// publication — so nothing here throws on a damaged entry.
+/// publication.
 public protocol ComicArchiveReading: Sendable {
     var pages: [PageEntry] { get }
     /// Entries that looked like pages but could not be read.
     var skippedPageCount: Int { get }
-    /// Raw bytes for one page, or `nil` when that entry is unreadable.
-    func data(for page: PageEntry) throws -> Data
+    /// Raw bytes for one page.
+    func data(for page: PageEntry) async throws -> Data
 }
 
 public enum ComicArchiveError: Error, Equatable {
@@ -35,85 +37,92 @@ public struct ZipComicArchive: ComicArchiveReading {
     /// `ComicInfo.xml` contents when the archive carries one.
     public let comicInfoData: Data?
 
-    private let url: URL
+    private let reader: ZipReader
+    private let pathToEntry: [String: ZipEntry]
 
-    public init(fileAt url: URL) throws {
-        self.url = url
-
-        let archive: Archive
+    public init(source: any RandomAccessSource) async throws {
         do {
-            archive = try Archive(url: url, accessMode: .read)
-        } catch {
-            // A ZIP whose central directory is gone lands here. ZIPFoundation
-            // offers no partial-recovery path, so this is the honest answer:
-            // the file is unreadable, and the caller reports that rather than
-            // pretending it opened.
+            self.reader = try await ZipReader(source: source)
+        } catch ZipError.noCentralDirectory {
+            // A ZIP whose central directory is gone. Our own reader makes
+            // forward-scanning recovery *possible* — see ADR-0008 — but that is
+            // not implemented yet, so this stays honest rather than optimistic.
             throw ComicArchiveError.unreadable
         }
 
         var candidates: [PageEntry] = []
         var skipped = 0
-        var comicInfo: Data?
+        var comicInfo: ZipEntry?
+        var index: [String: ZipEntry] = [:]
 
-        for entry in archive {
-            let path = entry.path
-            if path.lowercased().hasSuffix("comicinfo.xml") {
-                comicInfo = try? Self.read(entry, from: archive)
+        for entry in reader.entries {
+            if entry.path.lowercased().hasSuffix("comicinfo.xml") {
+                comicInfo = entry
                 continue
             }
-            guard PageOrdering.isPage(path: path) else { continue }
+            guard PageOrdering.isPage(path: entry.path) else { continue }
+            if entry.isEncrypted {
+                // `publication-formats`: state that the archive is protected
+                // rather than prompting. One encrypted page means the archive is.
+                throw ComicArchiveError.passwordProtected
+            }
             // A zero-length entry is a page that will never decode. Counting it
             // as skipped is what lets the reader say "opened 10, skipped 2".
             if entry.uncompressedSize == 0 {
                 skipped += 1
                 continue
             }
-            candidates.append(PageEntry(path: path, byteCount: Int(entry.uncompressedSize)))
+            candidates.append(PageEntry(path: entry.path, byteCount: Int(entry.uncompressedSize)))
+            index[entry.path] = entry
         }
 
         self.pages = PageOrdering.sorted(candidates)
         self.skippedPageCount = skipped
-        self.comicInfoData = comicInfo
+        self.pathToEntry = index
+        if let comicInfo {
+            self.comicInfoData = try await reader.data(for: comicInfo)
+        } else {
+            self.comicInfoData = nil
+        }
     }
 
-    public func data(for page: PageEntry) throws -> Data {
-        let archive = try Archive(url: url, accessMode: .read)
-        guard let entry = archive[page.path] else { throw ComicArchiveError.unreadable }
-        return try Self.read(entry, from: archive)
+    public func data(for page: PageEntry) async throws -> Data {
+        guard let entry = pathToEntry[page.path] else { throw ComicArchiveError.unreadable }
+        return try await reader.data(for: entry)
     }
 
     /// Every page's bytes, skipping any that fail. Used by the indexer, which
     /// needs a cover and cannot afford to abort on one bad entry.
-    public func readableData(for pages: [PageEntry]) -> [(page: PageEntry, data: Data)] {
-        pages.compactMap { page in
-            guard let data = try? data(for: page) else { return nil }
-            return (page, data)
+    public func readableData(for pages: [PageEntry]) async -> [(page: PageEntry, data: Data)] {
+        var results: [(page: PageEntry, data: Data)] = []
+        for page in pages {
+            if let data = try? await data(for: page) { results.append((page, data)) }
         }
-    }
-
-    private static func read(_ entry: Entry, from archive: Archive) throws -> Data {
-        var data = Data()
-        _ = try archive.extract(entry, bufferSize: 64 * 1024, skipCRC32: true) { chunk in
-            data.append(chunk)
-        }
-        return data
+        return results
     }
 }
 
 /// Opens whatever a file turns out to be.
 public enum ComicArchiveOpener {
     /// Sniffs the container, then opens it. Extension is never trusted.
-    public static func open(fileAt url: URL) throws -> any ComicArchiveReading {
-        let container = try FormatSniffer.container(ofFileAt: url)
-        guard let container else { throw ComicArchiveError.unrecognisedContainer }
+    public static func open(source: any RandomAccessSource) async throws -> any ComicArchiveReading {
+        let probe = try await source.read(offset: 0, count: FormatSniffer.probeLength)
+        guard let container = FormatSniffer.container(of: probe) else {
+            throw ComicArchiveError.unrecognisedContainer
+        }
         switch container {
         case .zip:
-            return try ZipComicArchive(fileAt: url)
+            return try await ZipComicArchive(source: source)
         case .rar, .sevenZip, .pdf:
             // ADR-0005: the RAR decoder needs a licence review before it ships,
             // and CB7 needs a spike. Naming the container the user actually has
             // is more useful than a generic failure.
             throw ComicArchiveError.unsupportedContainer(container)
         }
+    }
+
+    /// Convenience for a local file — the only source type that exists today.
+    public static func open(fileAt url: URL) async throws -> any ComicArchiveReading {
+        try await open(source: try FileSource(url: url))
     }
 }

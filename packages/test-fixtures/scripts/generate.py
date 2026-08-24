@@ -174,7 +174,98 @@ register(
     spreadIndices=[1],
 )
 
-# ── 7. Truncated archive ─────────────────────────────────────────────────────
+# ── 7. STORED entries (no compression) ─────────────────────────────────────
+# A perfectly legal CBZ. Our reader must not assume DEFLATE.
+stored_path = COMICS / "stored-entries.cbz"
+with zipfile.ZipFile(stored_path, "w") as archive:
+    for index in range(1, 4):
+        info = zipfile.ZipInfo(f"p{index}.png", date_time=(2026, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_STORED
+        archive.writestr(info, page(index))
+register(
+    "stored-entries.cbz",
+    "STORED entries read correctly — a reader must not assume DEFLATE",
+    ["p1.png", "p2.png", "p3.png"],
+    compressionMethods=["stored"],
+)
+
+# ── 8. Zip64 structures ──────────────────────────────────────────────────────
+# Zip64 extra fields, without a 4 GB file: `force_zip64` writes the 64-bit
+# structures for a small entry, which is exactly the parsing path we need to
+# exercise. ADR-0008 makes this ours to get right.
+zip64_path = COMICS / "zip64.cbz"
+with zipfile.ZipFile(zip64_path, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as archive:
+    for index in range(1, 4):
+        info = zipfile.ZipInfo(f"p{index}.png", date_time=(2026, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        with archive.open(info, "w", force_zip64=True) as entry:
+            entry.write(page(index))
+register(
+    "zip64.cbz",
+    "Zip64 extra fields parse — 64-bit sizes and offsets",
+    ["p1.png", "p2.png", "p3.png"],
+    usesZip64=True,
+)
+
+# ── 9. Archive comment pushing the EOCD away from the tail ───────────────────
+# The EOCD is no longer the last 22 bytes, so a reader that assumes a fixed tail
+# offset instead of scanning backwards for the signature fails here.
+comment_path = COMICS / "archive-comment.cbz"
+with zipfile.ZipFile(comment_path, "w", zipfile.ZIP_DEFLATED) as archive:
+    for index in range(1, 4):
+        info = zipfile.ZipInfo(f"p{index}.png", date_time=(2026, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        archive.writestr(info, page(index))
+    # 600 bytes of comment: enough that a naive tail read misses the EOCD.
+    archive.comment = b"StoryArc fixture comment. " * 24
+register(
+    "archive-comment.cbz",
+    "the EOCD is found by scanning backwards for its signature, not at a fixed offset",
+    ["p1.png", "p2.png", "p3.png"],
+    hasArchiveComment=True,
+)
+
+# ── 10. Data descriptors ─────────────────────────────────────────────────────
+# Written to a stream that cannot seek, so sizes land in a trailing data
+# descriptor and the local headers carry zeros. The central directory is the only
+# authority — ADR-0008's central rule, and this is the fixture that proves it.
+class _Unseekable:
+    """A writable sink with no seek, so zipfile emits data descriptors."""
+
+    def __init__(self, handle):
+        self._handle = handle
+        self._position = 0
+
+    def write(self, payload: bytes) -> int:
+        self._position += len(payload)
+        return self._handle.write(payload)
+
+    def tell(self) -> int:
+        return self._position
+
+    def flush(self) -> None:
+        self._handle.flush()
+
+    def seekable(self) -> bool:
+        return False
+
+
+descriptor_path = COMICS / "data-descriptor.cbz"
+with descriptor_path.open("wb") as raw:
+    sink = _Unseekable(raw)
+    with zipfile.ZipFile(sink, "w", zipfile.ZIP_DEFLATED) as archive:
+        for index in range(1, 4):
+            info = zipfile.ZipInfo(f"p{index}.png", date_time=(2026, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            archive.writestr(info, page(index))
+register(
+    "data-descriptor.cbz",
+    "local headers carry zero sizes; the central directory is the only authority",
+    ["p1.png", "p2.png", "p3.png"],
+    usesDataDescriptor=True,
+)
+
+# ── 11. Truncated archive ─────────────────────────────────────────────────────
 # The one that matters most. `publication-formats` requires opening what can be
 # read and reporting what was skipped, rather than refusing the publication.
 intact = COMICS / "natural-sort.cbz"

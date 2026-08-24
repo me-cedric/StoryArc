@@ -13,11 +13,20 @@ ADR that supersedes it rather than quietly doing something else.
 | [0005](0005-format-and-rendering-libraries.md) | Format and rendering libraries per platform | **Proposed** — needs a spike |
 | [0006](0006-progress-storage-and-sync.md) | Local-first progress with content-addressed identity | Accepted |
 | [0007](0007-design-token-pipeline.md) | One OKLCH token source, generated into Swift and Kotlin | Accepted |
+| [0008](0008-ranged-reads-and-own-zip-reader.md) | Ranged reads over a random-access source, with our own ZIP reader | Accepted |
 
 ## Reading order
 
 New to the project? **0001 → 0002 → 0003.** Those three explain the shape of the
 repository. The rest answer specific questions when you reach them.
+
+## When an ADR is superseded in part
+
+[ADR-0008](0008-ranged-reads-and-own-zip-reader.md) supersedes only the ZIP rows
+of [ADR-0005](0005-format-and-rendering-libraries.md), one day after they were
+written. Both records stay: 0005 explains what was chosen and why it was
+reasonable, 0008 explains what changed the answer. Deleting the first would hide
+the reasoning, and the reasoning is the part worth keeping.
 
 ## Confidence labels
 
