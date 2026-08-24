@@ -294,6 +294,11 @@ register(
     "a 2000x3000 page: downsampling and memory-bounded decode have something to do",
     ["p1.png"],
     pageDimensions=[2000, 3000],
+    # The page is one flat colour, which is what makes a cross-platform pixel
+    # comparison meaningful: any difference is the decoder, never resampling of
+    # detail that was never there. Both suites assert this exact triple, at full
+    # size and downsampled.
+    expectedPagePixel=list(hue(5)),
 )
 
 # ── 12. A real EPUB 3 ─────────────────────────────────────────────────────

@@ -52,6 +52,8 @@ object FixtureCorpus {
         val isStreamable: Boolean?,
         val expectedRefusal: String?,
         val expectedEntryNames: List<String>?,
+        val pageDimensions: List<Int>?,
+        val expectedPagePixel: List<Int>?,
     )
 
     val comics: List<Fixture> by lazy {
@@ -82,6 +84,8 @@ object FixtureCorpus {
                 isStreamable = bool("isStreamable"),
                 expectedRefusal = str("expectedRefusal"),
                 expectedEntryNames = strings("expectedEntryNames"),
+                pageDimensions = ints("pageDimensions"),
+                expectedPagePixel = ints("expectedPagePixel"),
             )
         }
     }

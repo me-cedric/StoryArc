@@ -154,8 +154,21 @@ here is RAR, which is the only format that genuinely needs a decoder.
       tests on an emulator, in a CI job on `main` only. The size arithmetic is
       unit-tested on both platforms, which is why `targetSize` returns a plain
       `PageSize` rather than `android.util.Size`.
-- [ ] **3.3** Compare a decoded fixture page across platforms and record the
-      tolerance. This is where image decoding stops being *Assumed* in ADR-0005.
+- [x] **3.3** Compare a decoded fixture page across platforms and record the
+      tolerance. **Done, and the tolerance is recorded in both test files.**
+
+      `large-page.cbz` is one flat colour, which is what makes the comparison
+      mean anything: a full-size decode has nothing to interpolate, so any
+      difference would be a colour-space conversion rather than resampling. Both
+      platforms read the expected triple from the shared manifest — hard-coding it
+      twice would let the two drift by editing one file — and both assert
+      `(185, 199, 243)` **exactly** at full size.
+
+      **Downsampled tolerance: ±1 per channel.** ImageIO and `ImageDecoder` are
+      different resamplers, so at a 5:1 reduction their rounding is not required
+      to agree bit for bit. On a flat colour one step is the honest bound: wider
+      would hide a real difference, narrower would assert an implementation detail
+      of one platform. Measured, both are within it.
 
 ## Phase 4 — PDF
 

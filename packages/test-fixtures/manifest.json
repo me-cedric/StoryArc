@@ -145,6 +145,11 @@
       "pageDimensions": [
         2000,
         3000
+      ],
+      "expectedPagePixel": [
+        185,
+        199,
+        243
       ]
     },
     {

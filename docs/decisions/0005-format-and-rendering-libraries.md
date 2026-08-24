@@ -90,7 +90,11 @@ viewer fragment and 5–8 MB per ABI for a capability comic PDFs never use), Coi
 
 The ZIP path is implemented on both platforms and asserted against the shared
 corpus in `packages/test-fixtures` — 23 tests per platform, reading the same
-`manifest.json`. That promoted three rows out of *Assumed*, and changed one
+`manifest.json`. Page *colour* is now compared too, not only page size: both
+platforms decode the same flat-colour fixture to the same RGB triple exactly at
+full size, and within ±1 per channel when downsampled 5:1 — the recorded
+tolerance, since ImageIO and `ImageDecoder` are different resamplers and are not
+required to round identically. That promoted three rows out of *Assumed*, and changed one
 choice outright.
 
 **Android needs no ZIP dependency.** `java.util.zip.ZipFile` is in the standard

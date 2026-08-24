@@ -41,6 +41,8 @@ enum FixtureCorpus {
         let isStreamable: Bool?
         let expectedRefusal: String?
         let expectedEntryNames: [String]?
+        let pageDimensions: [Int]?
+        let expectedPagePixel: [Int]?
     }
 
     /// One entry from the manifest's `pdfs` list. PDF is not an archive, so its
