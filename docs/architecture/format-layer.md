@@ -17,8 +17,9 @@ across the two on purpose, so a reviewer can diff them by eye.
 | CBR | `RarReader` + `RarDecoder` | libarchive, for decompression only |
 | PDF | `PdfDocumentReader` | the platform: PDFKit, `PdfRenderer` |
 | Plain folder | `ImageFolderArchive` | none |
+| EPUB structure | `EpubReader` | none — ours |
+| EPUB *rendering* | — | Readium, not built yet |
 | CB7 | — | refused by name |
-| EPUB | — | not built yet |
 
 Page bytes are then decoded by `PageDecoder`, which is ImageIO on Apple and
 `ImageDecoder` on Android — the platform in both cases ([ADR-0005]).
@@ -37,9 +38,15 @@ Page bytes are then decoded by `PageDecoder`, which is ImageIO on Apple and
                     pages · skippedPageCount · data(for:)
 ```
 
-`PdfDocumentReader` sits deliberately outside that protocol. A PDF page is
-*rendered*, not extracted, and pretending otherwise would mean inventing bytes
-for it.
+`PdfDocumentReader` and `EpubReader` sit deliberately outside that protocol. A
+PDF page is *rendered*, not extracted, and an EPUB's reading order is a list of
+XHTML documents rather than a list of images — pretending either is a comic
+archive would mean inventing bytes for it.
+
+`EpubReader` is worth a note: it reads structure, not content layout. Metadata,
+reading order, table of contents, cover and the fixed-layout flag all come out of
+the package document with no dependency, which is everything the *library* needs
+to shelve a book. Readium is needed only when someone opens one to read.
 
 ## Four rules, and why each exists
 
@@ -89,6 +96,9 @@ needed:
   stored — lives there. Ours.
 - **RAR entry data** — real LZ and PPMd coding. *This* is the dependency.
 - **Image decoding, PDF** — the platform ships both.
+- **EPUB structure** — a ZIP holding XML. Container and metadata are ours; only
+  laying out reflowable XHTML with per-axis typography controls needs Readium, and
+  that is a rendering engine rather than a parser.
 
 So libarchive's job is one function, `packed bytes → unpacked bytes`, and 26 of
 its 132 sources are vendored. That is a smaller attack surface as well as a

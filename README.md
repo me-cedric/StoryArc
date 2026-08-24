@@ -51,14 +51,14 @@ cannot yet show them to you.
 | Capability specs | ✅ 15 capabilities specified and validating |
 | Design system | ✅ OKLCH token source generating Swift + Kotlin, WCAG-gated in CI |
 | Format layer | ✅ CBZ, CBR, CBT, PDF and image folders open on both platforms — see below |
-| Test corpus | ✅ 22 archives and 2 PDFs, one manifest, asserted by both suites |
+| Test corpus | ✅ 20 archives, 2 PDFs and 4 EPUBs, one manifest, asserted by both suites |
 | Domain layer | 🟡 Sources, identity, progress and merge rules implemented and tested on both |
-| EPUB | ⬜ Specified; the reflowable reader is the next change |
+| EPUB | 🟡 Structure parses on both platforms; the reflowable reader is the next change |
 | Source connectors | ⬜ Local, SMB, OPDS, Kavita — libraries chosen, not built |
 | Readers | ⬜ Paged comic reader and reflowable ebook reader — specified, not built |
 | Desktop | 📄 macOS, Windows and Linux documented; no code by design |
 
-Tests: **131 on iOS** across 21 suites, **96 JVM plus 27 instrumented** on
+Tests: **145 on iOS** across 22 suites, **108 JVM plus 29 instrumented** on
 Android. The instrumented ones exist because image decoding, PDF rendering and
 the RAR decoder cannot run on a host JVM.
 
@@ -74,7 +74,7 @@ Nothing here is installable yet. There are no releases and no signed builds.
 | **PDF** | ✅ Reads | PDFKit on iOS, `PdfRenderer` on Android. Text, search and outline are iOS-only, by design |
 | **Image folder** | ✅ Reads | A directory of ordered images, same page rules as an archive |
 | **CB7** | 🚫 Refused by name | Out of scope. Rare, and the worst streaming case |
-| **EPUB** | ⬜ Not yet | Fixture exists; the reader is the next change |
+| **EPUB** | 🟡 Indexes | Package document parsed by us — EPUB 2 *and* 3, reflowable and fixed-layout — so metadata, contents and covers need no dependency. *Rendering* reflowable text needs Readium, the next change |
 
 Two details worth knowing, because they shape everything above:
 

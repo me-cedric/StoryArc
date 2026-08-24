@@ -58,9 +58,29 @@ enum FixtureCorpus {
         let expectedAspect: [Int]?
     }
 
+    /// One entry from the manifest's `ebooks` list.
+    struct EbookFixture: Decodable {
+        let file: String
+        let pins: String
+        let epubVersion: Int
+        let expectedSpineCount: Int
+        let expectedTitle: String?
+        let expectedAuthor: String?
+        let expectedLanguage: String?
+        let expectedIdentifier: String?
+        let expectedSpineHrefs: [String]?
+        let expectedTocTitles: [String]?
+        let expectedCoverHref: String?
+        let hasNavDocument: Bool
+        let hasCoverImage: Bool
+        let isFixedLayout: Bool
+        let expectedRefusal: String?
+    }
+
     private struct Manifest: Decodable {
         let comics: [Fixture]
         let pdfs: [PdfFixture]
+        let ebooks: [EbookFixture]
     }
 
     static let comics: [Fixture] = {
@@ -83,6 +103,19 @@ enum FixtureCorpus {
             fatalError("could not read the fixture manifest: \(error)")
         }
     }()
+
+    static let ebooks: [EbookFixture] = {
+        do {
+            let data = try Data(contentsOf: url("manifest.json"))
+            return try JSONDecoder().decode(Manifest.self, from: data).ebooks
+        } catch {
+            fatalError("could not read the fixture manifest: \(error)")
+        }
+    }()
+
+    static func ebook(_ name: String) -> EbookFixture? {
+        ebooks.first { $0.file == "ebooks/\(name)" }
+    }
 
     static func pdf(_ name: String) -> PdfFixture? {
         pdfs.first { $0.file == "comics/\(name)" }

@@ -26,6 +26,11 @@ The two apps version and release independently — `ios-vX.Y.Z` and
     and outline on iOS only, which `ebook-reader` specifies rather than concedes.
   - **Plain folders** with the same page rules as an archive, not following
     symlinks.
+  - **EPUB structure** — metadata, reading order, table of contents, cover and
+    the fixed-layout flag — with no dependency, because an EPUB is a ZIP holding
+    XML. EPUB 2 and EPUB 3 are both handled explicitly: they keep their contents
+    and name their covers differently, and assuming the modern shape loses both
+    for every older book. Readium is still needed to *render* reflowable text.
   - **CB7** refused by name, as are solid RAR4, password-protected archives and
     damaged files — four distinct refusals, because "could not open file" tells
     the user nothing.

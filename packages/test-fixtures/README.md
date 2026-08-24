@@ -14,13 +14,14 @@ expectation drift loudly.
 packages/test-fixtures/
 ├── scripts/generate.py    the generator — fixtures are generated, not hand-authored
 ├── manifest.json          every fixture and what a correct parse yields
-└── comics/                20 archives and 2 PDFs, 36 kB total
+├── comics/                20 archives and 2 PDFs, 36 kB total
+└── ebooks/                4 EPUBs, 9 kB total
 ```
 
 ## Status
 
-**20 comic archives, two PDFs and one EPUB**, covering ZIP, RAR4, RAR5, TAR, PDF
-and the 7-Zip refusal.
+**20 comic archives, two PDFs and four EPUBs**, covering ZIP, RAR4, RAR5, TAR,
+PDF, EPUB 2, EPUB 3, fixed-layout EPUB, and the 7-Zip refusal.
 
 ### ZIP
 
@@ -70,6 +71,27 @@ compression-method check and no fallback — so a solid RAR4 is *unsupported*, a
 downloading it changes nothing. Because the first entry in a solid archive is
 itself not solid, a reader that delegates straight to libarchive lists page 1 and
 *then* dies with a generic error. Detection has to read the flag first.
+
+### EPUB
+
+| Fixture | Pins |
+| --- | --- |
+| `fixture.epub` | a valid EPUB 3: `mimetype` first and STORED, a nav document, a cover property |
+| `epub2.epub` | an EPUB 2: no nav document, an NCX reached through the spine, a cover named by a metadata `meta` |
+| `fixed-layout.epub` | `rendition:layout` is `pre-paginated`, so the image reader opens it |
+| `no-package.epub` | the right `mimetype` and no container document — refused by name, not opened empty |
+
+Three fixtures cover the four combinations `publication-formats` promises. There
+is no EPUB 2 fixed-layout fixture because pre-pagination was introduced in EPUB
+3.
+
+The two versions differ in exactly the places a parser gets wrong, which is why
+both are here rather than only the modern one: EPUB 2 keeps its table of contents
+in an NCX reached through the spine's `toc` attribute, EPUB 3 in a nav document
+found by a manifest property; EPUB 2 names its cover with
+`<meta name="cover" content="id"/>`, EPUB 3 with `properties="cover-image"`. A
+reader that assumes the modern shape silently loses the contents and the cover of
+every older book on the shelf.
 
 ### PDF
 

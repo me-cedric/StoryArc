@@ -139,6 +139,23 @@ here is RAR, which is the only format that genuinely needs a decoder.
       against the root at read time: a folder is chosen by the user but is still
       untrusted input, and a link is how one would read a file outside the
       publication.
+- [x] **2.9** **EPUB structure, with no Readium.** An EPUB is a ZIP holding XML,
+      so `EpubReader` reads metadata, reading order, table of contents, cover and
+      the fixed-layout flag with no dependency — which is everything the *library*
+      needs to shelve a book. Readium remains necessary only to lay out reflowable
+      XHTML, which is a rendering engine rather than a parser, and stays in the
+      reader-theming change.
+
+      Both EPUB generations are handled explicitly rather than by assuming the
+      modern shape, because they differ in exactly the places a parser gets wrong:
+      EPUB 2 keeps its contents in an NCX reached through the spine's `toc`
+      attribute where EPUB 3 uses a nav document found by a manifest property, and
+      names its cover with a metadata `meta` where EPUB 3 uses
+      `properties="cover-image"`. A reader that assumed EPUB 3 would silently lose
+      the contents and cover of every older book on a shelf.
+
+      Four new fixtures: EPUB 3, EPUB 2, fixed-layout, and one with no package
+      document — which is refused by name rather than opened as an empty book.
 
 ## Phase 3 — Page decoding
 

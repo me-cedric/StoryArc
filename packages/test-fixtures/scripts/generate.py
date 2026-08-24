@@ -386,16 +386,223 @@ if WRITE:
             entry.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(entry, payload)
 
+# ── 12b. EPUB 2, and a fixed-layout EPUB 3 ───────────────────────────────────
+# `publication-formats` promises "EPUB 2 and EPUB 3, reflowable and fixed-layout",
+# which is four combinations, and the differences between them are exactly the
+# ones a parser gets wrong:
+#
+#   - EPUB 2 has no nav document. Its table of contents is an NCX file, reached
+#     through the spine's `toc` attribute rather than a manifest property.
+#   - EPUB 2 marks its cover with `<meta name="cover" content="id"/>`, where
+#     EPUB 3 uses `properties="cover-image"` on the manifest item.
+#   - A fixed-layout EPUB says so with `rendition:layout`, and it must be read
+#     with the image reader rather than the reflowable one — so getting this wrong
+#     means offering font controls for a comic.
+
+
+def epub(name: str, entries: list[tuple[str, bytes]]) -> None:
+    """Writes an EPUB with `mimetype` first and STORED, as the container spec demands."""
+    path = ROOT / "ebooks" / name
+    if not WRITE:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, "w") as archive:
+        first = zipfile.ZipInfo("mimetype", date_time=(2026, 1, 1, 0, 0, 0))
+        first.compress_type = zipfile.ZIP_STORED
+        archive.writestr(first, b"application/epub+zip")
+        for entry_name, payload in entries:
+            info = zipfile.ZipInfo(entry_name, date_time=(2026, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            archive.writestr(info, payload)
+
+
+EPUB2_PACKAGE = b"""<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="pub-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
+    <dc:identifier id="pub-id">urn:uuid:storyarc-fixture-0002</dc:identifier>
+    <dc:title>Legacy Fixture</dc:title>
+    <dc:language>fr</dc:language>
+    <dc:creator opf:role="aut">Ancienne Autrice</dc:creator>
+    <meta name="cover" content="cover"/>
+  </metadata>
+  <manifest>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
+    <item id="ch2" href="ch2.xhtml" media-type="application/xhtml+xml"/>
+    <item id="cover" href="cover.png" media-type="image/png"/>
+  </manifest>
+  <spine toc="ncx">
+    <itemref idref="ch1"/>
+    <itemref idref="ch2"/>
+  </spine>
+</package>
+"""
+
+EPUB2_NCX = b"""<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head><meta name="dtb:uid" content="urn:uuid:storyarc-fixture-0002"/></head>
+  <docTitle><text>Legacy Fixture</text></docTitle>
+  <navMap>
+    <navPoint id="np1" playOrder="1">
+      <navLabel><text>Premier chapitre</text></navLabel>
+      <content src="ch1.xhtml"/>
+    </navPoint>
+    <navPoint id="np2" playOrder="2">
+      <navLabel><text>Second chapitre</text></navLabel>
+      <content src="ch2.xhtml"/>
+    </navPoint>
+  </navMap>
+</ncx>
+"""
+
+epub(
+    "epub2.epub",
+    [
+        ("META-INF/container.xml", EPUB_CONTAINER),
+        ("OEBPS/package.opf", EPUB2_PACKAGE),
+        ("OEBPS/toc.ncx", EPUB2_NCX),
+        ("OEBPS/ch1.xhtml", chapter(1, "Premier chapitre", 40)),
+        ("OEBPS/ch2.xhtml", chapter(2, "Second chapitre", 40)),
+        ("OEBPS/cover.png", page(1)),
+    ],
+)
+
+FIXED_PACKAGE = b"""<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id"
+         prefix="rendition: http://www.idpf.org/vocab/rendition/#">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="pub-id">urn:uuid:storyarc-fixture-0003</dc:identifier>
+    <dc:title>Fixed Layout Fixture</dc:title>
+    <dc:language>en</dc:language>
+    <dc:creator>StoryArc Fixtures</dc:creator>
+    <meta property="rendition:layout">pre-paginated</meta>
+    <meta property="rendition:spread">landscape</meta>
+    <meta property="dcterms:modified">2026-01-01T00:00:00Z</meta>
+  </metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="p1" href="p1.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p2" href="p2.xhtml" media-type="application/xhtml+xml"/>
+    <item id="img1" href="page1.png" media-type="image/png" properties="cover-image"/>
+    <item id="img2" href="page2.png" media-type="image/png"/>
+  </manifest>
+  <spine>
+    <itemref idref="p1"/>
+    <itemref idref="p2"/>
+  </spine>
+</package>
+"""
+
+FIXED_NAV = b"""<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Pages</title></head>
+<body>
+  <nav epub:type="toc" id="toc">
+    <ol><li><a href="p1.xhtml">Page 1</a></li></ol>
+  </nav>
+</body>
+</html>
+"""
+
+
+def fixed_page(index: int) -> bytes:
+    """A pre-paginated page: one image at an exact size, no reflowable text."""
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<html xmlns="http://www.w3.org/1999/xhtml">\n'
+        f'<head><title>Page {index}</title>\n'
+        f'<meta name="viewport" content="width={PAGE_W}, height={PAGE_H}"/></head>\n'
+        f'<body><img src="page{index}.png" width="{PAGE_W}" height="{PAGE_H}"/></body>\n'
+        "</html>\n"
+    ).encode()
+
+
+epub(
+    "fixed-layout.epub",
+    [
+        ("META-INF/container.xml", EPUB_CONTAINER),
+        ("OEBPS/package.opf", FIXED_PACKAGE),
+        ("OEBPS/nav.xhtml", FIXED_NAV),
+        ("OEBPS/p1.xhtml", fixed_page(1)),
+        ("OEBPS/p2.xhtml", fixed_page(2)),
+        ("OEBPS/page1.png", page(1)),
+        ("OEBPS/page2.png", page(2)),
+    ],
+)
+
+# An EPUB with the right mimetype and no container document. Returning an empty
+# publication for this would put a book in the library that cannot be opened, so
+# the reader has to name the problem instead.
+epub("no-package.epub", [])
+
 ebooks: list[dict] = [
     {
         "file": "ebooks/fixture.epub",
         "pins": "a valid EPUB 3: mimetype first and STORED, two spine items, a nav document and a cover",
+        "epubVersion": 3,
         "expectedSpineCount": 2,
         "expectedTitle": "Fixture Publication",
+        "expectedAuthor": "StoryArc Fixtures",
         "expectedLanguage": "en",
+        "expectedIdentifier": "urn:uuid:storyarc-fixture-0001",
+        "expectedSpineHrefs": ["OEBPS/ch1.xhtml", "OEBPS/ch2.xhtml"],
+        "expectedTocTitles": ["Chapter One", "Chapter Two"],
+        "expectedCoverHref": "OEBPS/cover.png",
         "hasNavDocument": True,
         "hasCoverImage": True,
-    }
+        "isFixedLayout": False,
+    },
+    {
+        "file": "ebooks/epub2.epub",
+        "pins": "an EPUB 2: no nav document, an NCX reached through the spine, and a cover named by a metadata meta",
+        "epubVersion": 2,
+        "expectedSpineCount": 2,
+        "expectedTitle": "Legacy Fixture",
+        "expectedAuthor": "Ancienne Autrice",
+        "expectedLanguage": "fr",
+        "expectedIdentifier": "urn:uuid:storyarc-fixture-0002",
+        "expectedSpineHrefs": ["OEBPS/ch1.xhtml", "OEBPS/ch2.xhtml"],
+        "expectedTocTitles": ["Premier chapitre", "Second chapitre"],
+        "expectedCoverHref": "OEBPS/cover.png",
+        "hasNavDocument": False,
+        "hasCoverImage": True,
+        "isFixedLayout": False,
+        "note": "The two cover conventions and the two table-of-contents formats are the things an EPUB parser most often gets wrong, so both are pinned.",
+    },
+    {
+        "file": "ebooks/fixed-layout.epub",
+        "pins": "a fixed-layout EPUB declares rendition:layout, so it is read with the image reader and not offered font controls",
+        "epubVersion": 3,
+        "expectedSpineCount": 2,
+        "expectedTitle": "Fixed Layout Fixture",
+        "expectedAuthor": "StoryArc Fixtures",
+        "expectedLanguage": "en",
+        "expectedIdentifier": "urn:uuid:storyarc-fixture-0003",
+        "expectedSpineHrefs": ["OEBPS/p1.xhtml", "OEBPS/p2.xhtml"],
+        "expectedTocTitles": ["Page 1"],
+        "expectedCoverHref": "OEBPS/page1.png",
+        "hasNavDocument": True,
+        "hasCoverImage": True,
+        "isFixedLayout": True,
+        "note": "Getting this wrong means offering typography controls for a comic, which `ebook-reader` forbids.",
+    },
+    {
+        "file": "ebooks/no-package.epub",
+        "pins": "an EPUB with no container document is refused by name, not opened empty",
+        "epubVersion": 0,
+        "expectedSpineCount": 0,
+        "expectedTitle": None,
+        "expectedAuthor": None,
+        "expectedLanguage": None,
+        "expectedIdentifier": None,
+        "expectedSpineHrefs": None,
+        "expectedTocTitles": None,
+        "expectedCoverHref": None,
+        "hasNavDocument": False,
+        "hasCoverImage": False,
+        "isFixedLayout": False,
+        "expectedRefusal": "no package document",
+    },
 ]
 
 # ── 13. Truncated archive ─────────────────────────────────────────────────────

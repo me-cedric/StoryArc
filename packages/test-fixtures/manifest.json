@@ -287,11 +287,86 @@
     {
       "file": "ebooks/fixture.epub",
       "pins": "a valid EPUB 3: mimetype first and STORED, two spine items, a nav document and a cover",
+      "epubVersion": 3,
       "expectedSpineCount": 2,
       "expectedTitle": "Fixture Publication",
+      "expectedAuthor": "StoryArc Fixtures",
       "expectedLanguage": "en",
+      "expectedIdentifier": "urn:uuid:storyarc-fixture-0001",
+      "expectedSpineHrefs": [
+        "OEBPS/ch1.xhtml",
+        "OEBPS/ch2.xhtml"
+      ],
+      "expectedTocTitles": [
+        "Chapter One",
+        "Chapter Two"
+      ],
+      "expectedCoverHref": "OEBPS/cover.png",
       "hasNavDocument": true,
-      "hasCoverImage": true
+      "hasCoverImage": true,
+      "isFixedLayout": false
+    },
+    {
+      "file": "ebooks/epub2.epub",
+      "pins": "an EPUB 2: no nav document, an NCX reached through the spine, and a cover named by a metadata meta",
+      "epubVersion": 2,
+      "expectedSpineCount": 2,
+      "expectedTitle": "Legacy Fixture",
+      "expectedAuthor": "Ancienne Autrice",
+      "expectedLanguage": "fr",
+      "expectedIdentifier": "urn:uuid:storyarc-fixture-0002",
+      "expectedSpineHrefs": [
+        "OEBPS/ch1.xhtml",
+        "OEBPS/ch2.xhtml"
+      ],
+      "expectedTocTitles": [
+        "Premier chapitre",
+        "Second chapitre"
+      ],
+      "expectedCoverHref": "OEBPS/cover.png",
+      "hasNavDocument": false,
+      "hasCoverImage": true,
+      "isFixedLayout": false,
+      "note": "The two cover conventions and the two table-of-contents formats are the things an EPUB parser most often gets wrong, so both are pinned."
+    },
+    {
+      "file": "ebooks/fixed-layout.epub",
+      "pins": "a fixed-layout EPUB declares rendition:layout, so it is read with the image reader and not offered font controls",
+      "epubVersion": 3,
+      "expectedSpineCount": 2,
+      "expectedTitle": "Fixed Layout Fixture",
+      "expectedAuthor": "StoryArc Fixtures",
+      "expectedLanguage": "en",
+      "expectedIdentifier": "urn:uuid:storyarc-fixture-0003",
+      "expectedSpineHrefs": [
+        "OEBPS/p1.xhtml",
+        "OEBPS/p2.xhtml"
+      ],
+      "expectedTocTitles": [
+        "Page 1"
+      ],
+      "expectedCoverHref": "OEBPS/page1.png",
+      "hasNavDocument": true,
+      "hasCoverImage": true,
+      "isFixedLayout": true,
+      "note": "Getting this wrong means offering typography controls for a comic, which `ebook-reader` forbids."
+    },
+    {
+      "file": "ebooks/no-package.epub",
+      "pins": "an EPUB with no container document is refused by name, not opened empty",
+      "epubVersion": 0,
+      "expectedSpineCount": 0,
+      "expectedTitle": null,
+      "expectedAuthor": null,
+      "expectedLanguage": null,
+      "expectedIdentifier": null,
+      "expectedSpineHrefs": null,
+      "expectedTocTitles": null,
+      "expectedCoverHref": null,
+      "hasNavDocument": false,
+      "hasCoverImage": false,
+      "isFixedLayout": false,
+      "expectedRefusal": "no package document"
     }
   ],
   "pdfs": [

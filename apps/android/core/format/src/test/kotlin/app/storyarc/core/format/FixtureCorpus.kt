@@ -1,7 +1,9 @@
 package app.storyarc.core.format
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
@@ -89,6 +91,55 @@ object FixtureCorpus {
             )
         }
     }
+
+    /** One entry from the manifest's `ebooks` list. */
+    data class Ebook(
+        val file: String,
+        val pins: String,
+        val epubVersion: Int,
+        val expectedSpineCount: Int,
+        val expectedTitle: String?,
+        val expectedAuthor: String?,
+        val expectedLanguage: String?,
+        val expectedIdentifier: String?,
+        val expectedSpineHrefs: List<String>?,
+        val expectedTocTitles: List<String>?,
+        val expectedCoverHref: String?,
+        val hasNavDocument: Boolean,
+        val hasCoverImage: Boolean,
+        val isFixedLayout: Boolean,
+    )
+
+    val ebooks: List<Ebook> by lazy {
+        val root = Json.parseToJsonElement(file("manifest.json").readText()).jsonObject
+        root.getValue("ebooks").jsonArray.map { element ->
+            val obj = element.jsonObject
+            fun str(key: String) = obj[key]?.jsonPrimitive?.contentOrNull
+            fun strings(key: String) =
+                obj[key]?.takeIf { it !is kotlinx.serialization.json.JsonNull }
+                    ?.jsonArray?.map { it.jsonPrimitive.content }
+            Ebook(
+                file = str("file")!!,
+                pins = str("pins")!!,
+                epubVersion = obj.getValue("epubVersion").jsonPrimitive.int,
+                expectedSpineCount = obj.getValue("expectedSpineCount").jsonPrimitive.int,
+                expectedTitle = str("expectedTitle"),
+                expectedAuthor = str("expectedAuthor"),
+                expectedLanguage = str("expectedLanguage"),
+                expectedIdentifier = str("expectedIdentifier"),
+                expectedSpineHrefs = strings("expectedSpineHrefs"),
+                expectedTocTitles = strings("expectedTocTitles"),
+                expectedCoverHref = str("expectedCoverHref"),
+                hasNavDocument = obj.getValue("hasNavDocument").jsonPrimitive.boolean,
+                hasCoverImage = obj.getValue("hasCoverImage").jsonPrimitive.boolean,
+                isFixedLayout = obj.getValue("isFixedLayout").jsonPrimitive.boolean,
+            )
+        }
+    }
+
+    fun ebook(name: String): Ebook =
+        ebooks.firstOrNull { it.file == "ebooks/$name" }
+            ?: error("no ebook fixture named $name in manifest.json")
 
     fun comic(name: String): Fixture =
         comics.firstOrNull { it.file == "comics/$name" }
