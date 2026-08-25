@@ -23,7 +23,7 @@
     "test:android": "cd apps/android && ./gradlew test",
     "build:ios": "cd apps/ios && xcodegen generate && xcodebuild build -project StoryArc.xcodeproj -scheme StoryArc -destination 'generic/platform=iOS Simulator' -quiet",
     "build:android": "cd apps/android && ./gradlew assembleDebug",
-    "check": "pnpm lint && pnpm test:ios && pnpm lint:android && pnpm test:android",
+    "check": "pnpm lint && pnpm lint:ios && pnpm test:ios && pnpm lint:android && pnpm test:android",
     "prepare": "husky",
     "fixtures:build": "python3 packages/test-fixtures/scripts/generate.py",
     "fixtures:check": "python3 packages/test-fixtures/scripts/generate.py --check"

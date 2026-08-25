@@ -111,7 +111,12 @@ So the rule is: if it can be tested on the host, it belongs in `StoryArcKit`.
 ```bash
 pnpm test:ios        # StoryArcKit, on the host
 pnpm test:ios:epub   # StoryArcEpub, on a simulator — Readium needs one
+pnpm lint:ios        # SwiftLint, from the repository root where the config is
 ```
+
+`pnpm check` runs everything that needs no simulator. `test:ios:epub` and
+`build:ios` are left out of it deliberately — both want a simulator runtime, and
+a gate that is slow to run is a gate that stops being run.
 
 ## Design tokens
 
