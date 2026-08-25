@@ -21,6 +21,22 @@ data class PublicationIdentity(
     data class ServerIdentifier(val sourceId: UUID, val remoteId: String)
 
     /**
+     * A stable key for lists, diffing and anything stored against a publication.
+     *
+     * Built from whichever components exist, in the priority ADR-0006 gives them, so
+     * a publication that later gains a server id keeps a usable key throughout
+     * rather than changing identity mid-session.
+     *
+     * On the identity rather than on [Publication], because the identity is the only
+     * thing that decides it — and a caller that holds an identity and not a whole
+     * publication needs it just as much.
+     */
+    val stableId: String
+        get() = serverIdentifier?.let { "srv:${it.sourceId}:${it.remoteId}" }
+            ?: contentDigest?.let { "sha:$it" }
+            ?: "path:${normalizedPath ?: ""}"
+
+    /**
      * Two identities match when *any* recorded component matches. A file that
      * gains a server id later still resolves to the progress recorded against
      * its digest.

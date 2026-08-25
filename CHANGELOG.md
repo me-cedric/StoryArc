@@ -98,6 +98,19 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **The reading theme survives closing the book**, and it is remembered per series
+  rather than globally. Previously every choice was lost on close.
+  - A theme is stored per shelf: the series, or the book itself where it has no
+    series, because a standalone book is a series of one — keying it to the global
+    default would mean reading one novel in sepia changed every other book.
+  - Reflowable and fixed-layout keep separate defaults. A line height means nothing
+    to a page of artwork, and wanting cream paper for novels does not mean wanting it
+    behind a comic.
+  - Changing the global default cannot overwrite a choice already made for a series,
+    and that needs no logic: the two live in different places, so one cannot reach
+    the other.
+  - The typography travels with the theme, not just the preset name. Storing only the
+    preset would put a moved line height back on the next open.
 - **A reading background of your own**, kept legible whether you like it or not.
   Eight swatches, a picker, and a text colour derived from whatever you choose.
   - The derived colour is black or white and nothing else, because contrast depends

@@ -1,5 +1,6 @@
 package app.storyarc.core.model
 
+import kotlinx.serialization.Serializable
 /**
  * The typeface a reader can choose.
  *
@@ -138,6 +139,7 @@ enum class FontSizeStep(val percent: Int) {
  * Each platform maps this onto its own Readium preferences type. Nothing here is a
  * Readium type, which is what lets it be tested on a host JVM.
  */
+@Serializable
 data class ThemeValues(
     val typeface: ReaderTypeface = ReaderTypeface.PUBLISHER,
     val fontSize: FontSizeStep = FontSizeStep.NORMAL,

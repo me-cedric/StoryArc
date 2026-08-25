@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -22,6 +23,9 @@ android {
 
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
+    // `api`, not `implementation`: the persistence layer serialises these types, so
+    // the annotations and the serializers have to be visible to it.
+    api(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -59,6 +59,10 @@ public final class EpubReaderModel {
 
     private let url: URL
     private let progress: ProgressStore?
+    /// Where the reader's theme choices live between sessions. `nil` in a test.
+    private let preferences: ReaderPreferences?
+    /// The key this publication remembers its theme under.
+    private let shelf: String
     private var locator: Locator?
     /// The reading order's hrefs, for the progress fallback below.
     private var readingOrder: [String] = []
@@ -71,18 +75,32 @@ public final class EpubReaderModel {
     /// nothing outside learns which engine is rendering the page.
     @ObservationIgnored private var observer: NavigatorObserver?
 
+    /// - Parameter preferences: the store the theme is read from and written back
+    ///   to. Passing `nil` gives a reader that forgets, which is what a test wants
+    ///   and what the app had before themes persisted.
     public init(
         publication: StoryArcCore.Publication,
         url: URL,
         progress: ProgressStore? = nil,
-        theme: ReadingTheme = ReadingTheme()
+        preferences: ReaderPreferences? = nil
     ) {
         self.publication = publication
         self.url = url
         self.progress = progress
-        self.theme = theme
-        self.values = theme.preset.values
+        self.preferences = preferences
+        // Its series, or itself where it has none. `reading-themes` scopes a theme to
+        // the series, and a standalone book is a series of one.
+        self.shelf = ThemeMemory.shelf(series: publication.series, identity: publication.id)
+
+        // The reflowable scope. A fixed-layout EPUB never reaches this reader —
+        // `ebook-reader` sends it to the comic reader, which has pages.
+        let stored = preferences?.themes().theme(for: Self.scope, shelf: shelf) ?? StoredTheme()
+        self.theme = stored.theme
+        self.values = stored.values
     }
+
+    /// Always reflowable. See the note in `init`.
+    private static let scope = ThemeScope.reflowable
 
     /// Adopts a preset, discarding any deviation from the last one.
     ///
@@ -148,7 +166,23 @@ public final class EpubReaderModel {
         adopt(.paper)
     }
 
+    /// Writes the theme back, so the next book on this shelf opens the way this one
+    /// was left.
+    ///
+    /// ponytail: reads and rewrites the whole blob per change. A drag now emits ten
+    /// steps rather than one per frame, and the blob is a handful of small records,
+    /// so this is cheaper than a debounce would be to get right. Debounce it if a
+    /// reader with a thousand shelves ever notices.
+    private func remember() {
+        guard let preferences else { return }
+        let stored = StoredTheme(theme: theme, values: values)
+        preferences.save(
+            preferences.themes().remembering(stored, for: Self.scope, shelf: shelf)
+        )
+    }
+
     private func applyTheme() {
+        remember()
         guard let navigator else { return }
 
         // Where the reader is, before the reflow moves it.

@@ -2,32 +2,39 @@ public import Foundation
 
 public import StoryArcCore
 
-/// How the reader was left, remembered across launches.
-///
-/// `comic-reader`: the fit choice "persists per series". Per series is not yet
-/// possible — a series is a name inferred from a folder, not an entity anything can
-/// be keyed on — so this is one setting for the reader. That is a smaller promise
-/// than the spec makes, and it is the honest one until series exist.
-///
-/// Separate from `LibraryPreferences` because it answers a different question.
-/// Android's `ReaderPreferences` keeps the same value in `SharedPreferences`.
-///
-/// Not `Sendable`: `UserDefaults` is not, and claiming otherwise would be a lie the
-/// compiler cannot catch.
 public struct ReaderPreferences {
     private let defaults: UserDefaults
     private let fitKey = "app.storyarc.pageFit"
+    private let themesKey = "app.storyarc.themes"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }
 
-    /// The stored fit, or fit-to-screen — the only mode that never hides a panel.
     public func pageFit() -> PageFit {
         PageFit(rawValue: defaults.string(forKey: fitKey) ?? "") ?? .screen
     }
 
     public func save(_ fit: PageFit) {
         defaults.set(fit.rawValue, forKey: fitKey)
+    }
+
+    /// Every reading theme the reader has chosen, per shelf and per scope.
+    ///
+    /// One blob rather than a key per shelf: the whole point of `ThemeMemory` is that
+    /// resolution walks from shelf to scope to built-in default, and a store that
+    /// scattered the entries across `UserDefaults` keys would have to reimplement
+    /// that walk. Unreadable stored data reads as no data — a theme is a preference,
+    /// and losing one is worth far less than refusing to open the book.
+    public func themes() -> ThemeMemory {
+        guard let data = defaults.data(forKey: themesKey),
+              let memory = try? JSONDecoder().decode(ThemeMemory.self, from: data)
+        else { return ThemeMemory() }
+        return memory
+    }
+
+    public func save(_ memory: ThemeMemory) {
+        guard let data = try? JSONEncoder().encode(memory) else { return }
+        defaults.set(data, forKey: themesKey)
     }
 }

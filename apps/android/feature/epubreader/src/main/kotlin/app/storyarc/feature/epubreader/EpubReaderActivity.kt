@@ -25,6 +25,7 @@ import app.storyarc.core.designsystem.theme.AppearanceMode
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.ProgressStore
+import app.storyarc.core.persistence.ReaderPreferences
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
@@ -55,6 +56,7 @@ class EpubReaderActivity : FragmentActivity() {
     companion object {
         private const val EXTRA_LOCATION = "location"
         private const val EXTRA_TITLE = "title"
+        private const val EXTRA_SERIES = "series"
         private const val NAVIGATOR_TAG = "epub-navigator"
 
         /** Long enough for Readium to re-paginate, short enough not to be seen. */
@@ -64,10 +66,21 @@ class EpubReaderActivity : FragmentActivity() {
          * @param location where the book lives, as the library recorded it: a
          *   filesystem path, or a `content://` URI from a folder the user picked.
          */
-        fun intent(context: Context, location: String, title: String): Intent =
+        /**
+         * @param series what shelf the book sits on, so the theme it is read with is
+         *   the one the rest of the series was read with. Null for a standalone book,
+         *   which then remembers a theme of its own.
+         */
+        fun intent(
+            context: Context,
+            location: String,
+            title: String,
+            series: String?,
+        ): Intent =
             Intent(context, EpubReaderActivity::class.java)
                 .putExtra(EXTRA_LOCATION, location)
                 .putExtra(EXTRA_TITLE, title)
+                .putExtra(EXTRA_SERIES, series)
     }
 
     private val model: EpubReaderViewModel by lazy {
@@ -78,6 +91,8 @@ class EpubReaderActivity : FragmentActivity() {
                 normalizedPath = requireNotNull(intent.getStringExtra(EXTRA_LOCATION)),
             ),
             progress = ProgressStore.open(applicationContext),
+            themeStore = ReaderPreferences.open(applicationContext),
+            series = intent.getStringExtra(EXTRA_SERIES),
         )
     }
 

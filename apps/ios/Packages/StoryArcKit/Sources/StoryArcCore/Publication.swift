@@ -65,13 +65,7 @@ public struct Publication: Sendable, Equatable, Identifiable {
     /// Built from whichever identity components exist, in the priority ADR-0006
     /// gives them, so a publication that later gains a server id keeps a usable
     /// key throughout rather than changing identity mid-session.
-    public var id: String {
-        if let server = identity.serverIdentifier {
-            return "srv:\(server.sourceID.uuidString):\(server.remoteID)"
-        }
-        if let digest = identity.contentDigest { return "sha:\(digest)" }
-        return "path:\(identity.normalizedPath ?? "")"
-    }
+    public var id: String { identity.stableID }
 
     public let format: PublicationFormat
     /// How the publication is presented: the title if it has one, else the series

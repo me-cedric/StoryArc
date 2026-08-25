@@ -83,6 +83,7 @@ class MainActivity : ComponentActivity() {
                                         this@MainActivity,
                                         path,
                                         publication.displayTitle,
+                                        publication.series,
                                     ),
                                 )
                             } else {

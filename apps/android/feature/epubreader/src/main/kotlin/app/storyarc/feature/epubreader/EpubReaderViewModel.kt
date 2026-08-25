@@ -5,6 +5,9 @@ import android.net.Uri
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ReadingTheme
+import app.storyarc.core.model.StoredTheme
+import app.storyarc.core.model.ThemeMemory
+import app.storyarc.core.model.ThemeScope
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.ThemeValues
@@ -13,12 +16,15 @@ import app.storyarc.core.model.values
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.ProgressStore
+import app.storyarc.core.persistence.ReaderPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -48,8 +54,33 @@ class EpubReaderViewModel(
     private val location: String,
     private val identity: PublicationIdentity,
     private val progress: ProgressStore?,
+    /**
+     * Where the reader's theme choices live between sessions. Null in a test.
+     *
+     * Named `themeStore` rather than `preferences`, because this type already has a
+     * `preferences` — the Readium value it hands the navigator. Two different things
+     * with one name in one file is how a wrong one gets passed.
+     */
+    private val themeStore: ReaderPreferences? = null,
+    /** What shelf this book sits on. Null for a standalone book. */
+    series: String? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    /**
+     * The key this publication remembers its theme under: its series, or itself where
+     * it has none. `reading-themes` scopes a theme to the series, and a standalone
+     * book is a series of one.
+     */
+    private val shelf = ThemeMemory.shelf(series, identity.stableId)
+
+    /**
+     * Always reflowable. A fixed-layout EPUB never reaches this reader —
+     * `ebook-reader` sends it to the comic reader, which has pages.
+     */
+    private val themeScope = ThemeScope.REFLOWABLE
+
+    private val stored = themeStore?.themes()?.theme(themeScope, shelf) ?: StoredTheme()
 
     /**
      * The reading order's hrefs, for the progress fallback below.
@@ -72,11 +103,11 @@ class EpubReaderViewModel(
     val chapterTitle: StateFlow<String?> = _chapterTitle.asStateFlow()
 
     /** Which preset is on and which axes have been moved from it. */
-    private val _theme = MutableStateFlow(ReadingTheme())
+    private val _theme = MutableStateFlow(stored.theme)
     val theme: StateFlow<ReadingTheme> = _theme.asStateFlow()
 
     /** The typography in force: the preset's own values until an axis is moved. */
-    private val _values = MutableStateFlow(ReadingTheme().preset.values)
+    private val _values = MutableStateFlow(stored.values)
     val values: StateFlow<ThemeValues> = _values.asStateFlow()
 
     /**
@@ -167,6 +198,32 @@ class EpubReaderViewModel(
      */
     fun leavePublisherStyles() {
         if (_theme.value.preset.keepsPublisherStyles) adopt(ThemePreset.PAPER)
+    }
+
+    /**
+     * Writes the theme back, so the next book on this shelf opens the way this one
+     * was left.
+     *
+     * Collected rather than called from each mutator: there are six of them, and one
+     * that forgot to call would lose a reader's choice silently. Watching the two
+     * flows instead means a seventh mutator cannot forget.
+     *
+     * ponytail: reads and rewrites the whole blob per change. A drag now emits ten
+     * steps rather than one per frame, and the blob is a handful of small records, so
+     * this is cheaper than a debounce would be to get right. Debounce it if a reader
+     * with a thousand shelves ever notices.
+     */
+    private fun rememberThemeChanges() {
+        val store = themeStore ?: return
+        scope.launch {
+            combine(_theme, _values) { theme, values -> StoredTheme(theme, values) }
+                .drop(1)
+                .collect { store.save(store.themes().remembering(it, themeScope, shelf)) }
+        }
+    }
+
+    init {
+        rememberThemeChanges()
     }
 
     /** Nothing on screen while reading; one tap brings it back. */

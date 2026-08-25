@@ -245,18 +245,55 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       reflowable and fixed-layout separate defaults that have to be *stored*
       somewhere. See 3.10.
 
-- [ ] **3.10** **Theme scope and persistence.** Added: the `reading-themes`
-      requirement of the same name has no task, and the gap is visible in the
-      product — `_theme` starts at `ReadingTheme()` on every open, so every choice
-      a reader makes is lost when they close the book.
+- [x] **3.10** **Theme scope and persistence.** Added, because the
+      `reading-themes` requirement of the same name had no task and the gap was
+      visible in the product: the theme started at its default on every open, so
+      every choice a reader made was lost when they closed the book. **Done for
+      reflowable publications.**
 
-      Three scenarios to honour: a theme applies to every publication in the same
-      series, with a global default for series never opened; reflowable and
-      fixed-layout keep separate defaults; and changing the global default does not
-      overwrite a per-series choice already made.
+      `ThemeMemory` is one small data structure that answers all three scenarios,
+      and the third answers itself. A theme is stored per *shelf* — its series, or
+      its own identity where it has none, because a standalone book is a series of
+      one and keying it to the global default would mean reading one novel in sepia
+      changed every other book. A scope's default covers a shelf never opened. And
+      "changing the default does not overwrite a per-series choice already made"
+      needs no logic at all: `settingDefault` writes to a different dictionary, so it
+      *cannot* reach a shelf entry.
 
-      It also unblocks the held half of 3.7 and the custom background in the comic
-      reader.
+      Reflowable and fixed-layout are separate scopes because the spec says so and
+      because it is right: a line height means nothing to a page of artwork, and a
+      reader who wants cream paper for novels may well want black behind a comic. The
+      key carries the scope, so a series called "Bone" holding both a comic and an
+      ebook does not share one entry.
+
+      A `StoredTheme` is the theme *and* the typography, not just the preset. Storing
+      only the preset would silently put a moved line height back on the next open —
+      losing work the reader can see they did. Two round-trip tests hold that, and a
+      third holds it for a custom palette.
+
+      Android needed `kotlinx.serialization`, which was already in the version
+      catalogue and unused. Hand-rolling a JSON codec for a map of nested records is
+      exactly the boilerplate it exists to remove, and the model will need
+      serialising again for sync. iOS was already `Codable`.
+
+      One thing moved while wiring this: the stable publication key is now
+      `PublicationIdentity.stableId`, with `Publication.id` delegating to it. The
+      identity is the only thing that decides the key, and a caller holding an
+      identity and not a whole publication needs it just as much — the reader's view
+      model, as it turns out.
+
+      The Android save is a `combine` over the two flows rather than a call in each
+      mutator. There are six mutators; one that forgot would lose a choice silently.
+
+      Verified on the emulator: chose Calm, stepped the size to 115%, force-stopped
+      the app, relaunched, reopened the book — Calm at 115%, still marked Modified.
+      iOS runs the same resolution through `UserDefaults` and is covered by the same
+      domain tests, but has not been driven end to end on a simulator.
+
+      **Held:** the global default is readable and writable but no settings screen
+      changes it yet — that is `settings-and-about`, which does not exist. And the
+      comic reader still hard-codes black, so the fixed-layout scope has no reader
+      reading it. See 3.11.
 - [ ] **3.8** Tablet: popover on iPadOS, expanded anchored sheet on Android, with
       the reader still visible.
 - [x] **3.9** Accessibility: slider values and increment actions, grid semantics
@@ -400,3 +437,11 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 - [ ] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce
       Motion, Reduce Transparency, largest text size.
 - [ ] **7.7** `/opsx:sync` to merge the delta specs into the main specs.
+- [ ] **3.11** **The custom background around a fixed-layout page.** The last
+      scenario of 3.7: a custom background "applies to the area around the page and
+      not to the page itself, because tinting artwork is not a reading preference".
+
+      Now unblocked by 3.10 — the fixed-layout scope exists and resolves — but the
+      comic reader hard-codes `Color.Black` and knows nothing about a reading theme.
+      It needs the theme threaded in on both platforms, and the matte around the page
+      painted from it.

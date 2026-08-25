@@ -1,5 +1,6 @@
 package app.storyarc.core.model
 
+import kotlinx.serialization.Serializable
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -83,6 +84,7 @@ object ReadingContrast {
  * @property background `#rrggbb`.
  * @property foreground `#rrggbb`, derived from the background unless overridden.
  */
+@Serializable
 data class ReaderPalette(
     val name: String,
     val background: String,

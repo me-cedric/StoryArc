@@ -81,7 +81,8 @@ struct StoryArcApp: App {
                     EpubReaderView(
                         publication: selection.publication,
                         url: selection.url,
-                        progress: progress
+                        progress: progress,
+                        preferences: ReaderPreferences()
                     )
                     // Identity, so opening the next issue from the end screen
                     // builds a fresh reader rather than reusing the previous one's

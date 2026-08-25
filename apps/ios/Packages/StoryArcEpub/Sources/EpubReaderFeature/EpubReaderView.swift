@@ -28,9 +28,19 @@ public struct EpubReaderView: View {
     /// What the device's brightness was before the reader touched it.
     @State private var deviceBrightness: CGFloat?
 
-    public init(publication: Publication, url: URL, progress: ProgressStore? = nil) {
+    public init(
+        publication: Publication,
+        url: URL,
+        progress: ProgressStore? = nil,
+        preferences: ReaderPreferences? = nil
+    ) {
         _model = State(
-            initialValue: EpubReaderModel(publication: publication, url: url, progress: progress)
+            initialValue: EpubReaderModel(
+                publication: publication,
+                url: url,
+                progress: progress,
+                preferences: preferences
+            )
         )
     }
 

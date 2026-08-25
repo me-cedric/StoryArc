@@ -143,17 +143,8 @@ data class Publication(
     val isFixedLayout: Boolean = false,
     val streaming: StreamingCapability = StreamingCapability.STREAMS,
 ) {
-    /**
-     * A stable key for lists and diffing.
-     *
-     * Built from whichever identity components exist, in the priority ADR-0006
-     * gives them, so a publication that later gains a server id keeps a usable key
-     * throughout rather than changing identity mid-session.
-     */
-    val id: String
-        get() = identity.serverIdentifier?.let { "srv:${it.sourceId}:${it.remoteId}" }
-            ?: identity.contentDigest?.let { "sha:$it" }
-            ?: "path:${identity.normalizedPath ?: ""}"
+    /** A stable key for lists and diffing. See [PublicationIdentity.stableId]. */
+    val id: String get() = identity.stableId
 
     /**
      * Whether the reader can open this at all.

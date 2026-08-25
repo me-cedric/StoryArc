@@ -1,5 +1,6 @@
 package app.storyarc.core.model
 
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -268,6 +269,69 @@ class ReadingThemeTest {
         val theme = ReadingTheme(ThemePreset.ORIGINAL)
             .adopting(ReaderPalette.derived("Sea", "#0B2027"))
         assertFalse(theme.isCustom)
+    }
+
+    // Remembering.
+
+    @Test
+    fun `A theme set on one book in a series is what the next book in it opens with`() {
+        val chosen = StoredTheme(ReadingTheme(ThemePreset.CALM))
+        val memory = ThemeMemory().remembering(chosen, ThemeScope.REFLOWABLE, "Bone")
+        assertEquals(ThemePreset.CALM, memory.theme(ThemeScope.REFLOWABLE, "Bone").theme.preset)
+        // A shelf never opened falls through to the default, not to the last book read.
+        assertEquals(ThemePreset.PAPER, memory.theme(ThemeScope.REFLOWABLE, "Blame!").theme.preset)
+    }
+
+    @Test
+    fun `Reflowable and fixed-layout keep separate defaults for the same shelf name`() {
+        // A series called "Bone" can hold both a comic and an ebook, and a line height
+        // means nothing to a page of artwork.
+        val memory = ThemeMemory()
+            .remembering(StoredTheme(ReadingTheme(ThemePreset.CALM)), ThemeScope.REFLOWABLE, "Bone")
+            .remembering(StoredTheme(ReadingTheme(ThemePreset.QUIET)), ThemeScope.FIXED_LAYOUT, "Bone")
+        assertEquals(ThemePreset.CALM, memory.theme(ThemeScope.REFLOWABLE, "Bone").theme.preset)
+        assertEquals(ThemePreset.QUIET, memory.theme(ThemeScope.FIXED_LAYOUT, "Bone").theme.preset)
+    }
+
+    @Test
+    fun `Changing the global default leaves a choice already made alone`() {
+        val memory = ThemeMemory()
+            .remembering(StoredTheme(ReadingTheme(ThemePreset.CALM)), ThemeScope.REFLOWABLE, "Bone")
+            .settingDefault(StoredTheme(ReadingTheme(ThemePreset.FOCUS)), ThemeScope.REFLOWABLE)
+        assertEquals(ThemePreset.CALM, memory.theme(ThemeScope.REFLOWABLE, "Bone").theme.preset)
+        assertEquals(ThemePreset.FOCUS, memory.theme(ThemeScope.REFLOWABLE, "unopened").theme.preset)
+        // And it does not leak across scopes.
+        assertEquals(ThemePreset.PAPER, memory.theme(ThemeScope.FIXED_LAYOUT, "unopened").theme.preset)
+    }
+
+    @Test
+    fun `A book with no series is a series of one, not the global default`() {
+        // Otherwise reading one novel in sepia would change every other book.
+        assertEquals("Bone", ThemeMemory.shelf("Bone", "abc"))
+        assertEquals("abc", ThemeMemory.shelf(null, "abc"))
+        assertEquals("abc", ThemeMemory.shelf("   ", "abc"))
+    }
+
+    @Test
+    fun `A deviation survives a round trip, because the values travel with the theme`() {
+        val stored = StoredTheme(
+            theme = ReadingTheme(ThemePreset.PAPER, setOf(ThemeAxis.LINE_SPACING)),
+            values = ThemePreset.PAPER.values.copy(lineHeight = 2.1),
+        )
+        val memory = ThemeMemory().remembering(stored, ThemeScope.REFLOWABLE, "Bone")
+        val decoded = Json.decodeFromString<ThemeMemory>(Json.encodeToString(memory))
+        val read = decoded.theme(ThemeScope.REFLOWABLE, "Bone")
+        assertEquals(2.1, read.values.lineHeight, 0.0001)
+        assertTrue(read.theme.isModified)
+    }
+
+    @Test
+    fun `A custom palette survives a round trip too`() {
+        val palette = ReaderPalette.derived("Sea", "#0B2027")
+        val memory = ThemeMemory()
+            .remembering(StoredTheme(ReadingTheme().adopting(palette)), ThemeScope.REFLOWABLE, "Bone")
+        val decoded = Json.decodeFromString<ThemeMemory>(Json.encodeToString(memory))
+        assertEquals(palette, decoded.theme(ThemeScope.REFLOWABLE, "Bone").theme.custom)
     }
 
     // Axis units.

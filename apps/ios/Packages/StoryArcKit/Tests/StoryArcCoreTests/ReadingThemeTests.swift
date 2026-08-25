@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import StoryArcCore
@@ -263,6 +264,74 @@ struct ReadingThemeTests {
         let theme = ReadingTheme(preset: .original)
             .adopting(ReaderPalette.derived(name: "Sea", background: "#0B2027"))
         #expect(!theme.isCustom)
+    }
+
+    // MARK: - Remembering
+
+    @Test("A theme set on one book in a series is what the next book in it opens with")
+    func perSeriesMemory() {
+        let chosen = StoredTheme(theme: ReadingTheme(preset: .calm))
+        let memory = ThemeMemory()
+            .remembering(chosen, for: .reflowable, shelf: "Bone")
+        #expect(memory.theme(for: .reflowable, shelf: "Bone").theme.preset == .calm)
+        // A shelf never opened falls through to the default, not to the last book read.
+        #expect(memory.theme(for: .reflowable, shelf: "Blame!").theme.preset == .paper)
+    }
+
+    @Test("Reflowable and fixed-layout keep separate defaults for the same shelf name")
+    func scopesDoNotCollide() {
+        // A series called "Bone" can hold both a comic and an ebook, and a line height
+        // means nothing to a page of artwork.
+        let memory = ThemeMemory()
+            .remembering(StoredTheme(theme: ReadingTheme(preset: .calm)), for: .reflowable, shelf: "Bone")
+            .remembering(StoredTheme(theme: ReadingTheme(preset: .quiet)), for: .fixedLayout, shelf: "Bone")
+        #expect(memory.theme(for: .reflowable, shelf: "Bone").theme.preset == .calm)
+        #expect(memory.theme(for: .fixedLayout, shelf: "Bone").theme.preset == .quiet)
+    }
+
+    @Test("Changing the global default leaves a choice already made alone")
+    func defaultDoesNotOverwriteAShelf() {
+        let memory = ThemeMemory()
+            .remembering(StoredTheme(theme: ReadingTheme(preset: .calm)), for: .reflowable, shelf: "Bone")
+            .settingDefault(StoredTheme(theme: ReadingTheme(preset: .focus)), for: .reflowable)
+        #expect(memory.theme(for: .reflowable, shelf: "Bone").theme.preset == .calm)
+        #expect(memory.theme(for: .reflowable, shelf: "unopened").theme.preset == .focus)
+        // And it does not leak across scopes.
+        #expect(memory.theme(for: .fixedLayout, shelf: "unopened").theme.preset == .paper)
+    }
+
+    @Test("A book with no series is a series of one, not the global default")
+    func standaloneBookIsItsOwnShelf() {
+        // Otherwise reading one novel in sepia would change every other book.
+        #expect(ThemeMemory.shelf(series: "Bone", identity: "abc") == "Bone")
+        #expect(ThemeMemory.shelf(series: nil, identity: "abc") == "abc")
+        #expect(ThemeMemory.shelf(series: "   ", identity: "abc") == "abc")
+    }
+
+    @Test("A deviation survives a round trip, because the values travel with the theme")
+    func deviationsSurvive() throws {
+        var values = ThemePreset.paper.values
+        values.lineHeight = 2.1
+        let stored = StoredTheme(
+            theme: ReadingTheme(preset: .paper, deviations: [.lineSpacing]),
+            values: values
+        )
+        let memory = ThemeMemory().remembering(stored, for: .reflowable, shelf: "Bone")
+        let encoded = try JSONEncoder().encode(memory)
+        let decoded = try JSONDecoder().decode(ThemeMemory.self, from: encoded)
+        let read = decoded.theme(for: .reflowable, shelf: "Bone")
+        #expect(read.values.lineHeight == 2.1)
+        #expect(read.theme.isModified)
+    }
+
+    @Test("A custom palette survives a round trip too")
+    func customColoursSurvive() throws {
+        let palette = ReaderPalette.derived(name: "Sea", background: "#0B2027")
+        let stored = StoredTheme(theme: ReadingTheme().adopting(palette))
+        let memory = ThemeMemory().remembering(stored, for: .reflowable, shelf: "Bone")
+        let encoded = try JSONEncoder().encode(memory)
+        let decoded = try JSONDecoder().decode(ThemeMemory.self, from: encoded)
+        #expect(decoded.theme(for: .reflowable, shelf: "Bone").theme.custom == palette)
     }
 
     // MARK: - Axis units

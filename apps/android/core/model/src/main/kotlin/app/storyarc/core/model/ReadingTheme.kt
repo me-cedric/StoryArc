@@ -1,5 +1,6 @@
 package app.storyarc.core.model
 
+import kotlinx.serialization.Serializable
 /**
  * The named reading themes.
  *
@@ -12,6 +13,7 @@ package app.storyarc.core.model
  * `readingThemes`, so all six go through the existing AAA contrast gate and a
  * preset that fails 7:1 fails the build.
  */
+@Serializable
 enum class ThemePreset {
     /** The publication as its publisher styled it. */
     ORIGINAL,
@@ -54,6 +56,7 @@ enum class ThemePreset {
  * stylesheet is still in force. That is a property of the axis, not of the UI, which
  * is why it lives here.
  */
+@Serializable
 enum class ThemeAxis {
     FONT_SIZE,
     FONT_FAMILY,
@@ -93,6 +96,7 @@ enum class ThemeAxis {
  *
  * iOS's `ReadingTheme` is the same value with the same rules.
  */
+@Serializable
 data class ReadingTheme(
     val preset: ThemePreset = ThemePreset.PAPER,
     /** The axes moved since the preset was adopted. */
