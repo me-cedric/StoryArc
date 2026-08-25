@@ -668,6 +668,35 @@
         }
       }
     },
+    "reading.volumeButtons.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lautstärketasten können auf iOS nicht blättern: das System reserviert sie, und der einzige Umweg bricht, sobald etwas anderes Audio abspielt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume buttons cannot turn pages on iOS: the system reserves them, and the only way around that breaks whenever something else plays audio."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los botones de volumen no pueden cambiar de página en iOS: el sistema los reserva, y el único atajo se rompe cuando algo más reproduce audio."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les touches de volume ne peuvent pas tourner les pages sur iOS : le système les réserve, et le seul contournement casse dès qu’un autre son est joué."
+          }
+        }
+      }
+    },
     "settings.about": {
       "extractionState": "manual",
       "localizations": {

@@ -87,6 +87,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.LocalVolumeTurns
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PageEntry
 import app.storyarc.core.model.PageFit
@@ -318,8 +319,24 @@ private fun Pager(
         turn(target)
     }
 
-    // `comic-reader`: the mapped keys turn pages. Arrow, page and space only —
-    // volume buttons are behind a setting the app does not have yet.
+    // `page-transitions`: the volume buttons turn pages "where enabled in settings". A
+    // volume key never reaches Compose — it arrives at the activity, and only the activity
+    // can consume it before the system changes the volume — so the reader offers a handler
+    // and the host decides whether to call it.
+    val volume = LocalVolumeTurns.current
+    DisposableEffect(volume, isRightToLeft) {
+        volume.turn = { forward ->
+            // In turn-space, so a right-to-left publication still advances on volume-up.
+            // The display order is already reversed, which is why this is a step of one
+            // either way rather than a sign flip.
+            turn(paging.current + if (forward) 1 else -1)
+            true
+        }
+        onDispose { volume.turn = null }
+    }
+
+    // `comic-reader`: the mapped keys turn pages. Arrow, page and space, plus the volume
+    // buttons where the reader asked for them.
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
 

@@ -59,10 +59,9 @@ enum SettingsGroup: String, CaseIterable, Identifiable {
     func summaryKey(for settings: AppSettings) -> LocalizedStringKey {
         switch self {
         case .appearance: settings.appearance.localizedNameKey
-        case .reading:
-            settings.turnPagesWithVolumeButtons
-                ? "settings.reading.summary.volume"
-                : "settings.reading.summary"
+        // Not the volume setting: iOS cannot honour it, so a summary claiming it would be
+        // a summary of something that does not happen.
+        case .reading: "settings.reading.summary"
         case .language:
             settings.language == nil ? "settings.language.system" : "settings.language.custom"
         case .privacy: "settings.privacy.summary"

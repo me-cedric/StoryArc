@@ -102,6 +102,11 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **The volume buttons turn pages on Android**, off by default and explained where it
+  sits — volume keys that silently stop changing the volume are a defect, not a feature.
+  - It cannot be done on iOS within the rules: the system owns those buttons, and the only
+    way round it is a trick App Review has rejected and that breaks whenever anything else
+    plays audio. The setting says so instead of offering a switch that does nothing.
 - **Settings exists.** Seven groups in the order the spec names them, each row stating
   its current value so a setting can be checked without opening it. Reachable from the
   library even when the library is empty — a reader with no books still needs About.

@@ -68,17 +68,19 @@ struct ReadingSettings: View {
     var body: some View {
         List {
             Section {
-                Toggle(isOn: $settings.turnPagesWithVolumeButtons) {
-                    VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                        Text("reading.volumeButtons", bundle: .module)
-                        // Off by default and said out loud, because `page-transitions`
-                        // asks for the volume buttons "where enabled in settings": volume
-                        // keys that silently stop changing the volume are a defect.
-                        Text("reading.volumeButtons.note", bundle: .module)
-                            .textRole(.footnote)
-                            .foregroundStyle(theme.palette.textTertiary)
-                    }
-                }
+                // Stated, not offered. `page-transitions` asks for the volume buttons
+                // "where enabled in settings", and on iOS there is no setting that can
+                // deliver it: the system owns the volume buttons, and the only way to
+                // observe them is to watch `AVAudioSession.outputVolume` — a trick App
+                // Review has rejected, and one that breaks the moment something else
+                // plays audio.
+                //
+                // So the row says why rather than pretending. Android has the toggle;
+                // `page-transitions` already allows a trigger to be absent where the
+                // platform cannot honour it, which is the same clause the curl uses.
+                Text("reading.volumeButtons.unavailable", bundle: .module)
+                    .textRole(.footnote)
+                    .foregroundStyle(theme.palette.textTertiary)
             }
 
             Section {

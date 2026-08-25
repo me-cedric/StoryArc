@@ -1,5 +1,9 @@
 package app.storyarc
 
+import android.view.KeyEvent
+import app.storyarc.core.designsystem.theme.LocalVolumeTurns
+import app.storyarc.core.designsystem.theme.VolumeTurns
+import androidx.compose.runtime.CompositionLocalProvider
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,6 +35,38 @@ import androidx.compose.runtime.setValue
 import androidx.activity.compose.BackHandler
 
 class MainActivity : ComponentActivity() {
+    /**
+     * Filled in by whichever reader is on screen, read by [onKeyDown].
+     *
+     * A volume key never reaches Compose: it arrives here, and only here can it be
+     * consumed before the system changes the volume. `page-transitions` asks for the
+     * volume buttons "where enabled in settings", so both halves have to be true — a
+     * reader on screen *and* the setting on.
+     */
+    private val volumeTurns = VolumeTurns()
+
+    /** Read on each key press rather than cached: the setting can change mid-session. */
+    private val volumeTurnsEnabled: Boolean
+        get() = SettingsStore.open(applicationContext).settings().turnPagesWithVolumeButtons
+
+    /**
+     * Volume keys, when a reader asked for them and the reader turned them on.
+     *
+     * Consumed rather than passed on, which is the whole point and also the risk: a reader
+     * who cannot find why their volume keys stopped working has a defect, not a feature.
+     * That is why the setting is off by default and says what it does.
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        val forward = when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_DOWN -> true
+            KeyEvent.KEYCODE_VOLUME_UP -> false
+            else -> return super.onKeyDown(keyCode, event)
+        }
+        val turn = volumeTurns.turn ?: return super.onKeyDown(keyCode, event)
+        if (!volumeTurnsEnabled) return super.onKeyDown(keyCode, event)
+        return turn(forward) || super.onKeyDown(keyCode, event)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // `native-experience`: draw edge to edge and handle insets, rather than
         // avoiding them. Not optional on API 35+, and correct below it anyway.
@@ -54,6 +90,9 @@ class MainActivity : ComponentActivity() {
             var settings by remember { mutableStateOf(settingsStore.settings()) }
 
             StoryArcTheme(appearance = settings.appearance, useDynamicColor = true) {
+                // Provided here so both readers can fill it in, and so `onKeyDown` has
+                // something to read. Volume-down turns forward, which is the convention
+                // every reader app that offers this uses — down is "next", like a scroll.
                 // The app layer owns navigation between features, because a
                 // feature module never depends on another feature module
                 // (docs/architecture). The library reports a choice; the reader
@@ -130,7 +169,8 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     BackHandler { reading = null }
-                    ReaderScreen(
+                    CompositionLocalProvider(LocalVolumeTurns provides volumeTurns) {
+                        ReaderScreen(
                         viewModel = readerViewModel,
                         onClose = { reading = null },
                         preferences = readerPreferences,
@@ -150,7 +190,8 @@ class MainActivity : ComponentActivity() {
                                 reading = publication to it
                             }
                         },
-                    )
+                        )
+                    }
                 }
             }
         }

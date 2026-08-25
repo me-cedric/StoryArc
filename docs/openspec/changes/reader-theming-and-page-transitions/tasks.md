@@ -620,10 +620,15 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       arrive as the same key events, which is why the keyboard path is the controller
       path.
 
-      Volume buttons are held, and the spec is the reason: "the volume buttons **where
-      enabled in settings**". There is no settings screen to enable them in, and a
-      reader whose volume keys silently stopped changing the volume would be a defect
-      rather than a feature. It belongs with `settings-and-about`.
+      Volume buttons were held on the spec's own wording — "the volume buttons **where
+      enabled in settings**" — because there was no settings screen to enable them in.
+      **There is now**, and they work: `settings-and-about-screens` task 5.1, verified on
+      the emulator with the setting both off and on.
+
+      iOS cannot honour them at all. The system owns those buttons, and the only way round
+      it is a trick App Review has rejected. The Reading group says so rather than
+      offering a switch that does nothing — the same "absent where the platform cannot
+      honour it" clause the curl uses.
 - [x] **4.7** Reduce Motion: fall back to fast fade, keep the modes listed with
       their reason, restore the choice when the setting is turned off. **Done in the
       domain and in both pickers.**

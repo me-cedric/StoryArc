@@ -158,9 +158,32 @@
 
 ## Phase 5 — Unblocking what waited
 
-- [ ] **5.1** Volume-button page turns, off by default —
+- [x] **5.1** Volume-button page turns, off by default —
       `reader-theming-and-page-transitions` 4.6, which was held because volume keys
       that silently stop changing the volume are a defect rather than a feature.
+      **Done on Android. Not possible on iOS, and the app says so.**
+
+      The plumbing is shaped by one fact: a volume key never reaches Compose. It arrives
+      at the `Activity`, and only the activity can consume it before the system changes
+      the volume. So the reader cannot handle this itself — it fills in a handler while it
+      is on screen and the host calls it, and the host also checks the setting, because a
+      handler being present is not on its own permission to use it.
+
+      The holder is provided *downward* through a composition local even though the
+      information flows *up*. That is the trick: a local carries a mutable object the host
+      owns, the reader assigns into it in a `DisposableEffect` and clears it on the way
+      out. A parameter threaded through four screens would say the same thing louder.
+
+      Verified on the emulator, both ways round. With the setting off, two volume-down
+      presses in the reader left it on page 5. With it on, the same two presses took it to
+      page 7.
+
+      **iOS cannot do this within the rules.** The system owns the volume buttons, and the
+      only way to observe them is to watch `AVAudioSession.outputVolume` — a trick App
+      Review has rejected, and one that breaks the moment anything else plays audio. So
+      the Reading group states that rather than offering a switch that does nothing.
+      `page-transitions` already allows a trigger to be absent where the platform cannot
+      honour it; it is the same clause the curl uses.
 - [ ] **5.2** A custom reading colour for comics, so the matte around a fixed-layout
       page has a value to take — that change's 3.11.
 - [ ] **5.3** Natural as a theme with its own light and dark variants, and its grain
