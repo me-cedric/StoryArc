@@ -59,4 +59,7 @@
     <string name="settings_reset_body">La apariencia, las preferencias de lectura y los ajustes por defecto de series nuevas vuelven a su estado inicial.\n\nSus fuentes, descargas, progreso de lectura y los temas elegidos al leer no se ven afectados.</string>
     <string name="settings_reset_confirm">Restablecer</string>
     <string name="settings_cancel">Cancelar</string>
+    <string name="reading_matte">Color detrás de una página de cómic</string>
+    <string name="reading_matte_note">Solo el área alrededor de la página. El arte nunca se tiñe.</string>
+    <string name="reading_matte_none">Negro</string>
 </resources>

@@ -456,14 +456,20 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       iOS carries the same labels and values through the equivalent SwiftUI
       modifiers. Those are not yet driven by VoiceOver — 7.4 is where that belongs.
 
-- [ ] **3.11** **The custom background around a fixed-layout page.** The last
+- [x] **3.11** **The custom background around a fixed-layout page.** The last
       scenario of 3.7: a custom background "applies to the area around the page and
       not to the page itself, because tinting artwork is not a reading preference".
+      **Done on both platforms**, in `settings-and-about-screens` task 5.2 — the matte
+      needed somewhere to be *set* before it was worth painting.
 
-      Now unblocked by 3.10 — the fixed-layout scope exists and resolves — but the
-      comic reader hard-codes `Color.Black` and knows nothing about a reading theme.
-      It needs the theme threaded in on both platforms, and the matte around the page
-      painted from it.
+      Two decisions worth keeping. The artwork is drawn over the matte untouched, which is
+      the whole requirement: tinting the art would be tinting someone else's drawing. And
+      a *preset* deliberately does not reach the matte — a comic has no typography for a
+      preset to change, so all a preset could offer is its paper colour, and that is not
+      what a preset means. Only a colour the reader chose explicitly applies.
+
+      Verified on the emulator: pale green above and below the page, blue artwork over it,
+      unchanged.
 
 ## Phase 4 — Transitions
 

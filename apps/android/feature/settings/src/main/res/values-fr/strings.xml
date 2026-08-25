@@ -59,4 +59,7 @@
     <string name="settings_reset_body">L’apparence, les préférences de lecture et les réglages par défaut des nouvelles séries reviennent à leur état initial.\n\nVos sources, téléchargements, progression de lecture et les thèmes choisis pendant la lecture ne sont pas touchés.</string>
     <string name="settings_reset_confirm">Réinitialiser</string>
     <string name="settings_cancel">Annuler</string>
+    <string name="reading_matte">Couleur derrière une page de BD</string>
+    <string name="reading_matte_note">Uniquement la zone autour de la page. Les illustrations ne sont jamais teintées.</string>
+    <string name="reading_matte_none">Noir</string>
 </resources>

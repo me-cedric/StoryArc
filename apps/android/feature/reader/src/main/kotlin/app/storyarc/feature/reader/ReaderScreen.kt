@@ -165,10 +165,14 @@ fun ReaderScreen(
         onDispose { view.keepScreenOn = false }
     }
 
+    // `reading-themes`: a custom background "applies to the area around the page and not
+    // to the page itself, because tinting artwork is not a reading preference". This is
+    // that area, and black is what it is until a reader says otherwise.
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val matte = remember(settings) { matteColour(settings.theme.custom?.background) }
+
     Box(
-        // Black behind every page, whatever the app's appearance. A comic is read
-        // against its own artwork, not against a themed surface.
-        modifier = modifier.fillMaxSize().background(Color.Black),
+        modifier = modifier.fillMaxSize().background(matte),
         contentAlignment = Alignment.Center,
     ) {
         when {
@@ -180,7 +184,16 @@ fun ReaderScreen(
                 DelayedProgressIndicator()
                 CloseButton(onClose)
             }
-            else -> Pager(viewModel, pages, onClose, nextInSeries, onOpenNext, fit) { fit = it }
+            else -> Pager(
+                viewModel = viewModel,
+                pages = pages,
+                onClose = onClose,
+                nextInSeries = nextInSeries,
+                onOpenNext = onOpenNext,
+                fit = fit,
+                onFitChange = { fit = it },
+                matte = matte,
+            )
         }
     }
 }
@@ -211,6 +224,8 @@ private fun Pager(
     onOpenNext: (Publication) -> Unit,
     fit: PageFit,
     onFitChange: (PageFit) -> Unit,
+    /** What shows behind and beside the page. See [matteColour]. */
+    matte: Color,
 ) {
     val count = pages.size
     val isRightToLeft = viewModel.readingDirection == ReadingDirection.RIGHT_TO_LEFT
@@ -418,6 +433,7 @@ private fun Pager(
             // revealed the wrong side would be worse than no curl.
             beneath = viewModel.image(modelIndex(paging.current + 1)),
             isRightToLeft = isRightToLeft,
+            matte = matte,
             onTurned = { turn(paging.current + 1) },
             onTap = ::handleTap,
             modifier = keyboard,
@@ -972,6 +988,24 @@ private fun Message(text: String) {
 }
 
 /** A quarter of the width each side: hittable on a phone, and the centre still has room. */
+/**
+ * The colour behind the page.
+ *
+ * A comic is read against its own artwork, so black is the default and a *preset* never
+ * reaches here — a preset is a typographic theme and its paper colour means nothing behind
+ * a page of art. Only a colour the reader chose explicitly applies, which is what
+ * `reading-themes` means by "the area around the page and not the page itself".
+ */
+internal fun matteColour(hex: String?): Color {
+    val text = hex?.removePrefix("#") ?: return Color.Black
+    val value = text.toLongOrNull(16) ?: return Color.Black
+    return Color(
+        red = ((value shr 16) and 0xFF) / 255f,
+        green = ((value shr 8) and 0xFF) / 255f,
+        blue = (value and 0xFF) / 255f,
+    )
+}
+
 private const val EDGE_ZONE_FRACTION = 0.25f
 
 /**

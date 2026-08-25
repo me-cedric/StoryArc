@@ -1,6 +1,8 @@
 public import CoreGraphics
 public import Foundation
 
+public import SwiftUI
+
 public import Formats
 public import Persistence
 public import StoryArcCore
@@ -118,6 +120,20 @@ public final class ReaderModel {
             // horizontal the implied axis for anything that is not a strip.
             declaresHorizontal: true
         )
+    }
+
+    /// The colour behind the page, and only behind it.
+    ///
+    /// `reading-themes`: a custom background "applies to the area around the page and not
+    /// to the page itself, because tinting artwork is not a reading preference". So this is
+    /// the matte, the artwork is drawn over it untouched, and a *preset* does not reach
+    /// here at all — a preset is a typographic theme and its paper colour means nothing
+    /// behind a page of artwork. Only a colour the reader chose explicitly applies.
+    ///
+    /// Black otherwise, which is what a comic is read against.
+    public var matte: Color {
+        guard let hex = settings.theme.custom?.background else { return .black }
+        return Color(readerHex: hex) ?? .black
     }
 
     /// Chooses a transition, for this shelf, from now on.

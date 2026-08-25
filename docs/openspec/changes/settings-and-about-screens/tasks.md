@@ -236,8 +236,24 @@
       the Reading group states that rather than offering a switch that does nothing.
       `page-transitions` already allows a trigger to be absent where the platform cannot
       honour it; it is the same clause the curl uses.
-- [ ] **5.2** A custom reading colour for comics, so the matte around a fixed-layout
-      page has a value to take — that change's 3.11.
+- [x] **5.2** A custom reading colour for comics, so the matte around a fixed-layout
+      page has a value to take — that change's 3.11. **Done on both platforms.**
+
+      Swatches in Settings, not the reader's full picker. The picker has sliders and a
+      contrast refusal, and both of those need the *page* visible behind them to be worth
+      anything: here there is nothing to judge a colour against, and every suggested
+      background clears AAA already, so a refusal path with no way to see why would be
+      worse than the nine swatches. Black is one of them, because "none" has to be
+      reachable or a reader who tries a colour is stuck with one.
+
+      A *preset* deliberately does not reach the matte. A comic has no typography for a
+      preset to change, so all a preset could offer it is a paper colour — and that is not
+      what a preset means. Only a colour the reader chose explicitly applies.
+
+      Verified on the emulator: choosing the pale green stored
+      `custom: {background: #E8EFE6, foreground: #000000}` against the fixed-layout
+      default, and a comic opened afterwards showed pale green above and below the page
+      with the artwork drawn over it untouched.
 - [ ] **5.3** Natural as a theme with its own light and dark variants, and its grain
       on reading surfaces only — that change's 5.2, 5.4 and 5.5, which need an
       appearance setting to hang from.

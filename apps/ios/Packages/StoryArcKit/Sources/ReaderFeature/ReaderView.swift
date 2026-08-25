@@ -87,7 +87,10 @@ public struct ReaderView: View {
                 // Black behind every page, whatever the app's appearance. A comic
                 // is read against its own artwork, not against a themed surface,
                 // and a light border around a dark page is a distraction.
-                Color.black.ignoresSafeArea()
+                // `reading-themes`: a custom background "applies to the area around the
+                // page and not to the page itself". This is that area, and black is what
+                // it is until a reader says otherwise.
+                model.matte.ignoresSafeArea()
 
                 if let failure = model.failure {
                     ReaderFailure(message: failure)

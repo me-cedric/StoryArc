@@ -25,6 +25,7 @@ extension ReaderView {
             // revealed the wrong side would be worse than no curl.
             beneath: model.image(at: modelIndex(forDisplay: displayIndex + 1)),
             isRightToLeft: model.readingDirection == .rightToLeft,
+            matte: model.matte,
             onTurned: { turn(by: 1) },
             onTap: { location, size in handleTap(at: location, in: size) }
         )

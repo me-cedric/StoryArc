@@ -1,23 +1,34 @@
 package app.storyarc.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.ShelfMemory
+import app.storyarc.core.model.SUGGESTED_BACKGROUNDS
+import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ShelfSettings
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.ThemeScope
@@ -64,8 +75,118 @@ internal fun ReadingDefaults(
 
         ThemeScope.entries.forEach { scope ->
             ScopeDefaults(scope = scope, memory = memory, store = store)
+            if (scope == ThemeScope.FIXED_LAYOUT) {
+                ComicMatte(memory = memory, store = store)
+            }
         }
     }
+}
+
+/**
+ * The colour behind a comic page.
+ *
+ * `reading-themes`: a custom background "applies to the area around the page and not to the
+ * page itself, because tinting artwork is not a reading preference". A comic has no
+ * typography for a preset to change, so what a preset offers it is only its paper colour —
+ * and that is not what a preset means. This is the colour, on its own.
+ *
+ * Swatches only. The reader's own picker, with its sliders and its contrast refusal, lives
+ * in the *reader*, where the page is visible behind it and a choice can be judged. Here
+ * there is nothing to judge it against, and the suggested backgrounds all clear AAA
+ * already, so a picker would offer a refusal path with no way to see why.
+ */
+@Composable
+private fun ComicMatte(memory: ShelfMemory, store: ReaderPreferences) {
+    val palette = LocalStoryArcPalette.current
+    val current = memory.default(ThemeScope.FIXED_LAYOUT).theme.custom?.background
+
+    Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair)) {
+        Text(
+            text = stringResource(R.string.reading_matte),
+            style = MaterialTheme.typography.labelLarge,
+            color = palette.textSecondary,
+            modifier = Modifier.padding(top = StoryArcSpace.sm),
+        )
+        Text(
+            text = stringResource(R.string.reading_matte_note),
+            style = MaterialTheme.typography.labelLarge,
+            color = palette.textTertiary,
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = StoryArcSpace.xs),
+            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+        ) {
+            // Black first and unlabelled as a swatch of its own: it is the default, and
+            // "none" has to be reachable or a reader who tries a colour is stuck with one.
+            MatteSwatch(hex = null, isActive = current == null, store = store, memory = memory)
+            SUGGESTED_BACKGROUNDS.forEach { hex ->
+                MatteSwatch(
+                    hex = hex,
+                    isActive = current?.equals(hex, ignoreCase = true) == true,
+                    store = store,
+                    memory = memory,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MatteSwatch(
+    hex: String?,
+    isActive: Boolean,
+    store: ReaderPreferences,
+    memory: ShelfMemory,
+) {
+    val palette = LocalStoryArcPalette.current
+    val description = hex ?: stringResource(R.string.reading_matte_none)
+
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(matteSwatchColour(hex))
+            .border(
+                width = if (isActive) 3.dp else 1.dp,
+                color = if (isActive) palette.accent else palette.borderSubtle,
+                shape = CircleShape,
+            )
+            .selectable(
+                selected = isActive,
+                role = Role.RadioButton,
+                onClick = {
+                    val existing = memory.default(ThemeScope.FIXED_LAYOUT)
+                    val theme = existing.theme.let { current ->
+                        if (hex == null) {
+                            current.discardingCustomColours()
+                        } else {
+                            current.adopting(ReaderPalette.derived(description, hex))
+                        }
+                    }
+                    store.save(
+                        store.themes().settingDefault(
+                            existing.copy(theme = theme),
+                            ThemeScope.FIXED_LAYOUT,
+                        ),
+                    )
+                },
+            )
+            .semantics { contentDescription = description },
+    )
+}
+
+/** Black stands for "no colour", which is what a comic is read against. */
+private fun matteSwatchColour(hex: String?): Color {
+    val text = hex?.removePrefix("#") ?: return Color.Black
+    val value = text.toLongOrNull(16) ?: return Color.Black
+    return Color(
+        red = ((value shr 16) and 0xFF) / 255f,
+        green = ((value shr 8) and 0xFF) / 255f,
+        blue = (value and 0xFF) / 255f,
+    )
 }
 
 @Composable

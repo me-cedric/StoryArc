@@ -18,6 +18,8 @@ struct CurledPages: View {
     /// The page underneath it, or `nil` at the last page.
     let beneath: CGImage?
     let isRightToLeft: Bool
+    /// What shows behind and beside the page. See ``ReaderModel/matte``.
+    let matte: Color
     /// Called once a turn has completed.
     let onTurned: () -> Void
     /// A press that was not a drag: the caller decides what it means.
@@ -33,10 +35,9 @@ struct CurledPages: View {
         GeometryReader { geometry in
             let size = geometry.size
             ZStack {
-                // Black behind, because the shader leaves the letterbox transparent
-                // rather than smearing the page's edge pixel across it. A comic is
-                // read against its own artwork, not against a themed surface.
-                Color.black
+                // The matte behind, because the shader leaves the letterbox transparent
+                // rather than smearing the page's edge pixel across it.
+                matte
 
                 if let page {
                     Rectangle()

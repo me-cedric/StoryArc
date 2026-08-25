@@ -900,6 +900,64 @@
         }
       }
     },
+    "reading.matte": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Farbe hinter einer Comicseite"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colour behind a comic page"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color detrás de una página de cómic"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couleur derrière une page de BD"
+          }
+        }
+      }
+    },
+    "reading.matte.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur der Bereich um die Seite. Artwork wird nie getönt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The area around the page only. Artwork is never tinted."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo el área alrededor de la página. El arte nunca se tiñe."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uniquement la zone autour de la page. Les illustrations ne sont jamais teintées."
+          }
+        }
+      }
+    },
     "reading.volumeButtons": {
       "extractionState": "manual",
       "localizations": {

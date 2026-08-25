@@ -42,6 +42,8 @@ internal fun CurledPages(
     /** The page underneath it, or null at the last page. */
     beneath: Bitmap?,
     isRightToLeft: Boolean,
+    /** What shows behind and beside the page. See `matteColour`. */
+    matte: Color,
     /** Called once a turn has completed. */
     onTurned: () -> Unit,
     /** A press that was not a drag: the caller decides what it means. */
@@ -114,9 +116,8 @@ internal fun CurledPages(
     ) {
         val current = page ?: return@Canvas
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@Canvas
-        // Black first, because the shader leaves the letterbox transparent rather than
-        // smearing the page's edge pixel across it. A comic is read against its own
-        // artwork, not against a themed surface.
+        // The matte first, because the shader leaves the letterbox transparent rather than
+        // smearing the page's edge pixel across it.
         drawRect(color = Color.Black, size = size)
         drawRect(
             brush = ShaderBrush(

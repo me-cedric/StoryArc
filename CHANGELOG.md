@@ -102,6 +102,14 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **A colour behind a comic page**, chosen in Settings and applied to the area *around*
+  the page only — the artwork is never tinted, because tinting someone else's drawing is
+  not a reading preference.
+  - A preset deliberately does not reach it. A comic has no typography for a preset to
+    change, so all a preset could offer is its paper colour, and that is not what a preset
+    means.
+  - Swatches here rather than the reader's full picker: the picker's sliders and its
+    contrast refusal need the page visible behind them to be worth anything.
 - **Settings search**, matching the *setting* rather than the group: "volume" finds
   "Volume buttons turn pages" and tells you it lives under Reading, and "night" finds
   Appearance. You search for the thing you want, not for what the screen calls it.

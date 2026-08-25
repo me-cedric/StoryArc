@@ -56,12 +56,79 @@ struct ReadingDefaults: View {
                 }
             } header: {
                 Text(scope.titleKey, bundle: .module)
-            } footer: {
-                if scope == ThemeScope.allCases.last {
-                    Text("reading.defaults.note", bundle: .module)
-                }
+            }
+
+            if scope == .fixedLayout {
+                comicMatte
             }
         }
+
+        Section {
+            Text("reading.defaults.note", bundle: .module)
+                .textRole(.footnote)
+                .foregroundStyle(theme.palette.textTertiary)
+        }
+    }
+
+    /// The colour behind a comic page.
+    ///
+    /// `reading-themes`: a custom background "applies to the area around the page and not to
+    /// the page itself, because tinting artwork is not a reading preference". A comic has no
+    /// typography for a preset to change, so what a preset offers it is only its paper
+    /// colour — and that is not what a preset means. This is the colour, on its own.
+    ///
+    /// Swatches only. The reader's own picker, with its sliders and its contrast refusal,
+    /// lives in the *reader*, where the page is visible behind it and a choice can be
+    /// judged. Here there is nothing to judge it against, and every suggested background
+    /// clears AAA already, so a picker would offer a refusal path with no way to see why.
+    private var comicMatte: some View {
+        let current = memory.default(for: .fixedLayout).theme.custom?.background
+        return Section {
+            HStack(spacing: StoryArcSpace.sm) {
+                // Black first: it is the default, and "none" has to be reachable or a
+                // reader who tries a colour is stuck with one.
+                matteSwatch(nil, isActive: current == nil)
+                ForEach(ReaderPalette.suggestedBackgrounds, id: \.self) { hex in
+                    matteSwatch(hex, isActive: current?.caseInsensitiveCompare(hex) == .orderedSame)
+                }
+            }
+        } header: {
+            Text("reading.matte", bundle: .module)
+        } footer: {
+            Text("reading.matte.note", bundle: .module)
+        }
+    }
+
+    private func matteSwatch(_ hex: String?, isActive: Bool) -> some View {
+        Button { chooseMatte(hex) } label: {
+            Circle()
+                .fill(hex.flatMap { Color(settingsHex: $0) } ?? .black)
+                .frame(height: 30)
+                .overlay { Circle().strokeBorder(theme.palette.borderSubtle, lineWidth: 1) }
+                .overlay {
+                    if isActive {
+                        Circle().strokeBorder(theme.accent, lineWidth: 3).padding(-4)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
+        .accessibilityLabel(hex ?? "Black")
+    }
+
+    private func chooseMatte(_ hex: String?) {
+        let existing = memory.default(for: .fixedLayout)
+        var updatedTheme = existing.theme
+        if let hex {
+            updatedTheme = updatedTheme.adopting(ReaderPalette.derived(name: hex, background: hex))
+        } else {
+            updatedTheme = updatedTheme.discardingCustomColours()
+        }
+        var stored = existing
+        stored.theme = updatedTheme
+        let updated = store.themes().settingDefault(stored, for: .fixedLayout)
+        store.save(updated)
+        memory = updated
     }
 
     private func choose(_ preset: ThemePreset, for scope: ThemeScope) {

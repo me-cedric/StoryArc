@@ -59,4 +59,7 @@
     <string name="settings_reset_body">Erscheinungsbild, Leseeinstellungen und die Vorgaben für neue Serien gehen auf den Anfangszustand zurück.\n\nIhre Quellen, Downloads, der Lesefortschritt und die beim Lesen gewählten Themen bleiben unberührt.</string>
     <string name="settings_reset_confirm">Zurücksetzen</string>
     <string name="settings_cancel">Abbrechen</string>
+    <string name="reading_matte">Farbe hinter einer Comicseite</string>
+    <string name="reading_matte_note">Nur der Bereich um die Seite. Artwork wird nie getönt.</string>
+    <string name="reading_matte_none">Schwarz</string>
 </resources>
