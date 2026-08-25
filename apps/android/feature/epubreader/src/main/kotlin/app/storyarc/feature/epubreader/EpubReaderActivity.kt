@@ -8,7 +8,13 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
@@ -103,6 +109,27 @@ class EpubReaderActivity : FragmentActivity() {
                     val chapter by model.chapterTitle.collectAsStateWithLifecycle()
                     val failure by model.failure.collectAsStateWithLifecycle()
                     val isVisible by model.isChromeVisible.collectAsStateWithLifecycle()
+                    val theme by model.theme.collectAsStateWithLifecycle()
+                    val values by model.values.collectAsStateWithLifecycle()
+                    var isShowingTheme by remember { mutableStateOf(false) }
+
+                    // `reading-themes`: the change is "visible immediately in the
+                    // reader behind the sheet", so the navigator is told the moment
+                    // either half of the theme changes rather than when the sheet
+                    // closes.
+                    LaunchedEffect(theme, values) { applyTheme() }
+
+                    if (isShowingTheme) {
+                        ThemeBottomSheet(
+                            theme = theme,
+                            values = values,
+                            onAdopt = model::adopt,
+                            onChange = model::change,
+                            onRestore = model::restoreTheme,
+                            onLeavePublisherStyles = model::leavePublisherStyles,
+                            onDismiss = { isShowingTheme = false },
+                        )
+                    }
 
                     EpubChrome(
                         title = intent.getStringExtra(EXTRA_TITLE).orEmpty(),
@@ -111,6 +138,7 @@ class EpubReaderActivity : FragmentActivity() {
                         failure = failure,
                         isVisible = isVisible,
                         onClose = { finish() },
+                        onOpenTheme = { isShowingTheme = true },
                     )
                 }
             }
@@ -161,5 +189,48 @@ class EpubReaderActivity : FragmentActivity() {
         )
 
         model.follow(navigator.currentLocator)
+        applyTheme()
+    }
+
+    /**
+     * Pushes the current theme into the navigator.
+     *
+     * The activity does this rather than the view model, because the navigator is a
+     * fragment the activity owns and a view model holding one would outlive it.
+     */
+    @OptIn(ExperimentalReadiumApi::class)
+    private fun applyTheme() {
+        val navigator =
+            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
+        navigator?.submitPreferences(model.preferences)
+    }
+}
+
+/**
+ * The theme sheet, in the platform's own modal bottom sheet.
+ *
+ * `native-experience` wants the sheet to look like the platform's; iOS gets a
+ * detented sheet on Liquid Glass and Android gets this.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@androidx.compose.runtime.Composable
+private fun ThemeBottomSheet(
+    theme: app.storyarc.core.model.ReadingTheme,
+    values: app.storyarc.core.model.ThemeValues,
+    onAdopt: (app.storyarc.core.model.ThemePreset) -> Unit,
+    onChange: (app.storyarc.core.model.ThemeAxis, app.storyarc.core.model.ThemeValues) -> Unit,
+    onRestore: () -> Unit,
+    onLeavePublisherStyles: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        ThemeSheet(
+            theme = theme,
+            values = values,
+            onAdopt = onAdopt,
+            onChange = onChange,
+            onRestore = onRestore,
+            onLeavePublisherStyles = onLeavePublisherStyles,
+        )
     }
 }

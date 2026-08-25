@@ -39,6 +39,12 @@ public final class EpubReaderModel {
     /// The chapter the reader is in, for the chrome to name.
     public private(set) var chapterTitle: String?
 
+    /// Which preset is on and which axes have been moved from it.
+    public private(set) var theme: ReadingTheme
+
+    /// The typography in force: the preset's own values until an axis is moved.
+    public private(set) var values: ThemeValues
+
     /// The navigator, once the book is open. `nil` while it is loading.
     private(set) var navigator: EPUBNavigatorViewController?
 
@@ -59,11 +65,58 @@ public final class EpubReaderModel {
     public init(
         publication: StoryArcCore.Publication,
         url: URL,
-        progress: ProgressStore? = nil
+        progress: ProgressStore? = nil,
+        theme: ReadingTheme = ReadingTheme()
     ) {
         self.publication = publication
         self.url = url
         self.progress = progress
+        self.theme = theme
+        self.values = theme.preset.values
+    }
+
+    /// Adopts a preset, discarding any deviation from the last one.
+    ///
+    /// `reading-themes`: tapping a preset applies "every axis the preset defines at
+    /// once and the change is visible immediately in the reader behind the sheet".
+    public func adopt(_ preset: ThemePreset) {
+        theme = theme.adopting(preset)
+        values = preset.values
+        applyTheme()
+    }
+
+    /// Moves one axis, which marks the preset modified without deselecting it.
+    ///
+    /// The axis is passed alongside the new values so the model records *which* axis
+    /// moved — the sheet needs that to offer "restore this preset", and Readium
+    /// cannot tell us.
+    public func change(_ axis: ThemeAxis, to values: ThemeValues) {
+        guard theme.isEffective(axis) else { return }
+        self.values = values
+        theme = theme.deviating(on: axis)
+        applyTheme()
+    }
+
+    /// Puts every axis back to the preset's own values.
+    public func restoreTheme() {
+        theme = theme.restored()
+        values = theme.preset.values
+        applyTheme()
+    }
+
+    /// Turns publisher styles off by adopting a preset that overrides them.
+    ///
+    /// `reading-themes` requires an unavailable axis to offer "a single action that
+    /// turns publisher styles off", and to preserve the reading position when it
+    /// does. Readium re-lays out in place, so the position is kept by the navigator
+    /// rather than by anything here.
+    public func leavePublisherStyles() {
+        guard theme.preset.keepsPublisherStyles else { return }
+        adopt(.paper)
+    }
+
+    private func applyTheme() {
+        navigator?.submitPreferences(theme.preferences(values: values))
     }
 
     /// Opens the book and builds its navigator.
@@ -117,6 +170,9 @@ public final class EpubReaderModel {
             self.observer = observer
             navigator.delegate = observer
             self.navigator = navigator
+            // Submitted rather than passed at construction: the same call applies a
+            // later change, so there is one path into Readium instead of two.
+            navigator.submitPreferences(theme.preferences(values: values))
             locator = resumed
             readingOrder = opened.readingOrder.map(\.href)
             progression = resumed.map(totalProgression(of:)) ?? 0

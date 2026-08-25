@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.TextFormat
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +48,7 @@ internal fun EpubChrome(
     failure: String?,
     isVisible: Boolean,
     onClose: () -> Unit,
+    onOpenTheme: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -103,6 +105,16 @@ internal fun EpubChrome(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+
+                Surface(shape = CircleShape, color = palette.surfaceRaised) {
+                    IconButton(onClick = onOpenTheme) {
+                        Icon(
+                            imageVector = Icons.Filled.TextFormat,
+                            contentDescription = stringResource(R.string.theme_presets),
+                            tint = palette.textPrimary,
+                        )
+                    }
+                }
             }
 
             Box(

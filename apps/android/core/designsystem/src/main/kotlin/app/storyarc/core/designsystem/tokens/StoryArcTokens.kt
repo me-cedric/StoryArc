@@ -182,6 +182,22 @@ object StoryArcColor {
     }
 }
 
+/** Reading-theme colours as hex, for renderers that parse their own. */
+object StoryArcReadingThemeHex {
+    const val originalBg = "#FCFCFA"
+    const val originalFg = "#131110"
+    const val quietBg = "#161310"
+    const val quietFg = "#C7C3BF"
+    const val paperBg = "#F5F1EC"
+    const val paperFg = "#1D1A17"
+    const val boldBg = "#FCFCFC"
+    const val boldFg = "#060606"
+    const val calmBg = "#3F3329"
+    const val calmFg = "#E5D9C4"
+    const val focusBg = "#040303"
+    const val focusFg = "#E7E4E0"
+}
+
 object StoryArcSpace {
     val hair = 2.dp
     val xs = 4.dp

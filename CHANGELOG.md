@@ -98,6 +98,21 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **Reading themes reach the page.** The six presets now render: pick one and the
+  EPUB behind the sheet changes immediately, which is what `reading-themes` asks
+  for. A stepped text size with a visible position on a nine-rung ladder, and — the
+  part that is easy to skip — selecting Original says so, gives the reason in one
+  line, offers a single action to switch to StoryArc's typography, and names the
+  five axes it makes unavailable rather than hiding them or leaving dead controls.
+  - Which axes the publisher's stylesheet overrides is answered by the domain, not
+    by Readium's preferences editor: it is a fact about the axis, so it is
+    unit-tested on a host rather than observed through a navigator.
+  - The token pipeline now emits reading-theme colours as hex as well as platform
+    colours, from the same resolved value, because Readium parses its own — so a
+    preset's swatch and its rendered page cannot drift apart.
+  - Not built yet, and named rather than missing: the fine axes (line, character,
+    word and paragraph spacing, margins, alignment), custom backgrounds, and
+    reader-local brightness.
 - **The reading-theme model**, both platforms, from the in-flight
   `reader-theming-and-page-transitions` change. Six presets — Original, Quiet,
   Paper, Bold, Calm, Focus — whose colours already live in the design tokens and

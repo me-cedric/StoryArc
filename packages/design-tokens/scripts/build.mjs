@@ -144,6 +144,21 @@ for (const [group, tokens] of entriesOf(resolved)) {
 }
 swiftLines.push('}', '')
 
+// Reading-theme colours again, as hex.
+//
+// Readium takes a colour it parses itself rather than a platform Color, and the
+// hex above lives in a comment where no code can reach it. Emitted from the same
+// resolved value, so the two can never disagree — which is the whole reason the
+// pipeline exists.
+swiftLines.push('/// Reading-theme colours as hex, for renderers that parse their own.')
+swiftLines.push('public enum StoryArcReadingThemeHex {')
+for (const [name, fields] of Object.entries(resolved.readingThemes)) {
+  for (const [field, srgb] of Object.entries(fields)) {
+    swiftLines.push(`    public static let ${name}${pascal(field)} = "${srgb.hex}"`)
+  }
+}
+swiftLines.push('}', '')
+
 swiftLines.push('public enum StoryArcSpace {')
 for (const [name, value] of entriesOf(layout.space)) {
   swiftLines.push(`    public static let ${name}: CGFloat = ${value}`)
@@ -188,7 +203,19 @@ for (const [group, tokens] of entriesOf(resolved)) {
   }
   kotlinLines.push('    }')
 }
-kotlinLines.push('}', '', 'object StoryArcSpace {')
+kotlinLines.push('}', '')
+
+// Reading-theme colours again, as hex. See the Swift emitter above for why.
+kotlinLines.push('/** Reading-theme colours as hex, for renderers that parse their own. */')
+kotlinLines.push('object StoryArcReadingThemeHex {')
+for (const [name, fields] of Object.entries(resolved.readingThemes)) {
+  for (const [field, srgb] of Object.entries(fields)) {
+    kotlinLines.push(`    const val ${name}${pascal(field)} = "${srgb.hex}"`)
+  }
+}
+kotlinLines.push('}', '')
+
+kotlinLines.push('object StoryArcSpace {')
 for (const [name, value] of entriesOf(layout.space)) kotlinLines.push(`    val ${name} = ${value}.dp`)
 kotlinLines.push('}', '', 'object StoryArcRadius {')
 for (const [name, value] of entriesOf(layout.radius)) kotlinLines.push(`    val ${name} = ${value}.dp`)

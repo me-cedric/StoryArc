@@ -1,0 +1,175 @@
+public import Foundation
+
+/// The typeface a reader can choose.
+///
+/// `reading-themes`: "bundled families plus the publisher's own and the system
+/// face". The bundled families — Literata, Source Serif 4, EB Garamond, Bitter,
+/// Atkinson Hyperlegible — arrive with Phase 6 of the theming change, which is the
+/// task that actually puts the files in the app. Offering them by name before then
+/// would be a picker that silently falls back, so the list here is what the app can
+/// honestly render today.
+public enum ReaderTypeface: String, Sendable, Codable, CaseIterable {
+    /// Whatever the publication asks for. The only option under `original`.
+    case publisher
+    /// The platform's own serif.
+    case serif
+    /// The platform's own sans.
+    case sans
+}
+
+/// How text is aligned.
+///
+/// `reading-themes`: "publisher default, left, justified". Left rather than
+/// "start", because the control says left and a reader of a right-to-left book is
+/// choosing something the renderer mirrors for them.
+public enum ReaderTextAlignment: String, Sendable, Codable, CaseIterable {
+    case publisher
+    case left
+    case justified
+}
+
+/// The discrete font sizes, as a percentage of the publication's own.
+///
+/// `reading-themes`: "discrete steps with a visible position indicator, not a free
+/// slider", and "at least seven steps from smallest to largest". Nine, weighted
+/// upward — the readers who reach for this control are mostly reaching for bigger,
+/// and 200% is a real destination while 70% is about as small as body text stays
+/// readable.
+public enum FontSizeStep: Int, Sendable, Codable, CaseIterable, Comparable {
+    case smallest = 70
+    case smaller = 80
+    case small = 90
+    case normal = 100
+    case large = 115
+    case larger = 130
+    case largest = 150
+    case huge = 175
+    case hugest = 200
+
+    /// A fraction for Readium, which takes 1.0 as the publication's own size.
+    public var fraction: Double { Double(rawValue) / 100 }
+
+    /// Where this step sits on the ladder, for the position indicator.
+    public var position: Int { Self.allCases.firstIndex(of: self) ?? 0 }
+
+    public static var count: Int { allCases.count }
+
+    public var next: FontSizeStep {
+        let all = Self.allCases
+        return all[min(position + 1, all.count - 1)]
+    }
+
+    public var previous: FontSizeStep {
+        Self.allCases[max(position - 1, 0)]
+    }
+
+    public static func < (lhs: FontSizeStep, rhs: FontSizeStep) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
+/// Every typographic value a reading theme sets.
+///
+/// The numbers live here rather than in each platform's Readium wrapper so the two
+/// cannot drift: a preset that reads differently on iOS and Android is the failure
+/// mode ADR-0001 accepts everywhere *except* where the two are meant to agree, and
+/// a named theme is meant to agree.
+///
+/// Each platform maps this onto its own Readium preferences type. Nothing here is
+/// a Readium type, which is what lets it be tested on a host.
+public struct ThemeValues: Sendable, Equatable, Codable {
+    public var typeface: ReaderTypeface
+    public var fontSize: FontSizeStep
+    public var isBold: Bool
+    /// Multiplier on the publication's line height. 1.0 leaves it alone.
+    public var lineHeight: Double
+    /// Fractions of an em, the units Readium uses for both.
+    public var letterSpacing: Double
+    public var wordSpacing: Double
+    /// Multiplier on the publication's paragraph spacing.
+    public var paragraphSpacing: Double
+    /// Multiplier on Readium's own page margin.
+    public var pageMargins: Double
+    public var textAlignment: ReaderTextAlignment
+
+    public init(
+        typeface: ReaderTypeface = .publisher,
+        fontSize: FontSizeStep = .normal,
+        isBold: Bool = false,
+        lineHeight: Double = 1.4,
+        letterSpacing: Double = 0,
+        wordSpacing: Double = 0,
+        paragraphSpacing: Double = 0.5,
+        pageMargins: Double = 1,
+        textAlignment: ReaderTextAlignment = .publisher
+    ) {
+        self.typeface = typeface
+        self.fontSize = fontSize
+        self.isBold = isBold
+        self.lineHeight = lineHeight
+        self.letterSpacing = letterSpacing
+        self.wordSpacing = wordSpacing
+        self.paragraphSpacing = paragraphSpacing
+        self.pageMargins = pageMargins
+        self.textAlignment = textAlignment
+    }
+}
+
+public extension ThemePreset {
+    /// The preset's own typography.
+    ///
+    /// From `design.md`'s preset table. The colours are not here — they are token
+    /// values under `readingThemes`, so they go through the AAA contrast gate
+    /// instead of being written down twice.
+    var values: ThemeValues {
+        switch self {
+        // Nothing overridden but size, which is what makes Original Original.
+        case .original:
+            ThemeValues()
+
+        // "Soft off-white text on deep neutral, tightened spacing."
+        case .quiet:
+            ThemeValues(
+                typeface: .serif,
+                lineHeight: 1.3,
+                letterSpacing: 0,
+                paragraphSpacing: 0.4,
+                pageMargins: 1
+            )
+
+        // "Book-stock white, serif, comfortable default spacing."
+        case .paper:
+            ThemeValues(typeface: .serif, lineHeight: 1.5, paragraphSpacing: 0.6)
+
+        // "Heavier weight, wider spacing. For low vision without leaving the
+        // aesthetic." One step up as well: the reader who picks Bold is telling us
+        // the default was too small.
+        case .bold:
+            ThemeValues(
+                typeface: .sans,
+                fontSize: .large,
+                isBold: true,
+                lineHeight: 1.6,
+                letterSpacing: 0.02,
+                wordSpacing: 0.05,
+                paragraphSpacing: 0.8,
+                pageMargins: 1
+            )
+
+        // "Cream-on-brown, generous line height. Long evening sessions."
+        case .calm:
+            ThemeValues(typeface: .serif, lineHeight: 1.75, paragraphSpacing: 0.8, pageMargins: 1.2)
+
+        // "Narrow measure, high contrast, minimal decoration. Fewest words per
+        // line." The narrow measure is the wide margin.
+        case .focus:
+            ThemeValues(
+                typeface: .sans,
+                lineHeight: 1.5,
+                paragraphSpacing: 0.5,
+                pageMargins: 1.8,
+                textAlignment: .left
+            )
+        }
+    }
+}

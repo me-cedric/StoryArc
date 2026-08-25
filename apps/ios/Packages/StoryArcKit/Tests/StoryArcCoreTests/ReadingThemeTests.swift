@@ -106,6 +106,72 @@ struct ReadingThemeTests {
         #expect(!theme.isModified)
     }
 
+    // MARK: - Font size steps
+
+    @Test("The ladder spans at least seven steps and includes the publication's own size")
+    func fontSizeLadder() {
+        // `reading-themes` asks for at least seven steps, which is the only
+        // constraint on the count. What matters beyond that is that the
+        // publication's own size is reachable — a ladder a reader cannot get back
+        // to 100% on is a ladder they are stuck on.
+        #expect(FontSizeStep.count >= 7)
+        #expect(FontSizeStep.allCases.contains(.normal))
+        #expect(FontSizeStep.normal.fraction == 1)
+        #expect(FontSizeStep.normal.position > 0)
+        #expect(FontSizeStep.normal.position < FontSizeStep.count - 1)
+    }
+
+    @Test("Stepping stops at each end rather than wrapping")
+    func fontSizeClamps() {
+        #expect(FontSizeStep.smallest.previous == .smallest)
+        #expect(FontSizeStep.hugest.next == .hugest)
+        #expect(FontSizeStep.normal.next.previous == .normal)
+    }
+
+    @Test("The ladder rises monotonically, so a step is always a change")
+    func fontSizeMonotonic() {
+        let sizes = FontSizeStep.allCases.map(\.rawValue)
+        #expect(sizes == sizes.sorted())
+        #expect(Set(sizes).count == sizes.count)
+    }
+
+    // MARK: - Preset values
+
+    @Test("Original overrides nothing but size")
+    func originalOverridesNothing() {
+        let values = ThemePreset.original.values
+        #expect(values.typeface == .publisher)
+        #expect(values.textAlignment == .publisher)
+        #expect(values == ThemeValues(), "Original is the defaults, by definition")
+    }
+
+    @Test("Every other preset states a typeface")
+    func presetsPickATypeface() {
+        for preset in ThemePreset.allCases where preset != .original {
+            #expect(preset.values.typeface != .publisher, "\(preset) should choose a face")
+        }
+    }
+
+    @Test("Bold opens larger and heavier, because that is what it is for")
+    func boldIsBolder() {
+        let bold = ThemePreset.bold.values
+        #expect(bold.isBold)
+        #expect(bold.fontSize > .normal)
+        #expect(bold.lineHeight > ThemePreset.paper.values.lineHeight)
+    }
+
+    @Test("Focus has the widest margins, which is what a narrow measure means")
+    func focusIsNarrow() {
+        let widest = ThemePreset.allCases.map(\.values.pageMargins).max()
+        #expect(ThemePreset.focus.values.pageMargins == widest)
+    }
+
+    @Test("Calm has the most generous line height")
+    func calmIsAiry() {
+        let tallest = ThemePreset.allCases.map(\.values.lineHeight).max()
+        #expect(ThemePreset.calm.values.lineHeight == tallest)
+    }
+
     // MARK: - Transitions
 
     @Test("Reduce Motion substitutes the fast fade, and leaves the scroll modes alone")

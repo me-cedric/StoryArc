@@ -178,6 +178,22 @@ public enum StoryArcColor {
     }
 }
 
+/// Reading-theme colours as hex, for renderers that parse their own.
+public enum StoryArcReadingThemeHex {
+    public static let originalBg = "#FCFCFA"
+    public static let originalFg = "#131110"
+    public static let quietBg = "#161310"
+    public static let quietFg = "#C7C3BF"
+    public static let paperBg = "#F5F1EC"
+    public static let paperFg = "#1D1A17"
+    public static let boldBg = "#FCFCFC"
+    public static let boldFg = "#060606"
+    public static let calmBg = "#3F3329"
+    public static let calmFg = "#E5D9C4"
+    public static let focusBg = "#040303"
+    public static let focusFg = "#E7E4E0"
+}
+
 public enum StoryArcSpace {
     public static let hair: CGFloat = 2
     public static let xs: CGFloat = 4

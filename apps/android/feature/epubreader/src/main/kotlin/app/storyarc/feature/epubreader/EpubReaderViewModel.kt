@@ -3,6 +3,11 @@ package app.storyarc.feature.epubreader
 import android.app.Application
 import android.net.Uri
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ReadingTheme
+import app.storyarc.core.model.ThemeAxis
+import app.storyarc.core.model.ThemePreset
+import app.storyarc.core.model.ThemeValues
+import app.storyarc.core.model.values
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.ProgressStore
@@ -63,6 +68,64 @@ class EpubReaderViewModel(
 
     private val _chapterTitle = MutableStateFlow<String?>(null)
     val chapterTitle: StateFlow<String?> = _chapterTitle.asStateFlow()
+
+    /** Which preset is on and which axes have been moved from it. */
+    private val _theme = MutableStateFlow(ReadingTheme())
+    val theme: StateFlow<ReadingTheme> = _theme.asStateFlow()
+
+    /** The typography in force: the preset's own values until an axis is moved. */
+    private val _values = MutableStateFlow(ReadingTheme().preset.values)
+    val values: StateFlow<ThemeValues> = _values.asStateFlow()
+
+    /**
+     * What Readium should render with, recomputed whenever either changes.
+     *
+     * Exposed rather than pushed: the activity owns the navigator and submits this
+     * to it, which keeps the view model free of a Readium fragment.
+     */
+    val preferences get() = _theme.value.preferences(_values.value)
+
+    /**
+     * Adopts a preset, discarding any deviation from the last one.
+     *
+     * `reading-themes`: tapping a preset applies "every axis the preset defines at
+     * once and the change is visible immediately in the reader behind the sheet".
+     */
+    fun adopt(preset: ThemePreset) {
+        _theme.value = _theme.value.adopting(preset)
+        _values.value = preset.values
+    }
+
+    /**
+     * Moves one axis, which marks the preset modified without deselecting it.
+     *
+     * The axis is passed alongside the new values so the model records *which* axis
+     * moved — the sheet needs that to offer "restore this preset", and Readium
+     * cannot tell us.
+     */
+    fun change(axis: ThemeAxis, values: ThemeValues) {
+        if (!_theme.value.isEffective(axis)) return
+        _values.value = values
+        _theme.value = _theme.value.deviating(axis)
+    }
+
+    /** Puts every axis back to the preset's own values. */
+    fun restoreTheme() {
+        _theme.value = _theme.value.restored()
+        _values.value = _theme.value.preset.values
+    }
+
+    /**
+     * Turns publisher styles off by adopting a preset that overrides them.
+     *
+     * `reading-themes` requires an unavailable axis to offer "a single action that
+     * turns publisher styles off", and to preserve the reading position when it
+     * does. Readium re-lays out in place, so the position is kept by the navigator
+     * rather than by anything here.
+     */
+    fun leavePublisherStyles() {
+        if (_theme.value.preset.keepsPublisherStyles) adopt(ThemePreset.PAPER)
+    }
 
     /** Nothing on screen while reading; one tap brings it back. */
     private val _isChromeVisible = MutableStateFlow(true)

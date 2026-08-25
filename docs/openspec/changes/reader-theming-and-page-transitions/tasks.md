@@ -13,8 +13,14 @@ technical, and each item's fallback is in `design.md`.
       integration is proven and the version pins are real. What is not yet done is
       driving each of the nine axes at runtime and watching the page change; that
       needs the sheet from Phase 3 to drive them from, and it is the point of 0.2.
-- [ ] **0.2** Confirm `PreferencesEditor.isEffective` is a usable binding for the
-      `publisherStyles` coupling on both platforms.
+- [x] **0.2** Confirm `PreferencesEditor.isEffective` is a usable binding for the
+      `publisherStyles` coupling on both platforms. **Answered, and the answer was
+      not to use it.** Which axes the publisher's stylesheet overrides is a fact
+      about the axis, not about the renderer — `design.md`'s own mapping table says
+      so. So `ThemeAxis.requiresPublisherStylesOff` carries it, `ReadingTheme`
+      answers `isEffective`, and the rule is unit-tested on a host instead of
+      observed through a navigator. Readium's editor stays available if an axis ever
+      turns out to be conditionally inert for a reason the table cannot express.
 - [ ] **0.3** **iOS curl spike.** Raster a Readium page to a texture and deform it
       in a Metal vertex shader. Measure the frame rate on a 120 Hz device.
       Deliverable: a number, and a go/no-go against the refresh-rate requirement.
@@ -73,13 +79,40 @@ technical, and each item's fallback is in `design.md`.
 
 ## Phase 2 — Readium integration
 
-- [ ] **2.1** iOS: add `Readium` via SPM; new `Reader` target wrapping
+- [x] **2.1** iOS: add `Readium` via SPM; new `Reader` target wrapping
       `EPUBNavigatorViewController`.
-- [ ] **2.2** Android: add Readium from Maven Central; new `:core:reader` module.
-- [ ] **2.3** Map `ReadingTheme` → `EPUBPreferences` / `EpubPreferences` on both
+- [x] **2.2** Android: add Readium from Maven Central; new `:core:reader` module.
+      **Done, named `:feature:epubreader`.** A feature rather than a core module,
+      because Readium's EPUB navigator is a `Fragment` and the screen that hosts it
+      is a `FragmentActivity` — putting that behind `:core:` would have implied it
+      was infrastructure other features could use. iOS's equivalent is the separate
+      `StoryArcEpub` SwiftPM package, for the platform reason recorded in ADR-0005.
+- [x] **2.3** Map `ReadingTheme` → `EPUBPreferences` / `EpubPreferences` on both
       sides. One function, unit-tested, so the two platforms cannot disagree.
-- [ ] **2.4** Bind each control's availability to `isEffective`, with the
+      **Done.** `ReadiumMapping.swift` and `ReadiumMapping.kt`, one function each
+      and nothing else in the file — if Readium renames an axis the compiler points
+      there and nowhere else.
+
+      The colours come from the tokens as **hex**, which needed a small addition to
+      the generator: Readium parses its own colour and the generated hex previously
+      lived only in a comment. `StoryArcReadingThemeHex` is emitted from the same
+      resolved value as the platform colour, so the preset's swatch and the rendered
+      page cannot show different colours.
+
+      Bold is a `fontWeight`, not a family, per `reading-themes`.
+- [x] **2.4** Bind each control's availability to `isEffective`, with the
       one-line reason and the single action that disables publisher styles.
+      **Done, from the domain rather than from Readium's editor.**
+      `ReadingTheme.isEffective(_:)` answers it, which means the sheet needs no
+      `PreferencesEditor` and the rule is unit-tested on a host. Verified on the
+      emulator: selecting Original shows "The publisher's styling is in use", the
+      one-line reason, a "Use StoryArc's typography" button, and the five axes it
+      makes unavailable listed by name — not hidden, and not live-looking controls
+      that do nothing.
+
+      This supersedes spike **0.2**: `isEffective` on Readium's editor was going to
+      be the signal, and the domain turned out to know the answer already, because
+      the coupling is a property of the axis rather than of the renderer.
 - [ ] **2.5** Reader-local brightness that reverts on leaving the reader.
 - [ ] **2.6** Verify the reading position survives a typography change to the
       paragraph, not the page.

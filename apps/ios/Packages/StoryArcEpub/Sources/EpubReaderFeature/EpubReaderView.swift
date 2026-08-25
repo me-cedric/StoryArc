@@ -24,6 +24,7 @@ public struct EpubReaderView: View {
 
     @State private var model: EpubReaderModel
     @State private var isChromeVisible = true
+    @State private var isShowingTheme = false
 
     public init(publication: Publication, url: URL, progress: ProgressStore? = nil) {
         _model = State(
@@ -47,6 +48,14 @@ public struct EpubReaderView: View {
             }
 
             if isChromeVisible { chrome }
+        }
+        .sheet(isPresented: $isShowingTheme) {
+            ThemeSheet(model: model)
+                // A sheet that covers the page would hide the live preview
+                // `ebook-reader` asks for: "the change is visible immediately in
+                // the reader behind the sheet".
+                .presentationDetents([.medium, .large])
+                .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         }
         .task { await model.open() }
         .statusBarHidden(!isChromeVisible)
@@ -73,6 +82,18 @@ public struct EpubReaderView: View {
                 .tint(theme.palette.textPrimary)
 
                 Spacer()
+
+                Button { isShowingTheme = true } label: {
+                    Label {
+                        Text("theme.title", bundle: .module)
+                    } icon: {
+                        Image(systemName: "textformat")
+                    }
+                    .labelStyle(.iconOnly)
+                    .padding(StoryArcSpace.sm)
+                }
+                .background(.ultraThinMaterial, in: .circle)
+                .tint(theme.palette.textPrimary)
 
                 if let chapter = model.chapterTitle {
                     Text(chapter)

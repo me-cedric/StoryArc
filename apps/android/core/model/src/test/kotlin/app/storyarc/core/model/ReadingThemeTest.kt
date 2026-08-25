@@ -111,6 +111,73 @@ class ReadingThemeTest {
         assertFalse(theme.isModified)
     }
 
+
+    // Font size steps.
+
+    @Test
+    fun `the ladder spans at least seven steps and includes the publication's own size`() {
+        // `reading-themes` asks for at least seven steps, which is the only
+        // constraint on the count. What matters beyond that is that the
+        // publication's own size is reachable — a ladder a reader cannot get back to
+        // 100% on is a ladder they are stuck on.
+        assertTrue(FontSizeStep.count >= 7)
+        assertTrue(FontSizeStep.NORMAL in FontSizeStep.entries)
+        assertEquals(1.0, FontSizeStep.NORMAL.fraction, 0.0001)
+        assertTrue(FontSizeStep.NORMAL.position > 0)
+        assertTrue(FontSizeStep.NORMAL.position < FontSizeStep.count - 1)
+    }
+
+    @Test
+    fun `stepping stops at each end rather than wrapping`() {
+        assertEquals(FontSizeStep.SMALLEST, FontSizeStep.SMALLEST.previous)
+        assertEquals(FontSizeStep.HUGEST, FontSizeStep.HUGEST.next)
+        assertEquals(FontSizeStep.NORMAL, FontSizeStep.NORMAL.next.previous)
+    }
+
+    @Test
+    fun `the ladder rises monotonically, so a step is always a change`() {
+        val sizes = FontSizeStep.entries.map { it.percent }
+        assertEquals(sizes.sorted(), sizes)
+        assertEquals(sizes.size, sizes.toSet().size)
+    }
+
+    // Preset values.
+
+    @Test
+    fun `Original overrides nothing but size`() {
+        val values = ThemePreset.ORIGINAL.values
+        assertEquals(ReaderTypeface.PUBLISHER, values.typeface)
+        assertEquals(ReaderTextAlignment.PUBLISHER, values.textAlignment)
+        assertEquals(ThemeValues(), values)
+    }
+
+    @Test
+    fun `every other preset states a typeface`() {
+        ThemePreset.entries.filter { it != ThemePreset.ORIGINAL }.forEach {
+            assertTrue("$it should choose a face", it.values.typeface != ReaderTypeface.PUBLISHER)
+        }
+    }
+
+    @Test
+    fun `Bold opens larger and heavier, because that is what it is for`() {
+        val bold = ThemePreset.BOLD.values
+        assertTrue(bold.isBold)
+        assertTrue(bold.fontSize.percent > FontSizeStep.NORMAL.percent)
+        assertTrue(bold.lineHeight > ThemePreset.PAPER.values.lineHeight)
+    }
+
+    @Test
+    fun `Focus has the widest margins, which is what a narrow measure means`() {
+        val widest = ThemePreset.entries.maxOf { it.values.pageMargins }
+        assertEquals(widest, ThemePreset.FOCUS.values.pageMargins, 0.0001)
+    }
+
+    @Test
+    fun `Calm has the most generous line height`() {
+        val tallest = ThemePreset.entries.maxOf { it.values.lineHeight }
+        assertEquals(tallest, ThemePreset.CALM.values.lineHeight, 0.0001)
+    }
+
     // Transitions.
 
     @Test
