@@ -71,13 +71,67 @@ data class StoryArcPalette(
             accent = StoryArcColor.Brand.emberStrong,
             accentMuted = StoryArcColor.Brand.emberMuted,
         )
+
+        /**
+         * True black chrome, with the reader surface deliberately above it.
+         *
+         * Every value comes from the generated `oledDark` tokens, including the reader
+         * surface that refuses to be `#000` — the reason is in `color.json` and not
+         * repeated here, because a reason in two places drifts.
+         */
+        val OledDark = StoryArcPalette(
+            surfaceCanvas = StoryArcColor.OledDark.surfaceCanvas,
+            surfaceRaised = StoryArcColor.OledDark.surfaceRaised,
+            surfaceOverlay = StoryArcColor.OledDark.surfaceOverlay,
+            surfaceReader = StoryArcColor.OledDark.surfaceReader,
+            surfaceSunken = StoryArcColor.OledDark.surfaceSunken,
+            borderSubtle = StoryArcColor.OledDark.borderSubtle,
+            borderStrong = StoryArcColor.OledDark.borderStrong,
+            textPrimary = StoryArcColor.OledDark.textPrimary,
+            textSecondary = StoryArcColor.OledDark.textSecondary,
+            textTertiary = StoryArcColor.OledDark.textTertiary,
+            scrim = StoryArcColor.OledDark.scrim,
+            accent = StoryArcColor.Brand.ember,
+            accentMuted = StoryArcColor.Brand.emberMuted,
+        )
     }
 }
 
 val LocalStoryArcPalette = staticCompositionLocalOf { StoryArcPalette.Dark }
 
 /** What the user chose in Settings › Appearance. */
-enum class AppearanceMode { SYSTEM, LIGHT, DARK }
+/**
+ * What the reader chose in Settings › Appearance.
+ *
+ * `settings-and-about` requires System, Light, Dark and OLED Dark, defaulting to
+ * System, applied without a restart. Reading themes are deliberately independent of
+ * this — a dark chrome with a paper-white page is a legitimate preference, and the spec
+ * says so.
+ *
+ * Natural is deliberately *not* a case. The spec calls it "a theme rather than an
+ * appearance… carries its own light and dark variants", so it sits alongside this
+ * polarity rather than inside it. Putting it here would force a choice between Natural
+ * and dark mode that the spec exists to avoid.
+ */
+enum class AppearanceMode {
+    SYSTEM,
+    LIGHT,
+    DARK,
+
+    /**
+     * True black chrome, for OLED panels where black draws no power.
+     *
+     * The reader surface stays *above* true black even here. Pure black smears on OLED
+     * during a page turn, which is the exact motion this app is built around — so the
+     * setting is honoured where it helps and the palette declines it where it does not.
+     * The generated `oledDark` tokens carry that decision, not this type.
+     */
+    OLED_DARK,
+    ;
+
+    /** Whether this appearance wants the true-black palette rather than the warm one. */
+    val isTrueBlack: Boolean get() = this == OLED_DARK
+}
 
 private fun brandDarkScheme() = darkColorScheme(
     primary = StoryArcColor.Brand.ember,
@@ -92,6 +146,21 @@ private fun brandDarkScheme() = darkColorScheme(
     outlineVariant = StoryArcColor.Dark.borderSubtle,
     error = StoryArcColor.Status.danger,
     scrim = StoryArcColor.Dark.scrim,
+)
+
+private fun brandOledDarkScheme() = darkColorScheme(
+    primary = StoryArcColor.Brand.ember,
+    onPrimary = StoryArcColor.OledDark.surfaceCanvas,
+    secondary = StoryArcColor.Brand.ink,
+    background = StoryArcColor.OledDark.surfaceCanvas,
+    onBackground = StoryArcColor.OledDark.textPrimary,
+    surface = StoryArcColor.OledDark.surfaceRaised,
+    onSurface = StoryArcColor.OledDark.textPrimary,
+    onSurfaceVariant = StoryArcColor.OledDark.textSecondary,
+    outline = StoryArcColor.OledDark.borderStrong,
+    outlineVariant = StoryArcColor.OledDark.borderSubtle,
+    error = StoryArcColor.Status.danger,
+    scrim = StoryArcColor.OledDark.scrim,
 )
 
 private fun brandLightScheme() = lightColorScheme(
@@ -125,18 +194,26 @@ fun StoryArcTheme(
     val darkTheme = when (appearance) {
         AppearanceMode.SYSTEM -> isSystemInDarkTheme()
         AppearanceMode.LIGHT -> false
-        AppearanceMode.DARK -> true
+        AppearanceMode.DARK, AppearanceMode.OLED_DARK -> true
     }
 
     val context = LocalContext.current
     val colorScheme = when {
+        // Dynamic colour and true black are incompatible asks: Material You derives its
+        // surfaces from the wallpaper, and a wallpaper-tinted "true black" is neither.
+        // The explicit choice wins over the automatic one.
+        appearance.isTrueBlack -> brandOledDarkScheme()
         useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         darkTheme -> brandDarkScheme()
         else -> brandLightScheme()
     }
 
-    val palette = if (darkTheme) StoryArcPalette.Dark else StoryArcPalette.Light
+    val palette = when {
+        appearance.isTrueBlack -> StoryArcPalette.OledDark
+        darkTheme -> StoryArcPalette.Dark
+        else -> StoryArcPalette.Light
+    }
 
     CompositionLocalProvider(LocalStoryArcPalette provides palette) {
         MaterialExpressiveTheme(

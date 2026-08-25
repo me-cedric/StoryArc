@@ -47,6 +47,11 @@ struct ThemeTests {
     }
 }
 
+/// What an appearance resolves to.
+///
+/// `settings-and-about` names four and is specific about the one that is not what its
+/// name implies: OLED Dark makes chrome true black and deliberately does *not* make the
+/// reader surface true black. Android's `AppearanceTest` asserts the same table.
 @Suite("Appearance mode")
 struct AppearanceModeTests {
     @Test("System defers to the platform, the others force a scheme")
@@ -54,12 +59,46 @@ struct AppearanceModeTests {
         #expect(AppearanceMode.system.colorScheme == nil)
         #expect(AppearanceMode.light.colorScheme == .light)
         #expect(AppearanceMode.dark.colorScheme == .dark)
+        #expect(AppearanceMode.oledDark.colorScheme == .dark)
     }
 
     @Test("Every mode is offered, and System is the documented default")
     func allCases() {
-        #expect(AppearanceMode.allCases.count == 3)
+        #expect(AppearanceMode.allCases.count == 4)
         #expect(AppearanceMode(rawValue: "system") == .system)
+        #expect(AppearanceMode.allCases.first == .system)
+        // Natural is "a theme rather than an appearance" and carries its own light and
+        // dark variants, so putting it here would force a choice the spec avoids.
+        #expect(!AppearanceMode.allCases.contains { $0.rawValue.contains("natural") })
+    }
+
+    @Test("OLED Dark makes chrome true black and the reader surface deliberately not")
+    func oledKeepsTheReaderOffBlack() {
+        // The whole point of the scenario: pure black smears on OLED during a page turn,
+        // which is the exact motion this app is built around.
+        let palette = Palette.oledDark
+        #expect(palette.surfaceCanvas != palette.surfaceReader)
+        #expect(palette.surfaceCanvas == StoryArcColor.OledDark.surfaceCanvas)
+        #expect(palette.surfaceReader == StoryArcColor.OledDark.surfaceReader)
+    }
+
+    @Test("OLED Dark wins over the resolved scheme, because it is an explicit choice")
+    func oledOverridesTheScheme() {
+        #expect(Palette.resolved(for: .light, appearance: .oledDark) == .oledDark)
+        #expect(Palette.resolved(for: .dark, appearance: .oledDark) == .oledDark)
+        // And the others still follow the scheme they were given.
+        #expect(Palette.resolved(for: .dark, appearance: .system) == .dark)
+        #expect(Palette.resolved(for: .light, appearance: .system) == .light)
+    }
+
+    @Test("Only the appearance that is not what its name implies carries a note")
+    func onlyOledExplainsItself() {
+        // `settings-and-about`: honoured where it helps and *explained* where it does
+        // not. An explanation on the other three would be noise.
+        #expect(AppearanceMode.oledDark.localizedNoteKey != nil)
+        for mode in AppearanceMode.allCases where mode != .oledDark {
+            #expect(mode.localizedNoteKey == nil, "\(mode)")
+        }
     }
 }
 

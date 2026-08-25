@@ -673,12 +673,32 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
 ## Phase 5 — Appearance and Natural
 
-- [ ] **5.1** Extend `AppearanceMode` to System / Light / Dark / OLED Dark on
-      both platforms.
+- [x] **5.1** Extend `AppearanceMode` to System / Light / Dark / OLED Dark on
+      both platforms. **Done**, and it landed in `settings-and-about-screens` task 1.2
+      rather than here, because a fourth appearance with nowhere to select it is dead
+      code. The type, the palette and the tests are on both platforms; the screen that
+      offers it belongs to that change.
+
+      Natural is deliberately *not* a case. The spec calls it "a theme rather than an
+      appearance… carries its own light and dark variants", so a case here would force
+      a choice between Natural and dark mode that the spec exists to avoid. A test
+      asserts its absence, so a future hand does not helpfully add it.
 - [ ] **5.2** Natural as a theme with its own light and dark variants: accents
       app-wide, grain confined to reading surfaces.
-- [ ] **5.3** OLED Dark: true black chrome, reader surface deliberately above
-      true black, with the reason surfaced in the setting.
+- [x] **5.3** OLED Dark: true black chrome, reader surface deliberately above
+      true black, with the reason surfaced in the setting. **Done.** The tokens already
+      carried an `oledDark` palette whose `surfaceReader` refuses to be `#000`, with
+      the reason in `color.json` — so this was wiring, not design, and the reason is
+      not repeated in code because a reason in two places drifts.
+
+      The reason is now also a *string*, which is what "surfaced in the setting" means:
+      `AppearanceMode.localizedNoteKey` is non-nil for OLED Dark alone, and a test
+      asserts the other three have none, because an explanation on all four is noise.
+
+      One thing the wiring had to decide: dynamic colour and true black are
+      incompatible asks. Material You derives its surfaces from the wallpaper, and a
+      wallpaper-tinted "true black" is neither, so the explicit choice wins over the
+      automatic one.
 - [ ] **5.4** Natural grain as procedural noise on reading surfaces only,
       disabled automatically under Reduce Transparency or Increase Contrast, and
       absent below API 33 on Android with the palette retained.

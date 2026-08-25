@@ -102,6 +102,15 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **OLED Dark**, as a fourth appearance beside System, Light and Dark. Chrome goes
+  true black; the *page* deliberately does not, because pure black smears on OLED
+  during a page turn — which is the exact motion this app is built around. The setting
+  says so rather than quietly doing something other than its name.
+  - Natural is not one of these. It is a theme with its own light and dark variants, so
+    making it an appearance would force a choice between Natural and dark mode.
+  - Dynamic colour and true black turned out to be incompatible asks: Material You
+    derives its surfaces from the wallpaper, and a wallpaper-tinted "true black" is
+    neither. The explicit choice wins.
 - **Fixed: the typeface specimens shrank the face at large text sizes.** A specimen is a
   picture of a typeface in a fixed-size card, so scaling it with the system text size
   showed *less* of the face the larger a reader needs it. It no longer scales.

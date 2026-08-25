@@ -6,11 +6,20 @@
       `LibraryPreferences` rather than inside either: appearance, language
       override, and the reading defaults, with the same "unreadable stored data
       reads as no data" rule the theme store already uses.
-- [ ] **1.2** Extend `AppearanceMode` to System / Light / Dark / OLED Dark on both
+- [x] **1.2** Extend `AppearanceMode` to System / Light / Dark / OLED Dark on both
       platforms, with the OLED reader surface deliberately above true black and the
       reason stated in the setting. This is
       `reader-theming-and-page-transitions` 5.1 and 5.3, and it lands here because
-      that change has nowhere to select it.
+      that change has nowhere to select it. **Done.**
+
+      The tokens already carried an `oledDark` palette whose reader surface refuses to
+      be `#000`, so this was wiring rather than design. Natural is deliberately not a
+      case — the spec calls it a theme rather than an appearance — and a test asserts
+      its absence so a future hand does not helpfully add it.
+
+      Dynamic colour and true black turned out to be incompatible asks: Material You
+      derives its surfaces from the wallpaper, and a wallpaper-tinted "true black" is
+      neither. The explicit choice wins.
 - [ ] **1.3** Appearance applies without a restart and follows the system while
       backgrounded. Verified by capture on the emulator, both directions.
 - [ ] **1.4** Appearance leaves the reading theme alone — the spec's own scenario,

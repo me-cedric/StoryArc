@@ -55,7 +55,37 @@ public struct Palette: Sendable, Equatable {
         accentMuted: StoryArcColor.Brand.emberMuted
     )
 
-    public static func resolved(for scheme: ColorScheme) -> Palette {
-        scheme == .dark ? .dark : .light
+    /// True black chrome, with the reader surface deliberately above it.
+    ///
+    /// Every value comes from the generated `oledDark` tokens, including the reader
+    /// surface that refuses to be `#000` — the reason is in `color.json` and not
+    /// repeated here, because a reason in two places drifts.
+    public static let oledDark = Palette(
+        surfaceCanvas: StoryArcColor.OledDark.surfaceCanvas,
+        surfaceRaised: StoryArcColor.OledDark.surfaceRaised,
+        surfaceOverlay: StoryArcColor.OledDark.surfaceOverlay,
+        surfaceReader: StoryArcColor.OledDark.surfaceReader,
+        surfaceSunken: StoryArcColor.OledDark.surfaceSunken,
+        borderSubtle: StoryArcColor.OledDark.borderSubtle,
+        borderStrong: StoryArcColor.OledDark.borderStrong,
+        textPrimary: StoryArcColor.OledDark.textPrimary,
+        textSecondary: StoryArcColor.OledDark.textSecondary,
+        textTertiary: StoryArcColor.OledDark.textTertiary,
+        scrim: StoryArcColor.OledDark.scrim,
+        accent: StoryArcColor.Brand.ember,
+        accentMuted: StoryArcColor.Brand.emberMuted
+    )
+
+    /// The palette for a resolved scheme and appearance.
+    ///
+    /// The appearance is a parameter rather than read from the environment because a
+    /// palette is a value: the same scheme yields a different palette under OLED Dark,
+    /// and nothing about that is the environment's business.
+    public static func resolved(
+        for scheme: ColorScheme,
+        appearance: AppearanceMode = .system
+    ) -> Palette {
+        if appearance.isTrueBlack { return .oledDark }
+        return scheme == .dark ? .dark : .light
     }
 }

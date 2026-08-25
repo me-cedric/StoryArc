@@ -59,6 +59,64 @@
         }
       }
     },
+    "appearance.oledDark": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OLED-Dunkel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OLED Dark"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oscuro OLED"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sombre OLED"
+          }
+        }
+      }
+    },
+    "appearance.oledDark.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bedienoberfläche in echtem Schwarz. Die Seite selbst bleibt knapp darüber, weil reines Schwarz auf OLED beim Seitenwechsel schmiert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "True black chrome. The page itself stays just above black, because pure black smears on OLED during a page turn."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interfaz en negro absoluto. La página se mantiene apenas por encima del negro, porque el negro puro se difumina en OLED al cambiar de página."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interface en noir absolu. La page reste juste au-dessus du noir : le noir pur bave sur OLED pendant une tourne de page."
+          }
+        }
+      }
+    },
     "appearance.system": {
       "extractionState": "manual",
       "localizations": {

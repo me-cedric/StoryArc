@@ -33,8 +33,12 @@ extension EnvironmentValues {
 extension View {
     /// Resolves the palette from the current colour scheme and injects it.
     /// Apply once, at the root.
-    public func storyArcTheme() -> some View {
-        modifier(ThemeResolver())
+    /// - Parameter appearance: what the reader chose. `settings-and-about` requires it
+    ///   to apply "immediately across the whole app without a restart", which is what
+    ///   passing it through the environment gets for free.
+    public func storyArcTheme(appearance: AppearanceMode = .system) -> some View {
+        modifier(ThemeResolver(appearance: appearance))
+            .preferredColorScheme(appearance.colorScheme)
     }
 
     /// Layers a cover-derived accent over the inherited theme for this subtree.
@@ -46,8 +50,10 @@ extension View {
 private struct ThemeResolver: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
+    let appearance: AppearanceMode
+
     func body(content: Content) -> some View {
-        let theme = Theme(palette: .resolved(for: colorScheme))
+        let theme = Theme(palette: .resolved(for: colorScheme, appearance: appearance))
         return content
             .environment(\.theme, theme)
             .tint(theme.accent)
