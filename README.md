@@ -24,6 +24,17 @@
   <img src="docs/design/screenshots/android-library-empty-dark.png" alt="StoryArc on Android: the same screen rendered in Material 3 Expressive" width="300">
 </p>
 
+<p align="center">
+  <img src="docs/design/screenshots/android-theme-sheet-dark.png" alt="The reading-theme sheet: six presets, each previewed in its own colours and typeface" width="300">
+  &nbsp;&nbsp;
+  <img src="docs/design/screenshots/android-theme-sheet-light-largest.png" alt="The same sheet at twice the system text size, still legible and unclipped" width="300">
+</p>
+
+<p align="center"><em>The reading-theme sheet — six presets previewed in their own
+colours <strong>and</strong> typefaces, and the same sheet at twice the system text
+size. The iOS pair is missing for a dull reason: the simulator accepts no injected
+input, so the reader cannot be reached to open it.</em></p>
+
 StoryArc reads what you already own, from wherever you keep it: a folder on the
 device, iCloud Drive or any Files provider, an SMB share on your NAS, an OPDS
 catalogue, or a Kavita server. It caches what it finds, downloads what you ask

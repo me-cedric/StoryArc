@@ -766,7 +766,21 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       are ticked here — `pnpm check` runs all of them.
 - [ ] **7.4** **Visual proof.** Simulator and emulator screenshots of the theme
       sheet and all six presets, in light and dark, at default and largest text
-      size. A `#Preview` is not proof.
+      size. A `#Preview` is not proof. **Android done; iOS blocked on a device.**
+
+      Four captures in `docs/design/screenshots`, from a booted emulator:
+      `android-theme-sheet-{light,dark}.png` and
+      `android-theme-sheet-{light,dark}-largest.png`. All six presets appear in one
+      shot rather than six, because the grid previews each in its own colours *and*
+      typeface — which is the thing worth proving.
+
+      Two of them are now in the root README as well. An empty library was the whole
+      first impression of a project that reads books, curls pages and carries five
+      typefaces.
+
+      iOS cannot be captured: the simulator accepts no injected input, so the reader
+      cannot be reached to open the sheet. `apps/ios/README.md` records the three
+      approaches that were tried.
 - [ ] **7.5** Record the curl: a screen recording on each platform, because a
       still frame cannot show interruptibility or finger tracking.
 - [ ] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce
