@@ -47,4 +47,19 @@
     <string name="theme_axis_value_em">%1$s em</string>
     <string name="theme_font_size_position">Tamaño %1$d de %2$d</string>
     <string name="theme_brightness_percent">%1$d %%</string>
+    <string name="theme_page_colour">Color de la página</string>
+    <string name="theme_page_colour_pick">Elegir el tuyo</string>
+    <string name="theme_page_colour_hue">Tono</string>
+    <string name="theme_page_colour_saturation">Saturación</string>
+    <string name="theme_page_colour_lightness">Luminosidad</string>
+    <string name="theme_page_colour_name">Nombrar este color</string>
+    <string name="theme_page_colour_untitled">El mío</string>
+    <string name="theme_page_colour_text_colour">Color del texto</string>
+    <string name="theme_page_colour_ratio">Contraste %1$s a 1</string>
+    <string name="theme_page_colour_below_aaa">Legible, pero por debajo del 7 a 1 que cumple cada tema incluido.</string>
+    <string name="theme_page_colour_refused">No aplicado. %1$s a 1 está por debajo del %2$s a 1 necesario para leer con comodidad.</string>
+    <string name="theme_page_colour_clear">Usar los colores del tema</string>
+    <string name="theme_page_colour_sample">Texto lo bastante largo para juzgar la combinación.</string>
+    <string name="theme_page_colour_sample_label">Muestra del texto y el fondo juntos</string>
+    <string name="theme_page_colour_swatch">Color %1$s</string>
 </resources>

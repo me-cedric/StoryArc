@@ -3,6 +3,7 @@ package app.storyarc.feature.epubreader
 import android.app.Application
 import android.net.Uri
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
@@ -134,6 +135,26 @@ class EpubReaderViewModel(
     fun restoreTheme() {
         _theme.value = _theme.value.restored()
         _values.value = _theme.value.preset.values
+    }
+
+    /**
+     * Puts the reader's own colours in force, or refuses and says why.
+     *
+     * `reading-themes`: a pairing below 4.5 to 1 "is refused with the measured ratio
+     * stated". The refusal is returned rather than thrown or swallowed, because the
+     * sheet has to show the number — a refusal without one is just an obstacle.
+     *
+     * @return whether the palette was applied.
+     */
+    fun adoptColours(palette: ReaderPalette): Boolean {
+        if (!palette.isReadable) return false
+        _theme.value = _theme.value.adopting(palette)
+        return true
+    }
+
+    /** Goes back to the preset's own colours, keeping its typography. */
+    fun discardCustomColours() {
+        _theme.value = _theme.value.discardingCustomColours()
     }
 
     /**

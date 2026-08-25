@@ -68,7 +68,9 @@ internal fun ReadingTheme.preferences(values: ThemeValues): EpubPreferences {
  * cannot drift apart.
  */
 internal val ReadingTheme.background: String
-    get() = when (preset) {
+    // The reader's own choice wins over the preset's, which is what makes the custom
+    // slot reach the page at all.
+    get() = custom?.background ?: when (preset) {
         ThemePreset.ORIGINAL -> StoryArcReadingThemeHex.originalBg
         ThemePreset.QUIET -> StoryArcReadingThemeHex.quietBg
         ThemePreset.PAPER -> StoryArcReadingThemeHex.paperBg
@@ -78,7 +80,7 @@ internal val ReadingTheme.background: String
     }
 
 internal val ReadingTheme.foreground: String
-    get() = when (preset) {
+    get() = custom?.foreground ?: when (preset) {
         ThemePreset.ORIGINAL -> StoryArcReadingThemeHex.originalFg
         ThemePreset.QUIET -> StoryArcReadingThemeHex.quietFg
         ThemePreset.PAPER -> StoryArcReadingThemeHex.paperFg

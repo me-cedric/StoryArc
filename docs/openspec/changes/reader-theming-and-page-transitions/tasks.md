@@ -197,8 +197,66 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       alignment, font family, bold. Long-press to reset an axis.
 - [ ] **3.6** Live preview rendered by the **real** renderer, showing a chapter
       title and body text, reflowing continuously during a drag.
-- [ ] **3.7** Custom background: swatches, picker, derived text colour at 7:1,
-      refusal below 4.5:1 **with the measured ratio shown**.
+- [x] **3.7** Custom background: swatches, picker, derived text colour at 7:1,
+      refusal below 4.5:1 **with the measured ratio shown**. **Done for reflowable
+      publications.** The fixed-layout half is held — see below.
+
+      The contrast maths is domain code on both platforms, using the *same*
+      relative-luminance definition as `packages/design-tokens/scripts/oklch.mjs`
+      down to the 0.04045 knee. A golden-value test pins the two together: if they
+      drifted, a pairing could clear the build gate and be refused in the sheet, or
+      worse the other way round.
+
+      Deriving a text colour is black or white and nothing else, because contrast
+      depends only on relative luminance and those are its extremes — so it is the
+      whole answer rather than a search that stopped early. The consequence is worth
+      stating: a **mid-tone background has no text colour that reaches 7:1 at all**.
+      Grey `#808080` tops out near 5.3. The sheet says so instead of quietly handing
+      back black and looking like a pass.
+
+      The ratio is on screen at all times, not only when something is refused. A
+      number that appears only to scold is a number the reader has no reason to
+      trust. The refusal states its own measurement, which is what the spec asks
+      for and the reason the rejected pairing has to exist as a value long enough to
+      be measured.
+
+      A malformed hex measures 1 — the worst — never 21. A typo must not be the
+      reason a pairing is accepted.
+
+      The seventh slot is a field beside `preset` rather than a seventh enum case,
+      which is what "alongside the six presets rather than overwriting one" means.
+      Choosing colours keeps the typography the reader already set; tapping one of
+      the six leaves the palette behind; and Original refuses it outright, because
+      the publisher's own colours are the point of that preset. Three tests each
+      side hold those.
+
+      The picker is a `ColorPicker` on iOS and three Material sliders on Android.
+      Compose has no colour picker, and the sheet already speaks in sliders — a
+      hand-rolled hue wheel would be more code and less familiar.
+
+      Verified on the emulator end to end: picking the navy swatch showed the
+      pairing and "Contrast 15.7 to 1"; choosing a dark text colour on it was
+      refused with "1.0 to 1 is below the 4.5 to 1 needed to read comfortably".
+
+      **Held:** the last scenario — a custom background applying "to the area around
+      the page and not to the page itself" for fixed-layout, comics and scanned PDFs.
+      The comic reader hard-codes black and knows nothing about a reading theme, and
+      it cannot learn one until themes persist, because `reading-themes` gives
+      reflowable and fixed-layout separate defaults that have to be *stored*
+      somewhere. See 3.10.
+
+- [ ] **3.10** **Theme scope and persistence.** Added: the `reading-themes`
+      requirement of the same name has no task, and the gap is visible in the
+      product — `_theme` starts at `ReadingTheme()` on every open, so every choice
+      a reader makes is lost when they close the book.
+
+      Three scenarios to honour: a theme applies to every publication in the same
+      series, with a global default for series never opened; reflowable and
+      fixed-layout keep separate defaults; and changing the global default does not
+      overwrite a per-series choice already made.
+
+      It also unblocks the held half of 3.7 and the custom background in the comic
+      reader.
 - [ ] **3.8** Tablet: popover on iPadOS, expanded anchored sheet on Android, with
       the reader still visible.
 - [x] **3.9** Accessibility: slider values and increment actions, grid semantics

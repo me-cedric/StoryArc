@@ -76,10 +76,27 @@ public struct ReadingTheme: Sendable, Equatable, Codable {
     /// The axes moved since the preset was adopted.
     public var deviations: Set<ThemeAxis>
 
-    public init(preset: ThemePreset = .paper, deviations: Set<ThemeAxis> = []) {
+    /// The reader's own colours, when they have chosen some.
+    ///
+    /// `reading-themes` requires a custom colour to be "a seventh, user-named slot
+    /// alongside the six presets rather than overwriting one" — so it sits beside
+    /// `preset` instead of being one of its cases. The preset still supplies the
+    /// typography: choosing a background is a decision about colour, and it should
+    /// not silently reset the line height the reader spent a minute on.
+    public var custom: ReaderPalette?
+
+    public init(
+        preset: ThemePreset = .paper,
+        deviations: Set<ThemeAxis> = [],
+        custom: ReaderPalette? = nil
+    ) {
         self.preset = preset
         self.deviations = deviations
+        self.custom = custom
     }
+
+    /// Whether the reader's own colours are in force.
+    public var isCustom: Bool { custom != nil }
 
     /// Whether to mark the preset as modified rather than plainly active.
     public var isModified: Bool { !deviations.isEmpty }
@@ -105,7 +122,26 @@ public struct ReadingTheme: Sendable, Equatable, Codable {
     /// ... at once". Carrying a previous deviation across would mean the preset the
     /// reader just tapped is not the one they get.
     public func adopting(_ preset: ThemePreset) -> ReadingTheme {
+        // The custom colours go with it. Tapping one of the six is how a reader
+        // leaves their own palette, and a preset that kept a custom background
+        // would not be the preset they tapped.
         ReadingTheme(preset: preset)
+    }
+
+    /// Puts the reader's own colours in force, keeping the typography they have.
+    ///
+    /// Kept separate from `adopting` for the reason the spec gives: the custom slot
+    /// sits alongside the six rather than replacing one of them, so choosing it is
+    /// not the same act as choosing a preset. It also cannot be chosen under
+    /// Original, where the publisher's own colours are the point.
+    public func adopting(_ palette: ReaderPalette) -> ReadingTheme {
+        guard !preset.keepsPublisherStyles else { return self }
+        return ReadingTheme(preset: preset, deviations: deviations, custom: palette)
+    }
+
+    /// Drops the reader's own colours and goes back to the preset's.
+    public func discardingCustomColours() -> ReadingTheme {
+        ReadingTheme(preset: preset, deviations: deviations)
     }
 
     /// Records that an axis was moved.
@@ -114,10 +150,10 @@ public struct ReadingTheme: Sendable, Equatable, Codable {
     /// changed, so calling the preset modified would be a lie the reader could see.
     public func deviating(on axis: ThemeAxis) -> ReadingTheme {
         guard isEffective(axis) else { return self }
-        return ReadingTheme(preset: preset, deviations: deviations.union([axis]))
+        return ReadingTheme(preset: preset, deviations: deviations.union([axis]), custom: custom)
     }
 
-    /// Puts every axis back to the preset's own values.
+    /// Puts every axis back to the preset's own values, and its colours with them.
     public func restored() -> ReadingTheme {
         ReadingTheme(preset: preset)
     }

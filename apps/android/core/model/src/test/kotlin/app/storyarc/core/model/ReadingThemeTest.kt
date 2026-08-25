@@ -2,6 +2,7 @@ package app.storyarc.core.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -187,6 +188,86 @@ class ReadingThemeTest {
         // Scrolling is not an animation the reader did not ask for.
         assertEquals(PageTransition.VERTICAL_SCROLL, PageTransition.VERTICAL_SCROLL.honoring(true))
         assertEquals(PageTransition.PAGE_CURL, PageTransition.PAGE_CURL.honoring(false))
+    }
+
+    // Contrast.
+
+    @Test
+    fun `Black on white is the extreme WCAG defines, and a colour on itself is the floor`() {
+        assertEquals(21.0, ReadingContrast.ratio("#000000", "#FFFFFF"), 0.01)
+        assertEquals(21.0, ReadingContrast.ratio("#FFFFFF", "#000000"), 0.01)
+        assertEquals(1.0, ReadingContrast.ratio("#3A5F8A", "#3A5F8A"), 0.0001)
+    }
+
+    @Test
+    fun `A colour it cannot read is the worst ratio, never the best`() {
+        // The failure mode that matters: a typo must not be the reason a pairing is
+        // accepted, so an unreadable colour reports 1 rather than null or 21.
+        assertEquals(1.0, ReadingContrast.ratio("not a colour", "#FFFFFF"), 0.0001)
+        assertNull(ReadingContrast.luminance("#12345"))
+        // Three-digit hex is legal CSS and a picker may hand one over.
+        assertEquals(21.0, ReadingContrast.ratio("#fff", "#000000"), 0.01)
+    }
+
+    @Test
+    fun `The runtime maths agrees with the token pipeline's, to four places`() {
+        // Golden values from `packages/design-tokens/scripts/oklch.mjs`, which is what
+        // fails the build when a reading theme drops below 7 to 1. If the two drifted,
+        // a pairing could pass the gate and be refused in the sheet, or worse the
+        // other way round. Paper's own pair, and the mid-grey ceiling.
+        assertEquals(15.4044, ReadingContrast.ratio("#F5F1EC", "#1D1A17"), 0.0001)
+        assertEquals(5.3172, ReadingContrast.ratio("#808080", "#000000"), 0.0001)
+    }
+
+    @Test
+    fun `A derived text colour is the better of black and white`() {
+        assertEquals("#000000", ReaderPalette.derived("n", "#FFFFFF").foreground)
+        assertEquals("#FFFFFF", ReaderPalette.derived("n", "#101010").foreground)
+    }
+
+    @Test
+    fun `A mid-tone background is reported as unable to reach AAA rather than dressed up`() {
+        // Grey tops out near 5.3 against black. The honest answer is that no text
+        // colour reaches 7 to 1 on it — silently returning black would look like a pass.
+        val grey = ReaderPalette.derived("grey", "#808080")
+        assertTrue(grey.isReadable)
+        assertFalse(grey.meetsAAA)
+    }
+
+    @Test
+    fun `A pairing below AA is refused, and the ratio survives to be shown`() {
+        // `reading-themes` refuses below 4.5 to 1 "with the measured ratio stated", so
+        // the attempt has to exist as a value long enough to be measured.
+        val tried = ReaderPalette.derived("n", "#FFFFFF").copy(foreground = "#DDDDDD")
+        assertFalse(tried.isReadable)
+        assertTrue(tried.contrast > 1)
+    }
+
+    // The seventh slot.
+
+    @Test
+    fun `Custom colours sit alongside the presets and keep the typography`() {
+        val palette = ReaderPalette.derived("Sea", "#0B2027")
+        val theme = ReadingTheme(ThemePreset.CALM, setOf(ThemeAxis.LINE_SPACING)).adopting(palette)
+        assertTrue(theme.isCustom)
+        // The preset is not overwritten, and the reader's line height survives.
+        assertEquals(ThemePreset.CALM, theme.preset)
+        assertEquals(setOf(ThemeAxis.LINE_SPACING), theme.deviations)
+        assertNull(theme.discardingCustomColours().custom)
+    }
+
+    @Test
+    fun `Tapping one of the six leaves the reader's own palette behind`() {
+        val theme = ReadingTheme().adopting(ReaderPalette.derived("Sea", "#0B2027"))
+        assertNull(theme.adopting(ThemePreset.FOCUS).custom)
+        assertNull(theme.restored().custom)
+    }
+
+    @Test
+    fun `Original refuses custom colours, because the publisher's are the point`() {
+        val theme = ReadingTheme(ThemePreset.ORIGINAL)
+            .adopting(ReaderPalette.derived("Sea", "#0B2027"))
+        assertFalse(theme.isCustom)
     }
 
     // Axis units.

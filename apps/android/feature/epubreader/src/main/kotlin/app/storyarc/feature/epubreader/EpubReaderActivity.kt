@@ -144,6 +144,8 @@ class EpubReaderActivity : FragmentActivity() {
                             onBrightness = model::setBrightness,
                             onRestore = model::restoreTheme,
                             onLeavePublisherStyles = model::leavePublisherStyles,
+                            onAdoptColours = model::adoptColours,
+                            onDiscardColours = model::discardCustomColours,
                             onDismiss = { isShowingTheme = false },
                         )
                     }
@@ -263,6 +265,8 @@ private fun ThemeBottomSheet(
     onBrightness: (Float) -> Unit,
     onRestore: () -> Unit,
     onLeavePublisherStyles: () -> Unit,
+    onAdoptColours: (app.storyarc.core.model.ReaderPalette) -> Boolean,
+    onDiscardColours: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -276,6 +280,8 @@ private fun ThemeBottomSheet(
             onBrightness = onBrightness,
             onRestore = onRestore,
             onLeavePublisherStyles = onLeavePublisherStyles,
+            onAdoptColours = onAdoptColours,
+            onDiscardColours = onDiscardColours,
         )
     }
 }

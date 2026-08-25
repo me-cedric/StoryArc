@@ -54,7 +54,10 @@ extension ReadingTheme {
     /// token pipeline emits both from one source — so the reader's page and the
     /// preset's swatch cannot drift apart.
     var background: String {
-        switch preset {
+        // The reader's own choice wins over the preset's, which is what makes the
+        // custom slot reach the page at all.
+        if let custom { return custom.background }
+        return switch preset {
         case .original: StoryArcReadingThemeHex.originalBg
         case .quiet: StoryArcReadingThemeHex.quietBg
         case .paper: StoryArcReadingThemeHex.paperBg
@@ -65,7 +68,8 @@ extension ReadingTheme {
     }
 
     var foreground: String {
-        switch preset {
+        if let custom { return custom.foreground }
+        return switch preset {
         case .original: StoryArcReadingThemeHex.originalFg
         case .quiet: StoryArcReadingThemeHex.quietFg
         case .paper: StoryArcReadingThemeHex.paperFg

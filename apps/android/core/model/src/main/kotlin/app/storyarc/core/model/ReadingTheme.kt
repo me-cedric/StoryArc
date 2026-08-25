@@ -97,9 +97,22 @@ data class ReadingTheme(
     val preset: ThemePreset = ThemePreset.PAPER,
     /** The axes moved since the preset was adopted. */
     val deviations: Set<ThemeAxis> = emptySet(),
+    /**
+     * The reader's own colours, when they have chosen some.
+     *
+     * `reading-themes` requires a custom colour to be "a seventh, user-named slot
+     * alongside the six presets rather than overwriting one" — so it sits beside
+     * `preset` instead of being one of its cases. The preset still supplies the
+     * typography: choosing a background is a decision about colour, and it should
+     * not silently reset the line height the reader spent a minute on.
+     */
+    val custom: ReaderPalette? = null,
 ) {
     /** Whether to mark the preset as modified rather than plainly active. */
     val isModified: Boolean get() = deviations.isNotEmpty()
+
+    /** Whether the reader's own colours are in force. */
+    val isCustom: Boolean get() = custom != null
 
     /**
      * Whether an axis can reach the page at all.
@@ -125,6 +138,20 @@ data class ReadingTheme(
     fun adopting(preset: ThemePreset) = ReadingTheme(preset)
 
     /**
+     * Puts the reader's own colours in force, keeping the typography they have.
+     *
+     * Kept separate from `adopting` for the reason the spec gives: the custom slot
+     * sits alongside the six rather than replacing one of them, so choosing it is
+     * not the same act as choosing a preset. It also cannot be chosen under
+     * Original, where the publisher's own colours are the point.
+     */
+    fun adopting(palette: ReaderPalette): ReadingTheme =
+        if (preset.keepsPublisherStyles) this else copy(custom = palette)
+
+    /** Drops the reader's own colours and goes back to the preset's. */
+    fun discardingCustomColours() = copy(custom = null)
+
+    /**
      * Records that an axis was moved.
      *
      * An axis that cannot reach the page is not recorded as a deviation: nothing
@@ -133,6 +160,6 @@ data class ReadingTheme(
     fun deviating(on: ThemeAxis): ReadingTheme =
         if (isEffective(on)) copy(deviations = deviations + on) else this
 
-    /** Puts every axis back to the preset's own values. */
+    /** Puts every axis back to the preset's own values, and its colours with them. */
     fun restored() = ReadingTheme(preset)
 }

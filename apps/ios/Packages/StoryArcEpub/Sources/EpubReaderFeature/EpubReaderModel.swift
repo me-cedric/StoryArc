@@ -118,6 +118,25 @@ public final class EpubReaderModel {
         applyTheme()
     }
 
+    /// Puts the reader's own colours in force, or refuses and says why.
+    ///
+    /// `reading-themes`: a pairing below 4.5:1 "is refused with the measured ratio
+    /// stated". The refusal is returned rather than thrown or swallowed, because the
+    /// sheet has to show the number — a refusal without one is just an obstacle.
+    @discardableResult
+    public func adoptColours(_ palette: ReaderPalette) -> Bool {
+        guard palette.isReadable else { return false }
+        theme = theme.adopting(palette)
+        applyTheme()
+        return true
+    }
+
+    /// Goes back to the preset's own colours, keeping its typography.
+    public func discardCustomColours() {
+        theme = theme.discardingCustomColours()
+        applyTheme()
+    }
+
     /// Turns publisher styles off by adopting a preset that overrides them.
     ///
     /// `reading-themes` requires an unavailable axis to offer "a single action that

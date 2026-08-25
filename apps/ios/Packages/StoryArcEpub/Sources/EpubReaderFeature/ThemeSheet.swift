@@ -33,6 +33,14 @@ struct ThemeSheet: View {
                     } else {
                         fineAxes
                         alignment
+                        // A custom background cannot apply under Original, where
+                        // the publisher's own colours are the point — so it lives
+                        // in the same branch as the other overrides.
+                        PageColourSection(
+                            palette: model.theme.custom,
+                            onAdopt: { model.adoptColours($0) },
+                            onDiscard: model.discardCustomColours
+                        )
                     }
                     brightness
                 }
@@ -78,11 +86,17 @@ struct ThemeSheet: View {
                 ForEach(ThemePreset.allCases, id: \.self) { preset in
                     PresetCard(
                         preset: preset,
-                        isActive: model.theme.preset == preset,
+                        isActive: model.theme.preset == preset && !model.theme.isCustom,
                         isModified: model.theme.preset == preset && model.theme.isModified
                     ) {
                         model.adopt(preset)
                     }
+                }
+                // The seventh slot, present only once the reader has made one.
+                // `reading-themes` puts it "alongside the six presets rather than
+                // overwriting one", so it is a seventh card and not a replaced one.
+                if let custom = model.theme.custom {
+                    CustomCard(palette: custom) { model.adoptColours(custom) }
                 }
             }
         }

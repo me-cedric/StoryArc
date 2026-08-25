@@ -62,6 +62,56 @@ struct PresetCard: View {
     }
 }
 
+/// The reader's own palette, as a seventh card in the same grid.
+///
+/// Drawn from the same parts as a preset card, in its own colours, for the same
+/// reason: a grid of samples reads at a glance and a grid of labels does not. It
+/// carries the reader's name for the slot rather than the word "custom", because a
+/// slot they named and cannot see the name of is not really theirs.
+struct CustomCard: View {
+    @Environment(\.theme) private var theme
+
+    let palette: ReaderPalette
+    let onSelect: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            VStack(spacing: StoryArcSpace.xs) {
+                ZStack {
+                    Color(hex: palette.background)
+                    VStack(spacing: 3) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            Capsule()
+                                .fill(Color(hex: palette.foreground))
+                                .frame(height: 2)
+                        }
+                    }
+                    .padding(.horizontal, StoryArcSpace.sm)
+                }
+                .frame(height: 44)
+                .clipShape(.rect(cornerRadius: StoryArcRadius.sm))
+                .overlay {
+                    RoundedRectangle(cornerRadius: StoryArcRadius.sm)
+                        .strokeBorder(theme.accent, lineWidth: 2)
+                }
+
+                title
+                    .textRole(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(theme.accent)
+                    .lineLimit(1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits([.isButton, .isSelected])
+    }
+
+    private var title: Text {
+        let name = palette.name.trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? Text("theme.pageColour.untitled", bundle: .module) : Text(name)
+    }
+}
+
 /// Where the size sits on its ladder.
 struct StepDots: View {
     @Environment(\.theme) private var theme

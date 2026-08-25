@@ -98,6 +98,25 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **A reading background of your own**, kept legible whether you like it or not.
+  Eight swatches, a picker, and a text colour derived from whatever you choose.
+  - The derived colour is black or white and nothing else, because contrast depends
+    only on relative luminance and those are its extremes — so it is the whole
+    answer, not a search that stopped early. Which has a consequence worth saying
+    out loud: a mid-tone grey has *no* text colour that reaches 7:1. The sheet says
+    so rather than handing back black and looking like a pass.
+  - Override the text colour and a pairing below 4.5:1 is refused **with its
+    measured ratio**, because "that is not allowed" without a number is an obstacle
+    rather than an explanation. The ratio is shown at all times, not only when
+    something goes wrong — a number that appears only to scold is one you have no
+    reason to trust.
+  - The maths is the same relative-luminance definition the token pipeline uses,
+    down to the 0.04045 knee, and a golden-value test on both platforms pins them
+    together. A drift would let a pairing clear the build gate and be refused in the
+    sheet.
+  - It is a seventh slot beside the six presets, not a seventh preset: choosing it
+    keeps the typography you already set, and tapping one of the six leaves it
+    behind. Original refuses it, because the publisher's own colours are the point.
 - **The reader chrome wears each platform's own material.** Liquid Glass on iOS,
   Material 3 tonal surfaces on Android.
   - The iOS theme sheet needed no material of its own; it needed the opaque fill it

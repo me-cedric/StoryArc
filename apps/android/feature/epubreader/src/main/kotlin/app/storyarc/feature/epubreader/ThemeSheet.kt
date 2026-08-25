@@ -54,6 +54,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AxisUnit
 import app.storyarc.core.model.FontSizeStep
+import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ReaderTextAlignment
 import app.storyarc.core.model.ReaderTypeface
 import app.storyarc.core.model.STEPS_PER_AXIS
@@ -94,6 +95,8 @@ internal fun ThemeSheet(
     onBrightness: (Float) -> Unit,
     onRestore: () -> Unit,
     onLeavePublisherStyles: () -> Unit,
+    onAdoptColours: (ReaderPalette) -> Boolean,
+    onDiscardColours: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -133,10 +136,18 @@ internal fun ThemeSheet(
             items(ThemePreset.entries) { preset ->
                 PresetCard(
                     preset = preset,
-                    isActive = theme.preset == preset,
+                    isActive = theme.preset == preset && !theme.isCustom,
                     isModified = theme.preset == preset && theme.isModified,
                     onSelect = { onAdopt(preset) },
                 )
+            }
+            // The seventh slot, present only once the reader has made one.
+            // `reading-themes` puts it "alongside the six presets rather than
+            // overwriting one", so it is a seventh card and not a replaced one.
+            theme.custom?.let { custom ->
+                item {
+                    CustomCard(palette = custom, onSelect = { onAdoptColours(custom) })
+                }
             }
         }
 
@@ -148,6 +159,14 @@ internal fun ThemeSheet(
         } else {
             FineAxes(values, onSet)
             AlignmentControl(values, onChange)
+            // A custom background cannot apply under Original, where the publisher's
+            // own colours are the point — so it lives in the same branch as the
+            // other overrides.
+            PageColourSection(
+                palette = theme.custom,
+                onAdopt = onAdoptColours,
+                onDiscard = onDiscardColours,
+            )
         }
 
         BrightnessControl(brightness, onBrightness)
@@ -459,6 +478,74 @@ private fun PublisherStylesNotice(onLeave: () -> Unit, modifier: Modifier = Modi
                     color = palette.textTertiary,
                 )
             }
+        }
+    }
+}
+
+/**
+ * The reader's own palette, as a seventh card in the same grid.
+ *
+ * Drawn from the same parts as a preset card, in its own colours, for the same
+ * reason: a grid of samples reads at a glance and a grid of labels does not. It
+ * carries the reader's name for the slot rather than the word "custom", because a
+ * slot they named and cannot see the name of is not really theirs.
+ */
+@Composable
+private fun CustomCard(
+    palette: ReaderPalette,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tokens = LocalStoryArcPalette.current
+    val name = palette.name.trim().ifEmpty { stringResource(R.string.theme_page_colour_untitled) }
+
+    Surface(
+        modifier = modifier.semantics(mergeDescendants = true) {},
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(StoryArcRadius.md),
+    ) {
+        Column(
+            modifier = Modifier
+                .selectable(selected = true, role = Role.RadioButton, onClick = onSelect)
+                .padding(StoryArcSpace.xs),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(StoryArcRadius.sm))
+                    .background(Color(AndroidColor.parseColor(palette.background)))
+                    .border(
+                        width = 2.dp,
+                        color = tokens.accent,
+                        shape = RoundedCornerShape(StoryArcRadius.sm),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = StoryArcSpace.sm),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    repeat(3) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(2.dp)
+                                .background(Color(AndroidColor.parseColor(palette.foreground))),
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = name,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = tokens.accent,
+                maxLines = 1,
+            )
         }
     }
 }
