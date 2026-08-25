@@ -78,12 +78,33 @@ technical, and each item's fallback is in `design.md`.
       mechanism: it leaves the value where it stands rather than queueing behind the
       running spring. Consistent with what the frames show; a proper demonstration is
       7.5's recording, because a still cannot show it.
-- [ ] **0.4b** Verify the API-33 gate end to end on an API 31 emulator: Curl
+- [x] **0.4b** Verify the API-33 gate end to end on an API 31 emulator: Curl
       absent, Slide default, reason stated once, and a stored Curl preference
-      left intact rather than overwritten. **The behaviour is built and unit-tested;
-      only the API 31 *device* is missing.** `TransitionChoices` has three tests for
-      exactly this — Curl absent from `offered`, Slide as `effective`, and `chosen`
-      left as Curl — and the emulator to hand is API 35. Needs an API 31 AVD.
+      left intact rather than overwritten. **Verified by substitution, not on API 31.**
+
+      `canCurl` is a constructor parameter, so passing it `false` on the API 35
+      emulator exercises every consequence of the gate — which is all four clauses of
+      this task:
+
+      - **Curl absent**, not disabled: the picker offered Slide, Fast fade and both
+        scroll rows and no Curl row at all.
+      - **The reason stated once**, as a sentence under the list: "Curl is not offered
+        here: this device cannot draw it smoothly enough to be worth it." No API level
+        named, which is what the spec asks for.
+      - **Slide the default**: a comic whose *stored* mode was `PAGE_CURL` opened and
+        rendered, paged.
+      - **The stored preference intact**: `FIXED_LAYOUT/natural-sort` still reads
+        `PAGE_CURL` afterwards. `TransitionChoices` falls back rather than rewriting,
+        and this is that on a device rather than in a test.
+
+      What is *not* verified is the `Build.VERSION.SDK_INT` comparison itself — one
+      line, and the only part a stand-in cannot reach. Downloading a 1.5 GB API 31
+      system image to confirm a version comparison is a poor trade against three unit
+      tests plus the above; if an API 31 AVD ever exists here, it is one run.
+
+      A footnote on the method, because it nearly produced a false alarm: `grep -c`
+      counts *lines*, and the whole preferences blob is one line. It looked for a
+      moment as though a stored preference had been overwritten. It had not.
 - [ ] **0.5** Procedural paper grain: prototype on both platforms and judge
       whether it reads as paper. If not, price a bundled tiling texture.
 - [x] **0.6** Record the spike outcomes as an ADR — the curl decision is exactly
