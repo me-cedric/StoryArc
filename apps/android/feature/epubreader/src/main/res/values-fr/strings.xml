@@ -29,4 +29,12 @@
     <string name="theme_axis_paragraph_spacing">Espacement des paragraphes</string>
     <string name="theme_axis_margins">Marges</string>
     <string name="theme_axis_text_alignment">Alignement du texte</string>
+    <string name="theme_spacing">Espacement</string>
+    <string name="theme_brightness">Luminosité</string>
+    <string name="theme_typeface_publisher">Éditeur</string>
+    <string name="theme_typeface_serif">Serif</string>
+    <string name="theme_typeface_sans">Sans</string>
+    <string name="theme_alignment_publisher">Éditeur</string>
+    <string name="theme_alignment_left">Gauche</string>
+    <string name="theme_alignment_justified">Justifié</string>
 </resources>

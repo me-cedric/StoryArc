@@ -26,7 +26,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,6 +48,11 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.FontSizeStep
+import app.storyarc.core.model.ReaderTextAlignment
+import app.storyarc.core.model.ReaderTypeface
+import app.storyarc.core.model.setting
+import app.storyarc.core.model.sliderRange
+import app.storyarc.core.model.value
 import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
@@ -66,8 +76,11 @@ import app.storyarc.core.model.ThemeValues
 internal fun ThemeSheet(
     theme: ReadingTheme,
     values: ThemeValues,
+    brightness: Float?,
     onAdopt: (ThemePreset) -> Unit,
     onChange: (ThemeAxis, ThemeValues) -> Unit,
+    onSet: (ThemeAxis, Double) -> Unit,
+    onBrightness: (Float) -> Unit,
     onRestore: () -> Unit,
     onLeavePublisherStyles: () -> Unit,
     modifier: Modifier = Modifier,
@@ -117,10 +130,156 @@ internal fun ThemeSheet(
         }
 
         FontSizeControl(values, onChange)
+        TypefaceControl(values, onChange)
 
         if (theme.preset.keepsPublisherStyles) {
             PublisherStylesNotice(onLeavePublisherStyles)
+        } else {
+            FineAxes(values, onSet)
+            AlignmentControl(values, onChange)
         }
+
+        BrightnessControl(brightness, onBrightness)
+    }
+}
+
+/** Typeface and weight: the two axes that reach the page even under Original. */
+@Composable
+private fun TypefaceControl(
+    values: ThemeValues,
+    onChange: (ThemeAxis, ThemeValues) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+        Text(
+            text = stringResource(R.string.theme_axis_font_family),
+            style = MaterialTheme.typography.titleMedium,
+            color = palette.textPrimary,
+        )
+
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            ReaderTypeface.entries.forEachIndexed { index, face ->
+                SegmentedButton(
+                    selected = values.typeface == face,
+                    onClick = { onChange(ThemeAxis.FONT_FAMILY, values.copy(typeface = face)) },
+                    shape = SegmentedButtonDefaults.itemShape(index, ReaderTypeface.entries.size),
+                ) {
+                    Text(stringResource(face.labelRes))
+                }
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.theme_axis_bold_text),
+                style = MaterialTheme.typography.bodyMedium,
+                color = palette.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = values.isBold,
+                onCheckedChange = { onChange(ThemeAxis.BOLD_TEXT, values.copy(isBold = it)) },
+            )
+        }
+    }
+}
+
+/**
+ * The sliders. One loop rather than five blocks, because the domain answers every
+ * question a slider asks: its range, its value, and how to set it.
+ */
+@Composable
+private fun FineAxes(
+    values: ThemeValues,
+    onSet: (ThemeAxis, Double) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md)) {
+        Text(
+            text = stringResource(R.string.theme_spacing),
+            style = MaterialTheme.typography.titleMedium,
+            color = palette.textPrimary,
+        )
+
+        ThemeAxis.entries.forEach { axis ->
+            val range = axis.sliderRange ?: return@forEach
+            Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair)) {
+                Text(
+                    text = stringResource(axis.labelRes),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = palette.textSecondary,
+                )
+                Slider(
+                    value = values.value(axis).toFloat(),
+                    onValueChange = { onSet(axis, it.toDouble()) },
+                    valueRange = range.start.toFloat()..range.endInclusive.toFloat(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AlignmentControl(
+    values: ThemeValues,
+    onChange: (ThemeAxis, ThemeValues) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+        Text(
+            text = stringResource(R.string.theme_axis_text_alignment),
+            style = MaterialTheme.typography.titleMedium,
+            color = palette.textPrimary,
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            ReaderTextAlignment.entries.forEachIndexed { index, value ->
+                SegmentedButton(
+                    selected = values.textAlignment == value,
+                    onClick = { onChange(ThemeAxis.TEXT_ALIGNMENT, values.copy(textAlignment = value)) },
+                    shape = SegmentedButtonDefaults.itemShape(
+                        index,
+                        ReaderTextAlignment.entries.size,
+                    ),
+                ) {
+                    Text(stringResource(value.labelRes))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * `reading-themes`: reader-local, and it does not permanently move the device's own.
+ * On Android the value is a window attribute, so leaving reverts it by itself.
+ */
+@Composable
+private fun BrightnessControl(
+    brightness: Float?,
+    onChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+        Text(
+            text = stringResource(R.string.theme_brightness),
+            style = MaterialTheme.typography.titleMedium,
+            color = palette.textPrimary,
+        )
+        Slider(
+            // Until the reader moves it there is no reader-local value, and the
+            // window is following the device. Half-way is the honest resting
+            // position for a control that has not been used.
+            value = brightness ?: 0.5f,
+            onValueChange = onChange,
+            valueRange = 0.1f..1f,
+        )
     }
 }
 
@@ -323,6 +482,20 @@ private val ThemePreset.labelRes: Int
         ThemePreset.BOLD -> R.string.theme_preset_bold
         ThemePreset.CALM -> R.string.theme_preset_calm
         ThemePreset.FOCUS -> R.string.theme_preset_focus
+    }
+
+private val ReaderTypeface.labelRes: Int
+    get() = when (this) {
+        ReaderTypeface.PUBLISHER -> R.string.theme_typeface_publisher
+        ReaderTypeface.SERIF -> R.string.theme_typeface_serif
+        ReaderTypeface.SANS -> R.string.theme_typeface_sans
+    }
+
+private val ReaderTextAlignment.labelRes: Int
+    get() = when (this) {
+        ReaderTextAlignment.PUBLISHER -> R.string.theme_alignment_publisher
+        ReaderTextAlignment.LEFT -> R.string.theme_alignment_left
+        ReaderTextAlignment.JUSTIFIED -> R.string.theme_alignment_justified
     }
 
 private val ThemeAxis.labelRes: Int

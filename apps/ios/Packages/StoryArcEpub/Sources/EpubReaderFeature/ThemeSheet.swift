@@ -1,6 +1,8 @@
 public import SwiftUI
 
 internal import DesignSystem
+internal import UIKit
+
 public import StoryArcCore
 
 /// The reading-theme sheet.
@@ -26,7 +28,14 @@ struct ThemeSheet: View {
                 VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
                     presets
                     fontSize
-                    if model.theme.preset.keepsPublisherStyles { publisherNotice }
+                    typeface
+                    if model.theme.preset.keepsPublisherStyles {
+                        publisherNotice
+                    } else {
+                        fineAxes
+                        alignment
+                    }
+                    brightness
                 }
                 .padding(StoryArcSpace.gutter)
             }
@@ -127,6 +136,132 @@ struct ThemeSheet: View {
         }
     }
 
+    /// Typeface and weight: the two axes that reach the page even under Original.
+    private var typeface: some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+            Text("theme.axis.fontFamily", bundle: .module)
+                .textRole(.headline)
+                .foregroundStyle(theme.palette.textPrimary)
+
+            Picker("", selection: typefaceBinding) {
+                ForEach(ReaderTypeface.allCases, id: \.self) { face in
+                    Text(face.titleKey, bundle: .module).tag(face)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            Toggle(isOn: boldBinding) {
+                Text("theme.axis.boldText", bundle: .module)
+                    .textRole(.body)
+                    .foregroundStyle(theme.palette.textPrimary)
+            }
+        }
+    }
+
+    /// The sliders. One loop rather than five blocks, because the domain answers
+    /// every question a slider asks: its range, its value, and how to set it.
+    private var fineAxes: some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.md) {
+            Text("theme.spacing", bundle: .module)
+                .textRole(.headline)
+                .foregroundStyle(theme.palette.textPrimary)
+
+            ForEach(ThemeAxis.allCases, id: \.self) { axis in
+                if let range = axis.sliderRange {
+                    VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+                        Text(axis.titleKey, bundle: .module)
+                            .textRole(.footnote)
+                            .foregroundStyle(theme.palette.textSecondary)
+
+                        Slider(
+                            value: Binding(
+                                get: { model.values.value(of: axis) },
+                                set: { model.set(axis, to: $0) }
+                            ),
+                            in: range
+                        )
+                        .tint(theme.accent)
+                    }
+                }
+            }
+        }
+    }
+
+    private var alignment: some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+            Text("theme.axis.textAlignment", bundle: .module)
+                .textRole(.headline)
+                .foregroundStyle(theme.palette.textPrimary)
+
+            Picker("", selection: alignmentBinding) {
+                ForEach(ReaderTextAlignment.allCases, id: \.self) { value in
+                    Text(value.titleKey, bundle: .module).tag(value)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
+    }
+
+    /// `reading-themes`: reader-local, and it does not permanently move the
+    /// device's own. The reader's value is restored on leaving by `EpubReaderView`.
+    private var brightness: some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+            Text("theme.brightness", bundle: .module)
+                .textRole(.headline)
+                .foregroundStyle(theme.palette.textPrimary)
+
+            Slider(
+                value: Binding(
+                    get: { model.brightness ?? Double(UIScreen.main.brightness) },
+                    set: { model.brightness = $0 }
+                ),
+                in: 0.1...1
+            ) {
+                Text("theme.brightness", bundle: .module)
+            } minimumValueLabel: {
+                Image(systemName: "sun.min")
+            } maximumValueLabel: {
+                Image(systemName: "sun.max")
+            }
+            .tint(theme.accent)
+        }
+    }
+
+    private var typefaceBinding: Binding<ReaderTypeface> {
+        Binding(
+            get: { model.values.typeface },
+            set: { new in
+                var values = model.values
+                values.typeface = new
+                model.change(.fontFamily, to: values)
+            }
+        )
+    }
+
+    private var boldBinding: Binding<Bool> {
+        Binding(
+            get: { model.values.isBold },
+            set: { new in
+                var values = model.values
+                values.isBold = new
+                model.change(.boldText, to: values)
+            }
+        )
+    }
+
+    private var alignmentBinding: Binding<ReaderTextAlignment> {
+        Binding(
+            get: { model.values.textAlignment },
+            set: { new in
+                var values = model.values
+                values.textAlignment = new
+                model.change(.textAlignment, to: values)
+            }
+        )
+    }
+
     private func step(to size: FontSizeStep) {
         var values = model.values
         values.fontSize = size
@@ -162,125 +297,5 @@ struct ThemeSheet: View {
         }
         .padding(StoryArcSpace.md)
         .background(theme.palette.surfaceRaised, in: .rect(cornerRadius: StoryArcRadius.lg))
-    }
-}
-
-/// One preset, previewed in its own colours.
-private struct PresetCard: View {
-    @Environment(\.theme) private var theme
-
-    let preset: ThemePreset
-    let isActive: Bool
-    let isModified: Bool
-    let onSelect: () -> Void
-
-    var body: some View {
-        Button(action: onSelect) {
-            VStack(spacing: StoryArcSpace.xs) {
-                ZStack {
-                    Color(hex: ReadingTheme(preset: preset).background)
-                    // Two lines of nothing in the preset's own text colour: a sample
-                    // of the pairing, which is what the reader is choosing.
-                    VStack(spacing: 3) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Capsule()
-                                .fill(Color(hex: ReadingTheme(preset: preset).foreground))
-                                .frame(height: 2)
-                        }
-                    }
-                    .padding(.horizontal, StoryArcSpace.sm)
-                }
-                .frame(height: 44)
-                .clipShape(.rect(cornerRadius: StoryArcRadius.sm))
-                .overlay {
-                    RoundedRectangle(cornerRadius: StoryArcRadius.sm)
-                        .strokeBorder(
-                            isActive ? theme.accent : theme.palette.borderSubtle,
-                            lineWidth: isActive ? 2 : 1
-                        )
-                }
-
-                Text(preset.titleKey, bundle: .module)
-                    .textRole(.caption)
-                    // Weight as well as colour: colour is never the only signal.
-                    .fontWeight(isActive ? .semibold : .regular)
-                    .foregroundStyle(isActive ? theme.accent : theme.palette.textSecondary)
-                    .lineLimit(1)
-
-                if isModified {
-                    Text("theme.modified", bundle: .module)
-                        .textRole(.caption)
-                        .foregroundStyle(theme.palette.textTertiary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
-    }
-}
-
-/// Where the size sits on its ladder.
-private struct StepDots: View {
-    @Environment(\.theme) private var theme
-
-    let position: Int
-    let count: Int
-
-    var body: some View {
-        HStack(spacing: StoryArcSpace.hair) {
-            ForEach(0..<count, id: \.self) { index in
-                Circle()
-                    .fill(index == position ? theme.accent : theme.palette.borderSubtle)
-                    .frame(width: index == position ? 7 : 5, height: index == position ? 7 : 5)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityHidden(true)
-    }
-}
-
-private extension Color {
-    /// The tokens emit hex for Readium; the swatch reads the same string, so the
-    /// card and the page cannot show different colours.
-    init(hex: String) {
-        var value: UInt64 = 0
-        Scanner(string: hex.hasPrefix("#") ? String(hex.dropFirst()) : hex)
-            .scanHexInt64(&value)
-        self.init(
-            .sRGB,
-            red: Double((value >> 16) & 0xFF) / 255,
-            green: Double((value >> 8) & 0xFF) / 255,
-            blue: Double(value & 0xFF) / 255,
-            opacity: 1
-        )
-    }
-}
-
-extension ThemePreset {
-    var titleKey: LocalizedStringKey {
-        switch self {
-        case .original: "theme.preset.original"
-        case .quiet: "theme.preset.quiet"
-        case .paper: "theme.preset.paper"
-        case .bold: "theme.preset.bold"
-        case .calm: "theme.preset.calm"
-        case .focus: "theme.preset.focus"
-        }
-    }
-}
-
-extension ThemeAxis {
-    var titleKey: LocalizedStringKey {
-        switch self {
-        case .fontSize: "theme.axis.fontSize"
-        case .fontFamily: "theme.axis.fontFamily"
-        case .boldText: "theme.axis.boldText"
-        case .lineSpacing: "theme.axis.lineSpacing"
-        case .characterSpacing: "theme.axis.characterSpacing"
-        case .wordSpacing: "theme.axis.wordSpacing"
-        case .paragraphSpacing: "theme.axis.paragraphSpacing"
-        case .margins: "theme.axis.margins"
-        case .textAlignment: "theme.axis.textAlignment"
-        }
     }
 }

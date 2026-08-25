@@ -45,6 +45,15 @@ public final class EpubReaderModel {
     /// The typography in force: the preset's own values until an axis is moved.
     public private(set) var values: ThemeValues
 
+    /// Reader-local screen brightness, 0…1, or `nil` for the device's own.
+    ///
+    /// `reading-themes`: "reader-local screen brightness, independent of the system
+    /// slider", and the system brightness "is not permanently modified". `nil` means
+    /// the reader has not touched it, which is different from having set it to
+    /// whatever the device happens to be at — the difference matters when the
+    /// reader leaves and the original has to come back.
+    public var brightness: Double?
+
     /// The navigator, once the book is open. `nil` while it is loading.
     private(set) var navigator: EPUBNavigatorViewController?
 
@@ -85,6 +94,11 @@ public final class EpubReaderModel {
         applyTheme()
     }
 
+    /// Sets one slider axis, in one call, so the sheet can drive nine of them.
+    public func set(_ axis: ThemeAxis, to value: Double) {
+        change(axis, to: values.setting(axis, to: value))
+    }
+
     /// Moves one axis, which marks the preset modified without deselecting it.
     ///
     /// The axis is passed alongside the new values so the model records *which* axis
@@ -116,8 +130,31 @@ public final class EpubReaderModel {
     }
 
     private func applyTheme() {
-        navigator?.submitPreferences(theme.preferences(values: values))
+        guard let navigator else { return }
+
+        // Where the reader is, before the reflow moves it.
+        //
+        // `ebook-reader`: "the reading position is preserved to the paragraph, not
+        // the page number". Submitting preferences re-paginates the resource, and
+        // Readium lands on the *progression* rather than the paragraph — measured on
+        // an emulator, a size change moved the reader fourteen paragraphs back
+        // inside the same chapter. Going to the stored locator afterwards puts them
+        // where the text was.
+        let locator = navigator.currentLocation
+        navigator.submitPreferences(theme.preferences(values: values))
+
+        guard let locator else { return }
+        // ponytail: after the reflow, not during it. `submitPreferences` has no
+        // completion, so this waits a frame's worth rather than observing the
+        // relayout. If Readium ever exposes a settled signal, wait on that instead.
+        Task {
+            try? await Task.sleep(for: .milliseconds(Self.reflowSettle))
+            _ = await navigator.go(to: locator, options: NavigatorGoOptions(animated: false))
+        }
     }
+
+    /// Long enough for Readium to re-paginate, short enough not to be seen.
+    nonisolated private static let reflowSettle = 120
 
     /// Opens the book and builds its navigator.
     ///

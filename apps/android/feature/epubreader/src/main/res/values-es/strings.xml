@@ -29,4 +29,12 @@
     <string name="theme_axis_paragraph_spacing">Espaciado entre párrafos</string>
     <string name="theme_axis_margins">Márgenes</string>
     <string name="theme_axis_text_alignment">Alineación del texto</string>
+    <string name="theme_spacing">Espaciado</string>
+    <string name="theme_brightness">Brillo</string>
+    <string name="theme_typeface_publisher">Editor</string>
+    <string name="theme_typeface_serif">Serif</string>
+    <string name="theme_typeface_sans">Sans</string>
+    <string name="theme_alignment_publisher">Editor</string>
+    <string name="theme_alignment_left">Izquierda</string>
+    <string name="theme_alignment_justified">Justificado</string>
 </resources>

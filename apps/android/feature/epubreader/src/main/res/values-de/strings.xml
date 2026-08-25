@@ -29,4 +29,12 @@
     <string name="theme_axis_paragraph_spacing">Absatzabstand</string>
     <string name="theme_axis_margins">Ränder</string>
     <string name="theme_axis_text_alignment">Textausrichtung</string>
+    <string name="theme_spacing">Abstände</string>
+    <string name="theme_brightness">Helligkeit</string>
+    <string name="theme_typeface_publisher">Verlag</string>
+    <string name="theme_typeface_serif">Serif</string>
+    <string name="theme_typeface_sans">Sans</string>
+    <string name="theme_alignment_publisher">Verlag</string>
+    <string name="theme_alignment_left">Links</string>
+    <string name="theme_alignment_justified">Blocksatz</string>
 </resources>

@@ -113,21 +113,51 @@ technical, and each item's fallback is in `design.md`.
       This supersedes spike **0.2**: `isEffective` on Readium's editor was going to
       be the signal, and the domain turned out to know the answer already, because
       the coupling is a property of the axis rather than of the renderer.
-- [ ] **2.5** Reader-local brightness that reverts on leaving the reader.
-- [ ] **2.6** Verify the reading position survives a typography change to the
+- [x] **2.5** Reader-local brightness that reverts on leaving the reader.
+      **Done, and the two platforms revert it differently because their APIs
+      differ.** Android's screen brightness is a *window* attribute, so leaving the
+      activity puts the device's own back without anyone remembering to. iOS's
+      `UIScreen.brightness` is global, so the reader records what it found on
+      appearing and restores it on disappearing. `reading-themes` requires the
+      system brightness not to be permanently modified; on iOS that is code, on
+      Android it is the platform.
+- [x] **2.6** Verify the reading position survives a typography change to the
       paragraph, not the page.
+      **Verified, and it did not survive until it was made to.** Measured on an
+      emulator: raising the text size two steps kept the chapter and the reported
+      progression (50% before and after) but moved the reader roughly fourteen
+      paragraphs back inside the chapter — Readium re-paginates to the
+      *progression*, and a progression is a coarser thing than a paragraph.
+
+      Both readers now capture the locator before submitting preferences and go back
+      to it once the reflow has settled. Re-measured: the top paragraph moves by one,
+      which is a paragraph boundary landing differently rather than a lost place.
+
+      ponytail: the wait is a fixed 120 ms because `submitPreferences` has no
+      completion callback. If Readium exposes a settled signal, wait on that.
 
 ## Phase 3 — The theme sheet
+
+**Where this stands.** The first level and the fine axes are built and verified on
+an emulator; the preset grid previews each theme in its own colours; the sliders
+draw from one loop because the domain answers a slider's three questions (range,
+value, setter). Still open: the platform *look* of the sheet (3.1, 3.2 — it is a
+plain sheet and a plain bottom sheet today, not Liquid Glass and not tonal), the
+live preview rendered by the real renderer inside the sheet (3.6 — the change is
+visible in the reader *behind* the sheet, which is what the spec asks for, but there
+is no sample inside it), custom backgrounds (3.7), tablet layout (3.8), and the
+accessibility pass (3.9 — the size stepper has an adjustable action and the preset
+cards read as selected, but nothing has been through VoiceOver or TalkBack).
 
 - [ ] **3.1** iOS: sheet on Liquid Glass, untinted, with its opaque
       Reduce-Transparency fallback declared.
 - [ ] **3.2** Android: Material 3 modal bottom sheet honouring
       `MaterialTheme.motionScheme`.
-- [ ] **3.3** Preset grid, three by two, each card previewing **its own** colours
+- [x] **3.3** Preset grid, three by two, each card previewing **its own** colours
       and typeface.
-- [ ] **3.4** First level: presets, font-size stepper with step dots, page-mode
+- [x] **3.4** First level: presets, font-size stepper with step dots, page-mode
       control, brightness. Second level behind one "Customise" action.
-- [ ] **3.5** Fine axes: line, character, word and paragraph spacing, margins,
+- [x] **3.5** Fine axes: line, character, word and paragraph spacing, margins,
       alignment, font family, bold. Long-press to reset an axis.
 - [ ] **3.6** Live preview rendered by the **real** renderer, showing a chapter
       title and body text, reflowing continuously during a drag.

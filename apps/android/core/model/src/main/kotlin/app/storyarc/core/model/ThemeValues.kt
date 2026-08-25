@@ -99,6 +99,60 @@ data class ThemeValues(
 )
 
 /**
+ * The span a slider covers for this axis, where it has one.
+ *
+ * `null` for the axes that are not sliders — size is a ladder, typeface and
+ * alignment are pickers, bold is a toggle. Here rather than in each sheet so the two
+ * platforms offer the same range: a line height that reaches 2.5 on one and 2.0 on
+ * the other is the kind of difference nobody notices until a reader switches phones.
+ */
+val ThemeAxis.sliderRange: ClosedFloatingPointRange<Double>?
+    get() = when (this) {
+        ThemeAxis.FONT_SIZE, ThemeAxis.FONT_FAMILY, ThemeAxis.BOLD_TEXT,
+        ThemeAxis.TEXT_ALIGNMENT,
+        -> null
+        // Below 1.0 the lines collide; above 2.5 a paragraph stops reading as one.
+        ThemeAxis.LINE_SPACING -> 1.0..2.5
+        // Loose tracking is a legibility aid for some readers and unreadable past a
+        // quarter of an em for everyone.
+        ThemeAxis.CHARACTER_SPACING -> 0.0..0.25
+        ThemeAxis.WORD_SPACING -> 0.0..0.5
+        ThemeAxis.PARAGRAPH_SPACING -> 0.0..2.0
+        // Half is edge-to-edge; two and a half is the narrow measure Focus wants.
+        ThemeAxis.MARGINS -> 0.5..2.5
+    }
+
+/**
+ * The value of one axis, for a slider to read.
+ *
+ * A keyed accessor rather than nine bindings in the sheet: the sheet then draws one
+ * slider in a loop, and adding an axis is a branch here instead of a new block of
+ * view code.
+ */
+fun ThemeValues.value(of: ThemeAxis): Double = when (of) {
+    ThemeAxis.LINE_SPACING -> lineHeight
+    ThemeAxis.CHARACTER_SPACING -> letterSpacing
+    ThemeAxis.WORD_SPACING -> wordSpacing
+    ThemeAxis.PARAGRAPH_SPACING -> paragraphSpacing
+    ThemeAxis.MARGINS -> pageMargins
+    ThemeAxis.FONT_SIZE -> fontSize.percent.toDouble()
+    ThemeAxis.FONT_FAMILY, ThemeAxis.BOLD_TEXT, ThemeAxis.TEXT_ALIGNMENT -> 0.0
+}
+
+/** The same values with one axis moved. */
+fun ThemeValues.setting(axis: ThemeAxis, to: Double): ThemeValues = when (axis) {
+    ThemeAxis.LINE_SPACING -> copy(lineHeight = to)
+    ThemeAxis.CHARACTER_SPACING -> copy(letterSpacing = to)
+    ThemeAxis.WORD_SPACING -> copy(wordSpacing = to)
+    ThemeAxis.PARAGRAPH_SPACING -> copy(paragraphSpacing = to)
+    ThemeAxis.MARGINS -> copy(pageMargins = to)
+    // The ladder and the pickers are set directly; a Double cannot express them.
+    ThemeAxis.FONT_SIZE, ThemeAxis.FONT_FAMILY, ThemeAxis.BOLD_TEXT,
+    ThemeAxis.TEXT_ALIGNMENT,
+    -> this
+}
+
+/**
  * The preset's own typography.
  *
  * From `design.md`'s preset table. The colours are not here — they are token values

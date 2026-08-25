@@ -98,6 +98,11 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **Every typographic axis is adjustable.** Typeface, bold, line, character, word
+  and paragraph spacing, margins and text alignment, plus reader-local brightness.
+  The sliders are drawn from one loop rather than nine blocks of view code, because
+  the domain answers a slider's three questions — its range, its value, and how to
+  set it — and the two platforms therefore offer identical spans.
 - **Reading themes reach the page.** The six presets now render: pick one and the
   EPUB behind the sheet changes immediately, which is what `reading-themes` asks
   for. A stepped text size with a visible position on a nine-rung ladder, and — the
@@ -162,6 +167,15 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   `/proc/self/fd/N`, with no copy.
 
 ### Fixed
+
+- **A typography change lost the reader's place.** Raising the text size two steps
+  kept the chapter and the reported progression but moved the reader roughly
+  fourteen paragraphs back inside it: Readium re-paginates to the *progression*,
+  and a progression is coarser than a paragraph. Both readers now capture the
+  locator before submitting preferences and return to it once the reflow settles.
+  Re-measured, the top paragraph moves by one — a boundary landing differently
+  rather than a place lost. `ebook-reader` asks for the position to be preserved
+  "to the paragraph, not the page number", and it was not until it was made to be.
 
 - **Covers drifted in the iOS grid.** `LazyVGrid` centres cells vertically and a
   caption runs to one, two or three lines depending on the title and whether

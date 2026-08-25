@@ -115,6 +115,64 @@ public struct ThemeValues: Sendable, Equatable, Codable {
     }
 }
 
+public extension ThemeAxis {
+    /// The span a slider covers for this axis, where it has one.
+    ///
+    /// `nil` for the axes that are not sliders — size is a ladder, typeface and
+    /// alignment are pickers, bold is a toggle. Here rather than in each sheet so
+    /// the two platforms offer the same range: a line height that reaches 2.5 on one
+    /// and 2.0 on the other is the kind of difference nobody notices until a reader
+    /// switches phones.
+    var sliderRange: ClosedRange<Double>? {
+        switch self {
+        case .fontSize, .fontFamily, .boldText, .textAlignment: nil
+        // Below 1.0 the lines collide; above 2.5 a paragraph stops reading as one.
+        case .lineSpacing: 1.0...2.5
+        // Loose tracking is a legibility aid for some readers and unreadable past a
+        // quarter of an em for everyone.
+        case .characterSpacing: 0...0.25
+        case .wordSpacing: 0...0.5
+        case .paragraphSpacing: 0...2.0
+        // Half is edge-to-edge; two and a half is the narrow measure Focus wants.
+        case .margins: 0.5...2.5
+        }
+    }
+}
+
+public extension ThemeValues {
+    /// The value of one axis, for a slider to read.
+    ///
+    /// A keyed accessor rather than nine bindings in the sheet: the sheet then draws
+    /// one slider in a loop, and adding an axis is a case here instead of a new
+    /// block of view code.
+    func value(of axis: ThemeAxis) -> Double {
+        switch axis {
+        case .lineSpacing: lineHeight
+        case .characterSpacing: letterSpacing
+        case .wordSpacing: wordSpacing
+        case .paragraphSpacing: paragraphSpacing
+        case .margins: pageMargins
+        case .fontSize: Double(fontSize.rawValue)
+        case .fontFamily, .boldText, .textAlignment: 0
+        }
+    }
+
+    /// The same values with one axis moved.
+    func setting(_ axis: ThemeAxis, to value: Double) -> ThemeValues {
+        var copy = self
+        switch axis {
+        case .lineSpacing: copy.lineHeight = value
+        case .characterSpacing: copy.letterSpacing = value
+        case .wordSpacing: copy.wordSpacing = value
+        case .paragraphSpacing: copy.paragraphSpacing = value
+        case .margins: copy.pageMargins = value
+        // The ladder and the pickers are set directly; a Double cannot express them.
+        case .fontSize, .fontFamily, .boldText, .textAlignment: break
+        }
+        return copy
+    }
+}
+
 public extension ThemePreset {
     /// The preset's own typography.
     ///

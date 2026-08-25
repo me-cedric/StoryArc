@@ -25,6 +25,7 @@ import app.storyarc.core.designsystem.theme.AppearanceMode
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.ProgressStore
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
@@ -55,6 +56,9 @@ class EpubReaderActivity : FragmentActivity() {
         private const val EXTRA_LOCATION = "location"
         private const val EXTRA_TITLE = "title"
         private const val NAVIGATOR_TAG = "epub-navigator"
+
+        /** Long enough for Readium to re-paginate, short enough not to be seen. */
+        private const val REFLOW_SETTLE_MILLIS = 120L
 
         /**
          * @param location where the book lives, as the library recorded it: a
@@ -111,7 +115,17 @@ class EpubReaderActivity : FragmentActivity() {
                     val isVisible by model.isChromeVisible.collectAsStateWithLifecycle()
                     val theme by model.theme.collectAsStateWithLifecycle()
                     val values by model.values.collectAsStateWithLifecycle()
+                    val brightness by model.brightness.collectAsStateWithLifecycle()
                     var isShowingTheme by remember { mutableStateOf(false) }
+
+                    // `reading-themes`: reader-local. A window attribute rather than
+                    // the system setting, so it reverts when this screen goes away.
+                    LaunchedEffect(brightness) {
+                        window.attributes = window.attributes.apply {
+                            screenBrightness = brightness
+                                ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                        }
+                    }
 
                     // `reading-themes`: the change is "visible immediately in the
                     // reader behind the sheet", so the navigator is told the moment
@@ -123,8 +137,11 @@ class EpubReaderActivity : FragmentActivity() {
                         ThemeBottomSheet(
                             theme = theme,
                             values = values,
+                            brightness = brightness,
                             onAdopt = model::adopt,
                             onChange = model::change,
+                            onSet = model::set,
+                            onBrightness = model::setBrightness,
                             onRestore = model::restoreTheme,
                             onLeavePublisherStyles = model::leavePublisherStyles,
                             onDismiss = { isShowingTheme = false },
@@ -202,7 +219,26 @@ class EpubReaderActivity : FragmentActivity() {
     private fun applyTheme() {
         val navigator =
             supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
-        navigator?.submitPreferences(model.preferences)
+                ?: return
+
+        // Where the reader is, before the reflow moves it.
+        //
+        // `ebook-reader`: "the reading position is preserved to the paragraph, not
+        // the page number". Submitting preferences re-paginates the resource, and
+        // Readium lands on the *progression* rather than the paragraph — measured on
+        // an emulator, a size change moved the reader fourteen paragraphs back
+        // inside the same chapter. Going to the stored locator afterwards puts them
+        // where the text was.
+        val locator = navigator.currentLocator.value
+        navigator.submitPreferences(model.preferences)
+
+        // ponytail: after the reflow, not during it. `submitPreferences` has no
+        // completion, so this waits a frame's worth rather than observing the
+        // relayout. If Readium ever exposes a settled signal, wait on that instead.
+        lifecycleScope.launch {
+            delay(REFLOW_SETTLE_MILLIS)
+            navigator.go(locator, animated = false)
+        }
     }
 }
 
@@ -217,8 +253,11 @@ class EpubReaderActivity : FragmentActivity() {
 private fun ThemeBottomSheet(
     theme: app.storyarc.core.model.ReadingTheme,
     values: app.storyarc.core.model.ThemeValues,
+    brightness: Float?,
     onAdopt: (app.storyarc.core.model.ThemePreset) -> Unit,
     onChange: (app.storyarc.core.model.ThemeAxis, app.storyarc.core.model.ThemeValues) -> Unit,
+    onSet: (app.storyarc.core.model.ThemeAxis, Double) -> Unit,
+    onBrightness: (Float) -> Unit,
     onRestore: () -> Unit,
     onLeavePublisherStyles: () -> Unit,
     onDismiss: () -> Unit,
@@ -227,8 +266,11 @@ private fun ThemeBottomSheet(
         ThemeSheet(
             theme = theme,
             values = values,
+            brightness = brightness,
             onAdopt = onAdopt,
             onChange = onChange,
+            onSet = onSet,
+            onBrightness = onBrightness,
             onRestore = onRestore,
             onLeavePublisherStyles = onLeavePublisherStyles,
         )

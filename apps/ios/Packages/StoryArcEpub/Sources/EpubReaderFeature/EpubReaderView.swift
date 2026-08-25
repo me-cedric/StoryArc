@@ -25,6 +25,8 @@ public struct EpubReaderView: View {
     @State private var model: EpubReaderModel
     @State private var isChromeVisible = true
     @State private var isShowingTheme = false
+    /// What the device's brightness was before the reader touched it.
+    @State private var deviceBrightness: CGFloat?
 
     public init(publication: Publication, url: URL, progress: ProgressStore? = nil) {
         _model = State(
@@ -62,8 +64,22 @@ public struct EpubReaderView: View {
         .toolbar(.hidden, for: .navigationBar)
         // `comic-reader`'s rule, and it reads the same for a book: a long look at
         // one page is reading, not idling.
-        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
+            deviceBrightness = UIScreen.main.brightness
+        }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
+            // `reading-themes`: the system brightness "is not permanently
+            // modified". iOS's brightness is global, so leaving has to put it back
+            // — Android's is a window attribute and reverts by itself.
+            if let deviceBrightness { UIScreen.main.brightness = deviceBrightness }
+        }
+        // Applied while reading rather than when the slider is released, so the
+        // reader sees what they are choosing.
+        .onChange(of: model.brightness) { _, new in
+            if let new { UIScreen.main.brightness = CGFloat(new) }
+        }
     }
 
     private var chrome: some View {

@@ -7,6 +7,7 @@ import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.ThemeValues
+import app.storyarc.core.model.setting
 import app.storyarc.core.model.values
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
@@ -94,6 +95,26 @@ class EpubReaderViewModel(
     fun adopt(preset: ThemePreset) {
         _theme.value = _theme.value.adopting(preset)
         _values.value = preset.values
+    }
+
+    /**
+     * Reader-local screen brightness, 0…1, or `null` for the device's own.
+     *
+     * `reading-themes`: "reader-local screen brightness, independent of the system
+     * slider", and the system brightness "is not permanently modified". On Android
+     * this is a window attribute, so leaving the activity reverts it without anyone
+     * having to remember to.
+     */
+    private val _brightness = MutableStateFlow<Float?>(null)
+    val brightness: StateFlow<Float?> = _brightness.asStateFlow()
+
+    fun setBrightness(value: Float) {
+        _brightness.value = value
+    }
+
+    /** Sets one slider axis, in one call, so the sheet can drive five of them. */
+    fun set(axis: ThemeAxis, value: Double) {
+        change(axis, _values.value.setting(axis, value))
     }
 
     /**
