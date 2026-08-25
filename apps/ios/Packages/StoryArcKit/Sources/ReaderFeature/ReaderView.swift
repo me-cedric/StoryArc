@@ -61,6 +61,15 @@ public struct ReaderView: View {
 
                 if isChromeVisible { chrome }
             }
+            // `comic-reader`: the chrome fades out again "after 4 seconds of no
+            // interaction". Keyed on the index too, so turning a page while the
+            // chrome is up restarts the countdown rather than hiding mid-swipe.
+            .task(id: chromeTimerKey) {
+                guard isChromeVisible else { return }
+                try? await Task.sleep(for: .seconds(4))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible = false }
+            }
             .task {
                 // Bounded by the screen, not by the page. A 2000×3000 scan
                 // decoded in full costs 24 MB for something shown at a fraction
@@ -96,7 +105,8 @@ public struct ReaderView: View {
                 PageView(
                     image: model.image(at: index),
                     isUnavailable: model.isUnavailable(at: index),
-                    label: model.pages[index].path
+                    label: model.pages[index].path,
+                    onTap: { location, size in handleTap(at: location, in: size) }
                 )
                 .tag(displayIndex)
             }
@@ -116,14 +126,41 @@ public struct ReaderView: View {
         // Reduce Motion replaces the slide with a cross-dissolve, which
         // `comic-reader` requires rather than leaving the animation on.
         .animation(reduceMotion ? .easeInOut(duration: 0.15) : .default, value: displayIndex)
-        .contentShape(.rect)
-        .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() } }
         .accessibilityLabel(
             isRightToLeft ? Text("reader.rightToLeft", bundle: .module) : Text(verbatim: "")
         )
     }
 
     private var isRightToLeft: Bool { model.readingDirection == .rightToLeft }
+
+    /// What a tap means, by where it landed.
+    ///
+    /// `comic-reader`: the edges turn pages and do not reveal the chrome, the
+    /// centre toggles it. The zones are "mirrored in right-to-left mode" for free
+    /// here — the pager's *data* is reversed for RTL, so moving one step to the
+    /// right on screen is always one step to the right on screen, whichever way
+    /// the story runs.
+    private func handleTap(at location: CGPoint, in size: CGSize) {
+        let edge = size.width * edgeZoneFraction
+        if location.x < edge {
+            turn(by: -1)
+        } else if location.x > size.width - edge {
+            turn(by: 1)
+        } else {
+            withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
+        }
+    }
+
+    /// The same zones the page's own recognisers use to route a tap.
+    private var edgeZoneFraction: CGFloat { ZoomablePage.edgeZoneFraction }
+
+    private func turn(by step: Int) {
+        let next = displayIndex + step
+        guard model.pages.indices.contains(next) else { return }
+        withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .default) {
+            displayIndex = next
+        }
+    }
 
     /// Display positions, in the order the pager lays them out.
     private var displayOrder: [Int] { Array(model.pages.indices) }
@@ -139,6 +176,20 @@ public struct ReaderView: View {
     private func displayIndex(forModel index: Int) -> Int {
         isRightToLeft ? model.pages.count - 1 - index : index
     }
+
+    private var pageSlider: Binding<Double> {
+        Binding(
+            get: { Double(model.currentIndex) },
+            set: { new in
+                let index = Int(new.rounded())
+                guard model.pages.indices.contains(index) else { return }
+                displayIndex = displayIndex(forModel: index)
+            }
+        )
+    }
+
+    /// Restarts the auto-hide countdown whenever either of these changes.
+    private var chromeTimerKey: String { "\(isChromeVisible)-\(displayIndex)" }
 
     /// The controls. One gesture away, and gone while reading.
     private var chrome: some View {
@@ -162,7 +213,34 @@ public struct ReaderView: View {
 
             Spacer()
 
-            if !model.pages.isEmpty {
+            if model.pages.count > 1 {
+                VStack(spacing: StoryArcSpace.xs) {
+                    Text(
+                        "reader.page \(model.currentIndex + 1) \(model.pages.count)",
+                        bundle: .module
+                    )
+                    .textRole(.footnote)
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
+
+                    // Bound to the *publication's* page number, not the pager's
+                    // position. In right-to-left the two run opposite ways, and a
+                    // slider whose left end is the last page would be a puzzle.
+                    // Thumbnails on the slider are the rest of what `comic-reader`
+                    // asks for and are not here yet.
+                    Slider(
+                        value: pageSlider,
+                        in: 0...Double(model.pages.count - 1),
+                        step: 1
+                    )
+                    .tint(.white)
+                }
+                .padding(.horizontal, StoryArcSpace.gutter)
+                .padding(.vertical, StoryArcSpace.sm)
+                .background(.ultraThinMaterial, in: .rect(cornerRadius: StoryArcRadius.lg))
+                .padding(.horizontal, StoryArcSpace.md)
+                .padding(.bottom, StoryArcSpace.lg)
+            } else if !model.pages.isEmpty {
                 Text(
                     "reader.page \(model.currentIndex + 1) \(model.pages.count)",
                     bundle: .module
@@ -185,27 +263,40 @@ struct PageView: View {
     let image: CGImage?
     let isUnavailable: Bool
     let label: String
+    let onTap: (CGPoint, CGSize) -> Void
 
     var body: some View {
         if let image {
-            Image(decorative: image, scale: 1)
-                .resizable()
-                // Fit, not fill: cropping a comic page loses artwork, and
-                // `comic-reader` treats the whole page as the unit.
-                .scaledToFit()
+            // Fit, not fill: cropping a comic page loses artwork, and
+            // `comic-reader` treats the whole page as the unit. Zoom starts from
+            // that fit rather than replacing it.
+            ZoomablePage(image: image, pageID: label, onTap: onTap)
                 .accessibilityLabel(label)
-        } else if isUnavailable {
-            // Said, not blank. `publication-formats` requires an archive to report
-            // what it skipped, and this is where a skipped page is met.
-            VStack(spacing: StoryArcSpace.sm) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 28, weight: .light))
-                Text("reader.pageUnavailable", bundle: .module)
-                    .textRole(.footnote)
-            }
-            .foregroundStyle(.white.opacity(0.7))
         } else {
-            ProgressView().tint(.white)
+            // A page that is not drawn still has to accept a tap: a reader who
+            // lands on a skipped page must be able to turn away from it, and one
+            // waiting on a decode must be able to reach the chrome.
+            GeometryReader { geometry in
+                ZStack {
+                    Color.black
+                    if isUnavailable {
+                        // Said, not blank. `publication-formats` requires an
+                        // archive to report what it skipped, and this is where a
+                        // skipped page is met.
+                        VStack(spacing: StoryArcSpace.sm) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 28, weight: .light))
+                            Text("reader.pageUnavailable", bundle: .module)
+                                .textRole(.footnote)
+                        }
+                        .foregroundStyle(.white.opacity(0.7))
+                    } else {
+                        ProgressView().tint(.white)
+                    }
+                }
+                .contentShape(.rect)
+                .onTapGesture { location in onTap(location, geometry.size) }
+            }
         }
     }
 }

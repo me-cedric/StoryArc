@@ -77,6 +77,15 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 - **iOS scans its own Documents folder** when no folder has been picked, so a
   comic dropped in through the Files app appears without any setup — the same
   thing Android does with `getExternalFilesDir`.
+- **The comic reader zooms.** Pinch about the pinch centre, pan within bounds,
+  double-tap to magnify the panel you tapped and again to fit. A `UIScrollView`
+  on iOS and Compose's `transformable` on Android, both chosen because they
+  decline the drag at fit scale so the pager still turns the page.
+- **Tap zones and chrome that gets out of the way.** The left and right quarters
+  turn pages without revealing the controls; the centre toggles them; and they
+  fade out again after four seconds. A page slider sits under the counter —
+  bound to the publication's page number, so its left end is page one in
+  right-to-left too. Thumbnails on the slider are not built yet.
 - **PDFs read like comics**, on both platforms. Pages are rasterised one at a
   time at the size they are drawn, so a several-hundred-megabyte document opens
   as fast as a small one. iOS renders on an actor because `PDFDocument` is not
