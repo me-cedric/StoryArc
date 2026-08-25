@@ -61,7 +61,7 @@ in the same change so a fresh checkout builds without Node installed.
    it is allowed to appear. A token with no stated use gets misused.
 2. Run `pnpm tokens:build`. Fix any gamut or contrast failure at the source.
 3. Run `pnpm tokens:sync` and commit the regenerated app copies.
-4. Document the intent in [`docs/design/DESIGN.md`](../../docs/design/DESIGN.md)
+4. Document the intent in [`docs/design.md`](../../docs/design.md)
    if it introduces a new rule rather than a new value.
 
 ## Tests

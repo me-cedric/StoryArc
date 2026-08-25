@@ -19,15 +19,15 @@
 </div>
 
 <p align="center">
-  <img src="docs/design/screenshots/ios-library-empty-dark.png" alt="StoryArc on iOS: the empty library naming the four source types" width="300">
+  <img src="docs/designs/screenshots/ios-library-empty-dark.png" alt="StoryArc on iOS: the empty library naming the four source types" width="300">
   &nbsp;&nbsp;
-  <img src="docs/design/screenshots/android-library-empty-dark.png" alt="StoryArc on Android: the same screen rendered in Material 3 Expressive" width="300">
+  <img src="docs/designs/screenshots/android-library-empty-dark.png" alt="StoryArc on Android: the same screen rendered in Material 3 Expressive" width="300">
 </p>
 
 <p align="center">
-  <img src="docs/design/screenshots/android-theme-sheet-dark.png" alt="The reading-theme sheet: six presets, each previewed in its own colours and typeface" width="300">
+  <img src="docs/designs/screenshots/android-theme-sheet-dark.png" alt="The reading-theme sheet: six presets, each previewed in its own colours and typeface" width="300">
   &nbsp;&nbsp;
-  <img src="docs/design/screenshots/android-theme-sheet-light-largest.png" alt="The same sheet at twice the system text size, still legible and unclipped" width="300">
+  <img src="docs/designs/screenshots/android-theme-sheet-light-largest.png" alt="The same sheet at twice the system text size, still legible and unclipped" width="300">
 </p>
 
 <p align="center"><em>The reading-theme sheet — six presets previewed in their own
@@ -163,7 +163,8 @@ storyarc/
 │   │   └── changes/               in-flight proposals
 │   ├── decisions/                 ADRs
 │   ├── architecture/              layer model and where the hard problems are
-│   └── design/DESIGN.md           the design system
+│   ├── design.md                  the design system
+│   └── designs/screenshots/       what the apps actually look like
 ├── third_party/
 │   └── libarchive/                26 of 132 sources, for RAR only
 └── scripts/                       cross-cutting tooling
@@ -237,7 +238,7 @@ code. **Contrast is a build gate**: 37 pairs across five appearance ramps, with
 text below its WCAG floor failing CI, and all six reading themes held to AAA
 because that text is read for hours rather than glanced at.
 
-Full system in [`docs/design/DESIGN.md`](docs/design/DESIGN.md).
+Full system in [`docs/design.md`](docs/design.md).
 
 ## Build from source
 

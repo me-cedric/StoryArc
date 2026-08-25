@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import app.storyarc.core.designsystem.theme.AppearanceMode
+import app.storyarc.core.model.AppearanceMode
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.ViewModelProvider

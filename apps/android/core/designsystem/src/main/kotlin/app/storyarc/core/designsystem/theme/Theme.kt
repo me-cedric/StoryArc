@@ -15,6 +15,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import app.storyarc.core.designsystem.tokens.StoryArcColor
+import app.storyarc.core.model.AppearanceMode
 
 /**
  * Surfaces, text and border roles for one appearance.
@@ -99,39 +100,6 @@ data class StoryArcPalette(
 
 val LocalStoryArcPalette = staticCompositionLocalOf { StoryArcPalette.Dark }
 
-/** What the user chose in Settings › Appearance. */
-/**
- * What the reader chose in Settings › Appearance.
- *
- * `settings-and-about` requires System, Light, Dark and OLED Dark, defaulting to
- * System, applied without a restart. Reading themes are deliberately independent of
- * this — a dark chrome with a paper-white page is a legitimate preference, and the spec
- * says so.
- *
- * Natural is deliberately *not* a case. The spec calls it "a theme rather than an
- * appearance… carries its own light and dark variants", so it sits alongside this
- * polarity rather than inside it. Putting it here would force a choice between Natural
- * and dark mode that the spec exists to avoid.
- */
-enum class AppearanceMode {
-    SYSTEM,
-    LIGHT,
-    DARK,
-
-    /**
-     * True black chrome, for OLED panels where black draws no power.
-     *
-     * The reader surface stays *above* true black even here. Pure black smears on OLED
-     * during a page turn, which is the exact motion this app is built around — so the
-     * setting is honoured where it helps and the palette declines it where it does not.
-     * The generated `oledDark` tokens carry that decision, not this type.
-     */
-    OLED_DARK,
-    ;
-
-    /** Whether this appearance wants the true-black palette rather than the warm one. */
-    val isTrueBlack: Boolean get() = this == OLED_DARK
-}
 
 private fun brandDarkScheme() = darkColorScheme(
     primary = StoryArcColor.Brand.ember,

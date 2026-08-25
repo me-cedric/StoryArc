@@ -1,5 +1,7 @@
 public import SwiftUI
 
+public import StoryArcCore
+
 /// The design system, injected once at the root and read anywhere below it.
 ///
 /// Views read `\.theme` rather than reaching for ``StoryArcColor`` directly, so

@@ -26,7 +26,7 @@ test fixtures — and nothing else.
 | `packages/design-tokens/` | OKLCH token source → generated Swift and Kotlin. |
 | `packages/test-fixtures/` | Shared publication corpus, **generated then committed**. Both suites read its `manifest.json` and assert the same expectations. |
 | `docs/decisions/` | ADRs. Read 0001 before proposing any architecture change. |
-| `docs/design/DESIGN.md` | The design system: what the tokens mean and what is forbidden. |
+| `docs/design.md` | The design system: what the tokens mean and what is forbidden. |
 
 ## 2. Non-negotiables
 

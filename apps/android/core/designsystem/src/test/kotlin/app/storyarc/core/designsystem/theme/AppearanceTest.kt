@@ -1,6 +1,7 @@
 package app.storyarc.core.designsystem.theme
 
 import app.storyarc.core.designsystem.tokens.StoryArcColor
+import app.storyarc.core.model.AppearanceMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals

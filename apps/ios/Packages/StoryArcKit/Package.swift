@@ -28,7 +28,7 @@ let package = Package(
         .package(path: "../../../../third_party/libarchive")
     ],
     targets: [
-        .target(name: "DesignSystem"),
+        .target(name: "DesignSystem", dependencies: ["StoryArcCore"]),
         .target(name: "StoryArcCore"),
         // ZIP, TAR, RAR headers and PDF are all ours or the platform's: ADR-0008
         // replaced ZIPFoundation with our own ranged-read ZIP reader, TAR and RAR

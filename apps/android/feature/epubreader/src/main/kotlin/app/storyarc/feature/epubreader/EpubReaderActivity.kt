@@ -21,7 +21,7 @@ import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commitNow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import app.storyarc.core.designsystem.theme.AppearanceMode
+import app.storyarc.core.model.AppearanceMode
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.ProgressStore

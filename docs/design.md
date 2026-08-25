@@ -1,10 +1,10 @@
 # StoryArc Design System
 
 The visual and interaction contract for both apps. Values live in
-[`packages/design-tokens`](../../packages/design-tokens); this document is the
+[`packages/design-tokens`](../packages/design-tokens); this document is the
 *reasoning* — what the values mean, when to use them, and what is forbidden.
 
-Read [`native-experience`](../openspec/specs/native-experience/spec.md) for
+Read [`native-experience`](openspec/specs/native-experience/spec.md) for
 the requirements this document serves.
 
 ---
@@ -39,7 +39,7 @@ follows from that.
 ## 2. Colour
 
 Authored in OKLCH, generated to sRGB. See
-[`tokens/color.json`](../../packages/design-tokens/tokens/color.json).
+[`tokens/color.json`](../packages/design-tokens/tokens/color.json).
 
 ### Brand
 
@@ -66,7 +66,7 @@ earthier accent reads as a different material.
 ### Surfaces
 
 Five roles, run identically by every ramp. Values in
-[`tokens/color.json`](../../packages/design-tokens/tokens/color.json).
+[`tokens/color.json`](../packages/design-tokens/tokens/color.json).
 
 | Role | Purpose |
 | --- | --- |
@@ -115,7 +115,7 @@ or Increase Contrast, since grain lowers effective contrast.
 ### Reading themes
 
 Six named presets, per
-[`reading-themes`](../openspec/specs/reading-themes/spec.md). A preset is a
+[`reading-themes`](openspec/specs/reading-themes/spec.md). A preset is a
 background, a text colour, a typeface and a spacing character applied in one tap.
 
 | Preset | Background | Text | Ratio | Character |
@@ -276,7 +276,7 @@ touches — response 0.42, damping 0.86.
 ### Page transitions
 
 Four modes, per
-[`page-transitions`](../openspec/specs/page-transitions/spec.md). A transition
+[`page-transitions`](openspec/specs/page-transitions/spec.md). A transition
 belongs to the **container**, not the content, so a comic page and an EPUB page
 turn identically.
 

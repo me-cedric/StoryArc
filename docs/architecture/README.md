@@ -75,7 +75,7 @@ boundaries do not.
 | **Progress identity** | The same book arrives from three sources under three names. Path-keyed progress treats them as three books. | [ADR-0006](../decisions/0006-progress-storage-and-sync.md) |
 | **Sync conflicts** | Two devices read offline and both come back with a position. The resolution rule must be predictable without documentation. | [ADR-0006](../decisions/0006-progress-storage-and-sync.md) |
 | **Streaming over SMB** | Rendering page 1 of a 400 MB archive without transferring 400 MB, across a link that drops. | [`network-share`](../openspec/specs/network-share/spec.md) |
-| **The page curl** | A finger-tracked, interruptible page deformation at 120 Hz. The reader's signature interaction. | [`comic-reader`](../openspec/specs/comic-reader/spec.md), [DESIGN.md §6](../design/DESIGN.md) |
+| **The page curl** | A finger-tracked, interruptible page deformation at 120 Hz. The reader's signature interaction. | [`comic-reader`](../openspec/specs/comic-reader/spec.md), [design.md §6](../design.md) |
 | **Two implementations drifting** | Nothing at compile time stops iOS and Android diverging. | The spec contract, plus [`packages/test-fixtures`](../../packages/test-fixtures) |
 
 ## Build independence

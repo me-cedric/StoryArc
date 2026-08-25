@@ -1,5 +1,7 @@
 public import SwiftUI
 
+public import StoryArcCore
+
 /// The resolved surface, text and border colours for one appearance.
 ///
 /// Every value comes from ``StoryArcColor``, which is generated from

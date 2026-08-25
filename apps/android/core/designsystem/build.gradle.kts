@@ -24,6 +24,10 @@ android {
 }
 
 dependencies {
+    // `api`, because `AppearanceMode` is part of this module's surface: a caller
+    // theming the app has to name one.
+    api(project(":core:model"))
+
     api(platform(libs.androidx.compose.bom))
     api(libs.androidx.compose.ui)
     api(libs.androidx.compose.ui.graphics)

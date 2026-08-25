@@ -2,6 +2,7 @@ import SwiftUI
 import Testing
 
 @testable import DesignSystem
+import StoryArcCore
 
 /// The token *values* are gated by `pnpm tokens:check`, which runs the WCAG
 /// maths on the source of truth. These tests guard the layer above: that the

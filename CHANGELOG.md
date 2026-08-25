@@ -370,7 +370,7 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 - **Design system.** OKLCH token source generating Swift and Kotlin, with a
   WCAG contrast gate that fails the build — 4.5:1 for text, 3:1 for tertiary and
   accents, and AAA for reflowable reader themes. Documented in
-  `docs/design/DESIGN.md`.
+  `docs/design.md`.
 - **iOS app shell.** SwiftUI on iOS 26, XcodeGen project, one SPM package with
   `DesignSystem`, `StoryArcCore` and `LibraryFeature` targets. Swift 6 language
   mode, strict concurrency, `ExistentialAny` and `InternalImportsByDefault`.

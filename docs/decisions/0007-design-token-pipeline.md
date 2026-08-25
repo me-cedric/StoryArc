@@ -80,6 +80,6 @@ stated use gets misused; a token whose use appears in autocomplete does not.
 - Source and generator: `packages/design-tokens`, `scripts/build.mjs`,
   `scripts/oklch.mjs`. Commands: `pnpm tokens:build`, `pnpm tokens:sync`,
   `pnpm tokens:verify`.
-- Design system: [`docs/design/DESIGN.md`](../design/DESIGN.md).
+- Design system: [`docs/design.md`](../design.md).
 - Related decisions: [ADR-0001](0001-independent-native-cores.md) — generated
   tokens are one of the three artefacts the two apps share.

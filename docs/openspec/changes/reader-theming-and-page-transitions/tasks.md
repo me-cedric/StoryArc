@@ -788,7 +788,7 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       sheet and all six presets, in light and dark, at default and largest text
       size. A `#Preview` is not proof. **Android done; iOS blocked on a device.**
 
-      Four captures in `docs/design/screenshots`, from a booted emulator:
+      Four captures in `docs/designs/screenshots`, from a booted emulator:
       `android-theme-sheet-{light,dark}.png` and
       `android-theme-sheet-{light,dark}-largest.png`. All six presets appear in one
       shot rather than six, because the grid previews each in its own colours *and*
@@ -848,3 +848,9 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       amount. A divergence here would undermine `reading-progress`' promise that a
       position is portable between devices.
 - [ ] **7.7** `/opsx:sync` to merge the delta specs into the main specs.
+
+      Two links are waiting on this: `docs/design.md` points at
+      `openspec/specs/page-transitions/spec.md` and `.../reading-themes/spec.md`, and
+      both capabilities are new in this change, so they exist only in its delta until
+      the sync runs. The links name the destination on purpose rather than the delta,
+      which would break the other way round.
