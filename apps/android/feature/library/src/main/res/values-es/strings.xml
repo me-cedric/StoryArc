@@ -22,4 +22,24 @@
     <string name="library_folder_unavailable">Ya no se puede leer %1$s.</string>
     <string name="library_repick_folder">Elegir de nuevo</string>
     <string name="library_skipped">%1$d omitidos</string>
+    <string name="library_search">Buscar</string>
+    <string name="library_sort">Ordenar</string>
+    <string name="library_sort_ascending">Ascendente</string>
+    <string name="library_sort_descending">Descendente</string>
+    <string name="library_sort_title">Título</string>
+    <string name="library_sort_series">Serie</string>
+    <string name="library_sort_last_read">Última lectura</string>
+    <string name="library_sort_progress">Progreso</string>
+    <string name="library_sort_year">Año</string>
+    <string name="library_filter">Filtrar</string>
+    <string name="library_filter_read_state">Estado de lectura</string>
+    <string name="library_filter_format">Formato</string>
+    <string name="library_filter_clear">Borrar filtros</string>
+    <string name="library_filter_active">%1$d filtros activos</string>
+    <string name="library_read_state_unread">Sin leer</string>
+    <string name="library_read_state_in_progress">En curso</string>
+    <string name="library_read_state_finished">Terminado</string>
+    <string name="library_continue_reading">Continuar leyendo</string>
+    <string name="library_empty_filtered">Ninguna publicación coincide con los filtros activos.</string>
+    <string name="library_empty_search">No hay resultados para «%1$s».</string>
 </resources>

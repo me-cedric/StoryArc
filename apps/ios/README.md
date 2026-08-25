@@ -75,6 +75,23 @@ xcrun simctl io booted screenshot shot.png
 
 Capture light and dark, at default and largest Dynamic Type.
 
+## Putting comics in front of the app
+
+Two ways in, and the app needs neither configured before it runs:
+
+- **Pick a folder.** The document picker returns a security-scoped URL, and the
+  bookmark behind it is what makes the folder readable again after a restart.
+- **Drop files into the app's own folder.** `UIFileSharingEnabled` and
+  `LSSupportsOpeningDocumentsInPlace` put StoryArc in the Files app, and the
+  library scans its Documents directory when no folder has been picked. Android
+  scans `getExternalFilesDir` for the same reason.
+
+On a simulator the second is the quicker one:
+
+```bash
+cp packages/test-fixtures/comics/*.cbz "$(xcrun simctl get_app_container booted app.storyarc.StoryArc data)/Documents/"
+```
+
 ## Design tokens
 
 Colour, type, spacing and motion are generated from

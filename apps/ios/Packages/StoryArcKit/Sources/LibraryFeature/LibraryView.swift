@@ -8,8 +8,8 @@ public import StoryArcCore
 /// The library.
 ///
 /// Three states, in the order a user meets them: nothing added, a scan running,
-/// and a grid of covers. Search, filtering and sorting are the rest of
-/// `library-browsing` and are not here yet.
+/// and a grid of covers, with search, filtering and sorting over the last of
+/// them.
 public struct LibraryView: View {
     @Environment(\.theme) private var theme
     @State private var isPickingFolder = false
@@ -40,14 +40,38 @@ public struct LibraryView: View {
         self.onOpen = onOpen
     }
 
+    /// The search text, written straight through to the query.
+    ///
+    /// `@Bindable` on the model would be the idiomatic shape, and it cannot be
+    /// used here: the model is a `let` owned by the app layer, not state this view
+    /// creates. A binding does the same job without pretending otherwise.
+    private var searchBinding: Binding<String> {
+        Binding(get: { model.query.search }, set: { model.query.search = $0 })
+    }
+
     public var body: some View {
         NavigationStack {
             Group {
-                if !model.publications.isEmpty {
-                    CoverGrid(publications: model.publications, model: model) { publication in
+                if !model.visible.isEmpty {
+                    CoverGrid(
+                        publications: model.visible,
+                        // Hidden while a search or filter is running: the row is a
+                        // shortcut to what you were reading, and showing
+                        // publications the query excluded reads as a bug.
+                        continueReading: model.query.isNarrowed ? [] : model.continueReading,
+                        model: model
+                    ) { publication in
                         if let url = model.location(of: publication) {
                             onOpen(publication, url)
                         }
+                    }
+                } else if !model.publications.isEmpty {
+                    // A library that is not empty but looks it. `library-browsing`
+                    // forbids showing that silently: say what is narrowing it and
+                    // offer one action to undo.
+                    NarrowedToNothing(query: model.query) {
+                        model.clearFilters()
+                        model.query.search = ""
                     }
                 } else if case .scanning = model.scanState {
                     ScanningView(state: model.scanState)
@@ -60,6 +84,13 @@ public struct LibraryView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(theme.palette.surfaceCanvas)
             .navigationTitle(Text("library.title", bundle: .module))
+            // `library-browsing`: results update as the user types, debounced, with
+            // no submit action. SwiftUI's own field already debounces per keystroke
+            // through the binding, and the arrange is a sort of what is in memory.
+            .searchable(
+                text: searchBinding,
+                prompt: Text("library.search.prompt", bundle: .module)
+            )
             // Reloaded on every appearance, which is what makes the bar under a
             // cover reflect the page the reader just reached.
             .task {
@@ -67,6 +98,14 @@ public struct LibraryView: View {
                 await model.refreshProgress()
             }
             .toolbar {
+                if !model.publications.isEmpty {
+                    ToolbarItem(placement: .primaryAction) {
+                        SortMenu(model: model)
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        FilterMenu(model: model)
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         isPickingFolder = true
@@ -103,6 +142,156 @@ public struct LibraryView: View {
                 model.addFolder(folder)
             }
         }
+    }
+}
+
+/// How the library is ordered.
+struct SortMenu: View {
+    let model: LibraryModel
+
+    var body: some View {
+        Menu {
+            Picker(selection: sortBinding) {
+                ForEach(LibrarySort.allCases, id: \.self) { sort in
+                    Text(sort.titleKey, bundle: .module).tag(sort)
+                }
+            } label: {
+                Text("library.sort", bundle: .module)
+            }
+
+            Divider()
+
+            Picker(selection: directionBinding) {
+                Text("library.sort.ascending", bundle: .module).tag(true)
+                Text("library.sort.descending", bundle: .module).tag(false)
+            } label: {
+                Text("library.sort.direction", bundle: .module)
+            }
+        } label: {
+            Label {
+                Text("library.sort", bundle: .module)
+            } icon: {
+                Image(systemName: "arrow.up.arrow.down")
+            }
+        }
+    }
+
+    private var sortBinding: Binding<LibrarySort> {
+        Binding(get: { model.query.sort }, set: { model.query.sort = $0 })
+    }
+
+    private var directionBinding: Binding<Bool> {
+        Binding(get: { model.query.ascending }, set: { model.query.ascending = $0 })
+    }
+}
+
+/// What the library is narrowed to.
+///
+/// `library-browsing`: filters combine with AND, the active count is visible on
+/// the control, and one action clears them all.
+struct FilterMenu: View {
+    let model: LibraryModel
+
+    var body: some View {
+        Menu {
+            Section {
+                ForEach(ReadState.allCases, id: \.self) { state in
+                    Toggle(isOn: readState(state)) {
+                        Text(state.titleKey, bundle: .module)
+                    }
+                }
+            } header: {
+                Text("library.filter.readState", bundle: .module)
+            }
+
+            Section {
+                ForEach(model.availableFormats, id: \.self) { value in
+                    Toggle(isOn: binding(for: value)) { Text(value.displayName) }
+                }
+            } header: {
+                Text("library.filter.format", bundle: .module)
+            }
+
+            if model.query.hasFilters {
+                Divider()
+                Button(role: .destructive) {
+                    model.clearFilters()
+                } label: {
+                    Text("library.filter.clear", bundle: .module)
+                }
+            }
+        } label: {
+            Label {
+                Text("library.filter", bundle: .module)
+            } icon: {
+                Image(
+                    systemName: model.query.hasFilters
+                        ? "line.3.horizontal.decrease.circle.fill"
+                        : "line.3.horizontal.decrease.circle"
+                )
+            }
+        }
+        // The count, spoken rather than drawn as a badge a menu label cannot carry.
+        .accessibilityValue(
+            model.query.hasFilters
+                ? Text("library.filter.active \(model.query.activeFilterCount)", bundle: .module)
+                : Text(verbatim: "")
+        )
+    }
+
+    private func readState(_ state: ReadState) -> Binding<Bool> {
+        Binding(
+            get: { model.query.readStates.contains(state) },
+            set: { on in
+                if on { model.query.readStates.insert(state) } else { model.query.readStates.remove(state) }
+            }
+        )
+    }
+
+    private func binding(for value: PublicationFormat) -> Binding<Bool> {
+        Binding(
+            get: { model.query.formats.contains(value) },
+            set: { on in
+                if on { model.query.formats.insert(value) } else { model.query.formats.remove(value) }
+            }
+        )
+    }
+}
+
+/// A library that has publications and is showing none of them.
+struct NarrowedToNothing: View {
+    @Environment(\.theme) private var theme
+
+    let query: LibraryQuery
+    let clear: () -> Void
+
+    var body: some View {
+        VStack(spacing: StoryArcSpace.md) {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .font(.system(size: 40, weight: .light))
+                .foregroundStyle(theme.palette.textTertiary)
+
+            message
+                .textRole(.subheadline)
+                .foregroundStyle(theme.palette.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Button(action: clear) {
+                Text("library.filter.clear", bundle: .module)
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(.horizontal, StoryArcSpace.gutter)
+    }
+
+    /// Names what was searched, which is what makes the state actionable rather
+    /// than a shrug.
+    private var message: Text {
+        let term = query.search.trimmingCharacters(in: .whitespaces)
+        if term.isEmpty {
+            return Text("library.empty.filtered", bundle: .module)
+        }
+        return Text("library.empty.search \(term)", bundle: .module)
     }
 }
 

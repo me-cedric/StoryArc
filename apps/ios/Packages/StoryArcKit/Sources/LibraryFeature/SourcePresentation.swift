@@ -59,3 +59,30 @@ extension SourceConnectionState {
         }
     }
 }
+
+/// How the browsing enums are named on screen.
+///
+/// The enums themselves live in the domain and carry no strings: `StoryArcCore`
+/// has no bundle and no business holding UI copy. Naming them is presentation,
+/// so it lives beside the other presentation.
+extension LibrarySort {
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .title: "library.sort.title"
+        case .series: "library.sort.series"
+        case .lastRead: "library.sort.lastRead"
+        case .progress: "library.sort.progress"
+        case .year: "library.sort.year"
+        }
+    }
+}
+
+extension ReadState {
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .unread: "library.readState.unread"
+        case .inProgress: "library.readState.inProgress"
+        case .finished: "library.readState.finished"
+        }
+    }
+}

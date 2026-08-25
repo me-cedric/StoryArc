@@ -28,6 +28,22 @@ public enum LibraryScanState: Sendable, Equatable {
 @Observable
 public final class LibraryModel {
     public private(set) var publications: [Publication] = []
+
+    /// What the user is looking at. Setting it re-arranges the shelf.
+    public var query = LibraryQuery() {
+        didSet { if query != oldValue { rebuild() } }
+    }
+
+    /// The publications on screen: filtered, ranked and sorted.
+    ///
+    /// Stored rather than computed. `library-browsing` requires a library of
+    /// 10,000 to stay usable, and a computed property would re-sort all of them
+    /// on every redraw.
+    public private(set) var visible: [Publication] = []
+
+    /// In-progress publications, most recently read first. Empty means the row is
+    /// not drawn at all, which is what `library-browsing` asks for.
+    public private(set) var continueReading: [Publication] = []
     public private(set) var scanState: LibraryScanState = .idle
     /// Folders the user has added, in the order they added them.
     public private(set) var folders: [URL] = []
@@ -62,13 +78,28 @@ public final class LibraryModel {
     /// `local-library`: a picked folder is reachable again "after a device restart
     /// without asking again". Called once, when the library first appears.
     public func restoreFolders() {
-        guard let bookmarks, folders.isEmpty else { return }
-        let restored = bookmarks.restore()
-        unavailableFolders = restored.stale.map(\.name)
-        for folder in restored.folders {
-            folders.append(folder)
-            scan(folder)
+        guard folders.isEmpty else { return }
+        if let bookmarks {
+            let restored = bookmarks.restore()
+            unavailableFolders = restored.stale.map(\.name)
+            for folder in restored.folders {
+                folders.append(folder)
+                scan(folder)
+            }
         }
+        if folders.isEmpty { scan(documentsFolder) }
+    }
+
+    /// The app's own Documents directory.
+    ///
+    /// Not a library the user picked — it is where a file shared to StoryArc or
+    /// copied in through Files lands. `sources` promises the app "works without
+    /// any setup", and dropping a comic into the app's folder and finding it there
+    /// is what that means on iOS. Android scans `getExternalFilesDir` for the same
+    /// reason. It is scanned, deliberately not added to `folders`: there is no
+    /// bookmark to keep and nothing for the user to remove.
+    private var documentsFolder: URL {
+        URL.documentsDirectory
     }
 
     /// The fraction read, for a cover's progress indicator.
@@ -95,6 +126,7 @@ public final class LibraryModel {
             }
         }
         progress = byID
+        rebuild()
     }
 
     /// Adds a folder and scans it.
@@ -126,6 +158,8 @@ public final class LibraryModel {
     public func reset() {
         cancelScan()
         publications = []
+        visible = []
+        continueReading = []
         covers = [:]
         locations = [:]
         folders = []
@@ -148,6 +182,11 @@ public final class LibraryModel {
                     break
                 case let .finished(found, skipped):
                     self.scanState = .finished(found: found, skipped: skipped)
+                    // Progress is loaded here rather than only when the view
+                    // appears. The view appears before the scan produces anything,
+                    // so a load at that point matches recorded positions against an
+                    // empty library and the continue row never fills.
+                    await self.refreshProgress()
                 }
             }
         }
@@ -167,6 +206,39 @@ public final class LibraryModel {
         if case let .scanning(found) = scanState {
             scanState = .scanning(found: found + 1)
         }
+        // ponytail: re-arranged in batches during a scan, not per publication —
+        // sorting after every one of 10,000 appends is quadratic. The scan's own
+        // completion rebuilds the rest, so the only visible effect is that the
+        // last few rows arrive together.
+        if publications.count % rebuildEvery == 0 { rebuild() }
+    }
+
+    private let rebuildEvery = 24
+
+    /// Recomputes what is on screen from the library and the query.
+    private func rebuild() {
+        visible = LibraryIndex.arrange(publications, query: query) { self.state(of: $0) }
+        continueReading = LibraryIndex.continueReading(publications) { self.state(of: $0) }
+    }
+
+    private func state(of publication: Publication) -> LibraryIndex.Progress {
+        .of(progress[publication.id])
+    }
+
+    /// Clears every filter, keeping the search and the sort.
+    ///
+    /// `library-browsing`: an empty-looking library must say filters are active
+    /// and offer one action to clear them. This is that action.
+    public func clearFilters() {
+        query.readStates = []
+        query.formats = []
+        query.languages = []
+    }
+
+    /// Formats actually present, so the filter never offers one that would empty
+    /// the library.
+    public var availableFormats: [PublicationFormat] {
+        Array(Set(publications.map(\.format))).sorted { $0.displayName < $1.displayName }
     }
 
     /// Where a publication's file is, so the app layer can hand it to a reader.

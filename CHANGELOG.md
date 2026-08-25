@@ -45,6 +45,19 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 - **The apps actually read comics now, on both platforms.** Pick a folder, watch
   the scan fill a cover grid, open a publication, turn pages, come back and the
   cover carries a progress bar. Right-to-left reading direction throughout.
+- **Search, sorting and filtering**, on both platforms and behaving identically
+  because the rules are one pure function per platform asserted against the same
+  table. Search covers titles, series, authors and publishers and ranks a title
+  that starts with the query above an author who merely contains it. Sorting is
+  by title, series, last read, progress or year, using the device's collation and
+  ignoring leading articles in the interface language — "The Sandman" files under
+  S, and "La Brea" only loses its article in Spanish. Filters combine with AND,
+  carry a visible count, and clear in one action.
+- **A "Continue reading" row**, most recently read first, absent rather than
+  empty when nothing is in progress, and hidden while a search is running.
+- **iOS scans its own Documents folder** when no folder has been picked, so a
+  comic dropped in through the Files app appears without any setup — the same
+  thing Android does with `getExternalFilesDir`.
 - **PDFs read like comics**, on both platforms. Pages are rasterised one at a
   time at the size they are drawn, so a several-hundred-megabyte document opens
   as fast as a small one. iOS renders on an actor because `PDFDocument` is not

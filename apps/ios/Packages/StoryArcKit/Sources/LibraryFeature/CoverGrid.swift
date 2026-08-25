@@ -14,6 +14,9 @@ struct CoverGrid: View {
     @Environment(\.displayScale) private var displayScale
 
     let publications: [Publication]
+    /// In-progress publications, most recently read first. Empty means the row is
+    /// not drawn — `library-browsing` requires it absent rather than shown empty.
+    var continueReading: [Publication] = []
     let model: LibraryModel
     /// What to do when a cover is tapped. The library does not open the reader
     /// itself — a feature module never depends on another feature module, so the
@@ -27,6 +30,15 @@ struct CoverGrid: View {
 
     var body: some View {
         ScrollView {
+            if !continueReading.isEmpty {
+                ContinueReadingRow(
+                    publications: continueReading,
+                    model: model,
+                    onOpen: onOpen,
+                    maxPixelSize: Int(maximumWidth * displayScale)
+                )
+            }
+
             LazyVGrid(
                 columns: [
                     GridItem(
@@ -50,6 +62,46 @@ struct CoverGrid: View {
             .padding(.horizontal, StoryArcSpace.gutter)
             .padding(.vertical, StoryArcSpace.md)
         }
+    }
+}
+
+/// What the reader was in the middle of.
+///
+/// `library-browsing`: "a Continue reading row appears first, ordered by most
+/// recently read". Horizontal, because it is a shortcut rather than a second
+/// library — a vertical block of it would push the shelf off the screen.
+struct ContinueReadingRow: View {
+    @Environment(\.theme) private var theme
+
+    let publications: [Publication]
+    let model: LibraryModel
+    let onOpen: (Publication) -> Void
+    let maxPixelSize: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+            Text("library.continueReading", bundle: .module)
+                .textRole(.headline)
+                .foregroundStyle(theme.palette.textPrimary)
+                .padding(.horizontal, StoryArcSpace.gutter)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: StoryArcSpace.md) {
+                    ForEach(publications) { publication in
+                        CoverCell(
+                            publication: publication,
+                            model: model,
+                            onOpen: onOpen,
+                            maxPixelSize: maxPixelSize
+                        )
+                        .frame(width: 128)
+                    }
+                }
+                .padding(.horizontal, StoryArcSpace.gutter)
+            }
+        }
+        .padding(.top, StoryArcSpace.md)
+        .padding(.bottom, StoryArcSpace.sm)
     }
 }
 

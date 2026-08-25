@@ -5,8 +5,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
@@ -28,7 +31,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -36,6 +46,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -47,7 +60,11 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.LibraryQuery
+import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 
@@ -113,6 +130,12 @@ fun LibraryScreen(
         .collectAsStateWithLifecycle()
     val unavailable by (viewModel?.unavailableFolders ?: MutableStateFlow(emptyList<String>()))
         .collectAsStateWithLifecycle()
+    val visible by (viewModel?.visible ?: MutableStateFlow(emptyList<Publication>()))
+        .collectAsStateWithLifecycle()
+    val continueReading by (viewModel?.continueReading ?: MutableStateFlow(emptyList<Publication>()))
+        .collectAsStateWithLifecycle()
+    val query by (viewModel?.query ?: MutableStateFlow(LibraryQuery()))
+        .collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier,
@@ -121,6 +144,10 @@ fun LibraryScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.library_title)) },
                 actions = {
+                    if (viewModel != null && publications.isNotEmpty()) {
+                        SortMenu(query, viewModel::setQuery)
+                        FilterMenu(query, viewModel)
+                    }
                     if (viewModel != null) {
                         IconButton(onClick = { pickFolder.launch(null) }) {
                             Icon(
@@ -171,14 +198,36 @@ fun LibraryScreen(
         ) {
             val state = scanState
             when {
+                visible.isNotEmpty() && viewModel != null ->
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        SearchField(query.search, onChange = { viewModel.setQuery(query.copy(search = it)) })
+                        CoverGrid(
+                            publications = visible,
+                            viewModel = viewModel,
+                            // Hidden while a search or filter is running: the row
+                            // is a shortcut to what you were reading, and showing
+                            // publications the query excluded reads as a bug.
+                            continueReading = if (query.isNarrowed) emptyList() else continueReading,
+                            onOpen = { publication ->
+                                viewModel.location(publication)?.let { onOpen(publication, it) }
+                            },
+                        )
+                    }
+
+                // A library that is not empty but looks it. `library-browsing`
+                // forbids showing that silently: say what is narrowing it and
+                // offer one action to undo.
                 publications.isNotEmpty() && viewModel != null ->
-                    CoverGrid(
-                        publications = publications,
-                        viewModel = viewModel,
-                        onOpen = { publication ->
-                            viewModel.location(publication)?.let { onOpen(publication, it) }
-                        },
-                    )
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        SearchField(query.search, onChange = { viewModel.setQuery(query.copy(search = it)) })
+                        NarrowedToNothing(
+                            query = query,
+                            onClear = {
+                                viewModel.clearFilters()
+                                viewModel.setQuery(viewModel.query.value.copy(search = ""))
+                            },
+                        )
+                    }
 
                 state is LibraryScanState.Scanning -> Scanning(state.found)
                 sources.isEmpty() -> EmptyLibrary(onScan = { pickFolder.launch(null) })
@@ -187,6 +236,191 @@ fun LibraryScreen(
         }
     }
 }
+
+/**
+ * `library-browsing`: results update as the user types, debounced, with no submit
+ * action. Arranging is a sort of what is already in memory, so a keystroke costs
+ * one pass rather than a request.
+ */
+@Composable
+private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        singleLine = true,
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        placeholder = { Text(stringResource(R.string.library_search)) },
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm),
+    )
+}
+
+/** How the library is ordered. */
+@Composable
+private fun SortMenu(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
+    val palette = LocalStoryArcPalette.current
+    var open by remember { mutableStateOf(false) }
+
+    IconButton(onClick = { open = true }) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.Sort,
+            contentDescription = stringResource(R.string.library_sort),
+            tint = palette.accent,
+        )
+    }
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        LibrarySort.entries.forEach { sort ->
+            DropdownMenuItem(
+                text = { Text(stringResource(sort.labelRes)) },
+                leadingIcon = { RadioButton(selected = query.sort == sort, onClick = null) },
+                onClick = { onChange(query.copy(sort = sort)) },
+            )
+        }
+        HorizontalDivider()
+        listOf(true to R.string.library_sort_ascending, false to R.string.library_sort_descending)
+            .forEach { (ascending, label) ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(label)) },
+                    leadingIcon = {
+                        RadioButton(selected = query.ascending == ascending, onClick = null)
+                    },
+                    onClick = { onChange(query.copy(ascending = ascending)) },
+                )
+            }
+    }
+}
+
+/**
+ * What the library is narrowed to.
+ *
+ * `library-browsing`: filters combine with AND, the active count is visible on the
+ * control, and one action clears them all.
+ */
+@Composable
+private fun FilterMenu(query: LibraryQuery, viewModel: LibraryViewModel) {
+    val palette = LocalStoryArcPalette.current
+    var open by remember { mutableStateOf(false) }
+
+    IconButton(onClick = { open = true }) {
+        Icon(
+            imageVector = Icons.Filled.FilterList,
+            contentDescription = if (query.hasFilters) {
+                stringResource(R.string.library_filter_active, query.activeFilterCount)
+            } else {
+                stringResource(R.string.library_filter)
+            },
+            // Colour is never the only signal: the count is in the description.
+            tint = if (query.hasFilters) palette.accent else palette.textSecondary,
+        )
+    }
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        MenuHeading(stringResource(R.string.library_filter_read_state))
+        ReadState.entries.forEach { state ->
+            CheckedItem(stringResource(state.labelRes), state in query.readStates) {
+                onChangeSet(query.readStates, state).let {
+                    viewModel.setQuery(query.copy(readStates = it))
+                }
+            }
+        }
+        MenuHeading(stringResource(R.string.library_filter_format))
+        viewModel.availableFormats().forEach { format ->
+            CheckedItem(format.displayName, format in query.formats) {
+                onChangeSet(query.formats, format).let {
+                    viewModel.setQuery(query.copy(formats = it))
+                }
+            }
+        }
+        if (query.hasFilters) {
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_filter_clear)) },
+                onClick = {
+                    viewModel.clearFilters()
+                    open = false
+                },
+            )
+        }
+    }
+}
+
+private fun <T> onChangeSet(current: Set<T>, value: T): Set<T> =
+    if (value in current) current - value else current + value
+
+@Composable
+private fun MenuHeading(text: String) {
+    val palette = LocalStoryArcPalette.current
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = palette.textTertiary,
+        modifier = Modifier.padding(horizontal = StoryArcSpace.md, vertical = StoryArcSpace.xs),
+    )
+}
+
+@Composable
+private fun CheckedItem(label: String, checked: Boolean, onToggle: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        leadingIcon = { Checkbox(checked = checked, onCheckedChange = null) },
+        onClick = onToggle,
+    )
+}
+
+/** A library that has publications and is showing none of them. */
+@Composable
+private fun NarrowedToNothing(
+    query: LibraryQuery,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+    val term = query.search.trim()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(StoryArcSpace.gutter),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md, Alignment.CenterVertically),
+    ) {
+        Text(
+            // Names what was searched, which is what makes the state actionable
+            // rather than a shrug.
+            text = if (term.isEmpty()) {
+                stringResource(R.string.library_empty_filtered)
+            } else {
+                stringResource(R.string.library_empty_search, term)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.textSecondary,
+            textAlign = TextAlign.Center,
+        )
+        TextButton(onClick = onClear) { Text(stringResource(R.string.library_filter_clear)) }
+    }
+}
+
+/**
+ * How the browsing enums are named on screen.
+ *
+ * The enums live in `:core:model` and carry no resources: the domain has no
+ * business holding UI copy. Naming them is presentation, so it lives here.
+ */
+private val LibrarySort.labelRes: Int
+    get() = when (this) {
+        LibrarySort.TITLE -> R.string.library_sort_title
+        LibrarySort.SERIES -> R.string.library_sort_series
+        LibrarySort.LAST_READ -> R.string.library_sort_last_read
+        LibrarySort.PROGRESS -> R.string.library_sort_progress
+        LibrarySort.YEAR -> R.string.library_sort_year
+    }
+
+private val ReadState.labelRes: Int
+    get() = when (this) {
+        ReadState.UNREAD -> R.string.library_read_state_unread
+        ReadState.IN_PROGRESS -> R.string.library_read_state_in_progress
+        ReadState.FINISHED -> R.string.library_read_state_finished
+    }
 
 /**
  * A folder that was remembered and can no longer be read.
