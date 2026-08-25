@@ -182,7 +182,8 @@ public struct ReaderView: View {
             case .verticalScroll: stitched(.vertical)
             case .horizontalScroll: stitched(.horizontal)
             case .fastFade: faded
-            case .pageCurl, .slide: paged
+            case .pageCurl: curled
+            case .slide: paged
             }
         }
         container

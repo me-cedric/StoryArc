@@ -53,16 +53,20 @@ public final class ReaderModel {
     ///     `comic-reader`'s mode persistence is word for word `reading-themes`' theme
     ///     persistence — per series, with a global default, and comics independent of
     ///     reflowable — so it is the same store.
-    ///   - canCurl: whether this device can render the curl at the display's refresh
-    ///     rate. `page-transitions`: "the app never ships a curl that stutters in
-    ///     preference to a slide that does not", so the honest answer for a curl that
-    ///     does not exist yet is that it is unavailable.
+    ///   - canCurl: whether this device can render the curl. iOS 26 is the floor
+    ///     (ADR-0003) and SwiftUI's shader API predates it, so there is no capability
+    ///     to gate on — unlike Android, where `RuntimeShader` arrives at API 33.
+    ///
+    ///     The frame-rate half of `page-transitions`' requirement is a *runtime*
+    ///     question rather than a build-time one: the same shader is fast on one device
+    ///     and not on another. A check with no device known to fail it would be
+    ///     speculative, so the parameter exists to be passed `false` when one is found.
     public init(
         publication: Publication,
         url: URL,
         progress: ProgressStore? = nil,
         preferences: ReaderPreferences? = nil,
-        canCurl: Bool = false
+        canCurl: Bool = true
     ) {
         self.publication = publication
         self.url = url

@@ -12,6 +12,24 @@ internal import StoryArcCore
 // The members are internal rather than private because `ReaderView.body` is in the
 // other file, and a `private` member of an extension cannot be reached from it.
 extension ReaderView {
+    /// Curl: a shader over the two decoded pages, driven by the finger.
+    ///
+    /// `comic-reader` is explicit that a curl over a comic "uses the already-decoded
+    /// page directly rather than a re-raster", which is why this takes `CGImage`s and
+    /// not a snapshot of the view.
+    var curled: some View {
+        CurledPages(
+            page: model.image(at: modelIndex(forDisplay: displayIndex)),
+            // The page underneath is the next *display* position, not the next page
+            // number: in right-to-left the two run opposite ways, and a curl that
+            // revealed the wrong side would be worse than no curl.
+            beneath: model.image(at: modelIndex(forDisplay: displayIndex + 1)),
+            isRightToLeft: model.readingDirection == .rightToLeft,
+            onTurned: { turn(by: 1) },
+            onTap: { location, size in handleTap(at: location, in: size) }
+        )
+    }
+
     /// Slide: the platform's own pager, which brings its gesture and edge resistance.
     var paged: some View {
         TabView(selection: $displayIndex) {

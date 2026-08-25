@@ -102,6 +102,16 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **The page curl, on iOS too** — the same fold, expressed as a stitchable Metal
+  fragment shader rather than the vertex shader and mesh the plan called for. SwiftUI's
+  shaders sample textures as arguments, so the whole fold is one function over the two
+  pages, and a fold contributes no geometry that a per-pixel projection cannot express.
+  Built and compiling; not yet verified visually, because the simulator accepts no
+  injected input.
+  - Building the iOS app now needs the Metal toolchain, which is not part of a default
+    Xcode install: `xcodebuild -downloadComponent MetalToolchain`, about 690 MB. It is a
+    separate download rather than something the package can declare, so it is in
+    [the iOS README](apps/ios/README.md).
 - **The page curl, on Android.** One AGSL shader over the two decoded pages: the
   crease follows your finger, the turned sheet shows the page's back, its leading edge
   catches light and it casts a shadow on the page beneath. Past halfway the turn

@@ -21,9 +21,32 @@ technical, and each item's fallback is in `design.md`.
       answers `isEffective`, and the rule is unit-tested on a host instead of
       observed through a navigator. Readium's editor stays available if an axis ever
       turns out to be conditionally inert for a reason the table cannot express.
-- [ ] **0.3** **iOS curl spike.** Raster a Readium page to a texture and deform it
+- [x] **0.3** **iOS curl spike.** Raster a Readium page to a texture and deform it
       in a Metal vertex shader. Measure the frame rate on a 120 Hz device.
       Deliverable: a number, and a go/no-go against the refresh-rate requirement.
+
+      **Go, with two corrections to the plan and one honest gap.**
+
+      A *fragment* shader, not a vertex shader, and no mesh: SwiftUI's `[[stitchable]]`
+      colour shaders sample textures as arguments, so the whole fold is one function
+      over two `texture2d<half>`s. A vertex shader would need a mesh to deform, and the
+      fold contributes no geometry the projection cannot express per pixel.
+
+      No rastering for comics, per `comic-reader`: the page is already a `CGImage`, and
+      the shader takes it directly. Rastering is only the reflowable case, which is
+      4.3b.
+
+      **The number is still missing, and it needs a device.** A frame rate measured on
+      a simulator running on a Mac's GPU is not a frame rate, and the machine here has
+      no 120 Hz iPhone attached. What *is* verified is that the shader compiles and
+      lands where SwiftUI looks for it: `pageCurl` is a stitchable symbol in
+      `StoryArcKit_ReaderFeature.bundle/default.metallib`, with the expected texture
+      and float arguments.
+
+      One consequence for anyone building this repo: `ReaderFeature` now compiles a
+      `.metal` file, and the Metal toolchain is not part of a default Xcode install.
+      `xcodebuild -downloadComponent MetalToolchain`, ~690 MB, recorded in
+      `apps/ios/README.md`.
 - [x] **0.4** **Android curl spike.** Express the same cylindrical projection as
       an AGSL `RuntimeShader` at API 33+, using `oleksandrbalan/pagecurl` as a
       geometry reference. Measure the frame rate; verify a settling animation can
@@ -454,7 +477,7 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       per shelf and per scope.
 - [ ] **4.3** Curl, per the Phase 0 outcome. Finger-tracked, interruptible, lit
       edge, cast shadow, mirrored for right-to-left. Metal on iOS, AGSL on
-      Android at API 33+. **Android done; iOS not started.**
+      Android at API 33+. **Android done and verified; iOS built but unverified.**
 
       One AGSL shader over two decoded pages, driven by an `Animatable` so that a new
       drag during the settle takes over from where the page is. Right-to-left is a
@@ -490,6 +513,18 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       A fourth belonged to the seam rather than the curl: a `PagerState` with no pager
       laid out has nothing to scroll, and asking it to animate does nothing at all.
       Curl and Fast fade now share the container-less `Paging.Indexed`.
+
+      **iOS is built and compiles, and is not visually verified.** The Metal shader is
+      the AGSL's twin down to the constants, which is what `design.md` asks for — one
+      projection expressed twice rather than solved twice. The gesture is a
+      `DragGesture` using SwiftUI's own `predictedEndTranslation` as the flick model
+      rather than a velocity calculation of ours.
+
+      What is verified: it compiles, and `pageCurl` is a stitchable symbol in the
+      feature bundle's `default.metallib` where `ShaderLibrary.bundle(.module)` looks
+      for it. What is not: anything visual or tactile, because the simulator accepts no
+      injected input — the limitation `apps/ios/README.md` already records. That is
+      7.4's and 7.5's job, and it needs a device or a person.
 - [ ] **4.3b** Page rastering for reflowable content: raster at display scale,
       hold at most the outgoing and incoming pages, restore live interaction the
       instant the turn completes.

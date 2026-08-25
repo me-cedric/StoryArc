@@ -43,9 +43,15 @@ one is why public API exposing a Foundation or SwiftUI type needs
 
 ```bash
 brew install xcodegen swiftlint            # once
+xcodebuild -downloadComponent MetalToolchain   # once, ~690 MB
 cd apps/ios && xcodegen generate           # after any project.yml change
 open StoryArc.xcodeproj
 ```
+
+The Metal toolchain is not part of a default Xcode install and is not optional here:
+`ReaderFeature` compiles [`PageCurl.metal`](Packages/StoryArcKit/Sources/ReaderFeature/PageCurl.metal),
+so without it the build stops with `cannot execute tool 'metal'`. It is a separate
+download rather than a dependency the package can declare.
 
 ## Validate
 
