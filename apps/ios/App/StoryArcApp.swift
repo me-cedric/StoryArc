@@ -3,6 +3,7 @@ import EpubReaderFeature
 import LibraryFeature
 import Persistence
 import ReaderFeature
+import SettingsFeature
 import StoryArcCore
 import SwiftUI
 
@@ -11,11 +12,20 @@ struct StoryArcApp: App {
     /// `settings-and-about`: System by default, applied without a restart.
     /// Stored here rather than in a store so the shell has no dependency on a
     /// persistence layer that does not exist yet.
-    @AppStorage("appearanceMode") private var appearanceRaw = AppearanceMode.system.rawValue
+    /// Everything Settings holds, and the store behind it.
+    ///
+    /// Held here rather than inside the settings screen: `settings-and-about` requires an
+    /// appearance to apply "immediately across the whole app without a restart", and
+    /// *immediately* means while the reader is still looking at the picker. A screen that
+    /// owned its own copy and handed it back on the way out would change the theme one
+    /// screen too late.
+    ///
+    /// It replaces an `@AppStorage("appearanceMode")` that predated the settings store —
+    /// two homes for one value, and only one of them was ever written.
+    @State private var settings = SettingsStore().settings()
+    private let settingsStore = SettingsStore()
 
-    private var appearance: AppearanceMode {
-        AppearanceMode(rawValue: appearanceRaw) ?? .system
-    }
+    @State private var isShowingSettings = false
 
     /// What the reader is currently showing, if anything.
     ///
@@ -60,13 +70,32 @@ struct StoryArcApp: App {
         reading = ReadingSelection(publication: publication, url: url)
     }
 
+    /// Writes through on every change, so the theme above recomposes with it.
+    private var settingsBinding: Binding<AppSettings> {
+        Binding(
+            get: { settings },
+            set: { new in
+                settings = new
+                settingsStore.save(new)
+            }
+        )
+    }
+
     var body: some Scene {
         WindowGroup {
-            LibraryView(model: library, progress: progress) { publication, url in
-                reading = ReadingSelection(publication: publication, url: url)
+            LibraryView(
+                model: library,
+                progress: progress,
+                onOpen: { publication, url in
+                    reading = ReadingSelection(publication: publication, url: url)
+                },
+                onOpenSettings: { isShowingSettings = true }
+            )
+            .storyArcTheme(appearance: settings.appearance)
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView(settings: settingsBinding)
+                    .storyArcTheme(appearance: settings.appearance)
             }
-            .storyArcTheme()
-            .preferredColorScheme(appearance.colorScheme)
             .fullScreenCover(item: $reading, onDismiss: refreshProgress) { selection in
                 // Full screen, not a sheet: `comic-reader` wants nothing on screen
                 // while reading, and a sheet keeps a card edge and the view behind
@@ -88,7 +117,7 @@ struct StoryArcApp: App {
                     // builds a fresh reader rather than reusing the previous one's
                     // `@State`.
                     .id(selection.publication.id)
-                    .storyArcTheme()
+                    .storyArcTheme(appearance: settings.appearance)
                 } else {
                     ReaderView(
                         publication: selection.publication,
@@ -104,7 +133,7 @@ struct StoryArcApp: App {
                         ),
                         onOpenNext: openNext
                     )
-                    .storyArcTheme()
+                    .storyArcTheme(appearance: settings.appearance)
                 }
             }
         }

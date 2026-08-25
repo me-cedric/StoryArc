@@ -45,4 +45,5 @@
     <string name="library_cell_progress">%1$d%% gelesen</string>
     <string name="library_layout_grid">Raster</string>
     <string name="library_layout_list">Liste</string>
+    <string name="library_settings">Einstellungen</string>
 </resources>

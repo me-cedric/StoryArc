@@ -68,6 +68,7 @@ dependencies {
     implementation(project(":feature:library"))
     implementation(project(":feature:reader"))
     implementation(project(":feature:epubreader"))
+    implementation(project(":feature:settings"))
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":core:persistence"))
 

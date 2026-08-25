@@ -1,0 +1,104 @@
+{
+  "$comment": "One inventory, read by both apps' acknowledgements screens and by THIRD_PARTY_NOTICES.md. Every `licence` names a file in texts/.",
+  "notices": [
+    {
+      "name": "Readium Swift Toolkit",
+      "version": "3.11",
+      "licence": "BSD-3-Clause",
+      "url": "https://github.com/readium/swift-toolkit",
+      "platforms": [
+        "ios"
+      ],
+      "why": "Reflowable EPUB rendering. ADR-0005."
+    },
+    {
+      "name": "Readium Kotlin Toolkit",
+      "version": "3.3",
+      "licence": "BSD-3-Clause",
+      "url": "https://github.com/readium/kotlin-toolkit",
+      "platforms": [
+        "android"
+      ],
+      "why": "Reflowable EPUB rendering. ADR-0005."
+    },
+    {
+      "name": "libarchive",
+      "version": "3.7.7",
+      "licence": "BSD-2-Clause",
+      "url": "https://github.com/libarchive/libarchive",
+      "platforms": [
+        "ios",
+        "android"
+      ],
+      "why": "Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md."
+    },
+    {
+      "name": "AndroidX and Jetpack Compose",
+      "licence": "Apache-2.0",
+      "url": "https://developer.android.com/jetpack/androidx",
+      "platforms": [
+        "android"
+      ],
+      "why": "The UI toolkit, lifecycle, Room and the activity host."
+    },
+    {
+      "name": "Kotlin and kotlinx",
+      "licence": "Apache-2.0",
+      "url": "https://github.com/JetBrains/kotlin",
+      "platforms": [
+        "android"
+      ],
+      "why": "The language, coroutines and serialization."
+    },
+    {
+      "name": "Literata",
+      "licence": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Literata",
+      "platforms": [
+        "ios",
+        "android"
+      ],
+      "why": "A bundled reading typeface. Designed for screen reading."
+    },
+    {
+      "name": "Source Serif 4",
+      "licence": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Source+Serif+4",
+      "platforms": [
+        "ios",
+        "android"
+      ],
+      "why": "A bundled reading typeface."
+    },
+    {
+      "name": "EB Garamond",
+      "licence": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/EB+Garamond",
+      "platforms": [
+        "ios",
+        "android"
+      ],
+      "why": "A bundled reading typeface."
+    },
+    {
+      "name": "Bitter",
+      "licence": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Bitter",
+      "platforms": [
+        "ios",
+        "android"
+      ],
+      "why": "A bundled reading typeface."
+    },
+    {
+      "name": "Atkinson Hyperlegible",
+      "licence": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Atkinson+Hyperlegible",
+      "platforms": [
+        "ios",
+        "android"
+      ],
+      "why": "A bundled reading typeface, designed for low vision."
+    }
+  ]
+}

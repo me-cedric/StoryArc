@@ -16,8 +16,8 @@ public import StoryArcCore
 /// Custom backgrounds are Phase 3.7 and are not here yet. Everything else the
 /// spec describes at both levels is.
 struct ThemeSheet: View {
-    @Environment(\.theme) private var theme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) var theme
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.dismiss) private var dismiss
 
     let model: EpubReaderModel

@@ -1,6 +1,296 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "about.acknowledgements": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Danksagungen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acknowledgements"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agradecimientos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remerciements"
+          }
+        }
+      }
+    },
+    "about.acknowledgements.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles, was StoryArc mitliefert und andere geschrieben haben. Tippen Sie auf einen Eintrag für die vollständige Lizenz."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everything StoryArc ships that someone else wrote. Tap one for its licence in full."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo lo que StoryArc incluye y que escribieron otros. Toque uno para ver su licencia completa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout ce que StoryArc embarque et qui a été écrit par d’autres. Touchez un élément pour lire sa licence en entier."
+          }
+        }
+      }
+    },
+    "about.author": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von Cédric Meyer"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "By Cédric Meyer"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por Cédric Meyer"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Par Cédric Meyer"
+          }
+        }
+      }
+    },
+    "about.authorLink": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Autor auf GitHub"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The author on GitHub"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El autor en GitHub"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’auteur sur GitHub"
+          }
+        }
+      }
+    },
+    "about.free": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vollständig kostenlos und Open Source. Keine Bezahlstufe, keine Werbung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completely free and open source. No paid tier, no advertising."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completamente gratuito y de código abierto. Sin nivel de pago ni publicidad."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entièrement gratuit et open source. Aucune offre payante, aucune publicité."
+          }
+        }
+      }
+    },
+    "about.licence": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lizenz"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licence"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licencia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licence"
+          }
+        }
+      }
+    },
+    "about.report": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Problem melden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Report a problem"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informar de un problema"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signaler un problème"
+          }
+        }
+      }
+    },
+    "about.repository": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repository"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repository"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repositorio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dépôt"
+          }
+        }
+      }
+    },
+    "about.support": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc auf Ko-fi unterstützen (optional)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Support StoryArc on Ko-fi (optional)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apoyar StoryArc en Ko-fi (opcional)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soutenir StoryArc sur Ko-fi (facultatif)"
+          }
+        }
+      }
+    },
+    "about.version %1$@ %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc %1$@ (%2$@)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc %1$@ (%2$@)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc %1$@ (%2$@)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc %1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "appearance.dark": {
       "extractionState": "manual",
       "localizations": {
@@ -59,6 +349,64 @@
         }
       }
     },
+    "appearance.linkTheme": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lesethema an die App anpassen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match the reading theme to the app"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Igualar el tema de lectura a la app"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accorder le thème de lecture à l’application"
+          }
+        }
+      }
+    },
+    "appearance.linkTheme.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standardmäßig aus. Eine dunkle App mit einer papierweißen Seite ist eine legitime Vorliebe."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off by default. A dark app with a paper-white page is a legitimate preference."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivado por defecto. Una app oscura con una página blanca es una preferencia legítima."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivé par défaut. Une application sombre avec une page blanche est une préférence légitime."
+          }
+        }
+      }
+    },
     "appearance.oledDark": {
       "extractionState": "manual",
       "localizations": {
@@ -94,7 +442,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bedienoberfläche in echtem Schwarz. Die Seite selbst bleibt knapp darüber, weil reines Schwarz auf OLED beim Seitenwechsel schmiert."
+            "value": "Bedienoberfläche in echtem Schwarz. Die Seite bleibt knapp darüber, weil reines Schwarz auf OLED beim Seitenwechsel schmiert."
           }
         },
         "en": {
@@ -146,523 +494,286 @@
         }
       }
     },
-    "library.addFolder": {
-      "comment": "The action that opens the document picker to choose a library folder.",
+    "privacy.pending": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ordner hinzufügen"
+            "value": "Daten löschen und einen Diagnosebericht exportieren sind noch nicht gebaut."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add Folder"
+            "value": "Clearing data and exporting a diagnostic are not built yet."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añadir carpeta"
+            "value": "Borrar datos y exportar un diagnóstico aún no están desarrollados."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajouter un dossier"
+            "value": "L’effacement des données et l’export d’un diagnostic ne sont pas encore développés."
           }
         }
       }
     },
-    "library.cell.cannotOpen": {
-      "comment": "Shown under a cover when the publication's format cannot be read at all — a solid RAR4, say. Named rather than shown as a broken cover.",
+    "privacy.sources": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kann nicht geöffnet werden"
+            "value": "Daten verlassen dieses Gerät nur zu den Quellen, die Sie selbst eingerichtet haben."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cannot be opened"
+            "value": "Data leaves this device only to the sources you configured yourself."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se puede abrir"
+            "value": "Los datos salen de este dispositivo solo hacia las fuentes que usted configuró."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible à ouvrir"
+            "value": "Les données ne quittent cet appareil que vers les sources que vous avez vous-même configurées."
           }
         }
       }
     },
-    "library.cell.pages %lld": {
-      "comment": "Spoken by VoiceOver as part of a cover cell's label. Never shown visually.",
+    "privacy.statement": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld Seiten"
+            "value": "StoryArc hat kein Konto, kein Backend, keine Analyse und keine Absturzberichte."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld pages"
+            "value": "StoryArc has no account, no backend, no analytics and no crash reporting."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld páginas"
+            "value": "StoryArc no tiene cuenta, ni backend, ni analítica, ni informes de errores."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld pages"
+            "value": "StoryArc n’a aucun compte, aucun serveur, aucune analyse et aucun rapport de plantage."
           }
         }
       }
     },
-    "library.cell.progress %lld": {
-      "comment": "Spoken by VoiceOver as part of a cover cell's label, because the progress bar itself is invisible to it.",
+    "reading.defaults.pending": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld Prozent gelesen"
+            "value": "Lesevorgaben für neue Serien fehlen noch. Ein beim Lesen gewähltes Thema gilt bereits für die ganze Serie."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld percent read"
+            "value": "Reading defaults for new series are not here yet. A theme you set while reading already applies to the whole series."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld por ciento leído"
+            "value": "Los ajustes de lectura por defecto aún no están aquí. Un tema elegido al leer ya se aplica a toda la serie."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld pour cent lu"
+            "value": "Les réglages de lecture par défaut ne sont pas encore ici. Un thème choisi pendant la lecture s’applique déjà à toute la série."
           }
         }
       }
     },
-    "library.continueReading": {
+    "reading.volumeButtons": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Weiterlesen"
+            "value": "Lautstärketasten blättern"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Continue reading"
+            "value": "Volume buttons turn pages"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Continuar leyendo"
+            "value": "Los botones de volumen cambian de página"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reprendre la lecture"
+            "value": "Les touches de volume tournent les pages"
           }
         }
       }
     },
-    "library.empty.filtered": {
+    "reading.volumeButtons.note": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Publikation entspricht den aktiven Filtern."
+            "value": "Standardmäßig aus: beim Lesen würden die Lautstärketasten die Lautstärke nicht mehr ändern."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No publication matches the active filters."
+            "value": "Off by default: while reading, the volume buttons would stop changing the volume."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ninguna publicación coincide con los filtros activos."
+            "value": "Desactivado por defecto: al leer, los botones de volumen dejarían de ajustar el volumen."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucune publication ne correspond aux filtres actifs."
+            "value": "Désactivé par défaut : pendant la lecture, les touches de volume ne régleraient plus le volume."
           }
         }
       }
     },
-    "library.empty.search %@": {
+    "settings.about": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Treffer für „%@“."
+            "value": "Über"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing matches “%@”."
+            "value": "About"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No hay resultados para «%@»."
+            "value": "Acerca de"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucun résultat pour « %@ »."
+            "value": "À propos"
           }
         }
       }
     },
-    "library.empty.subtitle": {
+    "settings.about.summary": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fügen Sie eine Quelle hinzu oder öffnen Sie einfach eine Datei – StoryArc funktioniert ohne Einrichtung."
+            "value": "Version, Lizenz und Danksagungen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add a source, or just open a file — StoryArc works without any setup."
+            "value": "Version, licence and acknowledgements"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añade una fuente o simplemente abre un archivo: StoryArc funciona sin configuración."
+            "value": "Versión, licencia y agradecimientos"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajoutez une source, ou ouvrez simplement un fichier — StoryArc fonctionne sans configuration."
+            "value": "Version, licence et remerciements"
           }
         }
       }
     },
-    "library.empty.title": {
+    "settings.appearance": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Noch nichts hier"
+            "value": "Erscheinungsbild"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing here yet"
+            "value": "Appearance"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aquí no hay nada aún"
+            "value": "Apariencia"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien pour l’instant"
+            "value": "Apparence"
           }
         }
       }
     },
-    "library.filter": {
+    "settings.done": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Filtern"
+            "value": "Fertig"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Filter"
+            "value": "Done"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Filtrar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Filtrer"
-          }
-        }
-      }
-    },
-    "library.filter.active %lld": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld Filter aktiv"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld filters active"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld filtros activos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld filtres actifs"
-          }
-        }
-      }
-    },
-    "library.filter.clear": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Filter löschen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear filters"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Borrar filtros"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Effacer les filtres"
-          }
-        }
-      }
-    },
-    "library.filter.format": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Format"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Format"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Formato"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Format"
-          }
-        }
-      }
-    },
-    "library.filter.readState": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lesestatus"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Read state"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Estado de lectura"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "État de lecture"
-          }
-        }
-      }
-    },
-    "library.folderUnavailable %@": {
-      "comment": "Names the folder whose permission went stale. local-library requires naming it rather than saying a folder is unavailable.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "„%@“ kann nicht mehr gelesen werden"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” can no longer be read"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "«%@» ya no se puede leer"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "« %@ » n'est plus lisible"
-          }
-        }
-      }
-    },
-    "library.layout.grid": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Raster"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Grid"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cuadrícula"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Grille"
-          }
-        }
-      }
-    },
-    "library.layout.list": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Liste"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "List"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lista"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Liste"
-          }
-        }
-      }
-    },
-    "library.readState.finished": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gelesen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Finished"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Terminado"
+            "value": "Listo"
           }
         },
         "fr": {
@@ -673,154 +784,413 @@
         }
       }
     },
-    "library.readState.inProgress": {
+    "settings.downloads": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Angefangen"
+            "value": "Downloads und Speicher"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "In progress"
+            "value": "Downloads and storage"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "En curso"
+            "value": "Descargas y almacenamiento"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "En cours"
+            "value": "Téléchargements et stockage"
           }
         }
       }
     },
-    "library.readState.unread": {
+    "settings.downloads.pending": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ungelesen"
+            "value": "Es wird noch nichts heruntergeladen, also gibt es nichts zu verwalten."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unread"
+            "value": "Nothing downloads yet, so there is nothing to manage."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sin leer"
+            "value": "Todavía no se descarga nada, así que no hay nada que gestionar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Non lu"
+            "value": "Rien ne se télécharge encore, il n’y a donc rien à gérer."
           }
         }
       }
     },
-    "library.repick": {
-      "comment": "The single action that restores access to a folder whose permission went stale.",
+    "settings.language": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erneut wählen"
+            "value": "Sprache"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose Again"
+            "value": "Language"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elegir de nuevo"
+            "value": "Idioma"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choisir à nouveau"
+            "value": "Langue"
           }
         }
       }
     },
-    "library.scanning %lld": {
-      "comment": "Scan progress. `local-library` requires progress reported as a count of items found.",
+    "settings.language.custom": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Durchsuchen — %lld gefunden"
+            "value": "Gewählt"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scanning — %lld found"
+            "value": "Chosen"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Analizando — %lld encontrados"
+            "value": "Elegido"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Analyse — %lld trouvés"
+            "value": "Choisie"
           }
         }
       }
     },
-    "library.search.prompt": {
+    "settings.language.pending": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suchen"
+            "value": "StoryArc folgt Ihrer Systemsprache. Eine Übersteuerung ist noch nicht gebaut."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search"
+            "value": "StoryArc follows your system language. An override is not built yet."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Buscar"
+            "value": "StoryArc sigue el idioma de su sistema. La anulación aún no está desarrollada."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rechercher"
+            "value": "StoryArc suit la langue de votre système. Un remplacement n’est pas encore développé."
           }
         }
       }
     },
-    "library.settings": {
+    "settings.language.system": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistema"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Système"
+          }
+        }
+      }
+    },
+    "settings.pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch nicht gebaut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not built yet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no desarrollado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas encore développé."
+          }
+        }
+      }
+    },
+    "settings.privacy": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datenschutz"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacidad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confidentialité"
+          }
+        }
+      }
+    },
+    "settings.privacy.summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Konto, kein Backend, keine Analyse"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No account, no backend, no analytics"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin cuenta, sin backend, sin analítica"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun compte, aucun serveur, aucune analyse"
+          }
+        }
+      }
+    },
+    "settings.reading": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lesen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lectura"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lecture"
+          }
+        }
+      }
+    },
+    "settings.reading.summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seitenwechsel und Lesevorgaben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page turns and reading defaults"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambios de página y ajustes por defecto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tournes de page et réglages par défaut"
+          }
+        }
+      }
+    },
+    "settings.reading.summary.volume": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lautstärketasten blättern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume buttons turn pages"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los botones de volumen cambian de página"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les touches de volume tournent les pages"
+          }
+        }
+      }
+    },
+    "settings.sources": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quellen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sources"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuentes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sources"
+          }
+        }
+      }
+    },
+    "settings.sources.pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner, Netzwerkfreigaben, OPDS-Kataloge und Kavita-Server. Vorläufig aus der Bibliothek hinzugefügt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folders, network shares, OPDS catalogues and Kavita servers. Added from the library for now."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carpetas, recursos de red, catálogos OPDS y servidores Kavita. Por ahora se añaden desde la biblioteca."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dossiers, partages réseau, catalogues OPDS et serveurs Kavita. Ajoutés depuis la bibliothèque pour l’instant."
+          }
+        }
+      }
+    },
+    "settings.title": {
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -845,674 +1215,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Réglages"
-          }
-        }
-      }
-    },
-    "library.skipped %lld": {
-      "comment": "How many files a scan could not read. Shown beside the found count so the total is honest.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld übersprungen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld skipped"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld omitidos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld ignorés"
-          }
-        }
-      }
-    },
-    "library.sort": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sortieren"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sort"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordenar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trier"
-          }
-        }
-      }
-    },
-    "library.sort.ascending": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufsteigend"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ascending"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ascendente"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Croissant"
-          }
-        }
-      }
-    },
-    "library.sort.descending": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Absteigend"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Descending"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Descendente"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Décroissant"
-          }
-        }
-      }
-    },
-    "library.sort.direction": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Richtung"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Direction"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sentido"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sens"
-          }
-        }
-      }
-    },
-    "library.sort.lastRead": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zuletzt gelesen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Last read"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Última lectura"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dernière lecture"
-          }
-        }
-      }
-    },
-    "library.sort.progress": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fortschritt"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Progress"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Progreso"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Progression"
-          }
-        }
-      }
-    },
-    "library.sort.series": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reihe"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Series"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Serie"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Série"
-          }
-        }
-      }
-    },
-    "library.sort.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Titel"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Title"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Título"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Titre"
-          }
-        }
-      }
-    },
-    "library.sort.year": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jahr"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Year"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Año"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Année"
-          }
-        }
-      }
-    },
-    "library.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bibliothek"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Library"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Biblioteca"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bibliothèque"
-          }
-        }
-      }
-    },
-    "source.kind.kavitaServer.explanation": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sammlungen, Leselisten und synchronisierter Fortschritt"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Collections, reading lists and synced progress"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Colecciones, listas de lectura y progreso sincronizado"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Collections, listes de lecture et progression synchronisée"
-          }
-        }
-      }
-    },
-    "source.kind.kavitaServer.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kavita-Server"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kavita server"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Servidor Kavita"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Serveur Kavita"
-          }
-        }
-      }
-    },
-    "source.kind.localFolder.explanation": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auf diesem Gerät, in iCloud Drive oder bei jedem Dateianbieter"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On this device, iCloud Drive, or any Files provider"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "En este dispositivo, iCloud Drive o cualquier proveedor de Archivos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sur cet appareil, iCloud Drive ou tout fournisseur Fichiers"
-          }
-        }
-      }
-    },
-    "source.kind.localFolder.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dateien und Ordner"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Files and folders"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Archivos y carpetas"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fichiers et dossiers"
-          }
-        }
-      }
-    },
-    "source.kind.networkShare.explanation": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eine SMB-Freigabe auf einem NAS oder einem anderen Computer"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "An SMB share on a NAS or another computer"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Un recurso SMB en un NAS u otro ordenador"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Un partage SMB sur un NAS ou un autre ordinateur"
-          }
-        }
-      }
-    },
-    "source.kind.networkShare.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Netzwerkfreigabe"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Network share"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recurso compartido en red"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Partage réseau"
-          }
-        }
-      }
-    },
-    "source.kind.opdsCatalog.explanation": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jeder Server, der OPDS spricht, etwa Calibre-Web oder Komga"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Any server that speaks OPDS, such as Calibre-Web or Komga"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cualquier servidor que hable OPDS, como Calibre-Web o Komga"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tout serveur compatible OPDS, comme Calibre-Web ou Komga"
-          }
-        }
-      }
-    },
-    "source.kind.opdsCatalog.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OPDS-Katalog"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OPDS catalogue"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Catálogo OPDS"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Catalogue OPDS"
-          }
-        }
-      }
-    },
-    "source.state.connected": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verbunden"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connected"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conectada"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connectée"
-          }
-        }
-      }
-    },
-    "source.state.connecting": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verbinden …"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connecting…"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conectando…"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connexion…"
-          }
-        }
-      }
-    },
-    "source.state.unauthorized": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anmeldung erforderlich"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign-in needed"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se requiere iniciar sesión"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connexion requise"
-          }
-        }
-      }
-    },
-    "source.state.unreachable": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Offline – zwischengespeicherte Inhalte"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Offline — showing cached content"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sin conexión: contenido en caché"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hors ligne — contenu en cache"
           }
         }
       }

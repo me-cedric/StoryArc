@@ -719,9 +719,13 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       costs EB Garamond a couple of hundred kilobytes on its own.
 
       The five OFL notices ship with both apps — SwiftPM resources on iOS, staged
-      assets on Android. The acknowledgements *screen* that displays them belongs
-      to `settings-and-about` and does not exist yet; the files being in the bundle
-      is what the licence requires, and the screen is what the spec requires.
+      assets on Android. **The screen that displays them now exists**, in
+      `settings-and-about-screens` task 4.3: Settings › About › Acknowledgements lists
+      every component from one shared inventory and renders each licence in full. Verified
+      on the emulator with the SIL Open Font Licence.
+
+      That closes the gap this note used to record — the files being in the bundle is what
+      the licence requires, and the screen is what the spec requires.
 - [x] **6.2** Register them with Readium's font-family API on both platforms.
       **Done**, one file per platform. Readium renders reflowable EPUB in a web
       view, so a family it has not been told about resolves to nothing and the page

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_close">Close settings</string>
+    <string name="settings_back">Back</string>
+    <string name="settings_sources">Sources</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_reading">Reading</string>
+    <string name="settings_downloads">Downloads and storage</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_about">About</string>
+    <string name="settings_pending">Not built yet.</string>
+    <string name="settings_sources_pending">Folders, network shares, OPDS catalogues and Kavita servers. Added from the library for now.</string>
+    <string name="settings_downloads_pending">Nothing downloads yet, so there is nothing to manage.</string>
+    <string name="settings_language_pending">StoryArc follows your system language. An override is not built yet.</string>
+    <string name="settings_language_system">System</string>
+    <string name="settings_reading_summary">Page turns and reading defaults</string>
+    <string name="settings_reading_summary_volume">Volume buttons turn pages</string>
+    <string name="settings_privacy_summary">No account, no backend, no analytics</string>
+    <string name="settings_about_summary">Version, licence and acknowledgements</string>
+    <string name="appearance_system">System</string>
+    <string name="appearance_light">Light</string>
+    <string name="appearance_dark">Dark</string>
+    <string name="appearance_oled_dark">OLED Dark</string>
+    <string name="appearance_oled_dark_note">True black chrome. The page itself stays just above black, because pure black smears on OLED during a page turn.</string>
+    <string name="appearance_link_theme">Match the reading theme to the app</string>
+    <string name="appearance_link_theme_note">Off by default. A dark app with a paper-white page is a legitimate preference.</string>
+    <string name="reading_volume_buttons">Volume buttons turn pages</string>
+    <string name="reading_volume_buttons_note">Off by default: while reading, the volume buttons would stop changing the volume.</string>
+    <string name="reading_defaults_pending">Reading defaults for new series are not here yet. A theme you set while reading already applies to the whole series.</string>
+    <string name="privacy_statement">StoryArc has no account, no backend, no analytics and no crash reporting.</string>
+    <string name="privacy_sources">Data leaves this device only to the sources you configured yourself.</string>
+    <string name="privacy_pending">Clearing data and exporting a diagnostic are not built yet.</string>
+    <string name="about_version">StoryArc %1$s (%2$s)</string>
+    <string name="about_author">By Cédric Meyer</string>
+    <string name="about_free">Completely free and open source. No paid tier, no advertising.</string>
+    <string name="about_repository">Repository</string>
+    <string name="about_author_link">The author on GitHub</string>
+    <string name="about_licence">Licence</string>
+    <string name="about_support">Support StoryArc on Ko-fi (optional)</string>
+    <string name="about_report">Report a problem</string>
+    <string name="about_acknowledgements">Acknowledgements</string>
+    <string name="about_acknowledgements_note">Everything StoryArc ships that someone else wrote. Tap one for its licence in full.</string>
+    <string name="about_licence_missing">The %1$s text is missing from this build. That is a packaging bug — please report it.</string>
+</resources>

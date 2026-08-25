@@ -20,12 +20,16 @@ let package = Package(
         .library(name: "LibraryFeature", targets: ["LibraryFeature"]),
         .library(name: "ReaderFeature", targets: ["ReaderFeature"]),
         .library(name: "Persistence", targets: ["Persistence"]),
+        .library(name: "SettingsFeature", targets: ["SettingsFeature"]),
     ],
     dependencies: [
         // The vendored libarchive RAR readers. A path dependency rather than a
         // copy inside this package: the same sources are compiled by the Android
         // build, and one copy is the only way that stays true.
-        .package(path: "../../../../third_party/libarchive")
+        .package(path: "../../../../third_party/libarchive"),
+        // The bundled typefaces and the licence inventory, both read by Android from
+        // the same directories. One copy on disk is the only way that stays true.
+        .package(path: "../../../../packages/licences")
     ],
     targets: [
         .target(name: "DesignSystem", dependencies: ["StoryArcCore"]),
@@ -57,6 +61,14 @@ let package = Package(
         // ADR-0006 names SwiftData here and Room on Android. The schema semantics
         // are shared; the implementations are not.
         .target(name: "Persistence", dependencies: ["StoryArcCore"]),
+        .target(
+            name: "SettingsFeature",
+            dependencies: [
+                "DesignSystem", "StoryArcCore", "Persistence",
+                .product(name: "StoryArcLicences", package: "licences"),
+            ],
+            resources: [.process("Resources")]
+        ),
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem"]),
         .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),
         .testTarget(name: "FormatsTests", dependencies: ["Formats"]),

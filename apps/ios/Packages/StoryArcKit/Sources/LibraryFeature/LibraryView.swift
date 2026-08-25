@@ -24,6 +24,7 @@ public struct LibraryView: View {
     private let sources: [Source]
     private let onOpen: (Publication, URL) -> Void
     private let progress: ProgressStore?
+    private let onOpenSettings: () -> Void
 
     /// `onOpen` is how the app layer reaches the reader. The library knows which
     /// publication was chosen and where it lives; it does not know what a reader
@@ -32,11 +33,18 @@ public struct LibraryView: View {
         model: LibraryModel,
         sources: [Source] = [],
         progress: ProgressStore? = nil,
-        onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
+        onOpen: @escaping (Publication, URL) -> Void = { _, _ in },
+        /// How the app layer reaches Settings.
+        ///
+        /// The library does not know what a settings screen is, for the same reason it
+        /// does not know what a reader is: a feature target never depends on another
+        /// feature target. It reports that the reader asked.
+        onOpenSettings: @escaping () -> Void = {}
     ) {
         self.model = model
         self.sources = sources
         self.progress = progress
+        self.onOpenSettings = onOpenSettings
         self.onOpen = onOpen
     }
 
@@ -123,6 +131,17 @@ public struct LibraryView: View {
                             Text("library.addFolder", bundle: .module)
                         } icon: {
                             Image(systemName: "folder.badge.plus")
+                        }
+                    }
+                }
+                // Last, and always present. A reader with an empty library still needs
+                // to reach About, and `settings-and-about` puts the licences there.
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: onOpenSettings) {
+                        Label {
+                            Text("library.settings", bundle: .module)
+                        } icon: {
+                            Image(systemName: "gearshape")
                         }
                     }
                 }

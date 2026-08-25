@@ -45,4 +45,5 @@
     <string name="library_cell_progress">%1$d%% leído</string>
     <string name="library_layout_grid">Cuadrícula</string>
     <string name="library_layout_list">Lista</string>
+    <string name="library_settings">Ajustes</string>
 </resources>

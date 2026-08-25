@@ -102,6 +102,33 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **Settings exists.** Seven groups in the order the spec names them, each row stating
+  its current value so a setting can be checked without opening it. Reachable from the
+  library even when the library is empty — a reader with no books still needs About.
+  - Appearance applies **immediately**, while you are still looking at the picker. The
+    first attempt handed the choice back on the way out, which satisfies "without a
+    restart" and misses the point.
+  - Three groups cannot be entered yet and say what they will hold rather than opening
+    onto a blank screen. Hiding them would leave you hunting for where sources live.
+  - The system back gesture goes up one level inside Settings rather than out of it.
+- **Acknowledgements, with every licence in full** — which is what the five bundled fonts
+  legally require and what nothing did until now.
+  - It needed a source of truth first: `third_party/libarchive/VENDORING.md` pointed at a
+    `THIRD_PARTY_NOTICES.md` that did not exist. It does now, generated from
+    `packages/licences/notices.json`, which also records *why* each dependency is in the
+    app — a dependency whose reason nobody can state is one to remove.
+  - One copy on disk read by both apps, the same arrangement as the fonts and the vendored
+    libarchive. It ships inside the app rather than only in the repository, because BSD
+    and Apache require the notice to travel with the binary.
+  - The list is filtered by platform. Telling an Android reader the app depends on the
+    Readium *Swift* toolkit would be worse than telling them nothing.
+- **About**: version read from the bundle, the author, the repository, the licence, the
+  statement that it is free with no paid tier and no advertising, one optional Ko-fi link
+  that appears nowhere else, and a problem report that pre-fills the version and device
+  *class* and nothing personal.
+- **A privacy screen with nothing to switch off**, which is the point: no account, no
+  backend, no analytics, no crash reporting. A screen of disabled toggles would imply
+  otherwise.
 - **OLED Dark**, as a fourth appearance beside System, Light and Dark. Chrome goes
   true black; the *page* deliberately does not, because pure black smears on OLED
   during a page turn — which is the exact motion this app is built around. The setting

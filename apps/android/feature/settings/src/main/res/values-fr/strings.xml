@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Réglages</string>
+    <string name="settings_close">Fermer les réglages</string>
+    <string name="settings_back">Retour</string>
+    <string name="settings_sources">Sources</string>
+    <string name="settings_appearance">Apparence</string>
+    <string name="settings_reading">Lecture</string>
+    <string name="settings_downloads">Téléchargements et stockage</string>
+    <string name="settings_language">Langue</string>
+    <string name="settings_privacy">Confidentialité</string>
+    <string name="settings_about">À propos</string>
+    <string name="settings_pending">Pas encore développé.</string>
+    <string name="settings_sources_pending">Dossiers, partages réseau, catalogues OPDS et serveurs Kavita. Ajoutés depuis la bibliothèque pour l’instant.</string>
+    <string name="settings_downloads_pending">Rien ne se télécharge encore, il n’y a donc rien à gérer.</string>
+    <string name="settings_language_pending">StoryArc suit la langue de votre système. Un remplacement n’est pas encore développé.</string>
+    <string name="settings_language_system">Système</string>
+    <string name="settings_reading_summary">Tournes de page et réglages par défaut</string>
+    <string name="settings_reading_summary_volume">Les touches de volume tournent les pages</string>
+    <string name="settings_privacy_summary">Aucun compte, aucun serveur, aucune analyse</string>
+    <string name="settings_about_summary">Version, licence et remerciements</string>
+    <string name="appearance_system">Système</string>
+    <string name="appearance_light">Clair</string>
+    <string name="appearance_dark">Sombre</string>
+    <string name="appearance_oled_dark">Sombre OLED</string>
+    <string name="appearance_oled_dark_note">Interface en noir absolu. La page reste juste au-dessus du noir : le noir pur bave sur OLED pendant une tourne de page.</string>
+    <string name="appearance_link_theme">Accorder le thème de lecture à l’application</string>
+    <string name="appearance_link_theme_note">Désactivé par défaut. Une application sombre avec une page blanche est une préférence légitime.</string>
+    <string name="reading_volume_buttons">Les touches de volume tournent les pages</string>
+    <string name="reading_volume_buttons_note">Désactivé par défaut : pendant la lecture, les touches de volume ne régleraient plus le volume.</string>
+    <string name="reading_defaults_pending">Les réglages de lecture par défaut ne sont pas encore ici. Un thème choisi pendant la lecture s’applique déjà à toute la série.</string>
+    <string name="privacy_statement">StoryArc n’a aucun compte, aucun serveur, aucune analyse et aucun rapport de plantage.</string>
+    <string name="privacy_sources">Les données ne quittent cet appareil que vers les sources que vous avez vous-même configurées.</string>
+    <string name="privacy_pending">L’effacement des données et l’export d’un diagnostic ne sont pas encore développés.</string>
+    <string name="about_version">StoryArc %1$s (%2$s)</string>
+    <string name="about_author">Par Cédric Meyer</string>
+    <string name="about_free">Entièrement gratuit et open source. Aucune offre payante, aucune publicité.</string>
+    <string name="about_repository">Dépôt</string>
+    <string name="about_author_link">L’auteur sur GitHub</string>
+    <string name="about_licence">Licence</string>
+    <string name="about_support">Soutenir StoryArc sur Ko-fi (facultatif)</string>
+    <string name="about_report">Signaler un problème</string>
+    <string name="about_acknowledgements">Remerciements</string>
+    <string name="about_acknowledgements_note">Tout ce que StoryArc embarque et qui a été écrit par d’autres. Touchez un élément pour lire sa licence en entier.</string>
+    <string name="about_licence_missing">Le texte %1$s manque dans cette version. C’est un bug d’empaquetage : merci de le signaler.</string>
+</resources>

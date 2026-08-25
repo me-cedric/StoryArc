@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import app.storyarc.core.model.AppearanceMode
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.ViewModelProvider
@@ -17,6 +16,9 @@ import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.persistence.ProgressStore
+import app.storyarc.core.persistence.SettingsStore
+import app.storyarc.feature.settings.SettingsScreen
+import app.storyarc.feature.settings.BuildInfo
 import app.storyarc.feature.library.LibraryScreen
 import app.storyarc.feature.library.LibraryViewModel
 import app.storyarc.feature.reader.ReaderScreen
@@ -41,18 +43,23 @@ class MainActivity : ComponentActivity() {
         val progress = ProgressStore.open(applicationContext)
         val preferences = LibraryPreferences.open(applicationContext)
         val readerPreferences = ReaderPreferences.open(applicationContext)
+        val settingsStore = SettingsStore.open(applicationContext)
+        BuildInfo.read(applicationContext)
 
         setContent {
-            // Appearance and dynamic-colour preferences move into a settings
-            // store with the `settings-and-about` capability. Defaults here
-            // match what that capability specifies: follow the system, and use
-            // Material You where the device offers it.
-            StoryArcTheme(appearance = AppearanceMode.SYSTEM, useDynamicColor = true) {
+            // Read as state, so `settings-and-about`'s "applies immediately across
+            // the whole app without a restart" is what the code does rather than
+            // something it has to arrange: the theme recomposes because the value it
+            // reads changed.
+            var settings by remember { mutableStateOf(settingsStore.settings()) }
+
+            StoryArcTheme(appearance = settings.appearance, useDynamicColor = true) {
                 // The app layer owns navigation between features, because a
                 // feature module never depends on another feature module
                 // (docs/architecture). The library reports a choice; the reader
                 // accepts one; neither knows the other exists.
                 var reading by remember { mutableStateOf<Pair<Publication, String>?>(null) }
+                var isShowingSettings by remember { mutableStateOf(false) }
                 val selection = reading
 
                 // Held across both branches, not just the library's: the reader's
@@ -64,7 +71,21 @@ class MainActivity : ComponentActivity() {
                     },
                 )
 
-                if (selection == null) {
+                if (isShowingSettings) {
+                    BackHandler { isShowingSettings = false }
+                    SettingsScreen(
+                        settings = settings,
+                        // Written through on every change rather than on the way out.
+                        // `settings-and-about` requires an appearance to apply
+                        // immediately, and the state lives here so the theme above
+                        // recomposes with it — the screen reports, the host holds.
+                        onChange = {
+                            settings = it
+                            settingsStore.save(it)
+                        },
+                        onClose = { isShowingSettings = false },
+                    )
+                } else if (selection == null) {
                     LibraryScreen(
                         viewModel = libraryViewModel,
                         onOpen = { publication, path ->
@@ -90,6 +111,7 @@ class MainActivity : ComponentActivity() {
                                 reading = publication to path
                             }
                         },
+                        onOpenSettings = { isShowingSettings = true },
                     )
                 } else {
                     val publications by libraryViewModel.publications.collectAsStateWithLifecycle()

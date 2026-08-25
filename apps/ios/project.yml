@@ -47,6 +47,10 @@ targets:
         product: LibraryFeature
       - package: StoryArcKit
         product: ReaderFeature
+      - package: StoryArcKit
+        product: SettingsFeature
+      - package: StoryArcKit
+        product: Persistence
       - package: StoryArcEpub
         product: EpubReaderFeature
     info:

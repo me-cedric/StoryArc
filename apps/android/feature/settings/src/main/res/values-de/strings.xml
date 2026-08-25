@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_close">Einstellungen schließen</string>
+    <string name="settings_back">Zurück</string>
+    <string name="settings_sources">Quellen</string>
+    <string name="settings_appearance">Erscheinungsbild</string>
+    <string name="settings_reading">Lesen</string>
+    <string name="settings_downloads">Downloads und Speicher</string>
+    <string name="settings_language">Sprache</string>
+    <string name="settings_privacy">Datenschutz</string>
+    <string name="settings_about">Über</string>
+    <string name="settings_pending">Noch nicht gebaut.</string>
+    <string name="settings_sources_pending">Ordner, Netzwerkfreigaben, OPDS-Kataloge und Kavita-Server. Vorläufig aus der Bibliothek hinzugefügt.</string>
+    <string name="settings_downloads_pending">Es wird noch nichts heruntergeladen, also gibt es nichts zu verwalten.</string>
+    <string name="settings_language_pending">StoryArc folgt Ihrer Systemsprache. Eine Übersteuerung ist noch nicht gebaut.</string>
+    <string name="settings_language_system">System</string>
+    <string name="settings_reading_summary">Seitenwechsel und Lesevorgaben</string>
+    <string name="settings_reading_summary_volume">Lautstärketasten blättern</string>
+    <string name="settings_privacy_summary">Kein Konto, kein Backend, keine Analyse</string>
+    <string name="settings_about_summary">Version, Lizenz und Danksagungen</string>
+    <string name="appearance_system">System</string>
+    <string name="appearance_light">Hell</string>
+    <string name="appearance_dark">Dunkel</string>
+    <string name="appearance_oled_dark">OLED-Dunkel</string>
+    <string name="appearance_oled_dark_note">Bedienoberfläche in echtem Schwarz. Die Seite bleibt knapp darüber, weil reines Schwarz auf OLED beim Seitenwechsel schmiert.</string>
+    <string name="appearance_link_theme">Lesethema an die App anpassen</string>
+    <string name="appearance_link_theme_note">Standardmäßig aus. Eine dunkle App mit einer papierweißen Seite ist eine legitime Vorliebe.</string>
+    <string name="reading_volume_buttons">Lautstärketasten blättern</string>
+    <string name="reading_volume_buttons_note">Standardmäßig aus: beim Lesen würden die Lautstärketasten die Lautstärke nicht mehr ändern.</string>
+    <string name="reading_defaults_pending">Lesevorgaben für neue Serien fehlen noch. Ein beim Lesen gewähltes Thema gilt bereits für die ganze Serie.</string>
+    <string name="privacy_statement">StoryArc hat kein Konto, kein Backend, keine Analyse und keine Absturzberichte.</string>
+    <string name="privacy_sources">Daten verlassen dieses Gerät nur zu den Quellen, die Sie selbst eingerichtet haben.</string>
+    <string name="privacy_pending">Daten löschen und einen Diagnosebericht exportieren sind noch nicht gebaut.</string>
+    <string name="about_version">StoryArc %1$s (%2$s)</string>
+    <string name="about_author">Von Cédric Meyer</string>
+    <string name="about_free">Vollständig kostenlos und Open Source. Keine Bezahlstufe, keine Werbung.</string>
+    <string name="about_repository">Repository</string>
+    <string name="about_author_link">Der Autor auf GitHub</string>
+    <string name="about_licence">Lizenz</string>
+    <string name="about_support">StoryArc auf Ko-fi unterstützen (optional)</string>
+    <string name="about_report">Ein Problem melden</string>
+    <string name="about_acknowledgements">Danksagungen</string>
+    <string name="about_acknowledgements_note">Alles, was StoryArc mitliefert und andere geschrieben haben. Tippen Sie auf einen Eintrag für die vollständige Lizenz.</string>
+    <string name="about_licence_missing">Der %1$s-Text fehlt in diesem Build. Das ist ein Packaging-Fehler — bitte melden.</string>
+</resources>

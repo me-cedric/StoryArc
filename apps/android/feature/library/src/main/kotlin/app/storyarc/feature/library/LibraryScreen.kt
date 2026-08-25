@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -100,6 +101,14 @@ fun LibraryScreen(
      * was chosen and where it lives; it does not know what a reader is.
      */
     onOpen: (Publication, String) -> Unit = { _, _ -> },
+    /**
+     * How the app layer reaches Settings.
+     *
+     * The library does not know what a settings screen is, for the same reason it does
+     * not know what a reader is: a feature module never depends on another feature
+     * module. It reports that the reader asked.
+     */
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -176,6 +185,16 @@ fun LibraryScreen(
                                 tint = palette.accent,
                             )
                         }
+                    }
+                    // Last, and always present. A reader with an empty library still
+                    // needs to reach About, and `settings-and-about` puts the licences
+                    // there.
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = stringResource(R.string.library_settings),
+                            tint = palette.accent,
+                        )
                     }
                 },
             )
