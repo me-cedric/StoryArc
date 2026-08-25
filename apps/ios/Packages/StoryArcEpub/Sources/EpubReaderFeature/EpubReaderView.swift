@@ -51,6 +51,10 @@ public struct EpubReaderView: View {
         .task { await model.open() }
         .statusBarHidden(!isChromeVisible)
         .toolbar(.hidden, for: .navigationBar)
+        // `comic-reader`'s rule, and it reads the same for a book: a long look at
+        // one page is reading, not idling.
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
     }
 
     private var chrome: some View {

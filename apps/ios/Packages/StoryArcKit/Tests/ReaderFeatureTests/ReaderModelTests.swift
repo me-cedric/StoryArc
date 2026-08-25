@@ -52,6 +52,9 @@ struct ReaderModelTests {
         #expect(model.failure == nil)
         #expect(model.pages.count == 12)
         #expect(model.image(at: 0) != nil)
+        // `comic-reader` asks for three pages ahead, so the fourth is not warm yet.
+        #expect(model.image(at: 3) != nil)
+        #expect(model.image(at: 4) == nil)
     }
 
     @Test("A PDF pages like an archive, one page at a time")
@@ -62,11 +65,13 @@ struct ReaderModelTests {
         await model.open(maxPixelSize: 256)
 
         #expect(model.failure == nil)
-        // `ebook-reader` requires pages rendered as they are needed, so the page
-        // list is the count and nothing beyond the window is rasterised.
+        // `ebook-reader` requires pages rendered as they are needed. This document
+        // is three pages and the window reaches three ahead, so all of it is warm —
+        // which is the point: nothing was rasterised *because the file is open*,
+        // only because the window covers it.
         #expect(model.pages.count == 3)
         #expect(model.image(at: 0) != nil)
-        #expect(model.image(at: 2) == nil)
+        #expect(model.image(at: 2) != nil)
     }
 
     @Test("Moving decodes the destination and drops what scrolled away")
@@ -79,11 +84,13 @@ struct ReaderModelTests {
 
         #expect(model.currentIndex == 6)
         #expect(model.image(at: 6) != nil)
-        // One either side stays warm so a turn is immediate in both directions.
+        // Three ahead and one behind, per `comic-reader`.
         #expect(model.image(at: 5) != nil)
-        #expect(model.image(at: 7) != nil)
-        // And the page it started on is gone, which is what bounds memory.
-        #expect(model.image(at: 0) == nil)
+        #expect(model.image(at: 9) != nil)
+        // Beyond the window in either direction, nothing is held — which is what
+        // bounds memory.
+        #expect(model.image(at: 4) == nil)
+        #expect(model.image(at: 10) == nil)
     }
 
     @Test("A publication that cannot be opened says so rather than showing nothing")

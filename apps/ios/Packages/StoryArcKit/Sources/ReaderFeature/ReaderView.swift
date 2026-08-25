@@ -1,5 +1,9 @@
 public import SwiftUI
 
+#if os(iOS)
+internal import UIKit
+#endif
+
 internal import DesignSystem
 public import Persistence
 public import StoryArcCore
@@ -54,7 +58,7 @@ public struct ReaderView: View {
                     // A `TabView` with no tags resolves its selection against
                     // nothing and then lands on whatever appears first, which
                     // opened every publication on its last page.
-                    ProgressView().tint(.white)
+                    DelayedProgressView()
                 } else {
                     pages(in: geometry.size)
                 }
@@ -79,11 +83,24 @@ public struct ReaderView: View {
                 )
             }
         }
+        // `comic-reader`: the mapped keys turn pages. Arrow and page keys only —
+        // volume buttons are behind a setting the app does not have yet.
+        .focusable()
+        .onKeyPress(.leftArrow) { turn(by: -1); return .handled }
+        .onKeyPress(.rightArrow) { turn(by: 1); return .handled }
+        .onKeyPress(.pageUp) { turn(by: -1); return .handled }
+        .onKeyPress(.pageDown) { turn(by: 1); return .handled }
+        .onKeyPress(.space) { turn(by: 1); return .handled }
         // The package builds for macOS too, so the pure-Swift targets can be
-        // tested on the host without a simulator. These three are touch-only.
+        // tested on the host without a simulator. These are touch-only.
         #if os(iOS)
         .statusBarHidden(!isChromeVisible)
         .toolbar(.hidden, for: .navigationBar)
+        // `comic-reader`: "the screen does not auto-lock while a page is visible,
+        // and normal locking resumes on leaving". A long look at one page is
+        // reading, not idling.
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
         #endif
     }
 
@@ -291,7 +308,7 @@ struct PageView: View {
                         }
                         .foregroundStyle(.white.opacity(0.7))
                     } else {
-                        ProgressView().tint(.white)
+                        DelayedProgressView()
                     }
                 }
                 .contentShape(.rect)
@@ -314,5 +331,24 @@ struct ReaderFailure: View {
         }
         .foregroundStyle(.white.opacity(0.8))
         .padding(StoryArcSpace.gutter)
+    }
+}
+
+/// A spinner that waits before it appears.
+///
+/// `comic-reader`: "a progress indicator appears only after 400 ms". A page that
+/// decodes in 30 ms should not flash a spinner on its way — the flash reads as a
+/// stutter, which is the opposite of what the indicator is for.
+struct DelayedProgressView: View {
+    @State private var isVisible = false
+
+    var body: some View {
+        Group {
+            if isVisible { ProgressView().tint(.white) }
+        }
+        .task {
+            try? await Task.sleep(for: .milliseconds(400))
+            isVisible = true
+        }
     }
 }

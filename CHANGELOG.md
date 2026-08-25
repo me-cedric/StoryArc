@@ -81,6 +81,10 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   double-tap to magnify the panel you tapped and again to fit. A `UIScrollView`
   on iOS and Compose's `transformable` on Android, both chosen because they
   decline the drag at fit scale so the pager still turns the page.
+- **The reader keeps the screen awake, turns on arrow, page and space keys, and
+  prefetches three pages ahead and one behind** — the depth `comic-reader` asks
+  for, where it used to keep one either side. A page still loading shows nothing
+  for the first 400 ms rather than flashing a spinner on its way past.
 - **Tap zones and chrome that gets out of the way.** The left and right quarters
   turn pages without revealing the controls; the centre toggles them; and they
   fade out again after four seconds. A page slider sits under the counter —

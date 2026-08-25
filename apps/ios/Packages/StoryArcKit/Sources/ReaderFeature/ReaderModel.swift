@@ -22,12 +22,14 @@ public final class ReaderModel {
     /// Set when the publication could not be opened at all.
     public private(set) var failure: String?
 
-    /// How many pages either side of the current one to keep decoded.
+    /// How many pages to keep decoded, and in which direction.
     ///
-    /// One is enough to make a turn instant in both directions and small enough
-    /// that a 2000×3000 page corpus does not sit in memory. `publication-formats`
-    /// requires decoding not to exhaust memory regardless of source image size.
-    private let window = 1
+    /// `comic-reader`: "at least the next three and previous one page are decoded
+    /// and held ready". Asymmetric because reading is: three ahead covers a fast
+    /// run of turns, one behind covers the glance back, and five pages of a
+    /// 2000×3000 corpus is a bound `publication-formats` is happy with.
+    private let lookAhead = 3
+    private let lookBehind = 1
 
     private var decoded: [Int: CGImage] = [:]
     private var archive: (any ComicArchiveReading)?
@@ -160,7 +162,8 @@ public final class ReaderModel {
 
     /// Decodes the current page and its neighbours, and drops the rest.
     private func warm(around index: Int) async {
-        let wanted = Set((index - window)...(index + window)).filter { pages.indices.contains($0) }
+        let wanted = Set((index - lookBehind)...(index + lookAhead))
+            .filter { pages.indices.contains($0) }
         // Dropped before decoding, so peak memory is the window and not the window
         // plus whatever was there before.
         for key in decoded.keys where !wanted.contains(key) {

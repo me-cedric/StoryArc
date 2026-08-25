@@ -53,14 +53,15 @@ class ReaderViewModel(
     val failure: StateFlow<String?> = _failure.asStateFlow()
 
     /**
-     * How many pages either side of the current one to keep decoded.
+     * How many pages to keep decoded, and in which direction.
      *
-     * One is enough to make a turn instant in both directions and small enough
-     * that a corpus of 2000x3000 scans does not sit in memory.
-     * `publication-formats` requires decoding not to exhaust memory regardless of
-     * source image size.
+     * `comic-reader`: "at least the next three and previous one page are decoded
+     * and held ready". Asymmetric because reading is: three ahead covers a fast run
+     * of turns, one behind covers the glance back, and five pages of a 2000x3000
+     * corpus is a bound `publication-formats` is happy with.
      */
-    private val window = 1
+    private val lookAhead = 3
+    private val lookBehind = 1
 
     /**
      * Decoded pages, in a state map rather than a plain one.
@@ -185,7 +186,9 @@ class ReaderViewModel(
     suspend fun warm(index: Int) {
         record(index)
         val pages = _pages.value
-        val wanted = ((index - window)..(index + window)).filter { it in pages.indices }.toSet()
+        val wanted = ((index - lookBehind)..(index + lookAhead))
+            .filter { it in pages.indices }
+            .toSet()
         // Dropped before decoding, so peak memory is the window and not the window
         // plus whatever was there before.
         (decoded.keys - wanted).forEach {

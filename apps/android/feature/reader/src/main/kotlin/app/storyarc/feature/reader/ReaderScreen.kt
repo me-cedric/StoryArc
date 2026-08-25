@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -36,6 +37,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -46,12 +48,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
@@ -98,6 +108,16 @@ fun ReaderScreen(
 
     LaunchedEffect(Unit) { viewModel.open(maxPixelSize) }
 
+    // `comic-reader`: "the screen does not auto-lock while a page is visible, and
+    // normal locking resumes on leaving". A long look at one page is reading, not
+    // idling. On the view rather than the window flag, so leaving the screen
+    // restores the device's own behaviour without the reader having to remember to.
+    val view = LocalView.current
+    DisposableEffect(view) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
+
     Box(
         // Black behind every page, whatever the app's appearance. A comic is read
         // against its own artwork, not against a themed surface.
@@ -110,7 +130,7 @@ fun ReaderScreen(
                 CloseButton(onClose)
             }
             pages.isEmpty() -> {
-                CircularProgressIndicator(color = Color.White)
+                DelayedProgressIndicator()
                 CloseButton(onClose)
             }
             else -> Pager(viewModel, pages, onClose)
@@ -197,7 +217,31 @@ private fun Pager(viewModel: ReaderViewModel, pages: List<PageEntry>, onClose: (
         }
     }
 
-    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+    // `comic-reader`: the mapped keys turn pages. Arrow, page and space only —
+    // volume buttons are behind a setting the app does not have yet.
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier
+            .fillMaxSize()
+            .focusRequester(focus)
+            .focusable()
+            .onKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                val step = when (event.key) {
+                    Key.DirectionLeft, Key.PageUp -> -1
+                    Key.DirectionRight, Key.PageDown, Key.Spacebar -> 1
+                    else -> return@onKeyEvent false
+                }
+                val target = pagerState.currentPage + step
+                if (target in 0 until count) {
+                    scope.launch { pagerState.animateScrollToPage(target) }
+                }
+                true
+            },
+    ) { page ->
         val index = modelIndex(page)
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             val bitmap = viewModel.image(index)
@@ -221,7 +265,7 @@ private fun Pager(viewModel: ReaderViewModel, pages: List<PageEntry>, onClose: (
                         // skipped page is met.
                         Message(stringResource(R.string.reader_page_unavailable))
                     } else {
-                        CircularProgressIndicator(color = Color.White)
+                        DelayedProgressIndicator()
                     }
                 }
             }
@@ -381,6 +425,23 @@ private fun PointerInputScope.isEdgeTap(point: Offset, area: IntSize): Boolean {
     return point.x < edge || point.x > area.width - edge
 }
 
+/**
+ * A spinner that waits before it appears.
+ *
+ * `comic-reader`: "a progress indicator appears only after 400 ms". A page that
+ * decodes in 30 ms should not flash a spinner on its way — the flash reads as a
+ * stutter, which is the opposite of what the indicator is for.
+ */
+@Composable
+private fun DelayedProgressIndicator() {
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(SPINNER_DELAY_MILLIS)
+        isVisible = true
+    }
+    if (isVisible) CircularProgressIndicator(color = Color.White)
+}
+
 @Composable
 private fun Message(text: String) {
     Column(
@@ -402,3 +463,5 @@ private fun Message(text: String) {
 private const val EDGE_ZONE_FRACTION = 0.25f
 
 private const val CHROME_TIMEOUT_MILLIS = 4_000L
+
+private const val SPINNER_DELAY_MILLIS = 400L

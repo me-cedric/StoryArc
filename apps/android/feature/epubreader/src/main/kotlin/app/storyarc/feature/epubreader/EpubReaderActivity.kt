@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
@@ -81,6 +82,11 @@ class EpubReaderActivity : FragmentActivity() {
             supportFragmentManager.fragmentFactory = EpubNavigatorFragment.createDummyFactory()
         }
         super.onCreate(savedInstanceState)
+
+        // `comic-reader`'s rule, and it reads the same for a book: a long look at
+        // one page is reading, not idling. The flag is scoped to this window, so
+        // leaving restores the device's own behaviour.
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         container = FragmentContainerView(this).apply {
             id = ViewGroup.generateViewId()
