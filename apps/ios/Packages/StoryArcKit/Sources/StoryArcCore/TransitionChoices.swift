@@ -43,6 +43,17 @@ public enum TransitionUnavailability: String, Sendable, Equatable {
     /// still lists them, marked unavailable, with the reason named — a control that
     /// vanishes teaches the user nothing".
     case reduceMotion
+
+    /// The publication's text reflows, and this mode needs a picture of a page.
+    ///
+    /// `page-transitions` states the cause itself: "the deforming surface has to be a
+    /// texture, so each page must be rastered". Until that exists, Curl and Fast fade
+    /// cannot run over reflowable text — and the spec's "a mode is unavailable for the
+    /// content" scenario says to *say so* rather than drop the row.
+    ///
+    /// A comic pays none of this, which is why the same two modes work there: the page
+    /// is already a decoded image.
+    case reflowableText
 }
 
 /// What the transition picker should show, and what actually runs.
@@ -87,11 +98,16 @@ public struct TransitionChoices: Sendable, Equatable {
     ///   - canCurl: whether this device can render the curl at the display's refresh
     ///     rate. `page-transitions`: "the app never ships a curl that stutters in
     ///     preference to a slide that does not".
+    ///   - isReflowable: whether the text reflows. A reflowable page is live web
+    ///     content, so the modes that deform a picture of a page cannot run over it
+    ///     yet — listed with the reason rather than dropped, and only one scroll row,
+    ///     because text scrolls the way it is read.
     public init(
         chosen: PageTransition,
         axis: ScrollAxis,
         reduceMotion: Bool,
-        canCurl: Bool
+        canCurl: Bool,
+        isReflowable: Bool = false
     ) {
         self.chosen = chosen
         self.curlIsAbsent = !canCurl
@@ -101,13 +117,24 @@ public struct TransitionChoices: Sendable, Equatable {
         if canCurl { offered.append(.pageCurl) }
         offered.append(.slide)
         offered.append(.fastFade)
-        // The implied axis first, so the row a reader most likely wants is the one
-        // nearest the modes above it.
-        offered.append(.scroll(axis))
-        offered.append(.scroll(axis == .vertical ? .horizontal : .vertical))
+        if isReflowable {
+            // One row, and no axis choice: reflowing text scrolls the way it is read,
+            // and a horizontal river of prose is not a preference anyone holds.
+            offered.append(.verticalScroll)
+        } else {
+            // The implied axis first, so the row a reader most likely wants is the one
+            // nearest the modes above it.
+            offered.append(.scroll(axis))
+            offered.append(.scroll(axis == .vertical ? .horizontal : .vertical))
+        }
         self.offered = offered
 
         var unavailable: [PageTransition: TransitionUnavailability] = [:]
+        if isReflowable {
+            for mode in offered where mode.needsARasteredPage {
+                unavailable[mode] = .reflowableText
+            }
+        }
         if reduceMotion {
             for mode in offered where mode.isAnimatedTransition {
                 unavailable[mode] = .reduceMotion
@@ -115,11 +142,12 @@ public struct TransitionChoices: Sendable, Equatable {
         }
         self.unavailable = unavailable
 
-        // Falling back rather than rewriting. Two reasons a choice may not run, and
-        // both are conditions of the moment: the setting can be turned off, and the
-        // next device may be able to curl.
+        // Falling back rather than rewriting. Every reason a choice may not run is a
+        // condition of the moment: a setting can be turned off, the next device may be
+        // able to curl, and the next publication may not reflow.
         var effective = chosen
         if effective == .pageCurl, !canCurl { effective = .slide }
+        if isReflowable, effective.needsARasteredPage { effective = .slide }
         effective = effective.honoring(reduceMotion: reduceMotion)
         self.effective = effective
     }
@@ -129,6 +157,14 @@ public struct TransitionChoices: Sendable, Equatable {
 }
 
 extension PageTransition {
+    /// Whether this mode animates a *picture* of a page rather than the page itself.
+    ///
+    /// Both of them deform or dissolve a surface, and a surface is a texture. Over a
+    /// comic that costs nothing, because the page is already an image; over reflowable
+    /// text it needs the page rastered first, which is why these two are the modes an
+    /// EPUB cannot yet offer.
+    public var needsARasteredPage: Bool { self == .pageCurl || self == .fastFade }
+
     /// Whether this is the continuous mode, in either axis.
     public var isScroll: Bool { self == .verticalScroll || self == .horizontalScroll }
 

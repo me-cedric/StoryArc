@@ -102,6 +102,16 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **Continuous scrolling for ebooks.** Readium had the preference and nothing was
+  wired to it. The theme sheet now offers Pages or Continuous scroll, and lists Curl and
+  Fast fade with the reason they cannot run over text that reflows — they animate a
+  picture of a page, and a reflowable page is live web content.
+  - Scroll here is Readium's own preference, not a scroll view of ours. Two containers
+    over one web view would fight for the same gesture.
+- **Fixed: "0% read" for a whole chapter in scroll mode.** Readium reports a total
+  progression of `0.0` rather than nothing while scrolling, so the fallback that keys on
+  *absence* never fired — and that zero was what got stored. A reported zero the position
+  contradicts is no longer treated as a report.
 - **The page curl, on iOS too** — the same fold, expressed as a stitchable Metal
   fragment shader rather than the vertex shader and mesh the plan called for. SwiftUI's
   shaders sample textures as arguments, so the whole fold is one function over the two

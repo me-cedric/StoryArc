@@ -835,6 +835,10 @@ private val PageTransition.labelRes: Int
 private val TransitionUnavailability.labelRes: Int
     get() = when (this) {
         TransitionUnavailability.REDUCE_MOTION -> R.string.reader_transition_reduce_motion
+        // A comic page is already an image, so this reason cannot arise here. It is
+        // named rather than swallowed by an `else`, so that adding a third reason still
+        // breaks this file rather than silently showing the wrong sentence.
+        TransitionUnavailability.REFLOWABLE_TEXT -> R.string.reader_transition_reflowable
     }
 
 /**

@@ -417,6 +417,55 @@ class ReadingThemeTest {
     }
 
     @Test
+    fun `Reflowable text refuses the two modes that need a picture of a page`() {
+        val choices = TransitionChoices(
+            chosen = PageTransition.PAGE_CURL,
+            axis = ScrollAxis.VERTICAL,
+            reduceMotion = false,
+            canCurl = true,
+            isReflowable = true,
+        )
+        // Listed with the reason, not dropped — the spec's "a mode is unavailable for
+        // the content" scenario.
+        assertTrue(choices.offered.contains(PageTransition.PAGE_CURL))
+        assertEquals(
+            TransitionUnavailability.REFLOWABLE_TEXT,
+            choices.unavailable[PageTransition.PAGE_CURL],
+        )
+        assertEquals(
+            TransitionUnavailability.REFLOWABLE_TEXT,
+            choices.unavailable[PageTransition.FAST_FADE],
+        )
+        // Slide is Readium paginated and Scroll is its own preference, so both run.
+        assertTrue(choices.isAvailable(PageTransition.SLIDE))
+        assertTrue(choices.isAvailable(PageTransition.VERTICAL_SCROLL))
+        assertEquals(PageTransition.SLIDE, choices.effective)
+        // And the choice survives, so a comic still curls.
+        assertEquals(PageTransition.PAGE_CURL, choices.chosen)
+    }
+
+    @Test
+    fun `Reflowable text offers one scroll row, because prose scrolls the way it reads`() {
+        val choices = TransitionChoices(
+            PageTransition.SLIDE, ScrollAxis.VERTICAL,
+            reduceMotion = false, canCurl = true, isReflowable = true,
+        )
+        assertEquals(listOf(PageTransition.VERTICAL_SCROLL), choices.offered.filter { it.isScroll })
+    }
+
+    @Test
+    fun `Reduced motion wins over the content reason, because it is the one a reader can undo`() {
+        val choices = TransitionChoices(
+            PageTransition.PAGE_CURL, ScrollAxis.VERTICAL,
+            reduceMotion = true, canCurl = true, isReflowable = true,
+        )
+        assertEquals(
+            TransitionUnavailability.REDUCE_MOTION,
+            choices.unavailable[PageTransition.PAGE_CURL],
+        )
+    }
+
+    @Test
     fun `The transition is remembered per shelf, alongside the theme`() {
         val settings = ShelfSettings(
             transition = PageTransition.VERTICAL_SCROLL,

@@ -64,4 +64,11 @@
     <string name="theme_page_colour_swatch">Colour %1$s</string>
     <string name="theme_specimen">Handgloves</string>
     <string name="theme_specimen_second">Aa Bb 123</string>
+    <string name="theme_page_turn">Page turn</string>
+    <string name="theme_page_turn_curl">Curl</string>
+    <string name="theme_page_turn_paginated">Pages</string>
+    <string name="theme_page_turn_fade">Fast fade</string>
+    <string name="theme_page_turn_scroll">Continuous scroll</string>
+    <string name="theme_page_turn_reduce_motion">Unavailable while your system is set to remove animations.</string>
+    <string name="theme_page_turn_reflowable">Not available for text that reflows: it needs a picture of the page.</string>
 </resources>

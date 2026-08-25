@@ -161,6 +161,43 @@ struct ShelfMemoryTests {
         #expect(choices.isAvailable(.verticalScroll))
     }
 
+    @Test("Reflowable text refuses the two modes that need a picture of a page")
+    func reflowableRefusesRasteredModes() {
+        let choices = TransitionChoices(
+            chosen: .pageCurl, axis: .vertical, reduceMotion: false,
+            canCurl: true, isReflowable: true
+        )
+        // Listed with the reason, not dropped — the spec's "a mode is unavailable for
+        // the content" scenario.
+        #expect(choices.offered.contains(.pageCurl))
+        #expect(choices.unavailable[.pageCurl] == .reflowableText)
+        #expect(choices.unavailable[.fastFade] == .reflowableText)
+        // Slide is Readium paginated and Scroll is its own preference, so both run.
+        #expect(choices.isAvailable(.slide))
+        #expect(choices.isAvailable(.verticalScroll))
+        #expect(choices.effective == .slide)
+        // And the choice survives, so a comic still curls.
+        #expect(choices.chosen == .pageCurl)
+    }
+
+    @Test("Reflowable text offers one scroll row, because prose scrolls the way it reads")
+    func reflowableHasNoScrollAxis() {
+        let choices = TransitionChoices(
+            chosen: .slide, axis: .vertical, reduceMotion: false,
+            canCurl: true, isReflowable: true
+        )
+        #expect(choices.offered.filter(\.isScroll) == [.verticalScroll])
+    }
+
+    @Test("Reduce Motion wins over the content reason, because it is the one a reader can undo")
+    func reduceMotionWinsOverContent() {
+        let choices = TransitionChoices(
+            chosen: .pageCurl, axis: .vertical, reduceMotion: true,
+            canCurl: true, isReflowable: true
+        )
+        #expect(choices.unavailable[.pageCurl] == .reduceMotion)
+    }
+
     @Test("The transition is remembered per shelf, alongside the theme")
     func transitionTravelsWithTheShelf() throws {
         let settings = ShelfSettings(transition: .verticalScroll, scrollAxis: .vertical)

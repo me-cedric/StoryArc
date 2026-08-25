@@ -251,6 +251,7 @@ extension TransitionUnavailability {
     var titleKey: LocalizedStringKey {
         switch self {
         case .reduceMotion: "reader.transition.reduceMotion"
+        case .reflowableText: "reader.transition.reflowable"
         }
     }
 }

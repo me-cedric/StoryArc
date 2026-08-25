@@ -130,6 +130,7 @@ class EpubReaderActivity : FragmentActivity() {
                     val isVisible by model.isChromeVisible.collectAsStateWithLifecycle()
                     val theme by model.theme.collectAsStateWithLifecycle()
                     val values by model.values.collectAsStateWithLifecycle()
+                    val transition by model.transition.collectAsStateWithLifecycle()
                     val brightness by model.brightness.collectAsStateWithLifecycle()
                     var isShowingTheme by remember { mutableStateOf(false) }
 
@@ -146,7 +147,7 @@ class EpubReaderActivity : FragmentActivity() {
                     // reader behind the sheet", so the navigator is told the moment
                     // either half of the theme changes rather than when the sheet
                     // closes.
-                    LaunchedEffect(theme, values) { applyTheme() }
+                    LaunchedEffect(theme, values, transition) { applyTheme() }
 
                     if (isShowingTheme) {
                         ThemeBottomSheet(
@@ -161,6 +162,8 @@ class EpubReaderActivity : FragmentActivity() {
                             onLeavePublisherStyles = model::leavePublisherStyles,
                             onAdoptColours = model::adoptColours,
                             onDiscardColours = model::discardCustomColours,
+                            choices = model.transitions,
+                            onChooseTransition = model::choose,
                             onDismiss = { isShowingTheme = false },
                         )
                     }
@@ -282,6 +285,8 @@ private fun ThemeBottomSheet(
     onLeavePublisherStyles: () -> Unit,
     onAdoptColours: (app.storyarc.core.model.ReaderPalette) -> Boolean,
     onDiscardColours: () -> Unit,
+    choices: app.storyarc.core.model.TransitionChoices,
+    onChooseTransition: (app.storyarc.core.model.PageTransition) -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -297,6 +302,8 @@ private fun ThemeBottomSheet(
             onLeavePublisherStyles = onLeavePublisherStyles,
             onAdoptColours = onAdoptColours,
             onDiscardColours = onDiscardColours,
+            choices = choices,
+            onChooseTransition = onChooseTransition,
         )
     }
 }

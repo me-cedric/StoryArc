@@ -554,7 +554,10 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       7.4's and 7.5's job, and it needs a device or a person.
 - [ ] **4.3b** Page rastering for reflowable content: raster at display scale,
       hold at most the outgoing and incoming pages, restore live interaction the
-      instant the turn completes.
+      instant the turn completes. **Still the remaining hard part, and now visible in
+      the product rather than only in this file**: the ebook reader's page-turn section
+      lists Curl and Fast fade with "not available for text that reflows: it needs a
+      picture of the page". Both readers offer the other two modes fully.
 - [x] **4.4** Scroll mode with the axis rule, including the webtoon default.
       **Done.** A lazy list on both platforms, pages stitched with no gap: each page
       fills the scroll's *cross* axis and takes what it needs along the scroll axis.
@@ -581,6 +584,25 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
       Verified on the emulator in both axes — pages meeting edge to edge, the page
       counter tracking a continuous scroll.
+
+      **And for reflowable text, where scroll is Readium's own preference rather than a
+      container of ours.** `EPUBPreferences.scroll` existed and was unwired; a scroll
+      view of ours over a web view that already paginates would be two things fighting
+      for the same gesture. The ebook reader's theme sheet now has a page-turn section
+      offering Pages and Continuous scroll, with Curl and Fast fade listed and marked —
+      which is the spec's "a mode is unavailable for the content" scenario, and 4.3b's
+      absence stated in the interface rather than left to be discovered.
+
+      One row, not two, for reflowable text: prose scrolls the way it is read, and a
+      horizontal river of it is not a preference anyone holds.
+
+      **This surfaced a real defect**, recorded here because it was invisible until
+      scroll mode existed: in scroll mode Readium reports a total progression of `0.0`
+      rather than nothing, so the fallback keyed on *absence* never fired and the reader
+      sat at "0% read" through a whole chapter. Worse, that zero was what got stored.
+      `TotalProgression` in the domain now decides it — a reported zero that the
+      position contradicts is not a report — with six tests each side. Verified on the
+      emulator: 37% read at the point the test predicts 37%.
 - [x] **4.5** Boundary rubber-band at the first and last page. **Done by the
       platform, which is the right rung to stop on.** Every mode that has a drag has
       one from the container: `HorizontalPager` and `LazyColumn`/`LazyRow` on Android,

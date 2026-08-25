@@ -4,6 +4,8 @@ import android.graphics.Color as AndroidColor
 import app.storyarc.core.designsystem.tokens.StoryArcReadingThemeHex
 import app.storyarc.core.model.ReaderTextAlignment
 import app.storyarc.core.model.ReaderTypeface
+import app.storyarc.core.model.PageTransition
+import app.storyarc.core.model.isScroll
 import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.ThemeValues
@@ -33,16 +35,29 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 // Readium marks its preferences API experimental. Opted into here rather than
 // module-wide, so the day an axis changes the compiler points at this one function.
 @OptIn(ExperimentalReadiumApi::class)
-internal fun ReadingTheme.preferences(values: ThemeValues): EpubPreferences {
+internal fun ReadingTheme.preferences(
+    values: ThemeValues,
+    transition: PageTransition = PageTransition.SLIDE,
+): EpubPreferences {
     // The one axis that always applies, under every preset including Original.
     val fontSize = values.fontSize.fraction
 
+    // Scroll mode for reflowable text is *Readium's*, not ours. It has a preference for
+    // exactly this, and a container of our own over a web view that already paginates
+    // would be two things fighting for the same gesture.
+    //
+    // Which is also why `page-transitions`' four modes divide the way they do for an
+    // EPUB: Slide is Readium paginated, Scroll is this flag, and the two that animate a
+    // picture of a page need the raster that does not exist yet.
+    val scroll = transition.isScroll
+
     // Original means the publication as published, so it takes no override.
     if (preset.keepsPublisherStyles) {
-        return EpubPreferences(fontSize = fontSize, publisherStyles = true)
+        return EpubPreferences(fontSize = fontSize, publisherStyles = true, scroll = scroll)
     }
 
     return EpubPreferences(
+        scroll = scroll,
         backgroundColor = Color(AndroidColor.parseColor(background)),
         textColor = Color(AndroidColor.parseColor(foreground)),
         fontFamily = values.typeface.readium,

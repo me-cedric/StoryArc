@@ -17,6 +17,7 @@ public import StoryArcCore
 /// spec describes at both levels is.
 struct ThemeSheet: View {
     @Environment(\.theme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dismiss) private var dismiss
 
     let model: EpubReaderModel
@@ -26,6 +27,7 @@ struct ThemeSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
                     presets
+                    pageTurn
                     fontSize
                     typeface
                     if model.theme.preset.keepsPublisherStyles {

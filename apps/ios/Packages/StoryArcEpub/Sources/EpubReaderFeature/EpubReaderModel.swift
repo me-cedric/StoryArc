@@ -97,7 +97,11 @@ public final class EpubReaderModel {
         let stored = preferences?.themes().theme(for: Self.scope, shelf: shelf) ?? ShelfSettings()
         self.theme = stored.theme
         self.values = stored.values
+        self.transition = stored.transition
     }
+
+    /// How a page becomes the next page. Paginated or scrolling, for an EPUB.
+    public private(set) var transition: PageTransition = .slide
 
     /// Always reflowable. See the note in `init`.
     private static let scope = ThemeScope.reflowable
@@ -133,6 +137,31 @@ public final class EpubReaderModel {
     public func restoreTheme() {
         theme = theme.restored()
         values = theme.preset.values
+        applyTheme()
+    }
+
+    /// Which page-turn rows to offer, and which of them this content cannot run.
+    ///
+    /// - Parameter reduceMotion: read from the environment by the view, because that is
+    ///   where a SwiftUI accessibility setting lives and where a change to it arrives.
+    public func transitions(reduceMotion: Bool) -> TransitionChoices {
+        TransitionChoices(
+            chosen: transition,
+            // Reflowing text scrolls the way it is read; the axis is not a choice here.
+            axis: .vertical,
+            reduceMotion: reduceMotion,
+            // The curl over reflowable text needs the page rastered first, which is why
+            // `isReflowable` refuses it below rather than this pretending it cannot curl
+            // at all. The two reasons are different and the reader is told which.
+            canCurl: true,
+            isReflowable: true
+        )
+    }
+
+    /// Chooses a page turn, for this shelf, from now on.
+    public func choose(_ transition: PageTransition) {
+        self.transition = transition
+        remember()
         applyTheme()
     }
 
@@ -175,7 +204,7 @@ public final class EpubReaderModel {
     /// reader with a thousand shelves ever notices.
     private func remember() {
         guard let preferences else { return }
-        let stored = ShelfSettings(theme: theme, values: values)
+        let stored = ShelfSettings(theme: theme, values: values, transition: transition)
         preferences.save(
             preferences.themes().remembering(stored, for: Self.scope, shelf: shelf)
         )
@@ -194,7 +223,7 @@ public final class EpubReaderModel {
         // inside the same chapter. Going to the stored locator afterwards puts them
         // where the text was.
         let locator = navigator.currentLocation
-        navigator.submitPreferences(theme.preferences(values: values))
+        navigator.submitPreferences(theme.preferences(values: values, transition: transition))
 
         guard let locator else { return }
         // ponytail: after the reflow, not during it. `submitPreferences` has no
@@ -265,7 +294,7 @@ public final class EpubReaderModel {
             self.navigator = navigator
             // Submitted rather than passed at construction: the same call applies a
             // later change, so there is one path into Readium instead of two.
-            navigator.submitPreferences(theme.preferences(values: values))
+            navigator.submitPreferences(theme.preferences(values: values, transition: transition))
             locator = resumed
             readingOrder = opened.readingOrder.map(\.href)
             progression = resumed.map(totalProgression(of:)) ?? 0
@@ -291,21 +320,21 @@ public final class EpubReaderModel {
 
     /// How far through the whole book, 0…1.
     ///
-    /// Readium fills in `totalProgression` only once it has computed a positions
-    /// list, which it does lazily and not at all for some publications. Without it
-    /// the reader would sit at "0% read" for a whole book, which is worse than an
-    /// approximation — so the fallback places the current resource in the reading
-    /// order and adds how far through that resource the reader is.
+    /// The rule lives in `StoryArcCore` so both platforms answer it the same way, and
+    /// because it is subtler than it looks: in scroll mode Readium reports `0.0` rather
+    /// than nothing, so trusting the report blindly leaves the reader at "0% read" for
+    /// a whole chapter. See ``TotalProgression``.
     ///
-    /// `ebook-reader` allows this: what it forbids is presenting a reflowable
-    /// *page number* as a stable identity. A percentage is the unit it asks for.
+    /// `ebook-reader` allows an approximation: what it forbids is presenting a
+    /// reflowable *page number* as a stable identity. A percentage is the unit it asks
+    /// for.
     private func totalProgression(of locator: Locator) -> Double {
-        if let total = locator.locations.totalProgression { return total }
-        guard !readingOrder.isEmpty,
-              let index = readingOrder.firstIndex(of: locator.href.string)
-        else { return 0 }
-        let within = locator.locations.progression ?? 0
-        return min(1, max(0, (Double(index) + within) / Double(readingOrder.count)))
+        TotalProgression.resolve(
+            reported: locator.locations.totalProgression,
+            within: locator.locations.progression ?? 0,
+            resourceIndex: readingOrder.firstIndex(of: locator.href.string) ?? -1,
+            resourceCount: readingOrder.count
+        )
     }
 
     /// Moves on a tap or a key, for the chrome to drive.

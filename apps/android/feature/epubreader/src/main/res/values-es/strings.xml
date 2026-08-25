@@ -64,4 +64,11 @@
     <string name="theme_page_colour_swatch">Color %1$s</string>
     <string name="theme_specimen">Handgloves</string>
     <string name="theme_specimen_second">Aa Bb 123</string>
+    <string name="theme_page_turn">Cambio de página</string>
+    <string name="theme_page_turn_curl">Doblez</string>
+    <string name="theme_page_turn_paginated">Páginas</string>
+    <string name="theme_page_turn_fade">Fundido rápido</string>
+    <string name="theme_page_turn_scroll">Desplazamiento continuo</string>
+    <string name="theme_page_turn_reduce_motion">No disponible mientras su sistema elimina las animaciones.</string>
+    <string name="theme_page_turn_reflowable">No disponible para texto que se recompone: hace falta una imagen de la página.</string>
 </resources>

@@ -225,3 +225,28 @@ extension ReaderTextAlignment {
         }
     }
 }
+
+extension PageTransition {
+    /// How the page-turn modes are named in the theme sheet.
+    ///
+    /// A second copy of the comic reader's list, because the two features are separate
+    /// packages with separate string catalogues — the alternative is a shared
+    /// localisation target for five words.
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .pageCurl: "theme.pageTurn.curl"
+        case .slide: "theme.pageTurn.paginated"
+        case .fastFade: "theme.pageTurn.fade"
+        case .verticalScroll, .horizontalScroll: "theme.pageTurn.scroll"
+        }
+    }
+}
+
+extension TransitionUnavailability {
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .reduceMotion: "theme.pageTurn.reduceMotion"
+        case .reflowableText: "theme.pageTurn.reflowable"
+        }
+    }
+}

@@ -55,7 +55,31 @@ enum class TransitionUnavailability {
      * vanishes teaches the user nothing".
      */
     REDUCE_MOTION,
+
+    /**
+     * The publication's text reflows, and this mode needs a picture of a page.
+     *
+     * `page-transitions` states the cause itself: "the deforming surface has to be a
+     * texture, so each page must be rastered". Until that exists, Curl and Fast fade
+     * cannot run over reflowable text — and the spec's "a mode is unavailable for the
+     * content" scenario says to *say so* rather than drop the row.
+     *
+     * A comic pays none of this, which is why the same two modes work there: the page
+     * is already a decoded image.
+     */
+    REFLOWABLE_TEXT,
 }
+
+/**
+ * Whether this mode animates a *picture* of a page rather than the page itself.
+ *
+ * Both of them deform or dissolve a surface, and a surface is a texture. Over a comic
+ * that costs nothing, because the page is already an image; over reflowable text it
+ * needs the page rastered first, which is why these two are the modes an EPUB cannot
+ * yet offer.
+ */
+val PageTransition.needsARasteredPage: Boolean
+    get() = this == PageTransition.PAGE_CURL || this == PageTransition.FAST_FADE
 
 /** Whether this is the continuous mode, in either axis. */
 val PageTransition.isScroll: Boolean
@@ -102,6 +126,13 @@ class TransitionChoices(
     axis: ScrollAxis,
     reduceMotion: Boolean,
     canCurl: Boolean,
+    /**
+     * Whether the text reflows. A reflowable page is live web content, so the modes
+     * that deform a picture of a page cannot run over it yet — listed with the reason
+     * rather than dropped, and only one scroll row, because text scrolls the way it is
+     * read.
+     */
+    isReflowable: Boolean = false,
 ) {
     /** The rows to draw, in order. */
     /** The axis the publication implies, which is the scroll row shown first. */
@@ -111,20 +142,38 @@ class TransitionChoices(
         if (canCurl) add(PageTransition.PAGE_CURL)
         add(PageTransition.SLIDE)
         add(PageTransition.FAST_FADE)
-        // The implied axis first, so the row a reader most likely wants is the one
-        // nearest the modes above it.
-        add(scrollAlong(axis))
-        add(scrollAlong(if (axis == ScrollAxis.VERTICAL) ScrollAxis.HORIZONTAL else ScrollAxis.VERTICAL))
+        if (isReflowable) {
+            // One row, and no axis choice: reflowing text scrolls the way it is read,
+            // and a horizontal river of prose is not a preference anyone holds.
+            add(PageTransition.VERTICAL_SCROLL)
+        } else {
+            // The implied axis first, so the row a reader most likely wants is the one
+            // nearest the modes above it.
+            add(scrollAlong(axis))
+            add(
+                scrollAlong(
+                    if (axis == ScrollAxis.VERTICAL) ScrollAxis.HORIZONTAL else ScrollAxis.VERTICAL,
+                ),
+            )
+        }
     }
 
-    /** Of those rows, the ones that cannot run, and why. */
-    val unavailable: Map<PageTransition, TransitionUnavailability> =
+    /**
+     * Of those rows, the ones that cannot run, and why.
+     *
+     * Reduced motion is applied second so that it wins where both apply: it is the
+     * reader's own setting, and it is the one they can do something about.
+     */
+    val unavailable: Map<PageTransition, TransitionUnavailability> = buildMap {
+        if (isReflowable) {
+            offered.filter { it.needsARasteredPage }
+                .forEach { put(it, TransitionUnavailability.REFLOWABLE_TEXT) }
+        }
         if (reduceMotion) {
             offered.filter { it.isAnimatedTransition }
-                .associateWith { TransitionUnavailability.REDUCE_MOTION }
-        } else {
-            emptyMap()
+                .forEach { put(it, TransitionUnavailability.REDUCE_MOTION) }
         }
+    }
 
     /**
      * Whether the curl is missing because this device cannot honour it, which is the
@@ -135,13 +184,14 @@ class TransitionChoices(
     /**
      * What runs now.
      *
-     * Falling back rather than rewriting. Two reasons a choice may not run, and both
-     * are conditions of the moment: the setting can be turned off, and the next device
-     * may be able to curl.
+     * Falling back rather than rewriting. Every reason a choice may not run is a
+     * condition of the moment: a setting can be turned off, the next device may be able
+     * to curl, and the next publication may not reflow.
      */
-    val effective: PageTransition =
-        (if (chosen == PageTransition.PAGE_CURL && !canCurl) PageTransition.SLIDE else chosen)
-            .honoring(reduceMotion)
+    val effective: PageTransition = chosen
+        .let { if (it == PageTransition.PAGE_CURL && !canCurl) PageTransition.SLIDE else it }
+        .let { if (isReflowable && it.needsARasteredPage) PageTransition.SLIDE else it }
+        .honoring(reduceMotion)
 
     /** Whether a row can be picked. */
     fun isAvailable(mode: PageTransition): Boolean = !unavailable.containsKey(mode)

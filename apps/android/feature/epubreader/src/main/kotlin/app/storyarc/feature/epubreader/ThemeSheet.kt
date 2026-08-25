@@ -55,6 +55,9 @@ import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AxisUnit
 import app.storyarc.core.model.FontSizeStep
+import app.storyarc.core.model.PageTransition
+import app.storyarc.core.model.TransitionChoices
+import app.storyarc.core.model.TransitionUnavailability
 import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ReaderTextAlignment
 import app.storyarc.core.model.ReaderTypeface
@@ -99,6 +102,8 @@ internal fun ThemeSheet(
     onLeavePublisherStyles: () -> Unit,
     onAdoptColours: (ReaderPalette) -> Boolean,
     onDiscardColours: () -> Unit,
+    choices: TransitionChoices,
+    onChooseTransition: (PageTransition) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -157,6 +162,8 @@ internal fun ThemeSheet(
             }
         }
 
+        PageTurnControl(choices, onChooseTransition)
+
         FontSizeControl(values, onChange)
         TypefaceControl(values, onChange)
 
@@ -178,6 +185,93 @@ internal fun ThemeSheet(
         BrightnessControl(brightness, onBrightness)
     }
 }
+
+/**
+ * How a page becomes the next page.
+ *
+ * `page-transitions` asks for its four modes in *both* readers. Two of them animate a
+ * picture of a page, and a reflowable page is live web content — so those two are listed
+ * with the reason rather than dropped, which is the spec's own "a mode is unavailable
+ * for the content" scenario.
+ *
+ * Scroll here is Readium's own preference, not a container of ours: a web view that
+ * already paginates and a scroll of ours would fight for the same gesture.
+ */
+@Composable
+private fun PageTurnControl(
+    choices: TransitionChoices,
+    onChoose: (PageTransition) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+        Text(
+            text = stringResource(R.string.theme_page_turn),
+            style = MaterialTheme.typography.titleMedium,
+            color = palette.textPrimary,
+        )
+
+        choices.offered.forEach { mode ->
+            val reason = choices.unavailable[mode]
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(
+                        selected = choices.chosen == mode,
+                        enabled = reason == null,
+                        role = Role.RadioButton,
+                        onClick = { onChoose(mode) },
+                    )
+                    .semantics(mergeDescendants = true) {}
+                    .padding(vertical = StoryArcSpace.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(
+                    selected = choices.chosen == mode,
+                    onClick = null,
+                    enabled = reason == null,
+                )
+                Column(modifier = Modifier.padding(start = StoryArcSpace.sm)) {
+                    Text(
+                        text = stringResource(mode.turnLabelRes),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (reason == null) palette.textPrimary else palette.textTertiary,
+                    )
+                    if (reason != null) {
+                        Text(
+                            text = stringResource(reason.turnLabelRes),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = palette.textTertiary,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * How the page-turn modes are named in the theme sheet.
+ *
+ * A second copy of the comic reader's list, because the two features are separate
+ * modules with separate resources — the alternative is a shared string module for five
+ * words.
+ */
+private val PageTransition.turnLabelRes: Int
+    get() = when (this) {
+        PageTransition.PAGE_CURL -> R.string.theme_page_turn_curl
+        PageTransition.SLIDE -> R.string.theme_page_turn_paginated
+        PageTransition.FAST_FADE -> R.string.theme_page_turn_fade
+        PageTransition.VERTICAL_SCROLL, PageTransition.HORIZONTAL_SCROLL ->
+            R.string.theme_page_turn_scroll
+    }
+
+private val TransitionUnavailability.turnLabelRes: Int
+    get() = when (this) {
+        TransitionUnavailability.REDUCE_MOTION -> R.string.theme_page_turn_reduce_motion
+        TransitionUnavailability.REFLOWABLE_TEXT -> R.string.theme_page_turn_reflowable
+    }
 
 /** Typeface and weight: the two axes that reach the page even under Original. */
 @Composable

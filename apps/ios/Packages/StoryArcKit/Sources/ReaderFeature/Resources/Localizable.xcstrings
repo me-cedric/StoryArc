@@ -556,6 +556,35 @@
         }
       }
     },
+    "reader.transition.reflowable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht verfügbar für Text, der neu umbricht: dafür wird ein Bild der Seite gebraucht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not available for text that reflows: it needs a picture of the page."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No disponible para texto que se recompone: hace falta una imagen de la página."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indisponible pour un texte qui se recompose : il faut une image de la page."
+          }
+        }
+      }
+    },
     "reader.transition.scrollHorizontal": {
       "extractionState": "manual",
       "localizations": {

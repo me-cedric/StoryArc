@@ -23,4 +23,5 @@
     <string name="reader_transition_scroll_horizontal">Scrollen, horizontal</string>
     <string name="reader_transition_reduce_motion">Nicht verfügbar, solange Ihr System Animationen entfernt.</string>
     <string name="reader_transition_no_curl">Blättern wird hier nicht angeboten: dieses Gerät kann es nicht flüssig genug darstellen.</string>
+    <string name="reader_transition_reflowable">Nicht verfügbar für Text, der neu umbricht.</string>
 </resources>

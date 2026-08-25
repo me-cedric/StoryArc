@@ -18,11 +18,20 @@ extension ReadingTheme {
     /// - Parameter values: the typography in force. The preset's own values unless
     ///   the reader has moved an axis, which is why this is a parameter rather than
     ///   read off the preset.
-    func preferences(values: ThemeValues) -> EPUBPreferences {
+    func preferences(values: ThemeValues, transition: PageTransition = .slide) -> EPUBPreferences {
         var preferences = EPUBPreferences()
 
         // The one axis that always applies, under every preset including Original.
         preferences.fontSize = values.fontSize.fraction
+
+        // Scroll mode for reflowable text is *Readium's*, not ours. It has a
+        // preference for exactly this, and a container of our own over a web view that
+        // already paginates would be two things fighting for the same gesture.
+        //
+        // Which is also why `page-transitions`' four modes divide the way they do for
+        // an EPUB: Slide is Readium paginated, Scroll is this flag, and the two that
+        // animate a picture of a page need the raster that does not exist yet.
+        preferences.scroll = transition.isScroll
 
         // Original means the publication as published. Everything below this line
         // is an override, so Original takes none of it.

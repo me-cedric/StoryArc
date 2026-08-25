@@ -3,11 +3,16 @@ package app.storyarc.feature.epubreader
 import android.app.Application
 import android.net.Uri
 import app.storyarc.core.model.PublicationIdentity
+import android.provider.Settings
+import app.storyarc.core.model.PageTransition
+import app.storyarc.core.model.ScrollAxis
+import app.storyarc.core.model.TransitionChoices
 import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ShelfSettings
 import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.ThemeScope
+import app.storyarc.core.model.TotalProgression
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.ThemeValues
@@ -110,13 +115,17 @@ class EpubReaderViewModel(
     private val _values = MutableStateFlow(stored.values)
     val values: StateFlow<ThemeValues> = _values.asStateFlow()
 
+    /** How a page becomes the next page. Paginated or scrolling, for an EPUB. */
+    private val _transition = MutableStateFlow(stored.transition)
+    val transition: StateFlow<PageTransition> = _transition.asStateFlow()
+
     /**
      * What Readium should render with, recomputed whenever either changes.
      *
      * Exposed rather than pushed: the activity owns the navigator and submits this
      * to it, which keeps the view model free of a Readium fragment.
      */
-    val preferences get() = _theme.value.preferences(_values.value)
+    val preferences get() = _theme.value.preferences(_values.value, _transition.value)
 
     /**
      * Adopts a preset, discarding any deviation from the last one.
@@ -169,6 +178,43 @@ class EpubReaderViewModel(
     }
 
     /**
+     * Which page-turn rows to offer, and which of them this content cannot run.
+     *
+     * The curl is not refused for lack of a device here but for lack of a *raster*: a
+     * reflowable page is live web content. The two reasons are different and the reader
+     * is told which.
+     */
+    val transitions: TransitionChoices
+        get() = TransitionChoices(
+            chosen = _transition.value,
+            // Reflowing text scrolls the way it is read; the axis is not a choice here.
+            axis = ScrollAxis.VERTICAL,
+            reduceMotion = reduceMotion,
+            canCurl = true,
+            isReflowable = true,
+        )
+
+    /** Chooses a page turn, for this shelf, from now on. */
+    fun choose(transition: PageTransition) {
+        _transition.value = transition
+    }
+
+    /**
+     * Whether the reader has asked the system to remove animations.
+     *
+     * Android has no `UIAccessibility.isReduceMotionEnabled`; what it has is an animator
+     * duration scale a reader can set to zero. Read on demand rather than cached,
+     * because `page-transitions` requires turning it off mid-session to restore the
+     * chosen mode "without the reader being reopened".
+     */
+    private val reduceMotion: Boolean
+        get() = Settings.Global.getFloat(
+            application.contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f,
+        ) == 0f
+
+    /**
      * Puts the reader's own colours in force, or refuses and says why.
      *
      * `reading-themes`: a pairing below 4.5 to 1 "is refused with the measured ratio
@@ -204,9 +250,10 @@ class EpubReaderViewModel(
      * Writes the theme back, so the next book on this shelf opens the way this one
      * was left.
      *
-     * Collected rather than called from each mutator: there are six of them, and one
-     * that forgot to call would lose a reader's choice silently. Watching the two
-     * flows instead means a seventh mutator cannot forget.
+     * Collected rather than called from each mutator: there are seven of them, and one
+     * that forgot to call would lose a reader's choice silently. Watching the flows
+     * instead means an eighth mutator cannot forget — as the page-turn one did not have
+     * to remember.
      *
      * ponytail: reads and rewrites the whole blob per change. A drag now emits ten
      * steps rather than one per frame, and the blob is a handful of small records, so
@@ -216,7 +263,9 @@ class EpubReaderViewModel(
     private fun rememberThemeChanges() {
         val store = themeStore ?: return
         scope.launch {
-            combine(_theme, _values) { theme, values -> ShelfSettings(theme, values) }
+            combine(_theme, _values, _transition) { theme, values, transition ->
+                ShelfSettings(theme, values, transition)
+            }
                 .drop(1)
                 .collect { store.save(store.themes().remembering(it, themeScope, shelf)) }
         }
@@ -283,23 +332,21 @@ class EpubReaderViewModel(
     /**
      * How far through the whole book, 0…1.
      *
-     * Readium fills in `totalProgression` only once it has computed a positions
-     * list, which it does lazily and not at all for some publications. Without it
-     * the reader would sit at "0% read" for a whole book, which is worse than an
-     * approximation — so the fallback places the current resource in the reading
-     * order and adds how far through that resource the reader is.
+     * The rule lives in `:core:model` so both platforms answer it the same way, and
+     * because it is subtler than it looks: in scroll mode Readium reports `0.0` rather
+     * than nothing, so trusting the report blindly leaves the reader at "0% read" for a
+     * whole chapter. See [TotalProgression].
      *
-     * `ebook-reader` allows this: what it forbids is presenting a reflowable *page
-     * number* as a stable identity. A percentage is explicitly the unit it asks
+     * `ebook-reader` allows an approximation: what it forbids is presenting a reflowable
+     * *page number* as a stable identity. A percentage is explicitly the unit it asks
      * for.
      */
-    private fun totalProgressionOf(locator: Locator): Double {
-        locator.locations.totalProgression?.let { return it }
-        if (readingOrder.isEmpty()) return 0.0
-        val index = readingOrder.indexOf(locator.href.toString()).takeIf { it >= 0 } ?: return 0.0
-        val within = locator.locations.progression ?: 0.0
-        return ((index + within) / readingOrder.size).coerceIn(0.0, 1.0)
-    }
+    private fun totalProgressionOf(locator: Locator): Double = TotalProgression.resolve(
+        reported = locator.locations.totalProgression,
+        within = locator.locations.progression ?: 0.0,
+        resourceIndex = readingOrder.indexOf(locator.href.toString()),
+        resourceCount = readingOrder.size,
+    )
 
     /**
      * The stored position, turned back into a Readium `Locator`.

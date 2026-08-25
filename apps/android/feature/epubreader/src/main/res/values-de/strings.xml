@@ -64,4 +64,11 @@
     <string name="theme_page_colour_swatch">Farbe %1$s</string>
     <string name="theme_specimen">Handgloves</string>
     <string name="theme_specimen_second">Aa Bb 123</string>
+    <string name="theme_page_turn">Seitenwechsel</string>
+    <string name="theme_page_turn_curl">Blättern</string>
+    <string name="theme_page_turn_paginated">Seiten</string>
+    <string name="theme_page_turn_fade">Schnelles Überblenden</string>
+    <string name="theme_page_turn_scroll">Fortlaufendes Scrollen</string>
+    <string name="theme_page_turn_reduce_motion">Nicht verfügbar, solange Ihr System Animationen entfernt.</string>
+    <string name="theme_page_turn_reflowable">Nicht verfügbar für Text, der neu umbricht: dafür wird ein Bild der Seite gebraucht.</string>
 </resources>
