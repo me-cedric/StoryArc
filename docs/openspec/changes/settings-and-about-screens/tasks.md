@@ -2,10 +2,31 @@
 
 ## Phase 1 — The store and the appearance
 
-- [ ] **1.1** A settings store on both platforms, beside `ReaderPreferences` and
+- [x] **1.1** A settings store on both platforms, beside `ReaderPreferences` and
       `LibraryPreferences` rather than inside either: appearance, language
       override, and the reading defaults, with the same "unreadable stored data
-      reads as no data" rule the theme store already uses.
+      reads as no data" rule the theme store already uses. **Done, and smaller than
+      the task implies.**
+
+      `AppSettings` holds four values: appearance, a language override, whether the
+      volume buttons turn pages, and whether the reading theme follows the app's
+      appearance. That is *all* of it, because most of the seven groups own nothing of
+      their own — Sources belongs to the connectors, Downloads to `offline-downloads`,
+      the reading defaults to `ShelfMemory`'s per-scope defaults, and Privacy has
+      nothing to toggle at all. Its whole point is that there is no backend to opt out
+      of.
+
+      The reading defaults are therefore *not* here, which the task assumed they would
+      be. They already have a home that answers the harder question — "changing the
+      default must not overwrite a per-series choice" — by construction.
+
+      One value type rather than four keys, for the reason `ShelfMemory` is one blob: a
+      screen that reads five settings to draw one row should read them together, and a
+      reset should be an assignment rather than four deletions.
+
+      `AppearanceMode` moved from the design system to the domain to make this possible.
+      It is a setting — stored, carried by `AppSettings` — and mapping it to a colour
+      scheme and a palette is the design system's business rather than its definition.
 - [x] **1.2** Extend `AppearanceMode` to System / Light / Dark / OLED Dark on both
       platforms, with the OLED reader surface deliberately above true black and the
       reason stated in the setting. This is
@@ -22,9 +43,19 @@
       neither. The explicit choice wins.
 - [ ] **1.3** Appearance applies without a restart and follows the system while
       backgrounded. Verified by capture on the emulator, both directions.
-- [ ] **1.4** Appearance leaves the reading theme alone — the spec's own scenario,
+- [x] **1.4** Appearance leaves the reading theme alone — the spec's own scenario,
       and a test rather than an observation, because the two stores are separate and
-      it would be easy to make one write the other.
+      it would be easy to make one write the other. **Done**, five tests on iOS and
+      four instrumented on Android, over a private preferences file rather than a mock:
+      what is being asserted is that values round-trip through *storage* and that two
+      stores stay out of each other's way.
+
+      The reset test is the one worth having. `settings-and-about` requires the reset
+      dialogue to state that "sources, downloads, and reading progress are not
+      affected", and that claim is true because of what `AppSettings` *holds* rather
+      than because the reset is careful. The test writes a reading theme and a page fit
+      first, resets, and checks both survive — so the claim is checked rather than
+      trusted.
 
 ## Phase 2 — Organisation
 
