@@ -201,7 +201,10 @@ public final class EpubReaderModel {
         do {
             let navigator = try EPUBNavigatorViewController(
                 publication: opened,
-                initialLocation: resumed
+                initialLocation: resumed,
+                // Without these a preference naming a bundled family resolves to
+                // nothing and the page falls back silently.
+                config: .init(fontFamilyDeclarations: FontDeclarations.all)
             )
             let observer = NavigatorObserver(model: self)
             self.observer = observer

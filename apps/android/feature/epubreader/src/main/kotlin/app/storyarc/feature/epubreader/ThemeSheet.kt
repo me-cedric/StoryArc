@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -159,14 +160,38 @@ private fun TypefaceControl(
             color = palette.textPrimary,
         )
 
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            ReaderTypeface.entries.forEachIndexed { index, face ->
-                SegmentedButton(
+        // A column of rows, not a segmented control: eight faces will not fit across
+        // a phone, and `reading-themes` calls this axis a picker.
+        ReaderTypeface.entries.forEach { face ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onChange(ThemeAxis.FONT_FAMILY, values.copy(typeface = face))
+                    }
+                    .padding(vertical = StoryArcSpace.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(
                     selected = values.typeface == face,
-                    onClick = { onChange(ThemeAxis.FONT_FAMILY, values.copy(typeface = face)) },
-                    shape = SegmentedButtonDefaults.itemShape(index, ReaderTypeface.entries.size),
-                ) {
-                    Text(stringResource(face.labelRes))
+                    onClick = null,
+                )
+                Column(modifier = Modifier.padding(start = StoryArcSpace.sm)) {
+                    Text(
+                        text = stringResource(face.labelRes),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.textPrimary,
+                    )
+                    if (face.isDesignedForLowVision) {
+                        // `reading-themes`: labelled as such, because "an
+                        // accessibility affordance presented as a style option gets
+                        // missed by the people who need it".
+                        Text(
+                            text = stringResource(R.string.theme_typeface_low_vision),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = palette.textTertiary,
+                        )
+                    }
                 }
             }
         }
@@ -489,6 +514,13 @@ private val ReaderTypeface.labelRes: Int
         ReaderTypeface.PUBLISHER -> R.string.theme_typeface_publisher
         ReaderTypeface.SERIF -> R.string.theme_typeface_serif
         ReaderTypeface.SANS -> R.string.theme_typeface_sans
+        // The bundled families go by their own names, which is how a reader
+        // recognises them.
+        ReaderTypeface.LITERATA -> R.string.theme_typeface_literata
+        ReaderTypeface.SOURCE_SERIF -> R.string.theme_typeface_source_serif
+        ReaderTypeface.EB_GARAMOND -> R.string.theme_typeface_eb_garamond
+        ReaderTypeface.BITTER -> R.string.theme_typeface_bitter
+        ReaderTypeface.ATKINSON_HYPERLEGIBLE -> R.string.theme_typeface_atkinson
     }
 
 private val ReaderTextAlignment.labelRes: Int

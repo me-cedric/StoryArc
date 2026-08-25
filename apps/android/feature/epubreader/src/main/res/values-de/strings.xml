@@ -37,4 +37,10 @@
     <string name="theme_alignment_publisher">Verlag</string>
     <string name="theme_alignment_left">Links</string>
     <string name="theme_alignment_justified">Blocksatz</string>
+    <string name="theme_typeface_literata">Literata</string>
+    <string name="theme_typeface_source_serif">Source Serif</string>
+    <string name="theme_typeface_eb_garamond">EB Garamond</string>
+    <string name="theme_typeface_bitter">Bitter</string>
+    <string name="theme_typeface_atkinson">Atkinson Hyperlegible</string>
+    <string name="theme_typeface_low_vision">Für Sehbehinderung entwickelt</string>
 </resources>

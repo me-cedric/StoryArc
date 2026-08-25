@@ -87,13 +87,15 @@ internal val ReadingTheme.foreground: String
         ThemePreset.FOCUS -> StoryArcReadingThemeHex.focusFg
     }
 
-/** `null` leaves the publication's own family in place, which is what PUBLISHER means. */
+/**
+ * `null` leaves the publication's own family in place, which is what PUBLISHER means.
+ *
+ * Every other case is the CSS family name the domain already carries, so a new
+ * bundled face needs no change here — only a declaration in `FontDeclarations` and
+ * the file itself.
+ */
 private val ReaderTypeface.readium: FontFamily?
-    get() = when (this) {
-        ReaderTypeface.PUBLISHER -> null
-        ReaderTypeface.SERIF -> FontFamily.SERIF
-        ReaderTypeface.SANS -> FontFamily.SANS_SERIF
-    }
+    get() = cssFamily?.let(::FontFamily)
 
 private val ReaderTextAlignment.readium: TextAlign?
     get() = when (this) {

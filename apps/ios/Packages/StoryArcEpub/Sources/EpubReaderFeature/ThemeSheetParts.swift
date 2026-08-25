@@ -134,6 +134,13 @@ extension ReaderTypeface {
         case .publisher: "theme.typeface.publisher"
         case .serif: "theme.typeface.serif"
         case .sans: "theme.typeface.sans"
+        // The bundled families go by their own names, which is how a reader
+        // recognises them.
+        case .literata: "theme.typeface.literata"
+        case .sourceSerif: "theme.typeface.sourceSerif"
+        case .ebGaramond: "theme.typeface.ebGaramond"
+        case .bitter: "theme.typeface.bitter"
+        case .atkinsonHyperlegible: "theme.typeface.atkinson"
         }
     }
 }

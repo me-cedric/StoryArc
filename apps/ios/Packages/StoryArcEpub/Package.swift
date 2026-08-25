@@ -22,6 +22,9 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../StoryArcKit"),
+        // The bundled typefaces. A path dependency because Android reads the same
+        // directory as an asset source — see packages/fonts/README.md.
+        .package(path: "../../../../packages/fonts"),
         .package(url: "https://github.com/readium/swift-toolkit.git", from: "3.11.0"),
     ],
     targets: [
@@ -34,6 +37,7 @@ let package = Package(
                 .product(name: "ReadiumShared", package: "swift-toolkit"),
                 .product(name: "ReadiumStreamer", package: "swift-toolkit"),
                 .product(name: "ReadiumNavigator", package: "swift-toolkit"),
+                .product(name: "StoryArcFonts", package: "fonts"),
             ],
             resources: [.process("Resources")]
         ),

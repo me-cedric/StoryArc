@@ -3,18 +3,66 @@ public import Foundation
 /// The typeface a reader can choose.
 ///
 /// `reading-themes`: "bundled families plus the publisher's own and the system
-/// face". The bundled families — Literata, Source Serif 4, EB Garamond, Bitter,
-/// Atkinson Hyperlegible — arrive with Phase 6 of the theming change, which is the
-/// task that actually puts the files in the app. Offering them by name before then
-/// would be a picker that silently falls back, so the list here is what the app can
-/// honestly render today.
+/// face". All five bundled families are in `packages/fonts`, subset and declared to
+/// the renderer, so every entry here is one the app can actually draw.
 public enum ReaderTypeface: String, Sendable, Codable, CaseIterable {
     /// Whatever the publication asks for. The only option under `original`.
     case publisher
-    /// The platform's own serif.
+    /// The platform's own serif — New York, Noto Serif. Zero bytes.
     case serif
-    /// The platform's own sans.
+    /// The platform's own sans — SF Pro, Roboto. Zero bytes.
     case sans
+    /// Designed for screen reading. The default for Paper.
+    case literata
+    /// Clean, with a wide weight range. Carries Bold.
+    case sourceSerif
+    /// Classical. Gives Calm a genuinely different voice.
+    case ebGaramond
+    /// Slab; holds legibility at small sizes and in Focus's narrow measure.
+    case bitter
+    /// Designed for low vision, and labelled as such wherever it is offered.
+    case atkinsonHyperlegible
+}
+
+public extension ReaderTypeface {
+    /// Whether this face is bundled with the app rather than the platform's.
+    ///
+    /// The bundled ones cost binary size and have to be declared to the renderer;
+    /// the system ones cost nothing and are always available. The picker does not
+    /// distinguish them, and nothing else needs to either — except the build, which
+    /// is why `packages/fonts/README.md` states the cost.
+    var isBundled: Bool {
+        switch self {
+        case .publisher, .serif, .sans: false
+        case .literata, .sourceSerif, .ebGaramond, .bitter, .atkinsonHyperlegible: true
+        }
+    }
+
+    /// The family name the renderer matches on.
+    ///
+    /// `nil` for the publisher's own, which means "override nothing". The two system
+    /// entries use the generic CSS families so each platform resolves its own face —
+    /// New York and SF Pro on iOS, Noto Serif and Roboto on Android.
+    var cssFamily: String? {
+        switch self {
+        case .publisher: nil
+        case .serif: "serif"
+        case .sans: "sans-serif"
+        case .literata: "Literata"
+        case .sourceSerif: "Source Serif 4"
+        case .ebGaramond: "EB Garamond"
+        case .bitter: "Bitter"
+        case .atkinsonHyperlegible: "Atkinson Hyperlegible"
+        }
+    }
+
+    /// Whether to say, in the picker, that this face is designed for low vision.
+    ///
+    /// `reading-themes`: Atkinson Hyperlegible is "labelled as such in the UI — an
+    /// accessibility affordance presented as a style option gets missed by the
+    /// people who need it". So the label is a property of the face rather than a
+    /// string a sheet remembers to add.
+    var isDesignedForLowVision: Bool { self == .atkinsonHyperlegible }
 }
 
 /// How text is aligned.
@@ -188,16 +236,17 @@ public extension ThemePreset {
         // "Soft off-white text on deep neutral, tightened spacing."
         case .quiet:
             ThemeValues(
-                typeface: .serif,
+                typeface: .sourceSerif,
                 lineHeight: 1.3,
                 letterSpacing: 0,
                 paragraphSpacing: 0.4,
                 pageMargins: 1
             )
 
-        // "Book-stock white, serif, comfortable default spacing."
+        // "Book-stock white, serif, comfortable default spacing." Literata, which
+        // `design.md` names as Paper's default and which was designed for screens.
         case .paper:
-            ThemeValues(typeface: .serif, lineHeight: 1.5, paragraphSpacing: 0.6)
+            ThemeValues(typeface: .literata, lineHeight: 1.5, paragraphSpacing: 0.6)
 
         // "Heavier weight, wider spacing. For low vision without leaving the
         // aesthetic." One step up as well: the reader who picks Bold is telling us
@@ -214,15 +263,16 @@ public extension ThemePreset {
                 pageMargins: 1
             )
 
-        // "Cream-on-brown, generous line height. Long evening sessions."
+        // "Cream-on-brown, generous line height. Long evening sessions." EB
+        // Garamond, for the different voice `design.md` asks Calm to have.
         case .calm:
-            ThemeValues(typeface: .serif, lineHeight: 1.75, paragraphSpacing: 0.8, pageMargins: 1.2)
+            ThemeValues(typeface: .ebGaramond, lineHeight: 1.75, paragraphSpacing: 0.8, pageMargins: 1.2)
 
         // "Narrow measure, high contrast, minimal decoration. Fewest words per
         // line." The narrow measure is the wide margin.
         case .focus:
             ThemeValues(
-                typeface: .sans,
+                typeface: .bitter,
                 lineHeight: 1.5,
                 paragraphSpacing: 0.5,
                 pageMargins: 1.8,

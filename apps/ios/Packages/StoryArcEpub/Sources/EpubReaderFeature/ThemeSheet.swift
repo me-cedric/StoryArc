@@ -143,12 +143,25 @@ struct ThemeSheet: View {
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
 
+            // A menu, not a segmented control: eight faces will not fit across a
+            // phone, and `reading-themes` calls this axis a picker.
             Picker("", selection: typefaceBinding) {
                 ForEach(ReaderTypeface.allCases, id: \.self) { face in
-                    Text(face.titleKey, bundle: .module).tag(face)
+                    if face.isDesignedForLowVision {
+                        // `reading-themes`: labelled as such, because "an
+                        // accessibility affordance presented as a style option gets
+                        // missed by the people who need it".
+                        VStack(alignment: .leading) {
+                            Text(face.titleKey, bundle: .module)
+                            Text("theme.typeface.lowVision", bundle: .module)
+                        }
+                        .tag(face)
+                    } else {
+                        Text(face.titleKey, bundle: .module).tag(face)
+                    }
                 }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
             .labelsHidden()
 
             Toggle(isOn: boldBinding) {

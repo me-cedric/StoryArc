@@ -4,21 +4,77 @@ package app.storyarc.core.model
  * The typeface a reader can choose.
  *
  * `reading-themes`: "bundled families plus the publisher's own and the system
- * face". The bundled families — Literata, Source Serif 4, EB Garamond, Bitter,
- * Atkinson Hyperlegible — arrive with Phase 6 of the theming change, which is the
- * task that actually puts the files in the app. Offering them by name before then
- * would be a picker that silently falls back, so the list here is what the app can
- * honestly render today.
+ * face". All five bundled families are in `packages/fonts`, subset and declared to
+ * the renderer, so every entry here is one the app can actually draw.
  */
 enum class ReaderTypeface {
     /** Whatever the publication asks for. The only option under [ThemePreset.ORIGINAL]. */
     PUBLISHER,
 
-    /** The platform's own serif. */
+    /** The platform's own serif — Noto Serif, New York. Zero bytes. */
     SERIF,
 
-    /** The platform's own sans. */
+    /** The platform's own sans — Roboto, SF Pro. Zero bytes. */
     SANS,
+
+    /** Designed for screen reading. The default for Paper. */
+    LITERATA,
+
+    /** Clean, with a wide weight range. Carries Bold. */
+    SOURCE_SERIF,
+
+    /** Classical. Gives Calm a genuinely different voice. */
+    EB_GARAMOND,
+
+    /** Slab; holds legibility at small sizes and in Focus's narrow measure. */
+    BITTER,
+
+    /** Designed for low vision, and labelled as such wherever it is offered. */
+    ATKINSON_HYPERLEGIBLE,
+
+    ;
+
+    /**
+     * Whether this face is bundled with the app rather than the platform's.
+     *
+     * The bundled ones cost binary size and have to be declared to the renderer; the
+     * system ones cost nothing and are always available. The picker does not
+     * distinguish them, and nothing else needs to either — except the build, which is
+     * why `packages/fonts/README.md` states the cost.
+     */
+    val isBundled: Boolean
+        get() = when (this) {
+            PUBLISHER, SERIF, SANS -> false
+            LITERATA, SOURCE_SERIF, EB_GARAMOND, BITTER, ATKINSON_HYPERLEGIBLE -> true
+        }
+
+    /**
+     * The family name the renderer matches on.
+     *
+     * `null` for the publisher's own, which means "override nothing". The two system
+     * entries use the generic CSS families so each platform resolves its own face.
+     */
+    val cssFamily: String?
+        get() = when (this) {
+            PUBLISHER -> null
+            SERIF -> "serif"
+            SANS -> "sans-serif"
+            LITERATA -> "Literata"
+            SOURCE_SERIF -> "Source Serif 4"
+            EB_GARAMOND -> "EB Garamond"
+            BITTER -> "Bitter"
+            ATKINSON_HYPERLEGIBLE -> "Atkinson Hyperlegible"
+        }
+
+    /**
+     * Whether to say, in the picker, that this face is designed for low vision.
+     *
+     * `reading-themes`: Atkinson Hyperlegible is "labelled as such in the UI — an
+     * accessibility affordance presented as a style option gets missed by the people
+     * who need it". So the label is a property of the face rather than a string a
+     * sheet remembers to add.
+     */
+    val isDesignedForLowVision: Boolean get() = this == ATKINSON_HYPERLEGIBLE
 }
 
 /**
@@ -166,14 +222,15 @@ val ThemePreset.values: ThemeValues
 
         // "Soft off-white text on deep neutral, tightened spacing."
         ThemePreset.QUIET -> ThemeValues(
-            typeface = ReaderTypeface.SERIF,
+            typeface = ReaderTypeface.SOURCE_SERIF,
             lineHeight = 1.3,
             paragraphSpacing = 0.4,
         )
 
-        // "Book-stock white, serif, comfortable default spacing."
+        // "Book-stock white, serif, comfortable default spacing." Literata, which
+        // `design.md` names as Paper's default and which was designed for screens.
         ThemePreset.PAPER -> ThemeValues(
-            typeface = ReaderTypeface.SERIF,
+            typeface = ReaderTypeface.LITERATA,
             lineHeight = 1.5,
             paragraphSpacing = 0.6,
         )
@@ -191,9 +248,10 @@ val ThemePreset.values: ThemeValues
             paragraphSpacing = 0.8,
         )
 
-        // "Cream-on-brown, generous line height. Long evening sessions."
+        // "Cream-on-brown, generous line height. Long evening sessions." EB
+        // Garamond, for the different voice `design.md` asks Calm to have.
         ThemePreset.CALM -> ThemeValues(
-            typeface = ReaderTypeface.SERIF,
+            typeface = ReaderTypeface.EB_GARAMOND,
             lineHeight = 1.75,
             paragraphSpacing = 0.8,
             pageMargins = 1.2,
@@ -202,7 +260,7 @@ val ThemePreset.values: ThemeValues
         // "Narrow measure, high contrast, minimal decoration. Fewest words per
         // line." The narrow measure is the wide margin.
         ThemePreset.FOCUS -> ThemeValues(
-            typeface = ReaderTypeface.SANS,
+            typeface = ReaderTypeface.BITTER,
             lineHeight = 1.5,
             paragraphSpacing = 0.5,
             pageMargins = 1.8,

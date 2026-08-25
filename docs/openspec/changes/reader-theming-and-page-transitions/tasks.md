@@ -209,13 +209,59 @@ cards read as selected, but nothing has been through VoiceOver or TalkBack).
 
 ## Phase 6 — Fonts
 
-- [ ] **6.1** Bundle Literata, Source Serif 4, EB Garamond, Bitter and Atkinson
+- [x] **6.1** Bundle Literata, Source Serif 4, EB Garamond, Bitter and Atkinson
       Hyperlegible, subset to Latin, Latin Extended, Greek and Cyrillic. Record
-      every OFL licence in acknowledgements.
-- [ ] **6.2** Register them with Readium's font-family API on both platforms.
-- [ ] **6.3** Label Atkinson Hyperlegible as designed for low vision.
-- [ ] **6.4** Report the binary-size delta per family — this is a real cost and
-      should be a visible one.
+      every OFL licence in acknowledgements. **Done**, in `packages/fonts` — one
+      copy read by both apps, the same arrangement as the fixture corpus and the
+      vendored libarchive.
+
+      `scripts/build.py` fetches from google/fonts and subsets, so the files are
+      reproducible rather than remembered. Polytonic Greek is deliberately absent:
+      the task names Greek, and polytonic is a separate Google Fonts subset that
+      costs EB Garamond a couple of hundred kilobytes on its own.
+
+      The five OFL notices ship with both apps — SwiftPM resources on iOS, staged
+      assets on Android. The acknowledgements *screen* that displays them belongs
+      to `settings-and-about` and does not exist yet; the files being in the bundle
+      is what the licence requires, and the screen is what the spec requires.
+- [x] **6.2** Register them with Readium's font-family API on both platforms.
+      **Done**, one file per platform. Readium renders reflowable EPUB in a web
+      view, so a family it has not been told about resolves to nothing and the page
+      falls back silently — the declaration is not optional decoration.
+
+      The declared weight range is the range the file was instanced down to.
+      Declaring wider would ask the renderer to extrapolate weights the file no
+      longer carries.
+
+      Verified on the emulator: selecting EB Garamond changes the letterforms and
+      the figures on the page behind the sheet, which is the only proof that the
+      asset was actually served rather than silently missed.
+- [x] **6.3** Label Atkinson Hyperlegible as designed for low vision. **Done, and
+      as a property of the face rather than a string in a sheet.**
+      `ReaderTypeface.isDesignedForLowVision` carries it, so the label cannot be
+      forgotten by a second picker. Verified on the emulator: the row reads
+      "Atkinson Hyperlegible" with "Designed for low vision" beneath it.
+- [x] **6.4** Report the binary-size delta per family — this is a real cost and
+      should be a visible one. **Done, and the number is worse than the estimate.**
+
+      | Family | Bundled | Upstream | Saving |
+      | --- | --- | --- | --- |
+      | Literata | 889 kB | 1814 kB | 51% |
+      | Source Serif 4 | 1091 kB | 2017 kB | 46% |
+      | EB Garamond | 1194 kB | 1568 kB | 24% |
+      | Bitter | 563 kB | 563 kB | 11% |
+      | Atkinson Hyperlegible | 196 kB | 215 kB | 9% |
+      | **Total** | **3934 kB** | **6245 kB** | **38%** |
+
+      3.9 MB per app, against `design.md`'s "roughly 2–3 MB". The estimate was
+      optimistic and the table is the number. Two reductions got it from 6.2 MB,
+      neither of which changes anything a reader can see: subsetting to the four
+      named scripts, and instancing the optical-size axis away from Literata and
+      Source Serif 4 — a reader never animates optical size, so pinning it at the
+      body-text value halves both. EB Garamond and Bitter vary only on weight, which
+      is why they barely move and why EB Garamond is now the largest of the five.
+
+      `python3 packages/fonts/scripts/build.py --check` reprints the table.
 
 ## Phase 7 — Validation
 

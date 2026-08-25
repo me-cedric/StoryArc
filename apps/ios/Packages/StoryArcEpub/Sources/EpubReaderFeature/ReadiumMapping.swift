@@ -83,12 +83,12 @@ extension ReadingTheme {
 private extension ReaderTypeface {
     /// `nil` leaves the publication's own family in place, which is what
     /// `publisher` means.
+    ///
+    /// Every other case is the CSS family name the domain already carries, so a new
+    /// bundled face needs no change here — only a declaration in `FontDeclarations`
+    /// and the file itself.
     var readium: FontFamily? {
-        switch self {
-        case .publisher: nil
-        case .serif: .serif
-        case .sans: .sansSerif
-        }
+        cssFamily.map { FontFamily(rawValue: $0) }
     }
 }
 

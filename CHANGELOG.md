@@ -98,6 +98,20 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **Five bundled typefaces**: Literata, Source Serif 4, EB Garamond, Bitter and
+  Atkinson Hyperlegible, all OFL, subset to Latin, Latin Extended, Greek and
+  Cyrillic. Atkinson Hyperlegible is labelled "Designed for low vision" wherever it
+  is offered — `reading-themes` is explicit that an accessibility affordance
+  presented as a style option gets missed by the people who need it, so the label
+  is a property of the face rather than a string a picker remembers.
+  - 3.9 MB per app, against the 2–3 MB the design estimated. The estimate was
+    optimistic and [the table](packages/fonts/README.md) is the number. Two
+    reductions took it from 6.2 MB without changing anything a reader can see:
+    subsetting to the four named scripts, and pinning the optical-size axis of the
+    two families that have one — a reader never animates optical size, and dropping
+    the axis halves both files.
+  - One copy on disk, read by both apps, and rebuilt by a script rather than by
+    hand — the same arrangement as the fixture corpus and the vendored libarchive.
 - **Every typographic axis is adjustable.** Typeface, bold, line, character, word
   and paragraph spacing, margins and text alignment, plus reader-local brightness.
   The sliders are drawn from one loop rather than nine blocks of view code, because

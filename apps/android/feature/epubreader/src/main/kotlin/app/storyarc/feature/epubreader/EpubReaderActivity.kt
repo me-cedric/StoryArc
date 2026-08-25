@@ -180,6 +180,9 @@ class EpubReaderActivity : FragmentActivity() {
         val factory = EpubNavigatorFactory(publication)
         supportFragmentManager.fragmentFactory = factory.createFragmentFactory(
             initialLocator = model.initialLocator(),
+            // Without these a preference naming a bundled family resolves to nothing
+            // and the page falls back silently.
+            configuration = EpubNavigatorFragment.Configuration { declareBundledFonts() },
         )
 
         // Replace rather than add: on a process restore the dummy fragment is
