@@ -22,15 +22,15 @@ struct PresetCard: View {
             VStack(spacing: StoryArcSpace.xs) {
                 ZStack {
                     Color(hex: ReadingTheme(preset: preset).background)
-                    // Two lines of nothing in the preset's own text colour: a sample
-                    // of the pairing, which is what the reader is choosing.
-                    VStack(spacing: 3) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Capsule()
-                                .fill(Color(hex: ReadingTheme(preset: preset).foreground))
-                                .frame(height: 2)
-                        }
-                    }
+                    // Real letterforms in the preset's own face and colour.
+                    // `reading-themes` asks each card to preview "its own colours and
+                    // typeface", and a stack of grey rules — which is what this was —
+                    // can show a colour but never a face.
+                    Specimen(
+                        typeface: preset.values.typeface,
+                        colour: Color(hex: ReadingTheme(preset: preset).foreground),
+                        isBold: preset.values.isBold
+                    )
                     .padding(.horizontal, StoryArcSpace.sm)
                 }
                 .frame(height: 44)
@@ -72,6 +72,8 @@ struct CustomCard: View {
     @Environment(\.theme) private var theme
 
     let palette: ReaderPalette
+    /// The face in force, since a colour slot has none of its own.
+    let typeface: ReaderTypeface
     let onSelect: () -> Void
 
     var body: some View {
@@ -79,14 +81,8 @@ struct CustomCard: View {
             VStack(spacing: StoryArcSpace.xs) {
                 ZStack {
                     Color(hex: palette.background)
-                    VStack(spacing: 3) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Capsule()
-                                .fill(Color(hex: palette.foreground))
-                                .frame(height: 2)
-                        }
-                    }
-                    .padding(.horizontal, StoryArcSpace.sm)
+                    Specimen(typeface: typeface, colour: Color(hex: palette.foreground))
+                        .padding(.horizontal, StoryArcSpace.sm)
                 }
                 .frame(height: 44)
                 .clipShape(.rect(cornerRadius: StoryArcRadius.sm))
@@ -109,6 +105,31 @@ struct CustomCard: View {
     private var title: Text {
         let name = palette.name.trimmingCharacters(in: .whitespaces)
         return name.isEmpty ? Text("theme.pageColour.untitled", bundle: .module) : Text(name)
+    }
+}
+
+/// A few words in one face, for a card the size of a postage stamp.
+///
+/// Words rather than lorem ipsum: a reader judges a typeface by shapes they know.
+/// Two short lines fit a 44-point card and still show ascenders, descenders and a
+/// figure, which is most of what distinguishes one serif from another.
+struct Specimen: View {
+    let typeface: ReaderTypeface
+    let colour: Color
+    var isBold = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("theme.specimen", bundle: .module)
+            Text("theme.specimen.second", bundle: .module)
+        }
+        .font(BundledFonts.font(typeface, size: 13, weight: isBold ? .bold : .regular))
+        .foregroundStyle(colour)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // One picture, and not a sentence a screen reader should read twice per card.
+        .accessibilityHidden(true)
     }
 }
 

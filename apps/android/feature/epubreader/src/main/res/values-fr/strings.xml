@@ -62,4 +62,6 @@
     <string name="theme_page_colour_sample">Un texte assez long pour juger de l’association.</string>
     <string name="theme_page_colour_sample_label">Échantillon du texte et du fond ensemble</string>
     <string name="theme_page_colour_swatch">Couleur %1$s</string>
+    <string name="theme_specimen">Handgloves</string>
+    <string name="theme_specimen_second">Aa Bb 123</string>
 </resources>

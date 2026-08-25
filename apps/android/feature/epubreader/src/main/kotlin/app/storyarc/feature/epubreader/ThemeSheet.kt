@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +64,7 @@ import app.storyarc.core.model.sliderRange
 import app.storyarc.core.model.step
 import app.storyarc.core.model.unit
 import app.storyarc.core.model.value
+import app.storyarc.core.model.values
 import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
@@ -146,7 +148,11 @@ internal fun ThemeSheet(
             // overwriting one", so it is a seventh card and not a replaced one.
             theme.custom?.let { custom ->
                 item {
-                    CustomCard(palette = custom, onSelect = { onAdoptColours(custom) })
+                    CustomCard(
+                        palette = custom,
+                        typeface = values.typeface,
+                        onSelect = { onAdoptColours(custom) },
+                    )
                 }
             }
         }
@@ -218,7 +224,11 @@ private fun TypefaceControl(
                 Column(modifier = Modifier.padding(start = StoryArcSpace.sm)) {
                     Text(
                         text = stringResource(face.labelRes),
-                        style = MaterialTheme.typography.bodyMedium,
+                        // Each name drawn in the face it names. A picker whose
+                        // options all look alike is a list of words rather than a
+                        // choice.
+                        style = MaterialTheme.typography.bodyMedium
+                            .copy(fontFamily = face.fontFamily()),
                         color = palette.textPrimary,
                     )
                     if (face.isDesignedForLowVision) {
@@ -483,6 +493,41 @@ private fun PublisherStylesNotice(onLeave: () -> Unit, modifier: Modifier = Modi
 }
 
 /**
+ * A few words in one face, for a card the size of a postage stamp.
+ *
+ * Words rather than lorem ipsum: a reader judges a typeface by shapes they know. Two
+ * short lines fit a 48dp card and still show ascenders, descenders and a figure,
+ * which is most of what distinguishes one serif from another.
+ */
+@Composable
+private fun Specimen(
+    typeface: ReaderTypeface,
+    colour: Color,
+    modifier: Modifier = Modifier,
+    isBold: Boolean = false,
+) {
+    val family = typeface.fontFamily()
+
+    Column(
+        // One picture, and not a sentence a screen reader should read twice per card.
+        modifier = modifier.fillMaxWidth().clearAndSetSemantics {},
+    ) {
+        listOf(R.string.theme_specimen, R.string.theme_specimen_second).forEach { line ->
+            Text(
+                text = stringResource(line),
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = family),
+                // Always explicit. A variable font's default instance is whatever its
+                // `fvar` says, and upstream Bitter's is Thin — a specimen that let the
+                // default stand would show a hairline and call it Bitter.
+                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                color = colour,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+/**
  * The reader's own palette, as a seventh card in the same grid.
  *
  * Drawn from the same parts as a preset card, in its own colours, for the same
@@ -493,6 +538,8 @@ private fun PublisherStylesNotice(onLeave: () -> Unit, modifier: Modifier = Modi
 @Composable
 private fun CustomCard(
     palette: ReaderPalette,
+    /** The face in force, since a colour slot has none of its own. */
+    typeface: ReaderTypeface,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -524,19 +571,11 @@ private fun CustomCard(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                Column(
+                Specimen(
+                    typeface = typeface,
+                    colour = Color(AndroidColor.parseColor(palette.foreground)),
                     modifier = Modifier.padding(horizontal = StoryArcSpace.sm),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                    repeat(3) {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(2.dp)
-                                .background(Color(AndroidColor.parseColor(palette.foreground))),
-                        )
-                    }
-                }
+                )
             }
 
             Text(
@@ -610,21 +649,16 @@ private fun PresetCard(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            // Three lines of nothing in the preset's own text colour: a sample of
-            // the pairing, which is what the reader is choosing.
-            Column(
+            // Real letterforms in the preset's own face and colour.
+            // `reading-themes` asks each card to preview "its own colours and
+            // typeface", and a stack of grey rules — which is what this was — can
+            // show a colour but never a face.
+            Specimen(
+                typeface = preset.values.typeface,
+                colour = Color(AndroidColor.parseColor(sample.foreground)),
+                isBold = preset.values.isBold,
                 modifier = Modifier.padding(horizontal = StoryArcSpace.sm),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                repeat(3) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(2.dp)
-                            .background(Color(AndroidColor.parseColor(sample.foreground))),
-                    )
-                }
-            }
+            )
         }
 
         Text(

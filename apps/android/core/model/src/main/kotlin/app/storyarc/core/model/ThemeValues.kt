@@ -36,6 +36,23 @@ enum class ReaderTypeface {
     ;
 
     /**
+     * The name of this face's files in `packages/fonts`, without a suffix.
+     *
+     * Null for the three that are not bundled. Here rather than in either reader,
+     * because both the declaration handed to Readium and the specimen drawn by the
+     * sheet need it, and two lists of five filenames is one list too many.
+     */
+    val fileStem: String?
+        get() = when (this) {
+            PUBLISHER, SERIF, SANS -> null
+            LITERATA -> "Literata"
+            SOURCE_SERIF -> "SourceSerif4"
+            EB_GARAMOND -> "EBGaramond"
+            BITTER -> "Bitter"
+            ATKINSON_HYPERLEGIBLE -> "AtkinsonHyperlegible"
+        }
+
+    /**
      * Whether this face is bundled with the app rather than the platform's.
      *
      * The bundled ones cost binary size and have to be declared to the renderer; the

@@ -180,17 +180,45 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       with a `clickable`. They are now `surfaceContainerHigh` cards, which is the
       Android counterpart of the glass the iOS cards sit on. Verified on the
       emulator.
-- [ ] **3.3** Preset grid, three by two, each card previewing **its own** colours
-      and typeface. **Half done, and it was marked done too early.** The grid and
-      the colours are built and verified on both platforms; each card draws its own
-      background with three rules in its own text colour.
+- [x] **3.3** Preset grid, three by two, each card previewing **its own** colours
+      and typeface. **Done.** It was marked done once before the typeface half
+      existed, and then reopened; this is the whole thing.
 
-      The typeface half is not there. A card shows no letterforms, so it cannot show
-      a face. Now that Phase 6 has bundled the five families the fix is possible,
-      but it needs each platform's *own* text stack to know about them — CoreText
-      registration on iOS, a `FontFamily` on Android — and today only Readium's web
-      view does. That is the same registration 3.6 needs, so the two belong
-      together.
+      The colours were already there — each card drew its own background. What a card
+      could not do was show a *face*, because it drew three grey rules and a rule has
+      no letterforms. It now draws two short lines of real text in the preset's own
+      face, colour and weight. Words rather than lorem ipsum, because a reader judges
+      a typeface by shapes they know, and two lines fit a 44-point card while still
+      showing ascenders, descenders and a figure.
+
+      That needed the bundled faces in front of each platform's *own* text stack, not
+      only Readium's: `CTFontManagerRegisterFontsForURLs` on iOS,
+      `FontFamily(Font(assetManager …))` on Android. Without it a specimen falls back
+      to the system font in silence — the one failure a typeface picker must not have.
+
+      The typeface picker itself now draws each name in the face it names. On iOS that
+      meant replacing the menu with a list of rows: SwiftUI strips a custom font
+      inside a menu, and a picker whose options all look alike is a list of words
+      rather than a choice.
+
+      Two defects in Phase 6 surfaced while doing this, both fixed:
+
+      - **Bitter shipped as Thin.** The build narrowed the weight axis to 300–700 and
+        the instancer kept the bottom of the range as the default instance, so the
+        family's default was Light and its name still read "Bitter Thin". The page was
+        unaffected — CSS resolves `normal` to 400 within the declared range — but any
+        native specimen would have drawn a hairline and called it Bitter.
+      - **The narrowing was not paying for itself.** Measured: about 1% on the
+        families with a wide range, and **+52 kB on Bitter**, because the instancer
+        restructures `gvar` and promotes `GPOS` to 32-bit offsets. It is gone. Pinning
+        `opsz` is the whole win, at 43% on the two families that have one.
+
+      The family name is now written from the same constant the app asks for, rather
+      than inherited. Inheriting it went wrong twice — "Bitter Thin", and the
+      instancer's own `--update-name-table` renaming Literata to "Literata 12pt".
+
+      Verified on the emulator: six cards in six faces, and eight picker rows each in
+      their own letterforms, Bitter at Regular weight.
 - [x] **3.4** First level: presets, font-size stepper with step dots, page-mode
       control, brightness. Second level behind one "Customise" action.
 - [x] **3.5** Fine axes: line, character, word and paragraph spacing, margins,
@@ -407,22 +435,29 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
       | Family | Bundled | Upstream | Saving |
       | --- | --- | --- | --- |
-      | Literata | 889 kB | 1814 kB | 51% |
-      | Source Serif 4 | 1091 kB | 2017 kB | 46% |
-      | EB Garamond | 1194 kB | 1568 kB | 24% |
-      | Bitter | 563 kB | 563 kB | 11% |
+      | Literata | 898 kB | 1814 kB | 51% |
+      | Source Serif 4 | 1095 kB | 2017 kB | 46% |
+      | EB Garamond | 1197 kB | 1568 kB | 24% |
+      | Bitter | 567 kB | 631 kB | 10% |
       | Atkinson Hyperlegible | 196 kB | 215 kB | 9% |
-      | **Total** | **3934 kB** | **6245 kB** | **38%** |
+      | **Total** | **3954 kB** | **6245 kB** | **37%** |
 
-      3.9 MB per app, against `design.md`'s "roughly 2–3 MB". The estimate was
-      optimistic and the table is the number. Two reductions got it from 6.2 MB,
-      neither of which changes anything a reader can see: subsetting to the four
-      named scripts, and instancing the optical-size axis away from Literata and
-      Source Serif 4 — a reader never animates optical size, so pinning it at the
-      body-text value halves both. EB Garamond and Bitter vary only on weight, which
-      is why they barely move and why EB Garamond is now the largest of the five.
+      4.0 MB per app, against `design.md`'s "roughly 2–3 MB". The estimate was
+      optimistic and the table is the number.
 
-      `python3 packages/fonts/scripts/build.py --check` reprints the table.
+      One reduction does the work, and it changes nothing a reader can see:
+      subsetting to the four named scripts, and pinning the optical-size axis of the
+      two families that have one. Narrowing the weight axis was also tried and then
+      removed — it saved about 1% and *grew* Bitter by 52 kB, because the instancer
+      restructures `gvar` and promotes `GPOS` to 32-bit offsets. EB Garamond and
+      Bitter have no second axis, which is why they barely move and why EB Garamond
+      is the largest of the five.
+
+      `python3 packages/fonts/scripts/build.py --check` reprints the bundled column,
+      so this table cannot quietly go stale.
+
+      **The first version of this table was wrong** — it read "Bitter 563 kB / 563 kB
+      / 11%", three numbers that cannot all be true. That is what `--check` is for.
 
 ## Phase 7 — Validation
 

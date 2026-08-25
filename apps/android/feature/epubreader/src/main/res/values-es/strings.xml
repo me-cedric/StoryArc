@@ -62,4 +62,6 @@
     <string name="theme_page_colour_sample">Texto lo bastante largo para juzgar la combinación.</string>
     <string name="theme_page_colour_sample_label">Muestra del texto y el fondo juntos</string>
     <string name="theme_page_colour_swatch">Color %1$s</string>
+    <string name="theme_specimen">Handgloves</string>
+    <string name="theme_specimen_second">Aa Bb 123</string>
 </resources>

@@ -96,7 +96,9 @@ struct ThemeSheet: View {
                 // `reading-themes` puts it "alongside the six presets rather than
                 // overwriting one", so it is a seventh card and not a replaced one.
                 if let custom = model.theme.custom {
-                    CustomCard(palette: custom) { model.adoptColours(custom) }
+                    CustomCard(palette: custom, typeface: model.values.typeface) {
+                        model.adoptColours(custom)
+                    }
                 }
             }
         }
@@ -169,26 +171,43 @@ struct ThemeSheet: View {
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
 
-            // A menu, not a segmented control: eight faces will not fit across a
-            // phone, and `reading-themes` calls this axis a picker.
-            Picker("", selection: typefaceBinding) {
-                ForEach(ReaderTypeface.allCases, id: \.self) { face in
-                    if face.isDesignedForLowVision {
-                        // `reading-themes`: labelled as such, because "an
-                        // accessibility affordance presented as a style option gets
-                        // missed by the people who need it".
-                        VStack(alignment: .leading) {
+            // A list of rows rather than a menu, and each name drawn in the face it
+            // names. A menu would fit more compactly, but SwiftUI strips a custom
+            // font inside one — and a typeface picker whose options all look alike is
+            // a list of words rather than a choice. Eight faces do not fit across a
+            // phone either way, and `reading-themes` calls this axis a picker.
+            ForEach(ReaderTypeface.allCases, id: \.self) { face in
+                Button { typefaceBinding.wrappedValue = face } label: {
+                    HStack(spacing: StoryArcSpace.sm) {
+                        VStack(alignment: .leading, spacing: 0) {
                             Text(face.titleKey, bundle: .module)
-                            Text("theme.typeface.lowVision", bundle: .module)
+                                .font(BundledFonts.font(face, size: 17))
+                                .foregroundStyle(theme.palette.textPrimary)
+
+                            if face.isDesignedForLowVision {
+                                // `reading-themes`: labelled as such, because "an
+                                // accessibility affordance presented as a style
+                                // option gets missed by the people who need it".
+                                Text("theme.typeface.lowVision", bundle: .module)
+                                    .textRole(.caption)
+                                    .foregroundStyle(theme.palette.textTertiary)
+                            }
                         }
-                        .tag(face)
-                    } else {
-                        Text(face.titleKey, bundle: .module).tag(face)
+
+                        Spacer()
+
+                        if model.values.typeface == face {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(theme.accent)
+                        }
                     }
+                    .contentShape(.rect)
                 }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(
+                    model.values.typeface == face ? [.isButton, .isSelected] : .isButton
+                )
             }
-            .pickerStyle(.menu)
-            .labelsHidden()
 
             Toggle(isOn: boldBinding) {
                 Text("theme.axis.boldText", bundle: .module)

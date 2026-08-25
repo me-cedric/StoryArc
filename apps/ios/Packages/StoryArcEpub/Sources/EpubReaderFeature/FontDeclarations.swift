@@ -29,9 +29,11 @@ enum FontDeclarations {
 
     /// One upright and one italic over a weight range.
     ///
-    /// The range is what `packages/fonts/scripts/build.py` instanced the file down
-    /// to. Declaring a wider one would ask the renderer to extrapolate weights the
-    /// file no longer carries.
+    /// The range declared is narrower than the file's own, deliberately. Narrower is
+    /// the safe direction: asking for weights the file has is fine, and asking for
+    /// weights it does not have is what makes a renderer extrapolate. The build no
+    /// longer narrows the axis itself, because doing so saved about 1% and grew
+    /// Bitter — see `packages/fonts/README.md`.
     private static func variable(
         _ face: ReaderTypeface,
         _ stem: String,

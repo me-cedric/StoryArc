@@ -18,16 +18,19 @@ visible cost rather than an accident.
 
 | Family | Bundled | Upstream | Why it is in |
 | --- | --- | --- | --- |
-| Literata | 889 kB | 1814 kB | Designed for screen reading. The default for Paper. |
-| Source Serif 4 | 1091 kB | 2017 kB | Clean, wide weight range. Carries Bold. |
-| EB Garamond | 1194 kB | 1568 kB | Classical. Gives Calm a genuinely different voice. |
-| Bitter | 563 kB | 631 kB | Slab; holds legibility at small sizes and in Focus's narrow measure. |
+| Literata | 898 kB | 1814 kB | Designed for screen reading. The default for Paper. |
+| Source Serif 4 | 1095 kB | 2017 kB | Clean, wide weight range. Carries Bold. |
+| EB Garamond | 1197 kB | 1568 kB | Classical. Gives Calm a genuinely different voice. |
+| Bitter | 567 kB | 631 kB | Slab; holds legibility at small sizes and in Focus's narrow measure. |
 | Atkinson Hyperlegible | 196 kB | 215 kB | Designed for low vision, and **labelled as such** in the picker. |
-| **Total** | **3934 kB** | **6245 kB** | |
+| **Total** | **3954 kB** | **6245 kB** | |
 
-3.9 MB, against the 2–3 MB the design estimated. The estimate was optimistic and
+4.0 MB, against the 2–3 MB the design estimated. The estimate was optimistic and
 the number is the number: EB Garamond alone is 1.2 MB because its glyph set is
-large and it varies only on weight, so there is no second axis to drop.
+large and it has no second axis to drop.
+
+`python3 scripts/build.py --check` reprints the bundled column, so the table cannot
+quietly go stale.
 
 ## How the reduction works
 
@@ -40,11 +43,31 @@ task names. Google Fonts ships Vietnamese and polytonic Greek in the same files;
 app that offers four scripts should carry four.
 
 **Instances the optical-size axis away.** Literata and Source Serif 4 vary on
-`opsz` as well as `wght`. A reader never animates optical size — the right value
-for body text is simply the body-text value — so the axis is pinned at 12 pt and
-dropped, which halves both families. The weight range is narrowed to 300–700, which
-is what the interface can ask for. EB Garamond and Bitter have no second axis,
-which is why they barely move.
+`opsz` as well as `wght`. A reader never animates optical size — the right value for
+body text is simply the body-text value — so the axis is pinned at 12 pt and
+dropped, which takes 43% off both. EB Garamond and Bitter have no second axis, which
+is why they barely move.
+
+**Only that axis.** Narrowing `wght` was tried and removed. It saved about 1% on the
+families with a wide range and *grew* Bitter by 52 kB, because the instancer has to
+restructure `gvar` and promote `GPOS` to 32-bit offsets. The range the app declares
+to Readium is narrower than the file's either way, which is the safe direction:
+asking for weights the file has is fine, and asking for weights it does not have is
+what makes a renderer extrapolate.
+
+**Names the family after what the app asks for.** Not cosmetic. Both the web view
+and each platform's text stack match a family by name, so a name that drifts from
+the one the app requests means text silently falls back to something else. Inheriting
+it went wrong twice: Bitter arrived as "Bitter Thin", a name left over from an
+upstream default this build no longer touches, and the instancer's own
+`--update-name-table` renames Literata to "Literata 12pt" after the `opsz` instance.
+Writing the name from the same constant the app uses makes the two agree by
+construction.
+
+One consequence to know about: a variable font's default instance is whatever its
+`fvar` says, and upstream Bitter's is Thin. The page is unaffected, because CSS
+resolves `normal` to 400 within the declared range — but anything drawing a specimen
+natively must state a weight rather than let the default stand.
 
 ## Refreshing them
 

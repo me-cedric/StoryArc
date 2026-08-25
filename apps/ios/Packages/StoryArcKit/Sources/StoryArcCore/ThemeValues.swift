@@ -31,6 +31,22 @@ public extension ReaderTypeface {
     /// the system ones cost nothing and are always available. The picker does not
     /// distinguish them, and nothing else needs to either — except the build, which
     /// is why `packages/fonts/README.md` states the cost.
+    /// The name of this face's files in `packages/fonts`, without a suffix.
+    ///
+    /// `nil` for the three that are not bundled. Here rather than in either reader,
+    /// because both the declaration handed to Readium and the specimen drawn by the
+    /// sheet need it, and two lists of five filenames is one list too many.
+    var fileStem: String? {
+        switch self {
+        case .publisher, .serif, .sans: nil
+        case .literata: "Literata"
+        case .sourceSerif: "SourceSerif4"
+        case .ebGaramond: "EBGaramond"
+        case .bitter: "Bitter"
+        case .atkinsonHyperlegible: "AtkinsonHyperlegible"
+        }
+    }
+
     var isBundled: Bool {
         switch self {
         case .publisher, .serif, .sans: false

@@ -13,7 +13,14 @@ Two reductions, both of which change nothing a reader can see.
   scripts should carry four.
 * **Instancing** the optical-size axis away. Literata and Source Serif 4 vary on
   `opsz` as well as `wght`, and a reader never animates optical size — the right
-  value for body text is the body-text value. Dropping the axis halves both files.
+  value for body text is the body-text value. Dropping the axis takes 43% off both.
+
+  Only that axis. Narrowing `wght` was tried and removed: it saved about 1% on the
+  families that have a wide range, and it *grew* Bitter by 52 kB, because the
+  instancer has to restructure `gvar` and promote `GPOS` to 32-bit offsets. The
+  weight range the app asks Readium for is narrower than the file's either way,
+  which is the safe direction — declaring wider than the file is what would ask a
+  renderer to extrapolate weights that are not there.
   The weight range is narrowed to what the interface can ask for.
 
     python3 packages/fonts/scripts/build.py          # fetch, subset, write, report
@@ -30,6 +37,8 @@ import subprocess
 import sys
 import urllib.parse
 import urllib.request
+
+from fontTools.ttLib import TTFont
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 UPSTREAM = "https://raw.githubusercontent.com/google/fonts/main/ofl"
@@ -59,20 +68,20 @@ UNICODES = ",".join([
 #: family -> (upstream directory, [(upstream file, local file, instancer axes)])
 FAMILIES: dict[str, tuple[str, list[tuple[str, str, list[str]]]]] = {
     "Literata": ("literata", [
-        ("Literata[opsz,wght].ttf", "Literata.ttf", ["opsz=12", "wght=300:700"]),
-        ("Literata-Italic[opsz,wght].ttf", "Literata-Italic.ttf", ["opsz=12", "wght=300:700"]),
+        ("Literata[opsz,wght].ttf", "Literata.ttf", ["opsz=12"]),
+        ("Literata-Italic[opsz,wght].ttf", "Literata-Italic.ttf", ["opsz=12"]),
     ]),
     "Source Serif 4": ("sourceserif4", [
-        ("SourceSerif4[opsz,wght].ttf", "SourceSerif4.ttf", ["opsz=12", "wght=300:700"]),
-        ("SourceSerif4-Italic[opsz,wght].ttf", "SourceSerif4-Italic.ttf", ["opsz=12", "wght=300:700"]),
+        ("SourceSerif4[opsz,wght].ttf", "SourceSerif4.ttf", ["opsz=12"]),
+        ("SourceSerif4-Italic[opsz,wght].ttf", "SourceSerif4-Italic.ttf", ["opsz=12"]),
     ]),
     "EB Garamond": ("ebgaramond", [
-        ("EBGaramond[wght].ttf", "EBGaramond.ttf", ["wght=400:700"]),
-        ("EBGaramond-Italic[wght].ttf", "EBGaramond-Italic.ttf", ["wght=400:700"]),
+        ("EBGaramond[wght].ttf", "EBGaramond.ttf", []),
+        ("EBGaramond-Italic[wght].ttf", "EBGaramond-Italic.ttf", []),
     ]),
     "Bitter": ("bitter", [
-        ("Bitter[wght].ttf", "Bitter.ttf", ["wght=300:700"]),
-        ("Bitter-Italic[wght].ttf", "Bitter-Italic.ttf", ["wght=300:700"]),
+        ("Bitter[wght].ttf", "Bitter.ttf", []),
+        ("Bitter-Italic[wght].ttf", "Bitter-Italic.ttf", []),
     ]),
     # Four statics rather than a variable font: Atkinson Hyperlegible ships that
     # way, and at 50 kB a face there is nothing to gain by asking for more.
@@ -96,6 +105,28 @@ def run(*command: str) -> None:
     if result.returncode != 0:
         tail = (result.stderr or result.stdout).strip().splitlines()
         raise SystemExit(f"failed: {' '.join(command)}\n{tail[-1] if tail else ''}")
+
+
+def rename(path: pathlib.Path, family: str, filename: str) -> None:
+    """Names a built font after the family the app asks for."""
+    italic = "-Italic" in filename or "Italic.ttf" in filename
+    bold = "Bold" in filename
+    style = " ".join(part for part in ("Bold" if bold else "", "Italic" if italic else "") if part)
+    style = style or "Regular"
+    postscript = family.replace(" ", "") + "-" + style.replace(" ", "")
+
+    font = TTFont(path)
+    names = font["name"]
+    for language in {(record.platformID, record.platEncID, record.langID) for record in names.names}:
+        platform, encoding, language_id = language
+        names.setName(family, 1, platform, encoding, language_id)
+        names.setName(style, 2, platform, encoding, language_id)
+        names.setName(f"{family} {style}".strip(), 4, platform, encoding, language_id)
+        names.setName(postscript, 6, platform, encoding, language_id)
+    # 16 and 17 exist to say "the real family is not what 1 says". Now that 1 is
+    # right, a typographic override can only contradict it.
+    names.names = [record for record in names.names if record.nameID not in (16, 17)]
+    font.save(path)
 
 
 def main() -> int:
@@ -145,6 +176,18 @@ def main() -> int:
                 )
             else:
                 destination.write_bytes(subset.read_bytes())
+
+            # The family name is not cosmetic: both the web view and the platform
+            # text stack match a family by it, so a name that drifts from the one the
+            # app asks for means text silently falls back to something else.
+            #
+            # Written rather than inherited, because inheriting it went wrong twice.
+            # Bitter arrived as "Bitter Thin", a name left over from an upstream
+            # default this build narrows away. And `--update-name-table`, the
+            # instancer's own fix, renames Literata to "Literata 12pt" because that
+            # is what the `opsz=12` instance is called. Setting the name from the same
+            # constant the app uses makes the two agree by construction.
+            rename(destination, family, local)
             after += destination.stat().st_size
 
         # The licence travels with the family. `reading-themes` requires every OFL

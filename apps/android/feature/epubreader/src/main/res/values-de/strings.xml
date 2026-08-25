@@ -62,4 +62,6 @@
     <string name="theme_page_colour_sample">Text, der lang genug ist, um die Kombination zu beurteilen.</string>
     <string name="theme_page_colour_sample_label">Beispiel für Text und Hintergrund zusammen</string>
     <string name="theme_page_colour_swatch">Farbe %1$s</string>
+    <string name="theme_specimen">Handgloves</string>
+    <string name="theme_specimen_second">Aa Bb 123</string>
 </resources>

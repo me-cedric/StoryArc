@@ -98,6 +98,26 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **Every preset card and every typeface row is drawn in its own typeface.** The
+  cards previewed each theme's colours with three grey rules, and a rule has no
+  letterforms — so the grid showed six colours and no faces.
+  - That needed the bundled faces in front of each platform's own text stack, not
+    only Readium's. Without it a specimen falls back to the system font in silence,
+    which is the one failure a typeface picker must not have.
+  - On iOS the typeface menu became a list of rows, because SwiftUI strips a custom
+    font inside a menu and a picker whose options all look alike is a list of words
+    rather than a choice.
+- **Fixed: Bitter shipped as Thin.** The font build narrowed the weight axis and the
+  instancer kept the bottom of the range as the default, so Bitter's default instance
+  was Light and its family name still read "Bitter Thin". The page was unaffected —
+  CSS resolves `normal` to 400 within the declared range — but any native specimen
+  would have drawn a hairline and called it Bitter.
+  - The narrowing turned out not to pay for itself either: about 1% on the families
+    with a wide range, and **+52 kB on Bitter**. It is gone; pinning the optical-size
+    axis is the whole win. Family names are now written from the same constant the app
+    asks for rather than inherited, because inheriting went wrong twice.
+  - The corrected total is 4.0 MB per app, and `--check` reprints it so the table
+    cannot go stale. The first version of that table was internally inconsistent.
 - **The reading theme survives closing the book**, and it is remembered per series
   rather than globally. Previously every choice was lost on close.
   - A theme is stored per shelf: the series, or the book itself where it has no

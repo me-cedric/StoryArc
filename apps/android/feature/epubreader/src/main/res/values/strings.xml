@@ -62,4 +62,6 @@
     <string name="theme_page_colour_sample">Text long enough to judge the pairing by.</string>
     <string name="theme_page_colour_sample_label">Sample of the text and background together</string>
     <string name="theme_page_colour_swatch">Colour %1$s</string>
+    <string name="theme_specimen">Handgloves</string>
+    <string name="theme_specimen_second">Aa Bb 123</string>
 </resources>
