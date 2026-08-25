@@ -22,6 +22,8 @@ struct StoryArcApp: App {
     ///
     /// It replaces an `@AppStorage("appearanceMode")` that predated the settings store —
     /// two homes for one value, and only one of them was ever written.
+    @Environment(\.colorScheme) private var colorScheme
+
     @State private var settings = SettingsStore().settings()
     private let settingsStore = SettingsStore()
 
@@ -68,6 +70,19 @@ struct StoryArcApp: App {
     private func openNext(_ publication: Publication) {
         guard let url = library.location(of: publication) else { return }
         reading = ReadingSelection(publication: publication, url: url)
+    }
+
+    /// The reading preset the appearance dictates, when the reader opted into that.
+    ///
+    /// `nil` when they have not, which leaves each shelf's own theme in force. Resolved
+    /// here because "System" is a question about the device and this is where the answer
+    /// is: `colorScheme` follows it whatever the setting says.
+    private var linkedPreset: ThemePreset? {
+        guard settings.linkReadingThemeToAppearance else { return nil }
+        let resolved: AppearanceMode = settings.appearance == .system
+            ? (colorScheme == .dark ? .dark : .light)
+            : settings.appearance
+        return .matching(resolved)
     }
 
     /// Returns both stores to what a fresh install has, and nothing more.
@@ -126,7 +141,8 @@ struct StoryArcApp: App {
                         publication: selection.publication,
                         url: selection.url,
                         progress: progress,
-                        preferences: ReaderPreferences()
+                        preferences: ReaderPreferences(),
+                        linkedPreset: linkedPreset
                     )
                     // Identity, so opening the next issue from the end screen
                     // builds a fresh reader rather than reusing the previous one's

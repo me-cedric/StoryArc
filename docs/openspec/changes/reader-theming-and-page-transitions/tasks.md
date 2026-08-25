@@ -716,8 +716,21 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 - [ ] **5.4** Natural grain as procedural noise on reading surfaces only,
       disabled automatically under Reduce Transparency or Increase Contrast, and
       absent below API 33 on Android with the palette retained.
-- [ ] **5.5** Opt-in setting linking app appearance to reading theme; off by
-      default.
+- [x] **5.5** Opt-in setting linking app appearance to reading theme; off by
+      default. **Done on both platforms**, in `settings-and-about-screens` task 5.3 —
+      the toggle needed a settings screen to live on.
+
+      Light maps to Paper and every dark appearance to Quiet. Two presets rather than four,
+      because the difference between Dark and OLED Dark is the *chrome*'s black point and a
+      reading surface is deliberately never pure black — so mapping OLED Dark to something
+      darker would undo the reason that appearance exists.
+
+      The shelf's stored theme is not overwritten on open, so turning the setting off brings
+      it back. Adjusting a theme while linked does record it, which is the reader changing
+      their mind on purpose.
+
+      Verified on the emulator in dark mode: link off kept the page Calm — the spec's own
+      default — and link on made it Quiet with Calm still stored.
 
 ## Phase 6 — Fonts
 

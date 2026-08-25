@@ -102,6 +102,13 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **One opt-in that ties the reading theme to the app's appearance**, off by default —
+  because a dark app with a paper-white page is a legitimate preference, and the spec says
+  so. Light maps to Paper, every dark appearance to Quiet.
+  - OLED Dark maps to Quiet too, not to something darker: the difference between Dark and
+    OLED Dark is the *chrome*'s black point, and a reading surface is never pure black
+    anyway.
+  - Your per-series theme is not overwritten, so turning the setting off brings it back.
 - **A colour behind a comic page**, chosen in Settings and applied to the area *around*
   the page only — the artwork is never tinted, because tinting someone else's drawing is
   not a reading preference.

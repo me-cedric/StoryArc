@@ -194,3 +194,22 @@ fun StoryArcTheme(
         )
     }
 }
+
+/**
+ * The appearance the device is actually showing.
+ *
+ * `SYSTEM` is a question rather than a value, and anything that has to *map* an appearance
+ * to something else — a reading preset, a palette — needs the answer instead. Resolved from
+ * a `Configuration` rather than from a composable, so a view model can ask too.
+ */
+fun AppearanceMode.resolved(configuration: android.content.res.Configuration): AppearanceMode =
+    if (this != AppearanceMode.SYSTEM) {
+        this
+    } else if (
+        configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+        android.content.res.Configuration.UI_MODE_NIGHT_YES
+    ) {
+        AppearanceMode.DARK
+    } else {
+        AppearanceMode.LIGHT
+    }

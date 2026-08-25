@@ -254,9 +254,30 @@
       `custom: {background: #E8EFE6, foreground: #000000}` against the fixed-layout
       default, and a comic opened afterwards showed pale green above and below the page
       with the artwork drawn over it untouched.
-- [ ] **5.3** Natural as a theme with its own light and dark variants, and its grain
-      on reading surfaces only — that change's 5.2, 5.4 and 5.5, which need an
-      appearance setting to hang from.
+- [x] **5.3** *Part of it.* The **opt-in link** between app appearance and reading theme —
+      `reader-theming-and-page-transitions` 5.5 — is done on both platforms. Natural itself
+      (that change's 5.2 and 5.4) is not, and is not this change's to build: it needs the
+      procedural grain from its Phase 0.5 prototype.
+
+      The link had been half-built and was worth catching: the *toggle* shipped with task
+      1.1 and nothing read the value, so it was dead state in a store. It now resolves to a
+      preset — Light to Paper, every dark appearance to Quiet — and the reader opens with
+      that instead of the shelf's own theme.
+
+      Two presets rather than four, on purpose. The difference between Dark and OLED Dark
+      is the *chrome*'s black point, and a reading surface is deliberately never pure black
+      anyway, so mapping OLED Dark to something darker would undo the reason that
+      appearance exists.
+
+      The shelf's stored theme is not overwritten on open, so turning the setting off brings
+      it back. Adjusting a theme *while* linked does record it, which is stated in the code
+      rather than glossed: that is the reader changing their mind on purpose, and a change
+      that silently failed to stick would be the worse surprise.
+
+      Verified on the emulator with the app in dark mode. Link off: the page stayed Calm,
+      which is the spec's own default — "a dark app chrome with a paper-white page is a
+      legitimate preference". Link on: the page became Quiet, and the shelf still read
+      Calm afterwards.
 
 ## Phase 6 — Validation
 

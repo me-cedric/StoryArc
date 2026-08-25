@@ -24,6 +24,9 @@ import androidx.lifecycle.lifecycleScope
 import app.storyarc.core.model.AppearanceMode
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.persistence.SettingsStore
+import app.storyarc.core.model.presetMatching
+import app.storyarc.core.designsystem.theme.resolved
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ReaderPreferences
 import kotlinx.coroutines.delay
@@ -93,6 +96,12 @@ class EpubReaderActivity : FragmentActivity() {
             progress = ProgressStore.open(applicationContext),
             themeStore = ReaderPreferences.open(applicationContext),
             series = intent.getStringExtra(EXTRA_SERIES),
+            // Resolved here, because "System" is a question about the device and only
+            // something holding a `Context` can answer it. Null when the reader has not
+            // opted in, which leaves the shelf's own theme in force.
+            linkedPreset = SettingsStore.open(applicationContext).settings()
+                .takeIf { it.linkReadingThemeToAppearance }
+                ?.let { presetMatching(it.appearance.resolved(resources.configuration)) },
         )
     }
 

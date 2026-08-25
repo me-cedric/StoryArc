@@ -69,6 +69,22 @@ class EpubReaderViewModel(
     private val themeStore: ReaderPreferences? = null,
     /** What shelf this book sits on. Null for a standalone book. */
     series: String? = null,
+    /**
+     * A preset the *app appearance* dictates, when the reader opted into that.
+     *
+     * `settings-and-about` keeps appearance and reading theme apart by default and allows
+     * "a single opt-in setting" that links them. When it is on, this is what the page is
+     * read with, and the shelf's own stored theme is *not* overwritten on open — so turning
+     * the setting off again brings it back.
+     *
+     * One edge, stated rather than glossed: adjusting a theme *while* linked does record it
+     * against the shelf, replacing what was there. That is the reader changing their mind
+     * on purpose, and a change that silently failed to stick would be the worse surprise.
+     *
+     * Passed in already resolved, because "System" is a question about the device and the
+     * host is the only thing that can answer it.
+     */
+    linkedPreset: ThemePreset? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -108,11 +124,16 @@ class EpubReaderViewModel(
     val chapterTitle: StateFlow<String?> = _chapterTitle.asStateFlow()
 
     /** Which preset is on and which axes have been moved from it. */
-    private val _theme = MutableStateFlow(stored.theme)
+    private val _theme = MutableStateFlow(
+        // A linked preset wins over the shelf's own theme, and does *not* replace it: the
+        // stored theme stays exactly where it is, so turning the setting back off restores
+        // it rather than having lost it.
+        linkedPreset?.let { ReadingTheme(it) } ?: stored.theme,
+    )
     val theme: StateFlow<ReadingTheme> = _theme.asStateFlow()
 
     /** The typography in force: the preset's own values until an axis is moved. */
-    private val _values = MutableStateFlow(stored.values)
+    private val _values = MutableStateFlow(linkedPreset?.values ?: stored.values)
     val values: StateFlow<ThemeValues> = _values.asStateFlow()
 
     /** How a page becomes the next page. Paginated or scrolling, for an EPUB. */

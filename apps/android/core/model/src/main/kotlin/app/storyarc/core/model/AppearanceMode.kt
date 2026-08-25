@@ -40,3 +40,25 @@ enum class AppearanceMode {
     /** Whether this appearance wants the true-black palette rather than the warm one. */
     val isTrueBlack: Boolean get() = this == OLED_DARK
 }
+
+/**
+ * The reading theme that goes with an app appearance.
+ *
+ * `settings-and-about` keeps the two apart by default — "a dark app chrome with a
+ * paper-white page is a legitimate preference" — and then allows "a single opt-in setting"
+ * that links them. This is the mapping that setting uses.
+ *
+ * Two presets, not four. Light is Paper and every dark appearance is Quiet, because the
+ * difference between Dark and OLED Dark is the *chrome*'s black point and a reading surface
+ * is deliberately never pure black anyway. Mapping OLED Dark to a darker reading theme
+ * would undo the reason that appearance exists.
+ *
+ * System resolves to whichever the device is showing, so it is the caller's job to pass the
+ * resolved appearance rather than SYSTEM — there is no answer for "follow the device" here,
+ * only for what the device currently says. A caller that has not resolved it gets the light
+ * answer rather than a crash.
+ */
+fun presetMatching(appearance: AppearanceMode): ThemePreset = when (appearance) {
+    AppearanceMode.LIGHT, AppearanceMode.SYSTEM -> ThemePreset.PAPER
+    AppearanceMode.DARK, AppearanceMode.OLED_DARK -> ThemePreset.QUIET
+}

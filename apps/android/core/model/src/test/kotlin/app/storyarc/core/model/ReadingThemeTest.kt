@@ -191,6 +191,18 @@ class ReadingThemeTest {
         assertEquals(PageTransition.PAGE_CURL, PageTransition.PAGE_CURL.honoring(false))
     }
 
+    @Test
+    fun `A linked reading theme follows the appearance, and OLED Dark does not go darker`() {
+        assertEquals(ThemePreset.PAPER, presetMatching(AppearanceMode.LIGHT))
+        assertEquals(ThemePreset.QUIET, presetMatching(AppearanceMode.DARK))
+        // The difference between Dark and OLED Dark is the *chrome*'s black point, and a
+        // reading surface is deliberately never pure black — so a darker reading theme here
+        // would undo the reason that appearance exists.
+        assertEquals(ThemePreset.QUIET, presetMatching(AppearanceMode.OLED_DARK))
+        // System is a question rather than a value, and the caller is meant to resolve it.
+        assertEquals(ThemePreset.PAPER, presetMatching(AppearanceMode.SYSTEM))
+    }
+
     // Contrast.
 
     @Test

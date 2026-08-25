@@ -32,14 +32,17 @@ public struct EpubReaderView: View {
         publication: Publication,
         url: URL,
         progress: ProgressStore? = nil,
-        preferences: ReaderPreferences? = nil
+        preferences: ReaderPreferences? = nil,
+        /// See ``EpubReaderModel/init(publication:url:progress:preferences:linkedPreset:)``.
+        linkedPreset: ThemePreset? = nil
     ) {
         _model = State(
             initialValue: EpubReaderModel(
                 publication: publication,
                 url: url,
                 progress: progress,
-                preferences: preferences
+                preferences: preferences,
+                linkedPreset: linkedPreset
             )
         )
     }
