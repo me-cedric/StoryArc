@@ -70,7 +70,8 @@ object LibraryScanner {
      * looks broken even when it is complete.
      */
     fun scan(folder: File): Flow<ScanEvent> = flow {
-        val tally = walk(folder) { emit(it) }
+        // The picked folder's own name is not a series: it is the library.
+        val tally = walk(folder, seriesHint = null) { emit(it) }
         emit(ScanEvent.Finished(tally.found, tally.skipped))
     }
 
@@ -96,7 +97,9 @@ object LibraryScanner {
      * internal storage to an SD card should see the same library.
      */
     fun scan(resolver: ContentResolver, tree: Uri): Flow<ScanEvent> = flow {
-        val tally = walkTree(resolver, tree, SafTree.rootDocumentId(tree)) { emit(it) }
+        val tally = walkTree(resolver, tree, SafTree.rootDocumentId(tree), seriesHint = null) {
+            emit(it)
+        }
         emit(ScanEvent.Finished(tally.found, tally.skipped))
     }
 
@@ -108,7 +111,18 @@ object LibraryScanner {
         operator fun plus(other: Tally) = Tally(found + other.found, skipped + other.skipped)
     }
 
-    private suspend fun walk(directory: File, emit: suspend (ScanEvent) -> Unit): Tally {
+    /**
+     * @param seriesHint what to call the series when a publication's own name does
+     *   not say. `local-library` presents a subfolder of a library "as a series
+     *   whose name is the folder name"; passing the name down is the metadata half
+     *   of that, and it is why the top-level call passes `null` — the library's own
+     *   folder is not a series.
+     */
+    private suspend fun walk(
+        directory: File,
+        seriesHint: String?,
+        emit: suspend (ScanEvent) -> Unit,
+    ): Tally {
         currentCoroutineContext().ensureActive()
         // Alphabetical, case-insensitively, so the order matches a file browser's.
         val children = (directory.listFiles() ?: emptyArray())
@@ -126,17 +140,17 @@ object LibraryScanner {
         // mistaken for the other.
         if (publicationFiles.isEmpty() && imageFiles.isNotEmpty()) {
             // Its subdirectories are chapters of it, not separate publications.
-            return index(directory, emit)
+            return index(directory, seriesHint, emit)
         }
 
         var tally = Tally()
         for (file in publicationFiles) {
             currentCoroutineContext().ensureActive()
-            tally += index(file, emit)
+            tally += index(file, seriesHint, emit)
         }
         for (child in directories) {
             currentCoroutineContext().ensureActive()
-            tally += walk(child, emit)
+            tally += walk(child, child.name, emit)
         }
         return tally
     }
@@ -145,6 +159,7 @@ object LibraryScanner {
         resolver: ContentResolver,
         tree: Uri,
         documentId: String,
+        seriesHint: String?,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         currentCoroutineContext().ensureActive()
@@ -158,17 +173,17 @@ object LibraryScanner {
         val images = files.filter { extensionOf(it.name) in IMAGE_EXTENSIONS }
 
         if (publications.isEmpty() && images.isNotEmpty()) {
-            return indexDocumentFolder(resolver, tree, documentId, emit)
+            return indexDocumentFolder(resolver, tree, documentId, seriesHint, emit)
         }
 
         var tally = Tally()
         for (entry in publications) {
             currentCoroutineContext().ensureActive()
-            tally += indexDocument(resolver, tree, entry, emit)
+            tally += indexDocument(resolver, tree, entry, seriesHint, emit)
         }
         for (child in directories) {
             currentCoroutineContext().ensureActive()
-            tally += walkTree(resolver, tree, child.documentId, emit)
+            tally += walkTree(resolver, tree, child.documentId, child.name, emit)
         }
         return tally
     }
@@ -189,6 +204,7 @@ object LibraryScanner {
         resolver: ContentResolver,
         tree: Uri,
         entry: SafTree.Entry,
+        seriesHint: String?,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         val uri = SafTree.documentUri(tree, entry.documentId)
@@ -198,7 +214,14 @@ object LibraryScanner {
             // before it finishes. The reader opens its own when a page is asked
             // for.
             UriSource(resolver, uri).use { source ->
-                ScanEvent.Found(PublicationIndexer.index(source, entry.name, identityOf(uri)))
+                ScanEvent.Found(
+                    PublicationIndexer.index(
+                        source = source,
+                        name = entry.name,
+                        identity = identityOf(uri),
+                        seriesHint = seriesHint,
+                    ),
+                )
             }
         } catch (cause: IndexException) {
             ScanEvent.Skipped(entry.name, reasonFor(cause))
@@ -215,6 +238,7 @@ object LibraryScanner {
         resolver: ContentResolver,
         tree: Uri,
         documentId: String,
+        seriesHint: String?,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         val uri = SafTree.documentUri(tree, documentId)
@@ -225,6 +249,7 @@ object LibraryScanner {
                     DocumentFolderArchive.open(resolver, tree, documentId),
                     identityOf(uri),
                     name,
+                    seriesHint,
                 ),
             )
         } catch (cause: IndexException) {
@@ -247,9 +272,13 @@ object LibraryScanner {
      * would carry on, reporting the cancellation itself as a skipped file.
      * `CancellationException` is re-thrown for the same reason.
      */
-    private suspend fun index(file: File, emit: suspend (ScanEvent) -> Unit): Tally {
+    private suspend fun index(
+        file: File,
+        seriesHint: String?,
+        emit: suspend (ScanEvent) -> Unit,
+    ): Tally {
         val event = try {
-            ScanEvent.Found(PublicationIndexer.index(file))
+            ScanEvent.Found(PublicationIndexer.index(file, seriesHint))
         } catch (cause: IndexException) {
             ScanEvent.Skipped(file.name, reasonFor(cause))
         } catch (cause: CancellationException) {

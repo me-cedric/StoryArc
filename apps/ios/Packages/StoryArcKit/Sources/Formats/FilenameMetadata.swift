@@ -30,7 +30,9 @@ public struct FilenameMetadata: Sendable, Equatable {
     /// model of a convention is a list of shapes tried in order. The cases the
     /// list must handle live in the shared corpus manifest, so both platforms
     /// agree on what "common naming pattern" means.
-    public init(filename: String) {
+    /// - Parameter seriesHint: what the containing folder is called, used only
+    ///   when the filename yields no series of its own.
+    public init(filename: String, seriesHint: String? = nil) {
         // A dotfile is not a publication, and `deletingPathExtension` leaves
         // ".cbz" intact — which would otherwise be read as a series called "cbz".
         guard !filename.hasPrefix(".") else {
@@ -87,7 +89,10 @@ public struct FilenameMetadata: Sendable, Equatable {
             // ponytail: the ceiling is that a four-digit chapter needs an explicit
             // marker — "c1044", not "1044". Every naming convention that goes that
             // high uses one, so the guess stays on the safe side of a title.
-            "\\s(\\d{1,3}(?:\\.\\d+)?)\\s*$",
+            // `(?:^|\s)` rather than `\s`, so a name that is *only* a number —
+            // "003.cbz", the usual shape inside a per-series folder — reads as
+            // issue three with no series, leaving the folder to supply one.
+            "(?:^|\\s)(\\d{1,3}(?:\\.\\d+)?)\\s*$",
         ] {
             if let match = Self.firstMatch(pattern, in: stem, group: 1) {
                 number = Self.trimmingLeadingZeros(match.value)
@@ -99,7 +104,9 @@ public struct FilenameMetadata: Sendable, Equatable {
         self.year = year
         self.volume = volume
         self.number = number
-        self.series = Self.tidySeries(stem)
+        // The filename first. A folder name describes a shelf; a filename
+        // describes the book on it, and where they disagree the book wins.
+        self.series = Self.tidySeries(stem) ?? seriesHint
     }
 
     // MARK: - Private

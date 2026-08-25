@@ -1198,6 +1198,18 @@ FILENAME_CASES = [
         "why": "the common shape: series, zero-padded issue, year in parentheses",
     },
     {
+        "filename": "003.cbz",
+        "series": None,
+        "number": "3",
+        "volume": None,
+        "year": None,
+        "why": (
+            "a bare number is the whole name. Common inside a per-series folder, "
+            "where the folder holds the series and the file holds only the issue — "
+            "so the series is deliberately absent rather than guessed as '003'"
+        ),
+    },
+    {
         "filename": "Invincible v02 #011 (2004).cbr",
         "series": "Invincible",
         "number": "11",

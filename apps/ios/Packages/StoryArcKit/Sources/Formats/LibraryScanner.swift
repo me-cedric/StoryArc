@@ -48,7 +48,8 @@ public enum LibraryScanner {
     public static func scan(folderAt folder: URL) -> AsyncStream<ScanEvent> {
         AsyncStream<ScanEvent> { continuation in
             let task = Task {
-                let tally = await walk(folder) { continuation.yield($0) }
+                // The picked folder's own name is not a series: it is the library.
+                let tally = await walk(folder, seriesHint: nil) { continuation.yield($0) }
                 if !Task.isCancelled {
                     continuation.yield(.finished(found: tally.found, skipped: tally.skipped))
                 }
@@ -87,8 +88,14 @@ public enum LibraryScanner {
         }
     }
 
+    /// - Parameter seriesHint: what to call the series when a publication's own
+    ///   name does not say. `local-library` presents a subfolder of a library "as a
+    ///   series whose name is the folder name"; passing the name down as a hint is
+    ///   the metadata half of that, and it is why the top-level call passes `nil` —
+    ///   the library's own folder is not a series.
     private static func walk(
         _ directory: URL,
+        seriesHint: String?,
         emit: @Sendable (ScanEvent) -> Void
     ) async -> Tally {
         var tally = Tally()
@@ -122,26 +129,27 @@ public enum LibraryScanner {
 
         if publicationFiles.isEmpty, !imageFiles.isEmpty {
             // Its subdirectories are chapters of it, not separate publications.
-            return tally + (await index(directory, emit: emit))
+            return tally + (await index(directory, seriesHint: seriesHint, emit: emit))
         }
 
         for file in publicationFiles {
             guard !Task.isCancelled else { return tally }
-            tally += await index(file, emit: emit)
+            tally += await index(file, seriesHint: seriesHint, emit: emit)
         }
         for child in directories {
             guard !Task.isCancelled else { return tally }
-            tally += await walk(child, emit: emit)
+            tally += await walk(child, seriesHint: child.lastPathComponent, emit: emit)
         }
         return tally
     }
 
     private static func index(
         _ url: URL,
+        seriesHint: String?,
         emit: @Sendable (ScanEvent) -> Void
     ) async -> Tally {
         do {
-            let publication = try await PublicationIndexer.index(fileAt: url)
+            let publication = try await PublicationIndexer.index(fileAt: url, seriesHint: seriesHint)
             emit(.found(publication))
             return Tally(found: 1, skipped: 0)
         } catch let error as PublicationIndexer.IndexError {

@@ -62,8 +62,9 @@ object PublicationIndexer {
         name: String,
         identity: PublicationIdentity,
         decoderPath: File? = null,
+        seriesHint: String? = null,
     ): Publication {
-        val fallback = FilenameMetadata.of(name)
+        val fallback = FilenameMetadata.of(name, seriesHint)
         // A content `Uri` has no path, and libarchive wants one. `/proc/self/fd/N`
         // is a real path to the same open file, so a compressed CBR on a provider
         // decodes without being copied anywhere first.
@@ -144,11 +145,27 @@ object PublicationIndexer {
         archive: ComicArchiveReading,
         identity: PublicationIdentity,
         name: String,
-    ): Publication = comic(archive, PublicationFormat.IMAGE_FOLDER, identity, name, FilenameMetadata.of(name))
+        seriesHint: String? = null,
+    ): Publication = comic(
+        archive,
+        PublicationFormat.IMAGE_FOLDER,
+        identity,
+        name,
+        FilenameMetadata.of(name, seriesHint),
+    )
 
-    suspend fun index(file: File): Publication {
+    /**
+     * @param seriesHint the name of the folder the file sits in, when that folder
+     *   is a subfolder of a picked library rather than the library itself.
+     *   `local-library` presents such a subfolder "as a series whose name is the
+     *   folder name", and this is the metadata half of that: a hint used only where
+     *   nothing better exists. Embedded metadata and the filename both beat it,
+     *   because both are statements about *this* publication and a folder name is a
+     *   statement about its neighbours.
+     */
+    suspend fun index(file: File, seriesHint: String? = null): Publication {
         val filename = file.name
-        val fallback = FilenameMetadata.of(filename)
+        val fallback = FilenameMetadata.of(filename, seriesHint)
 
         if (file.isDirectory) {
             return comic(

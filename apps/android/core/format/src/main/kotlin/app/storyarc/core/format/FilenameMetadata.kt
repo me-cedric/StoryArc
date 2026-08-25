@@ -45,7 +45,10 @@ data class FilenameMetadata(
             // ponytail: the ceiling is that a four-digit chapter needs an explicit
             // marker — "c1044", not "1044". Every naming convention that goes that
             // high uses one, so the guess stays on the safe side of a title.
-            Regex("""\s(\d{1,3}(?:\.\d+)?)\s*$"""),
+            // `(?:^|\s)` rather than `\s`, so a name that is *only* a number —
+            // "003.cbz", the usual shape inside a per-series folder — reads as
+            // issue three with no series, leaving the folder to supply one.
+            Regex("""(?:^|\s)(\d{1,3}(?:\.\d+)?)\s*$"""),
         )
         private const val TRIM_CHARS = " -–—_#.,:;()"
 
@@ -59,7 +62,11 @@ data class FilenameMetadata(
          * cases the list must handle live in the shared corpus manifest, so both
          * platforms agree on what "common naming pattern" means.
          */
-        fun of(filename: String): FilenameMetadata {
+        /**
+         * @param seriesHint what the containing folder is called, used only when
+         *   the filename yields no series of its own.
+         */
+        fun of(filename: String, seriesHint: String? = null): FilenameMetadata {
             // A dotfile is not a publication, and stripping an extension leaves
             // ".cbz" intact — which would be read as a series called "cbz".
             if (filename.startsWith(".")) return FilenameMetadata(null, null, null, null)
@@ -107,7 +114,9 @@ data class FilenameMetadata(
                 break
             }
 
-            return FilenameMetadata(tidySeries(stem), number, volume, year)
+            // The filename first. A folder name describes a shelf; a filename
+            // describes the book on it, and where they disagree the book wins.
+            return FilenameMetadata(tidySeries(stem) ?: seriesHint, number, volume, year)
         }
 
         private fun trimLeadingZeros(value: String): String {

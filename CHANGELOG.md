@@ -61,6 +61,13 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 - **The apps actually read comics now, on both platforms.** Pick a folder, watch
   the scan fill a cover grid, open a publication, turn pages, come back and the
   cover carries a progress bar. Right-to-left reading direction throughout.
+- **A folder names its series.** `local-library` presents a subfolder of a
+  library "as a series whose name is the folder name", and the usual real layout
+  — `Bone/001.cbz` — says which issue a file is and never which series. The
+  folder now supplies that, and only where nothing better exists: embedded
+  metadata and the filename both beat it, because both describe *this*
+  publication and a folder name describes its neighbours. A bare number that is
+  the whole filename reads as an issue number rather than as a title.
 - **Search, sorting and filtering**, on both platforms and behaving identically
   because the rules are one pure function per platform asserted against the same
   table. Search covers titles, series, authors and publishers and ranks a title

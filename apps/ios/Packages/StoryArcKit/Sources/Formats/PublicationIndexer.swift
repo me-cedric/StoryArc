@@ -30,9 +30,16 @@ public enum PublicationIndexer {
     /// Opens the container, so it costs one read of the index and one of the cover
     /// — not of the whole file. A CBR is catalogued from its headers with nothing
     /// decompressed at all.
-    public static func index(fileAt url: URL) async throws -> Publication {
+    /// - Parameter seriesHint: the name of the folder the file sits in, when that
+    ///   folder is a subfolder of a picked library rather than the library itself.
+    ///   `local-library` presents such a subfolder "as a series whose name is the
+    ///   folder name", and this is the metadata half of that: a hint used only
+    ///   where nothing better exists. Embedded metadata and the filename both beat
+    ///   it, because both are statements about *this* publication and a folder name
+    ///   is a statement about its neighbours.
+    public static func index(fileAt url: URL, seriesHint: String? = nil) async throws -> Publication {
         let filename = url.lastPathComponent
-        let fallback = FilenameMetadata(filename: filename)
+        let fallback = FilenameMetadata(filename: filename, seriesHint: seriesHint)
 
         var isDirectory: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)

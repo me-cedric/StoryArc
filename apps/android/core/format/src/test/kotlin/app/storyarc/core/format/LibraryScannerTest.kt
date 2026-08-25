@@ -22,6 +22,41 @@ class LibraryScannerTest {
 
     private val corpus: File get() = FixtureCorpus.root
 
+    /**
+     * A throwaway library laid out the way a real one is: a folder per series,
+     * numbered files inside it.
+     */
+    private fun shelf(series: String, files: List<String>): File {
+        val root = temp.newFolder()
+        val folder = File(root, series).apply { mkdirs() }
+        files.forEachIndexed { index, source ->
+            File(corpus, "comics/$source").copyTo(File(folder, "%02d.cbz".format(index + 1)))
+        }
+        return root
+    }
+
+    @Test
+    fun `a subfolder names the series when the filename does not`() = runTest {
+        // `local-library`: "each subfolder is presented as a series whose name is
+        // the folder name". "Bone/01.cbz" says which issue it is and not which
+        // series; the folder is the only thing that knows.
+        val root = shelf("Bone", listOf("single-page.cbz", "natural-sort.cbz"))
+
+        val publications = LibraryScanner.scanAll(root)
+
+        assertEquals(2, publications.size)
+        assertTrue(publications.all { it.series == "Bone" })
+        assertEquals(setOf("1", "2"), publications.mapNotNull { it.number }.toSet())
+    }
+
+    @Test
+    fun `the library's own folder is not a series`() = runTest {
+        // Everything in the corpus root would otherwise be filed under
+        // "test-fixtures", which is a path, not a story.
+        val publications = LibraryScanner.scanAll(corpus)
+        assertTrue(publications.none { it.series == corpus.name })
+    }
+
     @Test
     fun `a folder of mixed formats yields a publication for each`() = runTest {
         val formats = LibraryScanner.scanAll(corpus).map { it.format }.toSet()

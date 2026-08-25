@@ -11,6 +11,44 @@ import Testing
 struct LibraryScannerTests {
     private var corpus: URL { FixtureCorpus.root }
 
+    /// A throwaway library laid out the way a real one is: a folder per series,
+    /// numbered files inside it.
+    private func shelf(series: String, files: [String]) throws -> URL {
+        let root = URL.temporaryDirectory.appending(path: "shelf-\(UUID().uuidString)")
+        let folder = root.appending(path: series)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        for (index, source) in files.enumerated() {
+            try FileManager.default.copyItem(
+                at: FixtureCorpus.url("comics/\(source)"),
+                to: folder.appending(path: String(format: "%02d.cbz", index + 1))
+            )
+        }
+        return root
+    }
+
+    @Test("A subfolder names the series when the filename does not")
+    func folderIsASeries() async throws {
+        // `local-library`: "each subfolder is presented as a series whose name is
+        // the folder name". "Bone/01.cbz" says which issue it is and not which
+        // series; the folder is the only thing that knows.
+        let root = try shelf(series: "Bone", files: ["single-page.cbz", "natural-sort.cbz"])
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let publications = await LibraryScanner.scanAll(folderAt: root)
+
+        #expect(publications.count == 2)
+        #expect(publications.allSatisfy { $0.series == "Bone" })
+        #expect(Set(publications.compactMap(\.number)) == ["1", "2"])
+    }
+
+    @Test("The library's own folder is not a series")
+    func rootIsNotASeries() async throws {
+        // Everything in the corpus root would otherwise be filed under
+        // "test-fixtures", which is a path, not a story.
+        let publications = await LibraryScanner.scanAll(folderAt: corpus)
+        #expect(!publications.contains { $0.series == corpus.lastPathComponent })
+    }
+
     private func events(in folder: URL) async -> [ScanEvent] {
         var collected: [ScanEvent] = []
         for await event in LibraryScanner.scan(folderAt: folder) { collected.append(event) }
