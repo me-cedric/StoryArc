@@ -69,5 +69,9 @@
     <string name="privacy_clear_history">Borrar el historial de lectura</string>
     <string name="privacy_clear_history_body">Cada publicación vuelve a su primera página. Sus archivos, fuentes y ajustes no se ven afectados.</string>
     <string name="privacy_downloads_absent">Todavía no se descarga nada, así que no hay descargas que borrar.</string>
-    <string name="privacy_diagnostic_absent">La exportación de diagnóstico no está desarrollada: la app no guarda ningún registro.</string>
+    <string name="privacy_diagnostic">Exportación de diagnóstico</string>
+    <string name="privacy_diagnostic_note">Lo que la app sabe de sí misma. Los nombres de servidor, las rutas y las credenciales se quitan antes de mostrarlo, y no se envía nada.</string>
+    <string name="privacy_diagnostic_show">Mostrar</string>
+    <string name="privacy_diagnostic_hide">Ocultar</string>
+    <string name="privacy_diagnostic_share">Compartir</string>
 </resources>

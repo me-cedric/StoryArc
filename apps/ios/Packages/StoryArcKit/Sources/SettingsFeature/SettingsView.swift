@@ -121,7 +121,7 @@ public struct SettingsView: View {
         switch group {
         case .appearance: AppearanceSettings(settings: $settings)
         case .reading: ReadingSettings(settings: $settings, readerStore: readerStore)
-        case .privacy: PrivacySettings()
+        case .privacy: PrivacySettings(settings: settings, readerStore: readerStore)
         case .about: AboutSettings()
         // Named rather than hidden. A group whose rows arrive with a capability that does
         // not exist yet says so.

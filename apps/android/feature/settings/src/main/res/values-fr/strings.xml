@@ -69,5 +69,9 @@
     <string name="privacy_clear_history">Effacer l’historique de lecture</string>
     <string name="privacy_clear_history_body">Chaque publication revient à sa première page. Vos fichiers, sources et réglages ne sont pas touchés.</string>
     <string name="privacy_downloads_absent">Rien ne se télécharge encore, il n’y a donc rien de téléchargé à effacer.</string>
-    <string name="privacy_diagnostic_absent">L’export d’un diagnostic n’est pas développé : l’application ne conserve aucun journal.</string>
+    <string name="privacy_diagnostic">Export de diagnostic</string>
+    <string name="privacy_diagnostic_note">Ce que l’application sait d’elle-même. Les noms de serveurs, les chemins et les identifiants sont retirés avant l’affichage, et rien n’est envoyé.</string>
+    <string name="privacy_diagnostic_show">Afficher</string>
+    <string name="privacy_diagnostic_hide">Masquer</string>
+    <string name="privacy_diagnostic_share">Partager</string>
 </resources>

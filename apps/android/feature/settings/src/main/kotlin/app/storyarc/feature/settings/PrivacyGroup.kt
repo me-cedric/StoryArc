@@ -1,9 +1,12 @@
 package app.storyarc.feature.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -20,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.persistence.ProgressStore
@@ -117,11 +121,67 @@ internal fun PrivacyGroup(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.labelLarge,
             color = palette.textTertiary,
         )
-        Text(
-            text = stringResource(R.string.privacy_diagnostic_absent),
-            style = MaterialTheme.typography.labelLarge,
-            color = palette.textTertiary,
-        )
+        DiagnosticRow()
+    }
+}
+
+/**
+ * The diagnostic export, shown before it can be shared.
+ *
+ * Inline rather than on its own screen. `settings-and-about` requires the reader to see
+ * the text before sharing it, and a screen they have to navigate to and back from puts
+ * distance between reading it and deciding — which is the one moment that matters here.
+ */
+@Composable
+private fun DiagnosticRow() {
+    val palette = LocalStoryArcPalette.current
+    val context = LocalContext.current
+    var text by remember { mutableStateOf<String?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.privacy_diagnostic),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textPrimary,
+                )
+                Text(
+                    text = stringResource(R.string.privacy_diagnostic_note),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = palette.textTertiary,
+                )
+            }
+            OutlinedButton(
+                // Built on show rather than on composition. It reads five stores, and a
+                // Privacy screen should not do that to draw a row nobody expanded.
+                onClick = { text = if (text == null) Diagnostic.text(context) else null },
+            ) {
+                Text(
+                    stringResource(
+                        if (text == null) R.string.privacy_diagnostic_show else R.string.privacy_diagnostic_hide,
+                    ),
+                )
+            }
+        }
+
+        text?.let { report ->
+            Text(
+                text = report,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                color = palette.textSecondary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(palette.surfaceSunken, RoundedCornerShape(StoryArcSpace.sm))
+                    .padding(StoryArcSpace.sm),
+            )
+            // Share only. The system sheet already offers "Copy", and a second button
+            // beside it would be StoryArc reimplementing a platform affordance.
+            OutlinedButton(onClick = { context.startActivity(Diagnostic.shareIntent(report)) }) {
+                Text(stringResource(R.string.privacy_diagnostic_share))
+            }
+        }
     }
 }
 

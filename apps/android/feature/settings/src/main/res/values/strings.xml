@@ -69,5 +69,9 @@
     <string name="privacy_clear_history">Clear reading history</string>
     <string name="privacy_clear_history_body">Every publication goes back to its first page. Your files, sources and settings are not affected.</string>
     <string name="privacy_downloads_absent">Nothing downloads yet, so there is nothing downloaded to clear.</string>
-    <string name="privacy_diagnostic_absent">A diagnostic export is not built yet: the app keeps no log to export.</string>
+    <string name="privacy_diagnostic">Diagnostic export</string>
+    <string name="privacy_diagnostic_note">What the app knows about itself. Server names, paths and credentials are removed before it is shown, and nothing is sent anywhere.</string>
+    <string name="privacy_diagnostic_show">Show</string>
+    <string name="privacy_diagnostic_hide">Hide</string>
+    <string name="privacy_diagnostic_share">Share</string>
 </resources>

@@ -69,5 +69,9 @@
     <string name="privacy_clear_history">Leseverlauf löschen</string>
     <string name="privacy_clear_history_body">Jede Publikation beginnt wieder auf der ersten Seite. Ihre Dateien, Quellen und Einstellungen bleiben unberührt.</string>
     <string name="privacy_downloads_absent">Es wird noch nichts heruntergeladen, also gibt es nichts Heruntergeladenes zu löschen.</string>
-    <string name="privacy_diagnostic_absent">Ein Diagnose-Export ist noch nicht gebaut: die App führt kein Protokoll.</string>
+    <string name="privacy_diagnostic">Diagnose-Export</string>
+    <string name="privacy_diagnostic_note">Was die App über sich selbst weiß. Servernamen, Pfade und Zugangsdaten werden vor der Anzeige entfernt, und es wird nichts gesendet.</string>
+    <string name="privacy_diagnostic_show">Anzeigen</string>
+    <string name="privacy_diagnostic_hide">Ausblenden</string>
+    <string name="privacy_diagnostic_share">Teilen</string>
 </resources>

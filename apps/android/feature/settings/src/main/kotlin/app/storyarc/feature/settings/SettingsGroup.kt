@@ -134,11 +134,15 @@ private val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
         SettingMatch(SettingsGroup.READING, R.string.reading_volume_buttons),
     listOf("default", "defaults", "series", "preset") to
         SettingMatch(SettingsGroup.READING, R.string.reading_defaults),
-    listOf("downloads", "storage", "cache", "offline", "space") to
-        SettingMatch(SettingsGroup.DOWNLOADS, null),
+    listOf("downloads", "offline") to SettingMatch(SettingsGroup.DOWNLOADS, null),
     listOf("language", "locale", "translation") to SettingMatch(SettingsGroup.LANGUAGE, null),
-    listOf("privacy", "analytics", "tracking", "account", "data") to
+    // "cache", "storage" and "space" point here rather than at Downloads. Downloads is
+    // still pending, and Privacy is where the sizes are shown and cleared today — a
+    // search term that lands on an empty screen is worse than no search term.
+    listOf("privacy", "analytics", "tracking", "account", "data", "cache", "storage", "space", "clear") to
         SettingMatch(SettingsGroup.PRIVACY, null),
+    listOf("diagnostic", "diagnostics", "bug", "report", "log") to
+        SettingMatch(SettingsGroup.PRIVACY, R.string.privacy_diagnostic),
     listOf("about", "version", "author", "licence", "license", "acknowledgements", "credits", "support") to
         SettingMatch(SettingsGroup.ABOUT, null),
 )

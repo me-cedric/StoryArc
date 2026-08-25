@@ -813,31 +813,147 @@
         }
       }
     },
-    "privacy.diagnostic.absent": {
+    "privacy.diagnostic": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ein Diagnose-Export ist noch nicht gebaut: die App führt kein Protokoll."
+            "value": "Diagnose-Export"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A diagnostic export is not built yet: the app keeps no log to export."
+            "value": "Diagnostic export"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La exportación de diagnóstico no está desarrollada: la app no guarda ningún registro."
+            "value": "Exportación de diagnóstico"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’export d’un diagnostic n’est pas développé : l’application ne conserve aucun journal."
+            "value": "Export de diagnostic"
+          }
+        }
+      }
+    },
+    "privacy.diagnostic.hide": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausblenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masquer"
+          }
+        }
+      }
+    },
+    "privacy.diagnostic.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was die App über sich selbst weiß. Servernamen, Pfade und Zugangsdaten werden vor der Anzeige entfernt, und es wird nichts gesendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What the app knows about itself. Server names, paths and credentials are removed before it is shown, and nothing is sent anywhere."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que la app sabe de sí misma. Los nombres de servidor, las rutas y las credenciales se quitan antes de mostrarlo, y no se envía nada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce que l’application sait d’elle-même. Les noms de serveurs, les chemins et les identifiants sont retirés avant l’affichage, et rien n’est envoyé."
+          }
+        }
+      }
+    },
+    "privacy.diagnostic.share": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partager"
+          }
+        }
+      }
+    },
+    "privacy.diagnostic.show": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher"
           }
         }
       }
@@ -871,31 +987,31 @@
         }
       }
     },
-    "privacy.history": {
+    "privacy.history %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leseverlauf"
+            "value": "Leseverlauf · %@"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reading history"
+            "value": "Reading history · %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Historial de lectura"
+            "value": "Historial de lectura · %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Historique de lecture"
+            "value": "Historique de lecture · %@"
           }
         }
       }
