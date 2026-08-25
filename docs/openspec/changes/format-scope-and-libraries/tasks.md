@@ -334,13 +334,15 @@ and `image-pages.pdf` (the scanned-comic case), both written by `generate.py`.
       several-hundred-megabyte document. That measurement needs a large fixture,
       which the corpus deliberately does not carry; do it against a real file
       before 1.0.
-- [ ] **4.3** Hide text-dependent controls on Android. Hidden, never disabled —
-      the spec forbids implying a capability that is absent. **Blocked on the
-      reader UI**, which does not exist yet. The format layer already enforces the
-      strongest version of this: Android's `PdfDocumentReader` has no text, search
-      or outline API and no `hasTextLayer`, so there is nothing for a control to
-      bind to. A property that always returned `false` would have invited a caller
-      to treat it as a real answer.
+- [x] **4.3** Hide text-dependent controls on Android. **Done, and by absence
+      rather than by a branch.** The reader UI now exists on both platforms and
+      Android's reader has no text, search or outline control to hide, because
+      `PdfDocumentReader` there exposes no API for any of them and no
+      `hasTextLayer` either. There is nothing for a control to bind to, so there is
+      no state in which one could appear disabled. A property that always returned
+      `false` would have invited a caller to treat it as a real answer; the
+      strongest form of "hidden, never disabled" is a capability that does not
+      exist in the type system.
 - [x] **4.4** Assert the same page renders at the same aspect ratio and fit on
       both platforms. **Done, exactly rather than within a tolerance.** Both
       readers report page size in *points* rather than pixels, so both assert 612
@@ -360,6 +362,10 @@ and `image-pages.pdf` (the scanned-comic case), both written by `generate.py`.
       classified without being transferred. What remains is a UI to show it in,
       which does not exist yet.
 - [ ] **5.2** The download-instead-of-stream flow, with the size stated.
+      **Blocked on there being a remote source to download from.** Every source in
+      the app today is local, so there is no flow to enter and nothing whose size
+      could be stated. `offline-downloads` and one of the remote source
+      capabilities have to land first.
 - [ ] **5.3** A downloaded solid archive opens with no notice at all. **True for
       RAR5, false for RAR4** — see the finding below, and note that the finding
       was corrected once a real solid RAR5 could be tested. The format layer is
@@ -460,8 +466,37 @@ Three consequences:
       Better than Phase 0's 202 kB on iOS and 235 kB per Android ABI, because 26
       files are vendored rather than 132 — the linker no longer has to strip what
       was never compiled.
-- [ ] **6.3** Open a real CBR, CBT and PDF on a simulator and an emulator, with
-      screenshots. A fixture proves parsing; a screenshot proves reading.
-- [ ] **6.4** Update ADR-0005: promote the rows this change proves, and state
-      what still blocks acceptance.
+- [x] **6.3** Open a real CBR, CBT and PDF on a simulator and an emulator, with
+      screenshots. **Done on the emulator for all three**, in the reader rather
+      than the library: `rar5-store.cbr` and `tar-store.cbt` both open at "1 of 3",
+      and `text-pages.pdf` renders "Chapter One" and turns to "Chapter Two". EPUB
+      reads too, which was not part of this change.
+
+      **On the simulator, partially.** The library screenshot shows CBR, CBT, PDF
+      and EPUB rows with covers, which proves the containers parsed and a page
+      decoded. Opening one in the reader could not be captured: this machine grants
+      `osascript` no assistive access and the simulator MCP device access was
+      declined, so there is no way to inject a tap. The iOS reader is instead held
+      to `ReaderFeatureTests`, which opens an archive and a PDF, decodes the first
+      page, and asserts the prefetch window — the same claim, asserted rather than
+      photographed. Re-take the screenshot on a machine that can drive the
+      simulator before 1.0.
+- [x] **6.4** Update ADR-0005: promote the rows this change proves, and state
+      what still blocks acceptance. **Done.** The libarchive and ABI rows are
+      marked done with the evidence; the Readium row moved from "blocked on the
+      reader existing" to "partly done", because both toolkits now render the same
+      EPUB in a real reader and what remains is a pagination comparison under
+      matched typography, which needs the type controls of
+      `reader-theming-and-page-transitions`. A new row records the packaging
+      consequence that Readium is iOS-only, which forced a second SwiftPM package.
+      The two spikes that still block acceptance are the SMB time-to-first-page
+      measurement and the AMSMB2 linkage check — both belong to sources that are
+      not built.
 - [ ] **6.5** `/opsx:sync` to merge the delta specs into the main specs.
+      **Held, and not because of the specs.** The change validates and every task
+      in Phases 0 to 4 and 6 is done. What is open is 5.2 and 5.3, both blocked on
+      a remote source existing to download from — which is a different capability
+      and arguably a different change. Syncing now would archive a change with two
+      unfinished tasks; moving those two into an `offline-downloads` change and
+      syncing this one is the other option, and that is a call for whoever owns the
+      backlog rather than one to make in passing.
