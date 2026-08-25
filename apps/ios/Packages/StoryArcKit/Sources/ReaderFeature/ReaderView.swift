@@ -37,11 +37,29 @@ public struct ReaderView: View {
     /// has one writer and cannot desynchronise.
     @State private var displayIndex = 0
 
-    public init(publication: Publication, url: URL, progress: ProgressStore? = nil) {
+    /// What follows this publication, and how to open it.
+    ///
+    /// Supplied by the app layer: the reader does not know what a library is, and a
+    /// feature module never depends on another feature module.
+    private let nextInSeries: Publication?
+    private let onOpenNext: (Publication) -> Void
+
+    public init(
+        publication: Publication,
+        url: URL,
+        progress: ProgressStore? = nil,
+        nextInSeries: Publication? = nil,
+        onOpenNext: @escaping (Publication) -> Void = { _ in }
+    ) {
         _model = State(
             initialValue: ReaderModel(publication: publication, url: url, progress: progress)
         )
+        self.nextInSeries = nextInSeries
+        self.onOpenNext = onOpenNext
     }
+
+    /// Set when the reader turns past the last page.
+    @State private var hasReachedEnd = false
 
     public var body: some View {
         GeometryReader { geometry in
@@ -64,6 +82,16 @@ public struct ReaderView: View {
                 }
 
                 if isChromeVisible { chrome }
+
+                if hasReachedEnd {
+                    EndOfPublication(
+                        title: model.publication.displayTitle,
+                        next: nextInSeries,
+                        onOpenNext: onOpenNext,
+                        onBack: { hasReachedEnd = false },
+                        onClose: { dismiss() }
+                    )
+                }
             }
             // `comic-reader`: the chrome fades out again "after 4 seconds of no
             // interaction". Keyed on the index too, so turning a page while the
@@ -173,6 +201,13 @@ public struct ReaderView: View {
 
     private func turn(by step: Int) {
         let next = displayIndex + step
+        // `comic-reader`: turning past the last page reaches an end screen rather
+        // than nothing. In right-to-left the last *page* is the first display
+        // position, which is why this asks the model rather than the pager.
+        if !model.pages.indices.contains(next), model.currentIndex == model.pages.count - 1 {
+            withAnimation(.easeInOut(duration: 0.2)) { hasReachedEnd = true }
+            return
+        }
         guard model.pages.indices.contains(next) else { return }
         withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .default) {
             displayIndex = next
@@ -350,5 +385,67 @@ struct DelayedProgressView: View {
             try? await Task.sleep(for: .milliseconds(400))
             isVisible = true
         }
+    }
+}
+
+/// What the reader shows after the last page.
+///
+/// `comic-reader`: "an end screen offers the next publication in the series or
+/// reading list, marks this one finished". Marking is already done — the last page
+/// records `isFinished` as it is turned to, because a reader who closes the app on
+/// the last page has still finished it.
+///
+/// Deleting the download is offered by the same scenario and is not here: there
+/// are no downloads yet, and a button that deletes nothing is worse than none.
+struct EndOfPublication: View {
+    @Environment(\.theme) private var theme
+
+    let title: String
+    let next: Publication?
+    let onOpenNext: (Publication) -> Void
+    let onBack: () -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.92).ignoresSafeArea()
+
+            VStack(spacing: StoryArcSpace.lg) {
+                VStack(spacing: StoryArcSpace.xs) {
+                    Text("reader.end.finished", bundle: .module)
+                        .textRole(.title3)
+                        .foregroundStyle(.white)
+                    Text(title)
+                        .textRole(.footnote)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                }
+
+                if let next {
+                    Button {
+                        onOpenNext(next)
+                    } label: {
+                        Text("reader.end.next \(next.displayTitle)", bundle: .module)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, StoryArcSpace.xs)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+
+                HStack(spacing: StoryArcSpace.md) {
+                    Button(action: onBack) {
+                        Text("reader.end.back", bundle: .module)
+                    }
+                    Button(action: onClose) {
+                        Text("reader.end.library", bundle: .module)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(.white)
+            }
+            .padding(.horizontal, StoryArcSpace.gutter)
+            .frame(maxWidth: StoryArcSpace.huge * 6)
+        }
+        .transition(.opacity)
     }
 }

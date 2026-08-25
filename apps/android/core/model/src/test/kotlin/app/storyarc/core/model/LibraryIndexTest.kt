@@ -1,6 +1,7 @@
 package app.storyarc.core.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.util.Locale
 
@@ -143,6 +144,34 @@ class LibraryIndexTest {
             Locale.ENGLISH,
         ) { states[it.id] ?: LibraryIndex.Progress.unread }
         assertEquals(listOf("Bone"), titles(sorted))
+    }
+
+
+    // Next in series.
+
+    @Test
+    fun `the next issue is the one after this number, not the next row`() {
+        val second = publication("Bone #2", series = "Bone", number = "2")
+        val library = listOf(
+            publication("Bone #10", series = "Bone", number = "10"),
+            second,
+            publication("Bone #9", series = "Bone", number = "9"),
+            publication("Akira", series = "Akira", number = "1"),
+        )
+        assertEquals("Bone #9", LibraryIndex.next(second, library)?.displayTitle)
+    }
+
+    @Test
+    fun `the last issue in a series has no next`() {
+        val last = publication("Bone #2", series = "Bone", number = "2")
+        val library = listOf(publication("Bone #1", series = "Bone", number = "1"), last)
+        assertNull(LibraryIndex.next(last, library))
+    }
+
+    @Test
+    fun `a publication with no series has no next, however many neighbours it has`() {
+        val alone = publication("Watchmen")
+        assertNull(LibraryIndex.next(alone, listOf(alone, publication("Akira"))))
     }
 
     // Continue reading.

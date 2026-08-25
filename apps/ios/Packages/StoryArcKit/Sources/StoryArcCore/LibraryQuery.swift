@@ -168,6 +168,40 @@ public enum LibraryIndex {
             .map(\.0)
     }
 
+
+    /// The next publication in the same series.
+    ///
+    /// `comic-reader`: reaching the end of one volume offers the next. Matching is
+    /// on the series name and the issue number, which is all a local library knows
+    /// — a reading list carries its own order and will answer this differently when
+    /// there are reading lists.
+    ///
+    /// `nil` when the publication names no series, when nothing follows it, or when
+    /// the next thing cannot be opened. Offering a publication that refuses to open
+    /// would be worse than offering nothing.
+    public static func next(after publication: Publication, in library: [Publication]) -> Publication? {
+        guard let series = publication.series else { return nil }
+        let current = issueNumber(of: publication)
+
+        return library
+            .filter { candidate in
+                candidate.id != publication.id
+                    && candidate.series == series
+                    && candidate.isOpenable
+                    && issueNumber(of: candidate) > current
+            }
+            .min { issueNumber(of: $0) < issueNumber(of: $1) }
+    }
+
+    /// An issue number as a number, so #10 follows #9.
+    ///
+    /// A publication with no number sorts last, which keeps a one-off out of the
+    /// middle of a numbered run.
+    private static func issueNumber(of publication: Publication) -> Double {
+        guard let raw = publication.number else { return .greatestFiniteMagnitude }
+        return Double(raw.filter { $0.isNumber || $0 == "." }) ?? .greatestFiniteMagnitude
+    }
+
     /// How well a publication answers the query, lower being better, or `nil` for
     /// no match at all.
     ///

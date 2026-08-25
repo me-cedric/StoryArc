@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +35,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PageEntry
+import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingDirection
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
@@ -95,6 +100,13 @@ import kotlin.math.roundToInt
 fun ReaderScreen(
     viewModel: ReaderViewModel,
     onClose: () -> Unit,
+    /**
+     * What follows this publication, and how to open it. Supplied by the app layer:
+     * the reader does not know what a library is, and a feature module never
+     * depends on another feature module.
+     */
+    nextInSeries: Publication? = null,
+    onOpenNext: (Publication) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val pages by viewModel.pages.collectAsStateWithLifecycle()
@@ -106,7 +118,10 @@ fun ReaderScreen(
         maxOf(configuration.screenWidthDp.dp, configuration.screenHeightDp.dp).roundToPx()
     }
 
-    LaunchedEffect(Unit) { viewModel.open(maxPixelSize) }
+    // Keyed on the model, not on `Unit`. The end screen swaps in the next issue
+    // without leaving this composable, so an effect that runs once would open the
+    // first publication and then show a spinner for ever on the second.
+    LaunchedEffect(viewModel) { viewModel.open(maxPixelSize) }
 
     // `comic-reader`: "the screen does not auto-lock while a page is visible, and
     // normal locking resumes on leaving". A long look at one page is reading, not
@@ -133,7 +148,7 @@ fun ReaderScreen(
                 DelayedProgressIndicator()
                 CloseButton(onClose)
             }
-            else -> Pager(viewModel, pages, onClose)
+            else -> Pager(viewModel, pages, onClose, nextInSeries, onOpenNext)
         }
     }
 }
@@ -156,7 +171,13 @@ private fun androidx.compose.foundation.layout.BoxScope.CloseButton(onClose: () 
 }
 
 @Composable
-private fun Pager(viewModel: ReaderViewModel, pages: List<PageEntry>, onClose: () -> Unit) {
+private fun Pager(
+    viewModel: ReaderViewModel,
+    pages: List<PageEntry>,
+    onClose: () -> Unit,
+    nextInSeries: Publication?,
+    onOpenNext: (Publication) -> Unit,
+) {
     val count = pages.size
     val isRightToLeft = viewModel.readingDirection == ReadingDirection.RIGHT_TO_LEFT
 
@@ -181,6 +202,9 @@ private fun Pager(viewModel: ReaderViewModel, pages: List<PageEntry>, onClose: (
     // `comic-reader`: nothing is on screen while reading, and the chrome fades out
     // again after four seconds of no interaction.
     var isChromeVisible by remember { mutableStateOf(true) }
+
+    /** Set when the reader turns past the last page. */
+    var hasReachedEnd by remember { mutableStateOf(false) }
     LaunchedEffect(isChromeVisible, pagerState.currentPage) {
         if (!isChromeVisible) return@LaunchedEffect
         delay(CHROME_TIMEOUT_MILLIS)
@@ -202,6 +226,17 @@ private fun Pager(viewModel: ReaderViewModel, pages: List<PageEntry>, onClose: (
      * reversed, so one step right on screen is one step right on screen whichever
      * way the story runs.
      */
+    fun turn(target: Int) {
+        if (target in 0 until count) {
+            scope.launch { pagerState.animateScrollToPage(target) }
+            return
+        }
+        // `comic-reader`: turning past the last page reaches an end screen rather
+        // than nothing. In right-to-left the last *page* is the first display
+        // position, which is why this asks the model index rather than the pager.
+        if (modelIndex(pagerState.currentPage) == count - 1) hasReachedEnd = true
+    }
+
     fun handleTap(point: Offset, size: IntSize) {
         val edge = size.width * EDGE_ZONE_FRACTION
         val target = when {
@@ -212,9 +247,7 @@ private fun Pager(viewModel: ReaderViewModel, pages: List<PageEntry>, onClose: (
                 return
             }
         }
-        if (target in 0 until count) {
-            scope.launch { pagerState.animateScrollToPage(target) }
-        }
+        turn(target)
     }
 
     // `comic-reader`: the mapped keys turn pages. Arrow, page and space only —
@@ -235,10 +268,7 @@ private fun Pager(viewModel: ReaderViewModel, pages: List<PageEntry>, onClose: (
                     Key.DirectionRight, Key.PageDown, Key.Spacebar -> 1
                     else -> return@onKeyEvent false
                 }
-                val target = pagerState.currentPage + step
-                if (target in 0 until count) {
-                    scope.launch { pagerState.animateScrollToPage(target) }
-                }
+                turn(pagerState.currentPage + step)
                 true
             },
     ) { page ->
@@ -270,6 +300,17 @@ private fun Pager(viewModel: ReaderViewModel, pages: List<PageEntry>, onClose: (
                 }
             }
         }
+    }
+
+    if (hasReachedEnd) {
+        EndOfPublication(
+            title = viewModel.publication.displayTitle,
+            next = nextInSeries,
+            onOpenNext = onOpenNext,
+            onBack = { hasReachedEnd = false },
+            onClose = onClose,
+        )
+        return
     }
 
     AnimatedVisibility(visible = isChromeVisible, enter = fadeIn(), exit = fadeOut()) {
@@ -423,6 +464,71 @@ private fun Modifier.tappable(
 private fun PointerInputScope.isEdgeTap(point: Offset, area: IntSize): Boolean {
     val edge = area.width * EDGE_ZONE_FRACTION
     return point.x < edge || point.x > area.width - edge
+}
+
+/**
+ * What the reader shows after the last page.
+ *
+ * `comic-reader`: "an end screen offers the next publication in the series or
+ * reading list, marks this one finished". Marking is already done — the last page
+ * records `isFinished` as it is turned to, because a reader who closes the app on
+ * the last page has still finished it.
+ *
+ * Deleting the download is offered by the same scenario and is not here: there are
+ * no downloads yet, and a button that deletes nothing is worse than none.
+ */
+@Composable
+private fun EndOfPublication(
+    title: String,
+    next: Publication?,
+    onOpenNext: (Publication) -> Unit,
+    onBack: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.92f))
+            .padding(StoryArcSpace.gutter),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg, Alignment.CenterVertically),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        ) {
+            Text(
+                text = stringResource(R.string.reader_end_finished),
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White,
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+            )
+        }
+
+        if (next != null) {
+            Button(onClick = { onOpenNext(next) }) {
+                Text(stringResource(R.string.reader_end_next, next.displayTitle))
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md)) {
+            // White, not the theme's accent: this overlay is near-black whatever
+            // the app's appearance, and the accent on it fails contrast.
+            val labels = ButtonDefaults.textButtonColors(contentColor = Color.White)
+            TextButton(onClick = onBack, colors = labels) {
+                Text(stringResource(R.string.reader_end_back))
+            }
+            TextButton(onClick = onClose, colors = labels) {
+                Text(stringResource(R.string.reader_end_library))
+            }
+        }
+    }
 }
 
 /**

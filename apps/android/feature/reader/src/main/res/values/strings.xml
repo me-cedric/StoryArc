@@ -4,4 +4,8 @@
     <string name="reader_close">Close</string>
     <string name="reader_page_unavailable">This page could not be read</string>
     <string name="reader_right_to_left">Right to left</string>
+    <string name="reader_end_finished">Finished</string>
+    <string name="reader_end_next">Next: %1$s</string>
+    <string name="reader_end_back">Back to the last page</string>
+    <string name="reader_end_library">Library</string>
 </resources>

@@ -143,6 +143,38 @@ struct LibraryIndexTests {
         #expect(titles(sorted) == ["Bone"])
     }
 
+
+    // MARK: - Next in series
+
+    @Test("The next issue is the one after this number, not the next row")
+    func nextInSeries() throws {
+        let library = [
+            publication("Bone #10", series: "Bone", number: "10"),
+            publication("Bone #2", series: "Bone", number: "2"),
+            publication("Bone #9", series: "Bone", number: "9"),
+            publication("Akira", series: "Akira", number: "1"),
+        ]
+        let second = try #require(library.first { $0.number == "2" })
+        let next = LibraryIndex.next(after: second, in: library)
+        #expect(next?.displayTitle == "Bone #9")
+    }
+
+    @Test("The last issue in a series has no next")
+    func lastInSeries() throws {
+        let library = [
+            publication("Bone #1", series: "Bone", number: "1"),
+            publication("Bone #2", series: "Bone", number: "2"),
+        ]
+        let last = try #require(library.last)
+        #expect(LibraryIndex.next(after: last, in: library) == nil)
+    }
+
+    @Test("A publication with no series has no next, however many neighbours it has")
+    func noSeriesNoNext() {
+        let alone = publication("Watchmen")
+        #expect(LibraryIndex.next(after: alone, in: [alone, publication("Akira")]) == nil)
+    }
+
     // MARK: - Continue reading
 
     @Test("Continue reading holds only what is in progress, most recent first")

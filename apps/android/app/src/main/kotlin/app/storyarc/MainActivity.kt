@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.core.persistence.LibraryPreferences
@@ -20,6 +21,7 @@ import app.storyarc.feature.library.LibraryViewModel
 import app.storyarc.feature.reader.ReaderScreen
 import app.storyarc.feature.reader.ReaderViewModel
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -51,12 +53,16 @@ class MainActivity : ComponentActivity() {
                 var reading by remember { mutableStateOf<Pair<Publication, String>?>(null) }
                 val selection = reading
 
+                // Held across both branches, not just the library's: the reader's
+                // end screen asks it what comes next in the series, and a model
+                // created inside the library branch would not exist to ask.
+                val libraryViewModel = viewModel<LibraryViewModel>(
+                    factory = viewModelFactory {
+                        initializer { LibraryViewModel(application, progress, preferences) }
+                    },
+                )
+
                 if (selection == null) {
-                    val libraryViewModel = viewModel<LibraryViewModel>(
-                        factory = viewModelFactory {
-                            initializer { LibraryViewModel(application, progress, preferences) }
-                        },
-                    )
                     LibraryScreen(
                         viewModel = libraryViewModel,
                         onOpen = { publication, path ->
@@ -83,6 +89,7 @@ class MainActivity : ComponentActivity() {
                         },
                     )
                 } else {
+                    val publications by libraryViewModel.publications.collectAsStateWithLifecycle()
                     // Keyed on the publication so opening a different one builds a
                     // fresh model rather than showing the previous book's pages.
                     val readerViewModel = remember(selection.first.id) {
@@ -94,7 +101,26 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     BackHandler { reading = null }
-                    ReaderScreen(viewModel = readerViewModel, onClose = { reading = null })
+                    ReaderScreen(
+                        viewModel = readerViewModel,
+                        onClose = { reading = null },
+                        // `comic-reader`: the end of one volume offers the next.
+                        // The app layer answers this because it is the only place
+                        // that can see both the reader and the library.
+                        // Collected rather than read off the flow: a `.value` in a
+                        // composition is a snapshot nothing recomposes on, so the
+                        // end screen would offer whatever was there when the reader
+                        // opened.
+                        nextInSeries = LibraryIndex.next(selection.first, publications),
+                        onOpenNext = { publication ->
+                            // The selection is replaced rather than a second reader
+                            // pushed: stacking them would leave a pile behind a
+                            // long series.
+                            libraryViewModel.location(publication)?.let {
+                                reading = publication to it
+                            }
+                        },
+                    )
                 }
             }
         }

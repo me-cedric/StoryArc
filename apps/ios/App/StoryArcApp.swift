@@ -51,6 +51,15 @@ struct StoryArcApp: App {
         Task { await library.refreshProgress() }
     }
 
+    /// Swaps the reader's contents for the next publication.
+    ///
+    /// The selection is replaced rather than a second cover presented: stacking
+    /// readers would leave a pile of them behind a long series.
+    private func openNext(_ publication: Publication) {
+        guard let url = library.location(of: publication) else { return }
+        reading = ReadingSelection(publication: publication, url: url)
+    }
+
     var body: some Scene {
         WindowGroup {
             LibraryView(model: library, progress: progress) { publication, url in
@@ -74,12 +83,24 @@ struct StoryArcApp: App {
                         url: selection.url,
                         progress: progress
                     )
+                    // Identity, so opening the next issue from the end screen
+                    // builds a fresh reader rather than reusing the previous one's
+                    // `@State`.
+                    .id(selection.publication.id)
                     .storyArcTheme()
                 } else {
                     ReaderView(
                         publication: selection.publication,
                         url: selection.url,
-                        progress: progress
+                        progress: progress,
+                        // `comic-reader`: the end of one volume offers the next.
+                        // The app layer answers this because it is the only place
+                        // that can see both the reader and the library.
+                        nextInSeries: LibraryIndex.next(
+                            after: selection.publication,
+                            in: library.publications
+                        ),
+                        onOpenNext: openNext
                     )
                     .storyArcTheme()
                 }

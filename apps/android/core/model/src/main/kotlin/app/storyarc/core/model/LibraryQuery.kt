@@ -166,6 +166,43 @@ object LibraryIndex {
             .take(limit)
             .map { it.first }
 
+
+    /**
+     * The next publication in the same series.
+     *
+     * `comic-reader`: reaching the end of one volume offers the next. Matching is on
+     * the series name and the issue number, which is all a local library knows — a
+     * reading list carries its own order and will answer this differently when there
+     * are reading lists.
+     *
+     * `null` when the publication names no series, when nothing follows it, or when
+     * the next thing cannot be opened. Offering a publication that refuses to open
+     * would be worse than offering nothing.
+     */
+    fun next(after: Publication, library: List<Publication>): Publication? {
+        val series = after.series ?: return null
+        val current = issueNumber(after)
+
+        return library
+            .filter {
+                it.id != after.id &&
+                    it.series == series &&
+                    it.isOpenable &&
+                    issueNumber(it) > current
+            }
+            .minByOrNull { issueNumber(it) }
+    }
+
+    /**
+     * An issue number as a number, so #10 follows #9.
+     *
+     * A publication with no number sorts last, which keeps a one-off out of the
+     * middle of a numbered run.
+     */
+    private fun issueNumber(publication: Publication): Double =
+        publication.number?.filter { it.isDigit() || it == '.' }?.toDoubleOrNull()
+            ?: Double.MAX_VALUE
+
     /**
      * How well a publication answers the query, lower being better, or `null` for
      * no match at all.

@@ -88,6 +88,12 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   double-tap to magnify the panel you tapped and again to fit. A `UIScrollView`
   on iOS and Compose's `transformable` on Android, both chosen because they
   decline the drag at fit scale so the pager still turns the page.
+- **The end of a volume offers the next one.** Turning past the last page reaches
+  an end screen naming what was finished and, when the series has one, the issue
+  after it — matched on series and issue number, and only offered when it can
+  actually be opened. Deleting the download is part of the same scenario and is
+  absent: there are no downloads yet, and a button that deletes nothing is worse
+  than none.
 - **The reader keeps the screen awake, turns on arrow, page and space keys, and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
