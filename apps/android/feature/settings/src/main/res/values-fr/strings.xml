@@ -53,4 +53,10 @@
     <string name="preset_bold">Marqué</string>
     <string name="preset_calm">Apaisé</string>
     <string name="preset_focus">Concentration</string>
+    <string name="settings_search">Rechercher dans les réglages</string>
+    <string name="settings_search_empty">Aucun résultat pour « %1$s ».</string>
+    <string name="settings_reset">Réinitialiser les réglages</string>
+    <string name="settings_reset_body">L’apparence, les préférences de lecture et les réglages par défaut des nouvelles séries reviennent à leur état initial.\n\nVos sources, téléchargements, progression de lecture et les thèmes choisis pendant la lecture ne sont pas touchés.</string>
+    <string name="settings_reset_confirm">Réinitialiser</string>
+    <string name="settings_cancel">Annuler</string>
 </resources>

@@ -305,6 +305,21 @@ class ReadingThemeTest {
     }
 
     @Test
+    fun `A reset forgets the defaults and keeps every choice made while reading`() {
+        // `settings-and-about` requires the reset to say that reading progress is not
+        // affected. A per-series theme is not progress, but it is equally not a setting —
+        // it is a decision made while reading — so it survives too.
+        val memory = ShelfMemory()
+            .remembering(ShelfSettings(ReadingTheme(ThemePreset.CALM)), ThemeScope.REFLOWABLE, "Bone")
+            .settingDefault(ShelfSettings(ReadingTheme(ThemePreset.FOCUS)), ThemeScope.REFLOWABLE)
+            .clearingDefaults()
+
+        assertEquals(ThemePreset.CALM, memory.theme(ThemeScope.REFLOWABLE, "Bone").theme.preset)
+        // Back to the built-in default rather than to Focus.
+        assertEquals(ThemePreset.PAPER, memory.theme(ThemeScope.REFLOWABLE, "unopened").theme.preset)
+    }
+
+    @Test
     fun `A book with no series is a series of one, not the global default`() {
         // Otherwise reading one novel in sepia would change every other book.
         assertEquals("Bone", ShelfMemory.shelf("Bone", "abc"))

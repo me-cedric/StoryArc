@@ -125,24 +125,30 @@
   "plugin_assets": {},
   "surfaces": [
     "adrs",
+    "assignments",
     "catalog",
     "child-projects",
     "compass",
+    "costing",
     "design-doc",
     "designs",
     "doctor",
     "drawings",
+    "gantt",
     "git",
     "impacts",
     "knowledge",
     "mcp-servers",
     "models",
+    "personas",
     "plugins",
     "pulls",
     "qa",
     "questions",
+    "slides",
     "specifications",
-    "test-plans"
+    "test-plans",
+    "tickets"
   ],
   "paths": {},
   "steps_done": [],
@@ -150,12 +156,14 @@
   "project_name": "",
   "project_logo": "",
   "profiles": {
-    "enabled": false,
+    "enabled": true,
     "enforced": false,
     "presets": {},
-    "members": {},
+    "members": {
+      "cedric.meyer@cgi.com": "full"
+    },
     "fallback": "",
     "hidden": {}
   },
-  "updated_at": "2026-08-24"
+  "updated_at": "2026-08-25"
 }

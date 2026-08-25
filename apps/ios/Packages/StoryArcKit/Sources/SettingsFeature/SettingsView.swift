@@ -32,31 +32,80 @@ public struct SettingsView: View {
     /// Where the reading *defaults* live. A different store, for the reason 2.3 gives.
     private let readerStore: ReaderPreferences
 
-    public init(settings: Binding<AppSettings>, readerStore: ReaderPreferences) {
+    /// Returns everything this screen can set to its default, and nothing else.
+    private let onReset: () -> Void
+
+    @State private var query = ""
+    @State private var isConfirmingReset = false
+
+    public init(
+        settings: Binding<AppSettings>,
+        readerStore: ReaderPreferences,
+        onReset: @escaping () -> Void
+    ) {
         _settings = settings
         self.readerStore = readerStore
+        self.onReset = onReset
     }
 
     public var body: some View {
         NavigationStack {
             List {
-                ForEach(SettingsGroup.allCases) { group in
+                let matches = SettingsGroup.search(query)
+                if matches.isEmpty {
+                    Text("settings.search.empty \(query)", bundle: .module)
+                        .foregroundStyle(theme.palette.textSecondary)
+                }
+
+                ForEach(matches) { match in
                     NavigationLink {
-                        detail(for: group)
-                            .navigationTitle(Text(group.titleKey, bundle: .module))
+                        detail(for: match.group)
+                            .navigationTitle(Text(match.group.titleKey, bundle: .module))
                     } label: {
                         Label {
                             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                                Text(group.titleKey, bundle: .module)
-                                Text(group.summaryKey(for: settings), bundle: .module)
-                                    .textRole(.footnote)
-                                    .foregroundStyle(theme.palette.textSecondary)
+                                Text(match.setting ?? match.group.titleKey, bundle: .module)
+                                // The group path, which is what makes a match
+                                // actionable: a reader who searched "volume" needs to
+                                // know it lives under Reading.
+                                Text(
+                                    match.setting == nil
+                                        ? match.group.summaryKey(for: settings)
+                                        : match.group.titleKey,
+                                    bundle: .module
+                                )
+                                .textRole(.footnote)
+                                .foregroundStyle(theme.palette.textSecondary)
                             }
                         } icon: {
-                            Image(systemName: group.symbol)
+                            Image(systemName: match.group.symbol)
                         }
                     }
                 }
+
+                if query.isEmpty {
+                    Section {
+                        Button(role: .destructive) { isConfirmingReset = true } label: {
+                            Text("settings.reset", bundle: .module)
+                        }
+                    }
+                }
+            }
+            .searchable(text: $query, prompt: Text("settings.search", bundle: .module))
+            // `settings-and-about`: the app "confirms and states explicitly that sources,
+            // downloads, and reading progress are not affected". Naming what survives is
+            // the whole job — a confirmation that only says "are you sure" makes a reader
+            // guess at the blast radius.
+            .confirmationDialog(
+                Text("settings.reset", bundle: .module),
+                isPresented: $isConfirmingReset,
+                titleVisibility: .visible
+            ) {
+                Button(role: .destructive) { onReset() } label: {
+                    Text("settings.reset.confirm", bundle: .module)
+                }
+            } message: {
+                Text("settings.reset.body", bundle: .module)
             }
             .navigationTitle(Text("settings.title", bundle: .module))
             .toolbar {

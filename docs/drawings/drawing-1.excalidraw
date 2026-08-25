@@ -1,0 +1,44 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "tauri://localhost",
+  "elements": [
+    {
+      "id": "9St4rd6jpVQ1qjWUJszbd",
+      "type": "rectangle",
+      "x": 317.13671875,
+      "y": 192.9375,
+      "width": 307.26953125,
+      "height": 276.39453125,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "index": "a0",
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1166384823,
+      "version": 11,
+      "versionNonce": 837175449,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 1787663286249,
+      "link": null,
+      "locked": false
+    }
+  ],
+  "appState": {
+    "gridSize": 20,
+    "gridStep": 5,
+    "gridModeEnabled": false,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

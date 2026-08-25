@@ -53,4 +53,10 @@
     <string name="preset_bold">Marcado</string>
     <string name="preset_calm">Suave</string>
     <string name="preset_focus">Enfoque</string>
+    <string name="settings_search">Buscar en ajustes</string>
+    <string name="settings_search_empty">Nada coincide con «%1$s».</string>
+    <string name="settings_reset">Restablecer ajustes</string>
+    <string name="settings_reset_body">La apariencia, las preferencias de lectura y los ajustes por defecto de series nuevas vuelven a su estado inicial.\n\nSus fuentes, descargas, progreso de lectura y los temas elegidos al leer no se ven afectados.</string>
+    <string name="settings_reset_confirm">Restablecer</string>
+    <string name="settings_cancel">Cancelar</string>
 </resources>

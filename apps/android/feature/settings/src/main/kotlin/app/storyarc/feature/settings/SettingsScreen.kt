@@ -13,12 +13,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -60,6 +63,8 @@ fun SettingsScreen(
     onChange: (AppSettings) -> Unit,
     /** Where the reading *defaults* live. A different store, for the reason task 2.3 gives. */
     readerStore: ReaderPreferences,
+    /** Returns everything this screen can set to its default, and nothing else. */
+    onReset: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -75,6 +80,7 @@ fun SettingsScreen(
         null -> GroupList(
             settings = settings,
             onOpen = { open = it },
+            onReset = onReset,
             onClose = onClose,
             modifier = modifier,
         )
@@ -93,9 +99,27 @@ fun SettingsScreen(
 private fun GroupList(
     settings: AppSettings,
     onOpen: (SettingsGroup) -> Unit,
+    onReset: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // `settings-and-about` asks for search across settings, "listing each match with its
+    // group path". With seven groups the search earns its place by matching a *setting*
+    // rather than a group: someone looking for "volume" should not have to guess that it
+    // lives under Reading.
+    var query by remember { mutableStateOf("") }
+    var confirmingReset by remember { mutableStateOf(false) }
+
+    if (confirmingReset) {
+        ResetDialog(
+            onConfirm = {
+                confirmingReset = false
+                onReset()
+            },
+            onDismiss = { confirmingReset = false },
+        )
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -113,22 +137,102 @@ private fun GroupList(
         },
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
-            items(SettingsGroup.entries) { group ->
+            item {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text(stringResource(R.string.settings_search)) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = StoryArcSpace.gutter,
+                            vertical = StoryArcSpace.sm,
+                        ),
+                )
+            }
+
+            val matches = SettingsGroup.search(query)
+            if (matches.isEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.settings_search_empty, query),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(StoryArcSpace.gutter),
+                    )
+                }
+            }
+
+            items(matches) { match ->
                 ListItem(
-                    supportingContent = { Text(group.summary(settings)) },
+                    // The group path, which is what makes a match actionable: a reader who
+                    // searched "volume" needs to know it lives under Reading.
+                    supportingContent = {
+                        Text(
+                            if (match.settingRes == null) {
+                                match.group.summary(settings)
+                            } else {
+                                stringResource(match.group.titleRes)
+                            },
+                        )
+                    },
                     leadingContent = {
-                        Icon(imageVector = group.icon, contentDescription = null)
+                        Icon(imageVector = match.group.icon, contentDescription = null)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickableRow { onOpen(group) },
+                        .clickableRow { onOpen(match.group) },
                 ) {
-                    Text(stringResource(group.titleRes))
+                    Text(stringResource(match.settingRes ?: match.group.titleRes))
                 }
                 HorizontalDivider()
             }
+
+            if (query.isBlank()) {
+                item {
+                    ListItem(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickableRow { confirmingReset = true },
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_reset),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
         }
     }
+}
+
+/**
+ * The reset, confirmed and scoped out loud.
+ *
+ * `settings-and-about`: the app "confirms and states explicitly that sources, downloads,
+ * and reading progress are not affected". Naming what survives is the whole job — a
+ * confirmation that only says "are you sure" makes a reader guess at the blast radius.
+ */
+@Composable
+private fun ResetDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_reset)) },
+        text = { Text(stringResource(R.string.settings_reset_body)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    text = stringResource(R.string.settings_reset_confirm),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.settings_cancel))
+            }
+        },
+    )
 }
 
 @Composable

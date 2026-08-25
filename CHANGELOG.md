@@ -102,6 +102,13 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **Settings search**, matching the *setting* rather than the group: "volume" finds
+  "Volume buttons turn pages" and tells you it lives under Reading, and "night" finds
+  Appearance. You search for the thing you want, not for what the screen calls it.
+- **Reset settings**, and the confirmation names what survives rather than only asking
+  whether you are sure. Sources, downloads, reading progress — and the themes you chose
+  while reading, which the spec does not list but which are equally not settings. Verified
+  by reading both stores across a reset.
 - **Reading defaults for series you have not opened**, with books and comics kept
   separate — wanting cream paper for novels does not mean wanting it behind a comic.
   Changing a default cannot touch a series you have already chosen for; the two live in

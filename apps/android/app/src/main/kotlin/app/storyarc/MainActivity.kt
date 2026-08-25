@@ -123,6 +123,16 @@ class MainActivity : ComponentActivity() {
                             settings = it
                             settingsStore.save(it)
                         },
+                        onReset = {
+                            // Both stores, and only what each one calls a setting. The
+                            // reading *defaults* are settings; a theme chosen while
+                            // reading is not, and neither is progress.
+                            settingsStore.reset()
+                            settings = settingsStore.settings()
+                            readerPreferences.save(
+                                readerPreferences.themes().clearingDefaults(),
+                            )
+                        },
                         onClose = { isShowingSettings = false },
                     )
                 } else if (selection == null) {

@@ -150,6 +150,19 @@ public struct ShelfMemory: Sendable, Equatable, Codable {
         return copy
     }
 
+    /// Forgets every scope's default, and nothing else.
+    ///
+    /// What "reset settings to defaults" has to mean here. `settings-and-about` requires
+    /// the reset to state that "sources, downloads, and reading progress are not
+    /// affected", and a reader's *per-series* choices are none of those three but are
+    /// equally not settings — they are decisions made while reading. So a reset returns
+    /// what the settings screen can set and leaves what the reader set in place.
+    public func clearingDefaults() -> ShelfMemory {
+        var copy = self
+        copy.defaults = [:]
+        return copy
+    }
+
     /// Whether this shelf has a choice of its own, as opposed to inheriting one.
     public func remembers(scope: ThemeScope, shelf: String) -> Bool {
         shelves[key(scope, shelf)] != nil

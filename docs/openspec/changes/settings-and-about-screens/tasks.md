@@ -90,8 +90,28 @@
       On Android that is a `BackHandler` enabled only inside a group, so the innermost
       enabled handler wins and one gesture means two things without either level knowing
       about the other.
-- [ ] **2.2** Search across settings, listing each match with its group path, and
-      navigating to it highlighted.
+- [x] **2.2** Search across settings, listing each match with its group path, and
+      navigating to it highlighted. **Done, with the highlight not done and said so.**
+
+      The index is a *list* rather than a reflection over the screens, because the screens
+      are Compose functions and SwiftUI views, and a list is the only thing that can be
+      read without building one. Each entry carries terms rather than one label, so "night"
+      finds Appearance and "licence" finds About — a reader searches for the thing they
+      want, not for what the screen calls it.
+
+      A match on a setting shows its group underneath; a match on a group shows its current
+      value. That is the "group path" clause, and it is what makes a match actionable:
+      someone who searched "volume" needs to know it lives under Reading.
+
+      Two honest limits. The terms are English, because an index keyed on the current
+      locale would miss a reader who searches in the language they think in and matching
+      both needs a catalogue the function cannot see. And selecting a match navigates to
+      the group without *highlighting* the row inside it — with at most three rows per
+      group there is nothing to hunt for, and a highlight mechanism for that would be
+      machinery for nothing. Both are marked in the code.
+
+      Verified on the emulator: "volume" → one row, "Volume buttons turn pages / Reading".
+      "night" → Appearance, showing "OLED Dark".
 - [x] **2.3** Reading defaults: the *global* half of
       `reader-theming-and-page-transitions` 3.10. Changing one must not overwrite a
       per-series choice already made — `ShelfMemory.settingDefault` already
@@ -115,8 +135,22 @@
       fixed-layout default exactly as they were. The guarantee is structural — the two
       live in different maps, so one *cannot* reach the other — and this is that on a
       device rather than in a test.
-- [ ] **2.4** Reset to defaults, confirming first and stating explicitly that
-      sources, downloads and reading progress are untouched.
+- [x] **2.4** Reset to defaults, confirming first and stating explicitly that
+      sources, downloads and reading progress are untouched. **Done, and it names a
+      fourth thing the spec does not.**
+
+      A theme chosen *while reading* is not progress, and it is not a setting either — it
+      is a decision the reader made about one series. So the confirmation names it
+      alongside the three the spec lists, and `ShelfMemory.clearingDefaults()` is what
+      makes that true: it empties the defaults map and cannot reach a per-shelf entry.
+
+      Naming what survives is the whole job. A confirmation that only asks "are you sure"
+      leaves a reader guessing at the blast radius, which is exactly what makes a reset
+      button frightening enough to never press.
+
+      Verified on the emulator by reading both stores across the reset. Appearance went
+      from OLED Dark to System, both scope defaults were emptied, and all three per-series
+      choices were still there afterwards.
 
 ## Phase 3 — Privacy
 

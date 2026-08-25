@@ -45,6 +45,21 @@ struct ShelfMemoryTests {
         #expect(memory.theme(for: .fixedLayout, shelf: "unopened").theme.preset == .paper)
     }
 
+    @Test("A reset forgets the defaults and keeps every choice made while reading")
+    func resetClearsOnlyDefaults() {
+        // `settings-and-about` requires the reset to say that reading progress is not
+        // affected. A per-series theme is not progress, but it is equally not a setting —
+        // it is a decision made while reading — so it survives too.
+        let memory = ShelfMemory()
+            .remembering(ShelfSettings(theme: ReadingTheme(preset: .calm)), for: .reflowable, shelf: "Bone")
+            .settingDefault(ShelfSettings(theme: ReadingTheme(preset: .focus)), for: .reflowable)
+            .clearingDefaults()
+
+        #expect(memory.theme(for: .reflowable, shelf: "Bone").theme.preset == .calm)
+        // Back to the built-in default rather than to Focus.
+        #expect(memory.theme(for: .reflowable, shelf: "unopened").theme.preset == .paper)
+    }
+
     @Test("A book with no series is a series of one, not the global default")
     func standaloneBookIsItsOwnShelf() {
         // Otherwise reading one novel in sepia would change every other book.

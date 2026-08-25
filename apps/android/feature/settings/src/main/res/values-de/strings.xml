@@ -53,4 +53,10 @@
     <string name="preset_bold">Kräftig</string>
     <string name="preset_calm">Sanft</string>
     <string name="preset_focus">Fokus</string>
+    <string name="settings_search">Einstellungen durchsuchen</string>
+    <string name="settings_search_empty">Nichts passt zu „%1$s“.</string>
+    <string name="settings_reset">Einstellungen zurücksetzen</string>
+    <string name="settings_reset_body">Erscheinungsbild, Leseeinstellungen und die Vorgaben für neue Serien gehen auf den Anfangszustand zurück.\n\nIhre Quellen, Downloads, der Lesefortschritt und die beim Lesen gewählten Themen bleiben unberührt.</string>
+    <string name="settings_reset_confirm">Zurücksetzen</string>
+    <string name="settings_cancel">Abbrechen</string>
 </resources>

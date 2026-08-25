@@ -80,6 +80,17 @@ data class ShelfMemory(
     fun settingDefault(stored: ShelfSettings, scope: ThemeScope): ShelfMemory =
         copy(defaults = defaults + (scope.name to stored))
 
+    /**
+     * Forgets every scope's default, and nothing else.
+     *
+     * What "reset settings to defaults" has to mean here. `settings-and-about` requires the
+     * reset to state that "sources, downloads, and reading progress are not affected", and
+     * a reader's *per-series* choices are none of those three but are equally not settings
+     * — they are decisions made while reading. So a reset returns what the settings screen
+     * can set and leaves what the reader set in place.
+     */
+    fun clearingDefaults() = copy(defaults = emptyMap())
+
     /** Whether this shelf has a choice of its own, as opposed to inheriting one. */
     fun remembers(scope: ThemeScope, shelf: String): Boolean =
         shelves.containsKey(key(scope, shelf))

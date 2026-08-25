@@ -70,6 +70,17 @@ struct StoryArcApp: App {
         reading = ReadingSelection(publication: publication, url: url)
     }
 
+    /// Returns both stores to what a fresh install has, and nothing more.
+    ///
+    /// Two stores, and only what each one calls a setting. The reading *defaults* are
+    /// settings; a theme chosen while reading is not, and neither is progress.
+    private func resetSettings() {
+        settingsStore.reset()
+        settings = settingsStore.settings()
+        let reader = ReaderPreferences()
+        reader.save(reader.themes().clearingDefaults())
+    }
+
     /// Writes through on every change, so the theme above recomposes with it.
     private var settingsBinding: Binding<AppSettings> {
         Binding(
@@ -93,7 +104,11 @@ struct StoryArcApp: App {
             )
             .storyArcTheme(appearance: settings.appearance)
             .sheet(isPresented: $isShowingSettings) {
-                SettingsView(settings: settingsBinding, readerStore: ReaderPreferences())
+                SettingsView(
+                    settings: settingsBinding,
+                    readerStore: ReaderPreferences(),
+                    onReset: resetSettings
+                )
                     .storyArcTheme(appearance: settings.appearance)
             }
             .fullScreenCover(item: $reading, onDismiss: refreshProgress) { selection in
