@@ -168,7 +168,6 @@ public enum LibraryIndex {
             .map(\.0)
     }
 
-
     /// The next publication in the same series.
     ///
     /// `comic-reader`: reaching the end of one volume offers the next. Matching is

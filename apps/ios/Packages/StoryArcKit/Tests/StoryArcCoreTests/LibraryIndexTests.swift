@@ -143,7 +143,6 @@ struct LibraryIndexTests {
         #expect(titles(sorted) == ["Bone"])
     }
 
-
     // MARK: - Next in series
 
     @Test("The next issue is the one after this number, not the next row")
