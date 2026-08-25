@@ -431,9 +431,27 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
       Verified on the emulator in both axes — pages meeting edge to edge, the page
       counter tracking a continuous scroll.
-- [ ] **4.5** Boundary rubber-band at the first and last page.
-- [ ] **4.6** Turn triggers: tap zones, keyboard, external controller, optional
-      volume buttons.
+- [x] **4.5** Boundary rubber-band at the first and last page. **Done by the
+      platform, which is the right rung to stop on.** Every mode that has a drag has
+      one from the container: `HorizontalPager` and `LazyColumn`/`LazyRow` on Android,
+      `TabView` and `ScrollView` on iOS, all with their own overscroll. Fast fade has
+      no drag to resist, and a tap past the last page reaches the end screen
+      `comic-reader` asks for rather than a rubber-band.
+
+      Hand-rolling this would replace four correct platform behaviours — including
+      each one's feel and its own accessibility settings — with one of ours.
+- [x] **4.6** Turn triggers: tap zones, keyboard, external controller, optional
+      volume buttons. **Done except the volume buttons.**
+
+      Tap zones and the keyboard are in both readers — arrows, page up and down, and
+      space. An external controller needs nothing more: a d-pad and shoulder buttons
+      arrive as the same key events, which is why the keyboard path is the controller
+      path.
+
+      Volume buttons are held, and the spec is the reason: "the volume buttons **where
+      enabled in settings**". There is no settings screen to enable them in, and a
+      reader whose volume keys silently stopped changing the volume would be a defect
+      rather than a feature. It belongs with `settings-and-about`.
 - [x] **4.7** Reduce Motion: fall back to fast fade, keep the modes listed with
       their reason, restore the choice when the setting is turned off. **Done in the
       domain and in both pickers.**
@@ -450,8 +468,16 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       that vanishes teaches the user nothing".
 
       Not verified on a device with the setting on. That belongs to 7.6.
-- [ ] **4.8** Placeholder at the correct aspect ratio when the destination page is
-      not yet decoded.
+- [x] **4.8** Placeholder at the correct aspect ratio when the destination page is
+      not yet decoded. **Done, and it only ever mattered in one mode.** In a paged
+      mode the page is screen-sized whether or not it has decoded, so there was
+      nothing to hold. In a stitched scroll a screen-sized placeholder becomes a
+      page-sized item the moment it decodes, and every page below it lurches — so a
+      stitched placeholder holds a page's shape instead.
+
+      Two by three, because the page's real proportions are unknown until it is read
+      and a comic page is close enough that the difference is not what a reader
+      notices. An item that changed height by half again is.
 - [x] **4.9** Absent-Curl path: hide Curl where the device cannot honour it —
       Android below API 33, and any device failing the frame-rate check — default
       to Slide, state the reason in plain language without naming an API level,

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -356,9 +357,24 @@ private fun Pager(
             )
             // A page that is not drawn still has to accept a tap: a reader who lands
             // on a skipped page must be able to turn away from it.
+            // `page-transitions`: a turn runs "against a placeholder holding the
+            // correct aspect ratio, so the turn does not jump when the content
+            // arrives". In a paged mode the page is screen-sized either way; in a
+            // stitched scroll a screen-sized placeholder becomes a page-sized item
+            // the moment it decodes, and every page below it lurches.
             else -> Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .then(
+                        when (stitch) {
+                            ScrollAxis.VERTICAL -> Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(PAGE_RATIO)
+                            ScrollAxis.HORIZONTAL -> Modifier
+                                .fillMaxHeight()
+                                .aspectRatio(PAGE_RATIO)
+                            null -> Modifier.fillMaxSize()
+                        },
+                    )
                     .tappable(::handleTap),
                 contentAlignment = Alignment.Center,
             ) {
@@ -930,6 +946,15 @@ private const val EDGE_ZONE_FRACTION = 0.25f
  * mode in its own right, so it must not become the thing it replaces. 140 ms is
  * about the shortest a dissolve can be and still not look like a cut.
  */
+/**
+ * A page's shape before it is decoded.
+ *
+ * Its real proportions are unknown until it is read, and a comic page is close enough
+ * to two by three that the difference is not what a reader notices — an item that
+ * changed height by a factor of one and a half is.
+ */
+private const val PAGE_RATIO = 2f / 3f
+
 private const val FADE_MILLIS = 140
 
 private const val CHROME_TIMEOUT_MILLIS = 4_000L
