@@ -4,7 +4,15 @@ package app.storyarc.core.model
 enum class PageTransition {
     PAGE_CURL,
     SLIDE,
-    FADE,
+
+    /**
+     * A cross-dissolve short enough not to read as an animation.
+     *
+     * Named for what it is rather than for the effect: `page-transitions` uses it
+     * as the Reduce Motion substitute *and* as a mode in its own right, and "FADE"
+     * invited it to be slowed down until it became the thing it replaces.
+     */
+    FAST_FADE,
     VERTICAL_SCROLL,
     HORIZONTAL_SCROLL,
     ;
@@ -17,7 +25,7 @@ enum class PageTransition {
     val isAnimatedTransition: Boolean get() = this == PAGE_CURL || this == SLIDE
 
     fun honoring(reduceMotion: Boolean): PageTransition =
-        if (reduceMotion && isAnimatedTransition) FADE else this
+        if (reduceMotion && isAnimatedTransition) FAST_FADE else this
 }
 
 enum class ReadingDirection {
@@ -96,4 +104,3 @@ enum class PageFit {
     }
 }
 
-enum class ReaderTheme { PAPER, SEPIA, NIGHT, CONTRAST }

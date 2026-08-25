@@ -6,9 +6,13 @@ technical, and each item's fallback is in `design.md`.
 
 ## Phase 0 — Spikes (answer before building)
 
-- [ ] **0.1** Wire Readium into both apps and confirm every axis in `design.md`'s
-      mapping table actually applies at runtime. This is the cheapest way to find
-      out that a preference is inert or platform-limited.
+- [x] **0.1** Wire Readium into both apps and confirm every axis in `design.md`'s
+      mapping table actually applies at runtime. **Wired, not yet confirmed axis by
+      axis.** Readium Swift 3.11 and Kotlin 3.3 both render `fixture.epub` in a
+      real reader, resume from a stored locator and report progression — so the
+      integration is proven and the version pins are real. What is not yet done is
+      driving each of the nine axes at runtime and watching the page change; that
+      needs the sheet from Phase 3 to drive them from, and it is the point of 0.2.
 - [ ] **0.2** Confirm `PreferencesEditor.isEffective` is a usable binding for the
       `publisherStyles` coupling on both platforms.
 - [ ] **0.3** **iOS curl spike.** Raster a Readium page to a texture and deform it
@@ -29,19 +33,43 @@ technical, and each item's fallback is in `design.md`.
 
 ## Phase 1 — Contract and tokens
 
-- [ ] **1.1** Add a `readingThemes` group to
+- [x] **1.1** Add a `readingThemes` group to
       `packages/design-tokens/tokens/color.json` with all six presets, authored
-      in OKLCH.
-- [ ] **1.2** Add `oledDark` and `natural` ramps to the same file.
-- [ ] **1.3** Extend `scripts/build.mjs` so every reading-theme pair is asserted
+      in OKLCH. **Done** — `original`, `quiet`, `paper`, `bold`, `calm`, `focus`,
+      each a background and foreground pair with a stated use.
+- [x] **1.2** Add `oledDark` and `natural` ramps to the same file. **Done** —
+      `oledDark`, `naturalLight` and `naturalDark`, the last two because Natural is
+      a theme with both polarities rather than an appearance.
+- [x] **1.3** Extend `scripts/build.mjs` so every reading-theme pair is asserted
       at 7:1 and every new app ramp at its existing floors. A failing preset must
-      fail the build.
-- [ ] **1.4** `pnpm tokens:sync`; commit the regenerated Swift and Kotlin in the
-      same change.
-- [ ] **1.5** Extend the domain model on both platforms: `ReadingTheme`,
+      fail the build. **Done** — `pnpm tokens:check` prints a PASS line per preset
+      against a 7.0 floor and exits non-zero on any failure.
+- [x] **1.4** `pnpm tokens:sync`; commit the regenerated Swift and Kotlin in the
+      same change. **Done** — `StoryArcColor.ReadingThemes`, `.OledDark`,
+      `.NaturalLight` and `.NaturalDark` on iOS, and the same four objects on
+      Android. `pnpm lint` fails if either drifts from the source.
+- [x] **1.5** Extend the domain model on both platforms: `ReadingTheme`,
       `ThemeAxis`, `ThemePreset`, and rename `PageTransition.fade` to `fastFade`.
-- [ ] **1.6** Unit-test preset resolution, axis deviation and the
+      **Done.** `ThemePreset` carries `keepsPublisherStyles`, true for Original
+      alone; `ThemeAxis` carries `requiresPublisherStylesOff` straight from
+      `design.md`'s mapping table; `ReadingTheme` is a preset plus the set of axes
+      deviated from, which is the only part Readium will not tell us.
+
+      Deliberately holds **no typographic values** — a preset is a named
+      `EPUBPreferences` value and Readium owns those. The superseded
+      `ReaderTheme { paper, sepia, night, contrast }` is deleted rather than left
+      beside its replacement.
+
+      An axis that cannot reach the page does not count as a deviation, because
+      nothing changed and marking the preset modified would be a lie the reader can
+      see.
+- [x] **1.6** Unit-test preset resolution, axis deviation and the
       "modified preset" state — on both platforms, against the same table.
+      **Done** — 10 tests each side: the preset and axis counts, which axes
+      Original disables (four of nine reach the page), deviation marking the preset
+      modified while keeping it selected, an inert axis not counting, restore, adopt
+      clearing the previous deviations, and Reduce Motion substituting the fast fade
+      without touching the scroll modes.
 
 ## Phase 2 — Readium integration
 

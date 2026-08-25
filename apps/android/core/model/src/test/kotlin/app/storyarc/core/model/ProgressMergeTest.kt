@@ -206,8 +206,8 @@ class ReadingPreferenceTest {
 
     @Test
     fun `reduce motion downgrades the animated transitions to a cross-dissolve`() {
-        assertEquals(PageTransition.FADE, PageTransition.PAGE_CURL.honoring(reduceMotion = true))
-        assertEquals(PageTransition.FADE, PageTransition.SLIDE.honoring(reduceMotion = true))
+        assertEquals(PageTransition.FAST_FADE, PageTransition.PAGE_CURL.honoring(reduceMotion = true))
+        assertEquals(PageTransition.FAST_FADE, PageTransition.SLIDE.honoring(reduceMotion = true))
         assertEquals(
             PageTransition.VERTICAL_SCROLL,
             PageTransition.VERTICAL_SCROLL.honoring(reduceMotion = true),

@@ -4,7 +4,12 @@ public import CoreGraphics
 public enum PageTransition: String, Sendable, Codable, CaseIterable {
     case pageCurl
     case slide
-    case fade
+    /// A cross-dissolve short enough not to read as an animation.
+    ///
+    /// Named for what it is rather than for the effect: `page-transitions` uses it
+    /// as the Reduce Motion substitute *and* as a mode in its own right, and "fade"
+    /// invited it to be slowed down until it became the thing it replaces.
+    case fastFade
     case verticalScroll
     case horizontalScroll
 
@@ -16,7 +21,7 @@ public enum PageTransition: String, Sendable, Codable, CaseIterable {
     }
 
     public func honoring(reduceMotion: Bool) -> PageTransition {
-        reduceMotion && isAnimatedTransition ? .fade : self
+        reduceMotion && isAnimatedTransition ? .fastFade : self
     }
 }
 
@@ -76,8 +81,4 @@ public enum PageFit: String, Sendable, Codable, CaseIterable {
         case .original: max(1, pixelWidth / fitted.width)
         }
     }
-}
-
-public enum ReaderTheme: String, Sendable, Codable, CaseIterable {
-    case paper, sepia, night, contrast
 }

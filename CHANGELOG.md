@@ -98,6 +98,16 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **The reading-theme model**, both platforms, from the in-flight
+  `reader-theming-and-page-transitions` change. Six presets — Original, Quiet,
+  Paper, Bold, Calm, Focus — whose colours already live in the design tokens and
+  therefore already pass the AAA contrast gate at 7:1. `ThemePreset` knows which
+  one keeps the publisher's stylesheet (Original alone); `ThemeAxis` knows which
+  of the nine axes Readium cannot apply while it is on; `ReadingTheme` is a preset
+  plus the axes deviated from, which is the only part Readium will not tell us.
+  Deliberately holds no typographic values — a preset is a named Readium
+  preferences value and Readium owns those. Ten tests each side, same table.
+  `PageTransition.fade` is now `fastFade`, named for what it is.
 - **A thumbnail browser.** Every page in a scrollable strip with the current one
   marked, and tapping one jumps to it. Lazy, because it has to be: a 300-page
   comic would otherwise read 300 archive entries to open a strip. Thumbnails are

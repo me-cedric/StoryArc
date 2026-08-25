@@ -93,8 +93,8 @@ struct ReadingPreferenceTests {
 
     @Test("Reduce Motion downgrades the animated transitions to a cross-dissolve")
     func reduceMotionDowngrade() {
-        #expect(PageTransition.pageCurl.honoring(reduceMotion: true) == .fade)
-        #expect(PageTransition.slide.honoring(reduceMotion: true) == .fade)
+        #expect(PageTransition.pageCurl.honoring(reduceMotion: true) == .fastFade)
+        #expect(PageTransition.slide.honoring(reduceMotion: true) == .fastFade)
         #expect(PageTransition.verticalScroll.honoring(reduceMotion: true) == .verticalScroll)
         #expect(PageTransition.pageCurl.honoring(reduceMotion: false) == .pageCurl)
     }
