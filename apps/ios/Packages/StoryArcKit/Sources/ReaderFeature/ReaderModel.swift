@@ -196,7 +196,6 @@ public final class ReaderModel {
     }
 }
 
-
 /// A PDF, rendered off the main actor.
 ///
 /// `PDFDocument` is not `Sendable`, so the reader cannot be handed to a detached

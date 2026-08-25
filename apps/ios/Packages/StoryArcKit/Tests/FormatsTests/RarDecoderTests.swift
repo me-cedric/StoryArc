@@ -18,8 +18,8 @@ struct RarDecoderTests {
     private func expectedBinContent(byteCount: Int) -> Data {
         var out = Data(capacity: byteCount)
         for index in 0..<(byteCount / 4) {
-            let k = index + 1
-            let value = max(0, k * k - 3 * k + 1)
+            let step = index + 1
+            let value = max(0, step * step - 3 * step + 1)
             out.append(contentsOf: withUnsafeBytes(of: UInt32(value).littleEndian) { Array($0) })
         }
         return out

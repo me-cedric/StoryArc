@@ -106,6 +106,20 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Fixed
 
+- **SwiftLint had never actually run.** `pnpm lint:ios` changed into `apps/ios`
+  first, where there is no `.swiftlint.yml`; SwiftLint then used its defaults and
+  linted the vendored dependencies in `.build`, reporting 12,372 violations
+  against other people's code. Run from the repository root, where the config
+  lives, it found 25 real ones — all now fixed rather than silenced. The script
+  no longer changes directory.
+  - `LibraryView`, `ZipReader` and `EpubReader` were over the file-length limit
+    and are split along seams that were already there: the browsing controls and
+    the pre-content states out of the view, DEFLATE and the central directory out
+    of the ZIP reader, XML attribute lookup out of the EPUB reader.
+  - The four binary parsers keep their branches and carry a `swiftlint:disable`
+    naming the reason. A TAR header is a switch over type flags; splitting it
+    would hide which early exit means what.
+
 - **`commitlint` never ran.** `commitlint.config.js` used `export default` with
   no `"type": "module"`, so Node loaded it as CommonJS, commitlint saw an empty
   config, and the commit-msg hook rejected every message including valid ones.

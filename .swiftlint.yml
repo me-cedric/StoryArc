@@ -5,6 +5,7 @@ included:
 excluded:
   - apps/ios/Packages/StoryArcKit/Sources/DesignSystem/Generated
   - apps/ios/Packages/StoryArcKit/.build
+  - apps/ios/Packages/StoryArcEpub/.build
   - apps/ios/StoryArc.xcodeproj
 
 opt_in_rules:

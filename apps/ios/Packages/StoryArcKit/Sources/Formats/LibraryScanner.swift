@@ -78,6 +78,10 @@ public enum LibraryScanner {
         var found = 0
         var skipped = 0
 
+        static func += (lhs: inout Tally, rhs: Tally) {
+            lhs = lhs + rhs
+        }
+
         static func + (lhs: Tally, rhs: Tally) -> Tally {
             Tally(found: lhs.found + rhs.found, skipped: lhs.skipped + rhs.skipped)
         }
@@ -123,11 +127,11 @@ public enum LibraryScanner {
 
         for file in publicationFiles {
             guard !Task.isCancelled else { return tally }
-            tally = tally + (await index(file, emit: emit))
+            tally += await index(file, emit: emit)
         }
         for child in directories {
             guard !Task.isCancelled else { return tally }
-            tally = tally + (await walk(child, emit: emit))
+            tally += await walk(child, emit: emit)
         }
         return tally
     }

@@ -50,9 +50,9 @@ public struct ZipReader: Sendable {
 
     // Signatures, little-endian on disk.
     private static let eocdSignature: UInt32 = 0x0605_4B50
-    private static let zip64LocatorSignature: UInt32 = 0x0706_4B50
-    private static let zip64EocdSignature: UInt32 = 0x0606_4B50
-    private static let centralEntrySignature: UInt32 = 0x0201_4B50
+    static let zip64LocatorSignature: UInt32 = 0x0706_4B50
+    static let zip64EocdSignature: UInt32 = 0x0606_4B50
+    static let centralEntrySignature: UInt32 = 0x0201_4B50
     private static let localHeaderSignature: UInt32 = 0x0403_4B50
 
     /// The EOCD is at most 22 bytes plus a comment of up to 65,535. Reading 64 KB
@@ -113,6 +113,12 @@ public struct ZipReader: Sendable {
     }
 
     // MARK: - Recovery
+
+    // Recovery walks local headers one at a time, and every early exit here is a
+    // different way a truncated archive ends. Splitting it hides which is which.
+    // The pair rather than `disable:next`, so the doc comment below stays attached
+    // to the declaration.
+    // swiftlint:disable cyclomatic_complexity function_body_length
 
     /// Rebuilds an index by scanning for local file headers.
     ///
@@ -289,6 +295,8 @@ public struct ZipReader: Sendable {
         self.isRecovered = recovered
     }
 
+    // swiftlint:enable cyclomatic_complexity function_body_length
+
     // MARK: - Reading an entry
 
     /// The uncompressed bytes of one entry.
@@ -326,245 +334,5 @@ public struct ZipReader: Sendable {
 
     public func entry(named path: String) -> ZipEntry? {
         entries.first { $0.path == path }
-    }
-
-    // MARK: - Central directory
-
-    private static func parseCentralDirectory(_ data: Data, expectedCount: Int64) throws -> [ZipEntry] {
-        var reader = ByteReader(data)
-        var parsed: [ZipEntry] = []
-
-        while reader.remaining >= 46 {
-            let signature = try reader.uint32()
-            guard signature == centralEntrySignature else {
-                // Ran off the end of the entries. Not an error: the directory
-                // may be followed by other records.
-                break
-            }
-            try reader.skip(2 + 2)                       // versions
-            let flags = try reader.uint16()
-            let method = try reader.uint16()
-            try reader.skip(2 + 2 + 4)                   // mod time/date, crc
-            var compressedSize = Int64(try reader.uint32())
-            var uncompressedSize = Int64(try reader.uint32())
-            let nameLength = Int(try reader.uint16())
-            let extraLength = Int(try reader.uint16())
-            let commentLength = Int(try reader.uint16())
-            try reader.skip(2 + 2 + 4)                   // disk start, attributes
-            var localOffset = Int64(try reader.uint32())
-
-            let isUTF8 = flags & 0x0800 != 0
-            let path = try reader.string(nameLength, isUTF8: isUTF8)
-            let extra = try reader.read(extraLength)
-            try reader.skip(commentLength)
-
-            // Zip64 extended information overrides whichever fields were maxed.
-            if let zip64 = try parseZip64Extra(
-                extra,
-                needsUncompressed: uncompressedSize == 0xFFFF_FFFF,
-                needsCompressed: compressedSize == 0xFFFF_FFFF,
-                needsOffset: localOffset == 0xFFFF_FFFF
-            ) {
-                if let value = zip64.uncompressedSize { uncompressedSize = value }
-                if let value = zip64.compressedSize { compressedSize = value }
-                if let value = zip64.localOffset { localOffset = value }
-            }
-
-            parsed.append(
-                ZipEntry(
-                    path: path,
-                    compressedSize: compressedSize,
-                    uncompressedSize: uncompressedSize,
-                    localHeaderOffset: localOffset,
-                    compressionMethod: method,
-                    isEncrypted: flags & 0x0001 != 0
-                )
-            )
-        }
-
-        // A count mismatch means a damaged directory. Returning what parsed is
-        // more useful than refusing the archive, and the caller can compare.
-        _ = expectedCount
-        return parsed
-    }
-
-    private struct Zip64Fields {
-        var uncompressedSize: Int64?
-        var compressedSize: Int64?
-        var localOffset: Int64?
-    }
-
-    /// Walks the extra-field blocks looking for header id 0x0001. Its payload
-    /// carries only the fields that were sentinel-valued, in a fixed order.
-    private static func parseZip64Extra(
-        _ extra: Data,
-        needsUncompressed: Bool,
-        needsCompressed: Bool,
-        needsOffset: Bool
-    ) throws -> Zip64Fields? {
-        guard needsUncompressed || needsCompressed || needsOffset else { return nil }
-
-        var reader = ByteReader(extra)
-        while reader.remaining >= 4 {
-            let headerID = try reader.uint16()
-            let size = Int(try reader.uint16())
-            guard reader.remaining >= size else { break }
-            guard headerID == 0x0001 else {
-                try reader.skip(size)
-                continue
-            }
-            var fields = Zip64Fields()
-            var consumed = 0
-            if needsUncompressed, size - consumed >= 8 {
-                fields.uncompressedSize = Int64(bitPattern: try reader.uint64())
-                consumed += 8
-            }
-            if needsCompressed, size - consumed >= 8 {
-                fields.compressedSize = Int64(bitPattern: try reader.uint64())
-                consumed += 8
-            }
-            if needsOffset, size - consumed >= 8 {
-                fields.localOffset = Int64(bitPattern: try reader.uint64())
-                consumed += 8
-            }
-            return fields
-        }
-        return nil
-    }
-
-    private struct Zip64Directory {
-        let entryCount: Int64
-        let size: Int64
-        let offset: Int64
-    }
-
-    private static func readZip64(
-        tail: Data,
-        tailOffset: Int64,
-        source: any RandomAccessSource
-    ) async throws -> Zip64Directory? {
-        guard let locatorIndex = lastIndex(of: zip64LocatorSignature, in: tail) else { return nil }
-        var locator = ByteReader(tail, at: locatorIndex)
-        _ = try locator.uint32()      // signature
-        try locator.skip(4)           // disk holding the zip64 EOCD
-        let recordOffset = Int64(bitPattern: try locator.uint64())
-
-        guard recordOffset >= 0, recordOffset + 56 <= source.length else {
-            throw ZipError.malformed("zip64 EOCD offset outside the source")
-        }
-
-        let record: Data
-        if recordOffset >= tailOffset {
-            let start = Int(recordOffset - tailOffset)
-            record = tail.subdata(in: start..<min(start + 56, tail.count))
-        } else {
-            record = try await source.readExactly(offset: recordOffset, count: 56)
-        }
-
-        var reader = ByteReader(record)
-        guard try reader.uint32() == zip64EocdSignature else {
-            throw ZipError.malformed("zip64 EOCD signature missing")
-        }
-        try reader.skip(8 + 2 + 2 + 4 + 4)   // record size, versions, disk numbers
-        try reader.skip(8)                   // entries on this disk
-        let entryCount = Int64(bitPattern: try reader.uint64())
-        let size = Int64(bitPattern: try reader.uint64())
-        let offset = Int64(bitPattern: try reader.uint64())
-        return Zip64Directory(entryCount: entryCount, size: size, offset: offset)
-    }
-
-    /// Scans backwards for a four-byte little-endian signature.
-    ///
-    /// Backwards and by signature, not at a fixed offset: an archive comment
-    /// pushes the EOCD arbitrarily far from the tail, and `archive-comment.cbz`
-    /// in the corpus exists to catch a reader that forgets.
-    private static func lastIndex(of signature: UInt32, in data: Data) -> Int? {
-        let pattern: [UInt8] = [
-            UInt8(signature & 0xFF),
-            UInt8((signature >> 8) & 0xFF),
-            UInt8((signature >> 16) & 0xFF),
-            UInt8((signature >> 24) & 0xFF),
-        ]
-        guard data.count >= pattern.count else { return nil }
-        let bytes = [UInt8](data)
-        var index = bytes.count - pattern.count
-        while index >= 0 {
-            if bytes[index] == pattern[0],
-               bytes[index + 1] == pattern[1],
-               bytes[index + 2] == pattern[2],
-               bytes[index + 3] == pattern[3] {
-                return index
-            }
-            index -= 1
-        }
-        return nil
-    }
-
-    // MARK: - Inflate
-
-    /// Raw DEFLATE, via the platform. We parse the container; we do not implement
-    /// compression (ADR-0008).
-    static func inflate(_ compressed: Data, expectedSize: Int) throws -> Data {
-        guard expectedSize >= 0 else { throw ZipError.malformed("negative uncompressed size") }
-        // Zero can mean two things. An entry that really is empty has no compressed
-        // bytes either; an entry recovered from a local header with a data
-        // descriptor has bytes and no declared size. Only the first is empty.
-        guard expectedSize > 0 || !compressed.isEmpty else { return Data() }
-
-        if expectedSize == 0 {
-            return try inflateUnknownSize(compressed)
-        }
-
-        // `expectedSize` comes from the central directory, so it is attacker
-        // controlled. Capped so a lying header cannot make us allocate the world.
-        let capacity = min(expectedSize, 512 * 1024 * 1024)
-        var output = Data(count: capacity)
-
-        let written: Int = output.withUnsafeMutableBytes { destination in
-            compressed.withUnsafeBytes { origin in
-                guard let destinationBase = destination.bindMemory(to: UInt8.self).baseAddress,
-                      let originBase = origin.bindMemory(to: UInt8.self).baseAddress
-                else { return 0 }
-                return compression_decode_buffer(
-                    destinationBase, capacity,
-                    originBase, compressed.count,
-                    nil, COMPRESSION_ZLIB
-                )
-            }
-        }
-
-        guard written > 0 else { throw ZipError.inflateFailed }
-        return output.prefix(written)
-    }
-
-    /// Inflates when the uncompressed size is not known.
-    ///
-    /// Only reachable through recovery: a local header that used a data descriptor
-    /// declares no size, and in recovery there is no central directory to ask. The
-    /// buffer starts at a generous multiple of the compressed size and doubles
-    /// while the result exactly fills it, which is the signal that it was clipped.
-    private static func inflateUnknownSize(_ compressed: Data) throws -> Data {
-        var capacity = max(compressed.count * 8, 64 * 1024)
-        let ceiling = 512 * 1024 * 1024
-        while true {
-            var output = Data(count: capacity)
-            let written: Int = output.withUnsafeMutableBytes { destination in
-                compressed.withUnsafeBytes { origin in
-                    guard let destinationBase = destination.bindMemory(to: UInt8.self).baseAddress,
-                          let originBase = origin.bindMemory(to: UInt8.self).baseAddress
-                    else { return 0 }
-                    return compression_decode_buffer(
-                        destinationBase, capacity,
-                        originBase, compressed.count,
-                        nil, COMPRESSION_ZLIB
-                    )
-                }
-            }
-            guard written > 0 else { throw ZipError.inflateFailed }
-            // A result that exactly fills the buffer may have been truncated, so
-            // try again with more room — unless there is no more room to give.
-            if written < capacity || capacity >= ceiling { return output.prefix(written) }
-            capacity = min(capacity * 2, ceiling)
-        }
     }
 }

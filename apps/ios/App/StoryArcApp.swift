@@ -44,6 +44,13 @@ struct StoryArcApp: App {
         )
     }
 
+    /// The one moment progress is known to have changed. Called when the reader
+    /// closes rather than on a timer or on every appearance, because this is the
+    /// event — polling for it would be guessing.
+    private func refreshProgress() {
+        Task { await library.refreshProgress() }
+    }
+
     var body: some Scene {
         WindowGroup {
             LibraryView(model: library, progress: progress) { publication, url in
@@ -51,12 +58,7 @@ struct StoryArcApp: App {
             }
             .storyArcTheme()
             .preferredColorScheme(appearance.colorScheme)
-            .fullScreenCover(item: $reading, onDismiss: {
-                // The one moment progress is known to have changed. Refreshed here
-                // rather than on a timer or on every appearance, because this is
-                // the event, and polling for it would be guessing.
-                Task { await library.refreshProgress() }
-            }) { selection in
+            .fullScreenCover(item: $reading, onDismiss: refreshProgress) { selection in
                 // Full screen, not a sheet: `comic-reader` wants nothing on screen
                 // while reading, and a sheet keeps a card edge and the view behind
                 // it in view.

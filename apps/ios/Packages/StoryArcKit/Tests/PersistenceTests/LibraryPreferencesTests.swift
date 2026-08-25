@@ -11,16 +11,26 @@ import StoryArcCore
 /// Android's `LibraryPreferencesTest` asserts the same three things.
 @Suite("Library preferences")
 struct LibraryPreferencesTests {
-    private func fresh() -> (LibraryPreferences, UserDefaults, String) {
+    /// A private defaults suite, and the means to throw it away afterwards.
+    private struct Suite {
+        let preferences: LibraryPreferences
+        let defaults: UserDefaults
+        let name: String
+
+        func discard() { defaults.removePersistentDomain(forName: name) }
+    }
+
+    private func fresh() throws -> Suite {
         let name = "test-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: name)!
-        return (LibraryPreferences(defaults: defaults), defaults, name)
+        let defaults = try #require(UserDefaults(suiteName: name))
+        return Suite(preferences: LibraryPreferences(defaults: defaults), defaults: defaults, name: name)
     }
 
     @Test("Filters and sorting come back on the next launch")
-    func roundTrip() {
-        let (preferences, defaults, suite) = fresh()
-        defer { defaults.removePersistentDomain(forName: suite) }
+    func roundTrip() throws {
+        let suite = try fresh()
+        let preferences = suite.preferences
+        defer { suite.discard() }
 
         preferences.save(
             LibraryQuery(
@@ -39,9 +49,10 @@ struct LibraryPreferencesTests {
     }
 
     @Test("A search term is not remembered")
-    func searchIsNotStored() {
-        let (preferences, defaults, suite) = fresh()
-        defer { defaults.removePersistentDomain(forName: suite) }
+    func searchIsNotStored() throws {
+        let suite = try fresh()
+        let preferences = suite.preferences
+        defer { suite.discard() }
 
         // A filter outlives a session. A half-typed search does not, and reopening
         // the app to a library narrowed by yesterday's word reads as a bug.
@@ -52,9 +63,10 @@ struct LibraryPreferencesTests {
     }
 
     @Test("The layout defaults to the grid and survives a change")
-    func layout() {
-        let (preferences, defaults, suite) = fresh()
-        defer { defaults.removePersistentDomain(forName: suite) }
+    func layout() throws {
+        let suite = try fresh()
+        let preferences = suite.preferences
+        defer { suite.discard() }
 
         #expect(preferences.layout() == .grid)
         preferences.save(LibraryLayout.list)

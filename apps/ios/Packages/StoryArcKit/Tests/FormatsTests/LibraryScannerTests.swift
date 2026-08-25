@@ -96,11 +96,9 @@ struct LibraryScannerTests {
         // `local-library` requires the scan to be cancellable. Breaking out of the
         // loop terminates the stream, which cancels the task behind it.
         var seen = 0
-        for await event in LibraryScanner.scan(folderAt: corpus) {
-            if event.publication != nil {
-                seen += 1
-                if seen == 2 { break }
-            }
+        for await event in LibraryScanner.scan(folderAt: corpus) where event.publication != nil {
+            seen += 1
+            if seen == 2 { break }
         }
         #expect(seen == 2)
     }

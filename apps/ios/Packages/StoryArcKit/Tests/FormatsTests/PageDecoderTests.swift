@@ -141,7 +141,7 @@ struct PageDecoderTests {
     /// only size.
     private func samplePixel(
         _ image: CGImage, atX x: Int, y: Int
-    ) -> (red: UInt8, green: UInt8, blue: UInt8)? {
+    ) -> SampledPixel? {
         var buffer = [UInt8](repeating: 0, count: image.width * image.height * 4)
         guard let context = CGContext(
             data: &buffer,
@@ -155,6 +155,10 @@ struct PageDecoderTests {
         context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
         let offset = (y * image.width + x) * 4
         guard offset + 2 < buffer.count else { return nil }
-        return (buffer[offset], buffer[offset + 1], buffer[offset + 2])
+        return SampledPixel(
+            red: buffer[offset],
+            green: buffer[offset + 1],
+            blue: buffer[offset + 2]
+        )
     }
 }

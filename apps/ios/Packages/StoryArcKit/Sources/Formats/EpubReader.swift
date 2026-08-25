@@ -146,6 +146,9 @@ public struct EpubReader: Sendable {
         let isFixedLayout: Bool
     }
 
+    // One pass over the package document, reading metadata, manifest and spine in the
+    // order they appear. Three passes would be three times the XML walking.
+    // swiftlint:disable:next function_body_length
     private static func parsePackage(_ xml: Data, base: String) throws -> Package {
         let elements = Elements(xml)
 
@@ -392,15 +395,5 @@ public struct EpubReader: Sendable {
             }
         }
         return segments.joined(separator: "/")
-    }
-}
-
-private extension [String: String] {
-    /// An element's text content, trimmed. Stored under a key no attribute can use.
-    var text: String? {
-        guard let raw = self["#text"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !raw.isEmpty
-        else { return nil }
-        return raw
     }
 }

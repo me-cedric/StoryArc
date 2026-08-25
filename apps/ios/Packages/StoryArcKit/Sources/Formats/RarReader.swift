@@ -95,11 +95,15 @@ public struct RarReader: Sendable {
         if bytes.starts(with: Self.rar5Signature) {
             self.generation = .rar5
             let parsed = try await Self.parseRar5(source: source)
-            (entries, isSolidArchive, isEncrypted) = parsed
+            entries = parsed.entries
+            isSolidArchive = parsed.isSolid
+            isEncrypted = parsed.isEncrypted
         } else if bytes.starts(with: Self.rar4Signature) {
             self.generation = .rar4
             let parsed = try await Self.parseRar4(source: source)
-            (entries, isSolidArchive, isEncrypted) = parsed
+            entries = parsed.entries
+            isSolidArchive = parsed.isSolid
+            isEncrypted = parsed.isEncrypted
         } else {
             throw RarError.notRar
         }
@@ -116,11 +120,21 @@ public struct RarReader: Sendable {
         return try await source.readExactly(offset: entry.dataOffset, count: Int(entry.packedSize))
     }
 
+    /// What a header walk found: the entries, and the two flags that decide whether
+    /// the archive can be read at all.
+    struct Scan {
+        let entries: [RarEntry]
+        let isSolid: Bool
+        let isEncrypted: Bool
+    }
+
     // MARK: - RAR4
 
-    private static func parseRar4(
-        source: any RandomAccessSource
-    ) async throws -> ([RarEntry], Bool, Bool) {
+    // RAR's header format is a walk over variable-length records with a branch per
+    // record type. Splitting it would mean threading the same six locals through
+    // several functions, which reads worse than the switch it replaces.
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    private static func parseRar4(source: any RandomAccessSource) async throws -> Scan {
         var entries: [RarEntry] = []
         var solidArchive = false
         var encrypted = false
@@ -139,7 +153,9 @@ public struct RarReader: Sendable {
                 solidArchive = flags & 0x0008 != 0
                 // 0x0080 means the block headers themselves are encrypted, so
                 // nothing past this point can be parsed at all.
-                if flags & 0x0080 != 0 { return ([], solidArchive, true) }
+                if flags & 0x0080 != 0 {
+                    return Scan(entries: [], isSolid: solidArchive, isEncrypted: true)
+                }
                 offset += Int64(headerSize)
                 continue
             }
@@ -191,9 +207,9 @@ public struct RarReader: Sendable {
 
         guard !entries.isEmpty || solidArchive || encrypted else {
             // A signature and nothing parseable behind it.
-            return ([], solidArchive, encrypted)
+            return Scan(entries: [], isSolid: solidArchive, isEncrypted: encrypted)
         }
-        return (entries, solidArchive, encrypted)
+        return Scan(entries: entries, isSolid: solidArchive, isEncrypted: encrypted)
     }
 
     /// A non-file block's payload size, which sits directly after its 7-byte head.
@@ -226,9 +242,10 @@ public struct RarReader: Sendable {
 
     // MARK: - RAR5
 
-    private static func parseRar5(
-        source: any RandomAccessSource
-    ) async throws -> ([RarEntry], Bool, Bool) {
+    // Same shape as `parseRar4`, and the same reason: RAR5's headers are vint-coded
+    // records with a branch per type.
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    private static func parseRar5(source: any RandomAccessSource) async throws -> Scan {
         var entries: [RarEntry] = []
         var solidArchive = false
         var encrypted = false
@@ -265,9 +282,9 @@ public struct RarReader: Sendable {
             case 1:  // main archive header
                 if let archiveFlags = vint(bytes, &read) { solidArchive = archiveFlags & 0x0004 != 0 }
             case 4:  // encrypted headers: nothing past this point can be parsed
-                return ([], solidArchive, true)
+                return Scan(entries: [], isSolid: solidArchive, isEncrypted: true)
             case 5:  // end of archive
-                return (entries, solidArchive, encrypted)
+                return Scan(entries: entries, isSolid: solidArchive, isEncrypted: encrypted)
             case 2, 3:  // file, and service headers such as the archive comment
                 guard let fileFlags = vint(bytes, &read),
                       let unpacked = vint(bytes, &read),
@@ -313,7 +330,7 @@ public struct RarReader: Sendable {
             guard nextOffset > offset else { break }  // never move backwards
             offset = nextOffset
         }
-        return (entries, solidArchive, encrypted)
+        return Scan(entries: entries, isSolid: solidArchive, isEncrypted: encrypted)
     }
 
     /// Whether a file header's extra area declares encryption (record type 1).

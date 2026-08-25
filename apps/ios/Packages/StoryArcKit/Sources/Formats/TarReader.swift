@@ -41,6 +41,9 @@ public struct TarReader: Sendable {
     /// further into a TAR than into any other container.
     static let magicOffset = 257
 
+    // A TAR header is 512 bytes of fixed fields with a branch per type flag, GNU
+    // long name and pax record included. The branches are the format.
+    // swiftlint:disable:next cyclomatic_complexity
     public init(source: any RandomAccessSource) async throws {
         self.source = source
 
