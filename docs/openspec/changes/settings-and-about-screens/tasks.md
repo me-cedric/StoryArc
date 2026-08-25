@@ -92,11 +92,29 @@
       about the other.
 - [ ] **2.2** Search across settings, listing each match with its group path, and
       navigating to it highlighted.
-- [ ] **2.3** Reading defaults: the *global* half of
+- [x] **2.3** Reading defaults: the *global* half of
       `reader-theming-and-page-transitions` 3.10. Changing one must not overwrite a
       per-series choice already made — `ShelfMemory.settingDefault` already
       guarantees that by construction, so this is the screen for it plus the test
-      that says so through the store.
+      that says so through the store. **Done on both platforms.**
+
+      Two scopes, listed separately, because `reading-themes` gives comics and reflowable
+      text their own defaults and means it: a reader who wants cream paper for novels may
+      well want black behind a comic.
+
+      Names rather than the reader's preset *cards*. A card previews a theme in its own
+      colours and typeface, which earns its space when the page is visible behind it and
+      is six swatches of decoration in a settings list.
+
+      The whole settings value is written, not just the preset: a preset carries its own
+      typography, and a default that kept the previous typography would not be the preset
+      the reader chose.
+
+      Verified on the emulator by reading the store before and after. Choosing Bold for
+      Books added `default REFLOWABLE → BOLD` and left all three per-shelf entries and the
+      fixed-layout default exactly as they were. The guarantee is structural — the two
+      live in different maps, so one *cannot* reach the other — and this is that on a
+      device rather than in a test.
 - [ ] **2.4** Reset to defaults, confirming first and stating explicitly that
       sources, downloads and reading progress are untouched.
 

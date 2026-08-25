@@ -14,19 +14,21 @@ import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.persistence.ReaderPreferences
 
 /**
  * Reading, which holds less than its name suggests.
  *
- * The typographic defaults are not here. `reading-themes` scopes a theme to the series
- * with a global default per scope, and `ShelfMemory` already holds both — so the *reading
- * defaults* row belongs to that store and lands with task 2.3. What is here is the one
- * reading preference that is neither typographic nor per-series.
+ * Two things: the one reading preference that is neither typographic nor per-series, and
+ * the *defaults* a series never opened before is read with. The defaults live in
+ * `ShelfMemory` rather than in `AppSettings`, because that store is what makes "changing a
+ * default does not overwrite a per-series choice" true by construction.
  */
 @Composable
 internal fun ReadingGroup(
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
+    readerStore: ReaderPreferences,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -54,10 +56,6 @@ internal fun ReadingGroup(
             )
         }
 
-        Text(
-            text = stringResource(R.string.reading_defaults_pending),
-            style = MaterialTheme.typography.labelLarge,
-            color = palette.textTertiary,
-        )
+        ReadingDefaults(store = readerStore)
     }
 }

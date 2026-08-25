@@ -114,6 +114,7 @@ class MainActivity : ComponentActivity() {
                     BackHandler { isShowingSettings = false }
                     SettingsScreen(
                         settings = settings,
+                        readerStore = readerPreferences,
                         // Written through on every change rather than on the way out.
                         // `settings-and-about` requires an appearance to apply
                         // immediately, and the state lives here so the theme above

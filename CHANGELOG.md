@@ -102,6 +102,10 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **Reading defaults for series you have not opened**, with books and comics kept
+  separate — wanting cream paper for novels does not mean wanting it behind a comic.
+  Changing a default cannot touch a series you have already chosen for; the two live in
+  different places, so one cannot reach the other.
 - **The volume buttons turn pages on Android**, off by default and explained where it
   sits — volume keys that silently stop changing the volume are a defect, not a feature.
   - It cannot be done on iOS within the rules: the system owns those buttons, and the only

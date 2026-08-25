@@ -397,10 +397,13 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       iOS runs the same resolution through `UserDefaults` and is covered by the same
       domain tests, but has not been driven end to end on a simulator.
 
-      **Held:** the global default is readable and writable but no settings screen
-      changes it yet — that is `settings-and-about`, which does not exist. And the
-      comic reader still hard-codes black, so the fixed-layout scope has no reader
-      reading it. See 3.11.
+      **The global default now has a screen**: `settings-and-about-screens` task 2.3,
+      with a scope each for books and for comics. Verified on the emulator by reading the
+      store before and after — a new default left every per-series choice untouched,
+      which is structural rather than careful, because the two live in different maps.
+
+      **Still held:** the comic reader hard-codes black, so the fixed-layout scope has no
+      reader taking its colours from it. See 3.11.
 - [x] **3.8** Tablet: popover on iPadOS, expanded anchored sheet on Android, with
       the reader still visible. **Done, and mostly by declaring the right thing
       rather than by writing two layouts.**

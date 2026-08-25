@@ -29,8 +29,12 @@ public struct SettingsView: View {
     /// would satisfy "without a restart" and fail "immediately".
     @Binding private var settings: AppSettings
 
-    public init(settings: Binding<AppSettings>) {
+    /// Where the reading *defaults* live. A different store, for the reason 2.3 gives.
+    private let readerStore: ReaderPreferences
+
+    public init(settings: Binding<AppSettings>, readerStore: ReaderPreferences) {
         _settings = settings
+        self.readerStore = readerStore
     }
 
     public var body: some View {
@@ -67,7 +71,7 @@ public struct SettingsView: View {
     private func detail(for group: SettingsGroup) -> some View {
         switch group {
         case .appearance: AppearanceSettings(settings: $settings)
-        case .reading: ReadingSettings(settings: $settings)
+        case .reading: ReadingSettings(settings: $settings, readerStore: readerStore)
         case .privacy: PrivacySettings()
         case .about: AboutSettings()
         // Named rather than hidden. A group whose rows arrive with a capability that does

@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import Persistence
 internal import StoryArcCore
 
 /// Appearance, and the one opt-in that ties it to the reading theme.
@@ -64,6 +65,8 @@ struct AppearanceSettings: View {
 struct ReadingSettings: View {
     @Environment(\.theme) private var theme
     @Binding var settings: AppSettings
+    /// Where the reading *defaults* live. A different store, for the reason 2.3 gives.
+    let readerStore: ReaderPreferences
 
     var body: some View {
         List {
@@ -83,11 +86,7 @@ struct ReadingSettings: View {
                     .foregroundStyle(theme.palette.textTertiary)
             }
 
-            Section {
-                Text("reading.defaults.pending", bundle: .module)
-                    .textRole(.footnote)
-                    .foregroundStyle(theme.palette.textTertiary)
-            }
+            ReadingDefaults(store: readerStore)
         }
     }
 }

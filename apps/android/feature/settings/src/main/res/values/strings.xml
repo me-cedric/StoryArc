@@ -43,4 +43,14 @@
     <string name="about_acknowledgements">Acknowledgements</string>
     <string name="about_acknowledgements_note">Everything StoryArc ships that someone else wrote. Tap one for its licence in full.</string>
     <string name="about_licence_missing">The %1$s text is missing from this build. That is a packaging bug — please report it.</string>
+    <string name="reading_defaults">Defaults for new series</string>
+    <string name="reading_defaults_note">Applies to series you have not opened before. A theme you set while reading stays with that series.</string>
+    <string name="reading_defaults_reflowable">Books</string>
+    <string name="reading_defaults_fixed">Comics and fixed pages</string>
+    <string name="preset_original">Original</string>
+    <string name="preset_quiet">Quiet</string>
+    <string name="preset_paper">Paper</string>
+    <string name="preset_bold">Bold</string>
+    <string name="preset_calm">Calm</string>
+    <string name="preset_focus">Focus</string>
 </resources>

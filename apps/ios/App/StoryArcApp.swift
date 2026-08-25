@@ -93,7 +93,7 @@ struct StoryArcApp: App {
             )
             .storyArcTheme(appearance: settings.appearance)
             .sheet(isPresented: $isShowingSettings) {
-                SettingsView(settings: settingsBinding)
+                SettingsView(settings: settingsBinding, readerStore: ReaderPreferences())
                     .storyArcTheme(appearance: settings.appearance)
             }
             .fullScreenCover(item: $reading, onDismiss: refreshProgress) { selection in

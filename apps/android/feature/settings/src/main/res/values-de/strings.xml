@@ -43,4 +43,14 @@
     <string name="about_acknowledgements">Danksagungen</string>
     <string name="about_acknowledgements_note">Alles, was StoryArc mitliefert und andere geschrieben haben. Tippen Sie auf einen Eintrag für die vollständige Lizenz.</string>
     <string name="about_licence_missing">Der %1$s-Text fehlt in diesem Build. Das ist ein Packaging-Fehler — bitte melden.</string>
+    <string name="reading_defaults">Vorgaben für neue Serien</string>
+    <string name="reading_defaults_note">Gilt für Serien, die Sie noch nicht geöffnet haben. Ein beim Lesen gewähltes Thema bleibt bei dieser Serie.</string>
+    <string name="reading_defaults_reflowable">Bücher</string>
+    <string name="reading_defaults_fixed">Comics und feste Seiten</string>
+    <string name="preset_original">Original</string>
+    <string name="preset_quiet">Ruhig</string>
+    <string name="preset_paper">Papier</string>
+    <string name="preset_bold">Kräftig</string>
+    <string name="preset_calm">Sanft</string>
+    <string name="preset_focus">Fokus</string>
 </resources>

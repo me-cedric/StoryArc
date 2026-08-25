@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
@@ -27,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.persistence.ReaderPreferences
 
 /**
  * Settings, as the seven groups `settings-and-about` names.
@@ -55,6 +58,8 @@ import app.storyarc.core.model.AppSettings
 fun SettingsScreen(
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
+    /** Where the reading *defaults* live. A different store, for the reason task 2.3 gives. */
+    readerStore: ReaderPreferences,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -77,6 +82,7 @@ fun SettingsScreen(
             group = group,
             settings = settings,
             onChange = onChange,
+            readerStore = readerStore,
             onBack = { open = null },
             modifier = modifier,
         )
@@ -130,6 +136,7 @@ private fun GroupDetail(
     group: SettingsGroup,
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
+    readerStore: ReaderPreferences,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -152,12 +159,13 @@ private fun GroupDetail(
         Column(
             modifier = Modifier
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(StoryArcSpace.gutter),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
         ) {
             when (group) {
                 SettingsGroup.APPEARANCE -> AppearanceGroup(settings, onChange)
-                SettingsGroup.READING -> ReadingGroup(settings, onChange)
+                SettingsGroup.READING -> ReadingGroup(settings, onChange, readerStore)
                 SettingsGroup.PRIVACY -> PrivacyGroup()
                 SettingsGroup.ABOUT -> AboutGroup()
                 // Named rather than hidden. A group whose rows arrive with a capability
