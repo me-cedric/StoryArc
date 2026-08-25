@@ -161,11 +161,56 @@
       `settings-and-about` asks for the posture to be "verifiable rather than merely
       stated", and a screen of disabled switches would imply there is something to
       switch off.
-- [ ] **3.2** Individually clearable cache, reading history and downloads, each
-      stating what it removes and how much space it frees.
-- [ ] **3.3** Diagnostic export: shown before sharing, with every credential, token
+- [x] **3.2** Individually clearable cache, reading history and downloads, each
+      stating what it removes and how much space it frees. **Done for the two that
+      exist**, and the third is named rather than omitted.
+
+      Cache clears with no confirmation and reading history clears behind one. The
+      asymmetry is the point: a cache is rebuildable by definition, and asking twice
+      for something with no consequence teaches a reader to click through dialogues.
+      History is places in books, so it asks, and the confirmation names what goes
+      rather than calling it "data".
+
+      Downloads has nothing to clear because nothing downloads yet, and the screen
+      says so. A Privacy screen listing two items looks incomplete; one that says why
+      the third is missing does not.
+
+      `ProgressStore.clear()` deletes through the store rather than removing the file
+      on both platforms. Dropping a database from under an open connection is how a
+      later read finds a corrupt file instead of an empty one.
+- [x] **3.3** Diagnostic export: shown before sharing, with every credential, token
       and server hostname redacted. The redaction is a tested function, not a
-      regex written at the call site.
+      regex written at the call site. **Done.**
+
+      This task was held earlier in the belief that it needed a log the app does not
+      keep. It does not: the export is a *report* of what the app knows about itself
+      — version, device class, settings, reading defaults, storage sizes — and none
+      of that needs a logging subsystem.
+
+      `DiagnosticRedaction` is the tested function, with the same five rules in the
+      same order on both platforms and the same fifteen tests:
+
+      1. The whole authority of a URL, taken as one span. Split rules leave behind
+         the part they do not claim, and the part left behind is the password.
+      2. A bare IPv4 address, which identifies a server without a scheme.
+      3. A value introduced by a word meaning secret. The key survives, because
+         knowing a token was present is useful and knowing the token is not.
+      4. Any unbroken 32-character run, as a backstop for a credential nothing names.
+      5. The home directory, which carries the reader's own name.
+
+      Redaction is the second line of defence. The first is that the report carries
+      no free text at all: a source is reported as a count rather than by the name
+      the reader gave it, because a name they chose is where a hostname would be.
+
+      The device is reported as a **class**, not a model. `BuildInfo` had already
+      settled that for the issue link, and a report the reader may post publicly is a
+      stronger reason to hold the line rather than a reason to relax it.
+
+      The report is assembled per platform. Every value is one only the platform can
+      read, so a shared builder would be a shape with no logic in it — the rule is
+      shared because the rule is the dangerous part.
+
+      Share only, no copy button: both platforms' share sheets already offer copy.
 
 ## Phase 4 — About
 

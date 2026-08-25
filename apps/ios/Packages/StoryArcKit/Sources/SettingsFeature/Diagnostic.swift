@@ -48,6 +48,13 @@ enum Diagnostic {
         // `settings-and-about` asked for the class. A diagnostic the reader shares
         // publicly is a stronger reason to hold that line, not a reason to relax it.
         lines.append("deviceClass = \(device.userInterfaceIdiom == .pad ? "iPad" : "iPhone")")
+        // The counterpart of Android's `fontScale`, and the single most useful line in
+        // the report for a "the text is cut off" complaint.
+        // The raw value is Apple's internal identifier, `UICTContentSizeCategoryL`. The
+        // prefix is noise in a report a person reads, and the suffix is the whole answer.
+        let textSize = UITraitCollection.current.preferredContentSizeCategory.rawValue
+            .replacingOccurrences(of: "UICTContentSizeCategory", with: "")
+        lines.append("textSize = \(textSize)")
         #else
         lines.append("platform = macOS")
         lines.append("deviceClass = Mac")
