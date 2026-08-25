@@ -11,6 +11,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
+import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.feature.library.LibraryScreen
@@ -57,7 +59,28 @@ class MainActivity : ComponentActivity() {
                     )
                     LibraryScreen(
                         viewModel = libraryViewModel,
-                        onOpen = { publication, path -> reading = publication to path },
+                        onOpen = { publication, path ->
+                            // Two readers, chosen by what the publication *is*
+                            // rather than by a mode the user picks. A reflowable
+                            // book is laid out by a rendering engine (ADR-0005); a
+                            // comic is a list of images and needs none. A
+                            // fixed-layout EPUB is the third case and belongs with
+                            // the comic reader — it has pages, at a fixed aspect
+                            // ratio — which is what `ebook-reader` asks for.
+                            if (publication.format == PublicationFormat.EPUB &&
+                                !publication.isFixedLayout
+                            ) {
+                                startActivity(
+                                    EpubReaderActivity.intent(
+                                        this@MainActivity,
+                                        path,
+                                        publication.displayTitle,
+                                    ),
+                                )
+                            } else {
+                                reading = publication to path
+                            }
+                        },
                     )
                 } else {
                     // Keyed on the publication so opening a different one builds a

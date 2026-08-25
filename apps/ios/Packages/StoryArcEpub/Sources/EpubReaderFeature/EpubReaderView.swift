@@ -1,0 +1,139 @@
+public import SwiftUI
+
+internal import ReadiumNavigator
+internal import UIKit
+
+internal import DesignSystem
+public import Persistence
+public import StoryArcCore
+
+/// A reflowable book, open.
+///
+/// The chrome is the same idea as the comic reader's: nothing on screen while
+/// reading, one tap to bring it back. What differs is what it can honestly say.
+/// `ebook-reader` forbids presenting a reflowable page number as a stable
+/// identity — the count changes with the type size — so this shows a percentage
+/// and the chapter, which do not.
+///
+/// Typography controls are absent rather than disabled. They belong to the
+/// `reader-theming-and-page-transitions` change, and a sheet of sliders that does
+/// nothing would be worse than no sheet at all.
+public struct EpubReaderView: View {
+    @Environment(\.theme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var model: EpubReaderModel
+    @State private var isChromeVisible = true
+
+    public init(publication: Publication, url: URL, progress: ProgressStore? = nil) {
+        _model = State(
+            initialValue: EpubReaderModel(publication: publication, url: url, progress: progress)
+        )
+    }
+
+    public var body: some View {
+        ZStack {
+            theme.palette.surfaceCanvas.ignoresSafeArea()
+
+            if let failure = model.failure {
+                Failure(message: failure)
+            } else if let navigator = model.navigator {
+                NavigatorHost(navigator: navigator) {
+                    withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
+                }
+                .ignoresSafeArea()
+            } else {
+                ProgressView()
+            }
+
+            if isChromeVisible { chrome }
+        }
+        .task { await model.open() }
+        .statusBarHidden(!isChromeVisible)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var chrome: some View {
+        VStack {
+            HStack {
+                Button { dismiss() } label: {
+                    Label {
+                        Text("epub.close", bundle: .module)
+                    } icon: {
+                        Image(systemName: "xmark")
+                    }
+                    .labelStyle(.iconOnly)
+                    .padding(StoryArcSpace.sm)
+                }
+                .background(.ultraThinMaterial, in: .circle)
+                .tint(theme.palette.textPrimary)
+
+                Spacer()
+
+                if let chapter = model.chapterTitle {
+                    Text(chapter)
+                        .textRole(.footnote)
+                        .foregroundStyle(theme.palette.textSecondary)
+                        .lineLimit(1)
+                        .padding(.horizontal, StoryArcSpace.md)
+                        .padding(.vertical, StoryArcSpace.xs)
+                        .background(.ultraThinMaterial, in: .capsule)
+                }
+            }
+            .padding(StoryArcSpace.md)
+
+            Spacer()
+
+            // A percentage, never a page number. `ebook-reader` is explicit that a
+            // reflowable page count is a function of the type size and must not be
+            // presented as an identity.
+            Text("epub.progress \(Int((model.progression * 100).rounded()))", bundle: .module)
+                .textRole(.footnote)
+                .monospacedDigit()
+                .foregroundStyle(theme.palette.textSecondary)
+                .padding(.horizontal, StoryArcSpace.md)
+                .padding(.vertical, StoryArcSpace.xs)
+                .background(.ultraThinMaterial, in: .capsule)
+                .padding(.bottom, StoryArcSpace.lg)
+        }
+        .transition(.opacity)
+    }
+}
+
+/// The navigator, in a SwiftUI hierarchy.
+///
+/// The tap is registered through Readium's own input observer rather than a
+/// SwiftUI gesture: a gesture layered over the web view swallows the taps the
+/// reader needs to turn pages and follow links.
+private struct NavigatorHost: UIViewControllerRepresentable {
+    let navigator: EPUBNavigatorViewController
+    let onTap: () -> Void
+
+    func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
+        navigator.addObserver(.tap { _ in
+            onTap()
+            return true
+        })
+        return navigator
+    }
+
+    func updateUIViewController(_ controller: EPUBNavigatorViewController, context: Context) {}
+}
+
+private struct Failure: View {
+    @Environment(\.theme) private var theme
+
+    let message: String
+
+    var body: some View {
+        VStack(spacing: StoryArcSpace.sm) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 32, weight: .light))
+            Text(message)
+                .textRole(.footnote)
+                .multilineTextAlignment(.center)
+        }
+        .foregroundStyle(theme.palette.textSecondary)
+        .padding(StoryArcSpace.gutter)
+    }
+}

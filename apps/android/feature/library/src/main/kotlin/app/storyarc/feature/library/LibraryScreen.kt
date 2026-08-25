@@ -18,6 +18,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.foundation.layout.Box
@@ -121,12 +123,13 @@ fun LibraryScreen(
         }
     }
 
-    // Reloaded whenever the screen is composed after the reader closes, which is
-    // what makes the bar under a cover reflect the page just reached.
-    LaunchedEffect(viewModel) {
-        viewModel?.restoreFolders()
-        viewModel?.refreshProgress()
-    }
+    LaunchedEffect(viewModel) { viewModel?.restoreFolders() }
+
+    // On resume, not on first composition. The comic reader is a composable in the
+    // same activity and the EPUB reader is an activity of its own, so "the reader
+    // closed" reaches this screen two different ways — and only one of them
+    // recomposes it. Resuming covers both.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel?.refreshProgress() }
     val publications by (viewModel?.publications ?: MutableStateFlow(emptyList()))
         .collectAsStateWithLifecycle()
     val scanState by (viewModel?.scanState ?: MutableStateFlow(LibraryScanState.Idle))

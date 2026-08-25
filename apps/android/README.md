@@ -104,6 +104,21 @@ Then **Library → the folder button → Download → Comics → Use this folder
 `getExternalFilesDir` is still scanned when no folder has been picked. That is
 the app's own directory — where a file shared to StoryArc lands — not a library.
 
+## The `:feature:epubreader` module
+
+Reflowable EPUB, on Readium (ADR-0005). Its own module because Readium's EPUB
+navigator is a `Fragment` and nothing else in this app is — keeping it here means
+`:feature:reader`, which renders comics and PDFs, stays Compose all the way down,
+and the heaviest dependency in the build sits behind one screen.
+
+`EpubReaderActivity` is a `FragmentActivity` rather than a Compose destination.
+The navigator needs a `FragmentManager` with a factory installed before the
+fragment is created; hosting that inside Compose means fighting two lifecycles at
+once for no gain. The chrome on top of it is still Compose.
+
+Readium also requires **core library desugaring**, which it states in its AAR
+metadata. That is enabled in `:app`.
+
 ## Design tokens
 
 Colour, type, spacing and motion are generated from

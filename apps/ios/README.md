@@ -92,6 +92,27 @@ On a simulator the second is the quicker one:
 cp packages/test-fixtures/comics/*.cbz "$(xcrun simctl get_app_container booted app.storyarc.StoryArc data)/Documents/"
 ```
 
+## Two packages, and why
+
+`Packages/StoryArcKit` holds everything: the domain, the format layer, the design
+system, the library and the comic reader. It builds for iOS **and macOS**, so its
+pure-Swift targets can be tested on the host without a simulator — that is what
+makes 252 tests run in a fraction of a second.
+
+`Packages/StoryArcEpub` holds one thing: reflowable EPUB rendering, on Readium.
+It exists only because Readium declares iOS support alone, and SwiftPM validates a
+dependency graph for **every** platform the depending package claims. Adding
+Readium to `StoryArcKit` fails macOS resolution outright, and conditioning the
+target dependency does not help — the validation happens before the condition
+does.
+
+So the rule is: if it can be tested on the host, it belongs in `StoryArcKit`.
+
+```bash
+pnpm test:ios        # StoryArcKit, on the host
+pnpm test:ios:epub   # StoryArcEpub, on a simulator — Readium needs one
+```
+
 ## Design tokens
 
 Colour, type, spacing and motion are generated from

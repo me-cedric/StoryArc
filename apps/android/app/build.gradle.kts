@@ -47,6 +47,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+        // Required by Readium, which states it in its AAR metadata rather than
+        // leaving it to be discovered at runtime. It backfills java.time and
+        // friends on API levels that lack them.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlin {
@@ -63,6 +67,8 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":feature:library"))
     implementation(project(":feature:reader"))
+    implementation(project(":feature:epubreader"))
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":core:persistence"))
 
     implementation(libs.androidx.core.ktx)

@@ -42,6 +42,22 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   itself — store mode needs no compressor — and three compressed or solid
   archives are vendored from libarchive's own suite with provenance recorded.
 
+- **EPUBs read as books**, on both platforms, through Readium (ADR-0005). Real
+  pagination, the chapter named, position restored from a stored locator rather
+  than a page number — `ebook-reader` requires the position to survive a
+  type-size change, and a page number cannot. Progress is a percentage, never a
+  reflowable page number, which the spec forbids presenting as an identity.
+  Typography controls are absent rather than disabled; they belong to the
+  in-flight `reader-theming-and-page-transitions` change.
+  - Readium lives behind a boundary on both platforms, and for two different
+    platform reasons. On iOS it is a second SwiftPM package, `StoryArcEpub`,
+    because Readium declares iOS support only and `StoryArcKit` also builds for
+    macOS so its parsers can be tested on the host. On Android it is
+    `:feature:epubreader`, because Readium's EPUB navigator is a `Fragment` and
+    nothing else in the app is.
+  - Our own `EpubReader` still does the indexing — metadata, reading order,
+    cover, fixed-layout flag — with no dependency and on the host. Readium is
+    only for the part that genuinely needs a rendering engine.
 - **The apps actually read comics now, on both platforms.** Pick a folder, watch
   the scan fill a cover grid, open a publication, turn pages, come back and the
   cover carries a progress bar. Right-to-left reading direction throughout.

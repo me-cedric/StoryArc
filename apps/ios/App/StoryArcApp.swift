@@ -1,4 +1,5 @@
 import DesignSystem
+import EpubReaderFeature
 import LibraryFeature
 import Persistence
 import ReaderFeature
@@ -59,12 +60,27 @@ struct StoryArcApp: App {
                 // Full screen, not a sheet: `comic-reader` wants nothing on screen
                 // while reading, and a sheet keeps a card edge and the view behind
                 // it in view.
-                ReaderView(
-                    publication: selection.publication,
-                    url: selection.url,
-                    progress: progress
-                )
+                // Two readers, chosen by what the publication *is* rather than by
+                // a mode the user picks. A reflowable book is laid out by a
+                // rendering engine (ADR-0005); a comic is a list of images and
+                // needs none. A fixed-layout EPUB is the third case and belongs
+                // with the comic reader — it has pages, at a fixed aspect ratio —
+                // which is what `ebook-reader` asks for.
+                if selection.publication.format == .epub, !selection.publication.isFixedLayout {
+                    EpubReaderView(
+                        publication: selection.publication,
+                        url: selection.url,
+                        progress: progress
+                    )
                     .storyArcTheme()
+                } else {
+                    ReaderView(
+                        publication: selection.publication,
+                        url: selection.url,
+                        progress: progress
+                    )
+                    .storyArcTheme()
+                }
             }
         }
     }

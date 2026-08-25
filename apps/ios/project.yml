@@ -27,6 +27,10 @@ settings:
 packages:
   StoryArcKit:
     path: Packages/StoryArcKit
+  # Reflowable EPUB rendering, in its own package because Readium is iOS-only
+  # and StoryArcKit also builds for macOS. See StoryArcEpub/Package.swift.
+  StoryArcEpub:
+    path: Packages/StoryArcEpub
 
 targets:
   StoryArc:
@@ -43,6 +47,8 @@ targets:
         product: LibraryFeature
       - package: StoryArcKit
         product: ReaderFeature
+      - package: StoryArcEpub
+        product: EpubReaderFeature
     info:
       path: App/Info.plist
       properties:

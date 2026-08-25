@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="epub_close">Schließen</string>
+    <string name="epub_progress">%1$d%% gelesen</string>
+    <string name="epub_failure_unreachable">Dieses Buch ist nicht erreichbar.</string>
+    <string name="epub_failure_unreadable">Dieses Buch konnte nicht geöffnet werden.</string>
+</resources>

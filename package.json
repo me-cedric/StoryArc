@@ -19,6 +19,7 @@
     "lint:ios": "cd apps/ios && swiftlint lint --strict",
     "lint:android": "cd apps/android && ./gradlew lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test",
+    "test:ios:epub": "cd apps/ios/Packages/StoryArcEpub && xcodebuild test -scheme StoryArcEpub -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -quiet",
     "test:android": "cd apps/android && ./gradlew test",
     "build:ios": "cd apps/ios && xcodegen generate && xcodebuild build -project StoryArc.xcodeproj -scheme StoryArc -destination 'generic/platform=iOS Simulator' -quiet",
     "build:android": "cd apps/android && ./gradlew assembleDebug",
