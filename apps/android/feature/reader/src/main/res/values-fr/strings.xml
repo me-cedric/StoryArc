@@ -15,4 +15,12 @@
     <string name="reader_fit_original">Taille réelle</string>
     <string name="reader_thumbnails">Pages</string>
     <string name="reader_thumbnail_number">Page %1$d</string>
+    <string name="reader_transition">Tourne de page</string>
+    <string name="reader_transition_curl">Pliure</string>
+    <string name="reader_transition_slide">Glissement</string>
+    <string name="reader_transition_fade">Fondu rapide</string>
+    <string name="reader_transition_scroll_vertical">Défilement vertical</string>
+    <string name="reader_transition_scroll_horizontal">Défilement horizontal</string>
+    <string name="reader_transition_reduce_motion">Indisponible tant que votre système supprime les animations.</string>
+    <string name="reader_transition_no_curl">La pliure n’est pas proposée ici : cet appareil ne peut pas la dessiner assez fluidement.</string>
 </resources>

@@ -148,3 +148,109 @@ struct EndOfPublication: View {
         .transition(.opacity)
     }
 }
+
+/// One page in a continuous scroll.
+///
+/// Full across the cross axis and natural along the scroll axis, so consecutive pages
+/// meet with no gap — `comic-reader` asks for them "stitched with no gap by default".
+/// Fitting each one to the screen instead would leave a band of black between every
+/// pair, and stitching along the wrong axis leaves a row of slivers.
+///
+/// Deliberately not ``ZoomablePage``: the scroll owns the drag, and two things
+/// claiming it is how a reader ends up able to do neither.
+struct StitchedPage: View {
+    let image: CGImage?
+    let isUnavailable: Bool
+    let label: String
+    let axis: ScrollAxis
+    let onTap: (CGPoint, CGSize) -> Void
+
+    /// A page's shape before it is decoded.
+    ///
+    /// `page-transitions` asks a turn to run "against a placeholder holding the
+    /// correct aspect ratio, so the turn does not jump when the content arrives".
+    /// Until the page is decoded its real ratio is unknown, and a comic page is close
+    /// enough to this that the jump is not something a reader notices.
+    private static let placeholderRatio = 2.0 / 3.0
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                Color.black
+                if let image {
+                    Image(decorative: image, scale: 1)
+                        .resizable()
+                        .scaledToFit()
+                        .accessibilityLabel(label)
+                } else if isUnavailable {
+                    // Said, not blank. `publication-formats` requires an archive to
+                    // report what it skipped, and this is where a skipped page is met.
+                    PageProblem()
+                } else {
+                    DelayedProgressView()
+                }
+            }
+            .contentShape(.rect)
+            .onTapGesture { location in onTap(location, geometry.size) }
+        }
+        .aspectRatio(ratio, contentMode: .fit)
+        .modifier(FullAcross(axis: axis))
+    }
+
+    /// The page's own proportions, or the placeholder's until it has any.
+    private var ratio: Double {
+        guard let image, image.height > 0 else { return Self.placeholderRatio }
+        return Double(image.width) / Double(image.height)
+    }
+}
+
+/// Fills the axis a scroll does *not* run along.
+private struct FullAcross: ViewModifier {
+    let axis: ScrollAxis
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        switch axis {
+        case .vertical: content.frame(maxWidth: .infinity)
+        case .horizontal: content.frame(maxHeight: .infinity)
+        }
+    }
+}
+
+/// A page the archive could not give us, said rather than left blank.
+private struct PageProblem: View {
+    var body: some View {
+        VStack(spacing: StoryArcSpace.sm) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 28, weight: .light))
+            Text("reader.pageUnavailable", bundle: .module)
+                .textRole(.footnote)
+        }
+        .foregroundStyle(.white.opacity(0.7))
+    }
+}
+
+extension PageTransition {
+    /// How the transition modes are named on screen.
+    ///
+    /// In the feature rather than the domain: `:core:model`'s twin carries no
+    /// resources either, because the domain has no business holding UI copy.
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .pageCurl: "reader.transition.curl"
+        case .slide: "reader.transition.slide"
+        case .fastFade: "reader.transition.fade"
+        case .verticalScroll: "reader.transition.scrollVertical"
+        case .horizontalScroll: "reader.transition.scrollHorizontal"
+        }
+    }
+}
+
+extension TransitionUnavailability {
+    /// Why a mode cannot run, in one line.
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .reduceMotion: "reader.transition.reduceMotion"
+        }
+    }
+}

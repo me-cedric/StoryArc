@@ -6,6 +6,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.lifecycle.ViewModel
 import android.content.ContentResolver
+import android.provider.Settings
 import app.storyarc.core.format.ComicArchiveReading
 import app.storyarc.core.format.PageDecoder
 import app.storyarc.core.format.PageEntry
@@ -13,6 +14,14 @@ import app.storyarc.core.format.PdfDocumentReader
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.PageTransition
+import app.storyarc.core.model.ScrollAxis
+import app.storyarc.core.model.ShelfMemory
+import app.storyarc.core.model.ShelfSettings
+import app.storyarc.core.model.ThemeScope
+import app.storyarc.core.model.TransitionChoices
+import app.storyarc.core.model.scrollAlong
+import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
@@ -44,7 +53,97 @@ class ReaderViewModel(
      */
     private val path: String,
     private val progress: ProgressStore? = null,
+    /**
+     * Where the reading mode is remembered between sessions. Null in a preview.
+     *
+     * `comic-reader`'s mode persistence is word for word `reading-themes`' theme
+     * persistence — per series, with a global default, and comics independent of
+     * reflowable — so it is the same store.
+     */
+    private val shelfStore: ReaderPreferences? = null,
+    /**
+     * Whether this device can render the curl at the display's refresh rate.
+     *
+     * False until the Phase 0 spike says otherwise. `page-transitions`: "the app never
+     * ships a curl that stutters in preference to a slide that does not", so the
+     * honest default for a curl that does not exist yet is that it is unavailable.
+     */
+    private val canCurl: Boolean = false,
 ) : ViewModel() {
+
+    /** The shelf this publication's reading mode is remembered under. */
+    private val shelf =
+        ShelfMemory.shelf(publication.series, publication.identity.stableId)
+
+    private val _settings = MutableStateFlow(
+        shelfStore?.themes()?.theme(ThemeScope.FIXED_LAYOUT, shelf) ?: ShelfSettings(),
+    )
+
+    /** What this shelf is read with. */
+    val settings: StateFlow<ShelfSettings> = _settings.asStateFlow()
+
+    /**
+     * Whether the reader has asked the system to remove animations.
+     *
+     * Android has no `UIAccessibility.isReduceMotionEnabled`; what it has is an
+     * animator duration scale a reader can set to zero in developer options or in
+     * accessibility settings. Read on demand rather than cached, because
+     * `page-transitions` requires turning the setting off mid-session to restore the
+     * chosen mode "without the reader being reopened".
+     */
+    private val reduceMotion: Boolean
+        get() = Settings.Global.getFloat(
+            resolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f,
+        ) == 0f
+
+    /**
+     * Which transition rows to offer, which of them cannot run, and what runs instead.
+     *
+     * Recomputed rather than stored, because two of its three inputs are conditions of
+     * the moment: the reduced-motion setting can be turned off, and the next device may
+     * be able to curl. `page-transitions` requires a stored Curl to survive both.
+     */
+    fun transitions(settings: ShelfSettings): TransitionChoices = TransitionChoices(
+        chosen = settings.transition,
+        axis = settings.scrollAxis ?: impliedAxis,
+        reduceMotion = reduceMotion,
+        canCurl = canCurl,
+    )
+
+    /**
+     * The axis the publication implies, until the reader overrides it.
+     *
+     * Measured from the first page that has been decoded rather than declared: a
+     * webtoon rarely says it is one, and `comic-reader` recognises it by pages
+     * "materially taller than they are wide".
+     */
+    private val impliedAxis: ScrollAxis
+        get() = ScrollAxis.implied(
+            isReflowable = false,
+            isTall = tallestRatio >= ScrollAxis.TALLNESS_THRESHOLD,
+            declaresHorizontal = true,
+        )
+
+    /** Height over width of the first decoded page, or 0 while nothing is decoded. */
+    private var tallestRatio = 0.0
+
+    /** Chooses a transition, for this shelf, from now on. */
+    fun choose(transition: PageTransition) {
+        update(_settings.value.copy(transition = transition))
+    }
+
+    /** Overrides the scroll axis, which `page-transitions` requires to be possible. */
+    fun choose(axis: ScrollAxis) {
+        update(_settings.value.copy(scrollAxis = axis, transition = scrollAlong(axis)))
+    }
+
+    private fun update(settings: ShelfSettings) {
+        _settings.value = settings
+        val store = shelfStore ?: return
+        store.save(store.themes().remembering(settings, ThemeScope.FIXED_LAYOUT, shelf))
+    }
 
     private val _pages = MutableStateFlow<List<PageEntry>>(emptyList())
     val pages: StateFlow<List<PageEntry>> = _pages.asStateFlow()
@@ -260,7 +359,15 @@ class ReaderViewModel(
                 runCatching { PageDecoder.decode(opened.data(page), maxPixelSize) }.getOrNull()
             }
         }
-        if (bitmap != null) decoded[index] = bitmap
+        if (bitmap != null) {
+            decoded[index] = bitmap
+            // The first page that decodes settles the implied scroll axis. First
+            // rather than tallest: a webtoon's pages are all strips, and waiting for
+            // the tallest would mean waiting for the whole publication.
+            if (tallestRatio == 0.0 && bitmap.width > 0) {
+                tallestRatio = bitmap.height.toDouble() / bitmap.width
+            }
+        }
     }
 
     private companion object {

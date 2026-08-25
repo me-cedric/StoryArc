@@ -275,8 +275,8 @@ class ReadingThemeTest {
 
     @Test
     fun `A theme set on one book in a series is what the next book in it opens with`() {
-        val chosen = StoredTheme(ReadingTheme(ThemePreset.CALM))
-        val memory = ThemeMemory().remembering(chosen, ThemeScope.REFLOWABLE, "Bone")
+        val chosen = ShelfSettings(ReadingTheme(ThemePreset.CALM))
+        val memory = ShelfMemory().remembering(chosen, ThemeScope.REFLOWABLE, "Bone")
         assertEquals(ThemePreset.CALM, memory.theme(ThemeScope.REFLOWABLE, "Bone").theme.preset)
         // A shelf never opened falls through to the default, not to the last book read.
         assertEquals(ThemePreset.PAPER, memory.theme(ThemeScope.REFLOWABLE, "Blame!").theme.preset)
@@ -286,18 +286,18 @@ class ReadingThemeTest {
     fun `Reflowable and fixed-layout keep separate defaults for the same shelf name`() {
         // A series called "Bone" can hold both a comic and an ebook, and a line height
         // means nothing to a page of artwork.
-        val memory = ThemeMemory()
-            .remembering(StoredTheme(ReadingTheme(ThemePreset.CALM)), ThemeScope.REFLOWABLE, "Bone")
-            .remembering(StoredTheme(ReadingTheme(ThemePreset.QUIET)), ThemeScope.FIXED_LAYOUT, "Bone")
+        val memory = ShelfMemory()
+            .remembering(ShelfSettings(ReadingTheme(ThemePreset.CALM)), ThemeScope.REFLOWABLE, "Bone")
+            .remembering(ShelfSettings(ReadingTheme(ThemePreset.QUIET)), ThemeScope.FIXED_LAYOUT, "Bone")
         assertEquals(ThemePreset.CALM, memory.theme(ThemeScope.REFLOWABLE, "Bone").theme.preset)
         assertEquals(ThemePreset.QUIET, memory.theme(ThemeScope.FIXED_LAYOUT, "Bone").theme.preset)
     }
 
     @Test
     fun `Changing the global default leaves a choice already made alone`() {
-        val memory = ThemeMemory()
-            .remembering(StoredTheme(ReadingTheme(ThemePreset.CALM)), ThemeScope.REFLOWABLE, "Bone")
-            .settingDefault(StoredTheme(ReadingTheme(ThemePreset.FOCUS)), ThemeScope.REFLOWABLE)
+        val memory = ShelfMemory()
+            .remembering(ShelfSettings(ReadingTheme(ThemePreset.CALM)), ThemeScope.REFLOWABLE, "Bone")
+            .settingDefault(ShelfSettings(ReadingTheme(ThemePreset.FOCUS)), ThemeScope.REFLOWABLE)
         assertEquals(ThemePreset.CALM, memory.theme(ThemeScope.REFLOWABLE, "Bone").theme.preset)
         assertEquals(ThemePreset.FOCUS, memory.theme(ThemeScope.REFLOWABLE, "unopened").theme.preset)
         // And it does not leak across scopes.
@@ -307,19 +307,19 @@ class ReadingThemeTest {
     @Test
     fun `A book with no series is a series of one, not the global default`() {
         // Otherwise reading one novel in sepia would change every other book.
-        assertEquals("Bone", ThemeMemory.shelf("Bone", "abc"))
-        assertEquals("abc", ThemeMemory.shelf(null, "abc"))
-        assertEquals("abc", ThemeMemory.shelf("   ", "abc"))
+        assertEquals("Bone", ShelfMemory.shelf("Bone", "abc"))
+        assertEquals("abc", ShelfMemory.shelf(null, "abc"))
+        assertEquals("abc", ShelfMemory.shelf("   ", "abc"))
     }
 
     @Test
     fun `A deviation survives a round trip, because the values travel with the theme`() {
-        val stored = StoredTheme(
+        val stored = ShelfSettings(
             theme = ReadingTheme(ThemePreset.PAPER, setOf(ThemeAxis.LINE_SPACING)),
             values = ThemePreset.PAPER.values.copy(lineHeight = 2.1),
         )
-        val memory = ThemeMemory().remembering(stored, ThemeScope.REFLOWABLE, "Bone")
-        val decoded = Json.decodeFromString<ThemeMemory>(Json.encodeToString(memory))
+        val memory = ShelfMemory().remembering(stored, ThemeScope.REFLOWABLE, "Bone")
+        val decoded = Json.decodeFromString<ShelfMemory>(Json.encodeToString(memory))
         val read = decoded.theme(ThemeScope.REFLOWABLE, "Bone")
         assertEquals(2.1, read.values.lineHeight, 0.0001)
         assertTrue(read.theme.isModified)
@@ -328,10 +328,119 @@ class ReadingThemeTest {
     @Test
     fun `A custom palette survives a round trip too`() {
         val palette = ReaderPalette.derived("Sea", "#0B2027")
-        val memory = ThemeMemory()
-            .remembering(StoredTheme(ReadingTheme().adopting(palette)), ThemeScope.REFLOWABLE, "Bone")
-        val decoded = Json.decodeFromString<ThemeMemory>(Json.encodeToString(memory))
+        val memory = ShelfMemory()
+            .remembering(ShelfSettings(ReadingTheme().adopting(palette)), ThemeScope.REFLOWABLE, "Bone")
+        val decoded = Json.decodeFromString<ShelfMemory>(Json.encodeToString(memory))
         assertEquals(palette, decoded.theme(ThemeScope.REFLOWABLE, "Bone").theme.custom)
+    }
+
+    // Transition choices.
+
+    @Test
+    fun `Reduced motion leaves the animated modes listed and marked, and runs the fade`() {
+        val choices = TransitionChoices(
+            chosen = PageTransition.PAGE_CURL,
+            axis = ScrollAxis.VERTICAL,
+            reduceMotion = true,
+            canCurl = true,
+        )
+        // Listed, because "a control that vanishes teaches the user nothing".
+        assertTrue(choices.offered.contains(PageTransition.PAGE_CURL))
+        assertEquals(
+            TransitionUnavailability.REDUCE_MOTION,
+            choices.unavailable[PageTransition.PAGE_CURL],
+        )
+        assertEquals(
+            TransitionUnavailability.REDUCE_MOTION,
+            choices.unavailable[PageTransition.SLIDE],
+        )
+        assertTrue(choices.isAvailable(PageTransition.FAST_FADE))
+        assertEquals(PageTransition.FAST_FADE, choices.effective)
+        // And the choice is not rewritten — turning the setting off restores it.
+        assertEquals(PageTransition.PAGE_CURL, choices.chosen)
+    }
+
+    @Test
+    fun `A device that cannot curl omits the row rather than showing a dead one`() {
+        val choices = TransitionChoices(
+            chosen = PageTransition.PAGE_CURL,
+            axis = ScrollAxis.VERTICAL,
+            reduceMotion = false,
+            canCurl = false,
+        )
+        assertFalse(choices.offered.contains(PageTransition.PAGE_CURL))
+        assertTrue(choices.curlIsAbsent)
+        // Slide is the stated fallback, and every other mode stays available.
+        assertEquals(PageTransition.SLIDE, choices.effective)
+        assertTrue(choices.offered.contains(PageTransition.SLIDE))
+        assertTrue(choices.offered.contains(PageTransition.FAST_FADE))
+        // The stored preference survives the device that cannot honour it.
+        assertEquals(PageTransition.PAGE_CURL, choices.chosen)
+    }
+
+    @Test
+    fun `Both scroll rows are offered, the implied axis first - that is the override`() {
+        // `page-transitions` requires the axis to be "separately overridable", and two
+        // rows are that override with no second control for the reader to find.
+        val vertical = TransitionChoices(PageTransition.SLIDE, ScrollAxis.VERTICAL, false, true)
+        assertEquals(
+            listOf(
+                PageTransition.PAGE_CURL,
+                PageTransition.SLIDE,
+                PageTransition.FAST_FADE,
+                PageTransition.VERTICAL_SCROLL,
+                PageTransition.HORIZONTAL_SCROLL,
+            ),
+            vertical.offered,
+        )
+        assertEquals(ScrollAxis.VERTICAL, vertical.impliedAxis)
+        val horizontal = TransitionChoices(PageTransition.SLIDE, ScrollAxis.HORIZONTAL, false, true)
+        assertEquals(PageTransition.VERTICAL_SCROLL, horizontal.offered.last())
+    }
+
+    @Test
+    fun `A tall publication scrolls vertically without being told it is a webtoon`() {
+        // A webtoon that declares nothing is still one tall strip cut into files.
+        assertEquals(ScrollAxis.VERTICAL, ScrollAxis.implied(false, isTall = true, declaresHorizontal = true))
+        assertEquals(ScrollAxis.VERTICAL, ScrollAxis.implied(true, isTall = false, declaresHorizontal = true))
+        assertEquals(ScrollAxis.HORIZONTAL, ScrollAxis.implied(false, isTall = false, declaresHorizontal = true))
+        assertEquals(ScrollAxis.VERTICAL, ScrollAxis.implied(false, isTall = false, declaresHorizontal = false))
+    }
+
+    @Test
+    fun `Reduced motion does not touch the scroll modes, which are not animations`() {
+        val choices = TransitionChoices(
+            PageTransition.VERTICAL_SCROLL, ScrollAxis.VERTICAL, reduceMotion = true, canCurl = true,
+        )
+        assertEquals(PageTransition.VERTICAL_SCROLL, choices.effective)
+        assertTrue(choices.isAvailable(PageTransition.VERTICAL_SCROLL))
+    }
+
+    @Test
+    fun `The transition is remembered per shelf, alongside the theme`() {
+        val settings = ShelfSettings(
+            transition = PageTransition.VERTICAL_SCROLL,
+            scrollAxis = ScrollAxis.VERTICAL,
+        )
+        val memory = ShelfMemory().remembering(settings, ThemeScope.FIXED_LAYOUT, "Bone")
+        val decoded = Json.decodeFromString<ShelfMemory>(Json.encodeToString(memory))
+        assertEquals(
+            PageTransition.VERTICAL_SCROLL,
+            decoded.theme(ThemeScope.FIXED_LAYOUT, "Bone").transition,
+        )
+        // And it does not leak into the reflowable scope.
+        assertEquals(PageTransition.SLIDE, decoded.theme(ThemeScope.REFLOWABLE, "Bone").transition)
+    }
+
+    @Test
+    fun `Settings written before the transition existed still decode`() {
+        val lenient = Json { ignoreUnknownKeys = true }
+        val settings = lenient.decodeFromString<ShelfSettings>(
+            """{"theme":{"preset":"CALM","deviations":[]}}""",
+        )
+        assertEquals(ThemePreset.CALM, settings.theme.preset)
+        assertEquals(PageTransition.SLIDE, settings.transition)
+        assertNull(settings.scrollAxis)
     }
 
     // Axis units.

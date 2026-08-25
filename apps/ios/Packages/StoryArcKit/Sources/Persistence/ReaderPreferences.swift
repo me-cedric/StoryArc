@@ -21,19 +21,19 @@ public struct ReaderPreferences {
 
     /// Every reading theme the reader has chosen, per shelf and per scope.
     ///
-    /// One blob rather than a key per shelf: the whole point of `ThemeMemory` is that
+    /// One blob rather than a key per shelf: the whole point of `ShelfMemory` is that
     /// resolution walks from shelf to scope to built-in default, and a store that
     /// scattered the entries across `UserDefaults` keys would have to reimplement
     /// that walk. Unreadable stored data reads as no data — a theme is a preference,
     /// and losing one is worth far less than refusing to open the book.
-    public func themes() -> ThemeMemory {
+    public func themes() -> ShelfMemory {
         guard let data = defaults.data(forKey: themesKey),
-              let memory = try? JSONDecoder().decode(ThemeMemory.self, from: data)
-        else { return ThemeMemory() }
+              let memory = try? JSONDecoder().decode(ShelfMemory.self, from: data)
+        else { return ShelfMemory() }
         return memory
     }
 
-    public func save(_ memory: ThemeMemory) {
+    public func save(_ memory: ShelfMemory) {
         guard let data = try? JSONEncoder().encode(memory) else { return }
         defaults.set(data, forKey: themesKey)
     }

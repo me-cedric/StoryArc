@@ -15,4 +15,12 @@
     <string name="reader_fit_original">Original size</string>
     <string name="reader_thumbnails">Pages</string>
     <string name="reader_thumbnail_number">Page %1$d</string>
+    <string name="reader_transition">Page turn</string>
+    <string name="reader_transition_curl">Curl</string>
+    <string name="reader_transition_slide">Slide</string>
+    <string name="reader_transition_fade">Fast fade</string>
+    <string name="reader_transition_scroll_vertical">Scroll, vertical</string>
+    <string name="reader_transition_scroll_horizontal">Scroll, horizontal</string>
+    <string name="reader_transition_reduce_motion">Unavailable while your system is set to remove animations.</string>
+    <string name="reader_transition_no_curl">Curl is not offered here: this device cannot draw it smoothly enough to be worth it.</string>
 </resources>

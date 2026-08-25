@@ -98,6 +98,25 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **Choose how a page turns, and the choice sticks per series.** Slide, Fast fade,
+  and continuous Scroll in either axis. Curl is not here yet, and says so.
+  - **Scroll is the one that changes what you can read.** Pages are stitched with no
+    gap, so a webtoon reads as the single strip it is instead of twelve screens.
+    The axis follows the publication — vertical for anything materially taller than
+    it is wide, horizontal otherwise — and the second scroll row is the override.
+  - Curl is absent rather than dead where it cannot be drawn smoothly, with the
+    reason in plain language and no API level named. Reduce Motion is the other case
+    and gets the other treatment: Curl and Slide stay listed, marked, with the reason
+    — a control that vanishes teaches you nothing. Either way your stored choice is
+    never overwritten, so it comes back when the condition does.
+  - Fast fade is 140 ms, about the shortest a dissolve can be without reading as a
+    cut. It doubles as the Reduce Motion substitute, so it must not become the thing
+    it replaces.
+- **Fixed: the page a publication opens on only reached one of the containers.** A
+  ComicInfo cover, or the position you left off at, arrives after the book opens
+  rather than when the screen is first built. The pager restored itself from its own
+  saved state and hid this; a fade and a scroll had nothing to restore from and
+  opened at page one.
 - **Every preset card and every typeface row is drawn in its own typeface.** The
   cards previewed each theme's colours with three grey rules, and a rule has no
   letterforms — so the grid showed six colours and no faces.

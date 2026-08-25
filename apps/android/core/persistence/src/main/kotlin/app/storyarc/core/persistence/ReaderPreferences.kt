@@ -3,7 +3,7 @@ package app.storyarc.core.persistence
 import android.content.Context
 import android.content.SharedPreferences
 import app.storyarc.core.model.PageFit
-import app.storyarc.core.model.ThemeMemory
+import app.storyarc.core.model.ShelfMemory
 import kotlinx.serialization.json.Json
 
 class ReaderPreferences(private val preferences: SharedPreferences) {
@@ -39,18 +39,18 @@ class ReaderPreferences(private val preferences: SharedPreferences) {
     /**
      * Every reading theme the reader has chosen, per shelf and per scope.
      *
-     * One blob rather than a key per shelf: the whole point of [ThemeMemory] is that
+     * One blob rather than a key per shelf: the whole point of [ShelfMemory] is that
      * resolution walks from shelf to scope to built-in default, and a store that
      * scattered the entries across preference keys would have to reimplement that
      * walk. Unreadable stored data reads as no data — a theme is a preference, and
      * losing one is worth far less than refusing to open the book.
      */
-    fun themes(): ThemeMemory =
+    fun themes(): ShelfMemory =
         preferences.getString(THEMES, null)
-            ?.let { runCatching { json.decodeFromString<ThemeMemory>(it) }.getOrNull() }
-            ?: ThemeMemory()
+            ?.let { runCatching { json.decodeFromString<ShelfMemory>(it) }.getOrNull() }
+            ?: ShelfMemory()
 
-    fun save(memory: ThemeMemory) {
+    fun save(memory: ShelfMemory) {
         preferences.edit().putString(THEMES, json.encodeToString(memory)).apply()
     }
 }

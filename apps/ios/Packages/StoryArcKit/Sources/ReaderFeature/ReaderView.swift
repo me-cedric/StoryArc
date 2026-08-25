@@ -19,15 +19,15 @@ public import StoryArcCore
 /// What is here is the part every mode shares: page order, reading direction,
 /// fit, and chrome that gets out of the way.
 public struct ReaderView: View {
-    @Environment(\.theme) private var theme
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.theme) var theme
+    @Environment(\.dismiss) var dismiss
     @Environment(\.displayScale) private var displayScale
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
-    @State private var model: ReaderModel
+    @State var model: ReaderModel
     /// `comic-reader`: nothing is on screen while the user is reading. The chrome
     /// starts visible so the way out is discoverable, and a tap hides it.
-    @State private var isChromeVisible = true
+    @State var isChromeVisible = true
     /// The pager's own position, which it owns outright.
     ///
     /// A two-way `Binding` into the model was tried twice and fights the gesture:
@@ -35,7 +35,10 @@ public struct ReaderView: View {
     /// setter that rejects some of those writes leaves the pager and the model
     /// disagreeing about where the reader is. Local state that the model *follows*
     /// has one writer and cannot desynchronise.
-    @State private var displayIndex = 0
+    ///
+    /// Internal rather than private because the containers live in
+    /// `ReaderContainers.swift` and a `private` member cannot cross a file.
+    @State var displayIndex = 0
 
     /// What follows this publication, and how to open it.
     ///
@@ -53,7 +56,12 @@ public struct ReaderView: View {
         onOpenNext: @escaping (Publication) -> Void = { _ in }
     ) {
         _model = State(
-            initialValue: ReaderModel(publication: publication, url: url, progress: progress)
+            initialValue: ReaderModel(
+                publication: publication,
+                url: url,
+                progress: progress,
+                preferences: preferences
+            )
         )
         self.preferences = preferences
         self.nextInSeries = nextInSeries
@@ -62,16 +70,16 @@ public struct ReaderView: View {
     }
 
     /// Where the fit choice is remembered. Absent in previews.
-    private let preferences: ReaderPreferences?
+    let preferences: ReaderPreferences?
 
     /// Set when the reader turns past the last page.
     @State private var hasReachedEnd = false
 
     /// How the page is sized. `comic-reader` requires the choice to persist.
-    @State private var fit: PageFit = .screen
+    @State var fit: PageFit = .screen
 
     /// Whether the thumbnail strip is open.
-    @State private var isBrowsingThumbnails = false
+    @State var isBrowsingThumbnails = false
 
     public var body: some View {
         GeometryReader { geometry in
@@ -149,7 +157,13 @@ public struct ReaderView: View {
         #endif
     }
 
-    /// The pages themselves, as a horizontal pager.
+    /// The pages themselves, in whichever container the chosen mode calls for.
+    ///
+    /// `page-transitions` treats the mode as a property of the container, and this is
+    /// what that means here: Slide is a `TabView`, Fast fade is one page with a
+    /// dissolve, and Scroll is a `ScrollView` of stitched pages. One `displayIndex`
+    /// drives all three — on iOS `scrollPosition` and `TabView`'s selection speak the
+    /// same language, so there is no coordinator type to write. Android needs one.
     ///
     /// Right-to-left reverses the *display* order and maps the index at the
     /// boundary, so the model keeps counting pages the way the publication does
@@ -160,38 +174,30 @@ public struct ReaderView: View {
     /// the transform, so a swipe pages the wrong way, jumps two at a time, and
     /// then sticks at an end. Reversing the data is the mechanism that survives
     /// contact with the gesture recogniser.
+    @ViewBuilder
     private func pages(in size: CGSize) -> some View {
-        TabView(selection: $displayIndex) {
-            ForEach(displayOrder, id: \.self) { displayIndex in
-                let index = modelIndex(forDisplay: displayIndex)
-                PageView(
-                    image: model.image(at: index),
-                    isUnavailable: model.isUnavailable(at: index),
-                    label: model.pages[index].path,
-                    fit: fit,
-                    onTap: { location, size in handleTap(at: location, in: size) }
-                )
-                .tag(displayIndex)
+        let choices = model.transitions(reduceMotion: reduceMotion)
+        let container = Group {
+            switch choices.effective {
+            case .verticalScroll: stitched(.vertical)
+            case .horizontalScroll: stitched(.horizontal)
+            case .fastFade: faded
+            case .pageCurl, .slide: paged
             }
         }
-        #if os(iOS)
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        #endif
-        // One direction only: the pager moves, the model follows.
-        .onChange(of: displayIndex) { _, new in
-            let index = modelIndex(forDisplay: new)
-            guard model.pages.indices.contains(index) else { return }
-            Task { await model.go(to: index) }
-        }
-        // And once, the other way, when the publication opens on a page that is
-        // not the first — a ComicInfo cover, or a resumed position later.
-        .onAppear { displayIndex = displayIndex(forModel: model.currentIndex) }
-        // Reduce Motion replaces the slide with a cross-dissolve, which
-        // `comic-reader` requires rather than leaving the animation on.
-        .animation(reduceMotion ? .easeInOut(duration: 0.15) : .default, value: displayIndex)
-        .accessibilityLabel(
-            isRightToLeft ? Text("reader.rightToLeft", bundle: .module) : Text(verbatim: "")
-        )
+        container
+            // One direction only: the container moves, the model follows.
+            .onChange(of: displayIndex) { _, new in
+                let index = modelIndex(forDisplay: new)
+                guard model.pages.indices.contains(index) else { return }
+                Task { await model.go(to: index) }
+            }
+            // And once, the other way, when the publication opens on a page that is
+            // not the first — a ComicInfo cover, or a resumed position later.
+            .onAppear { displayIndex = displayIndex(forModel: model.currentIndex) }
+            .accessibilityLabel(
+                isRightToLeft ? Text("reader.rightToLeft", bundle: .module) : Text(verbatim: "")
+            )
     }
 
     private var isRightToLeft: Bool { model.readingDirection == .rightToLeft }
@@ -203,7 +209,7 @@ public struct ReaderView: View {
     /// here — the pager's *data* is reversed for RTL, so moving one step to the
     /// right on screen is always one step to the right on screen, whichever way
     /// the story runs.
-    private func handleTap(at location: CGPoint, in size: CGSize) {
+    func handleTap(at location: CGPoint, in size: CGSize) {
         let edge = size.width * edgeZoneFraction
         if location.x < edge {
             turn(by: -1)
@@ -217,7 +223,7 @@ public struct ReaderView: View {
     /// The same zones the page's own recognisers use to route a tap.
     private var edgeZoneFraction: CGFloat { ZoomablePage.edgeZoneFraction }
 
-    private func turn(by step: Int) {
+    func turn(by step: Int) {
         let next = displayIndex + step
         // `comic-reader`: turning past the last page reaches an end screen rather
         // than nothing. In right-to-left the last *page* is the first display
@@ -233,21 +239,21 @@ public struct ReaderView: View {
     }
 
     /// Display positions, in the order the pager lays them out.
-    private var displayOrder: [Int] { Array(model.pages.indices) }
+    var displayOrder: [Int] { Array(model.pages.indices) }
 
     /// A display position turned back into the publication's own page number.
     ///
     /// The only place the reversal lives. Everything above and below this line
     /// counts pages the way the file does.
-    private func modelIndex(forDisplay displayIndex: Int) -> Int {
+    func modelIndex(forDisplay displayIndex: Int) -> Int {
         isRightToLeft ? model.pages.count - 1 - displayIndex : displayIndex
     }
 
-    private func displayIndex(forModel index: Int) -> Int {
+    func displayIndex(forModel index: Int) -> Int {
         isRightToLeft ? model.pages.count - 1 - index : index
     }
 
-    private var pageSlider: Binding<Double> {
+    var pageSlider: Binding<Double> {
         Binding(
             get: { Double(model.currentIndex) },
             set: { new in
@@ -266,118 +272,4 @@ public struct ReaderView: View {
         "\(isChromeVisible)-\(displayIndex)-\(isBrowsingThumbnails)"
     }
 
-    /// The controls. One gesture away, and gone while reading.
-    private var chrome: some View {
-        VStack {
-            HStack {
-                Button { dismiss() } label: {
-                    Label {
-                        Text("reader.close", bundle: .module)
-                    } icon: {
-                        Image(systemName: "xmark")
-                    }
-                    .labelStyle(.iconOnly)
-                }
-                // The platform's own glass button rather than glass painted behind
-                // a plain one: it carries the interactive highlight, and its own
-                // Reduce-Transparency fallback, which a hand-rolled pill does not.
-                .buttonStyle(.glass)
-                .tint(.white)
-
-                Spacer()
-
-                if model.pages.count > 1 {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isBrowsingThumbnails.toggle()
-                        }
-                    } label: {
-                        Label {
-                            Text("reader.thumbnails", bundle: .module)
-                        } icon: {
-                            Image(systemName: isBrowsingThumbnails
-                                ? "square.grid.2x2.fill"
-                                : "square.grid.2x2")
-                        }
-                        .labelStyle(.iconOnly)
-                    }
-                    .buttonStyle(.glass)
-                    .tint(.white)
-                }
-            }
-            .padding(StoryArcSpace.md)
-
-            Spacer()
-
-            if isBrowsingThumbnails {
-                ThumbnailStrip(model: model, currentIndex: model.currentIndex) { index in
-                    displayIndex = displayIndex(forModel: index)
-                    withAnimation(.easeInOut(duration: 0.2)) { isBrowsingThumbnails = false }
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-
-            VStack(spacing: StoryArcSpace.sm) {
-                // A segmented control rather than a menu. Four options fit across a
-                // phone, and a control with no open state cannot be swallowed by
-                // the chrome auto-hiding under it.
-                Picker("", selection: fitBinding) {
-                    ForEach(PageFit.allCases, id: \.self) { candidate in
-                        Text(candidate.shortTitleKey, bundle: .module).tag(candidate)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-
-                if model.pages.count > 1 {
-                    pageSliderRow
-                } else if !model.pages.isEmpty {
-                    pageCount
-                }
-            }
-            .padding(.horizontal, StoryArcSpace.md)
-            .padding(.bottom, StoryArcSpace.lg)
-        }
-        .transition(.opacity)
-    }
-
-    private var fitBinding: Binding<PageFit> {
-        Binding(
-            get: { fit },
-            set: { new in
-                fit = new
-                preferences?.save(new)
-            }
-        )
-    }
-
-    private var pageCount: some View {
-        pageCountLabel
-            .padding(.horizontal, StoryArcSpace.md)
-            .padding(.vertical, StoryArcSpace.xs)
-            .storyArcGlass()
-    }
-
-    private var pageCountLabel: some View {
-        Text("reader.page \(model.currentIndex + 1) \(model.pages.count)", bundle: .module)
-            .textRole(.footnote)
-            .monospacedDigit()
-            .foregroundStyle(.white)
-    }
-
-    private var pageSliderRow: some View {
-        VStack(spacing: StoryArcSpace.xs) {
-            pageCountLabel
-
-            // Bound to the *publication's* page number, not the pager's position.
-            // In right-to-left the two run opposite ways, and a slider whose left
-            // end is the last page would be a puzzle. Thumbnails on the slider are
-            // the rest of what `comic-reader` asks for and are not here yet.
-            Slider(value: pageSlider, in: 0...Double(max(1, model.pages.count - 1)), step: 1)
-                .tint(.white)
-        }
-        .padding(.horizontal, StoryArcSpace.gutter)
-        .padding(.vertical, StoryArcSpace.sm)
-        .storyArcGlass(in: RoundedRectangle(cornerRadius: StoryArcRadius.lg))
-    }
 }

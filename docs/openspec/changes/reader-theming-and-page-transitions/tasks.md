@@ -279,7 +279,7 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       every choice a reader made was lost when they closed the book. **Done for
       reflowable publications.**
 
-      `ThemeMemory` is one small data structure that answers all three scenarios,
+      `ShelfMemory` is one small data structure that answers all three scenarios,
       and the third answers itself. A theme is stored per *shelf* — its series, or
       its own identity where it has none, because a standalone book is a series of
       one and keying it to the global default would mean reading one novel in sepia
@@ -294,7 +294,7 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       key carries the scope, so a series called "Bone" holding both a comic and an
       ebook does not share one entry.
 
-      A `StoredTheme` is the theme *and* the typography, not just the preset. Storing
+      A `ShelfSettings` is the theme *and* the typography, not just the preset. Storing
       only the preset would silently put a moved line height back on the next open —
       losing work the reader can see they did. Two round-trip tests hold that, and a
       third holds it for a custom palette.
@@ -359,8 +359,44 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
 ## Phase 4 — Transitions
 
-- [ ] **4.1** Shared transition coordinator on both platforms: mode, direction,
-      progress, interruption.
+- [x] **4.1** Shared transition coordinator on both platforms: mode, direction,
+      progress, interruption. **Done for mode and position; interruption belongs with
+      the curl.**
+
+      The two platforms need different amounts of it, which is worth recording. On
+      iOS one `displayIndex` drives all three containers, because `scrollPosition`
+      and `TabView`'s selection speak the same language — there is no coordinator
+      type to write. Android needs one: a `PagerState`, a `LazyListState` and a plain
+      index have nothing in common, and fourteen call sites in the reader reached
+      into the pager directly. `Paging` is that seam — two questions, three
+      implementations, and the chrome, slider, thumbnail strip and end screen no
+      longer know which container is underneath.
+
+      Two bugs the seam surfaced, both fixed:
+
+      - **A coordinator wrapper rebuilt on every recomposition is a fresh
+        `LaunchedEffect` key**, and an effect that writes the position it just read
+        then recomposes for ever. It looks exactly like a reader whose taps do
+        nothing, because the frame never settles.
+      - **The page a publication opens on was reaching only the pager.** A ComicInfo
+        cover or a resumed position arrives after `open()`, not at first composition;
+        seeding worked while `rememberPagerState` was the only container, because it
+        restores itself from saved state. A fade and a scroll have nothing saved to
+        restore from, so they opened at page one. Both now jump once, when the real
+        answer arrives.
+- [x] **4.2** Slide and fast fade — cheap, and they de-risk the coordinator
+      before the curl lands on it. **Done, and the de-risking worked** — both bugs
+      above were found by Slide and Fast fade rather than by the curl.
+
+      Slide is the platform's own pager on each side, which brings its gesture, fling
+      and edge resistance for free. Fast fade has no container at all: 140 ms, which
+      is about the shortest a dissolve can be without reading as a cut, and short
+      enough that it does not become the thing it substitutes for.
+
+      Verified on the emulator: the picker offers Slide, Fast fade and both scroll
+      axes; Curl is absent with its reason; single edge taps turn in both directions
+      in every mode; the slider turns; and each choice survives a process kill,
+      per shelf and per scope.
 - [ ] **4.2** Slide and fast fade — cheap, and they de-risk the coordinator
       before the curl lands on it.
 - [ ] **4.3** Curl, per the Phase 0 outcome. Finger-tracked, interruptible, lit
@@ -369,18 +405,73 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 - [ ] **4.3b** Page rastering for reflowable content: raster at display scale,
       hold at most the outgoing and incoming pages, restore live interaction the
       instant the turn completes.
-- [ ] **4.4** Scroll mode with the axis rule, including the webtoon default.
+- [x] **4.4** Scroll mode with the axis rule, including the webtoon default.
+      **Done.** A lazy list on both platforms, pages stitched with no gap: each page
+      fills the scroll's *cross* axis and takes what it needs along the scroll axis.
+      Fitting each one to the screen instead leaves a band of background between
+      every pair, and stitching along the wrong axis leaves a row of slivers — which
+      is what the first attempt did, because the flag was a boolean that assumed
+      vertical.
+
+      The axis comes from the domain: vertical for reflowable text and for pages
+      "materially taller than they are wide", horizontal otherwise. Two is the
+      threshold, and it is chosen not to need tuning — a comic page is about 0.65
+      wide-to-tall and a webtoon strip is many times its width, so two is far above
+      one and far below the other. It is measured from the first decoded page rather
+      than declared, because a webtoon rarely says it is one, and first rather than
+      tallest because waiting for the tallest means waiting for the whole publication.
+
+      The axis override is the second scroll row rather than a separate control.
+      `page-transitions` requires the axis to be "separately overridable", and two
+      rows are that with nothing extra for a reader to find. ponytail: two rows;
+      split them into a mode and an axis picker if a third axis ever exists.
+
+      Zoom is off inside a scroll, deliberately: the scroll owns the drag, and two
+      things claiming it is how a reader ends up able to do neither.
+
+      Verified on the emulator in both axes — pages meeting edge to edge, the page
+      counter tracking a continuous scroll.
 - [ ] **4.5** Boundary rubber-band at the first and last page.
 - [ ] **4.6** Turn triggers: tap zones, keyboard, external controller, optional
       volume buttons.
-- [ ] **4.7** Reduce Motion: fall back to fast fade, keep the modes listed with
-      their reason, restore the choice when the setting is turned off.
+- [x] **4.7** Reduce Motion: fall back to fast fade, keep the modes listed with
+      their reason, restore the choice when the setting is turned off. **Done in the
+      domain and in both pickers.**
+
+      `TransitionChoices` computes it rather than storing it, which is what makes the
+      last clause free: the stored choice is never rewritten, so turning the setting
+      off restores it without the reader reopening anything. iOS reads
+      `accessibilityReduceMotion` from the environment, which is where a change to it
+      arrives. Android has no equivalent flag and reads the animator duration scale,
+      which is what "remove animations" sets — on demand, not cached, for the same
+      reason.
+
+      Listed and marked, not hidden: `page-transitions` is explicit that "a control
+      that vanishes teaches the user nothing".
+
+      Not verified on a device with the setting on. That belongs to 7.6.
 - [ ] **4.8** Placeholder at the correct aspect ratio when the destination page is
       not yet decoded.
-- [ ] **4.9** Absent-Curl path: hide Curl where the device cannot honour it —
+- [x] **4.9** Absent-Curl path: hide Curl where the device cannot honour it —
       Android below API 33, and any device failing the frame-rate check — default
       to Slide, state the reason in plain language without naming an API level,
-      and leave a stored Curl preference untouched.
+      and leave a stored Curl preference untouched. **Done, and currently that is
+      every device**, because the curl does not exist yet: `canCurl` defaults to
+      false on both platforms. `page-transitions` says "the app never ships a curl
+      that stutters in preference to a slide that does not", so the honest answer for
+      a curl with no implementation is that it is unavailable.
+
+      Two treatments, because the spec asks for two, and the difference is whether
+      the reader can do anything about it. Reduce Motion leaves Curl and Slide
+      *listed and marked*; a device that cannot curl leaves Curl *absent*, with the
+      reason stated once as a sentence. A permanently dead row is furniture.
+
+      The stored preference is untouched in both cases, so a reader who set Curl on a
+      capable device reads with Slide here and finds Curl still chosen when they go
+      back. Three tests each side hold that.
+
+      Verified on the emulator: "Curl is not offered here: this device cannot draw it
+      smoothly enough to be worth it." No API level named.
 
 ## Phase 5 — Appearance and Natural
 

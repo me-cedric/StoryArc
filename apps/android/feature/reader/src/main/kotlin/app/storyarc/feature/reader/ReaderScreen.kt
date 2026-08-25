@@ -1,6 +1,9 @@
 package app.storyarc.feature.reader
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -16,13 +19,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.GridView
@@ -45,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.DisposableEffect
@@ -83,6 +91,11 @@ import app.storyarc.core.format.PageEntry
 import app.storyarc.core.model.PageFit
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingDirection
+import app.storyarc.core.model.PageTransition
+import app.storyarc.core.model.ScrollAxis
+import app.storyarc.core.model.scrollAxis
+import app.storyarc.core.model.TransitionUnavailability
+import app.storyarc.core.model.TransitionChoices
 import app.storyarc.core.persistence.ReaderPreferences
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
@@ -212,10 +225,29 @@ private fun Pager(
     fun modelIndex(display: Int) = if (isRightToLeft) count - 1 - display else display
     fun displayIndex(model: Int) = if (isRightToLeft) count - 1 - model else model
 
-    val pagerState = rememberPagerState(
-        initialPage = displayIndex(viewModel.initialIndex),
-        pageCount = { count },
-    )
+    // `page-transitions`: the mode "applies to the current publication immediately
+    // without losing the reading position". Hoisted above the coordinator so a mode
+    // change seeds the new container from where the reader already is.
+    var position by remember { mutableIntStateOf(displayIndex(viewModel.initialIndex)) }
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val choices = viewModel.transitions(settings)
+    val paging = rememberPaging(choices.effective, count, position)
+    LaunchedEffect(paging) {
+        snapshotFlow { paging.current }.collect { position = it }
+    }
+
+    // The page the publication opens on — a ComicInfo cover, or a position
+    // `reading-progress` recorded — is not known at first composition, because
+    // `open()` has not run yet. So the container is seeded at zero and jumped once,
+    // when the real answer arrives. Seeding alone was enough while a pager was the
+    // only container, because `rememberPagerState` is restored from its own saved
+    // state; a fade and a scroll have nothing saved to be restored from.
+    var hasOpened by remember { mutableStateOf(false) }
+    LaunchedEffect(count, viewModel.initialIndex) {
+        if (hasOpened || count == 0) return@LaunchedEffect
+        hasOpened = true
+        paging.goTo(displayIndex(viewModel.initialIndex), animate = false)
+    }
     val scope = rememberCoroutineScope()
 
     // `comic-reader`: nothing is on screen while reading, and the chrome fades out
@@ -239,18 +271,14 @@ private fun Pager(
     // The strip and an open menu both count as interaction: reading either takes
     // longer than four seconds, and the chrome vanishing underneath would take them
     // with it.
-    LaunchedEffect(isChromeVisible, pagerState.currentPage, isMenuOpen, isBrowsingThumbnails) {
+    LaunchedEffect(isChromeVisible, position, isMenuOpen, isBrowsingThumbnails) {
         if (!isChromeVisible || isMenuOpen || isBrowsingThumbnails) return@LaunchedEffect
         delay(CHROME_TIMEOUT_MILLIS)
         isChromeVisible = false
     }
 
     // The pager owns its position and the model follows, in one direction only.
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage }.collect { page ->
-            viewModel.warm(modelIndex(page))
-        }
-    }
+    LaunchedEffect(position) { viewModel.warm(modelIndex(position)) }
 
     /**
      * What a tap means, by where it landed.
@@ -261,21 +289,26 @@ private fun Pager(
      * way the story runs.
      */
     fun turn(target: Int) {
-        if (target in 0 until count) {
-            scope.launch { pagerState.animateScrollToPage(target) }
+        // Read now, not captured. A tap handler is created while a composition is
+        // still settling, and one built when the page list was empty would carry a
+        // count of zero for ever — every turn silently out of range, which looks
+        // exactly like taps that do nothing.
+        val total = pages.size
+        if (target in 0 until total) {
+            scope.launch { paging.goTo(target) }
             return
         }
         // `comic-reader`: turning past the last page reaches an end screen rather
         // than nothing. In right-to-left the last *page* is the first display
         // position, which is why this asks the model index rather than the pager.
-        if (modelIndex(pagerState.currentPage) == count - 1) hasReachedEnd = true
+        if (modelIndex(paging.current) == total - 1) hasReachedEnd = true
     }
 
     fun handleTap(point: Offset, size: IntSize) {
         val edge = size.width * EDGE_ZONE_FRACTION
         val target = when {
-            point.x < edge -> pagerState.currentPage - 1
-            point.x > size.width - edge -> pagerState.currentPage + 1
+            point.x < edge -> paging.current - 1
+            point.x > size.width - edge -> paging.current + 1
             else -> {
                 isChromeVisible = !isChromeVisible
                 return
@@ -289,50 +322,91 @@ private fun Pager(
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
 
-    HorizontalPager(
-        state = pagerState,
-        modifier = Modifier
-            .fillMaxSize()
-            .focusRequester(focus)
-            .focusable()
-            .onKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
-                val step = when (event.key) {
-                    Key.DirectionLeft, Key.PageUp -> -1
-                    Key.DirectionRight, Key.PageDown, Key.Spacebar -> 1
-                    else -> return@onKeyEvent false
+    val keyboard = Modifier
+        .fillMaxSize()
+        .focusRequester(focus)
+        .focusable()
+        .onKeyEvent { event ->
+            if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+            val step = when (event.key) {
+                Key.DirectionLeft, Key.PageUp -> -1
+                Key.DirectionRight, Key.PageDown, Key.Spacebar -> 1
+                else -> return@onKeyEvent false
+            }
+            turn(paging.current + step)
+            true
+        }
+
+    /** One page, however it is being presented. */
+    @Composable
+    fun Page(display: Int, stitch: ScrollAxis? = null) {
+        val index = modelIndex(display)
+        val bitmap = viewModel.image(index)
+        when {
+            bitmap != null -> ZoomablePage(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = pages.getOrNull(index)?.path,
+                fit = fit,
+                onTap = ::handleTap,
+                // In a continuous scroll a page takes the height its own proportions
+                // ask for. Fitting each one to the screen instead would put a band of
+                // background between every pair, which is the opposite of the
+                // "stitched with no gap" `comic-reader` asks for.
+                stitch = stitch,
+            )
+            // A page that is not drawn still has to accept a tap: a reader who lands
+            // on a skipped page must be able to turn away from it.
+            else -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .tappable(::handleTap),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (viewModel.isUnavailable(index)) {
+                    // Said, not blank. `publication-formats` requires an archive to
+                    // report what it skipped, and this is where a skipped page is met.
+                    Message(stringResource(R.string.reader_page_unavailable))
+                } else {
+                    DelayedProgressIndicator()
                 }
-                turn(pagerState.currentPage + step)
-                true
+            }
+        }
+    }
+
+    // One container per mode, over one page body. `page-transitions` treats the mode
+    // as a property of the container, which is exactly what this is: the pager brings
+    // its own gesture and edge resistance, the fade has no container at all, and the
+    // scroll is a lazy list.
+    when (paging) {
+        is Paging.Paged -> HorizontalPager(state = paging.state, modifier = keyboard) { page ->
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Page(page)
+            }
+        }
+
+        is Paging.Faded -> AnimatedContent(
+            targetState = paging.index.intValue,
+            modifier = keyboard,
+            // Short enough not to read as an animation, which is the whole point of
+            // the name. `page-transitions` uses this as the Reduce Motion substitute,
+            // so it must not become the thing it replaces.
+            transitionSpec = {
+                fadeIn(tween(FADE_MILLIS)) togetherWith fadeOut(tween(FADE_MILLIS))
             },
-    ) { page ->
-        val index = modelIndex(page)
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            val bitmap = viewModel.image(index)
-            when {
-                bitmap != null -> ZoomablePage(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = pages.getOrNull(index)?.path,
-                    fit = fit,
-                    onTap = ::handleTap,
-                )
-                // A page that is not drawn still has to accept a tap: a reader who
-                // lands on a skipped page must be able to turn away from it.
-                else -> Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .tappable(::handleTap),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (viewModel.isUnavailable(index)) {
-                        // Said, not blank. `publication-formats` requires an
-                        // archive to report what it skipped, and this is where a
-                        // skipped page is met.
-                        Message(stringResource(R.string.reader_page_unavailable))
-                    } else {
-                        DelayedProgressIndicator()
-                    }
-                }
+            label = "page",
+        ) { page ->
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Page(page)
+            }
+        }
+
+        is Paging.Scrolled -> if (choices.effective == PageTransition.VERTICAL_SCROLL) {
+            LazyColumn(state = paging.state, modifier = keyboard) {
+                items(count) { Page(it, stitch = ScrollAxis.VERTICAL) }
+            }
+        } else {
+            LazyRow(state = paging.state, modifier = keyboard) {
+                items(count) { Page(it, stitch = ScrollAxis.HORIZONTAL) }
             }
         }
     }
@@ -358,12 +432,24 @@ private fun Pager(
                     modifier = Modifier.align(Alignment.TopCenter),
                 )
             }
-            FitMenu(
-                fit = fit,
-                onChange = onFitChange,
-                onOpenChange = { isMenuOpen = it },
-                modifier = Modifier.align(Alignment.TopEnd),
-            )
+            Row(modifier = Modifier.align(Alignment.TopEnd)) {
+                TransitionMenu(
+                    choices = choices,
+                    // A scroll row is an axis choice: recording it as one is what
+                    // makes the override stick, rather than leaving the axis implied
+                    // and the mode disagreeing with it.
+                    onChoose = { mode ->
+                        val axis = mode.scrollAxis
+                        if (axis != null) viewModel.choose(axis) else viewModel.choose(mode)
+                    },
+                    onOpenChange = { isMenuOpen = it },
+                )
+                FitMenu(
+                    fit = fit,
+                    onChange = onFitChange,
+                    onOpenChange = { isMenuOpen = it },
+                )
+            }
 
             Column(
                 modifier = Modifier
@@ -375,10 +461,10 @@ private fun Pager(
                     ThumbnailStrip(
                         viewModel = viewModel,
                         pageCount = count,
-                        currentIndex = modelIndex(pagerState.currentPage),
+                        currentIndex = modelIndex(paging.current),
                         onSelect = { index ->
                             isBrowsingThumbnails = false
-                            scope.launch { pagerState.scrollToPage(displayIndex(index)) }
+                            scope.launch { paging.goTo(displayIndex(index), animate = false) }
                         },
                         modifier = Modifier.padding(bottom = StoryArcSpace.sm),
                     )
@@ -390,7 +476,7 @@ private fun Pager(
                     Text(
                         text = stringResource(
                             R.string.reader_page,
-                            modelIndex(pagerState.currentPage) + 1,
+                            modelIndex(paging.current) + 1,
                             count,
                         ),
                         style = MaterialTheme.typography.labelLarge,
@@ -409,10 +495,10 @@ private fun Pager(
                     // Thumbnails on the slider are the rest of what `comic-reader`
                     // asks for and are not here yet.
                     Slider(
-                        value = modelIndex(pagerState.currentPage).toFloat(),
+                        value = modelIndex(paging.current).toFloat(),
                         onValueChange = { value ->
                             scope.launch {
-                                pagerState.scrollToPage(displayIndex(value.roundToInt()))
+                                paging.goTo(displayIndex(value.roundToInt()), animate = false)
                             }
                         },
                         valueRange = 0f..(count - 1).toFloat(),
@@ -447,6 +533,19 @@ private fun ZoomablePage(
     fit: PageFit,
     onTap: (Offset, IntSize) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * The axis this page is stitched along, or null when it is a page on its own.
+     *
+     * A stitched page fills the scroll's *cross* axis and takes whatever it needs
+     * along the scroll axis, so consecutive pages meet with no gap — `comic-reader`
+     * asks for them "stitched with no gap by default". Fitting each one to the screen
+     * instead would leave a band of background between every pair, and stitching
+     * along the wrong axis leaves a row of slivers.
+     *
+     * Zoom and pan are off here: the scroll owns the drag, and two things claiming it
+     * is how a reader ends up able to do neither.
+     */
+    stitch: ScrollAxis? = null,
 ) {
     var size by remember { mutableStateOf(IntSize.Zero) }
     val page = remember(bitmap, size) {
@@ -461,6 +560,26 @@ private fun ZoomablePage(
 
     val transform = rememberTransformableState { centroid, zoomChange, panChange, _ ->
         zoom = zoom.pinched(centroid, zoomChange, panChange, page)
+    }
+
+    if (stitch != null) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = contentDescription,
+            contentScale = if (stitch == ScrollAxis.VERTICAL) {
+                ContentScale.FillWidth
+            } else {
+                ContentScale.FillHeight
+            },
+            modifier = if (stitch == ScrollAxis.VERTICAL) {
+                // Full width, natural height: what lets a webtoon read as one strip.
+                modifier.fillMaxWidth()
+            } else {
+                // Full height, natural width: pages side by side, edge to edge.
+                modifier.fillMaxHeight()
+            }.tappable(onTap = onTap),
+        )
+        return
     }
 
     Image(
@@ -593,6 +712,102 @@ private fun FitMenu(
 }
 
 /**
+ * The page-transition picker.
+ *
+ * Four rows, and `page-transitions` is specific about what a row that cannot run
+ * looks like: "shown unavailable with a one-line reason, never silently absent". So a
+ * row disabled by reduced motion stays, greyed, with the reason under it — a control
+ * that vanishes teaches the reader nothing.
+ *
+ * Curl is the one exception, and the spec draws that line itself: where the *device*
+ * cannot honour it, Curl is "absent from the picker on that device… with the reason
+ * stated once in plain language — naming the requirement, not an API level". A
+ * permanently dead row is furniture; a sentence is an explanation.
+ */
+@Composable
+private fun TransitionMenu(
+    choices: TransitionChoices,
+    onChoose: (PageTransition) -> Unit,
+    onOpenChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var open by remember { mutableStateOf(false) }
+    LaunchedEffect(open) { onOpenChange(open) }
+
+    Box(modifier) {
+        IconButton(onClick = { open = true }, modifier = Modifier.padding(StoryArcSpace.md)) {
+            Surface(color = Color.White.copy(alpha = 0.2f), shape = CircleShape) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                    contentDescription = stringResource(R.string.reader_transition),
+                    tint = Color.White,
+                    modifier = Modifier.padding(StoryArcSpace.sm),
+                )
+            }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            choices.offered.forEach { mode ->
+                val reason = choices.unavailable[mode]
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(stringResource(mode.labelRes))
+                            if (reason != null) {
+                                Text(
+                                    text = stringResource(reason.labelRes),
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                        }
+                    },
+                    leadingIcon = {
+                        RadioButton(
+                            selected = choices.chosen == mode,
+                            onClick = null,
+                            enabled = reason == null,
+                        )
+                    },
+                    enabled = reason == null,
+                    onClick = {
+                        onChoose(mode)
+                        open = false
+                    },
+                )
+            }
+            if (choices.curlIsAbsent) {
+                // Once, and in the reader's language rather than the platform's.
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.reader_transition_no_curl),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    },
+                    enabled = false,
+                    onClick = {},
+                )
+            }
+        }
+    }
+}
+
+/** How the transition modes are named on screen. */
+private val PageTransition.labelRes: Int
+    get() = when (this) {
+        PageTransition.PAGE_CURL -> R.string.reader_transition_curl
+        PageTransition.SLIDE -> R.string.reader_transition_slide
+        PageTransition.FAST_FADE -> R.string.reader_transition_fade
+        PageTransition.VERTICAL_SCROLL -> R.string.reader_transition_scroll_vertical
+        PageTransition.HORIZONTAL_SCROLL -> R.string.reader_transition_scroll_horizontal
+    }
+
+/** Why a mode cannot run, in one line. */
+private val TransitionUnavailability.labelRes: Int
+    get() = when (this) {
+        TransitionUnavailability.REDUCE_MOTION -> R.string.reader_transition_reduce_motion
+    }
+
+/**
  * How the fit modes are named on screen.
  *
  * The enum lives in `:core:model` and carries no resources: the domain has no
@@ -707,6 +922,15 @@ private fun Message(text: String) {
 
 /** A quarter of the width each side: hittable on a phone, and the centre still has room. */
 private const val EDGE_ZONE_FRACTION = 0.25f
+
+/**
+ * The cross-dissolve, short enough not to read as an animation.
+ *
+ * `page-transitions` uses Fast fade as the Reduce Motion substitute as well as a
+ * mode in its own right, so it must not become the thing it replaces. 140 ms is
+ * about the shortest a dissolve can be and still not look like a cut.
+ */
+private const val FADE_MILLIS = 140
 
 private const val CHROME_TIMEOUT_MILLIS = 4_000L
 

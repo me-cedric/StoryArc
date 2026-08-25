@@ -15,16 +15,29 @@ import kotlinx.serialization.Serializable
 enum class ThemeScope { REFLOWABLE, FIXED_LAYOUT }
 
 /**
- * A theme and the typography in force under it.
+ * Everything a shelf is read with.
  *
- * Both halves. A reader who moved the line height chose a preset *and* a deviation
- * from it, and storing only the preset would silently put that deviation back on the
- * next open — losing work the reader can see they did.
+ * The theme *and* the typography, because a reader who moved the line height chose a
+ * preset and a deviation from it, and storing only the preset would silently put that
+ * deviation back on the next open — losing work they can see they did.
+ *
+ * The page transition is here for the reason `comic-reader` gives: mode persistence
+ * is word for word the same rule as theme persistence — per series, with a global
+ * default, and comics independent of reflowable. One store, or two that have to be
+ * kept in step.
+ *
+ * @property transition what the reader chose, not necessarily what runs.
+ *   `page-transitions` is explicit that a stored Curl survives being opened on a
+ *   device without one.
+ * @property scrollAxis null means "whatever the publication implies", which is the
+ *   default and the only value that can follow a webtoon into vertical unprompted.
  */
 @Serializable
-data class StoredTheme(
+data class ShelfSettings(
     val theme: ReadingTheme = ReadingTheme(),
     val values: ThemeValues = theme.preset.values,
+    val transition: PageTransition = PageTransition.SLIDE,
+    val scrollAxis: ScrollAxis? = null,
 )
 
 /**
@@ -37,24 +50,24 @@ data class StoredTheme(
  * `settingDefault` cannot reach a shelf entry because it does not touch that map.
  */
 @Serializable
-data class ThemeMemory(
+data class ShelfMemory(
     /**
      * Per shelf, keyed by scope and shelf together. A series called "Bone" can hold
      * both a comic and an ebook, and the two must not share an entry.
      */
-    private val shelves: Map<String, StoredTheme> = emptyMap(),
+    private val shelves: Map<String, ShelfSettings> = emptyMap(),
     /** The fallback for a shelf never opened, one per scope. */
-    private val defaults: Map<String, StoredTheme> = emptyMap(),
+    private val defaults: Map<String, ShelfSettings> = emptyMap(),
 ) {
     /** The theme for a shelf: its own if it has one, else the scope's default. */
-    fun theme(scope: ThemeScope, shelf: String): StoredTheme =
-        shelves[key(scope, shelf)] ?: defaults[scope.name] ?: StoredTheme()
+    fun theme(scope: ThemeScope, shelf: String): ShelfSettings =
+        shelves[key(scope, shelf)] ?: defaults[scope.name] ?: ShelfSettings()
 
     /** The scope's default on its own, for a settings screen to show and change. */
-    fun default(scope: ThemeScope): StoredTheme = defaults[scope.name] ?: StoredTheme()
+    fun default(scope: ThemeScope): ShelfSettings = defaults[scope.name] ?: ShelfSettings()
 
     /** Remembers a choice made while reading, for this shelf alone. */
-    fun remembering(stored: StoredTheme, scope: ThemeScope, shelf: String): ThemeMemory =
+    fun remembering(stored: ShelfSettings, scope: ThemeScope, shelf: String): ShelfMemory =
         copy(shelves = shelves + (key(scope, shelf) to stored))
 
     /**
@@ -64,7 +77,7 @@ data class ThemeMemory(
      * overwrite a per-series choice already made" — which is why it writes to a
      * different map rather than sweeping the first one.
      */
-    fun settingDefault(stored: StoredTheme, scope: ThemeScope): ThemeMemory =
+    fun settingDefault(stored: ShelfSettings, scope: ThemeScope): ShelfMemory =
         copy(defaults = defaults + (scope.name to stored))
 
     /** Whether this shelf has a choice of its own, as opposed to inheriting one. */

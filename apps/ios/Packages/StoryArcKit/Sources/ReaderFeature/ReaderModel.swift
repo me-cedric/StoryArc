@@ -48,10 +48,96 @@ public final class ReaderModel {
     private var maxPixelSize = 2048
     private let progress: ProgressStore?
 
-    public init(publication: Publication, url: URL, progress: ProgressStore? = nil) {
+    /// - Parameters:
+    ///   - preferences: where the reading mode is remembered. `nil` in a test.
+    ///     `comic-reader`'s mode persistence is word for word `reading-themes`' theme
+    ///     persistence — per series, with a global default, and comics independent of
+    ///     reflowable — so it is the same store.
+    ///   - canCurl: whether this device can render the curl at the display's refresh
+    ///     rate. `page-transitions`: "the app never ships a curl that stutters in
+    ///     preference to a slide that does not", so the honest answer for a curl that
+    ///     does not exist yet is that it is unavailable.
+    public init(
+        publication: Publication,
+        url: URL,
+        progress: ProgressStore? = nil,
+        preferences: ReaderPreferences? = nil,
+        canCurl: Bool = false
+    ) {
         self.publication = publication
         self.url = url
         self.progress = progress
+        self.preferences = preferences
+        self.canCurl = canCurl
+        self.shelf = ShelfMemory.shelf(series: publication.series, identity: publication.id)
+        self.settings = preferences?.themes().theme(for: .fixedLayout, shelf: shelf)
+            ?? ShelfSettings()
+    }
+
+    /// What this shelf is read with.
+    public private(set) var settings: ShelfSettings
+
+    @ObservationIgnored private let preferences: ReaderPreferences?
+    @ObservationIgnored private let canCurl: Bool
+    @ObservationIgnored private let shelf: String
+
+    /// Height over width of the first decoded page, or 0 while nothing is decoded.
+    @ObservationIgnored private var firstPageRatio = 0.0
+
+    /// Which transition rows to offer, which of them cannot run, and what runs instead.
+    ///
+    /// - Parameter reduceMotion: read from the environment by the view, because that is
+    ///   where a SwiftUI accessibility setting lives and where a change to it arrives.
+    ///   `page-transitions` requires turning it off mid-session to restore the chosen
+    ///   mode without reopening the reader, which is exactly what an environment read
+    ///   gives for free.
+    public func transitions(reduceMotion: Bool) -> TransitionChoices {
+        TransitionChoices(
+            chosen: settings.transition,
+            axis: settings.scrollAxis ?? impliedAxis,
+            reduceMotion: reduceMotion,
+            canCurl: canCurl
+        )
+    }
+
+    /// The axis the publication implies, until the reader overrides it.
+    ///
+    /// Measured from the first decoded page rather than declared: a webtoon rarely says
+    /// it is one, and `comic-reader` recognises it by pages "materially taller than
+    /// they are wide". First rather than tallest, because waiting for the tallest means
+    /// waiting for the whole publication.
+    private var impliedAxis: ScrollAxis {
+        ScrollAxis.implied(
+            isReflowable: false,
+            isTall: firstPageRatio >= ScrollAxis.tallnessThreshold,
+            // A comic's own reading direction is across the page, which is what makes
+            // horizontal the implied axis for anything that is not a strip.
+            declaresHorizontal: true
+        )
+    }
+
+    /// Chooses a transition, for this shelf, from now on.
+    public func choose(_ transition: PageTransition) {
+        remember(settings.settingTransition(transition))
+    }
+
+    /// Overrides the scroll axis, which `page-transitions` requires to be possible.
+    public func choose(_ axis: ScrollAxis) {
+        remember(settings.settingScrollAxis(axis))
+    }
+
+    private func remember(_ new: ShelfSettings) {
+        settings = new
+        guard let preferences else { return }
+        preferences.save(
+            preferences.themes().remembering(new, for: .fixedLayout, shelf: shelf)
+        )
+    }
+
+    /// Records a decoded page's shape, once, for the implied axis.
+    func noteDecoded(_ image: CGImage) {
+        guard firstPageRatio == 0, image.width > 0 else { return }
+        firstPageRatio = Double(image.height) / Double(image.width)
     }
 
     /// The direction the reader turns pages in.
@@ -234,6 +320,7 @@ public final class ReaderModel {
         if let pdf {
             if let image = await pdf.image(at: index, maxPixelSize: size) {
                 decoded[index] = image
+                noteDecoded(image)
             }
             return
         }
@@ -244,7 +331,10 @@ public final class ReaderModel {
             guard let data = try? await archive.data(for: page) else { return CGImage?.none }
             return try? PageDecoder.decode(data, maxPixelSize: size)
         }.value
-        if let image { decoded[index] = image }
+        if let image {
+            decoded[index] = image
+            noteDecoded(image)
+        }
     }
 }
 

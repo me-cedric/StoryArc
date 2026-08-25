@@ -5,8 +5,8 @@ import android.net.Uri
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ReadingTheme
-import app.storyarc.core.model.StoredTheme
-import app.storyarc.core.model.ThemeMemory
+import app.storyarc.core.model.ShelfSettings
+import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.ThemeScope
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
@@ -72,7 +72,7 @@ class EpubReaderViewModel(
      * it has none. `reading-themes` scopes a theme to the series, and a standalone
      * book is a series of one.
      */
-    private val shelf = ThemeMemory.shelf(series, identity.stableId)
+    private val shelf = ShelfMemory.shelf(series, identity.stableId)
 
     /**
      * Always reflowable. A fixed-layout EPUB never reaches this reader —
@@ -80,7 +80,7 @@ class EpubReaderViewModel(
      */
     private val themeScope = ThemeScope.REFLOWABLE
 
-    private val stored = themeStore?.themes()?.theme(themeScope, shelf) ?: StoredTheme()
+    private val stored = themeStore?.themes()?.theme(themeScope, shelf) ?: ShelfSettings()
 
     /**
      * The reading order's hrefs, for the progress fallback below.
@@ -216,7 +216,7 @@ class EpubReaderViewModel(
     private fun rememberThemeChanges() {
         val store = themeStore ?: return
         scope.launch {
-            combine(_theme, _values) { theme, values -> StoredTheme(theme, values) }
+            combine(_theme, _values) { theme, values -> ShelfSettings(theme, values) }
                 .drop(1)
                 .collect { store.save(store.themes().remembering(it, themeScope, shelf)) }
         }

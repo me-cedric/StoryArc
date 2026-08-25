@@ -90,11 +90,11 @@ public final class EpubReaderModel {
         self.preferences = preferences
         // Its series, or itself where it has none. `reading-themes` scopes a theme to
         // the series, and a standalone book is a series of one.
-        self.shelf = ThemeMemory.shelf(series: publication.series, identity: publication.id)
+        self.shelf = ShelfMemory.shelf(series: publication.series, identity: publication.id)
 
         // The reflowable scope. A fixed-layout EPUB never reaches this reader —
         // `ebook-reader` sends it to the comic reader, which has pages.
-        let stored = preferences?.themes().theme(for: Self.scope, shelf: shelf) ?? StoredTheme()
+        let stored = preferences?.themes().theme(for: Self.scope, shelf: shelf) ?? ShelfSettings()
         self.theme = stored.theme
         self.values = stored.values
     }
@@ -175,7 +175,7 @@ public final class EpubReaderModel {
     /// reader with a thousand shelves ever notices.
     private func remember() {
         guard let preferences else { return }
-        let stored = StoredTheme(theme: theme, values: values)
+        let stored = ShelfSettings(theme: theme, values: values)
         preferences.save(
             preferences.themes().remembering(stored, for: Self.scope, shelf: shelf)
         )

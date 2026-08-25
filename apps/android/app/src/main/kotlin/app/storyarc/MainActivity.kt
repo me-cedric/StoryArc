@@ -101,6 +101,10 @@ class MainActivity : ComponentActivity() {
                             contentResolver,
                             selection.second,
                             progress,
+                            // The same store the ebook reader uses, and a different
+                            // scope inside it: `reading-themes` gives comics and
+                            // reflowable text separate defaults.
+                            shelfStore = readerPreferences,
                         )
                     }
                     BackHandler { reading = null }

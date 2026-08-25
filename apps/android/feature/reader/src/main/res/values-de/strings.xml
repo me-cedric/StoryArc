@@ -15,4 +15,12 @@
     <string name="reader_fit_original">Originalgröße</string>
     <string name="reader_thumbnails">Seiten</string>
     <string name="reader_thumbnail_number">Seite %1$d</string>
+    <string name="reader_transition">Seitenwechsel</string>
+    <string name="reader_transition_curl">Blättern</string>
+    <string name="reader_transition_slide">Schieben</string>
+    <string name="reader_transition_fade">Schnelles Überblenden</string>
+    <string name="reader_transition_scroll_vertical">Scrollen, vertikal</string>
+    <string name="reader_transition_scroll_horizontal">Scrollen, horizontal</string>
+    <string name="reader_transition_reduce_motion">Nicht verfügbar, solange Ihr System Animationen entfernt.</string>
+    <string name="reader_transition_no_curl">Blättern wird hier nicht angeboten: dieses Gerät kann es nicht flüssig genug darstellen.</string>
 </resources>

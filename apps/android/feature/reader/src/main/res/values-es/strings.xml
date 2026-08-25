@@ -15,4 +15,12 @@
     <string name="reader_fit_original">Tamaño original</string>
     <string name="reader_thumbnails">Páginas</string>
     <string name="reader_thumbnail_number">Página %1$d</string>
+    <string name="reader_transition">Cambio de página</string>
+    <string name="reader_transition_curl">Doblez</string>
+    <string name="reader_transition_slide">Deslizar</string>
+    <string name="reader_transition_fade">Fundido rápido</string>
+    <string name="reader_transition_scroll_vertical">Desplazamiento vertical</string>
+    <string name="reader_transition_scroll_horizontal">Desplazamiento horizontal</string>
+    <string name="reader_transition_reduce_motion">No disponible mientras su sistema elimina las animaciones.</string>
+    <string name="reader_transition_no_curl">El doblez no se ofrece aquí: este dispositivo no puede dibujarlo con suficiente fluidez.</string>
 </resources>
