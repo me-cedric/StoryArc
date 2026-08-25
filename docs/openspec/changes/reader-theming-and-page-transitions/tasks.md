@@ -322,8 +322,25 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       changes it yet — that is `settings-and-about`, which does not exist. And the
       comic reader still hard-codes black, so the fixed-layout scope has no reader
       reading it. See 3.11.
-- [ ] **3.8** Tablet: popover on iPadOS, expanded anchored sheet on Android, with
-      the reader still visible.
+- [x] **3.8** Tablet: popover on iPadOS, expanded anchored sheet on Android, with
+      the reader still visible. **Done, and mostly by declaring the right thing
+      rather than by writing two layouts.**
+
+      iOS presents the sheet as a `popover` anchored to the theme button, with
+      `presentationCompactAdaptation(.sheet)` — so a tablet gets a popover and a phone
+      gets the detented sheet back. Writing the two presentations separately would
+      mean maintaining the phone one twice. A popover has no detent to size it, so it
+      carries an ideal size instead: wide enough for the preset grid, narrow enough
+      that the page stays readable beside it.
+
+      Android needed nothing. Material 3's `ModalBottomSheet` caps itself at 640 dp
+      and centres, which *is* the expanded anchored sheet the spec describes.
+
+      Verified on the emulator, resized to 1600×2560 at 320 dpi — the library goes to
+      five columns and the sheet sits centred at its cap with the page visible above
+      and either side of it. The iPad popover is not verified: the simulator accepts
+      no injected input, which `apps/ios/README.md` records, so the reader cannot be
+      reached to open it.
 - [x] **3.9** Accessibility: slider values and increment actions, grid semantics
       with selected state, stepper announcing position out of total. **Done, and
       tested on a device rather than asserted.**

@@ -98,6 +98,10 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **The theme sheet is a popover on a tablet and a sheet on a phone**, with the page
+  still readable beside it. One declaration rather than two layouts: iOS adapts a
+  popover back into a sheet on a phone, and Material 3's bottom sheet already caps
+  and centres itself at tablet width.
 - **Choose how a page turns, and the choice sticks per series.** Slide, Fast fade,
   and continuous Scroll in either axis. Curl is not here yet, and says so.
   - **Scroll is the one that changes what you can read.** Pages are stitched with no

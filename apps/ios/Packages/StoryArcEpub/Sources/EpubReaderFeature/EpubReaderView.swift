@@ -66,13 +66,27 @@ public struct EpubReaderView: View {
                 GlassEffectContainer(spacing: StoryArcSpace.md) { chrome }
             }
         }
-        .sheet(isPresented: $isShowingTheme) {
+        // A popover, not a sheet — and on a phone the platform turns it back into
+        // one. `native-experience` asks for "popover anchored to its control, reader
+        // visible beside it" on a tablet and a detented sheet on a phone, which is
+        // exactly what a popover with a declared compact adaptation is. Writing the
+        // two presentations ourselves would mean maintaining the phone one twice.
+        .popover(
+            isPresented: $isShowingTheme,
+            attachmentAnchor: .rect(.bounds),
+            arrowEdge: .top
+        ) {
             ThemeSheet(model: model)
                 // A sheet that covers the page would hide the live preview
                 // `ebook-reader` asks for: "the change is visible immediately in
                 // the reader behind the sheet".
+                .presentationCompactAdaptation(.sheet)
                 .presentationDetents([.medium, .large])
                 .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                // A popover has no detent to size it, so it needs a width a sheet
+                // does not: wide enough for the preset grid, narrow enough that the
+                // page stays readable beside it.
+                .frame(idealWidth: 380, idealHeight: 620)
         }
         .task { await model.open() }
         .statusBarHidden(!isChromeVisible)
