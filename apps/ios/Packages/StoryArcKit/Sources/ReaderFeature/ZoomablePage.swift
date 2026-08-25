@@ -1,5 +1,7 @@
 public import SwiftUI
 
+public import StoryArcCore
+
 #if os(iOS)
 internal import UIKit
 #endif
@@ -27,13 +29,27 @@ struct ZoomablePage: View {
     /// Changes when the page does, so the zoom resets rather than carrying a
     /// magnified corner of the last page onto the next one.
     let pageID: String
+    /// How the page is sized before any pinch. `comic-reader` names four modes.
+    let fit: PageFit
     /// Where the tap landed, in the page's own coordinates, and how big the page
     /// was — the caller decides whether that is an edge or the centre.
     let onTap: (CGPoint, CGSize) -> Void
 
     var body: some View {
         #if os(iOS)
-        ScrollingPage(image: image, pageID: pageID, onTap: onTap)
+        // The size comes from SwiftUI rather than from the scroll view's bounds:
+        // `updateUIViewController` runs before the first layout, so a fit computed
+        // from `bounds` would divide by zero on the way in and then never be
+        // recomputed.
+        GeometryReader { geometry in
+            ScrollingPage(
+                image: image,
+                pageID: pageID,
+                fit: fit,
+                viewport: geometry.size,
+                onTap: onTap
+            )
+        }
         #else
         // The package builds for macOS so the pure-Swift targets can be tested on
         // the host. Zoom is a touch feature; there is no Mac reader yet (ADR-0004).
@@ -48,6 +64,8 @@ struct ZoomablePage: View {
 private struct ScrollingPage: UIViewRepresentable {
     let image: CGImage
     let pageID: String
+    let fit: PageFit
+    let viewport: CGSize
     let onTap: (CGPoint, CGSize) -> Void
 
     /// How far a double-tap zooms in. Enough to read the lettering on a dense
@@ -113,12 +131,41 @@ private struct ScrollingPage: UIViewRepresentable {
 
     func updateUIView(_ scrollView: UIScrollView, context: Context) {
         context.coordinator.onTap = onTap
+
         if context.coordinator.pageID != pageID {
             context.coordinator.pageID = pageID
             context.coordinator.imageView?.image = UIImage(cgImage: image)
-            scrollView.setZoomScale(1, animated: false)
         }
         context.coordinator.layout(scrollView)
+
+        // The fit is re-applied when the page, the mode or the size changes, and at
+        // no other time — otherwise every redraw would undo the reader's pinch.
+        let key = "\(pageID)|\(fit.rawValue)|\(Int(viewport.width))x\(Int(viewport.height))"
+        guard context.coordinator.appliedFit != key, viewport.width > 0 else { return }
+        context.coordinator.appliedFit = key
+
+        let fitted = Self.fitted(
+            imageSize: CGSize(width: image.width, height: image.height),
+            in: viewport
+        )
+        let scale = min(
+            fit.scale(fitted: fitted, viewport: viewport, pixelWidth: CGFloat(image.width)),
+            scrollView.maximumZoomScale
+        )
+        scrollView.setZoomScale(scale, animated: false)
+        context.coordinator.layout(scrollView)
+        // Fit-to-width opens at the *top* of the page, which is where reading
+        // starts. `comic-reader` asks for exactly this when a turn keeps the zoom.
+        if fit == .width || fit == .original {
+            scrollView.contentOffset = CGPoint(x: 0, y: -scrollView.contentInset.top)
+        }
+    }
+
+    /// The page's size on screen at fit-to-screen, which every mode is a multiple of.
+    private static func fitted(imageSize: CGSize, in viewport: CGSize) -> CGSize {
+        guard imageSize.width > 0, imageSize.height > 0 else { return .zero }
+        let scale = min(viewport.width / imageSize.width, viewport.height / imageSize.height)
+        return CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(pageID: pageID) }
@@ -126,6 +173,8 @@ private struct ScrollingPage: UIViewRepresentable {
     final class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
         weak var edgeTap: UITapGestureRecognizer?
         weak var centreTap: UITapGestureRecognizer?
+        /// The page, mode and size the current zoom was set from.
+        var appliedFit: String?
         var imageView: UIImageView?
         var pageID: String
         var zoomedScale: CGFloat = 2.5

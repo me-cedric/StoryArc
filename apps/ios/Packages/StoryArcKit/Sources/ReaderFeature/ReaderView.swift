@@ -48,18 +48,27 @@ public struct ReaderView: View {
         publication: Publication,
         url: URL,
         progress: ProgressStore? = nil,
+        preferences: ReaderPreferences? = nil,
         nextInSeries: Publication? = nil,
         onOpenNext: @escaping (Publication) -> Void = { _ in }
     ) {
         _model = State(
             initialValue: ReaderModel(publication: publication, url: url, progress: progress)
         )
+        self.preferences = preferences
         self.nextInSeries = nextInSeries
         self.onOpenNext = onOpenNext
+        _fit = State(initialValue: preferences?.pageFit() ?? .screen)
     }
+
+    /// Where the fit choice is remembered. Absent in previews.
+    private let preferences: ReaderPreferences?
 
     /// Set when the reader turns past the last page.
     @State private var hasReachedEnd = false
+
+    /// How the page is sized. `comic-reader` requires the choice to persist.
+    @State private var fit: PageFit = .screen
 
     public var body: some View {
         GeometryReader { geometry in
@@ -151,6 +160,7 @@ public struct ReaderView: View {
                     image: model.image(at: index),
                     isUnavailable: model.isUnavailable(at: index),
                     label: model.pages[index].path,
+                    fit: fit,
                     onTap: { location, size in handleTap(at: location, in: size) }
                 )
                 .tag(displayIndex)
@@ -265,47 +275,67 @@ public struct ReaderView: View {
 
             Spacer()
 
-            if model.pages.count > 1 {
-                VStack(spacing: StoryArcSpace.xs) {
-                    Text(
-                        "reader.page \(model.currentIndex + 1) \(model.pages.count)",
-                        bundle: .module
-                    )
-                    .textRole(.footnote)
-                    .monospacedDigit()
-                    .foregroundStyle(.white)
-
-                    // Bound to the *publication's* page number, not the pager's
-                    // position. In right-to-left the two run opposite ways, and a
-                    // slider whose left end is the last page would be a puzzle.
-                    // Thumbnails on the slider are the rest of what `comic-reader`
-                    // asks for and are not here yet.
-                    Slider(
-                        value: pageSlider,
-                        in: 0...Double(model.pages.count - 1),
-                        step: 1
-                    )
-                    .tint(.white)
+            VStack(spacing: StoryArcSpace.sm) {
+                // A segmented control rather than a menu. Four options fit across a
+                // phone, and a control with no open state cannot be swallowed by
+                // the chrome auto-hiding under it.
+                Picker("", selection: fitBinding) {
+                    ForEach(PageFit.allCases, id: \.self) { candidate in
+                        Text(candidate.shortTitleKey, bundle: .module).tag(candidate)
+                    }
                 }
-                .padding(.horizontal, StoryArcSpace.gutter)
-                .padding(.vertical, StoryArcSpace.sm)
-                .background(.ultraThinMaterial, in: .rect(cornerRadius: StoryArcRadius.lg))
-                .padding(.horizontal, StoryArcSpace.md)
-                .padding(.bottom, StoryArcSpace.lg)
-            } else if !model.pages.isEmpty {
-                Text(
-                    "reader.page \(model.currentIndex + 1) \(model.pages.count)",
-                    bundle: .module
-                )
-                .textRole(.footnote)
-                .monospacedDigit()
-                .foregroundStyle(.white)
-                .padding(.horizontal, StoryArcSpace.md)
-                .padding(.vertical, StoryArcSpace.xs)
-                .background(.ultraThinMaterial, in: .capsule)
-                .padding(.bottom, StoryArcSpace.lg)
+                .pickerStyle(.segmented)
+                .labelsHidden()
+
+                if model.pages.count > 1 {
+                    pageSliderRow
+                } else if !model.pages.isEmpty {
+                    pageCount
+                }
             }
+            .padding(.horizontal, StoryArcSpace.md)
+            .padding(.bottom, StoryArcSpace.lg)
         }
         .transition(.opacity)
+    }
+
+    private var fitBinding: Binding<PageFit> {
+        Binding(
+            get: { fit },
+            set: { new in
+                fit = new
+                preferences?.save(new)
+            }
+        )
+    }
+
+    private var pageCount: some View {
+        pageCountLabel
+            .padding(.horizontal, StoryArcSpace.md)
+            .padding(.vertical, StoryArcSpace.xs)
+            .background(.ultraThinMaterial, in: .capsule)
+    }
+
+    private var pageCountLabel: some View {
+        Text("reader.page \(model.currentIndex + 1) \(model.pages.count)", bundle: .module)
+            .textRole(.footnote)
+            .monospacedDigit()
+            .foregroundStyle(.white)
+    }
+
+    private var pageSliderRow: some View {
+        VStack(spacing: StoryArcSpace.xs) {
+            pageCountLabel
+
+            // Bound to the *publication's* page number, not the pager's position.
+            // In right-to-left the two run opposite ways, and a slider whose left
+            // end is the last page would be a puzzle. Thumbnails on the slider are
+            // the rest of what `comic-reader` asks for and are not here yet.
+            Slider(value: pageSlider, in: 0...Double(max(1, model.pages.count - 1)), step: 1)
+                .tint(.white)
+        }
+        .padding(.horizontal, StoryArcSpace.gutter)
+        .padding(.vertical, StoryArcSpace.sm)
+        .background(.ultraThinMaterial, in: .rect(cornerRadius: StoryArcRadius.lg))
     }
 }

@@ -15,6 +15,7 @@ import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.core.persistence.LibraryPreferences
+import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.feature.library.LibraryScreen
 import app.storyarc.feature.library.LibraryViewModel
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
         // the same store — two would disagree about where the user is.
         val progress = ProgressStore.open(applicationContext)
         val preferences = LibraryPreferences.open(applicationContext)
+        val readerPreferences = ReaderPreferences.open(applicationContext)
 
         setContent {
             // Appearance and dynamic-colour preferences move into a settings
@@ -104,6 +106,7 @@ class MainActivity : ComponentActivity() {
                     ReaderScreen(
                         viewModel = readerViewModel,
                         onClose = { reading = null },
+                        preferences = readerPreferences,
                         // `comic-reader`: the end of one volume offers the next.
                         // The app layer answers this because it is the only place
                         // that can see both the reader and the library.

@@ -493,10 +493,11 @@ Three consequences:
       measurement and the AMSMB2 linkage check — both belong to sources that are
       not built.
 - [ ] **6.5** `/opsx:sync` to merge the delta specs into the main specs.
-      **Held, and not because of the specs.** The change validates and every task
-      in Phases 0 to 4 and 6 is done. What is open is 5.2 and 5.3, both blocked on
-      a remote source existing to download from — which is a different capability
-      and arguably a different change. Syncing now would archive a change with two
-      unfinished tasks; moving those two into an `offline-downloads` change and
-      syncing this one is the other option, and that is a call for whoever owns the
-      backlog rather than one to make in passing.
+      **Held until remote sources exist — decided, not undecided.** The change
+      validates and every task in Phases 0 to 4 and 6 is done. What is open is 5.2
+      and 5.3, both of which need a remote source to download from. Splitting them
+      into their own change so this one could be synced was considered and
+      rejected: the streaming-honesty tasks belong with the format work that
+      produced `StreamingCapability`, and a change archived with its own findings
+      unfinished is worth less than one that waits. Sync this when the first remote
+      source lands.

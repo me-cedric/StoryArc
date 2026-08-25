@@ -13,6 +13,7 @@ struct PageView: View {
     let image: CGImage?
     let isUnavailable: Bool
     let label: String
+    let fit: PageFit
     let onTap: (CGPoint, CGSize) -> Void
 
     var body: some View {
@@ -20,7 +21,7 @@ struct PageView: View {
             // Fit, not fill: cropping a comic page loses artwork, and
             // `comic-reader` treats the whole page as the unit. Zoom starts from
             // that fit rather than replacing it.
-            ZoomablePage(image: image, pageID: label, onTap: onTap)
+            ZoomablePage(image: image, pageID: label, fit: fit, onTap: onTap)
                 .accessibilityLabel(label)
         } else {
             // A page that is not drawn still has to accept a tap: a reader who

@@ -93,6 +93,7 @@ struct StoryArcApp: App {
                         publication: selection.publication,
                         url: selection.url,
                         progress: progress,
+                        preferences: ReaderPreferences(),
                         // `comic-reader`: the end of one volume offers the next.
                         // The app layer answers this because it is the only place
                         // that can see both the reader and the library.

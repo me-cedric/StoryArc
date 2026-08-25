@@ -24,10 +24,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -73,8 +78,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PageEntry
+import app.storyarc.core.model.PageFit
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingDirection
+import app.storyarc.core.persistence.ReaderPreferences
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
@@ -100,6 +107,8 @@ import kotlin.math.roundToInt
 fun ReaderScreen(
     viewModel: ReaderViewModel,
     onClose: () -> Unit,
+    /** Where the fit choice is remembered. Absent in previews. */
+    preferences: ReaderPreferences? = null,
     /**
      * What follows this publication, and how to open it. Supplied by the app layer:
      * the reader does not know what a library is, and a feature module never
@@ -122,6 +131,12 @@ fun ReaderScreen(
     // without leaving this composable, so an effect that runs once would open the
     // first publication and then show a spinner for ever on the second.
     LaunchedEffect(viewModel) { viewModel.open(maxPixelSize) }
+
+    // `comic-reader`: the fit choice persists. Stored globally rather than per
+    // series — the spec says per series, and a series is not yet a thing the app
+    // can key anything on.
+    var fit by rememberSaveable { mutableStateOf(preferences?.pageFit() ?: PageFit.SCREEN) }
+    LaunchedEffect(fit) { preferences?.save(fit) }
 
     // `comic-reader`: "the screen does not auto-lock while a page is visible, and
     // normal locking resumes on leaving". A long look at one page is reading, not
@@ -148,7 +163,7 @@ fun ReaderScreen(
                 DelayedProgressIndicator()
                 CloseButton(onClose)
             }
-            else -> Pager(viewModel, pages, onClose, nextInSeries, onOpenNext)
+            else -> Pager(viewModel, pages, onClose, nextInSeries, onOpenNext, fit) { fit = it }
         }
     }
 }
@@ -177,6 +192,8 @@ private fun Pager(
     onClose: () -> Unit,
     nextInSeries: Publication?,
     onOpenNext: (Publication) -> Unit,
+    fit: PageFit,
+    onFitChange: (PageFit) -> Unit,
 ) {
     val count = pages.size
     val isRightToLeft = viewModel.readingDirection == ReadingDirection.RIGHT_TO_LEFT
@@ -203,10 +220,19 @@ private fun Pager(
     // again after four seconds of no interaction.
     var isChromeVisible by remember { mutableStateOf(true) }
 
+    /**
+     * Whether a menu is open over the chrome.
+     *
+     * The auto-hide has to wait for it. Opening the fit menu and reading the four
+     * options takes longer than four seconds, and the chrome vanishing underneath
+     * takes the menu with it — the tap that follows lands on the page and turns it.
+     */
+    var isMenuOpen by remember { mutableStateOf(false) }
+
     /** Set when the reader turns past the last page. */
     var hasReachedEnd by remember { mutableStateOf(false) }
-    LaunchedEffect(isChromeVisible, pagerState.currentPage) {
-        if (!isChromeVisible) return@LaunchedEffect
+    LaunchedEffect(isChromeVisible, pagerState.currentPage, isMenuOpen) {
+        if (!isChromeVisible || isMenuOpen) return@LaunchedEffect
         delay(CHROME_TIMEOUT_MILLIS)
         isChromeVisible = false
     }
@@ -279,6 +305,7 @@ private fun Pager(
                 bitmap != null -> ZoomablePage(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = pages.getOrNull(index)?.path,
+                    fit = fit,
                     onTap = ::handleTap,
                 )
                 // A page that is not drawn still has to accept a tap: a reader who
@@ -316,6 +343,12 @@ private fun Pager(
     AnimatedVisibility(visible = isChromeVisible, enter = fadeIn(), exit = fadeOut()) {
         Box(Modifier.fillMaxSize()) {
             CloseButton(onClose)
+            FitMenu(
+                fit = fit,
+                onChange = onFitChange,
+                onOpenChange = { isMenuOpen = it },
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
 
             Column(
                 modifier = Modifier
@@ -384,17 +417,23 @@ private fun Pager(
 private fun ZoomablePage(
     bitmap: ImageBitmap,
     contentDescription: String?,
+    fit: PageFit,
     onTap: (Offset, IntSize) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Reset per page: a magnified corner of the last page carried onto the next
-    // one is disorienting, and `comic-reader`'s "zoom persists across pages" is
-    // about fit-to-width mode, which is not built yet.
-    var zoom by remember(bitmap) { mutableStateOf(PageZoom()) }
     var size by remember { mutableStateOf(IntSize.Zero) }
+    val page = remember(bitmap, size) {
+        PageBounds.of(IntSize(bitmap.width, bitmap.height), size)
+    }
+
+    // Back to the fit whenever the page or the mode changes. `comic-reader` wants
+    // the *zoom* carried across a turn in fit-to-width mode, and that is what
+    // carrying the mode does — the next page opens at its own top, magnified the
+    // same way, rather than at whatever corner of the last page was on screen.
+    var zoom by remember(bitmap, fit, size) { mutableStateOf(PageZoom.fitting(fit, page)) }
 
     val transform = rememberTransformableState { centroid, zoomChange, panChange, _ ->
-        zoom = zoom.pinched(centroid, zoomChange, panChange, size)
+        zoom = zoom.pinched(centroid, zoomChange, panChange, page)
     }
 
     Image(
@@ -406,10 +445,12 @@ private fun ZoomablePage(
         modifier = modifier
             .fillMaxSize()
             .onSizeChanged { size = it }
-            .transformable(state = transform, canPan = { zoom.isMagnified })
+            // `canPan` is what makes this coexist with the pager: the page declines
+            // a drag it has no slack for, and the pager turns the page instead.
+            .transformable(state = transform, canPan = { page.slack(zoom.scale) != Offset.Zero })
             // Centred on what was tapped, not on the middle of the screen: the
             // point of a double-tap is to magnify *that* panel.
-            .tappable(onTap = onTap, onDoubleTap = { zoom = zoom.doubleTapped(it, size) })
+            .tappable(onTap = onTap, onDoubleTap = { zoom = zoom.doubleTapped(it, page) })
             .graphicsLayer {
                 scaleX = zoom.scale
                 scaleY = zoom.scale
@@ -465,6 +506,59 @@ private fun PointerInputScope.isEdgeTap(point: Offset, area: IntSize): Boolean {
     val edge = area.width * EDGE_ZONE_FRACTION
     return point.x < edge || point.x > area.width - edge
 }
+
+/**
+ * How the page is sized. `comic-reader` names the four modes.
+ */
+@Composable
+private fun FitMenu(
+    fit: PageFit,
+    onChange: (PageFit) -> Unit,
+    onOpenChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var open by remember { mutableStateOf(false) }
+    LaunchedEffect(open) { onOpenChange(open) }
+
+    Box(modifier) {
+        IconButton(onClick = { open = true }, modifier = Modifier.padding(StoryArcSpace.md)) {
+            Surface(color = Color.White.copy(alpha = 0.2f), shape = CircleShape) {
+                Icon(
+                    imageVector = Icons.Filled.Fullscreen,
+                    contentDescription = stringResource(R.string.reader_fit),
+                    tint = Color.White,
+                    modifier = Modifier.padding(StoryArcSpace.sm),
+                )
+            }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            PageFit.entries.forEach { candidate ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(candidate.labelRes)) },
+                    leadingIcon = { RadioButton(selected = fit == candidate, onClick = null) },
+                    onClick = {
+                        onChange(candidate)
+                        open = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * How the fit modes are named on screen.
+ *
+ * The enum lives in `:core:model` and carries no resources: the domain has no
+ * business holding UI copy.
+ */
+private val PageFit.labelRes: Int
+    get() = when (this) {
+        PageFit.SCREEN -> R.string.reader_fit_screen
+        PageFit.WIDTH -> R.string.reader_fit_width
+        PageFit.HEIGHT -> R.string.reader_fit_height
+        PageFit.ORIGINAL -> R.string.reader_fit_original
+    }
 
 /**
  * What the reader shows after the last page.

@@ -98,6 +98,14 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **Four fit modes**, and the choice persists: fit-to-screen, fit-to-width,
+  fit-to-height and original size. Each is expressed as a scale against
+  fit-to-screen rather than as its own layout, which is what lets pinch,
+  double-tap and the fit control share one number — pinching out of fit-to-width
+  is just a larger scale, and pinching back lands on the mode again.
+  Fit-to-width opens at the top of the page, which is where reading starts.
+  `comic-reader` asks for the choice to persist *per series*; a series is not yet
+  something the app can key anything on, so it persists per reader and says so.
 - **Tap zones and chrome that gets out of the way.** The left and right quarters
   turn pages without revealing the controls; the centre toggles them; and they
   fade out again after four seconds. A page slider sits under the counter —

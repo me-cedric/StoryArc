@@ -8,4 +8,9 @@
     <string name="reader_end_next">Weiter: %1$s</string>
     <string name="reader_end_back">Zurück zur letzten Seite</string>
     <string name="reader_end_library">Bibliothek</string>
+    <string name="reader_fit">Anpassen</string>
+    <string name="reader_fit_screen">An Bildschirm anpassen</string>
+    <string name="reader_fit_width">An Breite anpassen</string>
+    <string name="reader_fit_height">An Höhe anpassen</string>
+    <string name="reader_fit_original">Originalgröße</string>
 </resources>
