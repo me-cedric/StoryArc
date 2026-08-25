@@ -31,7 +31,6 @@
     <string name="reading_defaults_pending">Lesevorgaben für neue Serien fehlen noch. Ein beim Lesen gewähltes Thema gilt bereits für die ganze Serie.</string>
     <string name="privacy_statement">StoryArc hat kein Konto, kein Backend, keine Analyse und keine Absturzberichte.</string>
     <string name="privacy_sources">Daten verlassen dieses Gerät nur zu den Quellen, die Sie selbst eingerichtet haben.</string>
-    <string name="privacy_pending">Daten löschen und einen Diagnosebericht exportieren sind noch nicht gebaut.</string>
     <string name="about_version">StoryArc %1$s (%2$s)</string>
     <string name="about_author">Von Cédric Meyer</string>
     <string name="about_free">Vollständig kostenlos und Open Source. Keine Bezahlstufe, keine Werbung.</string>
@@ -62,4 +61,13 @@
     <string name="reading_matte">Farbe hinter einer Comicseite</string>
     <string name="reading_matte_note">Nur der Bereich um die Seite. Artwork wird nie getönt.</string>
     <string name="reading_matte_none">Schwarz</string>
+    <string name="privacy_cache">Cache · %1$s</string>
+    <string name="privacy_cache_note">Dekodierte Seiten und Web-View-Daten. Wird beim Lesen neu aufgebaut.</string>
+    <string name="privacy_history">Leseverlauf · %1$s</string>
+    <string name="privacy_history_note">Die Stelle, an der Sie in jeder Publikation aufgehört haben.</string>
+    <string name="privacy_clear">Löschen</string>
+    <string name="privacy_clear_history">Leseverlauf löschen</string>
+    <string name="privacy_clear_history_body">Jede Publikation beginnt wieder auf der ersten Seite. Ihre Dateien, Quellen und Einstellungen bleiben unberührt.</string>
+    <string name="privacy_downloads_absent">Es wird noch nichts heruntergeladen, also gibt es nichts Heruntergeladenes zu löschen.</string>
+    <string name="privacy_diagnostic_absent">Ein Diagnose-Export ist noch nicht gebaut: die App führt kein Protokoll.</string>
 </resources>

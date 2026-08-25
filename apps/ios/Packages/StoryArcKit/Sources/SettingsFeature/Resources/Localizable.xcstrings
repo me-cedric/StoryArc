@@ -668,31 +668,263 @@
         }
       }
     },
-    "privacy.pending": {
+    "privacy.cache %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Daten löschen und einen Diagnosebericht exportieren sind noch nicht gebaut."
+            "value": "Cache · %@"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clearing data and exporting a diagnostic are not built yet."
+            "value": "Cache · %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Borrar datos y exportar un diagnóstico aún no están desarrollados."
+            "value": "Caché · %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’effacement des données et l’export d’un diagnostic ne sont pas encore développés."
+            "value": "Cache · %@"
+          }
+        }
+      }
+    },
+    "privacy.cache.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dekodierte Seiten und Web-View-Daten. Wird beim Lesen neu aufgebaut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decoded pages and web-view data. Rebuilt as you read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Páginas decodificadas y datos del web view. Se reconstruye al leer."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pages décodées et données de la vue web. Reconstruit à la lecture."
+          }
+        }
+      }
+    },
+    "privacy.clear": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer"
+          }
+        }
+      }
+    },
+    "privacy.clear.history": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leseverlauf löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear reading history"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar el historial de lectura"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer l’historique de lecture"
+          }
+        }
+      }
+    },
+    "privacy.clear.history.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede Publikation beginnt wieder auf der ersten Seite. Ihre Dateien, Quellen und Einstellungen bleiben unberührt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every publication goes back to its first page. Your files, sources and settings are not affected."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada publicación vuelve a su primera página. Sus archivos, fuentes y ajustes no se ven afectados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque publication revient à sa première page. Vos fichiers, sources et réglages ne sont pas touchés."
+          }
+        }
+      }
+    },
+    "privacy.diagnostic.absent": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Diagnose-Export ist noch nicht gebaut: die App führt kein Protokoll."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A diagnostic export is not built yet: the app keeps no log to export."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La exportación de diagnóstico no está desarrollada: la app no guarda ningún registro."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’export d’un diagnostic n’est pas développé : l’application ne conserve aucun journal."
+          }
+        }
+      }
+    },
+    "privacy.downloads.absent": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es wird noch nichts heruntergeladen, also gibt es nichts Heruntergeladenes zu löschen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing downloads yet, so there is nothing downloaded to clear."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todavía no se descarga nada, así que no hay descargas que borrar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien ne se télécharge encore, il n’y a donc rien de téléchargé à effacer."
+          }
+        }
+      }
+    },
+    "privacy.history": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leseverlauf"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading history"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Historial de lectura"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Historique de lecture"
+          }
+        }
+      }
+    },
+    "privacy.history.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Stelle, an der Sie in jeder Publikation aufgehört haben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where you stopped in every publication."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El punto donde se detuvo en cada publicación."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’endroit où vous vous êtes arrêté dans chaque publication."
           }
         }
       }

@@ -31,7 +31,6 @@
     <string name="reading_defaults_pending">Los ajustes de lectura por defecto aún no están aquí. Un tema elegido al leer ya se aplica a toda la serie.</string>
     <string name="privacy_statement">StoryArc no tiene cuenta, ni backend, ni analítica, ni informes de errores.</string>
     <string name="privacy_sources">Los datos salen de este dispositivo solo hacia las fuentes que usted configuró.</string>
-    <string name="privacy_pending">Borrar datos y exportar un diagnóstico aún no están desarrollados.</string>
     <string name="about_version">StoryArc %1$s (%2$s)</string>
     <string name="about_author">Por Cédric Meyer</string>
     <string name="about_free">Completamente gratuito y de código abierto. Sin nivel de pago ni publicidad.</string>
@@ -62,4 +61,13 @@
     <string name="reading_matte">Color detrás de una página de cómic</string>
     <string name="reading_matte_note">Solo el área alrededor de la página. El arte nunca se tiñe.</string>
     <string name="reading_matte_none">Negro</string>
+    <string name="privacy_cache">Caché · %1$s</string>
+    <string name="privacy_cache_note">Páginas decodificadas y datos del web view. Se reconstruye al leer.</string>
+    <string name="privacy_history">Historial de lectura · %1$s</string>
+    <string name="privacy_history_note">El punto donde se detuvo en cada publicación.</string>
+    <string name="privacy_clear">Borrar</string>
+    <string name="privacy_clear_history">Borrar el historial de lectura</string>
+    <string name="privacy_clear_history_body">Cada publicación vuelve a su primera página. Sus archivos, fuentes y ajustes no se ven afectados.</string>
+    <string name="privacy_downloads_absent">Todavía no se descarga nada, así que no hay descargas que borrar.</string>
+    <string name="privacy_diagnostic_absent">La exportación de diagnóstico no está desarrollada: la app no guarda ningún registro.</string>
 </resources>

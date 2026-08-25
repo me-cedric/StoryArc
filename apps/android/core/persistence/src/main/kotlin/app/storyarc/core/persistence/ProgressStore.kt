@@ -74,6 +74,17 @@ internal interface ProgressDao {
 
     @Query("DELETE FROM progress WHERE id = :id")
     suspend fun delete(id: Long)
+
+    /**
+     * Forgets every recorded position.
+     *
+     * `settings-and-about` requires reading history to be individually clearable, and this
+     * is the whole of "clear". Deliberately not a file deletion: dropping the database from
+     * under an open connection is how a later read finds a corrupt file instead of an empty
+     * one.
+     */
+    @Query("DELETE FROM progress")
+    suspend fun clear()
 }
 
 @Database(entities = [ProgressRow::class], version = 1, exportSchema = false)
@@ -165,6 +176,17 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
     /** Forgets one publication's position. A deliberate act, per ADR-0006. */
     suspend fun forget(identity: PublicationIdentity): Unit = withContext(Dispatchers.IO) {
         existing(identity)?.let { database.progress().delete(it.id) }
+    }
+
+    /**
+     * Forgets every recorded position.
+     *
+     * `settings-and-about` requires reading history to be individually clearable. A reader
+     * who clears this is choosing to lose their places, which is why the confirmation names
+     * it rather than calling it "data".
+     */
+    suspend fun clear(): Unit = withContext(Dispatchers.IO) {
+        database.progress().clear()
     }
 
     private suspend fun existing(identity: PublicationIdentity): ProgressRow? {

@@ -2,28 +2,84 @@ package app.storyarc.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.persistence.ProgressStore
+import app.storyarc.core.persistence.StorageUsage
+import kotlinx.coroutines.launch
 
 /**
- * The privacy posture, stated rather than toggled.
+ * The privacy posture, stated rather than toggled, and the two things a reader can clear.
  *
- * `settings-and-about` asks for this to be "verifiable rather than merely stated", and
- * the reason there is nothing to switch here is the point: the app has no account, no
+ * `settings-and-about` asks for the posture to be "verifiable rather than merely stated",
+ * and the reason there is nothing to *switch* here is the point: the app has no account, no
  * backend and no analytics, so there is nothing to opt out of. A screen full of disabled
  * toggles would imply the opposite.
  *
- * Clearing data and the diagnostic export are tasks 3.2 and 3.3, and both need something
- * that does not exist yet — a cache with a measurable size, and a log to redact.
+ * What it does have is data to give back, "individually clearable, each stating what it
+ * removes and how much space it frees". The size is the point — "clear cache" with no number
+ * behind it asks a reader to guess whether it is worth doing.
+ *
+ * Downloads are named as absent rather than shown as zero, which would imply a thing that
+ * happens to be empty.
  */
 @Composable
 internal fun PrivacyGroup(modifier: Modifier = Modifier) {
     val palette = LocalStoryArcPalette.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val usage = remember { StorageUsage(context) }
+
+    // Measured once on entry and again after a clear, rather than on every frame: walking a
+    // directory tree is not a thing to do while a list scrolls.
+    var cacheBytes by remember { mutableLongStateOf(usage.cacheBytes()) }
+    var historyBytes by remember { mutableLongStateOf(usage.historyBytes()) }
+    var confirmingHistory by remember { mutableStateOf(false) }
+
+    if (confirmingHistory) {
+        AlertDialog(
+            onDismissRequest = { confirmingHistory = false },
+            title = { Text(stringResource(R.string.privacy_clear_history)) },
+            text = { Text(stringResource(R.string.privacy_clear_history_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingHistory = false
+                    scope.launch {
+                        ProgressStore.open(context).clear()
+                        historyBytes = usage.historyBytes()
+                    }
+                }) {
+                    Text(
+                        text = stringResource(R.string.privacy_clear),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingHistory = false }) {
+                    Text(stringResource(R.string.settings_cancel))
+                }
+            },
+        )
+    }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md)) {
         Text(
@@ -36,10 +92,72 @@ internal fun PrivacyGroup(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodyMedium,
             color = palette.textSecondary,
         )
+
+        ClearableRow(
+            titleRes = R.string.privacy_cache,
+            noteRes = R.string.privacy_cache_note,
+            bytes = cacheBytes,
+            // No confirmation: a cache is by definition rebuildable, and asking twice for
+            // something with no consequence teaches a reader to click through dialogues.
+            onClear = {
+                usage.clearCache()
+                cacheBytes = usage.cacheBytes()
+            },
+        )
+
+        ClearableRow(
+            titleRes = R.string.privacy_history,
+            noteRes = R.string.privacy_history_note,
+            bytes = historyBytes,
+            onClear = { confirmingHistory = true },
+        )
+
         Text(
-            text = stringResource(R.string.privacy_pending),
+            text = stringResource(R.string.privacy_downloads_absent),
+            style = MaterialTheme.typography.labelLarge,
+            color = palette.textTertiary,
+        )
+        Text(
+            text = stringResource(R.string.privacy_diagnostic_absent),
             style = MaterialTheme.typography.labelLarge,
             color = palette.textTertiary,
         )
     }
+}
+
+@Composable
+private fun ClearableRow(titleRes: Int, noteRes: Int, bytes: Long, onClear: () -> Unit) {
+    val palette = LocalStoryArcPalette.current
+
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(titleRes, formatBytes(bytes)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = palette.textPrimary,
+            )
+            Text(
+                text = stringResource(noteRes),
+                style = MaterialTheme.typography.labelLarge,
+                color = palette.textTertiary,
+            )
+        }
+        OutlinedButton(onClick = onClear, enabled = bytes > 0) {
+            Text(stringResource(R.string.privacy_clear))
+        }
+    }
+}
+
+/**
+ * A size a person can read.
+ *
+ * Powers of 1024 with the SI names, which is what every file manager on both platforms
+ * shows — matching the convention a reader already has beats being right about kibibytes.
+ */
+private fun formatBytes(bytes: Long): String = when {
+    bytes <= 0 -> "0 kB"
+    bytes < 1024 -> "1 kB"
+    bytes < 1024 * 1024 -> "${bytes / 1024} kB"
+    bytes < 1024 * 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024))
+    else -> "%.1f GB".format(bytes / (1024.0 * 1024 * 1024))
 }

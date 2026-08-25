@@ -31,7 +31,6 @@
     <string name="reading_defaults_pending">Reading defaults for new series are not here yet. A theme you set while reading already applies to the whole series.</string>
     <string name="privacy_statement">StoryArc has no account, no backend, no analytics and no crash reporting.</string>
     <string name="privacy_sources">Data leaves this device only to the sources you configured yourself.</string>
-    <string name="privacy_pending">Clearing data and exporting a diagnostic are not built yet.</string>
     <string name="about_version">StoryArc %1$s (%2$s)</string>
     <string name="about_author">By Cédric Meyer</string>
     <string name="about_free">Completely free and open source. No paid tier, no advertising.</string>
@@ -62,4 +61,13 @@
     <string name="reading_matte">Colour behind a comic page</string>
     <string name="reading_matte_note">The area around the page only. Artwork is never tinted.</string>
     <string name="reading_matte_none">Black</string>
+    <string name="privacy_cache">Cache · %1$s</string>
+    <string name="privacy_cache_note">Decoded pages and web-view data. Rebuilt as you read.</string>
+    <string name="privacy_history">Reading history · %1$s</string>
+    <string name="privacy_history_note">Where you stopped in every publication.</string>
+    <string name="privacy_clear">Clear</string>
+    <string name="privacy_clear_history">Clear reading history</string>
+    <string name="privacy_clear_history_body">Every publication goes back to its first page. Your files, sources and settings are not affected.</string>
+    <string name="privacy_downloads_absent">Nothing downloads yet, so there is nothing downloaded to clear.</string>
+    <string name="privacy_diagnostic_absent">A diagnostic export is not built yet: the app keeps no log to export.</string>
 </resources>

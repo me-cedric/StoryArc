@@ -100,6 +100,13 @@ struct ReadingSettings: View {
 struct PrivacySettings: View {
     @Environment(\.theme) private var theme
 
+    private let usage = StorageUsage()
+
+    // Measured on entry and again after a clear, rather than on every frame: walking a
+    // directory tree is not a thing to do while a list scrolls.
+    @State private var cacheBytes: Int64 = 0
+    @State private var isConfirmingHistory = false
+
     var body: some View {
         List {
             Section {
@@ -107,11 +114,69 @@ struct PrivacySettings: View {
                 Text("privacy.sources", bundle: .module)
                     .foregroundStyle(theme.palette.textSecondary)
             }
+
             Section {
-                Text("privacy.pending", bundle: .module)
+                clearable(
+                    title: "privacy.cache \(formattedBytes(cacheBytes))",
+                    note: "privacy.cache.note",
+                    isEmpty: cacheBytes <= 0
+                ) {
+                    // No confirmation: a cache is by definition rebuildable, and asking
+                    // twice for something with no consequence teaches a reader to click
+                    // through dialogues.
+                    usage.clearCache()
+                    cacheBytes = usage.cacheBytes()
+                }
+
+                clearable(
+                    title: "privacy.history",
+                    note: "privacy.history.note",
+                    isEmpty: false
+                ) { isConfirmingHistory = true }
+            }
+
+            Section {
+                Text("privacy.downloads.absent", bundle: .module)
+                    .textRole(.footnote)
+                    .foregroundStyle(theme.palette.textTertiary)
+                Text("privacy.diagnostic.absent", bundle: .module)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textTertiary)
             }
+        }
+        .task { cacheBytes = usage.cacheBytes() }
+        .confirmationDialog(
+            Text("privacy.clear.history", bundle: .module),
+            isPresented: $isConfirmingHistory,
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive) {
+                Task { try? await ProgressStore().clear() }
+            } label: {
+                Text("privacy.clear", bundle: .module)
+            }
+        } message: {
+            Text("privacy.clear.history.body", bundle: .module)
+        }
+    }
+
+    private func clearable(
+        title: LocalizedStringKey,
+        note: LocalizedStringKey,
+        isEmpty: Bool,
+        clear: @escaping () -> Void
+    ) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+                Text(title, bundle: .module)
+                Text(note, bundle: .module)
+                    .textRole(.footnote)
+                    .foregroundStyle(theme.palette.textTertiary)
+            }
+            Spacer()
+            Button(action: clear) { Text("privacy.clear", bundle: .module) }
+                .buttonStyle(.bordered)
+                .disabled(isEmpty)
         }
     }
 }

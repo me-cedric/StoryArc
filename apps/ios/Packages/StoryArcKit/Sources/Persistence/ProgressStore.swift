@@ -156,6 +156,39 @@ public actor ProgressStore {
         try context.save()
     }
 
+    /// Forgets every recorded position.
+    ///
+    /// `settings-and-about` requires reading history to be individually clearable. A reader
+    /// who clears this is choosing to lose their places, which is why the confirmation names
+    /// it rather than calling it "data".
+    ///
+    /// Deleted through the context rather than by removing the file: dropping the store from
+    /// under an open container is how a later read finds a corrupt file instead of an empty
+    /// one.
+    public func clear() throws {
+        try context.delete(model: StoredProgress.self)
+        try context.save()
+    }
+
+    /// Bytes the store is holding, journals included.
+    ///
+    /// `settings-and-about` asks each clearable thing to state "how much space it frees",
+    /// and a number is the point: "clear history" with nothing behind it asks a reader to
+    /// guess whether it is worth doing.
+    public func sizeOnDisk() -> Int64 {
+        guard let url = container.configurations.first?.url else { return 0 }
+        let directory = url.deletingLastPathComponent()
+        let stem = url.lastPathComponent
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: [.fileSizeKey]
+        )) ?? []
+        return files
+            .filter { $0.lastPathComponent.hasPrefix(stem) }
+            .reduce(into: Int64(0)) { total, file in
+                total += Int64((try? file.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0)
+            }
+    }
+
     // MARK: - Private
 
     private func existing(for identity: PublicationIdentity) throws -> StoredProgress? {

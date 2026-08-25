@@ -31,7 +31,6 @@
     <string name="reading_defaults_pending">Les réglages de lecture par défaut ne sont pas encore ici. Un thème choisi pendant la lecture s’applique déjà à toute la série.</string>
     <string name="privacy_statement">StoryArc n’a aucun compte, aucun serveur, aucune analyse et aucun rapport de plantage.</string>
     <string name="privacy_sources">Les données ne quittent cet appareil que vers les sources que vous avez vous-même configurées.</string>
-    <string name="privacy_pending">L’effacement des données et l’export d’un diagnostic ne sont pas encore développés.</string>
     <string name="about_version">StoryArc %1$s (%2$s)</string>
     <string name="about_author">Par Cédric Meyer</string>
     <string name="about_free">Entièrement gratuit et open source. Aucune offre payante, aucune publicité.</string>
@@ -62,4 +61,13 @@
     <string name="reading_matte">Couleur derrière une page de BD</string>
     <string name="reading_matte_note">Uniquement la zone autour de la page. Les illustrations ne sont jamais teintées.</string>
     <string name="reading_matte_none">Noir</string>
+    <string name="privacy_cache">Cache · %1$s</string>
+    <string name="privacy_cache_note">Pages décodées et données de la vue web. Reconstruit à la lecture.</string>
+    <string name="privacy_history">Historique de lecture · %1$s</string>
+    <string name="privacy_history_note">L’endroit où vous vous êtes arrêté dans chaque publication.</string>
+    <string name="privacy_clear">Effacer</string>
+    <string name="privacy_clear_history">Effacer l’historique de lecture</string>
+    <string name="privacy_clear_history_body">Chaque publication revient à sa première page. Vos fichiers, sources et réglages ne sont pas touchés.</string>
+    <string name="privacy_downloads_absent">Rien ne se télécharge encore, il n’y a donc rien de téléchargé à effacer.</string>
+    <string name="privacy_diagnostic_absent">L’export d’un diagnostic n’est pas développé : l’application ne conserve aucun journal.</string>
 </resources>
