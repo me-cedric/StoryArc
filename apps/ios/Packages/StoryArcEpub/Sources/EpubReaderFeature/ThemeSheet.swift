@@ -13,9 +13,8 @@ public import StoryArcCore
 /// a single action that turns publisher styles off". Not hidden, and not a live
 /// control that does nothing.
 ///
-/// The fine axes — line, character, word and paragraph spacing, margins, alignment,
-/// custom background — are Phase 3.5 and 3.7 of the change and are not here yet.
-/// What is here is the first level the spec describes.
+/// Custom backgrounds are Phase 3.7 and are not here yet. Everything else the
+/// spec describes at both levels is.
 struct ThemeSheet: View {
     @Environment(\.theme) private var theme
     @Environment(\.dismiss) private var dismiss
@@ -39,7 +38,12 @@ struct ThemeSheet: View {
                 }
                 .padding(StoryArcSpace.gutter)
             }
-            .background(theme.palette.surfaceCanvas)
+            // No background of our own. A sheet on iOS 26 is already presented
+            // on Liquid Glass, and `native-experience` wants it "left untinted so
+            // it picks up the page beneath it" — an opaque fill here is the one
+            // thing that would prevent that. The system's material also carries
+            // its own Reduce-Transparency fallback, so declaring a second one
+            // would only be able to disagree with it.
             .navigationTitle(Text("theme.title", bundle: .module))
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -124,8 +128,16 @@ struct ThemeSheet: View {
         // One control, spoken as one: `reading-themes` asks for increment actions so
         // VoiceOver can adjust it rather than hunting two buttons.
         .accessibilityElement(children: .combine)
+        // Position first, then the percentage. `native-experience` asks the stepper
+        // to announce "its position out of the total rather than only larger" — a
+        // percentage alone never says how much room is left on the ladder.
         .accessibilityValue(
-            Text("theme.fontSize.percent \(model.values.fontSize.rawValue)", bundle: .module)
+            Text(
+                "theme.fontSize.position \(model.values.fontSize.position + 1) \(FontSizeStep.count)",
+                bundle: .module
+            )
+            + Text(verbatim: ", ")
+            + Text("theme.fontSize.percent \(model.values.fontSize.rawValue)", bundle: .module)
         )
         .accessibilityAdjustableAction { direction in
             switch direction {
@@ -172,6 +184,21 @@ struct ThemeSheet: View {
         }
     }
 
+    /// A slider's value as a screen reader should say it.
+    ///
+    /// The unit comes from the domain, so the two platforms cannot describe the same
+    /// slider differently. The number is formatted for the reader's locale, which is
+    /// why this is not a plain interpolation — a comma decimal separator is not a
+    /// detail a French reader should have to work around.
+    private static func spoken(_ value: Double, in unit: AxisUnit?) -> Text {
+        let number = value.formatted(.number.precision(.fractionLength(0...2)))
+        switch unit {
+        case .multiple: return Text("theme.axis.value.multiple \(number)", bundle: .module)
+        case .em: return Text("theme.axis.value.em \(number)", bundle: .module)
+        case nil: return Text(verbatim: number)
+        }
+    }
+
     /// The sliders. One loop rather than five blocks, because the domain answers
     /// every question a slider asks: its range, its value, and how to set it.
     private var fineAxes: some View {
@@ -192,9 +219,20 @@ struct ThemeSheet: View {
                                 get: { model.values.value(of: axis) },
                                 set: { model.set(axis, to: $0) }
                             ),
-                            in: range
+                            in: range,
+                            // Stepped, so a screen reader's adjust action moves the
+                            // value by something a reader can notice, and so a drag
+                            // submits twenty preference changes to the renderer
+                            // rather than one per frame.
+                            step: axis.step ?? range.upperBound
                         )
                         .tint(theme.accent)
+                        // The name belongs on the slider. The heading above it is a
+                        // sibling element, so VoiceOver landing on the slider would
+                        // otherwise announce a bare percentage and never say which
+                        // axis it belongs to.
+                        .accessibilityLabel(Text(axis.titleKey, bundle: .module))
+                        .accessibilityValue(Self.spoken(model.values.value(of: axis), in: axis.unit))
                     }
                 }
             }
@@ -239,6 +277,12 @@ struct ThemeSheet: View {
                 Image(systemName: "sun.max")
             }
             .tint(theme.accent)
+            .accessibilityValue(
+                Text(
+                    "theme.brightness.percent \(Int(((model.brightness ?? 0.5) * 100).rounded()))",
+                    bundle: .module
+                )
+            )
         }
     }
 

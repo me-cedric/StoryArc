@@ -182,4 +182,25 @@ struct ReadingThemeTests {
         #expect(PageTransition.verticalScroll.honoring(reduceMotion: true) == .verticalScroll)
         #expect(PageTransition.pageCurl.honoring(reduceMotion: false) == .pageCurl)
     }
+
+    // MARK: - Axis units
+
+    @Test("An axis that has a slider can say what its number means, and one that has no slider says nothing")
+    func everySliderCanSpeak() {
+        // The invariant that matters: a tenth axis added to `sliderRange` and
+        // forgotten here would ship a slider a screen reader reads as a bare float.
+        for axis in ThemeAxis.allCases {
+            #expect((axis.unit != nil) == (axis.sliderRange != nil), "\(axis)")
+            #expect((axis.step != nil) == (axis.sliderRange != nil), "\(axis)")
+        }
+    }
+
+    @Test("A whole ladder of adjustments crosses an axis from end to end")
+    func stepCrossesTheRange() {
+        for axis in ThemeAxis.allCases {
+            guard let range = axis.sliderRange, let step = axis.step else { continue }
+            let crossed = range.lowerBound + step * Double(ThemeAxis.stepsPerAxis)
+            #expect(abs(crossed - range.upperBound) < 0.0001, "\(axis)")
+        }
+    }
 }

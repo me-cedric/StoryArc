@@ -181,6 +181,6 @@ struct UnavailableFolderNotice: View {
         }
         .padding(.horizontal, StoryArcSpace.gutter)
         .padding(.vertical, StoryArcSpace.sm)
-        .background(.thinMaterial)
+        .storyArcGlass(in: Rectangle())
     }
 }

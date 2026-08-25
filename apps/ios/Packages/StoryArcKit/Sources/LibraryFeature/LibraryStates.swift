@@ -43,7 +43,7 @@ struct ScanSummary: View {
             .foregroundStyle(theme.palette.textTertiary)
             .padding(.vertical, StoryArcSpace.sm)
             .frame(maxWidth: .infinity)
-            .background(.thinMaterial)
+            .storyArcGlass(in: Rectangle())
     }
 }
 

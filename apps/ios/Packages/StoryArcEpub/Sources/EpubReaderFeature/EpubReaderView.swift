@@ -49,7 +49,12 @@ public struct EpubReaderView: View {
                 ProgressView()
             }
 
-            if isChromeVisible { chrome }
+            // Grouped, because `native-experience` asks for overlapping glass
+            // shapes to "morph as one". Only the container produces that — a
+            // surface cannot know about its neighbours from the inside.
+            if isChromeVisible {
+                GlassEffectContainer(spacing: StoryArcSpace.md) { chrome }
+            }
         }
         .sheet(isPresented: $isShowingTheme) {
             ThemeSheet(model: model)
@@ -92,9 +97,11 @@ public struct EpubReaderView: View {
                         Image(systemName: "xmark")
                     }
                     .labelStyle(.iconOnly)
-                    .padding(StoryArcSpace.sm)
                 }
-                .background(.ultraThinMaterial, in: .circle)
+                // The platform's own glass button, rather than glass painted
+                // behind a plain one: it carries the interactive highlight and the
+                // Reduce-Transparency fallback that a hand-rolled pill would not.
+                .buttonStyle(.glass)
                 .tint(theme.palette.textPrimary)
 
                 Spacer()
@@ -106,9 +113,8 @@ public struct EpubReaderView: View {
                         Image(systemName: "textformat")
                     }
                     .labelStyle(.iconOnly)
-                    .padding(StoryArcSpace.sm)
                 }
-                .background(.ultraThinMaterial, in: .circle)
+                .buttonStyle(.glass)
                 .tint(theme.palette.textPrimary)
 
                 if let chapter = model.chapterTitle {
@@ -118,7 +124,7 @@ public struct EpubReaderView: View {
                         .lineLimit(1)
                         .padding(.horizontal, StoryArcSpace.md)
                         .padding(.vertical, StoryArcSpace.xs)
-                        .background(.ultraThinMaterial, in: .capsule)
+                        .storyArcGlass()
                 }
             }
             .padding(StoryArcSpace.md)
@@ -134,7 +140,7 @@ public struct EpubReaderView: View {
                 .foregroundStyle(theme.palette.textSecondary)
                 .padding(.horizontal, StoryArcSpace.md)
                 .padding(.vertical, StoryArcSpace.xs)
-                .background(.ultraThinMaterial, in: .capsule)
+                .storyArcGlass()
                 .padding(.bottom, StoryArcSpace.lg)
         }
         .transition(.opacity)

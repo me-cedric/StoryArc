@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -36,28 +37,37 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.AxisUnit
 import app.storyarc.core.model.FontSizeStep
 import app.storyarc.core.model.ReaderTextAlignment
 import app.storyarc.core.model.ReaderTypeface
+import app.storyarc.core.model.STEPS_PER_AXIS
 import app.storyarc.core.model.setting
 import app.storyarc.core.model.sliderRange
+import app.storyarc.core.model.step
+import app.storyarc.core.model.unit
 import app.storyarc.core.model.value
 import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.ThemeValues
+import java.text.NumberFormat
+import kotlin.math.roundToInt
 
 /**
  * The reading-theme sheet.
@@ -164,11 +174,21 @@ private fun TypefaceControl(
         // a phone, and `reading-themes` calls this axis a picker.
         ReaderTypeface.entries.forEach { face ->
             Row(
+                // One node, not a radio button beside two loose labels. `selectable`
+                // rather than `clickable` so a screen reader says which face is
+                // chosen, and merged so "Designed for low vision" is part of the
+                // same utterance — a separate node is a label the reader who needs
+                // it can walk straight past.
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        onChange(ThemeAxis.FONT_FAMILY, values.copy(typeface = face))
-                    }
+                    .selectable(
+                        selected = values.typeface == face,
+                        role = Role.RadioButton,
+                        onClick = {
+                            onChange(ThemeAxis.FONT_FAMILY, values.copy(typeface = face))
+                        },
+                    )
+                    .semantics(mergeDescendants = true) {}
                     .padding(vertical = StoryArcSpace.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -238,10 +258,24 @@ private fun FineAxes(
                     style = MaterialTheme.typography.labelLarge,
                     color = palette.textSecondary,
                 )
+                val spoken = spokenValue(values.value(axis), axis.unit)
+                val name = stringResource(axis.labelRes)
                 Slider(
                     value = values.value(axis).toFloat(),
                     onValueChange = { onSet(axis, it.toDouble()) },
                     valueRange = range.start.toFloat()..range.endInclusive.toFloat(),
+                    // Discrete, so TalkBack's adjust action moves the value by
+                    // something a reader can notice, and so a drag submits ten
+                    // preference changes to the renderer rather than one per frame.
+                    steps = STEPS_PER_AXIS - 1,
+                    // The name and the reading both belong on the slider itself. The
+                    // heading beside it is a sibling node, so a screen reader landing
+                    // on the slider would otherwise announce a bare percentage of a
+                    // range and never say which axis it belongs to.
+                    modifier = Modifier.semantics {
+                        contentDescription = name
+                        stateDescription = spoken
+                    },
                 )
             }
         }
@@ -297,6 +331,11 @@ private fun BrightnessControl(
             style = MaterialTheme.typography.titleMedium,
             color = palette.textPrimary,
         )
+        val percent = stringResource(
+            R.string.theme_brightness_percent,
+            ((brightness ?: 0.5f) * 100).roundToInt(),
+        )
+        val name = stringResource(R.string.theme_brightness)
         Slider(
             // Until the reader moves it there is no reader-local value, and the
             // window is following the device. Half-way is the honest resting
@@ -304,6 +343,10 @@ private fun BrightnessControl(
             value = brightness ?: 0.5f,
             onValueChange = onChange,
             valueRange = 0.1f..1f,
+            modifier = Modifier.semantics {
+                contentDescription = name
+                stateDescription = percent
+            },
         )
     }
 }
@@ -317,11 +360,19 @@ private fun FontSizeControl(
 ) {
     val palette = LocalStoryArcPalette.current
     val label = stringResource(R.string.theme_font_size_percent, values.fontSize.percent)
+    // Position first, then the percentage. `native-experience` asks the stepper to
+    // announce "its position out of the total rather than only larger" — a
+    // percentage alone never says how much room is left on the ladder.
+    val spoken = stringResource(
+        R.string.theme_font_size_position,
+        values.fontSize.position + 1,
+        FontSizeStep.count,
+    ) + ", " + label
 
     Column(
         // One control, spoken as one: two unlabelled buttons make a screen reader
         // hunt for the thing they adjust.
-        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = label },
+        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = spoken },
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
     ) {
         Text(
@@ -412,6 +463,25 @@ private fun PublisherStylesNotice(onLeave: () -> Unit, modifier: Modifier = Modi
     }
 }
 
+/**
+ * A slider's value as a screen reader should say it.
+ *
+ * The unit comes from the domain, so the two platforms cannot describe the same
+ * slider differently. `NumberFormat` rather than `String.format`, because a comma
+ * decimal separator is not a detail a French reader should have to work around.
+ */
+@Composable
+private fun spokenValue(value: Double, unit: AxisUnit?): String {
+    val number = remember {
+        NumberFormat.getInstance().apply { maximumFractionDigits = 2 }
+    }.format(value)
+    return when (unit) {
+        AxisUnit.MULTIPLE -> stringResource(R.string.theme_axis_value_multiple, number)
+        AxisUnit.EM -> stringResource(R.string.theme_axis_value_em, number)
+        null -> number
+    }
+}
+
 /** One preset, previewed in its own colours. */
 @Composable
 private fun PresetCard(
@@ -424,8 +494,19 @@ private fun PresetCard(
     val palette = LocalStoryArcPalette.current
     val sample = ReadingTheme(preset)
 
+    // A tonal card, which is what `native-experience` asks Android for where iOS
+    // gets glass. `selectable` rather than `clickable`: six mutually exclusive
+    // options are a radio group, and TalkBack then says which one is chosen instead
+    // of offering six identical buttons. Merged, so the card speaks as one thing.
+    Surface(
+        modifier = modifier.semantics(mergeDescendants = true) {},
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(StoryArcRadius.md),
+    ) {
     Column(
-        modifier = modifier.clickable(onClick = onSelect),
+        modifier = Modifier
+            .selectable(selected = isActive, role = Role.RadioButton, onClick = onSelect)
+            .padding(StoryArcSpace.xs),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
     ) {
@@ -476,6 +557,7 @@ private fun PresetCard(
             )
         }
     }
+    }
 }
 
 /** Where the size sits on its ladder. */
@@ -499,7 +581,7 @@ private fun StepDots(position: Int, count: Int, modifier: Modifier = Modifier) {
     }
 }
 
-private val ThemePreset.labelRes: Int
+internal val ThemePreset.labelRes: Int
     get() = when (this) {
         ThemePreset.ORIGINAL -> R.string.theme_preset_original
         ThemePreset.QUIET -> R.string.theme_preset_quiet
@@ -509,7 +591,7 @@ private val ThemePreset.labelRes: Int
         ThemePreset.FOCUS -> R.string.theme_preset_focus
     }
 
-private val ReaderTypeface.labelRes: Int
+internal val ReaderTypeface.labelRes: Int
     get() = when (this) {
         ReaderTypeface.PUBLISHER -> R.string.theme_typeface_publisher
         ReaderTypeface.SERIF -> R.string.theme_typeface_serif
@@ -523,14 +605,14 @@ private val ReaderTypeface.labelRes: Int
         ReaderTypeface.ATKINSON_HYPERLEGIBLE -> R.string.theme_typeface_atkinson
     }
 
-private val ReaderTextAlignment.labelRes: Int
+internal val ReaderTextAlignment.labelRes: Int
     get() = when (this) {
         ReaderTextAlignment.PUBLISHER -> R.string.theme_alignment_publisher
         ReaderTextAlignment.LEFT -> R.string.theme_alignment_left
         ReaderTextAlignment.JUSTIFIED -> R.string.theme_alignment_justified
     }
 
-private val ThemeAxis.labelRes: Int
+internal val ThemeAxis.labelRes: Int
     get() = when (this) {
         ThemeAxis.FONT_SIZE -> R.string.theme_axis_font_size
         ThemeAxis.FONT_FAMILY -> R.string.theme_axis_font_family

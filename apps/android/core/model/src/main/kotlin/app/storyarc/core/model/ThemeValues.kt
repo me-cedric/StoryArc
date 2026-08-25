@@ -178,6 +178,50 @@ val ThemeAxis.sliderRange: ClosedFloatingPointRange<Double>?
         ThemeAxis.MARGINS -> 0.5..2.5
     }
 
+/** What a slider's number is measured in. */
+enum class AxisUnit {
+    /** A multiplier of the renderer's own value — "1.5 times". */
+    MULTIPLE,
+
+    /** A fraction of the current type size — "0.15 em". */
+    EM,
+}
+
+/**
+ * What an axis's number means, so a screen reader can say it.
+ *
+ * `native-experience` requires every slider to carry an accessibility value.
+ * "0.15" is not a value a reader can act on; "0.15 em" is. The axis answers this
+ * for the same reason it answers its own range — one place, so the two platforms
+ * cannot describe the same slider differently.
+ */
+val ThemeAxis.unit: AxisUnit?
+    get() = when (this) {
+        ThemeAxis.LINE_SPACING, ThemeAxis.MARGINS -> AxisUnit.MULTIPLE
+        ThemeAxis.CHARACTER_SPACING, ThemeAxis.WORD_SPACING,
+        ThemeAxis.PARAGRAPH_SPACING,
+        -> AxisUnit.EM
+        ThemeAxis.FONT_SIZE, ThemeAxis.FONT_FAMILY, ThemeAxis.BOLD_TEXT,
+        ThemeAxis.TEXT_ALIGNMENT,
+        -> null
+    }
+
+/**
+ * How far one adjustment moves the value.
+ *
+ * A tenth of the range, rather than a table of five hand-picked numbers that would
+ * drift apart. Ten is what makes the ticks Material draws read as a scale rather
+ * than as noise, and no reader needs a line height of 1.42.
+ *
+ * It also stops a drag from submitting a preference change per frame to the
+ * renderer, each of which relays out the page.
+ */
+val ThemeAxis.step: Double?
+    get() = sliderRange?.let { (it.endInclusive - it.start) / STEPS_PER_AXIS }
+
+/** Positions on every fine axis. One fewer than this is what Compose calls `steps`. */
+const val STEPS_PER_AXIS = 10
+
 /**
  * The value of one axis, for a slider to read.
  *

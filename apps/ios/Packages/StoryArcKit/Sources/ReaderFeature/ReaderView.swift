@@ -93,7 +93,12 @@ public struct ReaderView: View {
                     pages(in: geometry.size)
                 }
 
-                if isChromeVisible { chrome }
+                // Grouped, so overlapping glass shapes morph as one rather than
+                // stacking their edges — `native-experience`'s requirement, and
+                // something only the container can do.
+                if isChromeVisible {
+                    GlassEffectContainer(spacing: StoryArcSpace.md) { chrome }
+                }
 
                 if hasReachedEnd {
                     EndOfPublication(
@@ -272,9 +277,11 @@ public struct ReaderView: View {
                         Image(systemName: "xmark")
                     }
                     .labelStyle(.iconOnly)
-                    .padding(StoryArcSpace.sm)
                 }
-                .background(.ultraThinMaterial, in: .circle)
+                // The platform's own glass button rather than glass painted behind
+                // a plain one: it carries the interactive highlight, and its own
+                // Reduce-Transparency fallback, which a hand-rolled pill does not.
+                .buttonStyle(.glass)
                 .tint(.white)
 
                 Spacer()
@@ -293,9 +300,8 @@ public struct ReaderView: View {
                                 : "square.grid.2x2")
                         }
                         .labelStyle(.iconOnly)
-                        .padding(StoryArcSpace.sm)
                     }
-                    .background(.ultraThinMaterial, in: .circle)
+                    .buttonStyle(.glass)
                     .tint(.white)
                 }
             }
@@ -349,7 +355,7 @@ public struct ReaderView: View {
         pageCountLabel
             .padding(.horizontal, StoryArcSpace.md)
             .padding(.vertical, StoryArcSpace.xs)
-            .background(.ultraThinMaterial, in: .capsule)
+            .storyArcGlass()
     }
 
     private var pageCountLabel: some View {
@@ -372,6 +378,6 @@ public struct ReaderView: View {
         }
         .padding(.horizontal, StoryArcSpace.gutter)
         .padding(.vertical, StoryArcSpace.sm)
-        .background(.ultraThinMaterial, in: .rect(cornerRadius: StoryArcRadius.lg))
+        .storyArcGlass(in: RoundedRectangle(cornerRadius: StoryArcRadius.lg))
     }
 }

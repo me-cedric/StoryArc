@@ -46,7 +46,7 @@ struct ThumbnailStrip: View {
             }
         }
         .frame(height: cellWidth * 1.5 + StoryArcSpace.lg)
-        .background(.ultraThinMaterial)
+        .storyArcGlass(in: Rectangle())
     }
 }
 

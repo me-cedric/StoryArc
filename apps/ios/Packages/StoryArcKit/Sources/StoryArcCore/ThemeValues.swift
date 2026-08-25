@@ -185,6 +185,44 @@ public extension ThemeAxis {
         case .margins: 0.5...2.5
         }
     }
+
+    /// What an axis's number means, so a screen reader can say it.
+    ///
+    /// `native-experience` requires every slider to carry an accessibility value.
+    /// "0.15" is not a value a reader can act on; "0.15 em" is. The axis answers
+    /// this for the same reason it answers its own range — one place, so the two
+    /// platforms cannot describe the same slider differently.
+    public var unit: AxisUnit? {
+        switch self {
+        case .lineSpacing, .margins: .multiple
+        case .characterSpacing, .wordSpacing, .paragraphSpacing: .em
+        case .fontSize, .fontFamily, .boldText, .textAlignment: nil
+        }
+    }
+
+    /// How far one adjustment moves the value.
+    ///
+    /// A tenth of the range, rather than a table of five hand-picked numbers that
+    /// would drift apart. Ten is what makes the ticks Android draws read as a scale
+    /// rather than as noise, and no reader needs a line height of 1.42.
+    ///
+    /// It also stops a drag from submitting a preference change per frame to the
+    /// renderer, each of which relays out the page.
+    public var step: Double? {
+        guard let range = sliderRange else { return nil }
+        return (range.upperBound - range.lowerBound) / Double(ThemeAxis.stepsPerAxis)
+    }
+
+    /// Positions on every fine axis.
+    public static let stepsPerAxis = 10
+}
+
+/// What a slider's number is measured in.
+public enum AxisUnit: String, Sendable, CaseIterable {
+    /// A multiplier of the renderer's own value — "1.5 times".
+    case multiple
+    /// A fraction of the current type size — "0.15 em".
+    case em
 }
 
 public extension ThemeValues {

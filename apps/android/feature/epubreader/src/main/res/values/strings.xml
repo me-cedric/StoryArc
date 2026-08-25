@@ -43,4 +43,8 @@
     <string name="theme_typeface_bitter">Bitter</string>
     <string name="theme_typeface_atkinson">Atkinson Hyperlegible</string>
     <string name="theme_typeface_low_vision">Designed for low vision</string>
+    <string name="theme_axis_value_multiple">%1$s times</string>
+    <string name="theme_axis_value_em">%1$s em</string>
+    <string name="theme_font_size_position">Size %1$d of %2$d</string>
+    <string name="theme_brightness_percent">%1$d%%</string>
 </resources>

@@ -188,4 +188,30 @@ class ReadingThemeTest {
         assertEquals(PageTransition.VERTICAL_SCROLL, PageTransition.VERTICAL_SCROLL.honoring(true))
         assertEquals(PageTransition.PAGE_CURL, PageTransition.PAGE_CURL.honoring(false))
     }
+
+    // Axis units.
+
+    @Test
+    fun `An axis with a slider can say what its number means, and one without says nothing`() {
+        // The invariant that matters: a tenth axis added to `sliderRange` and
+        // forgotten here would ship a slider a screen reader reads as a bare float.
+        ThemeAxis.entries.forEach { axis ->
+            assertEquals(axis.toString(), axis.sliderRange != null, axis.unit != null)
+            assertEquals(axis.toString(), axis.sliderRange != null, axis.step != null)
+        }
+    }
+
+    @Test
+    fun `A whole ladder of adjustments crosses an axis from end to end`() {
+        ThemeAxis.entries.forEach { axis ->
+            val range = axis.sliderRange ?: return@forEach
+            val step = axis.step ?: return@forEach
+            assertEquals(
+                axis.toString(),
+                range.endInclusive,
+                range.start + step * STEPS_PER_AXIS,
+                0.0001,
+            )
+        }
+    }
 }

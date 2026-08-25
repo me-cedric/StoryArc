@@ -98,6 +98,30 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **The reader chrome wears each platform's own material.** Liquid Glass on iOS,
+  Material 3 tonal surfaces on Android.
+  - The iOS theme sheet needed no material of its own; it needed the opaque fill it
+    was painting *over* the system's glass removed. An iOS 26 sheet is already
+    presented on Liquid Glass and already goes opaque under Reduce Transparency.
+  - The chrome the app paints itself now goes through one modifier that carries the
+    glass *and* the opaque fallback with a strengthened border. Eleven call sites
+    across both readers and the library used to declare no fallback at all, and a
+    fallback that has to be remembered at eleven places will be missing at one.
+  - Both readers' chrome sits in a `GlassEffectContainer`, so overlapping glass
+    shapes morph as one instead of stacking their edges.
+- **The theme sheet is usable with a screen reader**, and there is a test on a
+  device that says so rather than a claim that it should be.
+  - Every slider says which axis it is and what its value means — "1.5 times",
+    "0.15 em". What a number means is a domain question, so the axis answers it once
+    for both platforms, and a test catches an axis that forgets to.
+  - The size stepper announces its position out of the total. "Larger" alone never
+    says how much room is left on the ladder.
+  - Two defects only a semantics dump could show: every slider was unnamed, because
+    the heading beside it is a sibling node; and the typeface rows were a radio
+    button next to two loose labels, so "Designed for low vision" was a node a
+    reader could walk straight past.
+  - The fine axes are stepped in ten rather than continuous. A drag used to submit a
+    preference change per frame, and each one relays out the page.
 - **Five bundled typefaces**: Literata, Source Serif 4, EB Garamond, Bitter and
   Atkinson Hyperlegible, all OFL, subset to Latin, Latin Extended, Greek and
   Cyrillic. Atkinson Hyperlegible is labelled "Designed for low vision" wherever it

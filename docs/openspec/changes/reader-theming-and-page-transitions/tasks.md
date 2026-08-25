@@ -138,23 +138,59 @@ technical, and each item's fallback is in `design.md`.
 
 ## Phase 3 — The theme sheet
 
-**Where this stands.** The first level and the fine axes are built and verified on
-an emulator; the preset grid previews each theme in its own colours; the sliders
-draw from one loop because the domain answers a slider's three questions (range,
-value, setter). Still open: the platform *look* of the sheet (3.1, 3.2 — it is a
-plain sheet and a plain bottom sheet today, not Liquid Glass and not tonal), the
-live preview rendered by the real renderer inside the sheet (3.6 — the change is
-visible in the reader *behind* the sheet, which is what the spec asks for, but there
-is no sample inside it), custom backgrounds (3.7), tablet layout (3.8), and the
-accessibility pass (3.9 — the size stepper has an adjustable action and the preset
-cards read as selected, but nothing has been through VoiceOver or TalkBack).
+**Where this stands.** The sheet is built, wears each platform's own material, and
+its semantics are covered by a test that runs on a device. Still open: the preset
+cards preview each theme's colours but not its typeface (3.3), the live preview
+rendered by the real renderer inside the sheet (3.6 — the change is visible in the
+reader *behind* the sheet, which is what the spec asks for, but there is no sample
+inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
-- [ ] **3.1** iOS: sheet on Liquid Glass, untinted, with its opaque
-      Reduce-Transparency fallback declared.
-- [ ] **3.2** Android: Material 3 modal bottom sheet honouring
-      `MaterialTheme.motionScheme`.
-- [x] **3.3** Preset grid, three by two, each card previewing **its own** colours
-      and typeface.
+- [x] **3.1** iOS: sheet on Liquid Glass, untinted, with its opaque
+      Reduce-Transparency fallback declared. **Done**, and the fallback is declared
+      once rather than eleven times.
+
+      The sheet needed no material of its own — it needed the opaque fill it was
+      painting *over* the system's glass removed. An iOS 26 sheet is already
+      presented on Liquid Glass and already goes opaque under Reduce Transparency,
+      so a second declaration here could only disagree with the first.
+
+      The chrome we do paint ourselves is a different matter. `storyArcGlass` in
+      `DesignSystem` carries both halves of the requirement — the glass, and the
+      opaque `surfaceOverlay` fill with a strengthened border under Reduce
+      Transparency. Eleven call sites across both readers and the library used to
+      pass `.ultraThinMaterial` and declare nothing; a fallback that has to be
+      remembered at eleven places is a fallback that will be missing at one.
+
+      The two icon buttons in each reader use `.buttonStyle(.glass)` instead — the
+      platform's own glass button, which brings the interactive highlight a
+      hand-rolled pill does not. Both readers' chrome now sits in a
+      `GlassEffectContainer`, which is the only thing that makes overlapping glass
+      shapes morph as one, as the spec asks.
+
+      Verified on the simulator: the library's toolbar, search field and skipped
+      banner all pick up the covers behind them.
+- [x] **3.2** Android: Material 3 modal bottom sheet honouring
+      `MaterialTheme.motionScheme`. **Done.** The sheet was already a
+      `ModalBottomSheet` under `MaterialExpressiveTheme`, which supplies
+      `MotionScheme.expressive()` — so the motion half needed nothing but checking
+      that the reader activity uses the app's theme rather than a bare
+      `MaterialTheme`. It does.
+
+      What was missing was the tonal half: the preset cards were a bare `Column`
+      with a `clickable`. They are now `surfaceContainerHigh` cards, which is the
+      Android counterpart of the glass the iOS cards sit on. Verified on the
+      emulator.
+- [ ] **3.3** Preset grid, three by two, each card previewing **its own** colours
+      and typeface. **Half done, and it was marked done too early.** The grid and
+      the colours are built and verified on both platforms; each card draws its own
+      background with three rules in its own text colour.
+
+      The typeface half is not there. A card shows no letterforms, so it cannot show
+      a face. Now that Phase 6 has bundled the five families the fix is possible,
+      but it needs each platform's *own* text stack to know about them — CoreText
+      registration on iOS, a `FontFamily` on Android — and today only Readium's web
+      view does. That is the same registration 3.6 needs, so the two belong
+      together.
 - [x] **3.4** First level: presets, font-size stepper with step dots, page-mode
       control, brightness. Second level behind one "Customise" action.
 - [x] **3.5** Fine axes: line, character, word and paragraph spacing, margins,
@@ -165,8 +201,38 @@ cards read as selected, but nothing has been through VoiceOver or TalkBack).
       refusal below 4.5:1 **with the measured ratio shown**.
 - [ ] **3.8** Tablet: popover on iPadOS, expanded anchored sheet on Android, with
       the reader still visible.
-- [ ] **3.9** Accessibility: slider values and increment actions, grid semantics
-      with selected state, stepper announcing position out of total.
+- [x] **3.9** Accessibility: slider values and increment actions, grid semantics
+      with selected state, stepper announcing position out of total. **Done, and
+      tested on a device rather than asserted.**
+
+      The question a slider's accessibility value has to answer — what does this
+      number mean — is a domain question, so `ThemeAxis` answers it: `unit` says
+      whether the number is a multiple or an em, and `step` is a tenth of the range.
+      Both platforms read the same answer, so they cannot describe the same slider
+      differently, and a test asserts that an axis with a slider always has both —
+      a tenth axis added to `sliderRange` and forgotten would otherwise ship a
+      slider a screen reader reads as a bare float.
+
+      Stepping the sliders was not only for the increment action. A continuous drag
+      submitted a preference change per frame, and every one of those relays out the
+      page. Ten positions also makes the ticks Material draws read as a scale;
+      twenty read as noise, which is what the first attempt looked like on the
+      emulator.
+
+      Two defects only a semantics dump could show, both now fixed: every slider
+      was unnamed, because the axis heading is a *sibling* node and a screen reader
+      landing on the slider heard a bare percentage of a range; and the typeface
+      rows were a radio button beside two loose labels, so "Designed for low vision"
+      was a node a reader could walk straight past.
+
+      `uiautomator dump` reports a Compose slider as an unnamed `SeekBar` whatever
+      its semantics say, so it cannot answer this — it is what made the first
+      attempt look broken when it was not. `ThemeSheetSemanticsTest` runs in a real
+      composition on the emulator and asserts what a screen reader actually learns:
+      four tests, all passing.
+
+      iOS carries the same labels and values through the equivalent SwiftUI
+      modifiers. Those are not yet driven by VoiceOver — 7.4 is where that belongs.
 
 ## Phase 4 — Transitions
 

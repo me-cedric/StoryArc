@@ -22,6 +22,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+        // Readium's AAR metadata demands it, and this module's own test APK is a
+        // standalone artifact — `:app` enabling it does not reach here.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlin {
@@ -86,4 +89,14 @@ dependencies {
     implementation(libs.readium.navigator)
 
     testImplementation(libs.junit)
+    // The theme sheet's accessibility semantics are only observable through a
+    // composition. `uiautomator dump` reports a Compose slider as an unnamed
+    // SeekBar whatever its semantics say, so it cannot answer the question this
+    // module has to answer: does a screen reader learn which axis it is on.
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
