@@ -27,23 +27,23 @@ public final class EpubReaderModel {
     public let publication: StoryArcCore.Publication
 
     /// Set when the book could not be opened at all.
-    public private(set) var failure: String?
+    public internal(set) var failure: String?
 
     /// How far through the whole publication, 0…1.
     ///
     /// `ebook-reader`: progress is a percentage, and "the app never presents a
     /// reflowable page number as a stable identity" — a reflowable page count
     /// depends on the type size, so there is no page number to present.
-    public private(set) var progression: Double = 0
+    public internal(set) var progression: Double = 0
 
     /// The chapter the reader is in, for the chrome to name.
-    public private(set) var chapterTitle: String?
+    public internal(set) var chapterTitle: String?
 
     /// Which preset is on and which axes have been moved from it.
-    public private(set) var theme: ReadingTheme
+    public internal(set) var theme: ReadingTheme
 
     /// The typography in force: the preset's own values until an axis is moved.
-    public private(set) var values: ThemeValues
+    public internal(set) var values: ThemeValues
 
     /// Reader-local screen brightness, 0…1, or `nil` for the device's own.
     ///
@@ -55,17 +55,17 @@ public final class EpubReaderModel {
     public var brightness: Double?
 
     /// The navigator, once the book is open. `nil` while it is loading.
-    private(set) var navigator: EPUBNavigatorViewController?
+    internal(set) var navigator: EPUBNavigatorViewController?
 
-    private let url: URL
-    private let progress: ProgressStore?
+    let url: URL
+    let progress: ProgressStore?
     /// Where the reader's theme choices live between sessions. `nil` in a test.
     private let preferences: ReaderPreferences?
     /// The key this publication remembers its theme under.
-    private let shelf: String
-    private var locator: Locator?
+    let shelf: String
+    var locator: Locator?
     /// The reading order's hrefs, for the progress fallback below.
-    private var readingOrder: [String] = []
+    var readingOrder: [String] = []
 
     /// The navigator's delegate, held separately.
     ///
@@ -73,7 +73,7 @@ public final class EpubReaderModel {
     /// internally, so a `public` type cannot conform to one without re-exporting
     /// Readium to everything above. A small internal object conforms instead, and
     /// nothing outside learns which engine is rendering the page.
-    @ObservationIgnored private var observer: NavigatorObserver?
+    @ObservationIgnored var observer: NavigatorObserver?
 
     /// - Parameter preferences: the store the theme is read from and written back
     ///   to. Passing `nil` gives a reader that forgets, which is what a test wants
@@ -115,10 +115,10 @@ public final class EpubReaderModel {
     }
 
     /// How a page becomes the next page. Paginated or scrolling, for an EPUB.
-    public private(set) var transition: PageTransition = .slide
+    public internal(set) var transition: PageTransition = .slide
 
     /// Always reflowable. See the note in `init`.
-    private static let scope = ThemeScope.reflowable
+    static let scope = ThemeScope.reflowable
 
     /// Adopts a preset, discarding any deviation from the last one.
     ///
@@ -216,7 +216,7 @@ public final class EpubReaderModel {
     /// steps rather than one per frame, and the blob is a handful of small records,
     /// so this is cheaper than a debounce would be to get right. Debounce it if a
     /// reader with a thousand shelves ever notices.
-    private func remember() {
+    func remember() {
         guard let preferences else { return }
         let stored = ShelfSettings(theme: theme, values: values, transition: transition)
         preferences.save(
@@ -224,7 +224,7 @@ public final class EpubReaderModel {
         )
     }
 
-    private func applyTheme() {
+    func applyTheme() {
         remember()
         guard let navigator else { return }
 
