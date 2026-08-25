@@ -71,6 +71,15 @@ class ReaderViewModel(
      * tracking the property; Kotlin has to say it.
      */
     private val decoded = mutableStateMapOf<Int, Bitmap>()
+
+    /**
+     * Small versions of pages, for the thumbnail strip.
+     *
+     * Kept apart from [decoded] because the two have different lifetimes: a page
+     * leaves the reading window as soon as it is three turns away, and a thumbnail
+     * is wanted for as long as the strip is open.
+     */
+    private val thumbnails = mutableStateMapOf<Int, Bitmap>()
     private val attempted = mutableStateSetOf<Int>()
     private var archive: ComicArchiveReading? = null
 
@@ -155,6 +164,40 @@ class ReaderViewModel(
 
     fun image(index: Int): Bitmap? = decoded[index]
 
+    /**
+     * A small version of a page, decoded on demand.
+     *
+     * `comic-reader`: the thumbnail browser shows "every page ... in a scrollable
+     * strip". Every page, so the strip is lazy and this is called per cell as it
+     * scrolls into view rather than for the whole publication at once — a 300-page
+     * comic would otherwise read 300 archive entries to open a strip.
+     */
+    suspend fun thumbnail(index: Int): Bitmap? {
+        thumbnails[index]?.let { return it }
+        val opened = archive ?: return null
+        val page = _pages.value.getOrNull(index) ?: return null
+
+        val bitmap = withContext(Dispatchers.IO) {
+            runCatching { PageDecoder.decode(opened.data(page), THUMBNAIL_PIXEL_SIZE) }.getOrNull()
+        } ?: return null
+
+        evictDistantThumbnails(index)
+        thumbnails[index] = bitmap
+        return bitmap
+    }
+
+    /**
+     * Drops the thumbnails furthest from where the reader is looking, because the
+     * strip scrolls outward from the current page in both directions.
+     */
+    private fun evictDistantThumbnails(index: Int) {
+        if (thumbnails.size < THUMBNAIL_BUDGET) return
+        thumbnails.keys
+            .sortedByDescending { kotlin.math.abs(it - index) }
+            .take(thumbnails.size - THUMBNAIL_BUDGET + 1)
+            .forEach { thumbnails.remove(it) }
+    }
+
     /** Whether a page failed to decode, as opposed to not being ready yet. */
     fun isUnavailable(index: Int): Boolean = index in attempted && decoded[index] == null
 
@@ -220,9 +263,21 @@ class ReaderViewModel(
         if (bitmap != null) decoded[index] = bitmap
     }
 
+    private companion object {
+        /** Enough to recognise a page by its composition, not to read it. */
+        const val THUMBNAIL_PIXEL_SIZE = 160
+
+        /**
+         * How many thumbnails to keep. A 300-page comic's worth would be tens of
+         * megabytes of pixels for a strip showing eight of them at a time.
+         */
+        const val THUMBNAIL_BUDGET = 64
+    }
+
     override fun onCleared() {
         archive?.close()
         pdf?.close()
         decoded.clear()
+        thumbnails.clear()
     }
 }

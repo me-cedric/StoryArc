@@ -98,6 +98,13 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   prefetches three pages ahead and one behind** — the depth `comic-reader` asks
   for, where it used to keep one either side. A page still loading shows nothing
   for the first 400 ms rather than flashing a spinner on its way past.
+- **A thumbnail browser.** Every page in a scrollable strip with the current one
+  marked, and tapping one jumps to it. Lazy, because it has to be: a 300-page
+  comic would otherwise read 300 archive entries to open a strip. Thumbnails are
+  decoded per cell as it scrolls into view and the reader keeps a bounded number
+  of them, evicting whatever is furthest from where you are looking. The strip
+  and the fit menu both hold the chrome open while they are up — reading either
+  takes longer than four seconds.
 - **Four fit modes**, and the choice persists: fit-to-screen, fit-to-width,
   fit-to-height and original size. Each is expressed as a scale against
   fit-to-screen rather than as its own layout, which is what lets pinch,
@@ -130,6 +137,13 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   `/proc/self/fd/N`, with no copy.
 
 ### Fixed
+
+- **Covers drifted in the iOS grid.** `LazyVGrid` centres cells vertically and a
+  caption runs to one, two or three lines depending on the title and whether
+  there is a series — so the row took its height from its wordiest cell and every
+  cover in it floated to a different height. The columns align to the top now:
+  one line of artwork, captions ending where they end. Android was already
+  right — Compose lazy grids top-align by default.
 
 - **SwiftLint had never actually run.** `pnpm lint:ios` changed into `apps/ios`
   first, where there is no `.swiftlint.yml`; SwiftLint then used its defaults and

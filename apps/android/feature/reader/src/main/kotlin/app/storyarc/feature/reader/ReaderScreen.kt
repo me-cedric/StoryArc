@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -76,6 +77,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PageEntry
 import app.storyarc.core.model.PageFit
@@ -231,8 +233,14 @@ private fun Pager(
 
     /** Set when the reader turns past the last page. */
     var hasReachedEnd by remember { mutableStateOf(false) }
-    LaunchedEffect(isChromeVisible, pagerState.currentPage, isMenuOpen) {
-        if (!isChromeVisible || isMenuOpen) return@LaunchedEffect
+
+    /** Whether the thumbnail strip is open. */
+    var isBrowsingThumbnails by remember { mutableStateOf(false) }
+    // The strip and an open menu both count as interaction: reading either takes
+    // longer than four seconds, and the chrome vanishing underneath would take them
+    // with it.
+    LaunchedEffect(isChromeVisible, pagerState.currentPage, isMenuOpen, isBrowsingThumbnails) {
+        if (!isChromeVisible || isMenuOpen || isBrowsingThumbnails) return@LaunchedEffect
         delay(CHROME_TIMEOUT_MILLIS)
         isChromeVisible = false
     }
@@ -343,6 +351,13 @@ private fun Pager(
     AnimatedVisibility(visible = isChromeVisible, enter = fadeIn(), exit = fadeOut()) {
         Box(Modifier.fillMaxSize()) {
             CloseButton(onClose)
+            if (count > 1) {
+                ThumbnailToggle(
+                    isOpen = isBrowsingThumbnails,
+                    onToggle = { isBrowsingThumbnails = !isBrowsingThumbnails },
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+            }
             FitMenu(
                 fit = fit,
                 onChange = onFitChange,
@@ -356,6 +371,18 @@ private fun Pager(
                     .padding(horizontal = StoryArcSpace.md, vertical = StoryArcSpace.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                if (isBrowsingThumbnails) {
+                    ThumbnailStrip(
+                        viewModel = viewModel,
+                        pageCount = count,
+                        currentIndex = modelIndex(pagerState.currentPage),
+                        onSelect = { index ->
+                            isBrowsingThumbnails = false
+                            scope.launch { pagerState.scrollToPage(displayIndex(index)) }
+                        },
+                        modifier = Modifier.padding(bottom = StoryArcSpace.sm),
+                    )
+                }
                 Surface(
                     color = Color.White.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(percent = 50),
@@ -505,6 +532,25 @@ private fun Modifier.tappable(
 private fun PointerInputScope.isEdgeTap(point: Offset, area: IntSize): Boolean {
     val edge = area.width * EDGE_ZONE_FRACTION
     return point.x < edge || point.x > area.width - edge
+}
+
+/** Opens and closes the page strip. */
+@Composable
+private fun ThumbnailToggle(
+    isOpen: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(onClick = onToggle, modifier = modifier.padding(StoryArcSpace.md)) {
+        Surface(color = Color.White.copy(alpha = 0.2f), shape = CircleShape) {
+            Icon(
+                imageVector = Icons.Filled.GridView,
+                contentDescription = stringResource(R.string.reader_thumbnails),
+                tint = if (isOpen) LocalStoryArcPalette.current.accent else Color.White,
+                modifier = Modifier.padding(StoryArcSpace.sm),
+            )
+        }
+    }
 }
 
 /**

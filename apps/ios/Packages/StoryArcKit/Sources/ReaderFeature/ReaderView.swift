@@ -70,6 +70,9 @@ public struct ReaderView: View {
     /// How the page is sized. `comic-reader` requires the choice to persist.
     @State private var fit: PageFit = .screen
 
+    /// Whether the thumbnail strip is open.
+    @State private var isBrowsingThumbnails = false
+
     public var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -106,7 +109,7 @@ public struct ReaderView: View {
             // interaction". Keyed on the index too, so turning a page while the
             // chrome is up restarts the countdown rather than hiding mid-swipe.
             .task(id: chromeTimerKey) {
-                guard isChromeVisible else { return }
+                guard isChromeVisible, !isBrowsingThumbnails else { return }
                 try? await Task.sleep(for: .seconds(4))
                 guard !Task.isCancelled else { return }
                 withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible = false }
@@ -251,7 +254,12 @@ public struct ReaderView: View {
     }
 
     /// Restarts the auto-hide countdown whenever either of these changes.
-    private var chromeTimerKey: String { "\(isChromeVisible)-\(displayIndex)" }
+    private var chromeTimerKey: String {
+        // The strip counts as interaction: reading a row of thumbnails takes longer
+        // than four seconds, and the chrome vanishing underneath would take the
+        // strip with it.
+        "\(isChromeVisible)-\(displayIndex)-\(isBrowsingThumbnails)"
+    }
 
     /// The controls. One gesture away, and gone while reading.
     private var chrome: some View {
@@ -270,10 +278,38 @@ public struct ReaderView: View {
                 .tint(.white)
 
                 Spacer()
+
+                if model.pages.count > 1 {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isBrowsingThumbnails.toggle()
+                        }
+                    } label: {
+                        Label {
+                            Text("reader.thumbnails", bundle: .module)
+                        } icon: {
+                            Image(systemName: isBrowsingThumbnails
+                                ? "square.grid.2x2.fill"
+                                : "square.grid.2x2")
+                        }
+                        .labelStyle(.iconOnly)
+                        .padding(StoryArcSpace.sm)
+                    }
+                    .background(.ultraThinMaterial, in: .circle)
+                    .tint(.white)
+                }
             }
             .padding(StoryArcSpace.md)
 
             Spacer()
+
+            if isBrowsingThumbnails {
+                ThumbnailStrip(model: model, currentIndex: model.currentIndex) { index in
+                    displayIndex = displayIndex(forModel: index)
+                    withAnimation(.easeInOut(duration: 0.2)) { isBrowsingThumbnails = false }
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
 
             VStack(spacing: StoryArcSpace.sm) {
                 // A segmented control rather than a menu. Four options fit across a

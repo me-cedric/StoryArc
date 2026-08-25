@@ -43,7 +43,16 @@ struct CoverGrid: View {
                 columns: [
                     GridItem(
                         .adaptive(minimum: minimumWidth, maximum: maximumWidth),
-                        spacing: StoryArcSpace.md
+                        spacing: StoryArcSpace.md,
+                        // Top, not the default centre. A cell is a cover with a
+                        // caption under it, and a caption runs to one, two or three
+                        // lines depending on the title and whether there is a
+                        // series. Centring makes the row as tall as its wordiest
+                        // cell and then floats every *cover* to a different height,
+                        // so a shelf of artwork looks misaligned. Aligning to the
+                        // top puts every cover on one line and lets the captions
+                        // below it end where they end.
+                        alignment: .top
                     )
                 ],
                 spacing: StoryArcSpace.lg

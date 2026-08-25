@@ -32,6 +32,13 @@ public final class ReaderModel {
     private let lookBehind = 1
 
     private var decoded: [Int: CGImage] = [:]
+
+    /// Small versions of pages, for the thumbnail strip.
+    ///
+    /// Kept apart from `decoded` because the two have different lifetimes: a page
+    /// leaves the reading window as soon as it is three turns away, and a thumbnail
+    /// is wanted for as long as the strip is open.
+    private var thumbnails: [Int: CGImage] = [:]
     private var archive: (any ComicArchiveReading)?
     /// Set instead of [archive] for a PDF, whose pages are drawn rather than
     /// stored. `ebook-reader` requires a several-hundred-megabyte PDF to render
@@ -116,6 +123,48 @@ public final class ReaderModel {
 
     /// The decoded page at an index, if it is ready.
     public func image(at index: Int) -> CGImage? { decoded[index] }
+
+    /// A small version of a page, decoded on demand.
+    ///
+    /// `comic-reader`: the thumbnail browser shows "every page ... in a scrollable
+    /// strip". Every page, so the strip is lazy and this is called per cell as it
+    /// scrolls into view rather than for the whole publication at once — a
+    /// 300-page comic would otherwise read 300 archive entries to open a strip.
+    public func thumbnail(at index: Int) async -> CGImage? {
+        if let ready = thumbnails[index] { return ready }
+        guard let archive, pages.indices.contains(index) else { return nil }
+
+        let page = pages[index]
+        // Read off the actor before the detached task, so the constant crosses as a
+        // value rather than the task reaching back into main-actor state.
+        let size = Self.thumbnailPixelSize
+        let image = await Task.detached(priority: .utility) {
+            guard let data = try? await archive.data(for: page) else { return CGImage?.none }
+            return try? PageDecoder.decode(data, maxPixelSize: size)
+        }.value
+
+        guard let image else { return nil }
+        evictDistantThumbnails(from: index)
+        thumbnails[index] = image
+        return image
+    }
+
+    /// Enough to recognise a page by its composition, not to read it.
+    nonisolated private static let thumbnailPixelSize = 160
+
+    /// How many thumbnails to keep. A 300-page comic's worth would be tens of
+    /// megabytes of pixels for a strip showing eight of them at a time.
+    nonisolated private static let thumbnailBudget = 64
+
+    private func evictDistantThumbnails(from index: Int) {
+        guard thumbnails.count >= Self.thumbnailBudget else { return }
+        // The furthest from where the reader is looking, because the strip scrolls
+        // outward from the current page in both directions.
+        let ordered = thumbnails.keys.sorted { abs($0 - index) > abs($1 - index) }
+        for key in ordered.prefix(thumbnails.count - Self.thumbnailBudget + 1) {
+            thumbnails.removeValue(forKey: key)
+        }
+    }
 
     /// Whether a page failed to decode, as opposed to not being ready yet.
     public func isUnavailable(at index: Int) -> Bool {

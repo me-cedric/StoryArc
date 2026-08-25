@@ -118,6 +118,29 @@ pnpm lint:ios        # SwiftLint, from the repository root where the config is
 `build:ios` are left out of it deliberately — both want a simulator runtime, and
 a gate that is slow to run is a gate that stops being run.
 
+## Driving the simulator
+
+Screenshots of anything behind a tap are awkward here, and worth writing down
+because it costs an hour to rediscover.
+
+- **`osascript` cannot click the Simulator** without assistive access, which is a
+  system-settings grant this repository cannot make for you.
+- **`xcrun simctl` injects no input.** There is no tap or type subcommand.
+- **`xcrun simctl spawn <device> defaults write` does not reach the app.** It
+  writes the simulator user's own preferences; a sandboxed app reads the copy in
+  its data container. And even editing that copy directly is served stale,
+  because `cfprefsd` inside the simulator caches the domain — the edit only takes
+  effect after `simctl shutdown` and `boot`.
+
+So a preference-driven screenshot is: terminate the app, edit or delete
+
+```bash
+"$(xcrun simctl get_app_container booted app.storyarc.StoryArc data)/Library/Preferences/app.storyarc.StoryArc.plist"
+```
+
+reboot the device, then launch. Deleting the file is the reliable form, because
+it puts every setting back to its default.
+
 ## Design tokens
 
 Colour, type, spacing and motion are generated from

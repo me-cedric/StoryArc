@@ -13,4 +13,6 @@
     <string name="reader_fit_width">Fit to width</string>
     <string name="reader_fit_height">Fit to height</string>
     <string name="reader_fit_original">Original size</string>
+    <string name="reader_thumbnails">Pages</string>
+    <string name="reader_thumbnail_number">Page %1$d</string>
 </resources>

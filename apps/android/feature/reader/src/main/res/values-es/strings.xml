@@ -13,4 +13,6 @@
     <string name="reader_fit_width">Ajustar al ancho</string>
     <string name="reader_fit_height">Ajustar a la altura</string>
     <string name="reader_fit_original">Tamaño original</string>
+    <string name="reader_thumbnails">Páginas</string>
+    <string name="reader_thumbnail_number">Página %1$d</string>
 </resources>
