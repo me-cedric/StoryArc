@@ -31,7 +31,17 @@ public final class LibraryModel {
 
     /// What the user is looking at. Setting it re-arranges the shelf.
     public var query = LibraryQuery() {
-        didSet { if query != oldValue { rebuild() } }
+        didSet {
+            guard query != oldValue else { return }
+            preferences?.save(query)
+            rebuild()
+        }
+    }
+
+    /// Grid or list. `library-browsing` requires both, and requires the choice to
+    /// persist.
+    public var layout: LibraryLayout = .grid {
+        didSet { if layout != oldValue { preferences?.save(layout) } }
     }
 
     /// The publications on screen: filtered, ranked and sorted.
@@ -68,9 +78,22 @@ public final class LibraryModel {
     /// re-pick it, so the names are kept rather than the count.
     public private(set) var unavailableFolders: [String] = []
 
-    public init(progress: ProgressStore? = nil, bookmarks: FolderBookmarks? = nil) {
+    private let preferences: LibraryPreferences?
+
+    public init(
+        progress: ProgressStore? = nil,
+        bookmarks: FolderBookmarks? = nil,
+        preferences: LibraryPreferences? = nil
+    ) {
         self.progressStore = progress
         self.bookmarks = bookmarks
+        self.preferences = preferences
+        // Property observers do not run during initialisation, so restoring here
+        // cannot loop back into the save that the observers perform.
+        if let preferences {
+            self.query = preferences.query()
+            self.layout = preferences.layout()
+        }
     }
 
     /// Re-opens the folders from a previous launch and scans them.

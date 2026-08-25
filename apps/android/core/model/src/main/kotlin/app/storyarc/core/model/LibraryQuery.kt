@@ -57,6 +57,17 @@ data class LibraryQuery(
 }
 
 /**
+ * How publications are drawn.
+ *
+ * `library-browsing` requires both: a cover grid, and a compact list for a library
+ * too large to recognise by artwork alone.
+ */
+enum class LibraryLayout {
+    GRID,
+    LIST,
+}
+
+/**
  * Turns the whole library into the list on screen.
  *
  * Pure, and deliberately so: this is the part of `library-browsing` that has to

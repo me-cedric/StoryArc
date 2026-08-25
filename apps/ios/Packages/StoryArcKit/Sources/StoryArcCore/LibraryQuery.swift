@@ -66,6 +66,15 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
     }
 }
 
+/// How publications are drawn.
+///
+/// `library-browsing` requires both: a cover grid, and a compact list for a
+/// library too large to recognise by artwork alone.
+public enum LibraryLayout: String, Sendable, CaseIterable, Codable {
+    case grid
+    case list
+}
+
 /// Turns the whole library into the list on screen.
 ///
 /// Pure, and deliberately so: this is the part of `library-browsing` that has to

@@ -49,21 +49,27 @@ public struct LibraryView: View {
         Binding(get: { model.query.search }, set: { model.query.search = $0 })
     }
 
+    /// Where a publication lives, handed to the app layer.
+    private func open(_ publication: Publication) {
+        if let url = model.location(of: publication) { onOpen(publication, url) }
+    }
+
     public var body: some View {
         NavigationStack {
             Group {
                 if !model.visible.isEmpty {
-                    CoverGrid(
-                        publications: model.visible,
-                        // Hidden while a search or filter is running: the row is a
-                        // shortcut to what you were reading, and showing
-                        // publications the query excluded reads as a bug.
-                        continueReading: model.query.isNarrowed ? [] : model.continueReading,
-                        model: model
-                    ) { publication in
-                        if let url = model.location(of: publication) {
-                            onOpen(publication, url)
-                        }
+                    if model.layout == .grid {
+                        CoverGrid(
+                            publications: model.visible,
+                            // Hidden while a search or filter is running: the row
+                            // is a shortcut to what you were reading, and showing
+                            // publications the query excluded reads as a bug.
+                            continueReading: model.query.isNarrowed ? [] : model.continueReading,
+                            model: model,
+                            onOpen: open
+                        )
+                    } else {
+                        CoverList(publications: model.visible, model: model, onOpen: open)
                     }
                 } else if !model.publications.isEmpty {
                     // A library that is not empty but looks it. `library-browsing`
@@ -99,6 +105,9 @@ public struct LibraryView: View {
             }
             .toolbar {
                 if !model.publications.isEmpty {
+                    ToolbarItem(placement: .primaryAction) {
+                        LayoutToggle(model: model)
+                    }
                     ToolbarItem(placement: .primaryAction) {
                         SortMenu(model: model)
                     }
@@ -140,6 +149,29 @@ public struct LibraryView: View {
         ) { result in
             if case let .success(urls) = result, let folder = urls.first {
                 model.addFolder(folder)
+            }
+        }
+    }
+}
+
+/// Grid or list.
+///
+/// One button that shows the layout it would switch *to*, rather than a segmented
+/// control that spends permanent space on a binary choice.
+struct LayoutToggle: View {
+    let model: LibraryModel
+
+    var body: some View {
+        Button {
+            model.layout = model.layout == .grid ? .list : .grid
+        } label: {
+            Label {
+                Text(
+                    model.layout == .grid ? "library.layout.list" : "library.layout.grid",
+                    bundle: .module
+                )
+            } icon: {
+                Image(systemName: model.layout == .grid ? "list.bullet" : "square.grid.2x2")
             }
         }
     }

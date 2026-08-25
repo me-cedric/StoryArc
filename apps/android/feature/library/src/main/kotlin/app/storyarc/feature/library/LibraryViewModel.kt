@@ -12,10 +12,12 @@ import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.format.SafTree
 import app.storyarc.core.format.ScanEvent
 import app.storyarc.core.model.LibraryIndex
+import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ProgressStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,6 +41,7 @@ sealed interface LibraryScanState {
 class LibraryViewModel(
     application: Application,
     private val progressStore: ProgressStore? = null,
+    private val preferences: LibraryPreferences? = null,
 ) : AndroidViewModel(application) {
 
     private val _publications = MutableStateFlow<List<Publication>>(emptyList())
@@ -48,8 +51,21 @@ class LibraryViewModel(
     val scanState: StateFlow<LibraryScanState> = _scanState.asStateFlow()
 
     /** What the user is looking at. Setting it re-arranges the shelf. */
-    private val _query = MutableStateFlow(LibraryQuery())
+    private val _query = MutableStateFlow(preferences?.query() ?: LibraryQuery())
     val query: StateFlow<LibraryQuery> = _query.asStateFlow()
+
+    /**
+     * Grid or list. `library-browsing` requires both, and requires the choice to
+     * persist.
+     */
+    private val _layout = MutableStateFlow(preferences?.layout() ?: LibraryLayout.GRID)
+    val layout: StateFlow<LibraryLayout> = _layout.asStateFlow()
+
+    fun setLayout(value: LibraryLayout) {
+        if (value == _layout.value) return
+        _layout.value = value
+        preferences?.save(value)
+    }
 
     /**
      * The publications on screen: filtered, ranked and sorted.
@@ -262,6 +278,7 @@ class LibraryViewModel(
     fun setQuery(value: LibraryQuery) {
         if (value == _query.value) return
         _query.value = value
+        preferences?.save(value)
         rebuild()
     }
 

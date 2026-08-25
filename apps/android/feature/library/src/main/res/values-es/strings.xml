@@ -42,4 +42,7 @@
     <string name="library_continue_reading">Continuar leyendo</string>
     <string name="library_empty_filtered">Ninguna publicación coincide con los filtros activos.</string>
     <string name="library_empty_search">No hay resultados para «%1$s».</string>
+    <string name="library_cell_progress">%1$d%% leído</string>
+    <string name="library_layout_grid">Cuadrícula</string>
+    <string name="library_layout_list">Lista</string>
 </resources>

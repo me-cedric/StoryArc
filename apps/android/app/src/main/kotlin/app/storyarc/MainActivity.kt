@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.storyarc.core.model.Publication
+import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.feature.library.LibraryScreen
 import app.storyarc.feature.library.LibraryViewModel
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
         // authoritative, so the reader writing and the library reading have to be
         // the same store — two would disagree about where the user is.
         val progress = ProgressStore.open(applicationContext)
+        val preferences = LibraryPreferences.open(applicationContext)
 
         setContent {
             // Appearance and dynamic-colour preferences move into a settings
@@ -50,7 +52,7 @@ class MainActivity : ComponentActivity() {
                 if (selection == null) {
                     val libraryViewModel = viewModel<LibraryViewModel>(
                         factory = viewModelFactory {
-                            initializer { LibraryViewModel(application, progress) }
+                            initializer { LibraryViewModel(application, progress, preferences) }
                         },
                     )
                     LibraryScreen(

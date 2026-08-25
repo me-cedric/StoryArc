@@ -35,7 +35,11 @@ struct StoryArcApp: App {
         let store = try? ProgressStore()
         self.progress = store
         _library = State(
-            initialValue: LibraryModel(progress: store, bookmarks: FolderBookmarks())
+            initialValue: LibraryModel(
+                progress: store,
+                bookmarks: FolderBookmarks(),
+                preferences: LibraryPreferences()
+            )
         )
     }
 

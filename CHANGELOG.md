@@ -53,6 +53,9 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   ignoring leading articles in the interface language — "The Sandman" files under
   S, and "La Brea" only loses its article in Spanish. Filters combine with AND,
   carry a visible count, and clear in one action.
+- **A compact list beside the cover grid**, with the layout and the active filters
+  remembered across launches — a search term deliberately is not, because a
+  library narrowed by yesterday's half-typed word reads as a bug.
 - **A "Continue reading" row**, most recently read first, absent rather than
   empty when nothing is in progress, and hidden while a search is running.
 - **iOS scans its own Documents folder** when no folder has been picked, so a

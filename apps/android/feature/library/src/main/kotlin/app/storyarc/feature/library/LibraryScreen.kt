@@ -8,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -60,6 +62,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.Publication
@@ -136,6 +139,8 @@ fun LibraryScreen(
         .collectAsStateWithLifecycle()
     val query by (viewModel?.query ?: MutableStateFlow(LibraryQuery()))
         .collectAsStateWithLifecycle()
+    val layout by (viewModel?.layout ?: MutableStateFlow(LibraryLayout.GRID))
+        .collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier,
@@ -145,6 +150,7 @@ fun LibraryScreen(
                 title = { Text(stringResource(R.string.library_title)) },
                 actions = {
                     if (viewModel != null && publications.isNotEmpty()) {
+                        LayoutToggle(layout, viewModel::setLayout)
                         SortMenu(query, viewModel::setQuery)
                         FilterMenu(query, viewModel)
                     }
@@ -201,17 +207,28 @@ fun LibraryScreen(
                 visible.isNotEmpty() && viewModel != null ->
                     Column(modifier = Modifier.fillMaxSize()) {
                         SearchField(query.search, onChange = { viewModel.setQuery(query.copy(search = it)) })
-                        CoverGrid(
-                            publications = visible,
-                            viewModel = viewModel,
-                            // Hidden while a search or filter is running: the row
-                            // is a shortcut to what you were reading, and showing
-                            // publications the query excluded reads as a bug.
-                            continueReading = if (query.isNarrowed) emptyList() else continueReading,
-                            onOpen = { publication ->
-                                viewModel.location(publication)?.let { onOpen(publication, it) }
-                            },
-                        )
+                        val open: (Publication) -> Unit = { publication ->
+                            viewModel.location(publication)?.let { onOpen(publication, it) }
+                        }
+                        if (layout == LibraryLayout.GRID) {
+                            CoverGrid(
+                                publications = visible,
+                                viewModel = viewModel,
+                                // Hidden while a search or filter is running: the
+                                // row is a shortcut to what you were reading, and
+                                // showing publications the query excluded reads as
+                                // a bug.
+                                continueReading =
+                                    if (query.isNarrowed) emptyList() else continueReading,
+                                onOpen = open,
+                            )
+                        } else {
+                            CoverList(
+                                publications = visible,
+                                viewModel = viewModel,
+                                onOpen = open,
+                            )
+                        }
                     }
 
                 // A library that is not empty but looks it. `library-browsing`
@@ -254,6 +271,29 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
             .fillMaxWidth()
             .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm),
     )
+}
+
+/**
+ * Grid or list.
+ *
+ * One button that shows the layout it would switch *to*, rather than a segmented
+ * control that spends permanent space on a binary choice.
+ */
+@Composable
+private fun LayoutToggle(layout: LibraryLayout, onChange: (LibraryLayout) -> Unit) {
+    val palette = LocalStoryArcPalette.current
+    val isGrid = layout == LibraryLayout.GRID
+    IconButton(
+        onClick = { onChange(if (isGrid) LibraryLayout.LIST else LibraryLayout.GRID) },
+    ) {
+        Icon(
+            imageVector = if (isGrid) Icons.AutoMirrored.Filled.List else Icons.Filled.GridView,
+            contentDescription = stringResource(
+                if (isGrid) R.string.library_layout_list else R.string.library_layout_grid,
+            ),
+            tint = palette.accent,
+        )
+    }
 }
 
 /** How the library is ordered. */
