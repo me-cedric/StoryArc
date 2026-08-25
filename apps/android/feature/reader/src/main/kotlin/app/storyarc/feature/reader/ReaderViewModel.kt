@@ -6,6 +6,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.lifecycle.ViewModel
 import android.content.ContentResolver
+import android.os.Build
 import android.provider.Settings
 import app.storyarc.core.format.ComicArchiveReading
 import app.storyarc.core.format.PageDecoder
@@ -62,13 +63,19 @@ class ReaderViewModel(
      */
     private val shelfStore: ReaderPreferences? = null,
     /**
-     * Whether this device can render the curl at the display's refresh rate.
+     * Whether this device can render the curl.
      *
-     * False until the Phase 0 spike says otherwise. `page-transitions`: "the app never
-     * ships a curl that stutters in preference to a slide that does not", so the
-     * honest default for a curl that does not exist yet is that it is unavailable.
+     * API 33 is where AGSL's `RuntimeShader` arrives, and ADR-0003 keeps the floor at
+     * 31 rather than raising it for one animation. `page-transitions` already required
+     * Curl to be absent where the device cannot honour it, so the gate needed no new
+     * requirement.
+     *
+     * The frame-rate half of that requirement is a *runtime* question, not a build-time
+     * one: the same shader is fast on one device and not on another, and the spec frames
+     * the capability per device. Whether a curl holds the display's refresh rate is
+     * therefore measured where it runs, not asserted here.
      */
-    private val canCurl: Boolean = false,
+    private val canCurl: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
 ) : ViewModel() {
 
     /** The shelf this publication's reading mode is remembered under. */

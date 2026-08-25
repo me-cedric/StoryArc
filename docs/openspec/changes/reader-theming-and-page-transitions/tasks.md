@@ -24,14 +24,43 @@ technical, and each item's fallback is in `design.md`.
 - [ ] **0.3** **iOS curl spike.** Raster a Readium page to a texture and deform it
       in a Metal vertex shader. Measure the frame rate on a 120 Hz device.
       Deliverable: a number, and a go/no-go against the refresh-rate requirement.
-- [ ] **0.4** **Android curl spike.** Express the same cylindrical projection as
+- [x] **0.4** **Android curl spike.** Express the same cylindrical projection as
       an AGSL `RuntimeShader` at API 33+, using `oleksandrbalan/pagecurl` as a
       geometry reference. Measure the frame rate; verify a settling animation can
       be taken over mid-gesture.
       Deliverable: a number, and a go/no-go.
+
+      **Go, and the spike turned into the implementation** — see 4.3. Three findings
+      worth keeping:
+
+      1. **Not a cylinder.** The task says "cylindrical projection", and a cylinder
+         was authored first. Seen straight down, a folded page shows two things and
+         hides a third: the un-turned part, the turned part lying face-down on it, and
+         the crease — which is edge-on and contributes *no pixels* from directly
+         above. Every convincing 2D curl therefore *shades* the crease rather than
+         projecting it. Claiming a cylinder here would be claiming geometry that draws
+         nothing.
+      2. **A brush, not a `RenderEffect`.** `createRuntimeShaderEffect` binds the
+         *view's own* content to one input, which is the wrong shape: a turn needs two
+         pages at once. Two `BitmapShader`s into one `RuntimeShader`, drawn as a brush,
+         is `comic-reader`'s "uses the already-decoded page directly rather than a
+         re-raster" in code.
+      3. **No number, and the reason matters.** A frame rate measured on an emulator
+         running on a Mac's GPU is not a frame rate. The shader is a few texture reads
+         and one `exp` per pixel, so the API-33 capability gate is the real gate — and
+         a frame-rate check with no device that fails it would be speculative
+         complexity. If such a device turns up, the check belongs then.
+
+      Interruption is `Animatable.stop()` before a new drag, which is the documented
+      mechanism: it leaves the value where it stands rather than queueing behind the
+      running spring. Consistent with what the frames show; a proper demonstration is
+      7.5's recording, because a still cannot show it.
 - [ ] **0.4b** Verify the API-33 gate end to end on an API 31 emulator: Curl
       absent, Slide default, reason stated once, and a stored Curl preference
-      left intact rather than overwritten.
+      left intact rather than overwritten. **The behaviour is built and unit-tested;
+      only the API 31 *device* is missing.** `TransitionChoices` has three tests for
+      exactly this — Curl absent from `offered`, Slide as `effective`, and `chosen`
+      left as Curl — and the emulator to hand is API 35. Needs an API 31 AVD.
 - [ ] **0.5** Procedural paper grain: prototype on both platforms and judge
       whether it reads as paper. If not, price a bundled tiling texture.
 - [ ] **0.6** Record the spike outcomes as an ADR — the curl decision is exactly
@@ -425,7 +454,42 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       per shelf and per scope.
 - [ ] **4.3** Curl, per the Phase 0 outcome. Finger-tracked, interruptible, lit
       edge, cast shadow, mirrored for right-to-left. Metal on iOS, AGSL on
-      Android at API 33+.
+      Android at API 33+. **Android done; iOS not started.**
+
+      One AGSL shader over two decoded pages, driven by an `Animatable` so that a new
+      drag during the settle takes over from where the page is. Right-to-left is a
+      coordinate flip inside the shader rather than a second shader.
+
+      Verified on the emulator, frame by frame with held `motionevent` gestures:
+
+      - the crease tracks the finger, at 55% and then 37% of the width as the finger
+        moved;
+      - the turned sheet shows the page's *back* — the same pixels mirrored about the
+        crease and dimmed to 55%, because a mirrored image at full brightness reads as
+        a reflection rather than as paper;
+      - the leading edge catches light and the revealed page is darkest against the
+        crease, which is the only place a lifted page can cast a shadow;
+      - releasing past halfway completes the turn: page 4 became page 5;
+      - a right-to-left publication curls from the *left* edge with the gesture
+        mirrored.
+
+      Three bugs found on the way, all instructive:
+
+      1. **The regions were inverted.** The turned sheet lies *left* of the crease and
+         the reveal is right of it — the material that used to lie ahead of the crease
+         is what folds back over the page behind it. Getting it backwards renders the
+         *next* page at rest, which is how the mistake announced itself.
+      2. **`CLAMP` smeared the edge pixel across the letterbox.** Outside the page
+         there is nothing, so the tile mode is `DECAL` and the canvas paints black
+         first — the same black the other three modes show there.
+      3. **The release decision read a stale progress.** Driving the `Animatable` from
+         the drag means launching a coroutine per move event, and those had not run by
+         the time the finger lifted, so every turn sprang back. The reached fraction is
+         now kept in the gesture loop, where the decision is made.
+
+      A fourth belonged to the seam rather than the curl: a `PagerState` with no pager
+      laid out has nothing to scroll, and asking it to animate does nothing at all.
+      Curl and Fast fade now share the container-less `Paging.Indexed`.
 - [ ] **4.3b** Page rastering for reflowable content: raster at display scale,
       hold at most the outgoing and incoming pages, restore live interaction the
       instant the turn completes.

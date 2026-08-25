@@ -391,16 +391,29 @@ private fun Pager(
 
     // One container per mode, over one page body. `page-transitions` treats the mode
     // as a property of the container, which is exactly what this is: the pager brings
-    // its own gesture and edge resistance, the fade has no container at all, and the
-    // scroll is a lazy list.
-    when (paging) {
-        is Paging.Paged -> HorizontalPager(state = paging.state, modifier = keyboard) { page ->
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Page(page)
+    // its own gesture and edge resistance, the fade has no container at all, the scroll
+    // is a lazy list, and the curl is a shader over two decoded pages.
+    if (choices.effective == PageTransition.PAGE_CURL) {
+        CurledPages(
+            page = viewModel.image(modelIndex(paging.current)),
+            // The page underneath is the next *display* position, not the next page
+            // number: in right-to-left the two run opposite ways, and a curl that
+            // revealed the wrong side would be worse than no curl.
+            beneath = viewModel.image(modelIndex(paging.current + 1)),
+            isRightToLeft = isRightToLeft,
+            onTurned = { turn(paging.current + 1) },
+            onTap = ::handleTap,
+            modifier = keyboard,
+        )
+    } else {
+        when (paging) {
+            is Paging.Paged -> HorizontalPager(state = paging.state, modifier = keyboard) { page ->
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Page(page)
+                }
             }
-        }
 
-        is Paging.Faded -> AnimatedContent(
+            is Paging.Indexed -> AnimatedContent(
             targetState = paging.index.intValue,
             modifier = keyboard,
             // Short enough not to read as an animation, which is the whole point of
@@ -416,13 +429,14 @@ private fun Pager(
             }
         }
 
-        is Paging.Scrolled -> if (choices.effective == PageTransition.VERTICAL_SCROLL) {
-            LazyColumn(state = paging.state, modifier = keyboard) {
-                items(count) { Page(it, stitch = ScrollAxis.VERTICAL) }
-            }
-        } else {
-            LazyRow(state = paging.state, modifier = keyboard) {
-                items(count) { Page(it, stitch = ScrollAxis.HORIZONTAL) }
+            is Paging.Scrolled -> if (choices.effective == PageTransition.VERTICAL_SCROLL) {
+                LazyColumn(state = paging.state, modifier = keyboard) {
+                    items(count) { Page(it, stitch = ScrollAxis.VERTICAL) }
+                }
+            } else {
+                LazyRow(state = paging.state, modifier = keyboard) {
+                    items(count) { Page(it, stitch = ScrollAxis.HORIZONTAL) }
+                }
             }
         }
     }

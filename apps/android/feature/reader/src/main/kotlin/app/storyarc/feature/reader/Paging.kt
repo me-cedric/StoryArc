@@ -39,13 +39,14 @@ internal sealed interface Paging {
     }
 
     /**
-     * Fast fade: no container at all, just an index.
+     * Fast fade and Curl: no container at all, just an index.
      *
-     * There is nothing to scroll, so a swipe cannot turn the page here — taps, keys
-     * and the slider do. That is what "no translation" means, rather than a
-     * limitation of this class.
+     * Both modes draw one page at a time and own their own animation, so there is
+     * nothing to scroll and nothing to hold a scroll position. A `PagerState` was used
+     * for the curl first and quietly refused to move: a pager state with no pager laid
+     * out has nothing to scroll either, and asking it to animate does nothing at all.
      */
-    class Faded(val index: MutableIntState) : Paging {
+    class Indexed(val index: MutableIntState) : Paging {
         override val current get() = index.intValue
         override suspend fun goTo(display: Int, animate: Boolean) {
             index.intValue = display
@@ -86,9 +87,11 @@ internal fun rememberPaging(mode: PageTransition, count: Int, position: Int): Pa
         // nothing, because the frame never settles.
         remember(state) { Paging.Scrolled(state) }
     }
-    mode == PageTransition.FAST_FADE -> {
+    // Both container-less modes. Curl animates its own fold and Fast fade its own
+    // dissolve; neither has anything for a scroll state to describe.
+    mode == PageTransition.FAST_FADE || mode == PageTransition.PAGE_CURL -> {
         val index = remember(mode) { mutableIntStateOf(position) }
-        remember(index) { Paging.Faded(index) }
+        remember(index) { Paging.Indexed(index) }
     }
     else -> {
         val state = rememberPagerState(initialPage = position, pageCount = { count })

@@ -102,6 +102,18 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **The page curl, on Android.** One AGSL shader over the two decoded pages: the
+  crease follows your finger, the turned sheet shows the page's back, its leading edge
+  catches light and it casts a shadow on the page beneath. Past halfway the turn
+  completes, before it the page springs back, and a new drag during the settle takes
+  over from where the page is instead of snapping.
+  - A right-to-left publication curls from the opposite edge, mirrored — one
+    coordinate flip inside the shader rather than a second shader.
+  - Not a cylinder, despite the plan saying so. Seen straight down a folded page hides
+    its crease entirely, so the crease is *shaded* rather than projected. A cylinder
+    here would be geometry that draws nothing.
+  - Gated at API 33, where `RuntimeShader` arrives. Below it Curl is simply absent and
+    Slide is the default, which is the path the picker already had.
 - **Choose how a page turns, and the choice sticks per series.** Slide, Fast fade,
   and continuous Scroll in either axis. Curl is not here yet, and says so.
   - **Scroll is the one that changes what you can read.** Pages are stitched with no
