@@ -313,7 +313,7 @@ waiting on execution and on two spikes that do not affect the choices above.
 | ~~libarchive reads an actual RAR~~ | **Done.** It reads RAR4 and RAR5, stored, compressed and solid RAR5, and the decoded bytes are asserted against libarchive's own documented expected values rather than against our own output |
 | ~~The remaining ABIs build~~ | **Done.** All four Android ABIs and both Apple slices compile the 26 vendored sources; sizes are in the change's task 6.2 |
 | **iOS build embeds AMSMB2 dynamically, not statically** | Execution — a licence requirement, so it needs a check not a comment |
-| **Readium pagination** compared across the two toolkits on the same EPUB | **Partly done.** Both toolkits now render `fixture.epub` in a real reader: Swift 3.11 on iOS, Kotlin 3.3 on Android, same chapters and the same reading order. What is not yet compared is *pagination* under matched typography, which needs the type controls of the `reader-theming-and-page-transitions` change. |
+| **Readium pagination** compared across the two toolkits on the same EPUB | **Partly done, and no longer blocked.** Both toolkits render `fixture.epub` in a real reader: Swift 3.11 on iOS, Kotlin 3.3 on Android, same chapters and the same reading order. *Pagination* under matched typography is still uncompared, but the type controls it needed now exist — see task 7.8 of `reader-theming-and-page-transitions`. |
 | **Readium is iOS-only, and `StoryArcKit` also builds for macOS** | **Resolved by a split, recorded here because it shapes the tree.** SwiftPM validates a dependency graph for every platform the depending package claims, so adding Readium to `StoryArcKit` fails macOS resolution outright — conditioning the target dependency does not help, the validation happens first. Reflowable rendering therefore lives in `apps/ios/Packages/StoryArcEpub`, which claims iOS alone, and everything host-testable stays where it was. Android splits the same way, into `:feature:epubreader`, because Readium's EPUB navigator is a `Fragment` and nothing else in the app is. |
 
 The two spikes are mine to run and report, not decisions to put to anyone. This
@@ -333,8 +333,10 @@ than decided.
 - [x] **4a.** Render the same EPUB through both Readium toolkits. Done — Swift
       3.11 and Kotlin 3.3 both open `fixture.epub` and `epub2.epub`, resume from a
       stored locator, and report progression.
-- [ ] **4b.** Compare *pagination* under matched typography. Needs the type
-      controls, which belong to `reader-theming-and-page-transitions`.
+- [ ] **4b.** Compare *pagination* under matched typography. **No longer blocked**
+      — the type controls landed with `reader-theming-and-page-transitions`, so the
+      same nine axes can now be set to the same values on both platforms. Still to
+      run; it is task 7.8 of that change.
 - [x] **5.** Decode an actual page to a bitmap on both platforms. Done — 8 tests
       on iOS, 7 instrumented on Android, same corpus page and same measured
       results.

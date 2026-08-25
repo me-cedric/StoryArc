@@ -86,8 +86,14 @@ technical, and each item's fallback is in `design.md`.
       left as Curl — and the emulator to hand is API 35. Needs an API 31 AVD.
 - [ ] **0.5** Procedural paper grain: prototype on both platforms and judge
       whether it reads as paper. If not, price a bundled tiling texture.
-- [ ] **0.6** Record the spike outcomes as an ADR — the curl decision is exactly
+- [x] **0.6** Record the spike outcomes as an ADR — the curl decision is exactly
       the kind of thing that gets re-litigated in six months without one.
+      **Done**: [ADR-0009](../../../decisions/0009-page-curl-as-a-fragment-shader.md).
+
+      It records the two ways the spikes contradicted the plan — a fragment shader
+      rather than a vertex shader and a mesh, and a fold rather than a cylinder,
+      because the crease contributes no pixels — and the two things that are *not*
+      settled: the frame-rate number, and rastering for reflowable content.
 
 ## Phase 1 — Contract and tokens
 
@@ -722,4 +728,15 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       still frame cannot show interruptibility or finger tracking.
 - [ ] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce
       Motion, Reduce Transparency, largest text size.
+- [ ] **7.8** **Compare Readium's pagination across the two toolkits** under
+      matched typography, on `fixture.epub`. Added here because this change is what
+      unblocked it: [ADR-0005](../../../decisions/0005-format-and-rendering-libraries.md)'s
+      spike 4b has been waiting for the type controls, and now the same nine axes can
+      be set to the same values on both platforms.
+
+      What matters is not that the page *counts* match — they cannot, since the two
+      toolkits lay out in different web views — but that a stored locator resolves to
+      the same paragraph, and that a size change moves the reader by a comparable
+      amount. A divergence here would undermine `reading-progress`' promise that a
+      position is portable between devices.
 - [ ] **7.7** `/opsx:sync` to merge the delta specs into the main specs.

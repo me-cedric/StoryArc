@@ -20,6 +20,7 @@ ADR that supersedes it rather than quietly doing something else.
 | [0006](0006-progress-storage-and-sync.md) | Local-first progress with content-addressed identity | Accepted |
 | [0007](0007-design-token-pipeline.md) | One OKLCH token source, generated into Swift and Kotlin | Accepted |
 | [0008](0008-ranged-reads-and-own-zip-reader.md) | Ranged reads over a random-access source, with our own ZIP reader | Accepted |
+| [0009](0009-page-curl-as-a-fragment-shader.md) | The page curl is a fragment shader over two decoded pages | Accepted |
 
 ## Considered options
 
