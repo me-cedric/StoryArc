@@ -147,8 +147,13 @@ public struct TransitionChoices: Sendable, Equatable {
         // able to curl, and the next publication may not reflow.
         var effective = chosen
         if effective == .pageCurl, !canCurl { effective = .slide }
-        if isReflowable, effective.needsARasteredPage { effective = .slide }
         effective = effective.honoring(reduceMotion: reduceMotion)
+        // Content last, and deliberately so. It is the only constraint nothing can work
+        // around, so it has to survive the substitutions rather than precede them:
+        // Reduce Motion turns Slide into Fast fade, and over reflowable text Fast fade
+        // is itself impossible. Checking content first left `effective` naming a mode
+        // this publication refuses.
+        if isReflowable, effective.needsARasteredPage { effective = .slide }
         self.effective = effective
     }
 

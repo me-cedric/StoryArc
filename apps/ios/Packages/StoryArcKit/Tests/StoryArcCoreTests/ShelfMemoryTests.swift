@@ -180,6 +180,23 @@ struct ShelfMemoryTests {
         #expect(choices.chosen == .pageCurl)
     }
 
+    @Test("Reduced motion cannot substitute a mode this content refuses")
+    func substitutionRespectsTheContent() {
+        // Reduce Motion turns Slide into Fast fade, and over reflowable text Fast fade
+        // is itself impossible. Ordering the two checks the other way left `effective`
+        // naming a mode the publication refuses.
+        let choices = TransitionChoices(
+            chosen: .slide, axis: .vertical, reduceMotion: true,
+            canCurl: true, isReflowable: true
+        )
+        #expect(choices.effective == .slide)
+        // A comic has no such objection, so there the substitution stands.
+        let comic = TransitionChoices(
+            chosen: .slide, axis: .horizontal, reduceMotion: true, canCurl: true
+        )
+        #expect(comic.effective == .fastFade)
+    }
+
     @Test("Reflowable text offers one scroll row, because prose scrolls the way it reads")
     func reflowableHasNoScrollAxis() {
         let choices = TransitionChoices(

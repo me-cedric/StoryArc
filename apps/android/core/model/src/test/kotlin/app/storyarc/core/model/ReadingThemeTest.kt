@@ -445,6 +445,23 @@ class ReadingThemeTest {
     }
 
     @Test
+    fun `Reduced motion cannot substitute a mode this content refuses`() {
+        // Reduced motion turns Slide into Fast fade, and over reflowable text Fast fade
+        // is itself impossible. Ordering the two checks the other way left `effective`
+        // naming a mode the publication refuses.
+        val reflowable = TransitionChoices(
+            PageTransition.SLIDE, ScrollAxis.VERTICAL,
+            reduceMotion = true, canCurl = true, isReflowable = true,
+        )
+        assertEquals(PageTransition.SLIDE, reflowable.effective)
+        // A comic has no such objection, so there the substitution stands.
+        val comic = TransitionChoices(
+            PageTransition.SLIDE, ScrollAxis.HORIZONTAL, reduceMotion = true, canCurl = true,
+        )
+        assertEquals(PageTransition.FAST_FADE, comic.effective)
+    }
+
+    @Test
     fun `Reflowable text offers one scroll row, because prose scrolls the way it reads`() {
         val choices = TransitionChoices(
             PageTransition.SLIDE, ScrollAxis.VERTICAL,

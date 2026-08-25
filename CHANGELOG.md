@@ -102,6 +102,12 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   still readable beside it. One declaration rather than two layouts: iOS adapts a
   popover back into a sheet on a phone, and Material 3's bottom sheet already caps
   and centres itself at tablet width.
+- **Fixed: the typeface specimens shrank the face at large text sizes.** A specimen is a
+  picture of a typeface in a fixed-size card, so scaling it with the system text size
+  showed *less* of the face the larger a reader needs it. It no longer scales.
+- **Fixed: the preset grid clipped its labels at twice the system text size.** It was a
+  lazy grid inside a scrolling column, which needs a fixed height. Six known items never
+  needed one — rows take the height their content asks for.
 - **Continuous scrolling for ebooks.** Readium had the preference and nothing was
   wired to it. The theme sheet now offers Pages or Continuous scroll, and lists Curl and
   Fast fade with the reason they cannot run over text that reflows — they animate a

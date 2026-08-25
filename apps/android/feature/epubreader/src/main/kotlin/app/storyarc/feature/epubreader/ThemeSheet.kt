@@ -8,13 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -134,31 +133,43 @@ internal fun ThemeSheet(
 
         // Three by two, each card in its own colours. `ebook-reader`: the grid
         // previews "each preset in its own colours — six samples, not six labels".
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier.height(200.dp),
-            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-        ) {
-            items(ThemePreset.entries) { preset ->
-                PresetCard(
-                    preset = preset,
-                    isActive = theme.preset == preset && !theme.isCustom,
-                    isModified = theme.preset == preset && theme.isModified,
-                    onSelect = { onAdopt(preset) },
-                )
+        //
+        // Rows rather than a `LazyVerticalGrid`: there are six or seven known items and
+        // this is already inside a scrolling column, so a lazy grid buys nothing and
+        // costs a *fixed height* — which at twice the system text size clipped the
+        // labels off the bottom of every card. Rows take the height their content needs.
+        val cards: List<@Composable (Modifier) -> Unit> = buildList {
+            ThemePreset.entries.forEach { preset ->
+                add { cardModifier ->
+                    PresetCard(
+                        preset = preset,
+                        isActive = theme.preset == preset && !theme.isCustom,
+                        isModified = theme.preset == preset && theme.isModified,
+                        onSelect = { onAdopt(preset) },
+                        modifier = cardModifier,
+                    )
+                }
             }
             // The seventh slot, present only once the reader has made one.
             // `reading-themes` puts it "alongside the six presets rather than
             // overwriting one", so it is a seventh card and not a replaced one.
             theme.custom?.let { custom ->
-                item {
+                add { cardModifier ->
                     CustomCard(
                         palette = custom,
                         typeface = values.typeface,
                         onSelect = { onAdoptColours(custom) },
+                        modifier = cardModifier,
                     )
                 }
+            }
+        }
+
+        cards.chunked(COLUMNS).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+                row.forEach { card -> card(Modifier.weight(1f)) }
+                // A short last row keeps its cards the same width as a full one.
+                repeat(COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
 
@@ -602,6 +613,12 @@ private fun Specimen(
 ) {
     val family = typeface.fontFamily()
 
+    // Sized in `dp`, so the system text size does not scale it. A specimen is a
+    // *picture* of a typeface and the card it sits in is a fixed size: at twice the
+    // system text size the words grew and the card clipped them, which is a specimen
+    // that shows less of the face the larger the reader needs it.
+    val fixed = with(LocalDensity.current) { SPECIMEN_DP.dp.toSp() }
+
     Column(
         // One picture, and not a sentence a screen reader should read twice per card.
         modifier = modifier.fillMaxWidth().clearAndSetSemantics {},
@@ -609,7 +626,8 @@ private fun Specimen(
         listOf(R.string.theme_specimen, R.string.theme_specimen_second).forEach { line ->
             Text(
                 text = stringResource(line),
-                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = family),
+                style = MaterialTheme.typography.bodyMedium
+                    .copy(fontFamily = family, fontSize = fixed),
                 // Always explicit. A variable font's default instance is whatever its
                 // `fvar` says, and upstream Bitter's is Thin — a specimen that let the
                 // default stand would show a hairline and call it Bitter.
@@ -682,6 +700,16 @@ private fun CustomCard(
         }
     }
 }
+
+/** Three across, which is what `ebook-reader`'s "three by two" means. */
+private const val COLUMNS = 3
+
+/**
+ * How big a typeface specimen is drawn, in `dp` rather than `sp`.
+ *
+ * Fixed on purpose: see the note in `Specimen`.
+ */
+private const val SPECIMEN_DP = 14
 
 /**
  * A slider's value as a screen reader should say it.

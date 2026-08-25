@@ -118,12 +118,23 @@ struct Specimen: View {
     let colour: Color
     var isBold = false
 
+    /// Fixed on purpose. See the note on the font below.
+    private static let specimenSize: CGFloat = 14
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("theme.specimen", bundle: .module)
             Text("theme.specimen.second", bundle: .module)
         }
-        .font(BundledFonts.font(typeface, size: 13, weight: isBold ? .bold : .regular))
+        // A fixed size, so Dynamic Type does not scale it. A specimen is a *picture* of
+        // a typeface and the card it sits in is a fixed height: at the largest text size
+        // the words grow and the card clips them, which is a specimen that shows less of
+        // the face the larger the reader needs it.
+        .font(
+            BundledFonts.font(
+                typeface, size: Self.specimenSize, weight: isBold ? .bold : .regular
+            )
+        )
         .foregroundStyle(colour)
         .lineLimit(1)
         .minimumScaleFactor(0.7)

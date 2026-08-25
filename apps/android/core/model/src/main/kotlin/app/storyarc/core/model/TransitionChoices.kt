@@ -190,8 +190,13 @@ class TransitionChoices(
      */
     val effective: PageTransition = chosen
         .let { if (it == PageTransition.PAGE_CURL && !canCurl) PageTransition.SLIDE else it }
-        .let { if (isReflowable && it.needsARasteredPage) PageTransition.SLIDE else it }
         .honoring(reduceMotion)
+        // Content last, and deliberately so. It is the only constraint nothing can work
+        // around, so it has to survive the substitutions rather than precede them:
+        // reduced motion turns Slide into Fast fade, and over reflowable text Fast fade
+        // is itself impossible. Checking content first left `effective` naming a mode
+        // this publication refuses.
+        .let { if (isReflowable && it.needsARasteredPage) PageTransition.SLIDE else it }
 
     /** Whether a row can be picked. */
     fun isAvailable(mode: PageTransition): Boolean = !unavailable.containsKey(mode)

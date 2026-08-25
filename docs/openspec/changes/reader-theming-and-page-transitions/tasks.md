@@ -770,7 +770,38 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 - [ ] **7.5** Record the curl: a screen recording on each platform, because a
       still frame cannot show interruptibility or finger tracking.
 - [ ] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce
-      Motion, Reduce Transparency, largest text size.
+      Motion, Reduce Transparency, largest text size. **Two of the four done on
+      Android, and each found something.**
+
+      **Reduced motion** — `animator_duration_scale 0` on the emulator. The page-turn
+      rows behave exactly as the spec asks: Curl and Pages stay *listed*, marked
+      "Unavailable while your system is set to remove animations", and Continuous scroll
+      stays available because a scroll is not an animation.
+
+      It also exposed an ordering bug. Reduced motion turns Slide into Fast fade, and
+      over reflowable text Fast fade is itself impossible — so with the content check
+      *before* the substitution, `effective` named a mode the publication refuses.
+      Content is the only constraint nothing can work around, so it is applied last.
+      One test each side.
+
+      **Largest text size** — `font_scale 2.0`. Two real defects, both fixed:
+
+      1. **The typeface specimens clipped.** A specimen is a *picture* of a typeface and
+         its card is a fixed height, so scaling it with the system text size showed
+         *less* of the face the larger a reader needs it. Sized in `dp` on Android and
+         `fixedSize:` on iOS.
+      2. **The preset grid clipped its labels.** A `LazyVerticalGrid` inside a scrolling
+         column needs a fixed height, and at twice the text size the labels fell off the
+         bottom. Six known items in a scroll never needed a lazy grid — two `Row`s take
+         the height their content asks for, which is less code as well as correct.
+
+      The library also holds at 2×: titles wrap and ellipsise, captions stay top-aligned,
+      nothing overlaps.
+
+      **Still open: TalkBack and VoiceOver driven for real, and Reduce Transparency.**
+      TalkBack's semantics are covered by `ThemeSheetSemanticsTest` on a device, which is
+      not the same as listening to it. Reduce Transparency has no emulator switch that
+      reaches a Compose `@Environment` equivalent, and iOS needs a device for any of it.
 - [ ] **7.8** **Compare Readium's pagination across the two toolkits** under
       matched typography, on `fixture.epub`. Added here because this change is what
       unblocked it: [ADR-0005](../../../decisions/0005-format-and-rendering-libraries.md)'s

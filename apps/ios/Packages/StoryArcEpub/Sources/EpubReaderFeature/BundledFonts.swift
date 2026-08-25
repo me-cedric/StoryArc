@@ -13,7 +13,7 @@ internal import StoryArcFonts
 ///
 /// Registration is process-scoped and happens once, on first use.
 enum BundledFonts {
-    /// A face's own letterforms at a given size, or the system's where it has none.
+    /// A face's own letterforms at a *fixed* size, or the system's where it has none.
     ///
     /// The weight is always explicit. A variable font's default instance is whatever
     /// its `fvar` says, and upstream Bitter's is Thin — a specimen that let the
@@ -29,7 +29,9 @@ enum BundledFonts {
             return .system(size: size, weight: weight, design: face == .serif ? .serif : .default)
         }
         _ = registered
-        return .custom(family, size: size).weight(weight)
+        // `fixedSize`, not `size`: a specimen is a picture of a typeface, and one that
+        // grew with Dynamic Type would outgrow the card it has to fit.
+        return .custom(family, fixedSize: size).weight(weight)
     }
 
     /// Registers every bundled file with CoreText, once.
