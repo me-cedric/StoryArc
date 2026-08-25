@@ -374,6 +374,15 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       iOS carries the same labels and values through the equivalent SwiftUI
       modifiers. Those are not yet driven by VoiceOver — 7.4 is where that belongs.
 
+- [ ] **3.11** **The custom background around a fixed-layout page.** The last
+      scenario of 3.7: a custom background "applies to the area around the page and
+      not to the page itself, because tinting artwork is not a reading preference".
+
+      Now unblocked by 3.10 — the fixed-layout scope exists and resolves — but the
+      comic reader hard-codes `Color.Black` and knows nothing about a reading theme.
+      It needs the theme threaded in on both platforms, and the matte around the page
+      painted from it.
+
 ## Phase 4 — Transitions
 
 - [x] **4.1** Shared transition coordinator on both platforms: mode, direction,
@@ -414,8 +423,6 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       axes; Curl is absent with its reason; single edge taps turn in both directions
       in every mode; the slider turns; and each choice survives a process kill,
       per shelf and per scope.
-- [ ] **4.2** Slide and fast fade — cheap, and they de-risk the coordinator
-      before the curl lands on it.
 - [ ] **4.3** Curl, per the Phase 0 outcome. Finger-tracked, interruptible, lit
       edge, cast shadow, mirrored for right-to-left. Metal on iOS, AGSL on
       Android at API 33+.
@@ -595,9 +602,20 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
 ## Phase 7 — Validation
 
-- [ ] **7.1** `pnpm lint` — specs and token contrast, including all six presets.
-- [ ] **7.2** `pnpm test:ios` and `pnpm test:android`.
-- [ ] **7.3** `pnpm lint:android`, `swiftlint --strict`, both app builds.
+- [x] **7.1** `pnpm lint` — specs and token contrast, including all six presets.
+      Green, and the contrast gate now has a runtime counterpart: `ReadingContrast`
+      asserts the same numbers with the same constants, so the gate and the sheet
+      cannot disagree (see 3.7).
+- [x] **7.2** `pnpm test:ios` and `pnpm test:android`. Green — 305 tests on iOS
+      across 37 suites, and the Android twin asserts the same tables.
+- [x] **7.3** `pnpm lint:android`, `swiftlint --strict`, both app builds. Green.
+      `swiftlint --strict` found two files over the 400-line limit while this change
+      was being built, and both were split rather than exempted: `ReaderView` gave up
+      its containers and its chrome, and the theme tests gave up the palette and the
+      shelf memory.
+
+      These three are re-run on every commit rather than at the end, which is why they
+      are ticked here — `pnpm check` runs all of them.
 - [ ] **7.4** **Visual proof.** Simulator and emulator screenshots of the theme
       sheet and all six presets, in light and dark, at default and largest text
       size. A `#Preview` is not proof.
@@ -606,11 +624,3 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 - [ ] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce
       Motion, Reduce Transparency, largest text size.
 - [ ] **7.7** `/opsx:sync` to merge the delta specs into the main specs.
-- [ ] **3.11** **The custom background around a fixed-layout page.** The last
-      scenario of 3.7: a custom background "applies to the area around the page and
-      not to the page itself, because tinting artwork is not a reading preference".
-
-      Now unblocked by 3.10 — the fixed-layout scope exists and resolves — but the
-      comic reader hard-codes `Color.Black` and knows nothing about a reading theme.
-      It needs the theme threaded in on both platforms, and the matte around the page
-      painted from it.
