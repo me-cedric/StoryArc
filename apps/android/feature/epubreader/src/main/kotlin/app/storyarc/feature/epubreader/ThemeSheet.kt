@@ -13,11 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextIncrease
@@ -40,11 +41,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -55,22 +56,22 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AxisUnit
 import app.storyarc.core.model.FontSizeStep
 import app.storyarc.core.model.PageTransition
-import app.storyarc.core.model.TransitionChoices
-import app.storyarc.core.model.TransitionUnavailability
 import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ReaderTextAlignment
 import app.storyarc.core.model.ReaderTypeface
+import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.STEPS_PER_AXIS
+import app.storyarc.core.model.ThemeAxis
+import app.storyarc.core.model.ThemePreset
+import app.storyarc.core.model.ThemeValues
+import app.storyarc.core.model.TransitionChoices
+import app.storyarc.core.model.TransitionUnavailability
 import app.storyarc.core.model.setting
 import app.storyarc.core.model.sliderRange
 import app.storyarc.core.model.step
 import app.storyarc.core.model.unit
 import app.storyarc.core.model.value
 import app.storyarc.core.model.values
-import app.storyarc.core.model.ReadingTheme
-import app.storyarc.core.model.ThemeAxis
-import app.storyarc.core.model.ThemePreset
-import app.storyarc.core.model.ThemeValues
 import java.text.NumberFormat
 import kotlin.math.roundToInt
 
@@ -350,7 +351,19 @@ private fun TypefaceControl(
             }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // The row is the toggleable, not the switch inside it. A switch on its own is
+        // an unnamed node — its label is a sibling, and a screen reader landing on it
+        // hears a bare on/off. `toggleable` merges the label in and widens the target.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = values.isBold,
+                    role = Role.Switch,
+                    onValueChange = { onChange(ThemeAxis.BOLD_TEXT, values.copy(isBold = it)) },
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 text = stringResource(R.string.theme_axis_bold_text),
                 style = MaterialTheme.typography.bodyMedium,
@@ -359,7 +372,7 @@ private fun TypefaceControl(
             )
             Switch(
                 checked = values.isBold,
-                onCheckedChange = { onChange(ThemeAxis.BOLD_TEXT, values.copy(isBold = it)) },
+                onCheckedChange = null,
             )
         }
     }
@@ -694,8 +707,9 @@ private fun CustomCard(
                 text = name,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = tokens.accent,
-                maxLines = 1,
+                // The accent measures 2.99 to 1 on this card in light appearance, so
+                // the name it carries is text a low-vision reader cannot read.
+                color = tokens.textPrimary,
             )
         }
     }
@@ -788,8 +802,9 @@ private fun PresetCard(
             style = MaterialTheme.typography.labelLarge,
             // Weight as well as colour: colour is never the only signal.
             fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isActive) palette.accent else palette.textSecondary,
-            maxLines = 1,
+            // Not the accent when active: it measures 2.99 to 1 on this card in light
+            // appearance, so the chosen card was the one card no one could read.
+            color = if (isActive) palette.textPrimary else palette.textSecondary,
         )
 
         if (isModified) {

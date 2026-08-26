@@ -84,7 +84,12 @@ struct ReadingDefaults: View {
     private var comicMatte: some View {
         let current = memory.default(for: .fixedLayout).theme.custom?.background
         return Section {
-            HStack(spacing: StoryArcSpace.sm) {
+            // A grid rather than a row: nine swatches sharing one row leaves each of them
+            // under the 44 pt touch floor, and wrapping is what buys the width back.
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 44), spacing: StoryArcSpace.sm)],
+                spacing: StoryArcSpace.sm
+            ) {
                 // Black first: it is the default, and "none" has to be reachable or a
                 // reader who tries a colour is stuck with one.
                 matteSwatch(nil, isActive: current == nil)
@@ -110,6 +115,10 @@ struct ReadingDefaults: View {
                         Circle().strokeBorder(theme.accent, lineWidth: 3).padding(-4)
                     }
                 }
+                // A plain button is hit only inside its label, and the drawn circle is
+                // 30 pt. The ring above paints outside the frame and adds no hit area.
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
@@ -117,9 +126,23 @@ struct ReadingDefaults: View {
         // bare "#E8EFE6" is a puzzle read out one character at a time. And localised,
         // which the bare literal was not.
         .accessibilityLabel(
-            hex.map { Text("reading.matte.swatch \($0)", bundle: .module) }
+            hex.map { Text(matteName(for: $0), bundle: .module) }
                 ?? Text("reading.matte.none", bundle: .module)
         )
+    }
+
+    /// The string key for a suggested background's name.
+    ///
+    /// The colour's name, not its hex. VoiceOver read "Colour #E8EFE6" one character at a
+    /// time, which is not a colour a reader can pick out of a row of nine. The names live
+    /// in `ReaderPalette` so Android calls the same colour the same thing.
+    private func matteName(for hex: String) -> LocalizedStringKey {
+        guard let key = ReaderPalette.suggestedBackgroundNames[hex.uppercased()] else {
+            // A colour added to the list without a name still announces something the
+            // reader can act on, rather than nothing.
+            return "reading.matte.swatch \(hex)"
+        }
+        return LocalizedStringKey("reading.matte.\(key)")
     }
 
     private func chooseMatte(_ hex: String?) {

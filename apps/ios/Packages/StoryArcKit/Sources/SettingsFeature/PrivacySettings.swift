@@ -46,6 +46,12 @@ struct PrivacySettings: View {
                     // through dialogues.
                     usage.clearCache()
                     cacheBytes = usage.cacheBytes()
+                    // The title changes under VoiceOver, which neither moves nor speaks,
+                    // so the reader who tapped Clear was told nothing at all. The row's
+                    // own string, so there is nothing new to translate.
+                    AccessibilityNotification.Announcement(
+                        String(localized: "privacy.cache \(formattedBytes(cacheBytes))", bundle: .module)
+                    ).post()
                 }
 
                 clearable(
@@ -74,6 +80,10 @@ struct PrivacySettings: View {
                 Task {
                     try? await ProgressStore().clear()
                     await measure()
+                    // Silent for the same reason the cache row was.
+                    AccessibilityNotification.Announcement(
+                        String(localized: "privacy.history \(formattedBytes(historyBytes))", bundle: .module)
+                    ).post()
                 }
             } label: {
                 Text("privacy.clear", bundle: .module)

@@ -24,6 +24,9 @@ extension ThemeSheet {
             Text("theme.pageTurn", bundle: .module)
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
+                // `textRole` sets font and tracking only, so without this the sheet's
+                // one long ScrollView offers VoiceOver no heading to jump to.
+                .accessibilityAddTraits(.isHeader)
 
             ForEach(choices.offered, id: \.self) { mode in
                 Button { model.choose(mode) } label: {

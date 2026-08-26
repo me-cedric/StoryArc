@@ -322,6 +322,36 @@
         }
       }
     },
+    "reader.page.slider": {
+      "comment": "The accessible name of the page slider in the comic reader.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seitenregler"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page slider"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control de páginas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Curseur de page"
+          }
+        }
+      }
+    },
     "reader.pageLabel %lld %lld": {
       "extractionState": "manual",
       "localizations": {

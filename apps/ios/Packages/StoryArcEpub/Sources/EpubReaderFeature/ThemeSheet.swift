@@ -80,6 +80,8 @@ struct ThemeSheet: View {
             Text("theme.presets", bundle: .module)
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
+                // The trait, not `textRole`, is what lets VoiceOver jump section to section.
+                .accessibilityAddTraits(.isHeader)
 
             LazyVGrid(
                 columns: Array(repeating: GridItem(spacing: StoryArcSpace.sm), count: 3),
@@ -172,6 +174,7 @@ struct ThemeSheet: View {
             Text("theme.axis.fontFamily", bundle: .module)
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
+                .accessibilityAddTraits(.isHeader)
 
             // A list of rows rather than a menu, and each name drawn in the face it
             // names. A menu would fit more compactly, but SwiftUI strips a custom
@@ -241,6 +244,7 @@ struct ThemeSheet: View {
             Text("theme.spacing", bundle: .module)
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
+                .accessibilityAddTraits(.isHeader)
 
             ForEach(ThemeAxis.allCases, id: \.self) { axis in
                 if let range = axis.sliderRange {
@@ -279,6 +283,7 @@ struct ThemeSheet: View {
             Text("theme.axis.textAlignment", bundle: .module)
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
+                .accessibilityAddTraits(.isHeader)
 
             Picker("", selection: alignmentBinding) {
                 ForEach(ReaderTextAlignment.allCases, id: \.self) { value in
@@ -297,6 +302,7 @@ struct ThemeSheet: View {
             Text("theme.brightness", bundle: .module)
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
+                .accessibilityAddTraits(.isHeader)
 
             Slider(
                 value: Binding(
@@ -366,6 +372,7 @@ struct ThemeSheet: View {
             Text("theme.publisherStyles.title", bundle: .module)
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
+                .accessibilityAddTraits(.isHeader)
 
             Text("theme.publisherStyles.reason", bundle: .module)
                 .textRole(.footnote)

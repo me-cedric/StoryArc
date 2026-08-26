@@ -129,3 +129,23 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDefault
+
+  # A UI test target exists for one reason: `performAccessibilityAudit` needs a running
+  # app, and no unit test can give it one. It is the iOS counterpart of
+  # `pnpm a11y:android`, which reads the Android accessibility tree off a device.
+  #
+  # Apple runs the audit, not us. That matters — it checks contrast, dynamic-type
+  # clipping, hit-region size, element description and trait clash against the same
+  # rules Xcode's own Accessibility Inspector uses, so the check cannot drift from the
+  # platform's definition of correct.
+  StoryArcUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: StoryArc
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.storyarc.StoryArcUITests
+        TEST_TARGET_NAME: StoryArc

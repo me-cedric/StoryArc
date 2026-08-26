@@ -118,7 +118,7 @@ internal fun CurledPages(
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@Canvas
         // The matte first, because the shader leaves the letterbox transparent rather than
         // smearing the page's edge pixel across it.
-        drawRect(color = Color.Black, size = size)
+        drawRect(color = matte, size = size)
         drawRect(
             brush = ShaderBrush(
                 PageCurl.shader(

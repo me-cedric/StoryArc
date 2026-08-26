@@ -45,7 +45,8 @@ struct ThumbnailStrip: View {
                 withAnimation(.easeInOut(duration: 0.2)) { scroller.scrollTo(new, anchor: .center) }
             }
         }
-        .frame(height: cellWidth * 1.5 + StoryArcSpace.lg)
+        // No fixed height: a horizontal ScrollView takes its content's height, and a
+        // pinned 112 pt clipped the page number away at a large text size.
         .storyArcGlass(in: Rectangle())
     }
 }

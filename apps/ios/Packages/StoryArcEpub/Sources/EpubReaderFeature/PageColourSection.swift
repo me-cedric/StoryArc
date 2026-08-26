@@ -30,6 +30,9 @@ struct PageColourSection: View {
             Text("theme.pageColour", bundle: .module)
                 .textRole(.headline)
                 .foregroundStyle(theme.palette.textPrimary)
+                // `textRole` sets font and tracking only, so without this the sheet's
+                // one long ScrollView offers VoiceOver no heading to jump to.
+                .accessibilityAddTraits(.isHeader)
 
             backgrounds
 
@@ -56,7 +59,10 @@ struct PageColourSection: View {
                     bundle: .module
                 )
                 .textRole(.footnote)
-                .foregroundStyle(StoryArcColor.Status.danger)
+                // Not the status red: #E94646 on this sheet's near-white material
+                // measures 3.87:1, which would put the one sentence that names the
+                // contrast floor below it.
+                .foregroundStyle(theme.palette.textPrimary)
             }
         }
     }
@@ -65,7 +71,7 @@ struct PageColourSection: View {
 
     private var backgrounds: some View {
         LazyVGrid(
-            columns: Array(repeating: GridItem(spacing: StoryArcSpace.sm), count: 8),
+            columns: [GridItem(.adaptive(minimum: 44), spacing: StoryArcSpace.sm)],
             spacing: StoryArcSpace.sm
         ) {
             ForEach(ReaderPalette.suggestedBackgrounds, id: \.self) { hex in
@@ -154,7 +160,7 @@ struct PageColourSection: View {
 
     private func foregrounds(_ palette: ReaderPalette) -> some View {
         LazyVGrid(
-            columns: Array(repeating: GridItem(spacing: StoryArcSpace.sm), count: 6),
+            columns: [GridItem(.adaptive(minimum: 44), spacing: StoryArcSpace.sm)],
             spacing: StoryArcSpace.sm
         ) {
             ForEach(ReaderPalette.suggestedForegrounds, id: \.self) { hex in
@@ -173,7 +179,19 @@ struct PageColourSection: View {
 
     /// Applies a pairing, or remembers the ratio that stopped it.
     private func adopt(_ candidate: ReaderPalette) {
-        refused = onAdopt(candidate) ? nil : candidate.contrast
+        guard onAdopt(candidate) else {
+            refused = candidate.contrast
+            // The reason renders at the foot of the section and the tapped swatch does
+            // not move, so without this a VoiceOver user hears nothing and the measured
+            // ratio never reaches the reader who was refused.
+            let ratio = Self.formatted(candidate.contrast)
+            let aa = Self.formatted(ReadingContrast.aa)
+            AccessibilityNotification.Announcement(
+                String(localized: "theme.pageColour.refused \(ratio) \(aa)", bundle: .module)
+            ).post()
+            return
+        }
+        refused = nil
     }
 
     /// The reader's name for the slot, or a default until they give it one.
@@ -212,6 +230,10 @@ private struct Swatch: View {
                             .padding(-4)
                     }
                 }
+                // The circle stays 32 pt; the target does not. `contentShape` is what
+                // widens the tap area — a bare frame leaves it the circle's own path.
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)

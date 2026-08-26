@@ -5,7 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -229,9 +229,13 @@ private fun SwatchRow(
 ) {
     val tokens = LocalStoryArcPalette.current
 
-    Row(
+    // `FlowRow`, because eight fixed swatches need 312dp and a 320dp phone leaves
+    // 280dp after the sheet's padding, so a plain `Row` puts the last colours past
+    // the screen edge with no way to reach them.
+    FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
     ) {
         colours.forEach { hex ->
             val isActive = selected?.equals(hex, ignoreCase = true) == true

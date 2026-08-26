@@ -1,14 +1,14 @@
 package app.storyarc.feature.reader
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -17,16 +17,17 @@ import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,28 +41,30 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -77,11 +80,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -91,18 +95,18 @@ import app.storyarc.core.designsystem.theme.LocalVolumeTurns
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PageEntry
 import app.storyarc.core.model.PageFit
+import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingDirection
-import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.ScrollAxis
-import app.storyarc.core.model.scrollAxis
-import app.storyarc.core.model.TransitionUnavailability
 import app.storyarc.core.model.TransitionChoices
+import app.storyarc.core.model.TransitionUnavailability
+import app.storyarc.core.model.scrollAxis
 import app.storyarc.core.persistence.ReaderPreferences
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The paged comic reader.
@@ -204,7 +208,9 @@ private fun androidx.compose.foundation.layout.BoxScope.CloseButton(onClose: () 
         onClick = onClose,
         modifier = Modifier.align(Alignment.TopStart).padding(StoryArcSpace.md),
     ) {
-        Surface(color = Color.White.copy(alpha = 0.2f), shape = CircleShape) {
+        // Scrim, not a 20% white pill: the chrome draws straight onto the page art, and
+        // over a white manga page a white icon on a white pill measured 1:1.
+        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
             Icon(
                 imageVector = Icons.Filled.Close,
                 contentDescription = stringResource(R.string.reader_close),
@@ -518,8 +524,12 @@ private fun Pager(
             }
 
             Column(
+                // A band, for the same reason the pills carry a scrim: the page number
+                // and the slider thumb are white and the page under them can be white.
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f))
                     .padding(horizontal = StoryArcSpace.md, vertical = StoryArcSpace.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -555,6 +565,12 @@ private fun Pager(
                 }
 
                 if (count > 1) {
+                    val sliderName = stringResource(R.string.reader_page_slider)
+                    val pageLabel = stringResource(
+                        R.string.reader_page,
+                        modelIndex(paging.current) + 1,
+                        count,
+                    )
                     // Bound to the *publication's* page number, not the pager's
                     // position. In right-to-left the two run opposite ways, and a
                     // slider whose left end is the last page would be a puzzle.
@@ -574,7 +590,12 @@ private fun Pager(
                             activeTrackColor = Color.White,
                             inactiveTrackColor = Color.White.copy(alpha = 0.3f),
                         ),
-                        modifier = Modifier.fillMaxWidth(),
+                        // Named, and reading the page rather than the range percent
+                        // Compose announces by default.
+                        modifier = Modifier.fillMaxWidth().semantics {
+                            contentDescription = sliderName
+                            stateDescription = pageLabel
+                        },
                     )
                 }
             }
@@ -727,7 +748,7 @@ private fun ThumbnailToggle(
     modifier: Modifier = Modifier,
 ) {
     IconButton(onClick = onToggle, modifier = modifier.padding(StoryArcSpace.md)) {
-        Surface(color = Color.White.copy(alpha = 0.2f), shape = CircleShape) {
+        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
             Icon(
                 imageVector = Icons.Filled.GridView,
                 contentDescription = stringResource(R.string.reader_thumbnails),
@@ -753,7 +774,7 @@ private fun FitMenu(
 
     Box(modifier) {
         IconButton(onClick = { open = true }, modifier = Modifier.padding(StoryArcSpace.md)) {
-            Surface(color = Color.White.copy(alpha = 0.2f), shape = CircleShape) {
+            Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
                 Icon(
                     imageVector = Icons.Filled.Fullscreen,
                     contentDescription = stringResource(R.string.reader_fit),
@@ -802,7 +823,7 @@ private fun TransitionMenu(
 
     Box(modifier) {
         IconButton(onClick = { open = true }, modifier = Modifier.padding(StoryArcSpace.md)) {
-            Surface(color = Color.White.copy(alpha = 0.2f), shape = CircleShape) {
+            Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.MenuBook,
                     contentDescription = stringResource(R.string.reader_transition),
@@ -942,7 +963,12 @@ private fun EndOfPublication(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md)) {
+        // Wrapping, not a Row: at a 2x font scale "Back to the last page" takes the
+        // whole width and left the Library button a few dp wide.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        ) {
             // White, not the theme's accent: this overlay is near-black whatever
             // the app's appearance, and the accent on it fails contrast.
             val labels = ButtonDefaults.textButtonColors(contentColor = Color.White)

@@ -23,6 +23,8 @@ public struct ReaderView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.displayScale) private var displayScale
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    /// Read here rather than in `ReaderChrome.swift`: an extension cannot hold state.
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
 
     @State var model: ReaderModel
     /// `comic-reader`: nothing is on screen while the user is reading. The chrome

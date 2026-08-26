@@ -43,12 +43,17 @@ struct PresetCard: View {
                         )
                 }
 
+                // The name wraps rather than truncates. A card is a third of the sheet
+                // wide, and at the largest text size a one-line caption clipped
+                // "Original" to "Or…" — leaving the preset with no visible name at
+                // all, since the specimen above it is hidden from assistive tech and
+                // shows no words either. A grid row sizes to its tallest cell, so the
+                // cards stay aligned.
                 Text(preset.titleKey, bundle: .module)
                     .textRole(.caption)
                     // Weight as well as colour: colour is never the only signal.
                     .fontWeight(isActive ? .semibold : .regular)
                     .foregroundStyle(isActive ? theme.accent : theme.palette.textSecondary)
-                    .lineLimit(1)
 
                 if isModified {
                     Text("theme.modified", bundle: .module)

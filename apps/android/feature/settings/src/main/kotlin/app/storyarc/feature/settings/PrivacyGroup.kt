@@ -23,7 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -203,10 +205,13 @@ private fun ClearableRow(
 
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
+            // A clear rewrites this size in place; without a live region TalkBack says nothing
+            // and the reader cannot tell that the clear worked.
             Text(
                 text = stringResource(titleRes, formatBytes(bytes)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = palette.textPrimary,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
             Text(
                 text = stringResource(noteRes),

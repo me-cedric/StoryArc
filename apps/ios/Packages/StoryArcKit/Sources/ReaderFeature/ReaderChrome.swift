@@ -58,7 +58,9 @@ extension ReaderView {
                     displayIndex = displayIndex(forModel: index)
                     withAnimation(.easeInOut(duration: 0.2)) { isBrowsingThumbnails = false }
                 }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                // The cross-fade alone says the strip arrived. `native-experience`
+                // forbids the translation of a full-width panel under Reduce Motion.
+                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             }
 
             VStack(spacing: StoryArcSpace.sm) {
@@ -66,14 +68,18 @@ extension ReaderView {
 
                 // A segmented control rather than a menu. Four options fit across a
                 // phone, and a control with no open state cannot be swallowed by
-                // the chrome auto-hiding under it.
-                Picker("", selection: fitBinding) {
-                    ForEach(PageFit.allCases, id: \.self) { candidate in
-                        Text(candidate.shortTitleKey, bundle: .module).tag(candidate)
-                    }
+                // the chrome auto-hiding under it. That holds at the default text
+                // size only: at an accessibility size iOS truncates four segments to
+                // a character each, so there the same picker becomes a menu, which
+                // also shows its label rather than hiding it.
+                if dynamicTypeSize.isAccessibilitySize {
+                    fitPicker
+                        .pickerStyle(.menu)
+                } else {
+                    fitPicker
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
 
                 if model.pages.count > 1 {
                     pageSliderRow
@@ -135,18 +141,40 @@ extension ReaderView {
             .buttonStyle(.glass)
             .tint(.white)
 
+            // Full white on glass, not 70% white on the page: the chrome paints no
+            // scrim, so a translucent caption over white manga stock is invisible.
             if let reason = choices.unavailable[choices.chosen] {
                 Text(reason.titleKey, bundle: .module)
                     .textRole(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, StoryArcSpace.sm)
+                    .padding(.vertical, StoryArcSpace.xs)
+                    .storyArcGlass(in: RoundedRectangle(cornerRadius: StoryArcRadius.sm))
             } else if choices.curlIsAbsent {
                 // Once, and in the reader's language rather than the platform's.
                 Text("reader.transition.noCurl", bundle: .module)
                     .textRole(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, StoryArcSpace.sm)
+                    .padding(.vertical, StoryArcSpace.xs)
+                    .storyArcGlass(in: RoundedRectangle(cornerRadius: StoryArcRadius.sm))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The page-fit picker, without a style.
+    ///
+    /// The label is a real one rather than `""`: each segment reads its own title to
+    /// VoiceOver, but nothing else states what the four titles control.
+    var fitPicker: some View {
+        Picker(selection: fitBinding) {
+            ForEach(PageFit.allCases, id: \.self) { candidate in
+                Text(candidate.shortTitleKey, bundle: .module).tag(candidate)
+            }
+        } label: {
+            Text("reader.fit", bundle: .module)
+        }
     }
 
     var fitBinding: Binding<PageFit> {
@@ -183,6 +211,10 @@ extension ReaderView {
             // the rest of what `comic-reader` asks for and are not here yet.
             Slider(value: pageSlider, in: 0...Double(max(1, model.pages.count - 1)), step: 1)
                 .tint(.white)
+                // The visible count is a sibling element, so the slider owns no name
+                // and no unit of its own. VoiceOver otherwise says "12, adjustable".
+                .accessibilityLabel(Text("reader.page.slider", bundle: .module))
+                .accessibilityValue(Text("reader.page \(model.currentIndex + 1) \(model.pages.count)", bundle: .module))
         }
         .padding(.horizontal, StoryArcSpace.gutter)
         .padding(.vertical, StoryArcSpace.sm)
