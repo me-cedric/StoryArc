@@ -64,6 +64,11 @@ for (const [group, tokens] of entriesOf(color)) {
 //
 // surfaceReader stays limited to textPrimary. It is the page background inside the
 // reader, and no supporting text is drawn there.
+//
+// The floor here is 4.5 and every role clears 4.9. The margin is deliberate: Apple's own
+// `performAccessibilityAudit` reports "Contrast nearly passed" for a ratio sitting on the
+// threshold, and a token solved to exactly 4.5 is a token that fails the platform's own
+// check while passing ours.
 const TEXT_ON_SURFACE = [
   ['textPrimary',   'surfaceCanvas',  4.5],
   ['textPrimary',   'surfaceRaised',  4.5],

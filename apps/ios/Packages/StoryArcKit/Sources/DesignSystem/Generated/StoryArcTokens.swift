@@ -38,7 +38,7 @@ public enum StoryArcColor {
         /// Metadata, subtitles.
         public static let textSecondary = Color(.sRGB, red: 0.6824, green: 0.6667, blue: 0.6471, opacity: 1)  // #AEAAA5
         /// Timestamps, disabled, placeholder.
-        public static let textTertiary = Color(.sRGB, red: 0.5216, green: 0.5059, blue: 0.4902, opacity: 1)  // #85817D
+        public static let textTertiary = Color(.sRGB, red: 0.5451, green: 0.5294, blue: 0.5137, opacity: 1)  // #8B8783
         /// Modal scrim at 60% alpha; reader chrome gradient.
         public static let scrim = Color(.sRGB, red: 0.0078, green: 0.0078, blue: 0.0039, opacity: 1)  // #020201
     }
@@ -62,7 +62,7 @@ public enum StoryArcColor {
         /// Metadata, subtitles.
         public static let textSecondary = Color(.sRGB, red: 0.3490, green: 0.3294, blue: 0.3098, opacity: 1)  // #59544F
         /// Timestamps, disabled, placeholder.
-        public static let textTertiary = Color(.sRGB, red: 0.4314, green: 0.4118, blue: 0.3922, opacity: 1)  // #6E6964
+        public static let textTertiary = Color(.sRGB, red: 0.4078, green: 0.3922, blue: 0.3725, opacity: 1)  // #68645F
         /// Modal scrim at 40% alpha.
         public static let scrim = Color(.sRGB, red: 0.1882, green: 0.1765, blue: 0.1686, opacity: 1)  // #302D2B
     }
@@ -86,7 +86,7 @@ public enum StoryArcColor {
         /// Metadata, subtitles.
         public static let textSecondary = Color(.sRGB, red: 0.6549, green: 0.6431, blue: 0.6314, opacity: 1)  // #A7A4A1
         /// Timestamps, disabled, placeholder.
-        public static let textTertiary = Color(.sRGB, red: 0.4784, green: 0.4667, blue: 0.4549, opacity: 1)  // #7A7774
+        public static let textTertiary = Color(.sRGB, red: 0.5020, green: 0.4902, blue: 0.4745, opacity: 1)  // #807D79
         /// Modal scrim at 70% alpha.
         public static let scrim = Color(.sRGB, red: 0.0000, green: 0.0000, blue: 0.0000, opacity: 1)  // #000000
     }
@@ -110,7 +110,7 @@ public enum StoryArcColor {
         /// Metadata, subtitles.
         public static let textSecondary = Color(.sRGB, red: 0.3765, green: 0.3216, blue: 0.2824, opacity: 1)  // #605248
         /// Timestamps, disabled, placeholder.
-        public static let textTertiary = Color(.sRGB, red: 0.4392, green: 0.3843, blue: 0.3412, opacity: 1)  // #706257
+        public static let textTertiary = Color(.sRGB, red: 0.4157, green: 0.3608, blue: 0.3216, opacity: 1)  // #6A5C52
         /// Modal scrim at 40% alpha.
         public static let scrim = Color(.sRGB, red: 0.2275, green: 0.1922, blue: 0.1647, opacity: 1)  // #3A312A
     }
@@ -134,7 +134,7 @@ public enum StoryArcColor {
         /// Metadata, subtitles.
         public static let textSecondary = Color(.sRGB, red: 0.6902, green: 0.6667, blue: 0.6196, opacity: 1)  // #B0AA9E
         /// Timestamps, disabled, placeholder.
-        public static let textTertiary = Color(.sRGB, red: 0.5412, green: 0.5176, blue: 0.4745, opacity: 1)  // #8A8479
+        public static let textTertiary = Color(.sRGB, red: 0.5647, green: 0.5412, blue: 0.4980, opacity: 1)  // #908A7F
         /// Modal scrim at 60% alpha.
         public static let scrim = Color(.sRGB, red: 0.0196, green: 0.0118, blue: 0.0078, opacity: 1)  // #050302
     }
