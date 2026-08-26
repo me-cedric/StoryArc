@@ -42,7 +42,7 @@ object StoryArcColor {
         /** Metadata, subtitles. */
         val textSecondary = Color(0xFFAEAAA5)
         /** Timestamps, disabled, placeholder. */
-        val textTertiary = Color(0xFF7D7A75)
+        val textTertiary = Color(0xFF85817D)
         /** Modal scrim at 60% alpha; reader chrome gradient. */
         val scrim = Color(0xFF020201)
     }
@@ -66,7 +66,7 @@ object StoryArcColor {
         /** Metadata, subtitles. */
         val textSecondary = Color(0xFF59544F)
         /** Timestamps, disabled, placeholder. */
-        val textTertiary = Color(0xFF847F7A)
+        val textTertiary = Color(0xFF6E6964)
         /** Modal scrim at 40% alpha. */
         val scrim = Color(0xFF302D2B)
     }
@@ -90,7 +90,7 @@ object StoryArcColor {
         /** Metadata, subtitles. */
         val textSecondary = Color(0xFFA7A4A1)
         /** Timestamps, disabled, placeholder. */
-        val textTertiary = Color(0xFF777471)
+        val textTertiary = Color(0xFF7A7774)
         /** Modal scrim at 70% alpha. */
         val scrim = Color(0xFF000000)
     }
@@ -114,7 +114,7 @@ object StoryArcColor {
         /** Metadata, subtitles. */
         val textSecondary = Color(0xFF605248)
         /** Timestamps, disabled, placeholder. */
-        val textTertiary = Color(0xFF86776D)
+        val textTertiary = Color(0xFF706257)
         /** Modal scrim at 40% alpha. */
         val scrim = Color(0xFF3A312A)
     }
@@ -138,7 +138,7 @@ object StoryArcColor {
         /** Metadata, subtitles. */
         val textSecondary = Color(0xFFB0AA9E)
         /** Timestamps, disabled, placeholder. */
-        val textTertiary = Color(0xFF7F7A6F)
+        val textTertiary = Color(0xFF8A8479)
         /** Modal scrim at 60% alpha. */
         val scrim = Color(0xFF050302)
     }

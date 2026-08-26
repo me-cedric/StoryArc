@@ -52,12 +52,29 @@ for (const [group, tokens] of entriesOf(color)) {
 // Every text role on every surface ramp, plus each ramp's accent. Adding a ramp
 // without adding its rows here would ship an untested palette, so the ramp list
 // is derived rather than repeated.
+// Every text role against every surface it can be drawn on, at 4.5 — the floor for
+// normal-size text.
+//
+// textTertiary was checked against surfaceCanvas alone, at 3.0. Both halves of that were
+// wrong. 3.0 is WCAG's threshold for *large* text, and every use of textTertiary in the
+// app is a footnote — the note under a settings row, the sentence explaining what Clear
+// removes. A reader needs those. And a role is drawn on all three chrome surfaces, so
+// checking one of them left the other two untested: light textTertiary measured 3.37:1 on
+// surfaceSunken while passing the gate on surfaceCanvas.
+//
+// surfaceReader stays limited to textPrimary. It is the page background inside the
+// reader, and no supporting text is drawn there.
 const TEXT_ON_SURFACE = [
   ['textPrimary',   'surfaceCanvas',  4.5],
   ['textPrimary',   'surfaceRaised',  4.5],
+  ['textPrimary',   'surfaceSunken',  4.5],
   ['textPrimary',   'surfaceReader',  4.5],
   ['textSecondary', 'surfaceCanvas',  4.5],
-  ['textTertiary',  'surfaceCanvas',  3.0],
+  ['textSecondary', 'surfaceRaised',  4.5],
+  ['textSecondary', 'surfaceSunken',  4.5],
+  ['textTertiary',  'surfaceCanvas',  4.5],
+  ['textTertiary',  'surfaceRaised',  4.5],
+  ['textTertiary',  'surfaceSunken',  4.5],
 ]
 
 const SURFACE_RAMPS = ['dark', 'light', 'oledDark', 'naturalLight', 'naturalDark']
