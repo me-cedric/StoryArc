@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0"><node class="android.widget.FrameLayout" bounds="[0,0][1080,2400]" clickable="false" scrollable="false" content-desc="" text="">
+  <node class="android.widget.ImageView" bounds="[0,200][1080,800]" clickable="true" content-desc="page10.png" text="" />
+  <node class="android.widget.Button" bounds="[100,900][205,1026]" clickable="true" content-desc="" text="" />
+  <node class="android.view.View" bounds="[100,1100][205,1200]" clickable="true" content-desc="" text="">
+    <node class="android.widget.TextView" bounds="[100,1100][205,1200]" clickable="false" content-desc="" text="Named by its child" />
+  </node>
+  <node class="android.widget.SeekBar" bounds="[100,1300][1000,1320]" clickable="true" content-desc="0.45" text="" />
+  <node class="android.view.View" bounds="[0,1400][1080,1500]" scrollable="true" clickable="false" content-desc="" text="">
+    <node class="android.view.View" bounds="[0,1380][1080,1460]" clickable="true" content-desc="" text="" />
+  </node>
+</node></hierarchy>
