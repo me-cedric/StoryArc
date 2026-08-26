@@ -60,6 +60,14 @@
     <string name="settings_cancel">Cancelar</string>
     <string name="reading_matte">Color detrás de una página de cómic</string>
     <string name="reading_matte_note">Solo el área alrededor de la página. El arte nunca se tiñe.</string>
+    <string name="reading_matte_white">Blanco</string>
+    <string name="reading_matte_cream">Crema</string>
+    <string name="reading_matte_sepia">Sepia</string>
+    <string name="reading_matte_sage">Verde pálido</string>
+    <string name="reading_matte_sky">Azul pálido</string>
+    <string name="reading_matte_charcoal">Gris oscuro</string>
+    <string name="reading_matte_navy">Azul noche</string>
+    <string name="reading_matte_trueblack">Negro puro</string>
     <string name="reading_matte_none">Negro</string>
     <string name="reading_matte_swatch">Color %1$s</string>
     <string name="privacy_cache">Caché · %1$s</string>

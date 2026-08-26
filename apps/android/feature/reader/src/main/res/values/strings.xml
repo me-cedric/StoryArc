@@ -2,6 +2,7 @@
 <resources>
     <string name="reader_page">%1$d of %2$d</string>
     <string name="reader_close">Close</string>
+    <string name="reader_page_label">Page %1$d of %2$d</string>
     <string name="reader_page_unavailable">This page could not be read</string>
     <string name="reader_right_to_left">Right to left</string>
     <string name="reader_end_finished">Finished</string>

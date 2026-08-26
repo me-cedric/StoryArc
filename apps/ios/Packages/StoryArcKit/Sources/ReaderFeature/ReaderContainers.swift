@@ -95,7 +95,8 @@ extension ReaderView {
         return PageView(
             image: model.image(at: index),
             isUnavailable: model.isUnavailable(at: index),
-            label: model.pages[index].path,
+            pageID: model.pages[index].path,
+            label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
             fit: fit,
             onTap: { location, size in handleTap(at: location, in: size) }
         )
@@ -110,7 +111,7 @@ extension ReaderView {
         return StitchedPage(
             image: model.image(at: index),
             isUnavailable: model.isUnavailable(at: index),
-            label: model.pages[index].path,
+            label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
             axis: axis,
             onTap: { location, size in handleTap(at: location, in: size) }
         )

@@ -1,6 +1,8 @@
 package app.storyarc.feature.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Download
@@ -14,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import app.storyarc.core.model.AppSettings
 
 /**
@@ -148,6 +152,15 @@ private val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
 )
 
 /**
+ * The smallest a row may be, whatever its text asks for.
+ *
+ * A one-line row measured 34dp on the emulator while a two-line row measured 48dp, so
+ * the target a reader had to hit depended on how long the label happened to be. Material
+ * and WCAG both put the floor at 48dp.
+ */
+private val minimumRowHeight = 48.dp
+
+/**
  * A whole row that responds to a tap, announced as a button.
  *
  * `Modifier.clickable` alone leaves a screen reader to guess what the row is; the role
@@ -155,4 +168,16 @@ private val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
  */
 @Composable
 internal fun Modifier.clickableRow(onClick: () -> Unit): Modifier =
-    clickable(role = Role.Button, onClick = onClick)
+    heightIn(min = minimumRowHeight).clickable(role = Role.Button, onClick = onClick)
+
+/**
+ * A whole row that picks one of a set, announced with its state.
+ *
+ * `mergeDescendants` is what makes it announce as one control rather than as a radio
+ * button followed by two unrelated pieces of text.
+ */
+@Composable
+internal fun Modifier.selectableRow(selected: Boolean, onClick: () -> Unit): Modifier =
+    heightIn(min = minimumRowHeight)
+        .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+        .semantics(mergeDescendants = true) {}

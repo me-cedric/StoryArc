@@ -322,6 +322,35 @@
         }
       }
     },
+    "reader.pageLabel %lld %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seite %1$lld von %2$lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page %1$lld of %2$lld"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Página %1$lld de %2$lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page %1$lld sur %2$lld"
+          }
+        }
+      }
+    },
     "reader.pageUnavailable": {
       "comment": "Shown in place of a page whose bytes are missing or will not decode. publication-formats requires saying so rather than showing a blank.",
       "extractionState": "manual",

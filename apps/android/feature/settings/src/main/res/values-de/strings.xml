@@ -60,6 +60,14 @@
     <string name="settings_cancel">Abbrechen</string>
     <string name="reading_matte">Farbe hinter einer Comicseite</string>
     <string name="reading_matte_note">Nur der Bereich um die Seite. Artwork wird nie getönt.</string>
+    <string name="reading_matte_white">Weiß</string>
+    <string name="reading_matte_cream">Creme</string>
+    <string name="reading_matte_sepia">Sepia</string>
+    <string name="reading_matte_sage">Blassgrün</string>
+    <string name="reading_matte_sky">Blassblau</string>
+    <string name="reading_matte_charcoal">Dunkelgrau</string>
+    <string name="reading_matte_navy">Nachtblau</string>
+    <string name="reading_matte_trueblack">Reinschwarz</string>
     <string name="reading_matte_none">Schwarz</string>
     <string name="reading_matte_swatch">Farbe %1$s</string>
     <string name="privacy_cache">Cache · %1$s</string>

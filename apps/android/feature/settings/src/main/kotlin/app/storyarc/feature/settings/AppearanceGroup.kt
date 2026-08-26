@@ -60,12 +60,9 @@ internal fun AppearanceGroup(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .selectable(
-                        selected = settings.appearance == mode,
-                        role = Role.RadioButton,
-                        onClick = { onChange(settings.copy(appearance = mode)) },
-                    )
-                    .semantics(mergeDescendants = true) {}
+                    .selectableRow(selected = settings.appearance == mode) {
+                        onChange(settings.copy(appearance = mode))
+                    }
                     .padding(vertical = StoryArcSpace.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

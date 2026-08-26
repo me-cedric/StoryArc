@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +29,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.SUGGESTED_BACKGROUNDS
+import app.storyarc.core.model.SUGGESTED_BACKGROUND_NAMES
 import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ShelfSettings
 import app.storyarc.core.model.ThemePreset
@@ -113,11 +115,15 @@ private fun ComicMatte(memory: ShelfMemory, store: ReaderPreferences) {
             color = palette.textTertiary,
         )
 
-        Row(
+        // Wrapping, not a fixed row. Nine 48dp targets plus their gaps need 496dp and
+        // the narrowest supported screen is 320dp, so a plain Row clipped the last two
+        // swatches off the edge — where a reader could see them and not reach them.
+        FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = StoryArcSpace.xs),
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
         ) {
             // Black first and unlabelled as a swatch of its own: it is the default, and
             // "none" has to be reachable or a reader who tries a colour is stuck with one.
@@ -142,21 +148,17 @@ private fun MatteSwatch(
     memory: ShelfMemory,
 ) {
     val palette = LocalStoryArcPalette.current
-    // The hex inside a labelled template, the reader's own swatch convention — a bare
-    // "#E8EFE6" is a puzzle read out one character at a time.
-    val description = hex?.let { stringResource(R.string.reading_matte_swatch, it) }
+    // The colour's name, not its hex. TalkBack read "Colour #E8EFE6" one character at a
+    // time, which is not a colour a reader can pick out of a row of eight.
+    val description = hex?.let { stringResource(matteNameRes(it)) }
         ?: stringResource(R.string.reading_matte_none)
 
     Box(
+        // 48dp for the finger, 32dp for the eye. The swatch was 32dp both ways, and a
+        // 32dp target is below every platform minimum — including the one Compose
+        // enforces on its own controls.
         modifier = Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(matteSwatchColour(hex))
-            .border(
-                width = if (isActive) 3.dp else 1.dp,
-                color = if (isActive) palette.accent else palette.borderSubtle,
-                shape = CircleShape,
-            )
+            .size(48.dp)
             .selectable(
                 selected = isActive,
                 role = Role.RadioButton,
@@ -180,7 +182,36 @@ private fun MatteSwatch(
                 },
             )
             .semantics { contentDescription = description },
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(matteSwatchColour(hex))
+                .border(
+                    width = if (isActive) 3.dp else 1.dp,
+                    color = if (isActive) palette.accent else palette.borderSubtle,
+                    shape = CircleShape,
+                ),
+        )
+    }
+}
+
+/** The string for a suggested background, or its hex if the list ever gains one. */
+@Composable
+private fun matteNameRes(hex: String): Int = when (SUGGESTED_BACKGROUND_NAMES[hex.uppercase()]) {
+    "white" -> R.string.reading_matte_white
+    "cream" -> R.string.reading_matte_cream
+    "sepia" -> R.string.reading_matte_sepia
+    "sage" -> R.string.reading_matte_sage
+    "sky" -> R.string.reading_matte_sky
+    "charcoal" -> R.string.reading_matte_charcoal
+    "navy" -> R.string.reading_matte_navy
+    "trueBlack" -> R.string.reading_matte_trueblack
+    // A colour added to the list without a name still announces something a reader can
+    // act on, rather than nothing.
+    else -> R.string.reading_matte_swatch
 }
 
 /** Black stands for "no colour", which is what a comic is read against. */
@@ -215,25 +246,20 @@ private fun ScopeDefaults(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .selectable(
-                        selected = current == preset,
-                        role = Role.RadioButton,
-                        onClick = {
-                            // The whole settings value, not just the preset: a preset
-                            // carries its own typography, and a default that kept the
-                            // previous one would not be the preset the reader chose.
-                            store.save(
-                                store.themes().settingDefault(
-                                    ShelfSettings(
-                                        theme = app.storyarc.core.model.ReadingTheme(preset),
-                                        values = preset.values,
-                                    ),
-                                    scope,
+                    .selectableRow(selected = current == preset) {
+                        // The whole settings value, not just the preset: a preset carries
+                        // its own typography, and a default that kept the previous one
+                        // would not be the preset the reader chose.
+                        store.save(
+                            store.themes().settingDefault(
+                                ShelfSettings(
+                                    theme = app.storyarc.core.model.ReadingTheme(preset),
+                                    values = preset.values,
                                 ),
-                            )
-                        },
-                    )
-                    .semantics(mergeDescendants = true) {}
+                                scope,
+                            ),
+                        )
+                    }
                     .padding(vertical = StoryArcSpace.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

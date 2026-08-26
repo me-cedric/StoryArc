@@ -378,7 +378,10 @@ private fun Pager(
         when {
             bitmap != null -> ZoomablePage(
                 bitmap = bitmap.asImageBitmap(),
-                contentDescription = pages.getOrNull(index)?.path,
+                // The page number, not the archive entry's path. TalkBack read
+                // "page10.png" aloud, which names a file inside a CBZ rather than a
+                // page — and the reader never chose that name.
+                contentDescription = stringResource(R.string.reader_page_label, index + 1, pages.size),
                 fit = fit,
                 onTap = ::handleTap,
                 // In a continuous scroll a page takes the height its own proportions

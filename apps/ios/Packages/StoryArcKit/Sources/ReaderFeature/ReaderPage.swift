@@ -12,7 +12,12 @@ public import StoryArcCore
 struct PageView: View {
     let image: CGImage?
     let isUnavailable: Bool
-    let label: String
+    /// The archive entry, used to tell one page from the next so zoom resets on a turn.
+    let pageID: String
+    /// What VoiceOver says. Separate from `pageID` because the two were the same value
+    /// and only one of them should have been a path: VoiceOver read "page10.png" aloud,
+    /// which names a file inside a CBZ rather than a page.
+    let label: Text
     let fit: PageFit
     let onTap: (CGPoint, CGSize) -> Void
 
@@ -21,7 +26,7 @@ struct PageView: View {
             // Fit, not fill: cropping a comic page loses artwork, and
             // `comic-reader` treats the whole page as the unit. Zoom starts from
             // that fit rather than replacing it.
-            ZoomablePage(image: image, pageID: label, fit: fit, onTap: onTap)
+            ZoomablePage(image: image, pageID: pageID, fit: fit, onTap: onTap)
                 .accessibilityLabel(label)
         } else {
             // A page that is not drawn still has to accept a tap: a reader who
@@ -161,7 +166,8 @@ struct EndOfPublication: View {
 struct StitchedPage: View {
     let image: CGImage?
     let isUnavailable: Bool
-    let label: String
+    /// What VoiceOver says. See ``PageView/label`` for why this is not the entry path.
+    let label: Text
     let axis: ScrollAxis
     let onTap: (CGPoint, CGSize) -> Void
 

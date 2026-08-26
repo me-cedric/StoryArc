@@ -138,6 +138,29 @@ val SUGGESTED_BACKGROUNDS = listOf(
 )
 
 /**
+ * What each suggested background is called, keyed by its hex.
+ *
+ * Promoted from a code comment, because a comment is not something a screen reader can
+ * say. TalkBack and VoiceOver both read the swatch aloud, and both read
+ * "Colour #E8EFE6" one character at a time — which is not a colour a reader can pick
+ * from a row of eight.
+ *
+ * A key rather than a name: core carries no text a reader sees, so each UI turns the key
+ * into its own localised string. Here rather than in either UI so both platforms name the
+ * same colour the same thing.
+ */
+val SUGGESTED_BACKGROUND_NAMES = mapOf(
+    "#FFFFFF" to "white",
+    "#FBF0DA" to "cream",
+    "#F2E8DC" to "sepia",
+    "#E8EFE6" to "sage",
+    "#E6ECF5" to "sky",
+    "#2B2B2B" to "charcoal",
+    "#1B2430" to "navy",
+    "#000000" to "trueBlack",
+)
+
+/**
  * Text colours worth offering when a reader overrides the derived one.
  *
  * Deliberately not only black and white. A warm dark on cream is a real preference,

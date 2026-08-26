@@ -60,6 +60,14 @@
     <string name="settings_cancel">Annuler</string>
     <string name="reading_matte">Couleur derrière une page de BD</string>
     <string name="reading_matte_note">Uniquement la zone autour de la page. Les illustrations ne sont jamais teintées.</string>
+    <string name="reading_matte_white">Blanc</string>
+    <string name="reading_matte_cream">Crème</string>
+    <string name="reading_matte_sepia">Sépia</string>
+    <string name="reading_matte_sage">Vert pâle</string>
+    <string name="reading_matte_sky">Bleu pâle</string>
+    <string name="reading_matte_charcoal">Gris foncé</string>
+    <string name="reading_matte_navy">Bleu nuit</string>
+    <string name="reading_matte_trueblack">Noir absolu</string>
     <string name="reading_matte_none">Noir</string>
     <string name="reading_matte_swatch">Couleur %1$s</string>
     <string name="privacy_cache">Cache · %1$s</string>

@@ -60,6 +60,14 @@
     <string name="settings_cancel">Cancel</string>
     <string name="reading_matte">Colour behind a comic page</string>
     <string name="reading_matte_note">The area around the page only. Artwork is never tinted.</string>
+    <string name="reading_matte_white">White</string>
+    <string name="reading_matte_cream">Cream</string>
+    <string name="reading_matte_sepia">Sepia</string>
+    <string name="reading_matte_sage">Pale green</string>
+    <string name="reading_matte_sky">Pale blue</string>
+    <string name="reading_matte_charcoal">Dark grey</string>
+    <string name="reading_matte_navy">Deep navy</string>
+    <string name="reading_matte_trueblack">True black</string>
     <string name="reading_matte_none">Black</string>
     <!-- What a screen reader calls one swatch. Same convention as the reader's own
          colour row: the hex inside a labelled template, never a bare code. -->
