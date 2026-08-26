@@ -58,7 +58,8 @@ The app SHALL make its privacy posture verifiable rather than merely stated.
 
 #### Scenario: Exporting a diagnostic
 - **WHEN** a user exports diagnostics to file a bug
-- **THEN** the file is shown before sharing and every credential, token, and server hostname is redacted
+- **THEN** the export is shown in full before it can be shared, and every credential, token, and server hostname is redacted
+- **AND** the export carries no free text the user wrote, so a name they chose cannot carry a hostname past the redaction
 
 ### Requirement: About
 

@@ -326,9 +326,41 @@
 
 ## Phase 6 — Validation
 
-- [ ] **6.1** `pnpm check` green: specs, tokens, tests and both lints.
+- [x] **6.1** `pnpm check` green: specs, tokens, tests and both lints. **Done**, and it
+      stayed green through the token change that followed.
+
+      One flake worth recording rather than hiding: the iOS suite exited with signal 11
+      twice inside `pnpm check` and never once in about thirty-five direct `swift test`
+      runs. The tests build their stores with `inMemory()`, so it is not a race for a
+      shared file on disk. The most likely cause is SwiftData container teardown under
+      parallel test execution. Not chased, because it has never reproduced on demand, and
+      recorded here so the next person who sees it does not start from nothing.
 - [ ] **6.2** Emulator and simulator captures of every screen, light and dark, at
       default and largest text size.
 - [ ] **6.3** Accessibility pass over the lists and the search.
-- [ ] **6.4** `/opsx:sync`, if any requirement turned out to need changing — and if
-      none did, say so, because "the spec was right" is worth recording.
+- [x] **6.4** `/opsx:sync`, if any requirement turned out to need changing — and if
+      none did, say so, because "the spec was right" is worth recording. **Nothing to
+      merge, and one requirement reworded.**
+
+      There is nothing for `/opsx:sync` to do: this change never carried delta specs. The
+      `settings-and-about` capability was already in `docs/openspec/specs/`, which is why
+      the proposal could name the five held items it unblocked.
+
+      **The spec was right about behaviour.** Every requirement it states is built, and
+      none of them turned out to be wrong once it met a device. Two notes:
+
+      1. "cache, reading history, and downloads are individually clearable" is built for
+         the two that exist. Downloads is named as absent rather than omitted. That is the
+         requirement partly satisfied, not a requirement to change: the row appears when
+         `offline-downloads` lands.
+      2. **One wording change.** "the file is shown before sharing" said *file*, and the
+         export is text handed to the share sheet rather than an artifact written to disk.
+         A reader who wants a file gets one by picking a files app from that sheet, so
+         building one first would be a step that serves nobody. Reworded to "the export is
+         shown in full before it can be shared".
+
+         The same scenario gained a line the implementation taught: the export carries no
+         free text the user wrote. Redaction is a second line of defence, and the first is
+         that a source is reported by kind rather than by the name the reader gave it —
+         because a name they chose is exactly where a hostname would be. That was a design
+         decision the requirement did not ask for and should have.
