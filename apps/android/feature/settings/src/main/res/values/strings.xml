@@ -61,11 +61,18 @@
     <string name="reading_matte">Colour behind a comic page</string>
     <string name="reading_matte_note">The area around the page only. Artwork is never tinted.</string>
     <string name="reading_matte_none">Black</string>
+    <!-- What a screen reader calls one swatch. Same convention as the reader's own
+         colour row: the hex inside a labelled template, never a bare code. -->
+    <string name="reading_matte_swatch">Colour %1$s</string>
     <string name="privacy_cache">Cache · %1$s</string>
     <string name="privacy_cache_note">Decoded pages and web-view data. Rebuilt as you read.</string>
     <string name="privacy_history">Reading history · %1$s</string>
     <string name="privacy_history_note">Where you stopped in every publication.</string>
     <string name="privacy_clear">Clear</string>
+    <!-- The accessible name of the cache button. Two buttons both reading "Clear"
+         cannot be told apart by ear; the visible label stays short because the row's
+         title is beside it, which is exactly what a screen reader does not get. -->
+    <string name="privacy_clear_cache">Clear cache</string>
     <string name="privacy_clear_history">Clear reading history</string>
     <string name="privacy_clear_history_body">Every publication goes back to its first page. Your files, sources and settings are not affected.</string>
     <string name="privacy_downloads_absent">Nothing downloads yet, so there is nothing downloaded to clear.</string>

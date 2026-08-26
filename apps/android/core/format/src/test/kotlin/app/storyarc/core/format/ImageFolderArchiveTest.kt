@@ -4,10 +4,12 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.nio.file.FileSystemException
 import java.nio.file.Files
 
 /**
@@ -129,7 +131,14 @@ class ImageFolderArchiveTest {
         val secret = temp.newFile("secret.png")
         secret.writeBytes(png)
         val root = folder(mapOf("page1.png" to png))
-        Files.createSymbolicLink(File(root, "page2.png").toPath(), secret.toPath())
+        try {
+            Files.createSymbolicLink(File(root, "page2.png").toPath(), secret.toPath())
+        } catch (denied: FileSystemException) {
+            // Windows grants symlink creation only to Developer Mode or an elevated
+            // process. A test that cannot create its own fixture proves nothing
+            // either way, so it skips rather than fails on such a machine.
+            Assume.assumeNoException(denied)
+        }
 
         val archive = ImageFolderArchive.open(root)
         // The link would otherwise read a file outside the publication. A folder

@@ -113,7 +113,13 @@ struct ReadingDefaults: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
-        .accessibilityLabel(hex ?? "Black")
+        // The hex inside a labelled template, the reader's own swatch convention — a
+        // bare "#E8EFE6" is a puzzle read out one character at a time. And localised,
+        // which the bare literal was not.
+        .accessibilityLabel(
+            hex.map { Text("reading.matte.swatch \($0)", bundle: .module) }
+                ?? Text("reading.matte.none", bundle: .module)
+        )
     }
 
     private func chooseMatte(_ hex: String?) {

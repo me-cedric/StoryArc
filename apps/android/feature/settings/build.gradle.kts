@@ -80,4 +80,15 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    // Compose's ui-test pulls Espresso 3.5.0 transitively, which reflects on an
+    // InputManager method API 36 removed — every test dies on a modern emulator
+    // before it asks anything. The catalogue's version knows the new API.
+    androidTestImplementation(libs.androidx.test.espresso.core)
+    // The activity createComposeRule launches. Without it the test APK has no
+    // manifest entry to resolve, and every test fails before composing anything.
+    androidTestImplementation(libs.androidx.compose.ui.test.manifest)
 }

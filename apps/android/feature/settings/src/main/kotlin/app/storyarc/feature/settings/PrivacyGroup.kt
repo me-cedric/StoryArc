@@ -23,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -100,6 +102,7 @@ internal fun PrivacyGroup(modifier: Modifier = Modifier) {
         ClearableRow(
             titleRes = R.string.privacy_cache,
             noteRes = R.string.privacy_cache_note,
+            clearLabelRes = R.string.privacy_clear_cache,
             bytes = cacheBytes,
             // No confirmation: a cache is by definition rebuildable, and asking twice for
             // something with no consequence teaches a reader to click through dialogues.
@@ -112,6 +115,7 @@ internal fun PrivacyGroup(modifier: Modifier = Modifier) {
         ClearableRow(
             titleRes = R.string.privacy_history,
             noteRes = R.string.privacy_history_note,
+            clearLabelRes = R.string.privacy_clear_history,
             bytes = historyBytes,
             onClear = { confirmingHistory = true },
         )
@@ -186,8 +190,16 @@ private fun DiagnosticRow() {
 }
 
 @Composable
-private fun ClearableRow(titleRes: Int, noteRes: Int, bytes: Long, onClear: () -> Unit) {
+private fun ClearableRow(
+    titleRes: Int,
+    noteRes: Int,
+    /** What a screen reader calls the button. Two visible "Clear"s cannot be told apart by ear. */
+    clearLabelRes: Int,
+    bytes: Long,
+    onClear: () -> Unit,
+) {
     val palette = LocalStoryArcPalette.current
+    val clearLabel = stringResource(clearLabelRes)
 
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
@@ -202,7 +214,11 @@ private fun ClearableRow(titleRes: Int, noteRes: Int, bytes: Long, onClear: () -
                 color = palette.textTertiary,
             )
         }
-        OutlinedButton(onClick = onClear, enabled = bytes > 0) {
+        OutlinedButton(
+            onClick = onClear,
+            enabled = bytes > 0,
+            modifier = Modifier.semantics { contentDescription = clearLabel },
+        ) {
             Text(stringResource(R.string.privacy_clear))
         }
     }

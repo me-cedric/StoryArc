@@ -38,6 +38,7 @@ struct PrivacySettings: View {
                 clearable(
                     title: "privacy.cache \(formattedBytes(cacheBytes))",
                     note: "privacy.cache.note",
+                    clearLabel: "privacy.clear.cache",
                     isEmpty: cacheBytes <= 0
                 ) {
                     // No confirmation: a cache is by definition rebuildable, and asking
@@ -50,6 +51,7 @@ struct PrivacySettings: View {
                 clearable(
                     title: "privacy.history \(formattedBytes(historyBytes))",
                     note: "privacy.history.note",
+                    clearLabel: "privacy.clear.history",
                     isEmpty: historyBytes <= 0
                 ) { isConfirmingHistory = true }
             }
@@ -143,6 +145,10 @@ struct PrivacySettings: View {
     private func clearable(
         title: LocalizedStringKey,
         note: LocalizedStringKey,
+        /// What VoiceOver calls the button. Two visible "Clear"s cannot be told apart
+        /// by ear; the visible label stays short because the row's title is beside it,
+        /// which is exactly what a screen reader does not get.
+        clearLabel: LocalizedStringKey,
         isEmpty: Bool,
         clear: @escaping () -> Void
     ) -> some View {
@@ -157,6 +163,7 @@ struct PrivacySettings: View {
             Button(action: clear) { Text("privacy.clear", bundle: .module) }
                 .buttonStyle(.bordered)
                 .disabled(isEmpty)
+                .accessibilityLabel(Text(clearLabel, bundle: .module))
         }
     }
 }

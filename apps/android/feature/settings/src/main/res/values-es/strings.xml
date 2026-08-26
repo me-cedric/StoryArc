@@ -61,11 +61,13 @@
     <string name="reading_matte">Color detrás de una página de cómic</string>
     <string name="reading_matte_note">Solo el área alrededor de la página. El arte nunca se tiñe.</string>
     <string name="reading_matte_none">Negro</string>
+    <string name="reading_matte_swatch">Color %1$s</string>
     <string name="privacy_cache">Caché · %1$s</string>
     <string name="privacy_cache_note">Páginas decodificadas y datos del web view. Se reconstruye al leer.</string>
     <string name="privacy_history">Historial de lectura · %1$s</string>
     <string name="privacy_history_note">El punto donde se detuvo en cada publicación.</string>
     <string name="privacy_clear">Borrar</string>
+    <string name="privacy_clear_cache">Borrar la caché</string>
     <string name="privacy_clear_history">Borrar el historial de lectura</string>
     <string name="privacy_clear_history_body">Cada publicación vuelve a su primera página. Sus archivos, fuentes y ajustes no se ven afectados.</string>
     <string name="privacy_downloads_absent">Todavía no se descarga nada, así que no hay descargas que borrar.</string>

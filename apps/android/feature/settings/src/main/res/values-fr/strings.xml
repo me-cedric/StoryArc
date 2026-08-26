@@ -61,11 +61,13 @@
     <string name="reading_matte">Couleur derrière une page de BD</string>
     <string name="reading_matte_note">Uniquement la zone autour de la page. Les illustrations ne sont jamais teintées.</string>
     <string name="reading_matte_none">Noir</string>
+    <string name="reading_matte_swatch">Couleur %1$s</string>
     <string name="privacy_cache">Cache · %1$s</string>
     <string name="privacy_cache_note">Pages décodées et données de la vue web. Reconstruit à la lecture.</string>
     <string name="privacy_history">Historique de lecture · %1$s</string>
     <string name="privacy_history_note">L’endroit où vous vous êtes arrêté dans chaque publication.</string>
     <string name="privacy_clear">Effacer</string>
+    <string name="privacy_clear_cache">Effacer le cache</string>
     <string name="privacy_clear_history">Effacer l’historique de lecture</string>
     <string name="privacy_clear_history_body">Chaque publication revient à sa première page. Vos fichiers, sources et réglages ne sont pas touchés.</string>
     <string name="privacy_downloads_absent">Rien ne se télécharge encore, il n’y a donc rien de téléchargé à effacer.</string>

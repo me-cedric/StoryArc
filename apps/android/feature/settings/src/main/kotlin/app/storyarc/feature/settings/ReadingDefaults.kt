@@ -142,7 +142,10 @@ private fun MatteSwatch(
     memory: ShelfMemory,
 ) {
     val palette = LocalStoryArcPalette.current
-    val description = hex ?: stringResource(R.string.reading_matte_none)
+    // The hex inside a labelled template, the reader's own swatch convention — a bare
+    // "#E8EFE6" is a puzzle read out one character at a time.
+    val description = hex?.let { stringResource(R.string.reading_matte_swatch, it) }
+        ?: stringResource(R.string.reading_matte_none)
 
     Box(
         modifier = Modifier
@@ -163,7 +166,9 @@ private fun MatteSwatch(
                         if (hex == null) {
                             current.discardingCustomColours()
                         } else {
-                            current.adopting(ReaderPalette.derived(description, hex))
+                            // Named by its hex, not by the localised announcement: what
+                            // is stored must not depend on the language it was set in.
+                            current.adopting(ReaderPalette.derived(hex, hex))
                         }
                     }
                     store.save(

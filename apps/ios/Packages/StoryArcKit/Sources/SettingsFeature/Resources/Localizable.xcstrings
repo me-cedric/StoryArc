@@ -755,6 +755,35 @@
         }
       }
     },
+    "privacy.clear.cache": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cache löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear cache"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar la caché"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer le cache"
+          }
+        }
+      }
+    },
     "privacy.clear.history": {
       "extractionState": "manual",
       "localizations": {
@@ -1277,6 +1306,35 @@
         }
       }
     },
+    "reading.matte.none": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schwarz"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Black"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Negro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noir"
+          }
+        }
+      }
+    },
     "reading.matte.note": {
       "extractionState": "manual",
       "localizations": {
@@ -1302,6 +1360,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uniquement la zone autour de la page. Les illustrations ne sont jamais teintées."
+          }
+        }
+      }
+    },
+    "reading.matte.swatch %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Farbe %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colour %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couleur %@"
           }
         }
       }

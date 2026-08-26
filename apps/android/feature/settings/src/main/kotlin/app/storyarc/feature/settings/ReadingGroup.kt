@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -11,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
@@ -34,7 +36,21 @@ internal fun ReadingGroup(
     val palette = LocalStoryArcPalette.current
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        // The row is the toggleable, not the switch inside it — the same reason as the
+        // appearance link: a switch whose label is a sibling is a nameless on/off to a
+        // screen reader.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = settings.turnPagesWithVolumeButtons,
+                    role = Role.Switch,
+                    onValueChange = {
+                        onChange(settings.copy(turnPagesWithVolumeButtons = it))
+                    },
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.reading_volume_buttons),
@@ -52,7 +68,7 @@ internal fun ReadingGroup(
             }
             Switch(
                 checked = settings.turnPagesWithVolumeButtons,
-                onCheckedChange = { onChange(settings.copy(turnPagesWithVolumeButtons = it)) },
+                onCheckedChange = null,
             )
         }
 

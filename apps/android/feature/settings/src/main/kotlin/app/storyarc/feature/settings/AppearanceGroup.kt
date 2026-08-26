@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -86,9 +87,19 @@ internal fun AppearanceGroup(
             }
         }
 
+        // The row is the toggleable, not the switch inside it. A switch on its own is
+        // an unnamed node — its label is a sibling, and a screen reader landing on it
+        // hears a bare on/off. `toggleable` merges the label in and widens the target.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .toggleable(
+                    value = settings.linkReadingThemeToAppearance,
+                    role = Role.Switch,
+                    onValueChange = {
+                        onChange(settings.copy(linkReadingThemeToAppearance = it))
+                    },
+                )
                 .padding(top = StoryArcSpace.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -106,7 +117,7 @@ internal fun AppearanceGroup(
             }
             Switch(
                 checked = settings.linkReadingThemeToAppearance,
-                onCheckedChange = { onChange(settings.copy(linkReadingThemeToAppearance = it)) },
+                onCheckedChange = null,
             )
         }
     }
