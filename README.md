@@ -279,6 +279,22 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties
 ./gradlew lint test assembleDebug
 ```
 
+### Accessibility
+
+`pnpm check` cannot see what a screen reader hears, so there is a second check for
+that. With the app open on a connected device or emulator:
+
+```bash
+pnpm a11y:android   # reads the accessibility tree off the device
+```
+
+It reports an actionable control with no name, a name that is a raw value rather
+than a description, and a target below 48dp. It found all three of those in screens
+that looked correct in a screenshot.
+
+Run it on every screen a change touches. It reads whatever is on screen at the
+moment you run it, so navigate first.
+
 ## Contributing
 
 The rule that shapes everything else: **every behaviour is specified before it
@@ -295,7 +311,9 @@ cd docs && pnpm exec openspec init   # if your agent tooling is not set up yet
 ```
 
 A change a user can see also owes a screenshot from a booted simulator or
-emulator — a `#Preview` or `@Preview` is not proof. Details in
+emulator — a `#Preview` or `@Preview` is not proof. On Android it owes a clean
+`pnpm a11y:android` on the screens it touched, for the same reason: a screenshot
+shows what the screen looks like and says nothing about what it announces. Details in
 [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md).
 
 ## Privacy
