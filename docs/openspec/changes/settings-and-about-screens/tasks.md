@@ -329,12 +329,20 @@
 - [x] **6.1** `pnpm check` green: specs, tokens, tests and both lints. **Done**, and it
       stayed green through the token change that followed.
 
-      One flake worth recording rather than hiding: the iOS suite exited with signal 11
-      twice inside `pnpm check` and never once in about thirty-five direct `swift test`
-      runs. The tests build their stores with `inMemory()`, so it is not a race for a
-      shared file on disk. The most likely cause is SwiftData container teardown under
-      parallel test execution. Not chased, because it has never reproduced on demand, and
-      recorded here so the next person who sees it does not start from nothing.
+      One flake worth recording rather than hiding: the iOS suite exits with signal 11
+      about once in fifteen `pnpm check` runs, and has never done it in a direct
+      `swift test`. A rerun always passes.
+
+      What is ruled out:
+
+      - **Not a race for a file on disk.** Every test builds its store with `inMemory()`.
+      - **Not "the first run after a rebuild".** That was the best hypothesis, because
+        every failure followed a build. Tested directly — touch a source, rebuild, run,
+        three times — and it passed three times out of three.
+
+      So it is an intermittent crash in `swiftpm-testing-helper` rather than in the suite,
+      and it has never reproduced on demand. Left alone, and written down here with the
+      disproved hypothesis so the next person does not repeat the experiment.
 - [x] **6.2** Emulator and simulator captures of every screen, light and dark, at
       default and largest text size. **Done on Android, scripted, and it caught a crash.**
 

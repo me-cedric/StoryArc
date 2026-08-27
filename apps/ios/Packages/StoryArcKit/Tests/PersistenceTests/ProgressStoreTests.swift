@@ -209,4 +209,31 @@ struct ProgressStoreTests {
         )
         #expect(try await store.progress(for: id)?.position == position)
     }
+    @Test("A position written against a server identifier comes back with it")
+    func serverIdentifierSurvivesARoundTrip() async throws {
+        // It did not. `domain(_:)` rebuilt the identity with `serverIdentifier: nil`, so a
+        // record written against a server came back looking local — and the whole point of
+        // `PublicationIdentity` is that one publication resolves to one record whichever
+        // way it was reached.
+        let store = try store()
+        let identity = PublicationIdentity(
+            serverIdentifier: .init(sourceID: UUID(), remoteID: "series/42"),
+            contentDigest: "digest",
+            normalizedPath: nil
+        )
+        try await store.save(
+            ReadingProgress(
+                identity: identity,
+                position: .page(index: 3, of: 10),
+                isFinished: false,
+                updatedAt: Date(timeIntervalSince1970: 1),
+                syncedPosition: nil
+            )
+        )
+
+        let read = try await store.progress(for: identity)
+
+        #expect(read?.identity.serverIdentifier == identity.serverIdentifier)
+    }
+
 }

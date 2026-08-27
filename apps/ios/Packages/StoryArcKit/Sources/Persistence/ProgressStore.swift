@@ -222,6 +222,22 @@ public actor ProgressStore {
         identity.serverIdentifier.map { "\($0.sourceID.uuidString):\($0.remoteID)" }
     }
 
+    /// The inverse of ``serverKey(_:)``.
+    ///
+    /// A malformed key yields `nil` rather than throwing: the other two identity
+    /// components are still usable, and refusing to read the row would lose a reading
+    /// position over a field the store can do without.
+    private static func serverIdentifier(
+        from key: String?
+    ) -> PublicationIdentity.ServerIdentifier? {
+        guard let key, let separator = key.firstIndex(of: ":"), separator != key.startIndex,
+              let sourceID = UUID(uuidString: String(key[key.startIndex..<separator]))
+        else { return nil }
+        let remote = String(key[key.index(after: separator)...])
+        guard !remote.isEmpty else { return nil }
+        return PublicationIdentity.ServerIdentifier(sourceID: sourceID, remoteID: remote)
+    }
+
     private static func domain(_ record: StoredProgress) -> ReadingProgress {
         let decoder = JSONDecoder()
         let position = (try? decoder.decode(ReadingPosition.self, from: record.positionData))
@@ -231,7 +247,11 @@ public actor ProgressStore {
 
         return ReadingProgress(
             identity: PublicationIdentity(
-                serverIdentifier: nil,
+                // Parsed back, not dropped. This read `nil`, so a record written against a
+                // server identifier came back without one — and `PublicationIdentity`
+                // exists to make one publication resolve to one record whichever way it
+                // was reached. Android's `toDomain` has always parsed it.
+                serverIdentifier: Self.serverIdentifier(from: record.serverKey),
                 contentDigest: record.contentDigest,
                 normalizedPath: record.normalizedPath
             ),
