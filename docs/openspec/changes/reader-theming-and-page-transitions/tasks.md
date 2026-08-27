@@ -863,10 +863,35 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       The library also holds at 2×: titles wrap and ellipsise, captions stay top-aligned,
       nothing overlaps.
 
-      **Still open: TalkBack and VoiceOver driven for real, and Reduce Transparency.**
-      TalkBack's semantics are covered by `ThemeSheetSemanticsTest` on a device, which is
-      not the same as listening to it. Reduce Transparency has no emulator switch that
-      reaches a Compose `@Environment` equivalent, and iOS needs a device for any of it.
+      **TalkBack driven for real — and it found three defects on its first screen.**
+      Enabled on the emulator with `settings put secure enabled_accessibility_services`,
+      which changes the interaction model: one tap moves accessibility focus and a double
+      tap activates. What it exposed:
+
+      1. **A comic page announced its file name.** TalkBack said "page10.png", which names
+         a file inside a CBZ. It says "Page 10 of 12" now, on both platforms.
+      2. **The chrome drew a white icon on a 20% white pill, over page art.** Over a white
+         manga page that measures 1:1. Every pill and the bottom band carry a scrim now.
+      3. **A colour swatch announced its hex.** "Colour #E8EFE6", read one character at a
+         time. The names moved from a code comment into core, where both platforms read
+         them.
+
+      None of the three was visible in a screenshot, which is why `pnpm a11y:android` now
+      exists: it reads the accessibility tree off the device and reports an unnamed
+      control, a name that is a raw value, and a target under 48dp. Every settings screen,
+      the library, the reader page and the reader chrome report zero problems.
+
+      **The contrast floor moved, and Apple's own audit is why.** `textTertiary` failed
+      WCAG AA in 10 of 15 palette and surface combinations. Fixed to exactly 4.5:1, at
+      which point `performAccessibilityAudit` reported "Contrast nearly passed" — a token
+      sitting on the threshold fails the platform's check while passing ours. Every text
+      role now clears 4.9:1.
+
+      **Still open: VoiceOver driven by a person, and Reduce Transparency.** VoiceOver has
+      been *audited* — a UI test target runs Apple's own `performAccessibilityAudit` — and
+      that is not the same as listening to it. Reduce Transparency has no emulator switch
+      that reaches a Compose equivalent, and iOS needs a device. Neither platform has been
+      checked by anyone who uses a screen reader daily, which is the actual bar.
 - [ ] **7.8** **Compare Readium's pagination across the two toolkits** under
       matched typography, on `fixture.epub`. Added here because this change is what
       unblocked it: [ADR-0005](../../../decisions/0005-format-and-rendering-libraries.md)'s
