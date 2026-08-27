@@ -35,7 +35,10 @@
     <string name="library_filter_read_state">Read state</string>
     <string name="library_filter_format">Format</string>
     <string name="library_filter_clear">Clear filters</string>
-    <string name="library_filter_active">%1$d filters active</string>
+    <plurals name="library_filter_active">
+        <item quantity="one">%1$d filter active</item>
+        <item quantity="other">%1$d filters active</item>
+    </plurals>
     <string name="library_read_state_unread">Unread</string>
     <string name="library_read_state_in_progress">In progress</string>
     <string name="library_read_state_finished">Finished</string>

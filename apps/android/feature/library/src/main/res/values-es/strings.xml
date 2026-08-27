@@ -35,7 +35,10 @@
     <string name="library_filter_read_state">Estado de lectura</string>
     <string name="library_filter_format">Formato</string>
     <string name="library_filter_clear">Borrar filtros</string>
-    <string name="library_filter_active">%1$d filtros activos</string>
+    <plurals name="library_filter_active">
+        <item quantity="one">%1$d filtro activo</item>
+        <item quantity="other">%1$d filtros activos</item>
+    </plurals>
     <string name="library_read_state_unread">Sin leer</string>
     <string name="library_read_state_in_progress">En curso</string>
     <string name="library_read_state_finished">Terminado</string>

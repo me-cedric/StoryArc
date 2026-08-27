@@ -58,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -368,7 +369,13 @@ private fun FilterMenu(query: LibraryQuery, viewModel: LibraryViewModel) {
         Icon(
             imageVector = Icons.Filled.FilterList,
             contentDescription = if (query.hasFilters) {
-                stringResource(R.string.library_filter_active, query.activeFilterCount)
+                // A plural, not a format. "1 filters active" is wrong in every
+                // language, and the count reaches 1 whenever a reader sets one filter.
+                pluralStringResource(
+                    R.plurals.library_filter_active,
+                    query.activeFilterCount,
+                    query.activeFilterCount,
+                )
             } else {
                 stringResource(R.string.library_filter)
             },
