@@ -40,6 +40,16 @@ jobs:
       - name: Generated tokens are in sync with their source
         run: pnpm tokens:verify
 
+      - name: Third-party notices are in sync with the licence inventory
+        # A notices file that disagrees with what the app ships is a compliance gap, not
+        # a formatting one, and this is the only thing that would notice.
+        run: pnpm notices:check
+
+      - name: The accessibility scanner's own checks still fire
+        # A scanner that silently stops matching reports a clean screen, which is worse
+        # than having no scanner. The device sweep cannot run here; its self-test can.
+        run: pnpm a11y:selftest
+
       - name: Fixture corpus is in sync with its generator
         # The corpus is generated then committed, so it can go stale the same way
         # the tokens can. ubuntu-latest ships Python 3.

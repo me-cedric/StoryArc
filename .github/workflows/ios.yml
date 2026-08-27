@@ -81,3 +81,19 @@ jobs:
             -scheme StoryArc \
             -destination 'generic/platform=iOS Simulator' \
             -quiet
+
+      - name: Accessibility audit
+        # Apple's own `performAccessibilityAudit`, which needs a running app and so cannot
+        # be a unit test. It checks contrast, text clipped at large sizes, hit-region size
+        # and missing element descriptions against the same rules the Accessibility
+        # Inspector uses, so this cannot drift from what iOS considers correct.
+        #
+        # A booted simulator, not `generic/platform`: the audit reads a live view tree.
+        working-directory: apps/ios
+        run: |
+          xcodebuild test \
+            -project StoryArc.xcodeproj \
+            -scheme StoryArc \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -only-testing:StoryArcUITests \
+            -quiet
