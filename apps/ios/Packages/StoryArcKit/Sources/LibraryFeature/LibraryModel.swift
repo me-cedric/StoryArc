@@ -80,11 +80,24 @@ public final class LibraryModel {
 
     private let preferences: LibraryPreferences?
 
+    /// The configured sources, in the reader's own order.
+    ///
+    /// `sources` requires a registry, and until now the only thing that existed was the
+    /// value type. A folder is a source: the library's source list was passed an empty
+    /// array by both app shells, so it never drew a row for the folder a reader had
+    /// picked.
+    public private(set) var registry = SourceRegistry()
+
+    private let sourceStore: SourceStore?
+
     public init(
         progress: ProgressStore? = nil,
         bookmarks: FolderBookmarks? = nil,
-        preferences: LibraryPreferences? = nil
+        preferences: LibraryPreferences? = nil,
+        sourceStore: SourceStore? = nil
     ) {
+        self.sourceStore = sourceStore
+        self.registry = sourceStore?.registry() ?? SourceRegistry()
         self.progressStore = progress
         self.bookmarks = bookmarks
         self.preferences = preferences
@@ -107,6 +120,7 @@ public final class LibraryModel {
             unavailableFolders = restored.stale.map(\.name)
             for folder in restored.folders {
                 folders.append(folder)
+                register(folder)
                 scan(folder)
             }
         }
@@ -165,7 +179,21 @@ public final class LibraryModel {
         // Remembered before the scan, so a folder added and then immediately
         // backgrounded is still there next launch.
         try? bookmarks?.add(url)
+        register(url)
         scan(url)
+    }
+
+    /// Records a folder as a source, if it is not one already.
+    ///
+    /// Matched on the folder's name, which is what a bookmark restores by. A folder picked
+    /// twice is one source, and the reader's own name for it survives — `sources` requires
+    /// a rename to stick, so re-adding must not overwrite one.
+    private func register(_ url: URL) {
+        let name = url.lastPathComponent
+        guard !registry.sources.contains(where: { $0.kind == .localFolder && $0.displayName == name })
+        else { return }
+        registry = registry.adding(Source(displayName: name, kind: .localFolder, state: .connected))
+        sourceStore?.save(registry)
     }
 
     /// Stops a running scan. `local-library` requires the scan to be cancellable.

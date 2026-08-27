@@ -23,6 +23,7 @@ import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.SettingsStore
+import app.storyarc.core.persistence.SourceStore
 import app.storyarc.feature.settings.SettingsScreen
 import app.storyarc.feature.settings.BuildInfo
 import app.storyarc.feature.library.LibraryScreen
@@ -102,6 +103,7 @@ class MainActivity : ComponentActivity() {
         val preferences = LibraryPreferences.open(applicationContext)
         val readerPreferences = ReaderPreferences.open(applicationContext)
         val settingsStore = SettingsStore.open(applicationContext)
+        val sourceStore = SourceStore.open(applicationContext)
         BuildInfo.read(applicationContext)
 
         setContent {
@@ -169,7 +171,9 @@ class MainActivity : ComponentActivity() {
                 // created inside the library branch would not exist to ask.
                 val libraryViewModel = viewModel<LibraryViewModel>(
                     factory = viewModelFactory {
-                        initializer { LibraryViewModel(application, progress, preferences) }
+                        initializer {
+                            LibraryViewModel(application, progress, preferences, sourceStore)
+                        }
                     },
                 )
 

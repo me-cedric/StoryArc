@@ -73,6 +73,7 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.Source
+import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.model.SourceKind
 
 /**
@@ -95,7 +96,6 @@ import app.storyarc.core.model.SourceKind
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
-    sources: List<Source> = emptyList(),
     viewModel: LibraryViewModel? = null,
     /**
      * How the app layer reaches the reader. The library knows which publication
@@ -149,6 +149,8 @@ fun LibraryScreen(
     val visible by (viewModel?.visible ?: MutableStateFlow(emptyList<Publication>()))
         .collectAsStateWithLifecycle()
     val continueReading by (viewModel?.continueReading ?: MutableStateFlow(emptyList<Publication>()))
+        .collectAsStateWithLifecycle()
+    val registry by (viewModel?.registry ?: MutableStateFlow(SourceRegistry()))
         .collectAsStateWithLifecycle()
     val query by (viewModel?.query ?: MutableStateFlow(LibraryQuery()))
         .collectAsStateWithLifecycle()
@@ -270,8 +272,8 @@ fun LibraryScreen(
                     }
 
                 state is LibraryScanState.Scanning -> Scanning(state.found)
-                sources.isEmpty() -> EmptyLibrary(onScan = { pickFolder.launch(null) })
-                else -> SourceList(sources)
+                registry.sources.isEmpty() -> EmptyLibrary(onScan = { pickFolder.launch(null) })
+                else -> SourceList(registry.sources)
             }
         }
     }

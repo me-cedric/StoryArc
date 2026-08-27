@@ -60,7 +60,8 @@ struct StoryArcApp: App {
             initialValue: LibraryModel(
                 progress: store,
                 bookmarks: FolderBookmarks(),
-                preferences: LibraryPreferences()
+                preferences: LibraryPreferences(),
+                sourceStore: SourceStore()
             )
         )
     }

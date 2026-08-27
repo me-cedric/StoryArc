@@ -21,7 +21,6 @@ public struct LibraryView: View {
     /// return has to be the one holding the model.
     private let model: LibraryModel
 
-    private let sources: [Source]
     private let onOpen: (Publication, URL) -> Void
     private let progress: ProgressStore?
     private let onOpenSettings: () -> Void
@@ -31,7 +30,6 @@ public struct LibraryView: View {
     /// is.
     public init(
         model: LibraryModel,
-        sources: [Source] = [],
         progress: ProgressStore? = nil,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in },
         /// How the app layer reaches Settings.
@@ -42,7 +40,6 @@ public struct LibraryView: View {
         onOpenSettings: @escaping () -> Void = {}
     ) {
         self.model = model
-        self.sources = sources
         self.progress = progress
         self.onOpenSettings = onOpenSettings
         self.onOpen = onOpen
@@ -89,10 +86,10 @@ public struct LibraryView: View {
                     }
                 } else if case .scanning = model.scanState {
                     ScanningView(state: model.scanState)
-                } else if sources.isEmpty {
+                } else if model.registry.sources.isEmpty {
                     EmptyLibraryView { isPickingFolder = true }
                 } else {
-                    SourceList(sources: sources)
+                    SourceList(sources: model.registry.sources)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

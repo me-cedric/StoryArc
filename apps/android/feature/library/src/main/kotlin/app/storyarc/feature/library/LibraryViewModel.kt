@@ -18,6 +18,11 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.LibraryPreferences
+import app.storyarc.core.model.Source
+import app.storyarc.core.model.SourceConnectionState
+import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.persistence.SourceStore
 import app.storyarc.core.persistence.ProgressStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,7 +47,18 @@ class LibraryViewModel(
     application: Application,
     private val progressStore: ProgressStore? = null,
     private val preferences: LibraryPreferences? = null,
+    private val sourceStore: SourceStore? = null,
 ) : AndroidViewModel(application) {
+
+    /**
+     * The configured sources, in the reader's own order.
+     *
+     * `sources` requires a registry, and until now the only thing that existed was the
+     * value type. A folder is a source: the library's source list was handed an empty list,
+     * so it never drew a row for the folder a reader had picked.
+     */
+    private val _registry = MutableStateFlow(sourceStore?.registry() ?: SourceRegistry())
+    val registry: StateFlow<SourceRegistry> = _registry.asStateFlow()
 
     private val _publications = MutableStateFlow<List<Publication>>(emptyList())
     val publications: StateFlow<List<Publication>> = _publications.asStateFlow()
@@ -158,12 +174,56 @@ class LibraryViewModel(
         if (tree in _folders.value) return
         _folders.update { it + tree }
         _unavailableFolders.value = emptyList()
+        register(tree)
         rescan()
+    }
+
+    /**
+     * Records a folder as a source, if it is not one already.
+     *
+     * Matched on the tree's last path segment, which is what a reader recognises and what
+     * the persisted permission comes back as. A folder picked twice is one source, and the
+     * reader's own name for it survives — `sources` requires a rename to stick, so
+     * re-adding must not overwrite one.
+     */
+    private fun register(tree: Uri) {
+        val name = tree.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+            ?: tree.toString()
+        val already = _registry.value.sources.any {
+            it.kind == SourceKind.LOCAL_FOLDER && it.displayName == name
+        }
+        if (already) return
+        _registry.update {
+            it.adding(
+                Source(
+                    displayName = name,
+                    kind = SourceKind.LOCAL_FOLDER,
+                    state = SourceConnectionState.Connected,
+                ),
+            )
+        }
+        sourceStore?.save(_registry.value)
+    }
+
+    /**
+     * Forgets a folder's source, and remembers that it was forgotten.
+     *
+     * The tombstone is what keeps reading progress for thirty days, per `sources`. It is
+     * left for the registry to collect rather than deleted here.
+     */
+    private fun unregister(tree: Uri) {
+        val name = tree.lastPathSegment?.substringAfterLast('/') ?: return
+        val source = _registry.value.sources.firstOrNull {
+            it.kind == SourceKind.LOCAL_FOLDER && it.displayName == name
+        } ?: return
+        _registry.update { it.removing(source.id, System.currentTimeMillis()) }
+        sourceStore?.save(_registry.value)
     }
 
     /** Removes a folder and gives its permission back. */
     fun removeFolder(tree: Uri) {
         _folders.update { it - tree }
+        unregister(tree)
         runCatching {
             resolver.releasePersistableUriPermission(
                 tree,
