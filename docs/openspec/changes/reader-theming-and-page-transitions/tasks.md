@@ -576,7 +576,28 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       faithful raster of the page it replaces", and it means Apple is deforming a texture
       of live web content rather than doing something a third-party app cannot.
 
-      So the open question is not *whether* but *when to snapshot and what it costs*:
+      **The raster is only half the work, and probably the smaller half.** Readium owns
+      the turn. `EpubReaderModel.goForward()` and `goBackward()` exist on both platforms
+      and have *zero callers*: Slide is Readium's own paginated scroll animation, and
+      `ReadiumMapping` says so. Nothing in StoryArc is holding the turn at a fraction
+      between two pages, because nothing in StoryArc is running the turn.
+
+      So Curl and Fast fade need StoryArc to take the turn over:
+
+      1. Consume the gesture itself, rather than letting Readium's paginated scroll have
+         it.
+      2. Raster the outgoing page.
+      3. Move the navigator with `animated: false`, so Readium changes the content without
+         animating it.
+      4. Run our own animation over the raster — the shader for Curl, a cross-fade for
+         Fast fade.
+
+      Fast fade needs one raster and Curl needs two, so **Fast fade is the cheaper first
+      step and should land first.** Curl additionally needs the incoming page before it is
+      on screen, which means either a second offscreen navigator or a snapshot round-trip,
+      and that is the part worth prototyping before committing to.
+
+      With that said, the remaining open question is *when to snapshot and what it costs*:
 
       - **iOS:** `WKWebView.takeSnapshot(with:)` is asynchronous and returns a `UIImage`;
         `UIView.drawHierarchy(in:afterScreenUpdates:)` is synchronous and cheaper but
