@@ -183,6 +183,26 @@ public final class LibraryModel {
         scan(url)
     }
 
+    /// How many publications a source holds.
+    ///
+    /// `sources` asks a source's detail screen for its "cached item count". Counted from
+    /// what the library actually found rather than remembered separately: two numbers that
+    /// can disagree is how a screen ends up claiming a source has titles it cannot open.
+    public func itemCount(of sourceID: Source.ID) -> Int {
+        publications.count { $0.sourceID == sourceID }
+    }
+
+    /// The source a folder belongs to, if it is registered as one.
+    ///
+    /// Matched on the folder's name, the same key ``register(_:)`` uses. The app's own
+    /// Documents folder is not a source, so a publication found there is unattributed —
+    /// which is the honest answer rather than pretending it belongs to a library the
+    /// reader picked.
+    private func source(of folder: URL) -> UUID? {
+        let name = folder.lastPathComponent
+        return registry.sources.first { $0.kind == .localFolder && $0.displayName == name }?.id
+    }
+
     /// Records a folder as a source, if it is not one already.
     ///
     /// Matched on the folder's name, which is what a bookmark restores by. A folder picked
@@ -250,7 +270,13 @@ public final class LibraryModel {
         guard !publications.contains(where: { $0.identity.matches(publication.identity) })
         else { return }
 
-        publications.append(publication)
+        // Attributed here rather than by the indexer: indexing decides what a publication
+        // is, and the library is the only thing that knows which source it was reached
+        // through. `sources` needs this for a source's item count, and
+        // `library-browsing` for the order two sources holding one title appear in.
+        var attributed = publication
+        attributed.sourceID = source(of: folder)
+        publications.append(attributed)
         if let path = publication.identity.normalizedPath {
             locations[publication.id] = URL(fileURLWithPath: path)
         }

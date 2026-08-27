@@ -19,6 +19,7 @@ import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.model.Source
+import java.util.UUID
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
@@ -253,16 +254,19 @@ class LibraryViewModel(
             withContext(Dispatchers.IO) {
                 var found = 0
                 var skipped = 0
-                val walks: List<Flow<ScanEvent>> =
+                // Each walk carries the tree it came from, so a publication can be
+                // attributed to the source it was reached through. The managed folder is
+                // not a source, so its walk carries null.
+                val walks: List<Pair<Uri?, Flow<ScanEvent>>> =
                     if (trees.isEmpty()) {
-                        listOf(LibraryScanner.scan(managedFolder))
+                        listOf(null to LibraryScanner.scan(managedFolder))
                     } else {
-                        trees.map { LibraryScanner.scan(resolver, it) }
+                        trees.map { it to LibraryScanner.scan(resolver, it) }
                     }
-                for (walk in walks) {
+                for ((tree, walk) in walks) {
                     walk.collect { event ->
                         when (event) {
-                            is ScanEvent.Found -> append(event.publication)
+                            is ScanEvent.Found -> append(event.publication, tree)
                             is ScanEvent.Skipped -> Unit
                             is ScanEvent.Finished -> {
                                 found += event.found
@@ -279,6 +283,29 @@ class LibraryViewModel(
             // still empty matches nothing and every cover opens without its bar.
             refreshProgress()
         }
+    }
+
+    /**
+     * How many publications a source holds.
+     *
+     * `sources` asks a source's detail screen for its "cached item count". Counted from
+     * what the library actually found rather than remembered separately: two numbers that
+     * can disagree is how a screen ends up claiming a source has titles it cannot open.
+     */
+    fun itemCount(sourceId: UUID): Int = _publications.value.count { it.sourceId == sourceId }
+
+    /**
+     * The source a tree belongs to, if it is registered as one.
+     *
+     * Matched on the tree's last path segment, the same key [register] uses. The app's own
+     * managed folder is not a source, so a publication found there is unattributed — the
+     * honest answer rather than pretending it belongs to a library the reader picked.
+     */
+    private fun sourceOf(tree: Uri?): UUID? {
+        val name = tree?.lastPathSegment?.substringAfterLast('/') ?: return null
+        return _registry.value.sources
+            .firstOrNull { it.kind == SourceKind.LOCAL_FOLDER && it.displayName == name }
+            ?.id
     }
 
     /** Scans one local folder. The instrumented tests and the emulator use this. */
@@ -316,11 +343,14 @@ class LibraryViewModel(
         }
     }
 
-    private fun append(publication: Publication) {
+    private fun append(publication: Publication, tree: Uri? = null) {
         if (_publications.value.any { it.identity.matches(publication.identity) }) return
 
         publication.identity.normalizedPath?.let { locations[publication.id] = it }
-        _publications.update { it + publication }
+        // Attributed here rather than by the indexer, which reads bytes and has no idea a
+        // registry exists. `sources` needs this for a source's item count, and
+        // `library-browsing` for the order two sources holding one title appear in.
+        _publications.update { it + publication.copy(sourceId = sourceOf(tree)) }
         (_scanState.value as? LibraryScanState.Scanning)?.let {
             _scanState.value = LibraryScanState.Scanning(it.found + 1)
         }

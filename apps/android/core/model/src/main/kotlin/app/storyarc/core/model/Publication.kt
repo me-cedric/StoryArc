@@ -1,5 +1,7 @@
 package app.storyarc.core.model
 
+import java.util.UUID
+
 /**
  * Whether a publication can be read without transferring all of it.
  *
@@ -142,6 +144,22 @@ data class Publication(
     val readingDirection: ReadingDirection = ReadingDirection.LEFT_TO_RIGHT,
     val isFixedLayout: Boolean = false,
     val streaming: StreamingCapability = StreamingCapability.STREAMS,
+    /**
+     * Which source this came from, when the app knows.
+     *
+     * `library-browsing` asks the library to combine sources and to list "titles from
+     * higher sources first when two sources hold the same publication", and `sources` asks
+     * a source's detail screen for its item count. Neither is answerable without this,
+     * which is why a flat list of files was as far as the library could go.
+     *
+     * Nullable, because a publication can arrive without one: a file the system hands over
+     * belongs to no source the reader configured. Null means unattributed rather than
+     * unknown-and-probably-local.
+     *
+     * Assigned by the library rather than by the indexer: indexing decides what a
+     * publication *is*, and the indexer reads bytes and has no idea a registry exists.
+     */
+    val sourceId: UUID? = null,
 ) {
     /** A stable key for lists and diffing. See [PublicationIdentity.stableId]. */
     val id: String get() = identity.stableId

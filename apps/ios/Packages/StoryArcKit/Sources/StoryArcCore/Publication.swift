@@ -95,6 +95,22 @@ public struct Publication: Sendable, Equatable, Identifiable {
     public let isFixedLayout: Bool
     public let streaming: StreamingCapability
 
+    /// Which source this came from, when the app knows.
+    ///
+    /// `library-browsing` asks the library to combine sources and to list "titles from
+    /// higher sources first when two sources hold the same publication", and `sources`
+    /// asks a source's detail screen for its item count. Neither is answerable without
+    /// this, which is why a flat list of files was as far as the library could go.
+    ///
+    /// Optional, because a publication can arrive without one: a file the system hands
+    /// over belongs to no source the reader configured. `nil` means unattributed rather
+    /// than unknown-and-probably-local.
+    ///
+    /// `var` where every other field is `let`, and deliberately: indexing decides what a
+    /// publication *is*, and the library decides which source it came from. The indexer
+    /// reads bytes and has no idea a registry exists.
+    public var sourceID: UUID?
+
     public init(
         identity: PublicationIdentity,
         format: PublicationFormat,
@@ -113,8 +129,10 @@ public struct Publication: Sendable, Equatable, Identifiable {
         coverPath: String? = nil,
         readingDirection: ReadingDirection = .leftToRight,
         isFixedLayout: Bool = false,
-        streaming: StreamingCapability = .streams
+        streaming: StreamingCapability = .streams,
+        sourceID: UUID? = nil
     ) {
+        self.sourceID = sourceID
         self.identity = identity
         self.format = format
         self.displayTitle = displayTitle
