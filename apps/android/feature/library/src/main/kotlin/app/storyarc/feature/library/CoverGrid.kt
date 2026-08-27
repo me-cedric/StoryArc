@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -41,6 +42,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -222,15 +224,31 @@ private fun CoverCell(
                         .clip(RoundedCornerShape(StoryArcRadius.md)),
                 )
             } else {
-                // A placeholder that names the format rather than an empty
-                // rectangle: while a cover loads, the format is the most useful
-                // thing the cell knows, and it is the honest answer for a
-                // publication that has none.
-                Box(contentAlignment = Alignment.Center) {
+                // A set title rather than an empty rectangle. A grid of publications
+                // with no cover art -- and plenty of EPUBs carry none -- was a wall of
+                // identical cards labelled with a format, which is the one thing every
+                // card in that wall had in common. The title is what tells them apart.
+                // The format stays, smaller, because it is still the answer to "why is
+                // there no picture".
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = publication.displayTitle,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = palette.textSecondary,
+                        textAlign = TextAlign.Center,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = StoryArcSpace.sm),
+                    )
                     Text(
                         text = publication.format.displayName,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelSmall,
                         color = palette.textTertiary,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = StoryArcSpace.xs),
                     )
                 }
             }

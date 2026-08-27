@@ -186,15 +186,27 @@ struct CoverCell: View {
                 .resizable()
                 .scaledToFill()
         } else {
-            // A placeholder that names the format rather than an empty rectangle:
-            // while a cover is loading, the format is the most useful thing the
-            // cell knows, and it is also the honest answer for a publication that
-            // has no cover at all.
-            ZStack {
+            // A set title rather than an empty rectangle. A grid of publications with no
+            // cover art — and plenty of EPUBs carry none — was a wall of identical grey
+            // cards labelled with a format, which is the one thing every card in that wall
+            // had in common. The title is what tells them apart. The format stays, smaller,
+            // because it is still the answer to "why is there no picture".
+            ZStack(alignment: .bottom) {
                 theme.palette.surfaceRaised
+
+                Text(publication.displayTitle)
+                    .textRole(.headline)
+                    .foregroundStyle(theme.palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(4)
+                    .minimumScaleFactor(0.6)
+                    .padding(.horizontal, StoryArcSpace.sm)
+                    .frame(maxHeight: .infinity)
+
                 Text(publication.format.displayName)
                     .textRole(.caption)
                     .foregroundStyle(theme.palette.textTertiary)
+                    .padding(.bottom, StoryArcSpace.xs)
             }
         }
     }
