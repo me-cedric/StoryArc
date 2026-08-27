@@ -36,6 +36,19 @@ data class Source(
      * `sources` forbids a secret reaching preferences, logs or backups.
      */
     val credentialReference: String? = null,
+    /**
+     * Where this source points, as the platform names it.
+     *
+     * A folder's tree URI; a server's URL when one exists. The *stable* key:
+     * [displayName] is the reader's and moves when they rename it, so matching a folder to
+     * its source by name means a renamed source is not recognised on the next launch and
+     * gets added a second time. That is the bug this field exists to prevent.
+     *
+     * A tree URI is stable across installs here, so it is the locator directly. iOS cannot
+     * use a path for this: its app container carries a UUID that changes on reinstall, so
+     * the bookmark's key is used there instead.
+     */
+    val locator: String? = null,
 )
 
 /** Exponential backoff for an unreachable source: start at 5 s, cap at 5 min. */

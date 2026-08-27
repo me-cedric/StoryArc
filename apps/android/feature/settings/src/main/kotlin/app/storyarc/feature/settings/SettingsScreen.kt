@@ -75,6 +75,7 @@ fun SettingsScreen(
     sources: List<Source> = emptyList(),
     itemCount: (Source) -> Int = { 0 },
     onRemoveSource: (Source) -> Unit = {},
+    onRenameSource: (Source, String) -> Unit = { _, _ -> },
 ) {
     var open by remember { mutableStateOf<SettingsGroup?>(null) }
 
@@ -102,6 +103,7 @@ fun SettingsScreen(
             sources = sources,
             itemCount = itemCount,
             onRemoveSource = onRemoveSource,
+            onRenameSource = onRenameSource,
         )
     }
 }
@@ -257,6 +259,7 @@ private fun GroupDetail(
     sources: List<Source>,
     itemCount: (Source) -> Int,
     onRemoveSource: (Source) -> Unit,
+    onRenameSource: (Source, String) -> Unit,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -289,7 +292,7 @@ private fun GroupDetail(
                 // Named rather than hidden. A group whose rows arrive with a capability
                 // that does not exist yet says so; hiding it leaves a reader hunting for
                 // where sources live.
-                SettingsGroup.SOURCES -> SourcesGroup(sources, itemCount, onRemoveSource)
+                SettingsGroup.SOURCES -> SourcesGroup(sources, itemCount, onRemoveSource, onRenameSource)
                 SettingsGroup.DOWNLOADS, SettingsGroup.LANGUAGE ->
                     Text(
                         text = stringResource(group.pendingRes),

@@ -76,6 +76,28 @@ public struct SourceRegistry: Sendable, Equatable {
         )
     }
 
+    /// Records where a source points, for one that was stored before it had a locator.
+    ///
+    /// A migration, and a necessary one: a registry written before `locator` existed has
+    /// `nil` there, so matching a folder to its source by locator finds nothing and adds
+    /// the same folder a second time. That duplicate appeared on a real device.
+    public func locating(_ id: Source.ID, at locator: String) -> SourceRegistry {
+        SourceRegistry(
+            sources: sources.map { $0.id == id ? $0.at(locator) : $0 },
+            tombstones: tombstones
+        )
+    }
+
+    /// Drops a source outright, leaving no tombstone.
+    ///
+    /// For a duplicate rather than for a removal. A tombstone says "the reader removed this
+    /// and their progress should outlive it"; a row that should never have existed says
+    /// nothing of the sort, and leaving one would hold thirty days of retention open for a
+    /// source that was an artifact.
+    public func discarding(_ id: Source.ID) -> SourceRegistry {
+        SourceRegistry(sources: sources.filter { $0.id != id }, tombstones: tombstones)
+    }
+
     /// Removes a source, and remembers that it was removed.
     ///
     /// The tombstone is the whole point. `sources` requires the app to retain "local
@@ -142,6 +164,19 @@ public struct SourceTombstone: Sendable, Equatable, Codable {
 }
 
 extension Source {
+    /// The same source with its locator filled in.
+    func at(_ locator: String) -> Source {
+        Source(
+            id: id,
+            displayName: displayName,
+            kind: kind,
+            state: state,
+            lastSuccessfulSync: lastSuccessfulSync,
+            credentialReference: credentialReference,
+            locator: locator
+        )
+    }
+
     /// The same source in a new connection state.
     func with(_ state: SourceConnectionState) -> Source {
         Source(
@@ -150,7 +185,8 @@ extension Source {
             kind: kind,
             state: state,
             lastSuccessfulSync: lastSuccessfulSync,
-            credentialReference: credentialReference
+            credentialReference: credentialReference,
+            locator: locator
         )
     }
 
@@ -162,7 +198,8 @@ extension Source {
             kind: kind,
             state: state,
             lastSuccessfulSync: lastSuccessfulSync,
-            credentialReference: credentialReference
+            credentialReference: credentialReference,
+            locator: locator
         )
     }
 }

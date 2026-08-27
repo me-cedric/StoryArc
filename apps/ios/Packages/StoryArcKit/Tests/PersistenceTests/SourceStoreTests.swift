@@ -79,4 +79,24 @@ struct SourceStoreTests {
 
         #expect(store.registry().sources.isEmpty)
     }
+    @Test("A source keeps its locator, which is what a rename must not break")
+    func locatorSurvives() {
+        // The bug this prevents: a folder is matched to its source to decide whether it is
+        // already registered. Matching by display name means a renamed source is not
+        // recognised on the next launch and the same folder is added a second time. The
+        // locator is where the folder *is*, and a rename never moves it.
+        let store = store()
+        let only = Source(
+            displayName: "Comics",
+            kind: .localFolder,
+            locator: "/Users/someone/Comics"
+        )
+        store.save(SourceRegistry().adding(only).renaming(only.id, to: "Graphic novels"))
+
+        let read = store.registry()[only.id]
+
+        #expect(read?.displayName == "Graphic novels")
+        #expect(read?.locator == "/Users/someone/Comics")
+    }
+
 }

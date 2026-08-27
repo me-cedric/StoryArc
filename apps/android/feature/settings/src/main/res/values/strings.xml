@@ -105,4 +105,8 @@
         <item quantity="one">This removes %1$d publication from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days.</item>
         <item quantity="other">This removes %1$d publications from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days.</item>
     </plurals>
+    <string name="sources_rename_title">Rename source</string>
+    <string name="sources_rename_field">Name</string>
+    <string name="sources_rename_save">Save</string>
+    <string name="sources_rename_action">Rename %1$s</string>
 </resources>

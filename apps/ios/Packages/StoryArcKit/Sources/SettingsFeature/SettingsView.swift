@@ -40,6 +40,7 @@ public struct SettingsView: View {
     private let sources: [Source]
     private let itemCount: (Source.ID) -> Int
     private let onRemoveSource: (Source) -> Void
+    private let onRenameSource: (Source, String) -> Void
 
     @State private var query = ""
     @State private var isConfirmingReset = false
@@ -50,7 +51,8 @@ public struct SettingsView: View {
         onReset: @escaping () -> Void,
         sources: [Source] = [],
         itemCount: @escaping (Source.ID) -> Int = { _ in 0 },
-        onRemoveSource: @escaping (Source) -> Void = { _ in }
+        onRemoveSource: @escaping (Source) -> Void = { _ in },
+        onRenameSource: @escaping (Source, String) -> Void = { _, _ in }
     ) {
         _settings = settings
         self.readerStore = readerStore
@@ -58,6 +60,7 @@ public struct SettingsView: View {
         self.sources = sources
         self.itemCount = itemCount
         self.onRemoveSource = onRemoveSource
+        self.onRenameSource = onRenameSource
     }
 
     public var body: some View {
@@ -136,7 +139,12 @@ public struct SettingsView: View {
         case .privacy: PrivacySettings(settings: settings, readerStore: readerStore)
         case .about: AboutSettings()
         case .sources:
-            SourcesSettings(sources: sources, itemCount: itemCount, onRemove: onRemoveSource)
+            SourcesSettings(
+                sources: sources,
+                itemCount: itemCount,
+                onRemove: onRemoveSource,
+                onRename: onRenameSource
+            )
         // Named rather than hidden. A group whose rows arrive with a capability that does
         // not exist yet says so.
         case .downloads, .language:

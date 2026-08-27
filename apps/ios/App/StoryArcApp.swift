@@ -156,7 +156,8 @@ struct StoryArcApp: App {
                     onReset: resetSettings,
                     sources: library.registry.sources,
                     itemCount: { library.itemCount(of: $0) },
-                    onRemoveSource: { library.remove($0) }
+                    onRemoveSource: { library.remove($0) },
+                    onRenameSource: { library.rename($0, to: $1) }
                 )
                     .storyArcTheme(appearance: settings.appearance)
             }

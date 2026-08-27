@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.RssFeed
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,10 +57,43 @@ internal fun SourcesGroup(
     sources: List<Source>,
     itemCount: (Source) -> Int,
     onRemove: (Source) -> Unit,
+    onRename: (Source, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
     var removing by remember { mutableStateOf<Source?>(null) }
+    var renaming by remember { mutableStateOf<Source?>(null) }
+    var draftName by remember { mutableStateOf("") }
+
+    // `sources` requires a rename to appear "everywhere the source is referenced", which it
+    // does because the registry keeps the identifier and only the name moves.
+    renaming?.let { source ->
+        AlertDialog(
+            onDismissRequest = { renaming = null },
+            title = { Text(stringResource(R.string.sources_rename_title)) },
+            text = {
+                OutlinedTextField(
+                    value = draftName,
+                    onValueChange = { draftName = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.sources_rename_field)) },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onRename(source, draftName)
+                    renaming = null
+                }) {
+                    Text(stringResource(R.string.sources_rename_save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { renaming = null }) {
+                    Text(stringResource(R.string.settings_cancel))
+                }
+            },
+        )
+    }
 
     removing?.let { source ->
         AlertDialog(
@@ -149,6 +184,23 @@ internal fun SourcesGroup(
                     style = MaterialTheme.typography.labelLarge,
                     color = palette.textTertiary,
                 )
+
+                IconButton(onClick = {
+                    // Seeded with the current name rather than blank: a rename is usually a
+                    // correction, and retyping a folder's whole name to fix one letter is
+                    // not a correction.
+                    draftName = source.displayName
+                    renaming = source
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = stringResource(
+                            R.string.sources_rename_action,
+                            source.displayName,
+                        ),
+                        tint = palette.textSecondary,
+                    )
+                }
 
                 IconButton(onClick = { removing = source }) {
                     Icon(

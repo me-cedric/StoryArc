@@ -190,19 +190,44 @@ class LibraryViewModel(
     private fun register(tree: Uri) {
         val name = tree.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
             ?: tree.toString()
-        val already = _registry.value.sources.any {
-            it.kind == SourceKind.LOCAL_FOLDER && it.displayName == name
+        val locator = tree.toString()
+        // Matched on where the folder *is*, not on what it is called. A reader who renames a
+        // source keeps its name; matching by name would fail to recognise it on the next
+        // launch and add the same folder a second time.
+        val existing = _registry.value.sources.firstOrNull {
+            it.kind == SourceKind.LOCAL_FOLDER && it.locator == locator
         }
-        if (already) return
         _registry.update {
-            it.adding(
-                Source(
-                    displayName = name,
-                    kind = SourceKind.LOCAL_FOLDER,
-                    state = SourceConnectionState.Connected,
-                ),
-            )
+            when {
+                // Connected, not connecting. State is never persisted, so every source
+                // loads as connecting and something has to answer. For a folder the answer
+                // is immediate: there is nothing to probe.
+                existing == null -> it.adding(
+                    Source(
+                        displayName = name,
+                        kind = SourceKind.LOCAL_FOLDER,
+                        state = SourceConnectionState.Connected,
+                        locator = locator,
+                    ),
+                )
+                existing.state != SourceConnectionState.Connected ->
+                    it.marking(existing.id, SourceConnectionState.Connected)
+                else -> return
+            }
         }
+        sourceStore?.save(_registry.value)
+    }
+
+    /**
+     * Renames a source.
+     *
+     * The identifier does not move, so everything referring to the source follows — which is
+     * what `sources` means by a name appearing "everywhere the source is referenced". The
+     * folder itself keeps its own name: a reader who calls a folder "Comics" has not asked
+     * to rename the directory.
+     */
+    fun renameSource(source: Source, name: String) {
+        _registry.update { it.renaming(source.id, name) }
         sourceStore?.save(_registry.value)
     }
 
@@ -213,9 +238,8 @@ class LibraryViewModel(
      * left for the registry to collect rather than deleted here.
      */
     private fun unregister(tree: Uri) {
-        val name = tree.lastPathSegment?.substringAfterLast('/') ?: return
         val source = _registry.value.sources.firstOrNull {
-            it.kind == SourceKind.LOCAL_FOLDER && it.displayName == name
+            it.kind == SourceKind.LOCAL_FOLDER && it.locator == tree.toString()
         } ?: return
         _registry.update { it.removing(source.id, System.currentTimeMillis()) }
         sourceStore?.save(_registry.value)
@@ -232,9 +256,7 @@ class LibraryViewModel(
      * removes a *library*, not a reader's comics.
      */
     fun removeSource(source: Source) {
-        val tree = _folders.value.firstOrNull {
-            it.lastPathSegment?.substringAfterLast('/') == source.displayName
-        } ?: return
+        val tree = _folders.value.firstOrNull { it.toString() == source.locator } ?: return
         removeFolder(tree)
     }
 
@@ -319,9 +341,9 @@ class LibraryViewModel(
      * honest answer rather than pretending it belongs to a library the reader picked.
      */
     private fun sourceOf(tree: Uri?): UUID? {
-        val name = tree?.lastPathSegment?.substringAfterLast('/') ?: return null
+        val locator = tree?.toString() ?: return null
         return _registry.value.sources
-            .firstOrNull { it.kind == SourceKind.LOCAL_FOLDER && it.displayName == name }
+            .firstOrNull { it.kind == SourceKind.LOCAL_FOLDER && it.locator == locator }
             ?.id
     }
 
@@ -361,13 +383,29 @@ class LibraryViewModel(
     }
 
     private fun append(publication: Publication, tree: Uri? = null) {
-        if (_publications.value.any { it.identity.matches(publication.identity) }) return
-
-        publication.identity.normalizedPath?.let { locations[publication.id] = it }
         // Attributed here rather than by the indexer, which reads bytes and has no idea a
         // registry exists. `sources` needs this for a source's item count, and
         // `library-browsing` for the order two sources holding one title appear in.
-        _publications.update { it + publication.copy(sourceId = sourceOf(tree)) }
+        val sourceId = sourceOf(tree)
+
+        val seen = _publications.value.indexOfFirst { it.identity.matches(publication.identity) }
+        if (seen >= 0) {
+            // Unless the second find knows something the first did not. The app's own files
+            // directory is scanned before any source is restored, so a reader whose library
+            // lives there had every publication found unattributed first -- and a source
+            // that holds eleven books reported nought. Whichever scan carries a source wins.
+            if (_publications.value[seen].sourceId == null && sourceId != null) {
+                _publications.update { current ->
+                    current.mapIndexed { index, existing ->
+                        if (index == seen) existing.copy(sourceId = sourceId) else existing
+                    }
+                }
+            }
+            return
+        }
+
+        publication.identity.normalizedPath?.let { locations[publication.id] = it }
+        _publications.update { it + publication.copy(sourceId = sourceId) }
         (_scanState.value as? LibraryScanState.Scanning)?.let {
             _scanState.value = LibraryScanState.Scanning(it.found + 1)
         }

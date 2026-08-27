@@ -27,7 +27,7 @@ public enum LibraryScanState: Sendable, Equatable {
 @MainActor
 @Observable
 public final class LibraryModel {
-    public private(set) var publications: [Publication] = []
+    public internal(set) var publications: [Publication] = []
 
     /// What the user is looking at. Setting it re-arranges the shelf.
     public var query = LibraryQuery() {
@@ -56,7 +56,7 @@ public final class LibraryModel {
     public private(set) var continueReading: [Publication] = []
     public private(set) var scanState: LibraryScanState = .idle
     /// Folders the user has added, in the order they added them.
-    public private(set) var folders: [URL] = []
+    public internal(set) var folders: [URL] = []
 
     /// Covers already decoded, keyed by publication id.
     ///
@@ -71,7 +71,7 @@ public final class LibraryModel {
     /// How far through each publication the reader got, keyed by publication id.
     private var progress: [String: ReadingProgress] = [:]
 
-    private let bookmarks: FolderBookmarks?
+    let bookmarks: FolderBookmarks?
     /// Folders that were remembered and can no longer be reached.
     ///
     /// `local-library` requires naming the folder and offering a single action to
@@ -86,9 +86,9 @@ public final class LibraryModel {
     /// value type. A folder is a source: the library's source list was passed an empty
     /// array by both app shells, so it never drew a row for the folder a reader had
     /// picked.
-    public private(set) var registry = SourceRegistry()
+    public internal(set) var registry = SourceRegistry()
 
-    private let sourceStore: SourceStore?
+    let sourceStore: SourceStore?
 
     public init(
         progress: ProgressStore? = nil,
@@ -183,75 +183,6 @@ public final class LibraryModel {
         scan(url)
     }
 
-    /// How many publications a source holds.
-    ///
-    /// `sources` asks a source's detail screen for its "cached item count". Counted from
-    /// what the library actually found rather than remembered separately: two numbers that
-    /// can disagree is how a screen ends up claiming a source has titles it cannot open.
-    public func itemCount(of sourceID: Source.ID) -> Int {
-        publications.count { $0.sourceID == sourceID }
-    }
-
-    /// The source a folder belongs to, if it is registered as one.
-    ///
-    /// Matched on the folder's name, the same key ``register(_:)`` uses. The app's own
-    /// Documents folder is not a source, so a publication found there is unattributed —
-    /// which is the honest answer rather than pretending it belongs to a library the
-    /// reader picked.
-    private func source(of folder: URL) -> UUID? {
-        let name = folder.lastPathComponent
-        return registry.sources.first { $0.kind == .localFolder && $0.displayName == name }?.id
-    }
-
-    /// Records a folder as a source, if it is not one already.
-    ///
-    /// Matched on the folder's name, which is what a bookmark restores by. A folder picked
-    /// twice is one source, and the reader's own name for it survives — `sources` requires
-    /// a rename to stick, so re-adding must not overwrite one.
-    private func register(_ url: URL) {
-        let name = url.lastPathComponent
-        // Connected, not connecting. State is never persisted — it describes a network, and
-        // a state read from disk is a claim about the past — so every source loads as
-        // `connecting` and something has to answer. For a folder the answer is immediate:
-        // it is reachable or it is not, and there is nothing to probe. Left unanswered it
-        // sat on "Connecting" forever, which is what a reader saw.
-        if let existing = registry.sources.first(
-            where: { $0.kind == .localFolder && $0.displayName == name }
-        ) {
-            guard existing.state != .connected else { return }
-            registry = registry.marking(existing.id, as: .connected)
-        } else {
-            registry = registry.adding(
-                Source(displayName: name, kind: .localFolder, state: .connected)
-            )
-        }
-        sourceStore?.save(registry)
-    }
-
-    /// Removes a source and the folder behind it.
-    ///
-    /// Nothing could do this before: `sources` requires removal and there was no way to
-    /// reach it, so a reader who picked the wrong folder was stuck with it.
-    ///
-    /// The bookmark goes, the folder goes, and the registry keeps a tombstone — so reading
-    /// progress survives the thirty days the requirement promises rather than being
-    /// cascaded away. Files on disk are never touched: this removes a *library*, not a
-    /// reader's comics.
-    public func remove(_ source: Source) {
-        guard let folder = folders.first(where: { $0.lastPathComponent == source.displayName })
-        else { return }
-
-        folder.stopAccessingSecurityScopedResource()
-        bookmarks?.remove(named: source.displayName)
-        folders.removeAll { $0 == folder }
-        registry = registry.removing(source.id, at: Date())
-        sourceStore?.save(registry)
-
-        // The publications it contributed go with it, and the rest of the shelf stays.
-        publications.removeAll { $0.sourceID == source.id }
-        rebuild()
-    }
-
     /// Stops a running scan. `local-library` requires the scan to be cancellable.
     public func cancelScan() {
         scanTask?.cancel()
@@ -300,18 +231,30 @@ public final class LibraryModel {
     }
 
     private func append(_ publication: Publication, in folder: URL) {
-        // A publication already present from another folder is not added twice.
-        // Identity is what decides, not the path, so the same file reached two ways
-        // is one row (ADR-0006).
-        guard !publications.contains(where: { $0.identity.matches(publication.identity) })
-        else { return }
-
         // Attributed here rather than by the indexer: indexing decides what a publication
         // is, and the library is the only thing that knows which source it was reached
         // through. `sources` needs this for a source's item count, and
         // `library-browsing` for the order two sources holding one title appear in.
         var attributed = publication
         attributed.sourceID = source(of: folder)
+
+        // A publication already present from another folder is not added twice.
+        // Identity is what decides, not the path, so the same file reached two ways
+        // is one row (ADR-0006).
+        if let seen = publications.firstIndex(
+            where: { $0.identity.matches(publication.identity) }
+        ) {
+            // Unless the second find knows something the first did not. The app's own
+            // Documents folder is scanned before any source is restored, so a reader whose
+            // library lives there had every publication found unattributed first — and a
+            // source that holds eleven books reported nought. Whichever scan carries a
+            // source wins; the earlier row is otherwise identical.
+            if publications[seen].sourceID == nil, attributed.sourceID != nil {
+                publications[seen].sourceID = attributed.sourceID
+            }
+            return
+        }
+
         publications.append(attributed)
         if let path = publication.identity.normalizedPath {
             locations[publication.id] = URL(fileURLWithPath: path)
@@ -328,8 +271,10 @@ public final class LibraryModel {
 
     private let rebuildEvery = 24
 
+    // Internal, not private: `private` is file-scoped, and the callers now sit
+    // in the other half of this type.
     /// Recomputes what is on screen from the library and the query.
-    private func rebuild() {
+    func rebuild() {
         visible = LibraryIndex.arrange(publications, query: query) { self.state(of: $0) }
         continueReading = LibraryIndex.continueReading(publications) { self.state(of: $0) }
     }

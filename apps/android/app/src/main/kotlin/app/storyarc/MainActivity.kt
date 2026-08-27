@@ -189,6 +189,9 @@ class MainActivity : ComponentActivity() {
                         sources = registry.sources,
                         itemCount = { libraryViewModel.itemCount(it.id) },
                         onRemoveSource = { libraryViewModel.removeSource(it) },
+                        onRenameSource = { source, name ->
+                            libraryViewModel.renameSource(source, name)
+                        },
                         // Written through on every change rather than on the way out.
                         // `settings-and-about` requires an appearance to apply
                         // immediately, and the state lives here so the theme above

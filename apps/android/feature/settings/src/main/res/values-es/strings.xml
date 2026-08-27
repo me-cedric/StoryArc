@@ -100,4 +100,8 @@
         <item quantity="one">Esto quita %1$d publicación de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días.</item>
         <item quantity="other">Esto quita %1$d publicaciones de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días.</item>
     </plurals>
+    <string name="sources_rename_title">Renombrar fuente</string>
+    <string name="sources_rename_field">Nombre</string>
+    <string name="sources_rename_save">Guardar</string>
+    <string name="sources_rename_action">Renombrar %1$s</string>
 </resources>

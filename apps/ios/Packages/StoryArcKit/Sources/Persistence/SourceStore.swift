@@ -51,6 +51,7 @@ private struct StoredRegistry: Codable {
         let kind: String
         let lastSuccessfulSync: Date?
         let credentialReference: String?
+        let locator: String?
     }
 
     let sources: [Entry]
@@ -63,7 +64,8 @@ private struct StoredRegistry: Codable {
                 displayName: source.displayName,
                 kind: source.kind.rawValue,
                 lastSuccessfulSync: source.lastSuccessfulSync,
-                credentialReference: source.credentialReference
+                credentialReference: source.credentialReference,
+                locator: source.locator
             )
         }
         tombstones = registry.tombstones
@@ -81,7 +83,8 @@ private struct StoredRegistry: Codable {
                     displayName: entry.displayName,
                     kind: kind,
                     lastSuccessfulSync: entry.lastSuccessfulSync,
-                    credentialReference: entry.credentialReference
+                    credentialReference: entry.credentialReference,
+                    locator: entry.locator
                 )
             },
             tombstones: tombstones

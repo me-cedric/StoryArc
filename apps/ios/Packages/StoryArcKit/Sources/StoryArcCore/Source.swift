@@ -38,14 +38,26 @@ public struct Source: Sendable, Identifiable, Equatable {
     /// `sources` forbids a secret reaching preferences, logs or backups.
     public var credentialReference: String?
 
+    /// Where this source points, as the platform names it.
+    ///
+    /// A folder's path or bookmark name; a server's URL when one exists. The *stable* key:
+    /// `displayName` is the reader's and moves when they rename it, so matching a folder to
+    /// its source by name means a renamed source is not recognised on the next launch and
+    /// gets added a second time. That is the bug this field exists to prevent.
+    ///
+    /// Optional only so a source can be constructed in a test without inventing one.
+    public var locator: String?
+
     public init(
         id: UUID = UUID(),
         displayName: String,
         kind: SourceKind,
         state: SourceConnectionState = .connecting,
         lastSuccessfulSync: Date? = nil,
-        credentialReference: String? = nil
+        credentialReference: String? = nil,
+        locator: String? = nil
     ) {
+        self.locator = locator
         self.id = id
         self.displayName = displayName
         self.kind = kind

@@ -23,8 +23,15 @@ struct SourcesSettings: View {
     /// How many publications each source holds, for the removal statement.
     let itemCount: (Source.ID) -> Int
     let onRemove: (Source) -> Void
+    let onRename: (Source, String) -> Void
 
     @State private var removing: Source?
+    @State private var renaming: Source?
+    @State private var draftName = ""
+
+    private var isRenaming: Binding<Bool> {
+        Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
+    }
 
     var body: some View {
         List {
@@ -40,6 +47,27 @@ struct SourcesSettings: View {
                 ForEach(sources) { source in
                     row(source)
                 }
+            }
+        }
+        // `sources` requires a rename to appear "everywhere the source is referenced",
+        // which it does because the registry keeps the identifier and only the name moves.
+        .alert(
+            Text("sources.rename.title", bundle: .module),
+            isPresented: isRenaming,
+            presenting: renaming
+        ) { source in
+            TextField(
+                String(localized: "sources.rename.field", bundle: .module),
+                text: $draftName
+            )
+            Button {
+                onRename(source, draftName)
+                renaming = nil
+            } label: {
+                Text("sources.rename.save", bundle: .module)
+            }
+            Button(role: .cancel) { renaming = nil } label: {
+                Text("sources.rename.cancel", bundle: .module)
             }
         }
         .confirmationDialog(
@@ -113,6 +141,14 @@ struct SourcesSettings: View {
         .swipeActions(edge: .trailing) {
             Button(role: .destructive) { removing = source } label: {
                 Text("sources.remove", bundle: .module)
+            }
+            Button {
+                // Seeded with the current name rather than blank: a rename is usually a
+                // correction, and retyping a folder's whole name to fix one letter is not.
+                draftName = source.displayName
+                renaming = source
+            } label: {
+                Text("sources.rename", bundle: .module)
             }
         }
     }

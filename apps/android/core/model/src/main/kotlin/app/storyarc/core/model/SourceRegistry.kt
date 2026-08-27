@@ -63,6 +63,16 @@ data class SourceRegistry(
     }
 
     /**
+     * Records what a source's connection looks like right now.
+     *
+     * State is deliberately not persisted — it describes a network, and a state read back
+     * from disk is a claim about the past. So something has to set it after a launch, and
+     * this is what that something calls.
+     */
+    fun marking(id: UUID, state: SourceConnectionState): SourceRegistry =
+        copy(sources = sources.map { if (it.id == id) it.copy(state = state) else it })
+
+    /**
      * Removes a source, and remembers that it was removed.
      *
      * The tombstone is the whole point. `sources` requires the app to retain "local

@@ -17,7 +17,7 @@
     "tokens:verify": "node scripts/verify-tokens-in-sync.mjs",
     "spec:validate": "cd docs && openspec validate --all",
     "spec:list": "cd docs && openspec list --specs",
-    "lint": "pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check",
+    "lint": "pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm corpus:check",
     "lint:ios": "swiftlint lint --strict",
     "lint:android": "cd apps/android && ./gradlew lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test",
@@ -31,6 +31,8 @@
     "fixtures:check": "python3 packages/test-fixtures/scripts/generate.py --check",
     "smoke:android": "node scripts/smoke-android.mjs",
     "notices": "node scripts/notices.mjs",
+    "corpus": "node scripts/corpus.mjs",
+    "corpus:check": "node scripts/corpus.mjs --self-test",
     "notices:check": "node scripts/notices.mjs --check"
   },
   "devDependencies": {

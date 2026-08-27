@@ -75,6 +75,7 @@ internal data class StoredRegistry(
                 kind = kind,
                 lastSuccessfulSyncEpochMillis = entry.lastSuccessfulSyncEpochMillis,
                 credentialReference = entry.credentialReference,
+                locator = entry.locator,
             )
         },
         tombstones = tombstones.map {
@@ -91,6 +92,7 @@ internal data class StoredRegistry(
                     kind = it.kind.name,
                     lastSuccessfulSyncEpochMillis = it.lastSuccessfulSyncEpochMillis,
                     credentialReference = it.credentialReference,
+                    locator = it.locator,
                 )
             },
             tombstones = registry.tombstones.map {
@@ -107,6 +109,7 @@ internal data class StoredSource(
     val kind: String,
     val lastSuccessfulSyncEpochMillis: Long? = null,
     val credentialReference: String? = null,
+    val locator: String? = null,
 )
 
 @Serializable

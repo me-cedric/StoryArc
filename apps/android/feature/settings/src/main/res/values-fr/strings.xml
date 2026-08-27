@@ -100,4 +100,8 @@
         <item quantity="one">Cela retire %1$d publication de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
         <item quantity="other">Cela retire %1$d publications de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
     </plurals>
+    <string name="sources_rename_title">Renommer la source</string>
+    <string name="sources_rename_field">Nom</string>
+    <string name="sources_rename_save">Enregistrer</string>
+    <string name="sources_rename_action">Renommer %1$s</string>
 </resources>

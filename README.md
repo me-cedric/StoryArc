@@ -295,6 +295,21 @@ that looked correct in a screenshot.
 Run it on every screen a change touches. It reads whatever is on screen at the
 moment you run it, so navigate first.
 
+### A library to test against
+
+Nothing on a screenshot means much against an empty library, and a folder that only
+one machine has is not a fixture. This writes one:
+
+```bash
+pnpm corpus ~/StoryArcCorpus     # or --simulator, into the booted app's Documents
+```
+
+It generates a publication per format the app claims to read — CBZ, CBT, a folder of
+images, reflowable and fixed-layout EPUB, and PDF — plus a series to exercise "next in
+series" and one deliberately unreadable file so the refusal path has something to
+refuse. `pnpm corpus:check` verifies the bytes it writes, and runs as part of
+`pnpm check`.
+
 ## Contributing
 
 [`docs/openspec/STATUS.md`](docs/openspec/STATUS.md) says how much of each specified
