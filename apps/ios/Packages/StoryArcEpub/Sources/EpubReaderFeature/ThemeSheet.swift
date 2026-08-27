@@ -54,7 +54,11 @@ struct ThemeSheet: View {
             // thing that would prevent that. The system's material also carries
             // its own Reduce-Transparency fallback, so declaring a second one
             // would only be able to disagree with it.
+            // Inline, not a large title. A large title puts the sheet's name on its own
+            // line under the toolbar, which costs a reader about 60 points of the page
+            // they came here to adjust — on a sheet that is already only half the screen.
             .navigationTitle(Text("theme.title", bundle: .module))
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button { dismiss() } label: { Text("theme.done", bundle: .module) }

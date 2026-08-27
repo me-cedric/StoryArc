@@ -115,6 +115,8 @@ struct TableOfContentsSheet: View {
         return NavigationStack {
             rows(entries, current: current)
                 .navigationTitle(Text("contents.title", bundle: .module))
+                // Inline, matching the theme sheet. See the note there.
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button { dismiss() } label: { Text("contents.done", bundle: .module) }
