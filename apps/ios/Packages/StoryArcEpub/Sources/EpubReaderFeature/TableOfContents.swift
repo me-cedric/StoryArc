@@ -29,6 +29,12 @@ struct ContentsEntry: Identifiable {
     /// Held rather than derived per comparison: marking the current row walks every
     /// entry, and parsing the same URL on each pass buys nothing.
     let resource: String
+    /// Whether the entry points at an anchor inside its resource rather than at the
+    /// whole of it.
+    ///
+    /// The difference decides whether any row can claim the reader's place. See
+    /// ``EpubReaderModel/currentEntry(in:)``.
+    let isAnchor: Bool
 }
 
 extension EpubReaderModel {
@@ -56,24 +62,30 @@ extension EpubReaderModel {
                     title: link.title,
                     depth: depth,
                     link: link,
-                    resource: link.url().removingQuery().removingFragment().string
+                    resource: link.url().removingQuery().removingFragment().string,
+                    isAnchor: link.url().fragment != nil
                 )
             )
             flatten(link.children, depth: depth + 1, into: &rows)
         }
     }
 
-    /// Which row the reader is inside, or `nil` when the navigation does not name
-    /// the resource they are in.
+    /// Which row the reader is inside, or `nil` when no row can honestly claim it.
     ///
-    /// Matched on the resource alone. Where a publication lists several entries
-    /// inside one resource, the first of them is marked: an entry carries a fragment
-    /// but no position, so which of them the reader has scrolled past is not a
-    /// question Readium can answer. And a resource the navigation never names marks
-    /// nothing, rather than marking a neighbour that is not where the reader is.
+    /// Matched on the resource, and then one more test that matters more than it looks.
+    /// An entry pointing at the whole resource owns it, so that row is the reader's
+    /// place. An entry pointing at an *anchor* inside the resource is one of several,
+    /// and nothing in a locator says which anchor the reader has scrolled past — so
+    /// none of them is marked.
+    ///
+    /// Without that test, a publication whose whole text is one content document —
+    /// `book.xhtml#ch1`, `book.xhtml#ch2`, and so on — marks its first chapter
+    /// wherever the reader actually is. A mark that is wrong everywhere is worse than
+    /// no mark, because the reader cannot tell which it is.
     func currentEntry(in entries: [ContentsEntry]) -> ContentsEntry.ID? {
         guard let href = locator?.href.removingQuery().removingFragment().string else { return nil }
-        return entries.first { $0.resource == href }?.id
+        guard let match = entries.first(where: { $0.resource == href }) else { return nil }
+        return match.isAnchor ? nil : match.id
     }
 
     /// Jumps to a navigation entry.
@@ -125,10 +137,11 @@ struct TableOfContentsSheet: View {
         } else {
             List(entries) { entry in
                 ContentsRow(entry: entry, isCurrent: entry.id == current) {
-                    Task {
-                        await model.go(to: entry)
-                        dismiss()
-                    }
+                    // Closed before the jump, not after it. The move belongs to the
+                    // model and outlives the sheet, and waiting for Readium to land
+                    // would leave the reader looking at a list they have left.
+                    dismiss()
+                    Task { await model.go(to: entry) }
                 }
             }
             .listStyle(.plain)

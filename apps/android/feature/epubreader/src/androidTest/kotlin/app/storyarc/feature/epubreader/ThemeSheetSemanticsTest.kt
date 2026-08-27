@@ -11,7 +11,10 @@ import androidx.compose.ui.test.assert
 import androidx.test.platform.app.InstrumentationRegistry
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.FontSizeStep
+import app.storyarc.core.model.PageTransition
+import app.storyarc.core.model.TransitionChoices
 import app.storyarc.core.model.ReadingTheme
+import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.sliderRange
@@ -47,6 +50,18 @@ class ThemeSheetSemanticsTest {
                     onBrightness = {},
                     onRestore = {},
                     onLeavePublisherStyles = {},
+                    onAdoptColours = { true },
+                    onDiscardColours = {},
+                    // Everything available. This suite is about what the sheet *says*, and
+                    // an unavailable mode is a different assertion in a different test.
+                    choices = TransitionChoices(
+                        chosen = PageTransition.SLIDE,
+                        axis = ScrollAxis.VERTICAL,
+                        reduceMotion = false,
+                        canCurl = true,
+                        isReflowable = true,
+                    ),
+                    onChooseTransition = {},
                 )
             }
         }

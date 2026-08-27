@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -117,8 +118,10 @@ private fun ContentsRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            // Material's 48 dp touch-target floor, per `native-experience`.
-            .heightIn(min = StoryArcSpace.xxl + StoryArcSpace.lg)
+            // Material's 48dp touch-target floor, per `native-experience`. Stated, not
+            // composed from two spacing tokens: 32 plus 16 happens to be 48 today, and a
+            // change to either would drop the floor without anything saying so.
+            .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onGo)
             // Without the merge a screen reader reads the title and the place marker as
             // two unrelated pieces of text on the way past.
@@ -177,14 +180,23 @@ internal fun List<Link>.flattenedEntries(depth: Int = 0): List<ContentsEntry> =
     }
 
 /**
- * The first entry that points at the resource being read, or -1.
+ * The entry that owns the resource being read, or -1 when none of them can claim it.
  *
  * Matched on the resource with its fragment removed, because a locator reports the
- * resource a reader is in and not the anchor they passed on the way through it. Where a
- * chapter and its own subsections share one resource, the chapter is the honest answer:
- * nothing in a locator says which anchor is above the fold.
+ * resource a reader is in and not the anchor they passed on the way through it. Then one
+ * more test that matters more than it looks: an entry pointing at the *whole* resource
+ * owns it, and an entry pointing at an anchor inside the resource is one of several.
+ * Nothing in a locator says which anchor the reader has scrolled past, so none of them is
+ * marked.
+ *
+ * Without that test, a publication whose whole text is one content document —
+ * `book.xhtml#ch1`, `book.xhtml#ch2`, and so on — marks its first chapter wherever the
+ * reader actually is. A mark that is wrong everywhere is worse than no mark, because the
+ * reader cannot tell which it is.
  */
 internal fun List<ContentsEntry>.indexOfResource(resource: Url?): Int {
     if (resource == null) return -1
-    return indexOfFirst { it.link.url().removeFragment().isEquivalent(resource) }
+    val at = indexOfFirst { it.link.url().removeFragment().isEquivalent(resource) }
+    if (at < 0) return -1
+    return if (this[at].link.url().fragment == null) at else -1
 }

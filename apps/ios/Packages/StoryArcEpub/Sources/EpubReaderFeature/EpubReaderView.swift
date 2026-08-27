@@ -25,6 +25,7 @@ public struct EpubReaderView: View {
     @State private var model: EpubReaderModel
     @State private var isChromeVisible = true
     @State private var isShowingTheme = false
+    @State private var isShowingContents = false
     /// What the device's brightness was before the reader touched it.
     @State private var deviceBrightness: CGFloat?
 
@@ -91,6 +92,19 @@ public struct EpubReaderView: View {
                 // page stays readable beside it.
                 .frame(idealWidth: 380, idealHeight: 620)
         }
+        // Presented like the theme sheet, for the same reason: on a tablet the
+        // navigation sits beside the page it is about, and on a phone the platform
+        // turns the same declaration into a detented sheet.
+        .popover(
+            isPresented: $isShowingContents,
+            attachmentAnchor: .rect(.bounds),
+            arrowEdge: .top
+        ) {
+            TableOfContentsSheet(model: model)
+                .presentationCompactAdaptation(.sheet)
+                .presentationDetents([.medium, .large])
+                .frame(idealWidth: 380, idealHeight: 620)
+        }
         .task { await model.open() }
         .statusBarHidden(!isChromeVisible)
         .toolbar(.hidden, for: .navigationBar)
@@ -132,6 +146,17 @@ public struct EpubReaderView: View {
                 .tint(theme.palette.textPrimary)
 
                 Spacer()
+
+                Button { isShowingContents = true } label: {
+                    Label {
+                        Text("contents.title", bundle: .module)
+                    } icon: {
+                        Image(systemName: "list.bullet")
+                    }
+                    .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.glass)
+                .tint(theme.palette.textPrimary)
 
                 Button { isShowingTheme = true } label: {
                     Label {

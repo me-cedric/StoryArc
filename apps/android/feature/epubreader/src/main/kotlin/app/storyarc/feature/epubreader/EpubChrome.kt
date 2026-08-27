@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Toc
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.TextFormat
 import androidx.compose.material3.Icon
@@ -47,7 +48,9 @@ internal fun EpubChrome(
     progression: Double,
     failure: String?,
     isVisible: Boolean,
+    isContentsReady: Boolean,
     onClose: () -> Unit,
+    onOpenContents: () -> Unit,
     onOpenTheme: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -105,6 +108,18 @@ internal fun EpubChrome(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+
+                Surface(shape = CircleShape, color = palette.surfaceRaised) {
+                    // Refused rather than hidden until the publication is open. A control
+                    // that appears a moment after the chrome does moves the two beside it.
+                    IconButton(onClick = onOpenContents, enabled = isContentsReady) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Toc,
+                            contentDescription = stringResource(R.string.epub_contents),
+                            tint = if (isContentsReady) palette.textPrimary else palette.textTertiary,
+                        )
+                    }
+                }
 
                 Surface(shape = CircleShape, color = palette.surfaceRaised) {
                     IconButton(onClick = onOpenTheme) {

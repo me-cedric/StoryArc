@@ -33,9 +33,11 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.util.AbsoluteUrl
+import org.readium.r2.shared.util.Url
 import org.readium.r2.shared.util.asset.AssetRetriever
 import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.http.DefaultHttpClient
@@ -122,6 +124,20 @@ class EpubReaderViewModel(
 
     private val _chapterTitle = MutableStateFlow<String?>(null)
     val chapterTitle: StateFlow<String?> = _chapterTitle.asStateFlow()
+
+    /**
+     * The publication's own navigation, or null until the publication is open.
+     *
+     * Null and empty are different answers. Empty means the publication declares no
+     * navigation, which the sheet says out loud; null means nobody has asked the
+     * publication yet, and a sheet opened then would report a bare book that is not bare.
+     */
+    private val _tableOfContents = MutableStateFlow<List<Link>?>(null)
+    val tableOfContents: StateFlow<List<Link>?> = _tableOfContents.asStateFlow()
+
+    /** The resource being read, so the table of contents can mark the reader's place. */
+    private val _currentResource = MutableStateFlow<Url?>(null)
+    val currentResource: StateFlow<Url?> = _currentResource.asStateFlow()
 
     /** Which preset is on and which axes have been moved from it. */
     private val _theme = MutableStateFlow(
@@ -347,6 +363,7 @@ class EpubReaderViewModel(
             return@withContext null
         }
         readingOrder = publication.readingOrder.map { it.href.toString() }
+        _tableOfContents.value = publication.tableOfContents
         publication
     }
 
@@ -389,6 +406,7 @@ class EpubReaderViewModel(
         scope.launch {
             locators.collect { locator ->
                 _chapterTitle.value = locator.title
+                _currentResource.value = locator.href.removeFragment()
                 val total = totalProgressionOf(locator)
                 _progression.value = total
                 record(locator, total)

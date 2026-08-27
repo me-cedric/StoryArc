@@ -36,6 +36,8 @@ import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.shared.ExperimentalReadiumApi
+import org.readium.r2.shared.publication.Link
+import org.readium.r2.shared.util.Url
 
 /**
  * A reflowable book, open.
@@ -141,7 +143,10 @@ class EpubReaderActivity : FragmentActivity() {
                     val values by model.values.collectAsStateWithLifecycle()
                     val transition by model.transition.collectAsStateWithLifecycle()
                     val brightness by model.brightness.collectAsStateWithLifecycle()
+                    val contents by model.tableOfContents.collectAsStateWithLifecycle()
+                    val resource by model.currentResource.collectAsStateWithLifecycle()
                     var isShowingTheme by remember { mutableStateOf(false) }
+                    var isShowingContents by remember { mutableStateOf(false) }
 
                     // `reading-themes`: reader-local. A window attribute rather than
                     // the system setting, so it reverts when this screen goes away.
@@ -157,6 +162,18 @@ class EpubReaderActivity : FragmentActivity() {
                     // either half of the theme changes rather than when the sheet
                     // closes.
                     LaunchedEffect(theme, values, transition) { applyTheme() }
+
+                    if (isShowingContents) {
+                        ContentsBottomSheet(
+                            entries = contents.orEmpty(),
+                            currentResource = resource,
+                            onGo = { link ->
+                                go(link)
+                                isShowingContents = false
+                            },
+                            onDismiss = { isShowingContents = false },
+                        )
+                    }
 
                     if (isShowingTheme) {
                         ThemeBottomSheet(
@@ -183,7 +200,9 @@ class EpubReaderActivity : FragmentActivity() {
                         progression = progression,
                         failure = failure,
                         isVisible = isVisible,
+                        isContentsReady = contents != null,
                         onClose = { finish() },
+                        onOpenContents = { isShowingContents = true },
                         onOpenTheme = { isShowingTheme = true },
                     )
                 }
@@ -271,6 +290,39 @@ class EpubReaderActivity : FragmentActivity() {
             delay(REFLOW_SETTLE_MILLIS)
             navigator.go(locator, animated = false)
         }
+    }
+
+    /**
+     * Jumps to a table-of-contents entry.
+     *
+     * The navigator is asked for the link rather than for a locator built here: it is
+     * Readium that knows how the entry's fragment maps onto a position in the resource.
+     */
+    @OptIn(ExperimentalReadiumApi::class)
+    private fun go(link: Link) {
+        val navigator =
+            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
+                ?: return
+
+        navigator.go(link, animated = false)
+    }
+}
+
+/** The table of contents, in the same modal bottom sheet the theme sheet uses. */
+@OptIn(ExperimentalMaterial3Api::class)
+@androidx.compose.runtime.Composable
+private fun ContentsBottomSheet(
+    entries: List<Link>,
+    currentResource: Url?,
+    onGo: (Link) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        TableOfContents(
+            entries = entries,
+            currentResource = currentResource,
+            onGo = onGo,
+        )
     }
 }
 
