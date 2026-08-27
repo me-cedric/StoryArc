@@ -49,4 +49,12 @@
     <string name="library_layout_grid">Grille</string>
     <string name="library_layout_list">Liste</string>
     <string name="library_settings">Réglages</string>
+    <string name="source_remove">Retirer</string>
+    <string name="source_remove_action">Retirer %1$s</string>
+    <string name="source_remove_title">Retirer %1$s ?</string>
+    <string name="library_cancel">Annuler</string>
+    <plurals name="source_remove_body">
+        <item quantity="one">Cela retire %1$d publication de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
+        <item quantity="other">Cela retire %1$d publications de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
+    </plurals>
 </resources>

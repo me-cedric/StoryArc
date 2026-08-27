@@ -49,4 +49,12 @@
     <string name="library_layout_grid">Grid</string>
     <string name="library_layout_list">List</string>
     <string name="library_settings">Settings</string>
+    <string name="source_remove">Remove</string>
+    <string name="source_remove_action">Remove %1$s</string>
+    <string name="source_remove_title">Remove %1$s?</string>
+    <string name="library_cancel">Cancel</string>
+    <plurals name="source_remove_body">
+        <item quantity="one">This removes %1$d publication from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days.</item>
+        <item quantity="other">This removes %1$d publications from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days.</item>
+    </plurals>
 </resources>

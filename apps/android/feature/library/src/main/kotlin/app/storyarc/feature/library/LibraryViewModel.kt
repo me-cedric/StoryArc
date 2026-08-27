@@ -221,6 +221,23 @@ class LibraryViewModel(
         sourceStore?.save(_registry.value)
     }
 
+    /**
+     * Removes a source and the folder behind it.
+     *
+     * Nothing could do this before: `sources` requires removal and no UI reached
+     * [removeFolder], so a reader who picked the wrong folder was stuck with it.
+     *
+     * The permission goes back, the registry keeps a tombstone so reading progress survives
+     * the thirty days the requirement promises, and files on disk are never touched — this
+     * removes a *library*, not a reader's comics.
+     */
+    fun removeSource(source: Source) {
+        val tree = _folders.value.firstOrNull {
+            it.lastPathSegment?.substringAfterLast('/') == source.displayName
+        } ?: return
+        removeFolder(tree)
+    }
+
     /** Removes a folder and gives its permission back. */
     fun removeFolder(tree: Uri) {
         _folders.update { it - tree }

@@ -49,4 +49,12 @@
     <string name="library_layout_grid">Raster</string>
     <string name="library_layout_list">Liste</string>
     <string name="library_settings">Einstellungen</string>
+    <string name="source_remove">Entfernen</string>
+    <string name="source_remove_action">%1$s entfernen</string>
+    <string name="source_remove_title">%1$s entfernen?</string>
+    <string name="library_cancel">Abbrechen</string>
+    <plurals name="source_remove_body">
+        <item quantity="one">Das entfernt %1$d Publikation aus Ihrer Bibliothek. Es wird keine Datei auf dem Gerät gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten.</item>
+        <item quantity="other">Das entfernt %1$d Publikationen aus Ihrer Bibliothek. Es wird keine Datei auf dem Gerät gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten.</item>
+    </plurals>
 </resources>

@@ -4,25 +4,6 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,21 +17,38 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -62,6 +60,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
@@ -73,8 +74,9 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.Source
-import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.SourceRegistry
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * The library. At this stage it renders the empty state and the source list —
@@ -273,7 +275,11 @@ fun LibraryScreen(
 
                 state is LibraryScanState.Scanning -> Scanning(state.found)
                 registry.sources.isEmpty() -> EmptyLibrary(onScan = { pickFolder.launch(null) })
-                else -> SourceList(registry.sources)
+                else -> SourceList(
+                    sources = registry.sources,
+                    itemCount = { viewModel?.itemCount(it.id) ?: 0 },
+                    onRemove = viewModel?.let { model -> { model.removeSource(it) } },
+                )
             }
         }
     }
@@ -633,8 +639,50 @@ private fun SourceKindRow(kind: SourceKind, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SourceList(sources: List<Source>, modifier: Modifier = Modifier) {
+private fun SourceList(
+    sources: List<Source>,
+    modifier: Modifier = Modifier,
+    itemCount: (Source) -> Int = { 0 },
+    onRemove: ((Source) -> Unit)? = null,
+) {
     val palette = LocalStoryArcPalette.current
+    var removing by remember { mutableStateOf<Source?>(null) }
+
+    removing?.let { source ->
+        AlertDialog(
+            onDismissRequest = { removing = null },
+            title = { Text(stringResource(R.string.source_remove_title, source.displayName)) },
+            // `sources` asks the app to state "how many downloaded files and how much disk
+            // space will be freed before asking for confirmation". For a folder the honest
+            // answer is none and nothing, and saying so is the whole point: a reader must
+            // not have to guess whether this deletes their comics.
+            text = {
+                Text(
+                    pluralStringResource(
+                        R.plurals.source_remove_body,
+                        itemCount(source),
+                        itemCount(source),
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onRemove?.invoke(source)
+                    removing = null
+                }) {
+                    Text(
+                        text = stringResource(R.string.source_remove),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { removing = null }) {
+                    Text(stringResource(R.string.library_cancel))
+                }
+            },
+        )
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -679,6 +727,19 @@ private fun SourceList(sources: List<Source>, modifier: Modifier = Modifier) {
                         color = source.state.indicatorColor(palette),
                         content = {},
                     )
+
+                    if (onRemove != null) {
+                        IconButton(onClick = { removing = source }) {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = stringResource(
+                                    R.string.source_remove_action,
+                                    source.displayName,
+                                ),
+                                tint = palette.textSecondary,
+                            )
+                        }
+                    }
                 }
             }
         }

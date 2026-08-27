@@ -49,4 +49,12 @@
     <string name="library_layout_grid">Cuadrícula</string>
     <string name="library_layout_list">Lista</string>
     <string name="library_settings">Ajustes</string>
+    <string name="source_remove">Quitar</string>
+    <string name="source_remove_action">Quitar %1$s</string>
+    <string name="source_remove_title">¿Quitar %1$s?</string>
+    <string name="library_cancel">Cancelar</string>
+    <plurals name="source_remove_body">
+        <item quantity="one">Esto quita %1$d publicación de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días.</item>
+        <item quantity="other">Esto quita %1$d publicaciones de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días.</item>
+    </plurals>
 </resources>
