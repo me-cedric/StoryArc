@@ -613,8 +613,35 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       The reader's wording was corrected at the same time. "Not available" reads as a
       property of the format; "not available yet" is what is true.
 
-      Reverify against Apple Books when this is built: the crease, the lit edge, and the
-      mirrored text on the back are the three things to compare.
+      **iOS Fast fade is done.** `ReflowableTurn.swift` plus
+      `EpubReaderModel.turnWithFade(forward:)`: its own tap and pan recognisers, a
+      `snapshotView` of the outgoing page, `goForward(animated: false)`, then the still
+      fades. `canFade` joins `canCurl` as a platform capability so the two readers can
+      disagree honestly.
+
+      **Android Fast fade is bounded, and here is the boundary.** It is harder than iOS,
+      for one specific reason:
+
+      - iOS: `PaginationView.isScrollEnabled` is internal, but the paginated container is
+        a `UIScrollView` and `isScrollEnabled` on *that* is public. One line disables
+        Readium's swipe and our own recognisers take over.
+      - Android: `EpubNavigatorFragment.resourcePager` is a **public field**, which is
+        better — no hierarchy walk needed. But it is an `R2ViewPager`, which extends the
+        old `ViewPager` and exposes no input switch. `javap` shows only
+        `setCurrentItem(int)`, `onTouchEvent` and `onInterceptTouchEvent`. There is no
+        `isUserInputEnabled` as `ViewPager2` would have.
+
+      So Android needs a touch-interception layer over the `FragmentContainerView` that
+      consumes a horizontal drag past a threshold and passes everything else through — link
+      taps and text selection must keep working, which is what makes it fiddly rather than
+      long. `drawToBitmap` on the container gives the still directly, because Android's
+      WebView renders in process.
+
+      Until that lands the Android reader passes `canFade = false` and says "not available
+      yet", rather than offering a mode that quietly gives a Slide.
+
+      Reverify against Apple Books when the curl is built: the crease, the lit edge, and
+      the mirrored text on the back are the three things to compare.
 - [x] **4.4** Scroll mode with the axis rule, including the webtoon default.
       **Done.** A lazy list on both platforms, pages stitched with no gap: each page
       fills the scroll's *cross* axis and takes what it needs along the scroll axis.
