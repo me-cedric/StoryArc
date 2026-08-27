@@ -153,7 +153,10 @@ struct StoryArcApp: App {
                 SettingsView(
                     settings: settingsBinding,
                     readerStore: ReaderPreferences(),
-                    onReset: resetSettings
+                    onReset: resetSettings,
+                    sources: library.registry.sources,
+                    itemCount: { library.itemCount(of: $0) },
+                    onRemoveSource: { library.remove($0) }
                 )
                     .storyArcTheme(appearance: settings.appearance)
             }

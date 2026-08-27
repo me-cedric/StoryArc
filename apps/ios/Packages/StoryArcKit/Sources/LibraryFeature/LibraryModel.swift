@@ -210,9 +210,21 @@ public final class LibraryModel {
     /// a rename to stick, so re-adding must not overwrite one.
     private func register(_ url: URL) {
         let name = url.lastPathComponent
-        guard !registry.sources.contains(where: { $0.kind == .localFolder && $0.displayName == name })
-        else { return }
-        registry = registry.adding(Source(displayName: name, kind: .localFolder, state: .connected))
+        // Connected, not connecting. State is never persisted — it describes a network, and
+        // a state read from disk is a claim about the past — so every source loads as
+        // `connecting` and something has to answer. For a folder the answer is immediate:
+        // it is reachable or it is not, and there is nothing to probe. Left unanswered it
+        // sat on "Connecting" forever, which is what a reader saw.
+        if let existing = registry.sources.first(
+            where: { $0.kind == .localFolder && $0.displayName == name }
+        ) {
+            guard existing.state != .connected else { return }
+            registry = registry.marking(existing.id, as: .connected)
+        } else {
+            registry = registry.adding(
+                Source(displayName: name, kind: .localFolder, state: .connected)
+            )
+        }
         sourceStore?.save(registry)
     }
 

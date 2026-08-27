@@ -64,6 +64,18 @@ public struct SourceRegistry: Sendable, Equatable {
         return SourceRegistry(sources: moved, tombstones: tombstones)
     }
 
+    /// Records what a source's connection looks like right now.
+    ///
+    /// State is deliberately not persisted — it describes a network, and a state read back
+    /// from disk is a claim about the past. So something has to set it after a launch, and
+    /// this is what that something calls.
+    public func marking(_ id: Source.ID, as state: SourceConnectionState) -> SourceRegistry {
+        SourceRegistry(
+            sources: sources.map { $0.id == id ? $0.with(state) : $0 },
+            tombstones: tombstones
+        )
+    }
+
     /// Removes a source, and remembers that it was removed.
     ///
     /// The tombstone is the whole point. `sources` requires the app to retain "local
@@ -130,6 +142,18 @@ public struct SourceTombstone: Sendable, Equatable, Codable {
 }
 
 extension Source {
+    /// The same source in a new connection state.
+    func with(_ state: SourceConnectionState) -> Source {
+        Source(
+            id: id,
+            displayName: displayName,
+            kind: kind,
+            state: state,
+            lastSuccessfulSync: lastSuccessfulSync,
+            credentialReference: credentialReference
+        )
+    }
+
     /// The same source under a new name.
     func renamed(_ name: String) -> Source {
         Source(

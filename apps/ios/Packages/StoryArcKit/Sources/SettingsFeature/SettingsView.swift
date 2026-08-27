@@ -35,17 +35,29 @@ public struct SettingsView: View {
     /// Returns everything this screen can set to its default, and nothing else.
     private let onReset: () -> Void
 
+    /// The configured sources. Handed in, because the registry belongs to the library and a
+    /// feature module never depends on another feature module.
+    private let sources: [Source]
+    private let itemCount: (Source.ID) -> Int
+    private let onRemoveSource: (Source) -> Void
+
     @State private var query = ""
     @State private var isConfirmingReset = false
 
     public init(
         settings: Binding<AppSettings>,
         readerStore: ReaderPreferences,
-        onReset: @escaping () -> Void
+        onReset: @escaping () -> Void,
+        sources: [Source] = [],
+        itemCount: @escaping (Source.ID) -> Int = { _ in 0 },
+        onRemoveSource: @escaping (Source) -> Void = { _ in }
     ) {
         _settings = settings
         self.readerStore = readerStore
         self.onReset = onReset
+        self.sources = sources
+        self.itemCount = itemCount
+        self.onRemoveSource = onRemoveSource
     }
 
     public var body: some View {
@@ -123,9 +135,11 @@ public struct SettingsView: View {
         case .reading: ReadingSettings(settings: $settings, readerStore: readerStore)
         case .privacy: PrivacySettings(settings: settings, readerStore: readerStore)
         case .about: AboutSettings()
+        case .sources:
+            SourcesSettings(sources: sources, itemCount: itemCount, onRemove: onRemoveSource)
         // Named rather than hidden. A group whose rows arrive with a capability that does
         // not exist yet says so.
-        case .sources, .downloads, .language:
+        case .downloads, .language:
             List {
                 Text(group.pendingKey, bundle: .module)
                     .foregroundStyle(theme.palette.textSecondary)
