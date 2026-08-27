@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-08-27
+# No delta specs, and deliberately so.
+#
+# This change implements requirements already written in `docs/openspec/specs/`. It adds
+# none and modifies none, so there is nothing to merge back and `/opsx:sync` has no work.
+# `skip_specs` is how OpenSpec is told that, rather than leaving `openspec validate --all`
+# failing and everyone learning to ignore it.
+#
+# A change that *does* change a requirement carries the delta instead. This is not a
+# default to reach for.
+skip_specs: true
