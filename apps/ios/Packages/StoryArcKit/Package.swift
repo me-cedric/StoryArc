@@ -21,6 +21,7 @@ let package = Package(
         .library(name: "ReaderFeature", targets: ["ReaderFeature"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "SettingsFeature", targets: ["SettingsFeature"]),
+        .library(name: "Catalogue", targets: ["Catalogue"]),
     ],
     dependencies: [
         // The vendored libarchive RAR readers. A path dependency rather than a
@@ -61,6 +62,7 @@ let package = Package(
         // ADR-0006 names SwiftData here and Room on Android. The schema semantics
         // are shared; the implementations are not.
         .target(name: "Persistence", dependencies: ["StoryArcCore"]),
+        .target(name: "Catalogue", dependencies: ["StoryArcCore"]),
         .target(
             name: "SettingsFeature",
             dependencies: [
@@ -73,6 +75,7 @@ let package = Package(
         .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),
         .testTarget(name: "FormatsTests", dependencies: ["Formats"]),
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
+        .testTarget(name: "CatalogueTests", dependencies: ["Catalogue"]),
         .testTarget(name: "ReaderFeatureTests", dependencies: ["ReaderFeature"]),
     ]
 )
