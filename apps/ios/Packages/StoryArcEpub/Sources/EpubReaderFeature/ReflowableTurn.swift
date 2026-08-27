@@ -36,32 +36,6 @@ enum PaginatedScroll {
     }
 }
 
-/// A still of the page that is leaving, held over the page that arrives.
-///
-/// `snapshotView(afterScreenUpdates:)` rather than `drawHierarchy` or a `UIImage`: WebKit
-/// renders out of process, so drawing its layer into a bitmap yields a blank rectangle.
-/// A snapshot *view* is composited by the render server, which is the only thing that has
-/// the pixels.
-struct PageStill: UIViewRepresentable {
-    let still: UIView
-
-    func makeUIView(context: Context) -> UIView {
-        let container = UIView()
-        container.isUserInteractionEnabled = false
-        still.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(still)
-        NSLayoutConstraint.activate([
-            still.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            still.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            still.topAnchor.constraint(equalTo: container.topAnchor),
-            still.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-        ])
-        return container
-    }
-
-    func updateUIView(_ view: UIView, context: Context) {}
-}
-
 /// The gestures Readium is no longer handling.
 ///
 /// Installed only while StoryArc owns the turn. A horizontal pan and an edge tap, because

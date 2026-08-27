@@ -65,16 +65,6 @@ public struct EpubReaderView: View {
                 ) {
                     withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
                 }
-                // Over the navigator, under the chrome. The still is the page that left,
-                // held for as long as the fade runs.
-                .overlay {
-                    if let still = model.still {
-                        PageStill(still: still)
-                            .opacity(model.isStillFading ? 0 : 1)
-                            .allowsHitTesting(false)
-                            .ignoresSafeArea()
-                    }
-                }
                 .ignoresSafeArea()
             } else {
                 ProgressView()

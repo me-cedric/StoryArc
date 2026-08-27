@@ -119,17 +119,6 @@ public final class EpubReaderModel {
     /// How a page becomes the next page. Paginated or scrolling, for an EPUB.
     public internal(set) var transition: PageTransition = .slide
 
-    /// A still of the page that is leaving, while a fade runs over it.
-    ///
-    /// Observed, because the view has to draw it. A `UIView` rather than an image: WebKit
-    /// renders out of process, so a bitmap of its layer comes back blank and only a
-    /// snapshot view has the pixels. See ``turnWithFade(forward:)``.
-    var still: UIView?
-
-    /// Whether the still has begun fading. Separate from ``still`` so the view can put the
-    /// still up at full opacity for one frame before animating it away.
-    var isStillFading = false
-
     /// Whether StoryArc draws the turn rather than Readium.
     ///
     /// True only for the modes that need a picture of the page. Everything else stays with

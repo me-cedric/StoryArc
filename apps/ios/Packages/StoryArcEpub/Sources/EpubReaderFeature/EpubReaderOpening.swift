@@ -135,11 +135,31 @@ extension EpubReaderModel {
     /// one raster. Curl needs the incoming page as a second texture before it is on
     /// screen, which is a different problem.
     func turnWithFade(forward: Bool) async {
-        guard let navigator else { return }
+        guard let navigator, let page = navigator.view else { return }
 
-        // Nothing to fade from if the render server has no pixels for us. Turning anyway
-        // is better than refusing to turn.
-        still = navigator.view.snapshotView(afterScreenUpdates: false)
+        // Added to the navigator's own view, synchronously, rather than published as state
+        // for SwiftUI to draw. That was the first attempt: setting state marks the model
+        // dirty and SwiftUI renders on a later pass, so the `await` below let the navigator
+        // swap its content while the still was not on screen yet — the new page flashed,
+        // then the old one appeared over it. A subview added here is on screen in this
+        // frame.
+        let still = page.snapshotView(afterScreenUpdates: false)
+        // A dip through the page's own colour, not a cross-fade. Two pages of body text do
+        // not share a baseline grid, so dissolving one into the other shows every line
+        // twice, half-offset — which reads as doubled text rather than as a fade, and is
+        // exactly what a reader reported as "a mix of the pages". Fading out to the page
+        // colour and back in from it never shows both at once.
+        let dip = UIView(frame: page.bounds)
+        dip.backgroundColor = page.backgroundColor ?? .systemBackground
+        dip.alpha = 0
+        dip.isUserInteractionEnabled = false
+
+        if let still {
+            still.frame = page.bounds
+            still.isUserInteractionEnabled = false
+            page.addSubview(dip)
+            page.addSubview(still)
+        }
 
         let options = NavigatorGoOptions(animated: false)
         let moved = forward
@@ -147,19 +167,41 @@ extension EpubReaderModel {
             : await navigator.goBackward(options: options)
 
         guard moved else {
-            // At the end of the book. Drop the still immediately rather than fading it,
-            // because fading it would look like a turn that did not happen.
-            still = nil
+            // At the end of the book. Both go at once rather than fading, because fading
+            // would look like a turn that did not happen.
+            still?.removeFromSuperview()
+            dip.removeFromSuperview()
             return
         }
-        withAnimation(.easeOut(duration: Self.fadeDuration)) { isStillFading = true }
-        try? await Task.sleep(for: .seconds(Self.fadeDuration))
-        still = nil
-        isStillFading = false
+        guard let still else {
+            dip.removeFromSuperview()
+            return
+        }
+
+        // Out to the page colour, then in from it. Half the duration each, so the whole
+        // turn still takes what `fadeDuration` says.
+        let half = Self.fadeDuration / 2
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            UIView.animate(withDuration: half, delay: 0, options: [.curveEaseIn]) {
+                dip.alpha = 1
+            } completion: { _ in
+                still.removeFromSuperview()
+                UIView.animate(withDuration: half, delay: 0, options: [.curveEaseOut]) {
+                    dip.alpha = 0
+                } completion: { _ in
+                    dip.removeFromSuperview()
+                    continuation.resume()
+                }
+            }
+        }
     }
 
     /// Short enough not to read as an animation, which is the point of the name.
-    static let fadeDuration = 0.18
+    ///
+    /// Slightly longer than the 0.18 a single cross-fade used, because this is two phases
+    /// rather than one: out to the page colour and back in from it. Split across them, 0.09
+    /// each was too quick to read as anything but a flicker.
+    static let fadeDuration = 0.24
 
     /// Writes the position down.
     ///
