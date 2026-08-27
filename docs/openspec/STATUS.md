@@ -14,14 +14,14 @@ Keep this current. A status document that lags is worse than none, because it is
 | --- | --- | --- |
 | `publication-formats` | partial | CB7 decoder (declared open question); EPUB publisher, description, series, series index; EPUB spine-render cover fallback; re-decode on zoom; codec name in the placeholder; spread pairing; skipped-page count in the UI |
 | `comic-reader` | partial | Image adjustments (whole requirement); border crop; chapter navigation; orientation lock; slider thumbnails; spread pairing; scroll separator; direction override; memory-pressure prefetch shrink |
-| `ebook-reader` | partial | Bookmarks, highlights, notes, in-book search, footnotes; reading aloud (whole requirement); hyphenation; PDF text layer, search and outline are iOS APIs with no UI. **The table of contents is built on both platforms** |
+| `ebook-reader` | partial | Bookmarks, highlights, notes, in-book search, footnotes; reading aloud (whole requirement); hyphenation; PDF text layer, search and outline are iOS APIs with no UI. **Table of contents built on both; Fast fade over reflowable text built on iOS** |
 | `reading-progress` | partial | Synchronisation (whole requirement); "start from the beginning"; completion timestamp; manual mark-read; conflict-resolution rules are written and unreachable |
 | `local-library` | partial | Imported copies (whole requirement); watched changes (whole requirement); resumable scan. **Open-in from another app now works on both platforms**, including a refusal that names the detected format |
 | `library-browsing` | partial | Unified library across sources; search grouping by match kind; recent searches; 8 of 11 filters; date-added and file-size sorting; per-scope layout |
 | `settings-and-about` | partial | Language group; search does not highlight the matched setting; clearable downloads |
 | `localization` | partial | Language override; no pseudo-locale test; no CI gate on a missing key for iOS. Plurals and locale-correct byte formatting are done |
 | `native-experience` | partial | Context menus; haptics; quick actions; widgets; handoff; predictive back; tablet sidebar; foldables; cover-derived accent; Increase Contrast; scroll edge effect; launch and memory budgets |
-| `sources` | partial | Registry lifecycle; credential storage; metadata cache; source health screen. Models and pure helpers exist and nothing constructs them |
+| `sources` | partial | Reordering and renaming have no UI; removal does not yet state bytes freed; metadata cache; source health screen; connection state is never probed. **Registry, credential storage and folder-as-source are built** |
 | `offline-downloads` | absent | Everything |
 | `opds-catalog` | absent | Everything |
 | `kavita-server` | absent | Everything |
