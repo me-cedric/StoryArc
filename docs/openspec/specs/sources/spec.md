@@ -48,7 +48,7 @@ crash reports, backups, or exported diagnostics.
 
 #### Scenario: Storing a secret
 - **WHEN** a user saves a source that requires authentication
-- **THEN** the secret is written to the iOS Keychain or the Android `EncryptedSharedPreferences`-backed store
+- **THEN** the secret is written to the platform secure store — the iOS Keychain, or a key held in the Android Keystore
 - **AND** the registry entry holds only an opaque reference to it
 
 #### Scenario: Secret appears in a diagnostic
