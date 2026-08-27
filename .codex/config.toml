@@ -42,3 +42,8 @@ enabled_tools = ["get_metadata", "get_selection", "get_design_context", "export_
 default_tools_approval_mode = "prompt"
 
 # Hooks live in .codex/hooks.json to avoid duplicate inline/file hook sources.
+
+[mcp_servers.konvoy]
+# Written by Konvoy at every launch. The command is this application.
+command = '/Applications/Konvoy.app/Contents/MacOS/konvoy'
+args = ["--mcp"]

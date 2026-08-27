@@ -1,8 +1,10 @@
 {
   "mcpServers": {
     "konvoy": {
-      "type": "http",
-      "url": "http://127.0.0.1:4319/mcp"
+      "args": [
+        "--mcp"
+      ],
+      "command": "/Applications/Konvoy.app/Contents/MacOS/konvoy"
     }
   }
 }
