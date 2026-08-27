@@ -89,4 +89,20 @@
     <string name="privacy_diagnostic_show">Show</string>
     <string name="privacy_diagnostic_hide">Hide</string>
     <string name="privacy_diagnostic_share">Share</string>
+    <string name="sources_none">No sources yet. Add a folder from the library to get started.</string>
+    <string name="sources_remove">Remove</string>
+    <string name="sources_remove_action">Remove %1$s</string>
+    <string name="sources_remove_title">Remove %1$s?</string>
+    <string name="sources_state_connected">Available</string>
+    <string name="sources_state_connecting">Connecting</string>
+    <string name="sources_state_unreachable">Unreachable</string>
+    <string name="sources_state_unauthorized">Needs sign-in</string>
+    <plurals name="sources_detail">
+        <item quantity="one">%1$d publication</item>
+        <item quantity="other">%1$d publications</item>
+    </plurals>
+    <plurals name="sources_remove_body">
+        <item quantity="one">This removes %1$d publication from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days.</item>
+        <item quantity="other">This removes %1$d publications from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days.</item>
+    </plurals>
 </resources>

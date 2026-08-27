@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.ReaderPreferences
 
 /**
@@ -67,6 +68,13 @@ fun SettingsScreen(
     onReset: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * The configured sources. Handed in, because the registry belongs to the library and a
+     * feature module never depends on another feature module.
+     */
+    sources: List<Source> = emptyList(),
+    itemCount: (Source) -> Int = { 0 },
+    onRemoveSource: (Source) -> Unit = {},
 ) {
     var open by remember { mutableStateOf<SettingsGroup?>(null) }
 
@@ -91,6 +99,9 @@ fun SettingsScreen(
             readerStore = readerStore,
             onBack = { open = null },
             modifier = modifier,
+            sources = sources,
+            itemCount = itemCount,
+            onRemoveSource = onRemoveSource,
         )
     }
 }
@@ -243,6 +254,9 @@ private fun GroupDetail(
     readerStore: ReaderPreferences,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    sources: List<Source>,
+    itemCount: (Source) -> Int,
+    onRemoveSource: (Source) -> Unit,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -275,7 +289,8 @@ private fun GroupDetail(
                 // Named rather than hidden. A group whose rows arrive with a capability
                 // that does not exist yet says so; hiding it leaves a reader hunting for
                 // where sources live.
-                SettingsGroup.SOURCES, SettingsGroup.DOWNLOADS, SettingsGroup.LANGUAGE ->
+                SettingsGroup.SOURCES -> SourcesGroup(sources, itemCount, onRemoveSource)
+                SettingsGroup.DOWNLOADS, SettingsGroup.LANGUAGE ->
                     Text(
                         text = stringResource(group.pendingRes),
                         style = MaterialTheme.typography.bodyMedium,

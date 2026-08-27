@@ -179,9 +179,16 @@ class MainActivity : ComponentActivity() {
 
                 if (isShowingSettings) {
                     BackHandler { isShowingSettings = false }
+                    val registry by libraryViewModel.registry.collectAsStateWithLifecycle()
                     SettingsScreen(
                         settings = settings,
                         readerStore = readerPreferences,
+                        // The registry belongs to the library, and a feature module never
+                        // depends on another feature module — so the app layer carries it
+                        // across and carries the removal back.
+                        sources = registry.sources,
+                        itemCount = { libraryViewModel.itemCount(it.id) },
+                        onRemoveSource = { libraryViewModel.removeSource(it) },
                         // Written through on every change rather than on the way out.
                         // `settings-and-about` requires an appearance to apply
                         // immediately, and the state lives here so the theme above

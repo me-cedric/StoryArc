@@ -84,4 +84,20 @@
     <string name="privacy_diagnostic_show">Mostrar</string>
     <string name="privacy_diagnostic_hide">Ocultar</string>
     <string name="privacy_diagnostic_share">Compartir</string>
+    <string name="sources_none">Aún no hay fuentes. Añada una carpeta desde la biblioteca para empezar.</string>
+    <string name="sources_remove">Quitar</string>
+    <string name="sources_remove_action">Quitar %1$s</string>
+    <string name="sources_remove_title">¿Quitar %1$s?</string>
+    <string name="sources_state_connected">Disponible</string>
+    <string name="sources_state_connecting">Conectando</string>
+    <string name="sources_state_unreachable">No disponible</string>
+    <string name="sources_state_unauthorized">Requiere acceso</string>
+    <plurals name="sources_detail">
+        <item quantity="one">%1$d publicación</item>
+        <item quantity="other">%1$d publicaciones</item>
+    </plurals>
+    <plurals name="sources_remove_body">
+        <item quantity="one">Esto quita %1$d publicación de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días.</item>
+        <item quantity="other">Esto quita %1$d publicaciones de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días.</item>
+    </plurals>
 </resources>

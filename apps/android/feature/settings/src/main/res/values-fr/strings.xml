@@ -84,4 +84,20 @@
     <string name="privacy_diagnostic_show">Afficher</string>
     <string name="privacy_diagnostic_hide">Masquer</string>
     <string name="privacy_diagnostic_share">Partager</string>
+    <string name="sources_none">Aucune source pour l’instant. Ajoutez un dossier depuis la bibliothèque pour commencer.</string>
+    <string name="sources_remove">Retirer</string>
+    <string name="sources_remove_action">Retirer %1$s</string>
+    <string name="sources_remove_title">Retirer %1$s ?</string>
+    <string name="sources_state_connected">Disponible</string>
+    <string name="sources_state_connecting">Connexion</string>
+    <string name="sources_state_unreachable">Injoignable</string>
+    <string name="sources_state_unauthorized">Connexion requise</string>
+    <plurals name="sources_detail">
+        <item quantity="one">%1$d publication</item>
+        <item quantity="other">%1$d publications</item>
+    </plurals>
+    <plurals name="sources_remove_body">
+        <item quantity="one">Cela retire %1$d publication de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
+        <item quantity="other">Cela retire %1$d publications de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
+    </plurals>
 </resources>
