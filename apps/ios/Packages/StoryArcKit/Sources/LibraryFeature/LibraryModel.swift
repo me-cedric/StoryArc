@@ -216,6 +216,30 @@ public final class LibraryModel {
         sourceStore?.save(registry)
     }
 
+    /// Removes a source and the folder behind it.
+    ///
+    /// Nothing could do this before: `sources` requires removal and there was no way to
+    /// reach it, so a reader who picked the wrong folder was stuck with it.
+    ///
+    /// The bookmark goes, the folder goes, and the registry keeps a tombstone — so reading
+    /// progress survives the thirty days the requirement promises rather than being
+    /// cascaded away. Files on disk are never touched: this removes a *library*, not a
+    /// reader's comics.
+    public func remove(_ source: Source) {
+        guard let folder = folders.first(where: { $0.lastPathComponent == source.displayName })
+        else { return }
+
+        folder.stopAccessingSecurityScopedResource()
+        bookmarks?.remove(named: source.displayName)
+        folders.removeAll { $0 == folder }
+        registry = registry.removing(source.id, at: Date())
+        sourceStore?.save(registry)
+
+        // The publications it contributed go with it, and the rest of the shelf stays.
+        publications.removeAll { $0.sourceID == source.id }
+        rebuild()
+    }
+
     /// Stops a running scan. `local-library` requires the scan to be cancellable.
     public func cancelScan() {
         scanTask?.cancel()

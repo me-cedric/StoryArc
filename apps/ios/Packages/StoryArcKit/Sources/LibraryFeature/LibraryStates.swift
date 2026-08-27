@@ -132,6 +132,12 @@ struct SourceList: View {
     @Environment(\.theme) private var theme
 
     let sources: [Source]
+    /// How many publications each source holds, for the removal statement.
+    var itemCount: (Source.ID) -> Int = { _ in 0 }
+    var onRemove: ((Source) -> Void)?
+
+    /// Which source a confirmation is open for.
+    @State private var removing: Source?
 
     var body: some View {
         List {
@@ -160,8 +166,37 @@ struct SourceList: View {
                 // An offline source is dimmed, never reddened — offline is normal.
                 .opacity(source.state.canFetch ? 1 : 0.55)
                 .listRowBackground(theme.palette.surfaceRaised)
+                .swipeActions(edge: .trailing) {
+                    if onRemove != nil {
+                        Button(role: .destructive) { removing = source } label: {
+                            Text("source.remove", bundle: .module)
+                        }
+                    }
+                }
             }
         }
         .scrollContentBackground(.hidden)
+        .confirmationDialog(
+            Text("source.remove.title \(removing?.displayName ?? "")", bundle: .module),
+            isPresented: Binding(
+                get: { removing != nil },
+                set: { if !$0 { removing = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: removing
+        ) { source in
+            Button(role: .destructive) {
+                onRemove?(source)
+                removing = nil
+            } label: {
+                Text("source.remove", bundle: .module)
+            }
+        } message: { source in
+            // `sources` asks the app to state "how many downloaded files and how much disk
+            // space will be freed before asking for confirmation". For a folder the honest
+            // answer is none and nothing, and saying so is the whole point: a reader must
+            // not have to guess whether this deletes their comics.
+            Text("source.remove.body \(itemCount(source.id))", bundle: .module)
+        }
     }
 }

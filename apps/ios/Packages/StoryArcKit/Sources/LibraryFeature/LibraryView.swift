@@ -89,7 +89,11 @@ public struct LibraryView: View {
                 } else if model.registry.sources.isEmpty {
                     EmptyLibraryView { isPickingFolder = true }
                 } else {
-                    SourceList(sources: model.registry.sources)
+                    SourceList(
+                        sources: model.registry.sources,
+                        itemCount: { model.itemCount(of: $0) },
+                        onRemove: { model.remove($0) }
+                    )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

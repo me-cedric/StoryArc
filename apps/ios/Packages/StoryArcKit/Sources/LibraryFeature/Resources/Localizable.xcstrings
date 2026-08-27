@@ -1497,6 +1497,93 @@
         }
       }
     },
+    "source.remove": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer"
+          }
+        }
+      }
+    },
+    "source.remove.body %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das entfernt %lld Publikationen aus Ihrer Bibliothek. Es wird keine Datei auf dem Gerät gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This removes %lld publications from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto quita %lld publicaciones de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cela retire %lld publications de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours."
+          }
+        }
+      }
+    },
+    "source.remove.title %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ entfernen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove %@?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Quitar %@?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer %@ ?"
+          }
+        }
+      }
+    },
     "source.state.connected": {
       "extractionState": "manual",
       "localizations": {
