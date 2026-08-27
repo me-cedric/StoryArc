@@ -335,8 +335,35 @@
       shared file on disk. The most likely cause is SwiftData container teardown under
       parallel test execution. Not chased, because it has never reproduced on demand, and
       recorded here so the next person who sees it does not start from nothing.
-- [ ] **6.2** Emulator and simulator captures of every screen, light and dark, at
-      default and largest text size.
+- [x] **6.2** Emulator and simulator captures of every screen, light and dark, at
+      default and largest text size. **Done on Android, scripted, and it caught a crash.**
+
+      Twenty-four captures in `docs/designs/screenshots/settings/`: six screens — the
+      settings list, Appearance, Reading, Privacy, About and a licence body — in each of
+      the four combinations. Scripted rather than done by hand, because twenty-four
+      captures by hand is twenty-four chances to capture the wrong screen.
+
+      Two things the script had to learn, both of which it got wrong first:
+
+      1. **Changing `font_scale` restarts the activity.** Setting it while the app is open
+         loses whatever screen was reached, so the theme and the size are set before the
+         launch.
+      2. **Walking between screens loses its place.** One back press per group meant that
+         by About the walk had left Settings, and three of the four About captures were of
+         the device home screen. Each screen now gets a fresh launch.
+
+      **And the second attempt found that About crashed the process.** `AboutGroup`
+      applied its own vertical scroll inside `SettingsScreen`'s scrolling column, which
+      Compose refuses. Fixed, and `pnpm smoke:android` now walks thirteen routes asking
+      only whether each one still opens — which is the check that was missing.
+
+      The captures then showed a compliance defect no scan would have: the licence bodies
+      read `Copyright (c) <year> <owner>`, the SPDX template's placeholder. Each component
+      now carries its own copyright line.
+
+      **iOS is not captured.** The simulator drives fine and the screens render, but a
+      scripted sweep there needs the same navigation work again, and Android's sweep is
+      what found the crash and the placeholder. Recorded as open rather than claimed.
 - [x] **6.3** Accessibility pass over the lists and the search. **Done on Android and
       verified on a device. Started on iOS, and it found more than it closed.**
 
