@@ -18,10 +18,10 @@ Keep this current. A status document that lags is worse than none, because it is
 | `reading-progress` | partial | Synchronisation (whole requirement); "start from the beginning"; completion timestamp; manual mark-read; conflict-resolution rules are written and unreachable |
 | `local-library` | partial | Imported copies (whole requirement); watched changes (whole requirement); resumable scan. **Open-in from another app now works on both platforms**, including a refusal that names the detected format |
 | `library-browsing` | partial | Unified library across sources; search grouping by match kind; recent searches; 8 of 11 filters; date-added and file-size sorting; per-scope layout |
-| `settings-and-about` | partial | Language group; search does not highlight the matched setting; clearable downloads |
+| `settings-and-about` | partial | Language group; Downloads group; search does not highlight the matched setting. **Sources group is built** |
 | `localization` | partial | Language override; no pseudo-locale test; no CI gate on a missing key for iOS. Plurals and locale-correct byte formatting are done |
 | `native-experience` | partial | Context menus; haptics; quick actions; widgets; handoff; predictive back; tablet sidebar; foldables; cover-derived accent; Increase Contrast; scroll edge effect; launch and memory budgets |
-| `sources` | partial | Reordering and renaming have no UI; removal does not yet state bytes freed; metadata cache; source health screen; connection state is never probed. **Registry, credential storage and folder-as-source are built** |
+| `sources` | partial | Reordering and renaming have no UI; metadata cache; connection state is never probed for a remote source. **Registry, credential storage, folder-as-source, Settings › Sources and removal are built** |
 | `offline-downloads` | absent | Everything |
 | `opds-catalog` | absent | Everything |
 | `kavita-server` | absent | Everything |
