@@ -2,4 +2,8 @@
 <resources>
     <!-- The product name is not translated. -->
     <string name="app_name">StoryArc</string>
+    <string name="open_in_refused_title">Diese Datei kann nicht geöffnet werden</string>
+    <string name="open_in_unsupported">%1$s ist eine %2$s-Datei, die StoryArc nicht liest. StoryArc liest CBZ, CBR, CBT, EPUB und PDF.</string>
+    <string name="open_in_unreadable">StoryArc erkennt %1$s nicht. StoryArc liest CBZ, CBR, CBT, EPUB und PDF.</string>
+    <string name="open_in_dismiss">OK</string>
 </resources>

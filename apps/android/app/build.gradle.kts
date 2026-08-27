@@ -65,6 +65,9 @@ android {
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
+    // Added for the open-in flow. The system hands the app a `Uri` and the app layer is
+    // where routing lives, so the app is what has to decide what those bytes are.
+    implementation(project(":core:format"))
     implementation(project(":feature:library"))
     implementation(project(":feature:reader"))
     implementation(project(":feature:epubreader"))

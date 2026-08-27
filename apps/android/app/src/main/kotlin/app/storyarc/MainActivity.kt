@@ -4,6 +4,8 @@ import android.view.KeyEvent
 import app.storyarc.core.designsystem.theme.LocalVolumeTurns
 import app.storyarc.core.designsystem.theme.VolumeTurns
 import androidx.compose.runtime.CompositionLocalProvider
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,6 +29,7 @@ import app.storyarc.feature.library.LibraryScreen
 import app.storyarc.feature.library.LibraryViewModel
 import app.storyarc.feature.reader.ReaderScreen
 import app.storyarc.feature.reader.ReaderViewModel
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +47,15 @@ class MainActivity : ComponentActivity() {
      * reader on screen *and* the setting on.
      */
     private val volumeTurns = VolumeTurns()
+
+    /**
+     * A file the system handed over, waiting for the composition to pick it up.
+     *
+     * A `MutableState` rather than a plain field, because the intent can arrive before the
+     * first composition (a cold start from a file manager) or long after it
+     * ([onNewIntent], when the app is already open). Both have to reach the same reader.
+     */
+    private val handedOver = mutableStateOf<Uri?>(null)
 
     /** Read on each key press rather than cached: the setting can change mid-session. */
     private val volumeTurnsEnabled: Boolean
@@ -67,11 +79,21 @@ class MainActivity : ComponentActivity() {
         return turn(forward) || super.onKeyDown(keyCode, event)
     }
 
+    /** The app was already open when the system handed a file over. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        OpenedFile.uriFrom(intent)?.let { handedOver.value = it }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // `native-experience`: draw edge to edge and handle insets, rather than
         // avoiding them. Not optional on API 35+, and correct below it anyway.
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // A cold start from a file manager or a share sheet. Until this line existed the
+        // system handed StoryArc a file and StoryArc showed its library instead.
+        handedOver.value = OpenedFile.uriFrom(intent)
 
         // One store for the whole app. ADR-0006 makes the local record
         // authoritative, so the reader writing and the library reading have to be
@@ -99,7 +121,48 @@ class MainActivity : ComponentActivity() {
                 // accepts one; neither knows the other exists.
                 var reading by remember { mutableStateOf<Pair<Publication, String>?>(null) }
                 var isShowingSettings by remember { mutableStateOf(false) }
+                var refused by remember { mutableStateOf<OpenedFile.Outcome?>(null) }
                 val selection = reading
+
+                // A file the system handed over. Keyed on the `Uri` so a second file
+                // opens, and cleared as soon as it is consumed so a rotation does not
+                // reopen the last one.
+                val incoming = handedOver.value
+                LaunchedEffect(incoming) {
+                    val uri = incoming ?: return@LaunchedEffect
+                    handedOver.value = null
+                    when (val outcome = OpenedFile.index(contentResolver, uri)) {
+                        is OpenedFile.Outcome.Opened -> {
+                            val publication = outcome.publication
+                            // The same routing the library uses. A reflowable book goes to
+                            // the EPUB reader and everything else to the comic reader,
+                            // decided by what the publication is rather than by how it
+                            // arrived.
+                            if (publication.format == PublicationFormat.EPUB &&
+                                !publication.isFixedLayout
+                            ) {
+                                startActivity(
+                                    EpubReaderActivity.intent(
+                                        this@MainActivity,
+                                        outcome.decoderPath,
+                                        publication.displayTitle,
+                                        publication.series,
+                                    ),
+                                )
+                            } else {
+                                reading = publication to outcome.decoderPath
+                            }
+                        }
+                        // Named, not swallowed. `local-library`: the app "names the format
+                        // it detected and states which formats it supports, rather than
+                        // reporting a generic failure".
+                        else -> refused = outcome
+                    }
+                }
+
+                refused?.let { outcome ->
+                    RefusedFileDialog(outcome = outcome, onDismiss = { refused = null })
+                }
 
                 // Held across both branches, not just the library's: the reader's
                 // end screen asks it what comes next in the series, and a model

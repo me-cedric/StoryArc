@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:tools="http://schemas.android.com/tools" xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- `network-share` and `opds-catalog` reach servers the user configures.
          StoryArc has no backend of its own. -->
@@ -28,12 +28,61 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- `local-library`: StoryArc must appear in the system's "open
-                 with" list for every format it can read. -->
+            <!-- `local-library`: StoryArc must appear in the system's "open with" list
+                 for every format it can read. Two filters, because one is not enough.
+
+                 By MIME type, for the providers that declare a real one. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/vnd.comicbook+zip" />
+                <data android:mimeType="application/vnd.comicbook-rar" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+
+            <!-- And by extension, because most file managers hand a comic archive over as
+                 `application/octet-stream`. CBZ, CBR and CBT have no MIME type a provider
+                 reliably knows, so a MIME-only filter leaves StoryArc out of the list for
+                 exactly the formats it exists to read.
+
+                 `.cb7` is here although no decoder reads it. `publication-formats` refuses
+                 7-Zip by name, and the reader has to reach the refusal to hear it —
+                 appearing in the list and saying "StoryArc does not read this" is the
+                 requirement, and vanishing from the list is not.
+
+                 Both cases of each extension: `pathPattern` matches literally. -->
+            <!-- `AppLinkUrlError` is suppressed, not fixed. Lint treats any VIEW filter
+                 carrying a scheme as a web link and asks for a host. A `content://` or
+                 `file://` handover has no host to give, and adding one would stop the
+                 filter matching. BROWSABLE is deliberately absent for the same reason:
+                 this is a file handover, not a link. -->
+            <intent-filter tools:ignore="AppLinkUrlError">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.cbz" />
+                <data android:pathPattern=".*\\.CBZ" />
+                <data android:pathPattern=".*\\.cbr" />
+                <data android:pathPattern=".*\\.CBR" />
+                <data android:pathPattern=".*\\.cb7" />
+                <data android:pathPattern=".*\\.CB7" />
+                <data android:pathPattern=".*\\.cbt" />
+                <data android:pathPattern=".*\\.CBT" />
+                <data android:pathPattern=".*\\.epub" />
+                <data android:pathPattern=".*\\.EPUB" />
+                <data android:pathPattern=".*\\.pdf" />
+                <data android:pathPattern=".*\\.PDF" />
+            </intent-filter>
+
+            <!-- A share sheet sends the file as an extra rather than as the intent's data,
+                 and `local-library` names the share sheet as one of the three ways in. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/vnd.comicbook+zip" />
                 <data android:mimeType="application/vnd.comicbook-rar" />
                 <data android:mimeType="application/epub+zip" />

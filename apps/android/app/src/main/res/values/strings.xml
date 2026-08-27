@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">StoryArc</string>
+    <string name="open_in_refused_title">Cannot open this file</string>
+    <string name="open_in_unsupported">%1$s is a %2$s file, which StoryArc does not read. It reads CBZ, CBR, CBT, EPUB and PDF.</string>
+    <string name="open_in_unreadable">%1$s is not a file StoryArc recognises. It reads CBZ, CBR, CBT, EPUB and PDF.</string>
+    <string name="open_in_dismiss">OK</string>
 </resources>

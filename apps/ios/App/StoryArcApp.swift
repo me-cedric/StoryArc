@@ -44,6 +44,15 @@ struct StoryArcApp: App {
     /// Held here so the app can refresh it when the reader closes.
     @State private var library: LibraryModel
 
+    /// A file the system handed over that StoryArc cannot read, if any.
+    ///
+    /// Held rather than discarded: `local-library` requires the app to name the format it
+    /// detected instead of failing silently, and a reader who picked the wrong file needs
+    /// to know it was the file rather than the app.
+    @State private var refusedFile: RefusedFile?
+
+    private let bookmarks = FolderBookmarks()
+
     init() {
         let store = try? ProgressStore()
         self.progress = store
@@ -54,6 +63,27 @@ struct StoryArcApp: App {
                 preferences: LibraryPreferences()
             )
         )
+    }
+
+    /// Opens a publication the system handed over, or says why it cannot.
+    ///
+    /// Straight into the reader, per `local-library`: "the publication opens directly in
+    /// the reader". No intermediate screen, because the reader already chose this file in
+    /// another app and asking again would be asking twice.
+    ///
+    /// Remembered at the same time. The spec asks for the offer to be "once and
+    /// unobtrusively", and a bookmark to the file the reader just chose to open is the
+    /// least obtrusive form of it: nothing to dismiss, and the file is where they left it.
+    private func openHandedOver(_ url: URL) async {
+        switch await OpenedFile.index(url) {
+        case let .opened(publication):
+            reading = ReadingSelection(publication: publication, url: url)
+            _ = OpenedFile.remember(url, in: bookmarks)
+        case let .unsupported(detected):
+            refusedFile = RefusedFile(name: url.lastPathComponent, detected: detected)
+        case .unreadable:
+            refusedFile = RefusedFile(name: url.lastPathComponent, detected: nil)
+        }
     }
 
     /// The one moment progress is known to have changed. Called when the reader
@@ -125,6 +155,21 @@ struct StoryArcApp: App {
                     onReset: resetSettings
                 )
                     .storyArcTheme(appearance: settings.appearance)
+            }
+            // The system hands a file over here, and until this existed it was dropped.
+            // `Info.plist` declares StoryArc as a handler for six formats, so the app was
+            // offered, chosen, and then showed its library as if nothing had happened.
+            .onOpenURL { url in Task { await openHandedOver(url) } }
+            .alert(
+                Text(verbatim: "Cannot open this file"),
+                isPresented: Binding(
+                    get: { refusedFile != nil },
+                    set: { if !$0 { refusedFile = nil } }
+                )
+            ) {
+                Button(role: .cancel) { refusedFile = nil } label: { Text(verbatim: "OK") }
+            } message: {
+                Text(refusedFile?.message ?? "")
             }
             .fullScreenCover(item: $reading, onDismiss: refreshProgress) { selection in
                 // Full screen, not a sheet: `comic-reader` wants nothing on screen
