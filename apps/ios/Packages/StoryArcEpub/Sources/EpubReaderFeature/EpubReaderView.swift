@@ -55,8 +55,25 @@ public struct EpubReaderView: View {
             if let failure = model.failure {
                 Failure(message: failure)
             } else if let navigator = model.navigator {
-                NavigatorHost(navigator: navigator) {
+                NavigatorHost(
+                    navigator: navigator,
+                    // Nil while Readium owns the turn, which leaves its paginated scroll
+                    // exactly as it was. Only Fast fade takes it over.
+                    turn: model.ownsTheTurn ? { forward in
+                        Task { await model.turnWithFade(forward: forward) }
+                    } : nil
+                ) {
                     withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
+                }
+                // Over the navigator, under the chrome. The still is the page that left,
+                // held for as long as the fade runs.
+                .overlay {
+                    if let still = model.still {
+                        PageStill(still: still)
+                            .opacity(model.isStillFading ? 0 : 1)
+                            .allowsHitTesting(false)
+                            .ignoresSafeArea()
+                    }
                 }
                 .ignoresSafeArea()
             } else {
@@ -206,9 +223,14 @@ public struct EpubReaderView: View {
 /// reader needs to turn pages and follow links.
 private struct NavigatorHost: UIViewControllerRepresentable {
     let navigator: EPUBNavigatorViewController
+    /// Non-nil when StoryArc draws the turn. See ``EpubReaderModel/ownsTheTurn``.
+    let turn: ((Bool) -> Void)?
     let onTap: () -> Void
 
     func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
+        // Readium's own tap, which reveals the chrome. Registered once and left alone:
+        // when StoryArc owns the turn its own recogniser decides whether a tap is a turn
+        // or a reveal, and calls this same closure for a reveal.
         navigator.addObserver(.tap { _ in
             onTap()
             return true
@@ -216,7 +238,17 @@ private struct NavigatorHost: UIViewControllerRepresentable {
         return navigator
     }
 
-    func updateUIViewController(_ controller: EPUBNavigatorViewController, context: Context) {}
+    func makeCoordinator() -> TurnGestures { TurnGestures() }
+
+    /// Where the turn changes hands.
+    ///
+    /// Not `makeUIViewController`: that runs once, when the reader opens, and the reader
+    /// picks a page turn afterwards. Installing there meant the gestures were only ever
+    /// set up for whatever mode the book happened to open in — so choosing Fast fade did
+    /// nothing at all, which is exactly how this was found.
+    func updateUIViewController(_ controller: EPUBNavigatorViewController, context: Context) {
+        context.coordinator.apply(turn: turn, reveal: onTap, on: controller.view)
+    }
 }
 
 private struct Failure: View {

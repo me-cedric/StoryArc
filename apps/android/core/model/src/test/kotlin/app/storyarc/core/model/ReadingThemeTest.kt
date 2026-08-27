@@ -444,7 +444,7 @@ class ReadingThemeTest {
     }
 
     @Test
-    fun `Reflowable text refuses the two modes that need a picture of a page`() {
+    fun `Reflowable text refuses only the mode that needs two pictures of a page`() {
         val choices = TransitionChoices(
             chosen = PageTransition.PAGE_CURL,
             axis = ScrollAxis.VERTICAL,
@@ -459,10 +459,10 @@ class ReadingThemeTest {
             TransitionUnavailability.REFLOWABLE_TEXT,
             choices.unavailable[PageTransition.PAGE_CURL],
         )
-        assertEquals(
-            TransitionUnavailability.REFLOWABLE_TEXT,
-            choices.unavailable[PageTransition.FAST_FADE],
-        )
+        // Fast fade is *not* refused. It needs one raster, a still of the page that is
+        // leaving, and the reader takes that before the navigator moves. Curl needs the
+        // incoming page as a second texture before it is on screen, which is task 4.3b.
+        assertTrue(choices.isAvailable(PageTransition.FAST_FADE))
         // Slide is Readium paginated and Scroll is its own preference, so both run.
         assertTrue(choices.isAvailable(PageTransition.SLIDE))
         assertTrue(choices.isAvailable(PageTransition.VERTICAL_SCROLL))
@@ -472,20 +472,33 @@ class ReadingThemeTest {
     }
 
     @Test
-    fun `Reduced motion cannot substitute a mode this content refuses`() {
-        // Reduced motion turns Slide into Fast fade, and over reflowable text Fast fade
-        // is itself impossible. Ordering the two checks the other way left `effective`
-        // naming a mode the publication refuses.
+    fun `Reduced motion substitutes the fade, which reflowable text can now run`() {
+        // Reduced motion turns Slide into Fast fade, and reflowable text runs Fast fade —
+        // so the substitution stands rather than falling back to Slide. A cross-fade is
+        // not motion, which is why it is the substitute in the first place.
         val reflowable = TransitionChoices(
             PageTransition.SLIDE, ScrollAxis.VERTICAL,
             reduceMotion = true, canCurl = true, isReflowable = true,
         )
-        assertEquals(PageTransition.SLIDE, reflowable.effective)
-        // A comic has no such objection, so there the substitution stands.
+        assertEquals(PageTransition.FAST_FADE, reflowable.effective)
+        // A comic reaches the same answer by the same route.
         val comic = TransitionChoices(
             PageTransition.SLIDE, ScrollAxis.HORIZONTAL, reduceMotion = true, canCurl = true,
         )
         assertEquals(PageTransition.FAST_FADE, comic.effective)
+    }
+
+    @Test
+    fun `the content check still runs last, so a substitution cannot outvote it`() {
+        // The ordering this protects: a mode needing two rasters must never survive as
+        // `effective` over content that cannot supply them, whichever substitution
+        // produced it.
+        val choices = TransitionChoices(
+            PageTransition.PAGE_CURL, ScrollAxis.VERTICAL,
+            reduceMotion = false, canCurl = true, isReflowable = true,
+        )
+        assertEquals(PageTransition.SLIDE, choices.effective)
+        assertFalse(choices.effective.needsTwoRasters)
     }
 
     @Test

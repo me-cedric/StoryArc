@@ -1,5 +1,7 @@
 public import Foundation
 
+internal import UIKit
+
 internal import ReadiumNavigator
 internal import ReadiumShared
 internal import ReadiumStreamer
@@ -117,6 +119,23 @@ public final class EpubReaderModel {
     /// How a page becomes the next page. Paginated or scrolling, for an EPUB.
     public internal(set) var transition: PageTransition = .slide
 
+    /// A still of the page that is leaving, while a fade runs over it.
+    ///
+    /// Observed, because the view has to draw it. A `UIView` rather than an image: WebKit
+    /// renders out of process, so a bitmap of its layer comes back blank and only a
+    /// snapshot view has the pixels. See ``turnWithFade(forward:)``.
+    var still: UIView?
+
+    /// Whether the still has begun fading. Separate from ``still`` so the view can put the
+    /// still up at full opacity for one frame before animating it away.
+    var isStillFading = false
+
+    /// Whether StoryArc draws the turn rather than Readium.
+    ///
+    /// True only for the modes that need a picture of the page. Everything else stays with
+    /// Readium's own paginated scroll, which is what Slide *is*.
+    var ownsTheTurn: Bool { transition == .fastFade }
+
     /// Always reflowable. See the note in `init`.
     static let scope = ThemeScope.reflowable
 
@@ -168,6 +187,10 @@ public final class EpubReaderModel {
             // `isReflowable` refuses it below rather than this pretending it cannot curl
             // at all. The two reasons are different and the reader is told which.
             canCurl: true,
+            // True, because this reader does take the turn over: see
+            // `turnWithFade(forward:)`. A still of the outgoing page, then the navigator
+            // moves with no animation of its own, then the still fades.
+            canFade: true,
             isReflowable: true
         )
     }

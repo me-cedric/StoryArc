@@ -73,13 +73,26 @@ enum class TransitionUnavailability {
 /**
  * Whether this mode animates a *picture* of a page rather than the page itself.
  *
- * Both of them deform or dissolve a surface, and a surface is a texture. Over a comic
- * that costs nothing, because the page is already an image; over reflowable text it
- * needs the page rastered first, which is why these two are the modes an EPUB cannot
- * yet offer.
+ * Both deform or dissolve a surface, and a surface is a texture. Over a comic that costs
+ * nothing, because the page is already an image; over reflowable text the page has to be
+ * rastered first.
  */
 val PageTransition.needsARasteredPage: Boolean
     get() = this == PageTransition.PAGE_CURL || this == PageTransition.FAST_FADE
+
+/**
+ * Whether reflowable text can offer this mode.
+ *
+ * Fast fade can: it needs one raster, a still of the page that is leaving, and the reader
+ * takes that before the navigator moves.
+ *
+ * Curl cannot yet. It needs the *incoming* page as a second texture before it is on
+ * screen, which means a second offscreen navigator or a snapshot round-trip. Task 4.3b of
+ * `reader-theming-and-page-transitions` owns that, and Apple Books doing it over
+ * reflowable text is the evidence that it can be done.
+ */
+val PageTransition.needsTwoRasters: Boolean
+    get() = this == PageTransition.PAGE_CURL
 
 /** Whether this is the continuous mode, in either axis. */
 val PageTransition.isScroll: Boolean
@@ -127,6 +140,15 @@ class TransitionChoices(
     reduceMotion: Boolean,
     canCurl: Boolean,
     /**
+     * Whether this platform's reader can draw a cross-fade over the content.
+     *
+     * The same shape as [canCurl], and for the same kind of reason: a capability the
+     * platform either has or does not. A comic always can, because the page is already an
+     * image. Reflowable text needs the reader to take the turn over from Readium, and the
+     * Android EPUB reader does not do that yet — task 4.3b.
+     */
+    canFade: Boolean = true,
+    /**
      * Whether the text reflows. A reflowable page is live web content, so the modes
      * that deform a picture of a page cannot run over it yet — listed with the reason
      * rather than dropped, and only one scroll row, because text scrolls the way it is
@@ -166,7 +188,10 @@ class TransitionChoices(
      */
     val unavailable: Map<PageTransition, TransitionUnavailability> = buildMap {
         if (isReflowable) {
-            offered.filter { it.needsARasteredPage }
+            // Only the mode that needs *two* rasters, plus the fade where this platform's
+            // reader cannot draw one. Fast fade needs a single raster, and the reader takes
+            // it before the navigator moves.
+            offered.filter { it.needsTwoRasters || (it == PageTransition.FAST_FADE && !canFade) }
                 .forEach { put(it, TransitionUnavailability.REFLOWABLE_TEXT) }
         }
         if (reduceMotion) {
@@ -196,7 +221,10 @@ class TransitionChoices(
         // reduced motion turns Slide into Fast fade, and over reflowable text Fast fade
         // is itself impossible. Checking content first left `effective` naming a mode
         // this publication refuses.
-        .let { if (isReflowable && it.needsARasteredPage) PageTransition.SLIDE else it }
+        .let {
+            val refused = it.needsTwoRasters || (it == PageTransition.FAST_FADE && !canFade)
+            if (isReflowable && refused) PageTransition.SLIDE else it
+        }
 
     /** Whether a row can be picked. */
     fun isAvailable(mode: PageTransition): Boolean = !unavailable.containsKey(mode)

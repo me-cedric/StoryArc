@@ -186,7 +186,10 @@ struct ShelfMemoryTests {
         // the content" scenario.
         #expect(choices.offered.contains(.pageCurl))
         #expect(choices.unavailable[.pageCurl] == .reflowableText)
-        #expect(choices.unavailable[.fastFade] == .reflowableText)
+        // Fast fade is *not* refused. It needs one raster, a still of the page that is
+        // leaving, and the reader takes that before the navigator moves. Curl needs the
+        // incoming page as a second texture before it is on screen, which is task 4.3b.
+        #expect(choices.isAvailable(.fastFade))
         // Slide is Readium paginated and Scroll is its own preference, so both run.
         #expect(choices.isAvailable(.slide))
         #expect(choices.isAvailable(.verticalScroll))
@@ -195,21 +198,35 @@ struct ShelfMemoryTests {
         #expect(choices.chosen == .pageCurl)
     }
 
-    @Test("Reduced motion cannot substitute a mode this content refuses")
+    @Test("Reduced motion substitutes the fade, which reflowable text can now run")
     func substitutionRespectsTheContent() {
-        // Reduce Motion turns Slide into Fast fade, and over reflowable text Fast fade
-        // is itself impossible. Ordering the two checks the other way left `effective`
-        // naming a mode the publication refuses.
+        // Reduce Motion turns Slide into Fast fade, and reflowable text runs Fast fade —
+        // so the substitution stands rather than falling back to Slide. A cross-fade is
+        // not motion, which is why it is the substitute in the first place.
         let choices = TransitionChoices(
             chosen: .slide, axis: .vertical, reduceMotion: true,
             canCurl: true, isReflowable: true
         )
-        #expect(choices.effective == .slide)
-        // A comic has no such objection, so there the substitution stands.
+        #expect(choices.effective == .fastFade)
+        // A comic reaches the same answer by the same route.
         let comic = TransitionChoices(
             chosen: .slide, axis: .horizontal, reduceMotion: true, canCurl: true
         )
         #expect(comic.effective == .fastFade)
+    }
+
+    @Test("The content check still runs last, so a substitution cannot outvote it")
+    func contentCheckRunsLast() {
+        // The ordering this protects: Curl honours Reduce Motion by becoming Fast fade,
+        // and reflowable text accepts that. But a mode needing two rasters must never
+        // survive as `effective` over content that cannot supply them, whichever
+        // substitution produced it.
+        let choices = TransitionChoices(
+            chosen: .pageCurl, axis: .vertical, reduceMotion: false,
+            canCurl: true, isReflowable: true
+        )
+        #expect(choices.effective == .slide)
+        #expect(choices.effective.needsTwoRasters == false)
     }
 
     @Test("Reflowable text offers one scroll row, because prose scrolls the way it reads")

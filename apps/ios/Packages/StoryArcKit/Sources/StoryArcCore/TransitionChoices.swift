@@ -107,6 +107,13 @@ public struct TransitionChoices: Sendable, Equatable {
         axis: ScrollAxis,
         reduceMotion: Bool,
         canCurl: Bool,
+        /// Whether this platform's reader can draw a cross-fade over the content.
+        ///
+        /// The same shape as `canCurl`, and for the same kind of reason: a capability the
+        /// platform either has or does not. A comic always can, because the page is
+        /// already an image. Reflowable text needs the reader to take the turn over from
+        /// Readium, and only iOS does that today.
+        canFade: Bool = true,
         isReflowable: Bool = false
     ) {
         self.chosen = chosen
@@ -131,7 +138,9 @@ public struct TransitionChoices: Sendable, Equatable {
 
         var unavailable: [PageTransition: TransitionUnavailability] = [:]
         if isReflowable {
-            for mode in offered where mode.needsARasteredPage {
+            // Only the mode that needs *two* rasters. Fast fade needs one, and the reader
+            // takes it before the navigator moves — where the platform's reader does.
+            for mode in offered where mode.needsTwoRasters || (mode == .fastFade && !canFade) {
                 unavailable[mode] = .reflowableText
             }
         }
@@ -153,7 +162,9 @@ public struct TransitionChoices: Sendable, Equatable {
         // Reduce Motion turns Slide into Fast fade, and over reflowable text Fast fade
         // is itself impossible. Checking content first left `effective` naming a mode
         // this publication refuses.
-        if isReflowable, effective.needsARasteredPage { effective = .slide }
+        if isReflowable, effective.needsTwoRasters || (effective == .fastFade && !canFade) {
+            effective = .slide
+        }
         self.effective = effective
     }
 
@@ -164,11 +175,21 @@ public struct TransitionChoices: Sendable, Equatable {
 extension PageTransition {
     /// Whether this mode animates a *picture* of a page rather than the page itself.
     ///
-    /// Both of them deform or dissolve a surface, and a surface is a texture. Over a
-    /// comic that costs nothing, because the page is already an image; over reflowable
-    /// text it needs the page rastered first, which is why these two are the modes an
-    /// EPUB cannot yet offer.
+    /// Both deform or dissolve a surface, and a surface is a texture. Over a comic that
+    /// costs nothing, because the page is already an image; over reflowable text the page
+    /// has to be rastered first.
     public var needsARasteredPage: Bool { self == .pageCurl || self == .fastFade }
+
+    /// Whether reflowable text can offer this mode.
+    ///
+    /// Fast fade can: it needs one raster, a still of the page that is leaving, and the
+    /// reader takes that before the navigator moves.
+    ///
+    /// Curl cannot yet. It needs the *incoming* page as a second texture before it is on
+    /// screen, which means a second offscreen navigator or a snapshot round-trip. Task
+    /// 4.3b of `reader-theming-and-page-transitions` owns that, and Apple Books doing it
+    /// over reflowable text is the evidence that it can be done.
+    public var needsTwoRasters: Bool { self == .pageCurl }
 
     /// Whether this is the continuous mode, in either axis.
     public var isScroll: Bool { self == .verticalScroll || self == .horizontalScroll }

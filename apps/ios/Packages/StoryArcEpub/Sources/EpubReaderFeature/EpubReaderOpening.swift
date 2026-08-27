@@ -1,5 +1,8 @@
 public import Foundation
 
+internal import SwiftUI
+internal import UIKit
+
 internal import ReadiumNavigator
 internal import ReadiumShared
 internal import ReadiumStreamer
@@ -120,6 +123,43 @@ extension EpubReaderModel {
     public func goBackward() async {
         _ = await navigator?.goBackward(options: NavigatorGoOptions(animated: true))
     }
+
+    /// Turns a page with a transition StoryArc draws rather than one Readium draws.
+    ///
+    /// The order is the whole trick. A still of the outgoing page is taken *before* the
+    /// navigator moves, the navigator then moves with no animation of its own, and the
+    /// still is faded out over the page that arrived. Readium never animates, so the two
+    /// do not fight.
+    ///
+    /// `page-transitions` calls this Fast fade, and it is the half of task 4.3b that needs
+    /// one raster. Curl needs the incoming page as a second texture before it is on
+    /// screen, which is a different problem.
+    func turnWithFade(forward: Bool) async {
+        guard let navigator else { return }
+
+        // Nothing to fade from if the render server has no pixels for us. Turning anyway
+        // is better than refusing to turn.
+        still = navigator.view.snapshotView(afterScreenUpdates: false)
+
+        let options = NavigatorGoOptions(animated: false)
+        let moved = forward
+            ? await navigator.goForward(options: options)
+            : await navigator.goBackward(options: options)
+
+        guard moved else {
+            // At the end of the book. Drop the still immediately rather than fading it,
+            // because fading it would look like a turn that did not happen.
+            still = nil
+            return
+        }
+        withAnimation(.easeOut(duration: Self.fadeDuration)) { isStillFading = true }
+        try? await Task.sleep(for: .seconds(Self.fadeDuration))
+        still = nil
+        isStillFading = false
+    }
+
+    /// Short enough not to read as an animation, which is the point of the name.
+    static let fadeDuration = 0.18
 
     /// Writes the position down.
     ///

@@ -76,16 +76,42 @@ final class TurnGestures: NSObject {
     /// Enough travel to mean a turn rather than a stray finger.
     private static let panThreshold: CGFloat = 40
 
-    func install(on view: UIView, turn: @escaping (Bool) -> Void, reveal: @escaping () -> Void) {
+    private var installed: [UIGestureRecognizer] = []
+    private weak var host: UIView?
+
+    /// Takes the turn over, or hands it back.
+    ///
+    /// Called on every update rather than once at creation, because a reader chooses a
+    /// page turn *after* the book is open. Idempotent: the same mode twice changes
+    /// nothing, and switching back to Slide gives Readium its scroll and its swipe.
+    func apply(turn: ((Bool) -> Void)?, reveal: @escaping () -> Void, on view: UIView) {
+        let shouldOwn = turn != nil
+        guard shouldOwn != !installed.isEmpty || host !== view else {
+            self.turn = turn
+            self.reveal = reveal
+            return
+        }
         self.turn = turn
         self.reveal = reveal
+        host = view
+
+        for recogniser in installed { view.removeGestureRecognizer(recogniser) }
+        installed = []
+
+        // Readium's paginated scroll is what animates a Slide, so it has to stop for a
+        // transition StoryArc draws — otherwise both run and the page slides *and* fades.
+        // If it cannot be found, Readium keeps the turn and the reader gets a Slide, which
+        // is a lost transition rather than a reader who cannot turn a page.
+        PaginatedScroll.find(in: view)?.isScrollEnabled = !shouldOwn
+        guard shouldOwn else { return }
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(tapped))
         let pan = UIPanGestureRecognizer(target: self, action: #selector(panned))
-        tap.delegate = self
-        pan.delegate = self
-        view.addGestureRecognizer(tap)
-        view.addGestureRecognizer(pan)
+        for recogniser in [tap, pan] as [UIGestureRecognizer] {
+            recogniser.delegate = self
+            view.addGestureRecognizer(recogniser)
+            installed.append(recogniser)
+        }
     }
 
     @objc private func tapped(_ recogniser: UITapGestureRecognizer) {
