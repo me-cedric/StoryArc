@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -49,8 +47,11 @@ internal fun AboutGroup(modifier: Modifier = Modifier) {
         return
     }
 
+    // No scroll of its own. `SettingsScreen` already scrolls every group, and a second
+    // vertical scroll inside the first is measured with an infinite height — which threw
+    // and took the whole app down every time anyone opened About.
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
     ) {
         Text(
@@ -124,8 +125,10 @@ private fun LicenceText(
 ) {
     val palette = LocalStoryArcPalette.current
 
+    // Also no scroll of its own, for the same reason. A licence body is long and the
+    // host's scroll is what carries it.
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
     ) {
         OutlinedButton(onClick = onBack) { Text(stringResource(R.string.settings_back)) }
