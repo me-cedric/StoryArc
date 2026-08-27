@@ -331,46 +331,6 @@ struct ThemeSheet: View {
         }
     }
 
-    private var typefaceBinding: Binding<ReaderTypeface> {
-        Binding(
-            get: { model.values.typeface },
-            set: { new in
-                var values = model.values
-                values.typeface = new
-                model.change(.fontFamily, to: values)
-            }
-        )
-    }
-
-    private var boldBinding: Binding<Bool> {
-        Binding(
-            get: { model.values.isBold },
-            set: { new in
-                var values = model.values
-                values.isBold = new
-                model.change(.boldText, to: values)
-            }
-        )
-    }
-
-    private var alignmentBinding: Binding<ReaderTextAlignment> {
-        Binding(
-            get: { model.values.textAlignment },
-            set: { new in
-                var values = model.values
-                values.textAlignment = new
-                model.change(.textAlignment, to: values)
-            }
-        )
-    }
-
-    private func step(to size: FontSizeStep) {
-        var values = model.values
-        values.fontSize = size
-        model.change(.fontSize, to: values)
-    }
-
-    /// What Original costs, said once rather than implied by dead sliders.
     private var publisherNotice: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
             Text("theme.publisherStyles.title", bundle: .module)
