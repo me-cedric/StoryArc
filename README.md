@@ -297,6 +297,10 @@ moment you run it, so navigate first.
 
 ## Contributing
 
+[`docs/openspec/STATUS.md`](docs/openspec/STATUS.md) says how much of each specified
+capability exists. Five capabilities are absent entirely, and `sources` is the keystone
+four of them wait on.
+
 The rule that shapes everything else: **every behaviour is specified before it
 is built.** If what you want to add is not in `docs/openspec/specs/`, propose it
 first rather than implementing it and writing the spec afterwards.
