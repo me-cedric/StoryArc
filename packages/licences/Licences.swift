@@ -13,6 +13,13 @@ public struct Notice: Sendable, Equatable, Codable, Identifiable {
     public let name: String
     public let version: String?
     public let licence: String
+    /// The component's own copyright line.
+    ///
+    /// Separate from the licence body because `texts/` holds the SPDX *template* for each
+    /// licence, and a template says `Copyright (c) <year> <owner>`. Shipping that
+    /// placeholder discharges nothing — BSD and Apache both require the real notice to
+    /// travel with the binary.
+    public let copyright: String?
     public let url: String
     public let platforms: [String]
     public let why: String
@@ -49,10 +56,38 @@ public enum StoryArcLicences {
     }
 
     /// The licence text for an identifier, or `nil` if the file is missing.
+    ///
+    /// The SPDX template, unsubstituted. Prefer ``text(for:)-(Notice)`` — this overload
+    /// exists for a caller that has an identifier and no notice.
     public static func text(for licence: String) -> String? {
         guard let url = bundle.url(
             forResource: licence, withExtension: "txt", subdirectory: "texts"
         ) else { return nil }
         return try? String(contentsOf: url, encoding: .utf8)
     }
+
+    /// One component's licence, with its own copyright line in place of the template's.
+    ///
+    /// Substituting rather than prepending, so the notice reads as the project's own
+    /// licence rather than as a licence with a note stapled to it.
+    public static func text(for notice: Notice) -> String? {
+        text(for: notice.licence).map { withCopyright($0, notice.copyright) }
+    }
+
+    /// Replaces an SPDX placeholder copyright line, or leaves the body alone.
+    static func withCopyright(_ body: String, _ copyright: String?) -> String {
+        guard let copyright, !copyright.isEmpty else { return body }
+        var lines = body.components(separatedBy: "\n")
+        guard let at = lines.firstIndex(where: { line in
+            placeholders.contains { line.localizedCaseInsensitiveContains($0) }
+        }) else {
+            // No placeholder means the text already names its holder. Prepending a second
+            // copyright line to such a text would state two, and one would be wrong.
+            return body
+        }
+        lines[at] = copyright
+        return lines.joined(separator: "\n")
+    }
+
+    private static let placeholders = ["<year>", "<owner>", "[yyyy]", "[name of copyright owner]"]
 }

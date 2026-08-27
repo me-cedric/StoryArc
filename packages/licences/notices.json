@@ -9,7 +9,8 @@
       "platforms": [
         "ios"
       ],
-      "why": "Reflowable EPUB rendering. ADR-0005."
+      "why": "Reflowable EPUB rendering. ADR-0005.",
+      "copyright": "Copyright (c) 2017, Readium"
     },
     {
       "name": "Readium Kotlin Toolkit",
@@ -19,7 +20,8 @@
       "platforms": [
         "android"
       ],
-      "why": "Reflowable EPUB rendering. ADR-0005."
+      "why": "Reflowable EPUB rendering. ADR-0005.",
+      "copyright": "Copyright (c) 2017, Readium"
     },
     {
       "name": "libarchive",
@@ -30,7 +32,8 @@
         "ios",
         "android"
       ],
-      "why": "Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md."
+      "why": "Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md.",
+      "copyright": "The libarchive distribution as a whole is Copyright by Tim Kientzle"
     },
     {
       "name": "AndroidX and Jetpack Compose",
@@ -39,7 +42,8 @@
       "platforms": [
         "android"
       ],
-      "why": "The UI toolkit, lifecycle, Room and the activity host."
+      "why": "The UI toolkit, lifecycle, Room and the activity host.",
+      "copyright": "Copyright (C) The Android Open Source Project"
     },
     {
       "name": "Kotlin and kotlinx",
@@ -48,7 +52,8 @@
       "platforms": [
         "android"
       ],
-      "why": "The language, coroutines and serialization."
+      "why": "The language, coroutines and serialization.",
+      "copyright": "Copyright 2010-2018 JetBrains s.r.o. and Kotlin Programming Language contributors."
     },
     {
       "name": "Literata",
@@ -58,7 +63,8 @@
         "ios",
         "android"
       ],
-      "why": "A bundled reading typeface. Designed for screen reading."
+      "why": "A bundled reading typeface. Designed for screen reading.",
+      "copyright": "Copyright 2017 The Literata Project Authors (https://github.com/googlefonts/literata)"
     },
     {
       "name": "Source Serif 4",
@@ -68,7 +74,8 @@
         "ios",
         "android"
       ],
-      "why": "A bundled reading typeface."
+      "why": "A bundled reading typeface.",
+      "copyright": "Copyright 2014 The Source Serif 4 Project Authors (https://github.com/adobe-fonts/source-serif)"
     },
     {
       "name": "EB Garamond",
@@ -78,7 +85,8 @@
         "ios",
         "android"
       ],
-      "why": "A bundled reading typeface."
+      "why": "A bundled reading typeface.",
+      "copyright": "Copyright 2017 The EB Garamond Project Authors (https://github.com/octaviopardo/EBGaramond12)"
     },
     {
       "name": "Bitter",
@@ -88,7 +96,8 @@
         "ios",
         "android"
       ],
-      "why": "A bundled reading typeface."
+      "why": "A bundled reading typeface.",
+      "copyright": "Copyright 2011 The Bitter Project Authors (https://github.com/solmatas/BitterPro)"
     },
     {
       "name": "Atkinson Hyperlegible",
@@ -98,7 +107,9 @@
         "ios",
         "android"
       ],
-      "why": "A bundled reading typeface, designed for low vision."
+      "why": "A bundled reading typeface, designed for low vision.",
+      "copyright": "Copyright 2020 Braille Institute of America, Inc."
     }
-  ]
+  ],
+  "$copyright": "Each component's own copyright line, taken from that project's LICENSE or, for the fonts, from the OFL file the font itself ships. Needed because texts/ holds the SPDX template for each licence, and an SPDX template says `Copyright (c) <year> <owner>`. Shipping that placeholder discharges nothing: BSD and Apache both require the actual notice to travel with the binary. Never compose one of these lines by hand."
 }

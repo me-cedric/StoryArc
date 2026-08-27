@@ -40,7 +40,7 @@ internal fun AboutGroup(modifier: Modifier = Modifier) {
     showing?.let { notice ->
         LicenceText(
             notice = notice,
-            text = remember(notice) { Notices.text(context.assets, notice.licence) },
+            text = remember(notice) { Notices.text(context.assets, notice) },
             onBack = { showing = null },
             modifier = modifier,
         )

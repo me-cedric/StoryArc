@@ -77,7 +77,7 @@ private struct LicenceText: View {
     var body: some View {
         ScrollView {
             Text(
-                StoryArcLicences.text(for: notice.licence)
+                StoryArcLicences.text(for: notice)
                     ?? String(describing: MissingLicence(identifier: notice.licence))
             )
             // Monospaced, because a licence is a document and its own line breaks are

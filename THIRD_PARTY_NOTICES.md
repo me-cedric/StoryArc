@@ -8,18 +8,20 @@ Both apps stage the same inventory and show it in Settings › About ›
 Acknowledgements, because BSD and Apache require the notice to travel with the binary
 and the SIL Open Font Licence requires its text to accompany the fonts.
 
-| Component | Licence | Platform | Why it is in the app |
-| --- | --- | --- | --- |
-| [Readium Swift Toolkit 3.11](https://github.com/readium/swift-toolkit) | `BSD-3-Clause` | iOS | Reflowable EPUB rendering. ADR-0005. |
-| [Readium Kotlin Toolkit 3.3](https://github.com/readium/kotlin-toolkit) | `BSD-3-Clause` | Android | Reflowable EPUB rendering. ADR-0005. |
-| [libarchive 3.7.7](https://github.com/libarchive/libarchive) | `BSD-2-Clause` | iOS, Android | Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md. |
-| [AndroidX and Jetpack Compose](https://developer.android.com/jetpack/androidx) | `Apache-2.0` | Android | The UI toolkit, lifecycle, Room and the activity host. |
-| [Kotlin and kotlinx](https://github.com/JetBrains/kotlin) | `Apache-2.0` | Android | The language, coroutines and serialization. |
-| [Literata](https://fonts.google.com/specimen/Literata) | `OFL-1.1` | iOS, Android | A bundled reading typeface. Designed for screen reading. |
-| [Source Serif 4](https://fonts.google.com/specimen/Source+Serif+4) | `OFL-1.1` | iOS, Android | A bundled reading typeface. |
-| [EB Garamond](https://fonts.google.com/specimen/EB+Garamond) | `OFL-1.1` | iOS, Android | A bundled reading typeface. |
-| [Bitter](https://fonts.google.com/specimen/Bitter) | `OFL-1.1` | iOS, Android | A bundled reading typeface. |
-| [Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible) | `OFL-1.1` | iOS, Android | A bundled reading typeface, designed for low vision. |
+<!-- generated:notices -->
+| Component | Licence | Platform | Copyright | Why it is in the app |
+| --- | --- | --- | --- | --- |
+| [Readium Swift Toolkit 3.11](https://github.com/readium/swift-toolkit) | `BSD-3-Clause` | iOS | Copyright (c) 2017, Readium | Reflowable EPUB rendering. ADR-0005. |
+| [Readium Kotlin Toolkit 3.3](https://github.com/readium/kotlin-toolkit) | `BSD-3-Clause` | Android | Copyright (c) 2017, Readium | Reflowable EPUB rendering. ADR-0005. |
+| [libarchive 3.7.7](https://github.com/libarchive/libarchive) | `BSD-2-Clause` | iOS, Android | The libarchive distribution as a whole is Copyright by Tim Kientzle | Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md. |
+| [AndroidX and Jetpack Compose](https://developer.android.com/jetpack/androidx) | `Apache-2.0` | Android | Copyright (C) The Android Open Source Project | The UI toolkit, lifecycle, Room and the activity host. |
+| [Kotlin and kotlinx](https://github.com/JetBrains/kotlin) | `Apache-2.0` | Android | Copyright 2010-2018 JetBrains s.r.o. and Kotlin Programming Language contributors. | The language, coroutines and serialization. |
+| [Literata](https://fonts.google.com/specimen/Literata) | `OFL-1.1` | iOS, Android | Copyright 2017 The Literata Project Authors (https://github.com/googlefonts/literata) | A bundled reading typeface. Designed for screen reading. |
+| [Source Serif 4](https://fonts.google.com/specimen/Source+Serif+4) | `OFL-1.1` | iOS, Android | Copyright 2014 The Source Serif 4 Project Authors (https://github.com/adobe-fonts/source-serif) | A bundled reading typeface. |
+| [EB Garamond](https://fonts.google.com/specimen/EB+Garamond) | `OFL-1.1` | iOS, Android | Copyright 2017 The EB Garamond Project Authors (https://github.com/octaviopardo/EBGaramond12) | A bundled reading typeface. |
+| [Bitter](https://fonts.google.com/specimen/Bitter) | `OFL-1.1` | iOS, Android | Copyright 2011 The Bitter Project Authors (https://github.com/solmatas/BitterPro) | A bundled reading typeface. |
+| [Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible) | `OFL-1.1` | iOS, Android | Copyright 2020 Braille Institute of America, Inc. | A bundled reading typeface, designed for low vision. |
+<!-- /generated:notices -->
 
 Licence texts are in [`packages/licences/texts`](packages/licences/texts), taken from
 [SPDX's own list](https://github.com/spdx/license-list-data) rather than transcribed.
