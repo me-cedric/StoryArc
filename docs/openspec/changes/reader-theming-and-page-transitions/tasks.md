@@ -565,8 +565,35 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       hold at most the outgoing and incoming pages, restore live interaction the
       instant the turn completes. **Still the remaining hard part, and now visible in
       the product rather than only in this file**: the ebook reader's page-turn section
-      lists Curl and Fast fade with "not available for text that reflows: it needs a
+      lists Curl and Fast fade with "not available yet for text that reflows: it needs a
       picture of the page". Both readers offer the other two modes fully.
+
+      **Apple Books does this, so the approach is proven rather than hypothetical.** A
+      reader sent a screenshot of Apple Books mid-curl over reflowable French text: the
+      fold is lit, the crease shades, and the *back* of the turning page carries the
+      page's own text mirrored. That last detail is the evidence that matters — it is
+      exactly what `page-transitions` asks for when it says "the turning page is a
+      faithful raster of the page it replaces", and it means Apple is deforming a texture
+      of live web content rather than doing something a third-party app cannot.
+
+      So the open question is not *whether* but *when to snapshot and what it costs*:
+
+      - **iOS:** `WKWebView.takeSnapshot(with:)` is asynchronous and returns a `UIImage`;
+        `UIView.drawHierarchy(in:afterScreenUpdates:)` is synchronous and cheaper but
+        blocks. A turn cannot wait on an async snapshot at the moment the finger moves,
+        so the outgoing page has to be rastered *before* the gesture begins — which means
+        on settle of the previous turn, not on demand.
+      - **Android:** a `WebView` draws to a `Canvas`, so a `Bitmap` is one `draw` call.
+        The same timing problem applies.
+      - **Both:** the raster must be at display scale or the curl shows a soft page
+        against sharp chrome, and ADR-0009's shader already takes two textures — so the
+        shader itself needs no change. This is a source problem, not a rendering one.
+
+      The reader's wording was corrected at the same time. "Not available" reads as a
+      property of the format; "not available yet" is what is true.
+
+      Reverify against Apple Books when this is built: the crease, the lit edge, and the
+      mirrored text on the back are the three things to compare.
 - [x] **4.4** Scroll mode with the axis rule, including the webtoon default.
       **Done.** A lazy list on both platforms, pages stitched with no gap: each page
       fills the scroll's *cross* axis and takes what it needs along the scroll axis.

@@ -70,7 +70,7 @@
     <string name="theme_page_turn_fade">Fast fade</string>
     <string name="theme_page_turn_scroll">Continuous scroll</string>
     <string name="theme_page_turn_reduce_motion">Unavailable while your system is set to remove animations.</string>
-    <string name="theme_page_turn_reflowable">Not available for text that reflows: it needs a picture of the page.</string>
+    <string name="theme_page_turn_reflowable">Not available yet for text that reflows: it needs a picture of the page.</string>
     <string name="epub_contents">Contents</string>
     <string name="epub_contents_none">This book declares no table of contents.</string>
     <string name="epub_contents_here">Here</string>

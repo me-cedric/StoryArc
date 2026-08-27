@@ -70,7 +70,7 @@
     <string name="theme_page_turn_fade">Fondu rapide</string>
     <string name="theme_page_turn_scroll">Défilement continu</string>
     <string name="theme_page_turn_reduce_motion">Indisponible tant que votre système supprime les animations.</string>
-    <string name="theme_page_turn_reflowable">Indisponible pour un texte qui se recompose : il faut une image de la page.</string>
+    <string name="theme_page_turn_reflowable">Pas encore disponible pour le texte qui se recompose : il faut une image de la page.</string>
     <string name="epub_contents">Sommaire</string>
     <string name="epub_contents_none">Ce livre ne déclare aucun sommaire.</string>
     <string name="epub_contents_here">Ici</string>
