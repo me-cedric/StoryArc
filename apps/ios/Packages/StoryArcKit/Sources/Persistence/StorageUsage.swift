@@ -52,16 +52,29 @@ public struct StorageUsage: Sendable {
     }
 }
 
-/// A size a person can read.
+/// A size a person can read, in their own locale.
 ///
 /// Powers of 1024 with the SI names, which is what every file manager on both platforms
 /// shows — matching the convention a reader already has beats being right about kibibytes.
+///
+/// The number is formatted through `Locale.current`, not by `String(format:)`. That
+/// composes a fixed decimal point, so a French reader saw "1.4 MB" where every other app
+/// on their phone says "1,4 Mo". `localization` requires "numbers, dates and file sizes"
+/// to follow the locale, and a hand-composed float does not.
 public func formattedBytes(_ bytes: Int64) -> String {
     switch bytes {
     case ..<1: "0 kB"
     case ..<1024: "1 kB"
     case ..<(1024 * 1024): "\(bytes / 1024) kB"
-    case ..<(1024 * 1024 * 1024): String(format: "%.1f MB", Double(bytes) / (1024 * 1024))
-    default: String(format: "%.1f GB", Double(bytes) / (1024 * 1024 * 1024))
+    case ..<(1024 * 1024 * 1024): scaled(bytes, by: 1024 * 1024, unit: "MB")
+    default: scaled(bytes, by: 1024 * 1024 * 1024, unit: "GB")
     }
+}
+
+/// One decimal place, in the reader's own number format.
+private func scaled(_ bytes: Int64, by divisor: Double, unit: String) -> String {
+    let value = (Double(bytes) / divisor).formatted(
+        .number.precision(.fractionLength(1)).locale(.current)
+    )
+    return "\(value) \(unit)"
 }

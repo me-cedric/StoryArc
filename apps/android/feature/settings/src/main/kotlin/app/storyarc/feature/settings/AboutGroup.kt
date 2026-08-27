@@ -106,6 +106,10 @@ internal fun AboutGroup(modifier: Modifier = Modifier) {
                     color = palette.textPrimary,
                 )
                 Text(
+                    // Two data fields and a separator, not a sentence. The licence is an
+                    // SPDX identifier and `why` names an ADR, so neither is translated and
+                    // a localised format string joining them would read the same in all
+                    // four languages.
                     text = "${notice.licence} · ${notice.why}",
                     style = MaterialTheme.typography.labelLarge,
                     color = palette.textTertiary,

@@ -175,6 +175,35 @@
         }
       }
     },
+    "about.licence.missing %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Text %@ fehlt in diesem Build. Das ist ein Verpackungsfehler. Bitte melden Sie ihn."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The %@ text is missing from this build. That is a packaging bug — please report it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falta el texto %@ en esta compilación. Es un error de empaquetado. Infórmelo, por favor."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le texte %@ est absent de cette version. C’est une erreur d’empaquetage. Merci de la signaler."
+          }
+        }
+      }
+    },
     "about.report": {
       "extractionState": "manual",
       "localizations": {

@@ -53,6 +53,10 @@ struct AboutSettings: View {
                     } label: {
                         VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                             Text(notice.version.map { "\(notice.name) \($0)" } ?? notice.name)
+                            // Two data fields and a separator, not a sentence. The
+                            // licence is an SPDX identifier and `why` names an ADR, so
+                            // neither is translated and a localised format string joining
+                            // them would read the same in all four languages.
                             Text(verbatim: "\(notice.licence) · \(notice.why)")
                                 .textRole(.footnote)
                                 .foregroundStyle(theme.palette.textTertiary)
@@ -100,6 +104,6 @@ private struct MissingLicence: CustomStringConvertible {
     let identifier: String
 
     var description: String {
-        "The \(identifier) text is missing from this build. That is a packaging bug — please report it."
+        String(localized: "about.licence.missing \(identifier)", bundle: .module)
     }
 }
