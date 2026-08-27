@@ -40,11 +40,26 @@ const RAW =
   /(\.(png|jpe?g|webp|gif|xml|json|cbz|cbr|epub)$)|^(\/|file:|https?:|smb:)|^-?\d+\.\d+$/i
 const ACTIONABLE = ['clickable', 'checkable', 'long-clickable']
 
-const adb = ['adb', join(homedir(), 'Library/Android/sdk/platform-tools/adb')].find(
-  (candidate) => candidate === 'adb' || existsSync(candidate),
-)
+/**
+ * The SDK's adb if it is there, otherwise whatever is on PATH.
+ *
+ * Order matters. Preferring the bare name first looks harmless and is not: the child
+ * process does not always inherit a shell's PATH, so `adb` resolves to nothing, every
+ * call throws ENOENT, and a swallowed ENOENT reads as "every screen is fine".
+ */
+const SDK_ADB = join(homedir(), 'Library/Android/sdk/platform-tools/adb')
+const adb = existsSync(SDK_ADB) ? SDK_ADB : 'adb'
 
-const run = (...args) => execFileSync(adb, args, { encoding: 'utf8', maxBuffer: 1 << 26 })
+const run = (...args) => {
+  try {
+    return execFileSync(adb, args, { encoding: 'utf8', maxBuffer: 1 << 26 })
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error(`adb not found at ${adb}. Install the platform tools or add adb to PATH.`)
+    }
+    throw error
+  }
+}
 
 /** The device's own density. A guessed one invents defects, so this is never a constant. */
 const density = () => Number(/(\d+)/.exec(run('shell', 'wm', 'density'))?.[1] ?? 420)
