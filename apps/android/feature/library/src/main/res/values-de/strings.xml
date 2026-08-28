@@ -186,4 +186,7 @@
     <string name="smb_error_smb1">Dieser Server bietet nur SMB 1 an, das aus Sicherheitsgründen deaktiviert ist. Aktivieren Sie SMB 2 oder neuer auf dem Server — bei den meisten NAS-Geräten unter Dateidienste, SMB.</string>
     <string name="smb_error_unexpected">Die Freigabe konnte nicht erreicht werden.</string>
     <string name="smb_error_key_not_stored">Dieses Gerät hat das Passwort nicht gespeichert, daher wurde die Freigabe nicht hinzugefügt.</string>
+    <string name="smb_metered_title">Mobile Daten verwenden?</string>
+    <string name="smb_metered_body">Diese Verbindung ist kostenpflichtig oder der Datensparmodus ist an. „%1$s“ zu lesen verbraucht Daten von der Freigabe.</string>
+    <string name="smb_metered_continue">Lesen</string>
 </resources>

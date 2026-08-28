@@ -22,6 +22,10 @@ public struct SmbBrowserView: View {
     @State private var entries: [SmbEntry] = []
     @State private var failure: LocalizedStringResource?
     @State private var opening: String?
+    /// `network-share`: on a metered connection the reader confirms before the app spends
+    /// their data. Held rather than acted on, because the answer is theirs to give.
+    @State private var confirming: SmbEntry?
+    @State private var cost = NetworkCost()
 
     public init(
         title: String,
@@ -56,7 +60,11 @@ public struct SmbBrowserView: View {
                     }
                 } else {
                     Button {
-                        Task { await open(entry) }
+                        if cost.isCareful {
+                            confirming = entry
+                        } else {
+                            Task { await open(entry) }
+                        }
                     } label: {
                         HStack {
                             Label(entry.name, systemImage: "book")
@@ -75,6 +83,28 @@ public struct SmbBrowserView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .confirmationDialog(
+            Text("smb.metered.title", bundle: .module),
+            isPresented: Binding(
+                get: { confirming != nil },
+                set: { if !$0 { confirming = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button {
+                if let entry = confirming {
+                    confirming = nil
+                    Task { await open(entry) }
+                }
+            } label: {
+                Text("smb.metered.continue", bundle: .module)
+            }
+            Button(role: .cancel) { confirming = nil } label: {
+                Text("smb.cancel", bundle: .module)
+            }
+        } message: {
+            Text("smb.metered.body \(confirming?.name ?? "")", bundle: .module)
+        }
         .task(id: path) {
             guard entries.isEmpty else { return }
             do {

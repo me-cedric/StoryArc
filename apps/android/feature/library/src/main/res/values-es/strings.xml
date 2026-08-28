@@ -186,4 +186,7 @@
     <string name="smb_error_smb1">Este servidor solo ofrece SMB 1, que está desactivado por seguridad. Activa SMB 2 o posterior en el servidor — en la mayoría de los NAS está en Servicios de archivos, SMB.</string>
     <string name="smb_error_unexpected">No se pudo acceder al recurso.</string>
     <string name="smb_error_key_not_stored">Este dispositivo no guardó la contraseña, así que el recurso no se añadió.</string>
+    <string name="smb_metered_title">¿Usar datos móviles?</string>
+    <string name="smb_metered_body">Esta conexión está medida o el ahorro de datos está activado. Leer «%1$s» consumirá datos del recurso.</string>
+    <string name="smb_metered_continue">Leerlo</string>
 </resources>

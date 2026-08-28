@@ -186,4 +186,7 @@
     <string name="smb_error_smb1">Ce serveur ne propose que SMB 1, désactivé pour des raisons de sécurité. Activez SMB 2 ou une version ultérieure sur le serveur — sur la plupart des NAS, dans Services de fichiers, SMB.</string>
     <string name="smb_error_unexpected">Le partage n’a pas pu être atteint.</string>
     <string name="smb_error_key_not_stored">Cet appareil n’a pas enregistré le mot de passe, le partage n’a donc pas été ajouté.</string>
+    <string name="smb_metered_title">Utiliser les données mobiles ?</string>
+    <string name="smb_metered_body">Cette connexion est limitée ou l’économiseur de données est actif. Lire « %1$s » consommera des données du partage.</string>
+    <string name="smb_metered_continue">Le lire</string>
 </resources>

@@ -70,7 +70,7 @@ class DownloadQueue(
      * connection, which is what `offline-downloads` means by lowering the bound -- Data Saver
      * and a metered hotspot both land here.
      */
-    private val concurrency: Int get() = if (isCareful()) 1 else 2
+    private val concurrency: Int get() = if (NetworkCost.isCareful(context)) 1 else 2
 
     /** Adds a download and starts it when there is room. */
     fun enqueue(entry: OpdsEntry, acquisition: OpdsAcquisition) {
@@ -228,22 +228,6 @@ class DownloadQueue(
         waiting.remove(id)?.forEach { it.complete(file) }
     }
 
-    /**
-     * Whether the connection is one to be careful with.
-     *
-     * `offline-downloads`: the bound is "lowered on a metered connection", and "when the
-     * platform's data saver or Low Data Mode is active ... the app treats the connection as
-     * metered regardless of its own setting". Careful by default, so an unknown connection
-     * is treated as the expensive one.
-     */
-    private fun isCareful(): Boolean {
-        val manager = context.getSystemService(ConnectivityManager::class.java) ?: return true
-        val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return true
-        val unmetered = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
-        val saverOff = manager.restrictBackgroundStatus ==
-            ConnectivityManager.RESTRICT_BACKGROUND_STATUS_DISABLED
-        return !(unmetered && saverOff)
-    }
 }
 
 /**

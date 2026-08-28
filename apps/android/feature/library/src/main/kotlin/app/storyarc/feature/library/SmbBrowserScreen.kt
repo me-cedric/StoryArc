@@ -15,11 +15,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -83,6 +85,9 @@ fun SmbBrowserScreen(
     // text at the moment it happened.
     var failure by remember(path) { mutableStateOf<Int?>(null) }
     var opening by remember(path) { mutableStateOf<String?>(null) }
+    // `network-share`: on a metered connection the reader confirms before the app spends
+    // their data. Held rather than acted on, because the answer is theirs to give.
+    var confirming by remember(path) { mutableStateOf<SmbEntry?>(null) }
 
     LaunchedEffect(path) {
         // On IO: the first call is what builds jcifs' context, and that blocks.
@@ -131,6 +136,8 @@ fun SmbBrowserScreen(
                 EntryRow(entry, isOpening = opening == entry.path) {
                     if (entry.isDirectory) {
                         onEnter(entry.path)
+                    } else if (NetworkCost.isCareful(context)) {
+                        confirming = entry
                     } else {
                         scope.launch {
                             opening = entry.path
@@ -147,6 +154,33 @@ fun SmbBrowserScreen(
                 }
             }
         }
+    }
+
+    confirming?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { confirming = null },
+            title = { Text(stringResource(R.string.smb_metered_title)) },
+            text = { Text(stringResource(R.string.smb_metered_body, entry.name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirming = null
+                    scope.launch {
+                        opening = entry.path
+                        runCatching { openFromShare(context, client, address, entry) }
+                            .onSuccess { (publication, decoder) -> onOpen(publication, decoder) }
+                            .onFailure { failure = R.string.smb_error_unexpected }
+                        opening = null
+                    }
+                }) {
+                    Text(stringResource(R.string.smb_metered_continue))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirming = null }) {
+                    Text(stringResource(R.string.shelves_cancel))
+                }
+            },
+        )
     }
 }
 

@@ -4599,6 +4599,93 @@
         }
       }
     },
+    "smb.metered.body %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Verbindung ist kostenpflichtig oder der Datensparmodus ist an. „%@“ zu lesen verbraucht Daten von der Freigabe."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This connection is metered or data saver is on. Reading “%@” will use data from the share."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta conexión está medida o el ahorro de datos está activado. Leer «%@» consumirá datos del recurso."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette connexion est limitée ou l’économiseur de données est actif. Lire « %@ » consommera des données du partage."
+          }
+        }
+      }
+    },
+    "smb.metered.continue": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lesen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read it"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leerlo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le lire"
+          }
+        }
+      }
+    },
+    "smb.metered.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mobile Daten verwenden?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use mobile data?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Usar datos móviles?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser les données mobiles ?"
+          }
+        }
+      }
+    },
     "smb.notEncrypted %@": {
       "extractionState": "manual",
       "localizations": {
