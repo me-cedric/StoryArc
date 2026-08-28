@@ -79,6 +79,22 @@ targets:
         # there.
         UIFileSharingEnabled: true
         ITSAppUsesNonExemptEncryption: false
+        # `opds-catalog` and `network-share` are about servers a reader runs at home, and
+        # a Synology or a Raspberry Pi on the shelf usually answers over plain HTTP on a
+        # `.local` name. App Transport Security blocks that by default, which would make
+        # every self-hosted catalogue unreachable with no way to say why.
+        #
+        # `NSAllowsLocalNetworking` is the narrow exception: it permits insecure loads to
+        # local hostnames and private-range addresses and nothing else. Arbitrary insecure
+        # loads stay blocked, so a catalogue on the public internet must still be HTTPS —
+        # which is why the address field completes a missing scheme to `https`, not `http`.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        # Shown when the app first reaches a device on the same network. Says what for,
+        # because "StoryArc would like to find devices" answers nothing.
+        NSLocalNetworkUsageDescription: >-
+          StoryArc connects to library servers you run yourself, such as a NAS or a
+          Raspberry Pi on your own network.
         # `local-library` requires StoryArc to appear as a handler for every
         # format it can read, so an "Open with" from Files reaches the reader.
         CFBundleDocumentTypes:

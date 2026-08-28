@@ -142,7 +142,15 @@ final class OpdsTrustDelegate: NSObject, URLSessionDelegate, Sendable {
         SecCertificateCopySubjectSummary(certificate) as String?
     }
 
+    /// When the certificate stops being valid — on macOS only.
+    ///
+    /// iOS exposes no public API for a certificate's validity dates.
+    /// `SecCertificateCopyValues` is macOS-only, and the alternative is hand-parsing the
+    /// DER validity field. The fingerprint is what the spec requires a reader to compare
+    /// and the subject is what tells them which server they are looking at; an expiry date
+    /// is a nicety, and hand-rolled X.509 parsing to get one is not a trade worth making.
     private static func expiry(of certificate: SecCertificate) -> Date? {
+        #if os(macOS)
         guard let values = SecCertificateCopyValues(
             certificate,
             [kSecOIDX509V1ValidityNotAfter] as CFArray,
@@ -153,5 +161,8 @@ final class OpdsTrustDelegate: NSObject, URLSessionDelegate, Sendable {
         else { return nil }
         // Counted from 2001, which is what the Security framework returns here.
         return Date(timeIntervalSinceReferenceDate: seconds)
+        #else
+        nil
+        #endif
     }
 }

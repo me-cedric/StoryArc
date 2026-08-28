@@ -354,3 +354,39 @@ class OpdsParsingTest {
         assertFalse(OpdsAcquisition.Kind.BORROW.isFetchable)
     }
 }
+
+/**
+ * What a typed address becomes.
+ *
+ * The one piece of the add-a-catalogue flow that is not a network call, and the one that
+ * decides whether a password travels in the clear.
+ */
+class OpdsAddressTest {
+    @Test
+    fun aBareHostBecomesHttps() {
+        assertEquals(
+            "https://library.example.com/opds",
+            OpdsDocument.address("library.example.com/opds"),
+        )
+    }
+
+    @Test
+    fun anExplicitSchemeIsKept() {
+        // A reader who typed `http` meant it -- usually a server on their own network. The
+        // default is the secure one; the override is theirs.
+        assertEquals("http://nas.local:8080/opds", OpdsDocument.address("http://nas.local:8080/opds"))
+    }
+
+    @Test
+    fun surroundingSpaceIsIgnored() {
+        assertEquals("https://komga.local/opds", OpdsDocument.address("  komga.local/opds  "))
+    }
+
+    @Test
+    fun somethingWithNoHostIsNotAnAddress() {
+        assertNull(OpdsDocument.address(""))
+        assertNull(OpdsDocument.address("   "))
+        assertNull(OpdsDocument.address("https://"))
+        assertNull(OpdsDocument.address("not a host at all"))
+    }
+}

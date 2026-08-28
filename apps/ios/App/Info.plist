@@ -66,6 +66,11 @@
 	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>StoryArc looks for SMB shares on your local network so you can add one without typing its address. You can always enter it by hand instead.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

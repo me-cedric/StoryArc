@@ -34,6 +34,21 @@ public enum OpdsDocument {
         throw OpdsError.notAFeed(received: .unrecognised(contentType: contentType))
     }
 
+    /// A typed address, completed to a URL the way a browser would.
+    ///
+    /// `https` is added when no scheme was typed, because that is what a reader means and
+    /// because defaulting to `http` would send a password in the clear. A bare host with no
+    /// path is left alone: the server decides where its root feed is.
+    public static func address(from typed: String) -> URL? {
+        let trimmed = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let completed = trimmed.contains("://") ? trimmed : "https://\(trimmed)"
+        guard let url = URL(string: completed), let host = url.host(), !host.isEmpty,
+              !host.contains(" ")
+        else { return nil }
+        return url
+    }
+
     /// A possibly relative href, made absolute against the feed it came from.
     static func resolve(_ href: String, relativeTo base: URL) -> URL? {
         URL(string: href, relativeTo: base)?.absoluteURL

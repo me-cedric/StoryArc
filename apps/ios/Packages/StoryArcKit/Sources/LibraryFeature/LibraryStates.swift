@@ -57,6 +57,23 @@ struct EmptyLibraryView: View {
     /// to offer an action rather than only describe one — see DESIGN.md §9.
     var addFolder: () -> Void = {}
 
+    /// The other kind that is built. Nil for a kind that is not, which is what keeps a row
+    /// from looking like a button that does nothing.
+    var addCatalogue: (() -> Void)?
+
+    /// What tapping a kind does, when that kind exists.
+    ///
+    /// The rows describe every source `sources` specifies, and two of the four are built.
+    /// A row with no action stays a description — the alternative is four identical rows of
+    /// which two do nothing, which is worse than saying less.
+    private func action(for kind: SourceKind) -> (() -> Void)? {
+        switch kind {
+        case .localFolder: addFolder
+        case .opdsCatalog: addCatalogue
+        case .networkShare, .kavitaServer: nil
+        }
+    }
+
     var body: some View {
         VStack(spacing: StoryArcSpace.xl) {
             Image(systemName: "books.vertical")
@@ -76,7 +93,7 @@ struct EmptyLibraryView: View {
 
             VStack(spacing: StoryArcSpace.sm) {
                 ForEach(SourceKind.allCases, id: \.self) { kind in
-                    SourceKindRow(kind: kind)
+                    SourceKindRow(kind: kind, action: action(for: kind))
                 }
             }
             .padding(.top, StoryArcSpace.xs)
@@ -102,7 +119,19 @@ struct SourceKindRow: View {
 
     let kind: SourceKind
 
+    /// Nil for a kind that is described but not built.
+    var action: (() -> Void)?
+
     var body: some View {
+        if let action {
+            Button(action: action) { row }
+                .buttonStyle(.plain)
+        } else {
+            row
+        }
+    }
+
+    private var row: some View {
         HStack(spacing: StoryArcSpace.md) {
             Image(systemName: kind.symbolName)
                 .font(.system(size: 18))
@@ -121,6 +150,14 @@ struct SourceKindRow: View {
             }
 
             Spacer(minLength: 0)
+
+            // The affordance, only where there is something to tap. Two rows that look
+            // identical and behave differently is the defect this avoids.
+            if action != nil {
+                Image(systemName: "chevron.right")
+                    .textRole(.footnote)
+                    .foregroundStyle(theme.palette.textTertiary)
+            }
         }
         .padding(StoryArcSpace.md)
         .frame(minHeight: StoryArcSpace.xxl + StoryArcSpace.md)

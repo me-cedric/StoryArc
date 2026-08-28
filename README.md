@@ -310,6 +310,30 @@ series" and one deliberately unreadable file so the refusal path has something t
 refuse. `pnpm corpus:check` verifies the bytes it writes, and runs as part of
 `pnpm check`.
 
+### A catalogue to test against
+
+`opds-catalog` cannot be verified from a screenshot of a parser. This serves the corpus
+above as a real OPDS catalogue, so the whole walkthrough — type an address, get past a
+sign-in, read a book — happens against a server:
+
+```bash
+pnpm opds ~/StoryArcCorpus
+```
+
+| Route | What it exercises |
+| --- | --- |
+| `/opds` | A navigation feed, OPDS 1.2 |
+| `/opds/all` | An acquisition feed, paginated, with a language facet |
+| `/opds2` | The same catalogue as OPDS 2.0 JSON |
+| `/private` | A 401 answered by Basic `ada` / `lovelace` |
+| `/bearer` | A 401 answered by Bearer `storyarc-token` |
+| `/page`, `/empty` | The two refusals the spec requires by name |
+
+The simulator and the emulator both reach it: `http://localhost:4444/opds` on iOS, and
+`http://10.0.2.2:4444/opds` from an Android emulator. iOS permits plain HTTP here
+because `NSAllowsLocalNetworking` is set for self-hosted servers; a catalogue on the
+public internet still has to be HTTPS.
+
 ## Contributing
 
 [`docs/openspec/STATUS.md`](docs/openspec/STATUS.md) says how much of each specified

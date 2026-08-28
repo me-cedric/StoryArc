@@ -13,6 +13,7 @@ public import StoryArcCore
 public struct LibraryView: View {
     @Environment(\.theme) private var theme
     @State private var isPickingFolder = false
+    @State private var isAddingCatalogue = false
     /// Owned by the app layer, not by this view.
     ///
     /// The app is what knows the reader was just dismissed, and a `.task` on this
@@ -24,6 +25,10 @@ public struct LibraryView: View {
     private let onOpen: (Publication, URL) -> Void
     private let progress: ProgressStore?
     private let onOpenSettings: () -> Void
+
+    /// Held by the view rather than made per presentation, so a reader who dismisses the
+    /// sheet mid-sign-in and reopens it finds what they typed still there.
+    @State private var catalogue = CatalogueConnection()
 
     /// `onOpen` is how the app layer reaches the reader. The library knows which
     /// publication was chosen and where it lives; it does not know what a reader
@@ -87,7 +92,10 @@ public struct LibraryView: View {
                 } else if case .scanning = model.scanState {
                     ScanningView(state: model.scanState)
                 } else if model.registry.sources.isEmpty {
-                    EmptyLibraryView { isPickingFolder = true }
+                    EmptyLibraryView(
+                        addFolder: { isPickingFolder = true },
+                        addCatalogue: { isAddingCatalogue = true }
+                    )
                 } else {
                     SourceList(
                         sources: model.registry.sources,
@@ -124,14 +132,34 @@ public struct LibraryView: View {
                         FilterMenu(model: model)
                     }
                 }
+                // A menu rather than a second button. There are two ways to add a
+                // source now and there will be four; a toolbar with one button per kind
+                // would crowd out the controls a reader uses every day.
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        isPickingFolder = true
+                    Menu {
+                        Button {
+                            isPickingFolder = true
+                        } label: {
+                            Label {
+                                Text("library.addFolder", bundle: .module)
+                            } icon: {
+                                Image(systemName: "folder.badge.plus")
+                            }
+                        }
+                        Button {
+                            isAddingCatalogue = true
+                        } label: {
+                            Label {
+                                Text("catalogue.title", bundle: .module)
+                            } icon: {
+                                Image(systemName: "dot.radiowaves.up.forward")
+                            }
+                        }
                     } label: {
                         Label {
-                            Text("library.addFolder", bundle: .module)
+                            Text("library.addSource", bundle: .module)
                         } icon: {
-                            Image(systemName: "folder.badge.plus")
+                            Image(systemName: "plus")
                         }
                     }
                 }
@@ -170,6 +198,9 @@ public struct LibraryView: View {
             if case let .success(urls) = result, let folder = urls.first {
                 model.addFolder(folder)
             }
+        }
+        .sheet(isPresented: $isAddingCatalogue) {
+            CatalogueSheet(connection: catalogue) { model.add($0) }
         }
     }
 }

@@ -31,6 +31,17 @@ extension LibraryModel {
         }?.id
     }
 
+    /// Adds a source the reader configured elsewhere, such as a catalogue.
+    ///
+    /// Distinct from ``register(_:)``, which adopts a folder the app already found. A
+    /// catalogue arrives already confirmed — it answered, and it told us its name — so
+    /// there is nothing to match and nothing to probe.
+    public func add(_ source: Source) {
+        guard registry[source.id] == nil else { return }
+        registry = registry.adding(source)
+        sourceStore?.save(registry)
+    }
+
     // Internal, not private: `private` is file-scoped, and the callers now sit
     // in the other half of this type.
     /// Records a folder as a source, if it is not one already.

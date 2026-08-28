@@ -52,6 +52,23 @@ object OpdsDocument {
     }
 
     /**
+     * A typed address, completed to a URL the way a browser would.
+     *
+     * `https` is added when no scheme was typed, because that is what a reader means and
+     * because defaulting to `http` would send a password in the clear. A bare host with no
+     * path is left alone: the server decides where its root feed is.
+     */
+    fun address(typed: String): String? {
+        val trimmed = typed.trim()
+        if (trimmed.isEmpty()) return null
+        val completed = if (trimmed.contains("://")) trimmed else "https://$trimmed"
+        return runCatching {
+            val uri = URI(completed)
+            if (uri.host.isNullOrEmpty()) null else uri.toString()
+        }.getOrNull()
+    }
+
+    /**
      * A possibly relative href, made absolute against the feed it came from.
      *
      * Braces are swapped out and back. A search template carries `{searchTerms}`, braces

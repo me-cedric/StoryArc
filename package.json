@@ -32,6 +32,7 @@
     "smoke:android": "node scripts/smoke-android.mjs",
     "notices": "node scripts/notices.mjs",
     "corpus": "node scripts/corpus.mjs",
+    "opds": "node scripts/opds-server.mjs",
     "corpus:check": "node scripts/corpus.mjs --self-test",
     "notices:check": "node scripts/notices.mjs --check"
   },
