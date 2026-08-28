@@ -26,4 +26,5 @@
     <string name="reader_transition_reduce_motion">No disponible mientras su sistema elimina las animaciones.</string>
     <string name="reader_transition_no_curl">El doblez no se ofrece aquí: este dispositivo no puede dibujarlo con suficiente fluidez.</string>
     <string name="reader_transition_reflowable">No disponible para texto que se recompone.</string>
+    <string name="reader_empty">Esta publicación no tiene páginas que StoryArc pueda mostrar.</string>
 </resources>

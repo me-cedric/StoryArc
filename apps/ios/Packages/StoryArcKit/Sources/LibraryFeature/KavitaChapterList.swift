@@ -162,15 +162,10 @@ struct KavitaChapterList: View {
         fetching = chapter.id
         defer { fetching = nil }
 
-        guard let data = try? await client.chapter(chapter.id) else { return }
-        let directory = URL.cachesDirectory.appending(path: "Kavita", directoryHint: .isDirectory)
-        guard (try? FileManager.default.createDirectory(
-            at: directory,
-            withIntermediateDirectories: true
-        )) != nil else { return }
-
-        let file = directory.appending(path: "chapter-\(chapter.id).cbz")
-        guard (try? data.write(to: file, options: .atomic)) != nil,
+        guard let fetched = try? await client.chapter(chapter.id),
+              let file = kavitaCacheFile(chapterId: chapter.id, mediaType: fetched.mediaType)
+        else { return }
+        guard (try? fetched.bytes.write(to: file, options: .atomic)) != nil,
               let publication = try? await PublicationIndexer.index(
                   fileAt: file,
                   seriesHint: series.name
@@ -191,4 +186,21 @@ struct KavitaChapterList: View {
         )
         onOpen(publication, file)
     }
+}
+
+/// Where a fetched chapter is written, named for what it actually is.
+///
+/// `kavita-server` serves comics and books from the same endpoint, and the reader the app
+/// opens is chosen by the file's format. Writing every chapter as `.cbz` sent an EPUB to the
+/// comic reader, which spun for ever on a file it could not page.
+func kavitaCacheFile(chapterId: Int, mediaType: String?) -> URL? {
+    let directory = URL.cachesDirectory.appending(path: "Kavita", directoryHint: .isDirectory)
+    guard (try? FileManager.default.createDirectory(
+        at: directory,
+        withIntermediateDirectories: true
+    )) != nil else { return nil }
+
+    let format = mediaType.flatMap(PublicationFormat.init(mediaType:))
+    let ext = format.map { String(describing: $0).lowercased() } ?? "cbz"
+    return directory.appending(path: "chapter-\(chapterId).\(ext)")
 }

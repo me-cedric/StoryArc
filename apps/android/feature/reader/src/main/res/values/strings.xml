@@ -26,4 +26,5 @@
     <string name="reader_transition_reduce_motion">Unavailable while your system is set to remove animations.</string>
     <string name="reader_transition_no_curl">Curl is not offered here: this device cannot draw it smoothly enough to be worth it.</string>
     <string name="reader_transition_reflowable">Not available for text that reflows.</string>
+    <string name="reader_empty">This publication has no pages StoryArc can show.</string>
 </resources>

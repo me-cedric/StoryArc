@@ -126,7 +126,11 @@ public actor KavitaClient {
     /// key and retries the request once, without the user seeing an error". Once, not in a
     /// loop: a server that answers 401 to a freshly minted token is saying the key is gone,
     /// and retrying forever would hide that.
-    func send(_ request: URLRequest, authenticated: Bool = true) async throws -> Data {
+    func send(
+        _ request: URLRequest,
+        authenticated: Bool = true,
+        onType: ((String?) -> Void)? = nil
+    ) async throws -> Data {
         var attempt = request
         if authenticated {
             if token == nil { _ = try await authenticate() }
@@ -152,6 +156,9 @@ public actor KavitaClient {
             guard (200...299).contains(http.statusCode) else {
                 throw KavitaError.http(status: http.statusCode)
             }
+            onType?(http.value(forHTTPHeaderField: "Content-Type")?
+                .components(separatedBy: ";").first?
+                .trimmingCharacters(in: .whitespaces))
             return retried
         }
 
@@ -159,6 +166,9 @@ public actor KavitaClient {
         guard (200...299).contains(http.statusCode) else {
             throw KavitaError.http(status: http.statusCode)
         }
+        onType?(http.value(forHTTPHeaderField: "Content-Type")?
+            .components(separatedBy: ";").first?
+            .trimmingCharacters(in: .whitespaces))
         return data
     }
 }

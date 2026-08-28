@@ -42,6 +42,9 @@ import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.CatalogueSheet
 import app.storyarc.feature.library.CollectionDetailScreen
 import app.storyarc.feature.library.KavitaBrowserScreen
+import app.storyarc.feature.library.KavitaCollectionScreen
+import app.storyarc.feature.library.ServerShelf
+import app.storyarc.feature.library.KavitaListScreen
 import app.storyarc.feature.library.KavitaConnection
 import app.storyarc.feature.library.KavitaLevel
 import app.storyarc.feature.library.KavitaPage
@@ -237,6 +240,7 @@ class MainActivity : ComponentActivity() {
                 // type: only one can be open, and the back gesture unwinds them in order.
                 var openCollection by remember { mutableStateOf<java.util.UUID?>(null) }
                 var openList by remember { mutableStateOf<java.util.UUID?>(null) }
+                var openServerShelf by remember { mutableStateOf<ServerShelf?>(null) }
 
                 if (isAddingCatalogue) {
                     val connection = remember {
@@ -291,7 +295,33 @@ class MainActivity : ComponentActivity() {
                 val page = catalogue.lastOrNull()
                 val server = kavita
 
-                if (collectionOpen != null && selection == null) {
+                val serverShelf = openServerShelf
+                if (serverShelf != null && selection == null) {
+                    BackHandler { openServerShelf = null }
+                    if (serverShelf.isList) {
+                        KavitaListScreen(
+                            server = serverShelf.server,
+                            listId = serverShelf.id,
+                            title = serverShelf.title,
+                            onOpen = route,
+                            onBack = { openServerShelf = null },
+                        )
+                    } else {
+                        KavitaCollectionScreen(
+                            server = serverShelf.server,
+                            collectionId = serverShelf.id,
+                            title = serverShelf.title,
+                            onOpenSeries = { each ->
+                                // Into the server browser, at that series: a collection is a
+                                // way in, not a separate place to read from.
+                                kavita = serverShelf.server
+                                kavitaLevel = KavitaLevel.Chapters(each)
+                                openServerShelf = null
+                            },
+                            onBack = { openServerShelf = null },
+                        )
+                    }
+                } else if (collectionOpen != null && selection == null) {
                     BackHandler { openCollection = null }
                     CollectionDetailScreen(
                         viewModel = libraryViewModel,
@@ -309,11 +339,21 @@ class MainActivity : ComponentActivity() {
                     )
                 } else if (isShowingShelves && selection == null) {
                     BackHandler { isShowingShelves = false }
+                    val registry by libraryViewModel.registry.collectAsStateWithLifecycle()
                     ShelvesScreen(
                         viewModel = libraryViewModel,
                         onOpenCollection = { openCollection = it },
                         onOpenList = { openList = it },
                         onBack = { isShowingShelves = false },
+                        servers = registry.sources.mapNotNull {
+                            KavitaPage.of(it, credentials)
+                        },
+                        onOpenServerCollection = { server, id, title ->
+                            openServerShelf = ServerShelf(server, id, title, isList = false)
+                        },
+                        onOpenServerList = { server, id, title ->
+                            openServerShelf = ServerShelf(server, id, title, isList = true)
+                        },
                     )
                 } else if (server != null && selection == null && !isShowingSettings) {
                     BackHandler { kavita = null }

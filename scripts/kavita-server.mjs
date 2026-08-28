@@ -97,10 +97,41 @@ const metadata = new Map(series.map((each, index) => [each.id, {
   publicationStatus: index % 3,
 }]))
 
+/**
+ * Collections and reading lists the server holds.
+ *
+ * Kavita calls a collection a tag and a reading list a list, and they differ in kind: a
+ * collection groups series and has no order, a list is an ordered run of chapters. The mock
+ * keeps that difference rather than flattening it, because a client that treats them alike
+ * is a client that will lose someone's order.
+ */
+const collections = [
+  { id: 1, title: 'Staff picks', summary: 'What the mock recommends.', seriesIds: [] },
+  { id: 2, title: 'Long reads', summary: 'Series with more than one chapter.', seriesIds: [] },
+]
+
+const readingLists = [
+  { id: 1, title: 'Start here', summary: 'One chapter from each library.', items: [] },
+]
+
 const libraries = [
   { id: 1, name: 'Comics', type: 0 },
   { id: 2, name: 'Books', type: 2 },
 ]
+
+// Filled once the corpus is known: the first two series, and every series with more than
+// one chapter. Computed rather than hard-coded so the mock follows whatever corpus it is
+// pointed at.
+collections[0].seriesIds = series.slice(0, 2).map((each) => each.id)
+collections[1].seriesIds = series.filter((each) => each.chapters.length > 1).map((e) => e.id)
+readingLists[0].items = series.slice(0, 3).map((each, order) => ({
+  id: order + 1,
+  order,
+  seriesId: each.id,
+  chapterId: each.chapters[0].id,
+  title: each.chapters[0].title,
+  seriesName: each.name,
+}))
 
 const send = (response, status, body, type = 'application/json') => {
   const payload = typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body)
@@ -243,6 +274,68 @@ const server = createServer((request, response) => {
       // Kavita's `pageNum` is the page the reader is on, counted from zero, so the number
       // of pages read is one more than that.
       if (chapter) chapter.pagesRead = Math.min((posted.pageNum ?? 0) + 1, chapter.pages)
+      send(response, 200, {})
+    })
+    return undefined
+  }
+
+  if (url.pathname === '/api/Collection') {
+    return send(response, 200, collections.map(({ id, title, summary }) => ({
+      id,
+      title,
+      summary,
+    })))
+  }
+
+  if (url.pathname === '/api/Collection/series') {
+    const found = collections.find((each) => each.id === Number(url.searchParams.get('collectionId')))
+    if (!found) return send(response, 404, { message: 'no such collection' })
+    return send(response, 200, series
+      .filter((each) => found.seriesIds.includes(each.id))
+      .map((each) => ({
+        id: each.id,
+        name: each.name,
+        libraryId: each.libraryId,
+        pages: each.chapters.reduce((total, chapter) => total + chapter.pages, 0),
+        pagesRead: each.chapters.reduce((total, chapter) => total + chapter.pagesRead, 0),
+      })))
+  }
+
+  if (url.pathname === '/api/ReadingList/lists') {
+    return send(response, 200, readingLists.map(({ id, title, summary }) => ({
+      id,
+      title,
+      summary,
+    })))
+  }
+
+  if (url.pathname === '/api/ReadingList/items') {
+    const found = readingLists.find((each) => each.id === Number(url.searchParams.get('readingListId')))
+    if (!found) return send(response, 404, { message: 'no such list' })
+    return send(response, 200, found.items)
+  }
+
+  if (url.pathname === '/api/ReadingList/update-by-multiple' && request.method === 'POST') {
+    let body = ''
+    request.on('data', (chunk) => { body += chunk })
+    request.on('end', () => {
+      const posted = JSON.parse(body || '{}')
+      const list = readingLists.find((each) => each.id === posted.readingListId)
+      if (!list) return send(response, 404, { message: 'no such list' })
+      for (const chapterId of posted.chapterIds ?? []) {
+        if (list.items.some((item) => item.chapterId === chapterId)) continue
+        const owner = series.find((each) => each.chapters.some((c) => c.id === chapterId))
+        const chapter = owner?.chapters.find((c) => c.id === chapterId)
+        if (!owner || !chapter) continue
+        list.items.push({
+          id: list.items.length + 1,
+          order: list.items.length,
+          seriesId: owner.id,
+          chapterId,
+          title: chapter.title,
+          seriesName: owner.name,
+        })
+      }
       send(response, 200, {})
     })
     return undefined

@@ -41,6 +41,7 @@ import app.storyarc.core.kavita.KavitaMetadata
 import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.kavita.KavitaVolume
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.persistence.KavitaProgressStore
 import java.io.File
@@ -261,10 +262,30 @@ private suspend fun fetch(
     seriesName: String,
     chapter: KavitaChapter,
 ): Pair<Publication, String>? = runCatching {
-    val bytes = client.chapter(chapter.id)
+    val fetched = client.chapter(chapter.id)
     val file = withContext(Dispatchers.IO) {
-        val directory = File(context.cacheDir, "kavita").apply { mkdirs() }
-        File(directory, "chapter-${chapter.id}.cbz").apply { writeBytes(bytes) }
+        kavitaCacheFile(context, chapter.id, fetched.mediaType).apply { writeBytes(fetched.bytes) }
     }
     PublicationIndexer.index(file, seriesName) to file.absolutePath
 }.getOrNull()
+
+/**
+ * Where a fetched chapter is written, named for what it actually is.
+ *
+ * `kavita-server` serves comics and books from the same endpoint, and the reader the app
+ * opens is chosen by the file's format. Writing every chapter as `.cbz` sent an EPUB to the
+ * comic reader, which spun for ever on a file it could not page.
+ */
+internal fun kavitaCacheFile(
+    context: android.content.Context,
+    chapterId: Int,
+    mediaType: String?,
+): File {
+    val extension = mediaType
+        ?.let { PublicationFormat.ofMediaType(it) }
+        ?.name
+        ?.lowercase()
+        ?: "cbz"
+    val directory = File(context.cacheDir, "kavita").apply { mkdirs() }
+    return File(directory, "chapter-$chapterId.$extension")
+}

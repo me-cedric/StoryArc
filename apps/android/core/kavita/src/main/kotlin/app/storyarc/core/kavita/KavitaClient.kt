@@ -79,9 +79,17 @@ class KavitaClient(val address: KavitaAddress) {
     suspend fun volumes(seriesId: Int): List<KavitaVolume> =
         decode(get("Series/volumes", mapOf("seriesId" to seriesId.toString())))
 
-    /** One chapter's bytes. */
-    suspend fun chapter(id: Int): ByteArray =
-        get("Download/chapter", mapOf("chapterId" to id.toString()))
+    /**
+     * One chapter's bytes, and what the server says they are.
+     *
+     * The media type comes back with them because a Kavita library holds comics and books
+     * alike: writing every chapter to disk as `.cbz` sent an EPUB to the comic reader, which
+     * spun for ever on a file it could not page.
+     */
+    suspend fun chapter(id: Int): KavitaFile {
+        val answer = fetch(address.endpoint("Download/chapter", mapOf("chapterId" to id.toString())))
+        return KavitaFile(answer.first, answer.second)
+    }
 
     /**
      * A series cover, as image bytes.
@@ -148,6 +156,37 @@ class KavitaClient(val address: KavitaAddress) {
     suspend fun metadata(seriesId: Int): KavitaMetadata =
         decode(get("Series/metadata", mapOf("seriesId" to seriesId.toString())))
 
+    /** The collections this server holds. */
+    suspend fun collections(): List<KavitaCollection> = decode(get("Collection"))
+
+    /** The series in one collection. */
+    suspend fun collected(id: Int): List<KavitaSeries> =
+        decode(get("Collection/series", mapOf("collectionId" to id.toString())))
+
+    /** The reading lists this server holds. */
+    suspend fun readingLists(): List<KavitaReadingList> = decode(get("ReadingList/lists"))
+
+    /** One reading list's entries, in the order the server keeps. */
+    suspend fun readingListItems(id: Int): List<KavitaReadingListItem> =
+        decode(get("ReadingList/items", mapOf("readingListId" to id.toString())))
+
+    /**
+     * Appends chapters to a server reading list.
+     *
+     * `kavita-server` requires the change to be "reflected for other Kavita clients", which
+     * is what sending it rather than keeping it locally buys.
+     */
+    suspend fun append(listId: Int, seriesId: Int, chapterIds: List<Int>) {
+        request(
+            address.endpoint("ReadingList/update-by-multiple"),
+            method = "POST",
+            body = Json.encodeToString(
+                KavitaListAppend.serializer(),
+                KavitaListAppend(listId, seriesId, chapterIds),
+            ),
+        )
+    }
+
     /**
      * Series matching a query, answered by the server.
      *
@@ -178,6 +217,13 @@ class KavitaClient(val address: KavitaAddress) {
     suspend fun get(path: String, query: Map<String, String> = emptyMap()): ByteArray =
         request(address.endpoint(path, query))
 
+    /** The same, keeping the media type the server declared. */
+    private suspend fun fetch(url: String): Pair<ByteArray, String?> {
+        var type: String? = null
+        val body = request(url) { type = it }
+        return body to type
+    }
+
     /**
      * One request, re-authenticating once if the token has expired.
      *
@@ -191,20 +237,25 @@ class KavitaClient(val address: KavitaAddress) {
         method: String = "GET",
         authenticated: Boolean = true,
         body: String? = null,
+        onType: ((String?) -> Unit)? = null,
     ): ByteArray {
         if (authenticated && token == null) authenticate()
         val first = attempt(url, method, if (authenticated) token else null, body)
-        if (first.status != 401 || !authenticated) return first.orThrow()
+        if (first.status != 401 || !authenticated) {
+            onType?.invoke(first.type)
+            return first.orThrow()
+        }
 
         token = null
         authenticate()
         val retried = attempt(url, method, token, body)
         // Still refused after a fresh token: the key itself is no longer valid.
         if (retried.status == 401) throw KavitaError.KeyRejected
+        onType?.invoke(retried.type)
         return retried.orThrow()
     }
 
-    private class Answer(val status: Int, val body: ByteArray) {
+    private class Answer(val status: Int, val body: ByteArray, val type: String? = null) {
         fun orThrow(): ByteArray = when {
             status == 401 -> throw KavitaError.KeyRejected
             status in 200..299 -> body
@@ -238,7 +289,11 @@ class KavitaClient(val address: KavitaAddress) {
                 } else {
                     connection.errorStream
                 }
-                Answer(status, stream?.use { it.readBytes() } ?: ByteArray(0))
+                Answer(
+                    status,
+                    stream?.use { it.readBytes() } ?: ByteArray(0),
+                    connection.contentType?.substringBefore(';')?.trim(),
+                )
             } finally {
                 connection.disconnect()
             }

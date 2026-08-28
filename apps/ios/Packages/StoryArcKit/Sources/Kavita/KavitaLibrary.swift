@@ -166,11 +166,18 @@ extension KavitaClient {
     }
 
     /// One chapter's bytes.
-    public func chapter(_ id: Int) async throws -> Data {
-        try await get(
+    ///
+    /// The media type comes back with the bytes because a Kavita library holds comics and
+    /// books alike: writing every chapter to disk as `.cbz` sent an EPUB to the comic
+    /// reader, which spun for ever on a file it could not page.
+    public func chapter(_ id: Int) async throws -> KavitaFile {
+        guard let url = address.endpoint(
             "Download/chapter",
             query: [URLQueryItem(name: "chapterId", value: String(id))]
-        )
+        ) else { throw KavitaError.badAddress }
+        var type: String?
+        let bytes = try await send(URLRequest(url: url)) { type = $0 }
+        return KavitaFile(bytes: bytes, mediaType: type)
     }
 
     /// Series matching a query, answered by the server.
@@ -192,6 +199,20 @@ extension KavitaClient {
             throw KavitaError.unexpectedResponse
         }
         return value
+    }
+}
+
+/// A file the server sent, with the type it declared.
+///
+/// The type is not decoration: a Kavita library holds comics and books alike, and the
+/// reader the app opens is chosen by what the file is.
+public struct KavitaFile: Sendable, Equatable {
+    public let bytes: Data
+    public let mediaType: String?
+
+    public init(bytes: Data, mediaType: String?) {
+        self.bytes = bytes
+        self.mediaType = mediaType
     }
 }
 

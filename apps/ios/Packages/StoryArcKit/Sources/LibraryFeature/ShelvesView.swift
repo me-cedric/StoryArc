@@ -18,6 +18,13 @@ public struct ShelvesView: View {
     @State private var creating: Kind?
     @State private var draftName = ""
 
+    /// Every Kavita server's own collections and reading lists, once asked for.
+    ///
+    /// Fetched here rather than per row: the spec wants a server's collections "alongside
+    /// local ones", which means inside the same two sections, and a section cannot be built
+    /// from rows that each fetch their own.
+    @State private var serverShelves: [ServerShelf] = []
+
     /// Which kind the "new" sheet is making.
     private enum Kind: String, Identifiable {
         case collection
@@ -35,8 +42,13 @@ public struct ShelvesView: View {
         let shelves = model.shelves
 
         List {
+            let serverCollections = serverShelves.filter { !$0.isList }
+            let serverLists = serverShelves.filter(\.isList)
+
             Section {
-                if shelves.collections.isEmpty {
+                // Empty only when neither half has anything: a server's collections make
+                // this section not-empty just as a local one does.
+                if shelves.collections.isEmpty, serverCollections.isEmpty {
                     Text("shelves.collections.none", bundle: .module)
                         .textRole(.footnote)
                         .foregroundStyle(theme.palette.textSecondary)
@@ -58,12 +70,24 @@ public struct ShelvesView: View {
                         }
                     }
                 }
+                ForEach(serverCollections) { shelf in
+                    NavigationLink {
+                        KavitaCollectionView(
+                            server: shelf.server,
+                            collectionID: shelf.id,
+                            title: shelf.title,
+                            onOpen: onOpen
+                        )
+                    } label: {
+                        serverRow(shelf)
+                    }
+                }
             } header: {
                 Text("shelves.collections", bundle: .module)
             }
 
             Section {
-                if shelves.lists.isEmpty {
+                if shelves.lists.isEmpty, serverLists.isEmpty {
                     Text("shelves.lists.none", bundle: .module)
                         .textRole(.footnote)
                         .foregroundStyle(theme.palette.textSecondary)
@@ -81,9 +105,25 @@ public struct ShelvesView: View {
                         }
                     }
                 }
+                ForEach(serverLists) { shelf in
+                    NavigationLink {
+                        KavitaListView(
+                            server: shelf.server,
+                            listID: shelf.id,
+                            title: shelf.title,
+                            onOpen: onOpen
+                        )
+                    } label: {
+                        serverRow(shelf)
+                    }
+                }
             } header: {
                 Text("shelves.lists", bundle: .module)
             }
+        }
+        .task {
+            guard serverShelves.isEmpty else { return }
+            serverShelves = await ServerShelf.all(in: model.registry, credentials: CredentialStore())
         }
         .navigationTitle(Text("shelves.title", bundle: .module))
         .toolbar {
@@ -130,6 +170,17 @@ public struct ShelvesView: View {
             // not discovered later". There is one location today, and saying so is what
             // makes the sentence true rather than merely unfalsified.
             Text("shelves.new.storedLocally", bundle: .module)
+        }
+    }
+
+    @ViewBuilder
+    private func serverRow(_ shelf: ServerShelf) -> some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+            Text(shelf.title)
+                .foregroundStyle(theme.palette.textPrimary)
+            Text(shelf.server.title)
+                .textRole(.footnote)
+                .foregroundStyle(theme.palette.textSecondary)
         }
     }
 

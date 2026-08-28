@@ -131,3 +131,16 @@ data class KavitaPosition(
 /** Which chapter to mark, in the shape Kavita's mark endpoints want. */
 @Serializable
 data class KavitaMark(val seriesId: Int, val chapterId: Int)
+
+/**
+ * A file the server sent, with the type it declared.
+ *
+ * The type is not decoration: a Kavita library holds comics and books alike, and the reader
+ * the app opens is chosen by what the file is.
+ */
+data class KavitaFile(val bytes: ByteArray, val mediaType: String?) {
+    override fun equals(other: Any?): Boolean =
+        other is KavitaFile && mediaType == other.mediaType && bytes.contentEquals(other.bytes)
+
+    override fun hashCode(): Int = 31 * bytes.contentHashCode() + mediaType.hashCode()
+}

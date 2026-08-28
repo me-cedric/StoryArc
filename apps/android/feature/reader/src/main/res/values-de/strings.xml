@@ -26,4 +26,5 @@
     <string name="reader_transition_reduce_motion">Nicht verfügbar, solange Ihr System Animationen entfernt.</string>
     <string name="reader_transition_no_curl">Blättern wird hier nicht angeboten: dieses Gerät kann es nicht flüssig genug darstellen.</string>
     <string name="reader_transition_reflowable">Nicht verfügbar für Text, der neu umbricht.</string>
+    <string name="reader_empty">Diese Publikation enthält keine Seiten, die StoryArc anzeigen kann.</string>
 </resources>

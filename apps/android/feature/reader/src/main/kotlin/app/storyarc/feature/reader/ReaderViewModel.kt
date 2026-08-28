@@ -172,6 +172,19 @@ class ReaderViewModel(
     private val _failure = MutableStateFlow<String?>(null)
     val failure: StateFlow<String?> = _failure.asStateFlow()
 
+    private val _isOpened = MutableStateFlow(false)
+
+    /**
+     * Whether opening has finished, however it went.
+     *
+     * An archive with no decodable images is not a failure the opener reports: it opens
+     * cleanly and yields an empty page list. Without knowing that opening had *finished*,
+     * the screen could not tell "still loading" from "nothing to show", and sat on its
+     * spinner for ever -- which is what a fixed-layout EPUB holding no images did. iOS's
+     * `noteIfEmpty` answers the same question inside the model.
+     */
+    val isOpened: StateFlow<Boolean> = _isOpened.asStateFlow()
+
     /**
      * How many pages to keep decoded, and in which direction.
      *
@@ -257,6 +270,7 @@ class ReaderViewModel(
         } catch (cause: Exception) {
             _failure.value = cause.message ?: "could not be opened"
         }
+        _isOpened.value = true
     }
 
     /**
@@ -280,6 +294,7 @@ class ReaderViewModel(
         } catch (cause: Exception) {
             _failure.value = cause.message ?: "could not be opened"
         }
+        _isOpened.value = true
     }
 
     fun image(index: Int): Bitmap? = decoded[index]

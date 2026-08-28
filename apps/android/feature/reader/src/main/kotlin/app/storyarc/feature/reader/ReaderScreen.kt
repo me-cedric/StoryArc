@@ -141,6 +141,7 @@ fun ReaderScreen(
 ) {
     val pages by viewModel.pages.collectAsStateWithLifecycle()
     val failure by viewModel.failure.collectAsStateWithLifecycle()
+    val isOpened by viewModel.isOpened.collectAsStateWithLifecycle()
 
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
@@ -182,6 +183,10 @@ fun ReaderScreen(
         when {
             failure != null -> {
                 Message(failure!!)
+                CloseButton(onClose)
+            }
+            pages.isEmpty() && isOpened -> {
+                Message(stringResource(R.string.reader_empty))
                 CloseButton(onClose)
             }
             pages.isEmpty() -> {
