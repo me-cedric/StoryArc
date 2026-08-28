@@ -104,4 +104,24 @@
     <string name="sources_rename_field">Name</string>
     <string name="sources_rename_save">Sichern</string>
     <string name="sources_rename_action">%1$s umbenennen</string>
+    <string name="downloads_none">Nichts ist heruntergeladen. Eine Publikation aus einem Katalog bleibt auf dem Gerät, sobald Sie sie öffnen.</string>
+    <string name="downloads_total">Belegter Speicher</string>
+    <string name="downloads_pending">Laufend</string>
+    <string name="downloads_on_device">Auf diesem Gerät</string>
+    <string name="downloads_remove">Download entfernen</string>
+    <string name="downloads_cancel">Abbrechen</string>
+    <string name="downloads_remove_title">Diesen Download entfernen?</string>
+    <string name="downloads_remove_body">Dies löscht die Kopie von %1$s auf diesem Gerät. Ihre Leseposition bleibt erhalten, und der Katalog kann sie erneut liefern.</string>
+    <string name="downloads_remove_action">Download von %1$s entfernen</string>
+    <string name="downloads_failed">Nach %2$d Versuchen fehlgeschlagen: %1$s</string>
+    <string name="downloads_paused_by_reader">Angehalten</string>
+    <string name="downloads_paused_waiting_for_wifi">Wartet auf WLAN</string>
+    <string name="downloads_paused_out_of_space">Zu wenig Speicher auf dem Gerät</string>
+    <string name="settings_sources_none">Noch keine Quellen</string>
+    <string name="settings_downloads_none">Nichts auf diesem Gerät</string>
+    <string name="settings_downloads_summary">%1$s auf diesem Gerät</string>
+    <plurals name="settings_sources_summary">
+        <item quantity="one">%1$d Quelle</item>
+        <item quantity="other">%1$d Quellen</item>
+    </plurals>
 </resources>

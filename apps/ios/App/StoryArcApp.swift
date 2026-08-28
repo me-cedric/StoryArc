@@ -53,6 +53,12 @@ struct StoryArcApp: App {
 
     private let bookmarks = FolderBookmarks()
 
+    /// What is on the device. Held here because Settings can be reached without ever
+    /// opening a catalogue, and re-read on each appearance so a download made while
+    /// browsing shows up.
+    private let downloadStore = DownloadStore()
+    @State private var downloads = DownloadStore().library()
+
     init() {
         let store = try? ProgressStore()
         self.progress = store
@@ -146,7 +152,12 @@ struct StoryArcApp: App {
                 onOpen: { publication, url in
                     reading = ReadingSelection(publication: publication, url: url)
                 },
-                onOpenSettings: { isShowingSettings = true }
+                onOpenSettings: {
+                    // Re-read on the way in, so a download made while browsing a catalogue
+                    // is on this screen rather than one launch behind it.
+                    downloads = downloadStore.library()
+                    isShowingSettings = true
+                }
             )
             .storyArcTheme(appearance: settings.appearance)
             .sheet(isPresented: $isShowingSettings) {
@@ -157,7 +168,13 @@ struct StoryArcApp: App {
                     sources: library.registry.sources,
                     itemCount: { library.itemCount(of: $0) },
                     onRemoveSource: { library.remove($0) },
-                    onRenameSource: { library.rename($0, to: $1) }
+                    onRenameSource: { library.rename($0, to: $1) },
+                    // Read from the store rather than from a browser's acquisition: the
+                    // store is the record, and Settings can be reached without ever having
+                    // opened a catalogue.
+                    downloads: downloads,
+                    bytesOnDisk: downloadStore.bytesOnDisk(),
+                    onRemoveDownload: { downloads = downloadStore.removing($0.id, from: downloads) }
                 )
                     .storyArcTheme(appearance: settings.appearance)
             }

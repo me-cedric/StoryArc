@@ -109,4 +109,24 @@
     <string name="sources_rename_field">Name</string>
     <string name="sources_rename_save">Save</string>
     <string name="sources_rename_action">Rename %1$s</string>
+    <string name="downloads_none">Nothing is downloaded. A publication from a catalogue is kept on the device once you open it.</string>
+    <string name="downloads_total">Space used</string>
+    <string name="downloads_pending">In progress</string>
+    <string name="downloads_on_device">On this device</string>
+    <string name="downloads_remove">Remove download</string>
+    <string name="downloads_cancel">Cancel</string>
+    <string name="downloads_remove_title">Remove this download?</string>
+    <string name="downloads_remove_body">This deletes the copy of %1$s on this device. Your reading position is kept, and the catalogue can be asked for it again.</string>
+    <string name="downloads_remove_action">Remove the download of %1$s</string>
+    <string name="downloads_failed">Failed after %2$d attempts: %1$s</string>
+    <string name="downloads_paused_by_reader">Paused</string>
+    <string name="downloads_paused_waiting_for_wifi">Waiting for Wi-Fi</string>
+    <string name="downloads_paused_out_of_space">Not enough space on the device</string>
+    <string name="settings_sources_none">No sources yet</string>
+    <string name="settings_downloads_none">Nothing on this device</string>
+    <string name="settings_downloads_summary">%1$s on this device</string>
+    <plurals name="settings_sources_summary">
+        <item quantity="one">%1$d source</item>
+        <item quantity="other">%1$d sources</item>
+    </plurals>
 </resources>

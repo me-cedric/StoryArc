@@ -104,4 +104,24 @@
     <string name="sources_rename_field">Nom</string>
     <string name="sources_rename_save">Enregistrer</string>
     <string name="sources_rename_action">Renommer %1$s</string>
+    <string name="downloads_none">Rien n’est téléchargé. Une publication d’un catalogue est conservée sur l’appareil dès que vous l’ouvrez.</string>
+    <string name="downloads_total">Espace utilisé</string>
+    <string name="downloads_pending">En cours</string>
+    <string name="downloads_on_device">Sur cet appareil</string>
+    <string name="downloads_remove">Supprimer le téléchargement</string>
+    <string name="downloads_cancel">Annuler</string>
+    <string name="downloads_remove_title">Supprimer ce téléchargement ?</string>
+    <string name="downloads_remove_body">Cela supprime la copie de %1$s sur cet appareil. Votre position de lecture est conservée et le catalogue peut la redonner.</string>
+    <string name="downloads_remove_action">Supprimer le téléchargement de %1$s</string>
+    <string name="downloads_failed">Échec après %2$d tentatives : %1$s</string>
+    <string name="downloads_paused_by_reader">En pause</string>
+    <string name="downloads_paused_waiting_for_wifi">En attente du Wi-Fi</string>
+    <string name="downloads_paused_out_of_space">Espace insuffisant sur l’appareil</string>
+    <string name="settings_sources_none">Aucune source pour l’instant</string>
+    <string name="settings_downloads_none">Rien sur cet appareil</string>
+    <string name="settings_downloads_summary">%1$s sur cet appareil</string>
+    <plurals name="settings_sources_summary">
+        <item quantity="one">%1$d source</item>
+        <item quantity="other">%1$d sources</item>
+    </plurals>
 </resources>

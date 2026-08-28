@@ -104,4 +104,24 @@
     <string name="sources_rename_field">Nombre</string>
     <string name="sources_rename_save">Guardar</string>
     <string name="sources_rename_action">Renombrar %1$s</string>
+    <string name="downloads_none">No hay nada descargado. Una publicación de un catálogo se conserva en el dispositivo en cuanto la abre.</string>
+    <string name="downloads_total">Espacio utilizado</string>
+    <string name="downloads_pending">En curso</string>
+    <string name="downloads_on_device">En este dispositivo</string>
+    <string name="downloads_remove">Eliminar la descarga</string>
+    <string name="downloads_cancel">Cancelar</string>
+    <string name="downloads_remove_title">¿Eliminar esta descarga?</string>
+    <string name="downloads_remove_body">Esto elimina la copia de %1$s en este dispositivo. Se conserva su posición de lectura y el catálogo puede volver a facilitarla.</string>
+    <string name="downloads_remove_action">Eliminar la descarga de %1$s</string>
+    <string name="downloads_failed">Falló tras %2$d intentos: %1$s</string>
+    <string name="downloads_paused_by_reader">En pausa</string>
+    <string name="downloads_paused_waiting_for_wifi">Esperando Wi-Fi</string>
+    <string name="downloads_paused_out_of_space">No hay espacio suficiente en el dispositivo</string>
+    <string name="settings_sources_none">Aún no hay fuentes</string>
+    <string name="settings_downloads_none">Nada en este dispositivo</string>
+    <string name="settings_downloads_summary">%1$s en este dispositivo</string>
+    <plurals name="settings_sources_summary">
+        <item quantity="one">%1$d fuente</item>
+        <item quantity="other">%1$d fuentes</item>
+    </plurals>
 </resources>

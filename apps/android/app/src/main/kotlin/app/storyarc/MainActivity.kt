@@ -17,6 +17,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.LibraryIndex
+import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.core.persistence.LibraryPreferences
@@ -142,6 +143,9 @@ class MainActivity : ComponentActivity() {
                 // accepts one; neither knows the other exists.
                 var reading by remember { mutableStateOf<Pair<Publication, String>?>(null) }
                 var isShowingSettings by remember { mutableStateOf(false) }
+                // Re-read on the way in, so a download made while browsing a catalogue is on
+                // this screen rather than one launch behind it.
+                var downloads by remember { mutableStateOf(downloadStore.library()) }
                 var refused by remember { mutableStateOf<OpenedFile.Outcome?>(null) }
                 val selection = reading
 
@@ -281,6 +285,20 @@ class MainActivity : ComponentActivity() {
                         onRenameSource = { source, name ->
                             libraryViewModel.renameSource(source, name)
                         },
+                        // Read from the store rather than from a browser's acquisition: the
+                        // store is the record, and Settings can be reached without ever
+                        // having opened a catalogue.
+                        downloads = downloads,
+                        bytesOnDisk = downloadStore.bytesOnDisk(),
+                        onRemoveDownload = { download ->
+                            downloadStore.location(
+                                download.id,
+                                PublicationFormat.ofMediaType(download.mediaType)
+                                    ?.name?.lowercase() ?: "bin",
+                            ).delete()
+                            downloads = downloads.removing(download.id)
+                            downloadStore.save(downloads)
+                        },
                         // Written through on every change rather than on the way out.
                         // `settings-and-about` requires an appearance to apply
                         // immediately, and the state lives here so the theme above
@@ -305,7 +323,10 @@ class MainActivity : ComponentActivity() {
                     LibraryScreen(
                         viewModel = libraryViewModel,
                         onOpen = route,
-                        onOpenSettings = { isShowingSettings = true },
+                        onOpenSettings = {
+                            downloads = downloadStore.library()
+                            isShowingSettings = true
+                        },
                         onBrowse = { source ->
                             CataloguePage.of(source, credentials)?.let { catalogue = listOf(it) }
                         },

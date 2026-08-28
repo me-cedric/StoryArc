@@ -42,6 +42,17 @@ public struct SettingsView: View {
     private let onRemoveSource: (Source) -> Void
     private let onRenameSource: (Source, String) -> Void
 
+    /// What is on the device, and what it weighs. Handed in for the same reason the sources
+    /// are: the downloads belong to the library that fetched them.
+    private let downloads: DownloadLibrary
+    private let bytesOnDisk: Int64
+    private let onRemoveDownload: (Download) -> Void
+
+    /// What the summary rows state, so Sources and Downloads describe themselves.
+    private var summary: LibrarySummary {
+        LibrarySummary(sources: sources.count, bytesOnDisk: bytesOnDisk)
+    }
+
     @State private var query = ""
     @State private var isConfirmingReset = false
 
@@ -52,7 +63,10 @@ public struct SettingsView: View {
         sources: [Source] = [],
         itemCount: @escaping (Source.ID) -> Int = { _ in 0 },
         onRemoveSource: @escaping (Source) -> Void = { _ in },
-        onRenameSource: @escaping (Source, String) -> Void = { _, _ in }
+        onRenameSource: @escaping (Source, String) -> Void = { _, _ in },
+        downloads: DownloadLibrary = DownloadLibrary(),
+        bytesOnDisk: Int64 = 0,
+        onRemoveDownload: @escaping (Download) -> Void = { _ in }
     ) {
         _settings = settings
         self.readerStore = readerStore
@@ -61,6 +75,9 @@ public struct SettingsView: View {
         self.itemCount = itemCount
         self.onRemoveSource = onRemoveSource
         self.onRenameSource = onRenameSource
+        self.downloads = downloads
+        self.bytesOnDisk = bytesOnDisk
+        self.onRemoveDownload = onRemoveDownload
     }
 
     public var body: some View {
@@ -85,7 +102,7 @@ public struct SettingsView: View {
                                 // know it lives under Reading.
                                 Text(
                                     match.setting == nil
-                                        ? match.group.summaryKey(for: settings)
+                                        ? match.group.summaryKey(for: settings, summary)
                                         : match.group.titleKey,
                                     bundle: .module
                                 )
@@ -145,9 +162,16 @@ public struct SettingsView: View {
                 onRemove: onRemoveSource,
                 onRename: onRenameSource
             )
+        case .downloads:
+            DownloadsSettings(
+                library: downloads,
+                bytesOnDisk: bytesOnDisk,
+                sourceName: { id in sources.first { $0.id == id }?.displayName },
+                onRemove: onRemoveDownload
+            )
         // Named rather than hidden. A group whose rows arrive with a capability that does
         // not exist yet says so.
-        case .downloads, .language:
+        case .language:
             List {
                 Text(group.pendingKey, bundle: .module)
                     .foregroundStyle(theme.palette.textSecondary)

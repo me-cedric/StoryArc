@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -77,7 +78,7 @@ enum class SettingsGroup {
      * what it will hold — which is a value too, and a more honest one than silence.
      */
     @Composable
-    fun summary(settings: AppSettings): String = when (this) {
+    fun summary(settings: AppSettings, library: LibrarySummary = LibrarySummary()): String = when (this) {
         APPEARANCE -> stringResource(settings.appearance.labelRes)
         READING -> stringResource(
             if (settings.turnPagesWithVolumeButtons) {
@@ -89,9 +90,36 @@ enum class SettingsGroup {
         LANGUAGE -> settings.language ?: stringResource(R.string.settings_language_system)
         PRIVACY -> stringResource(R.string.settings_privacy_summary)
         ABOUT -> stringResource(R.string.settings_about_summary)
-        SOURCES, DOWNLOADS -> stringResource(pendingRes)
+        // Both of these are built now, so both state a value. A summary that still said
+        // "not built yet" would be the one line on this screen a reader could check
+        // against the group behind it and find wrong.
+        SOURCES -> if (library.sources == 0) {
+            stringResource(R.string.settings_sources_none)
+        } else {
+            pluralStringResource(R.plurals.settings_sources_summary, library.sources, library.sources)
+        }
+        DOWNLOADS -> if (library.bytesOnDisk == 0L) {
+            stringResource(R.string.settings_downloads_none)
+        } else {
+            stringResource(
+                R.string.settings_downloads_summary,
+                android.text.format.Formatter.formatShortFileSize(
+                    androidx.compose.ui.platform.LocalContext.current,
+                    library.bytesOnDisk,
+                ),
+            )
+        }
     }
 }
+
+/**
+ * What the summary rows need to know about the library.
+ *
+ * A value rather than two more parameters, because both numbers come from the same place and
+ * a screen that took them separately would be one refactor away from showing a source count
+ * next to another library's size.
+ */
+data class LibrarySummary(val sources: Int = 0, val bytesOnDisk: Long = 0L)
 
 /**
  * One row of a search result: a group, or a setting inside one.

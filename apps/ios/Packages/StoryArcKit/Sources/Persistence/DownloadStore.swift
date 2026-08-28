@@ -57,6 +57,28 @@ public struct DownloadStore {
         try directory.setResourceValues(values)
     }
 
+    /// Forgets a download and deletes its file, saving the result.
+    ///
+    /// Both halves in one call, because they are one act: a record without its file is a
+    /// library that lost a book, and a file without its record is bytes nothing can find.
+    @discardableResult
+    public func removing(_ id: Download.ID, from library: DownloadLibrary) -> DownloadLibrary {
+        if let download = library[id] {
+            delete(location(for: id, extension: Self.extension(for: download.mediaType)))
+        }
+        let without = library.removing(id)
+        save(without)
+        return without
+    }
+
+    /// The file extension a media type implies, or `bin` when it implies none.
+    ///
+    /// Here rather than in the caller: the store chose the name when the file was written
+    /// and has to choose the same one to find it again.
+    public static func `extension`(for mediaType: String) -> String {
+        PublicationFormat(mediaType: mediaType)?.rawValue ?? "bin"
+    }
+
     /// Deletes one download's file, and returns whether there was one.
     @discardableResult
     public func delete(_ file: URL) -> Bool {

@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.ReaderPreferences
 
@@ -76,6 +78,13 @@ fun SettingsScreen(
     itemCount: (Source) -> Int = { 0 },
     onRemoveSource: (Source) -> Unit = {},
     onRenameSource: (Source, String) -> Unit = { _, _ -> },
+    /**
+     * What is on the device, and what it weighs. Handed in for the same reason the sources
+     * are: the downloads belong to the library that fetched them.
+     */
+    downloads: DownloadLibrary = DownloadLibrary(),
+    bytesOnDisk: Long = 0L,
+    onRemoveDownload: (Download) -> Unit = {},
 ) {
     var open by remember { mutableStateOf<SettingsGroup?>(null) }
 
@@ -88,6 +97,7 @@ fun SettingsScreen(
     when (val group = open) {
         null -> GroupList(
             settings = settings,
+            summary = LibrarySummary(sources.size, bytesOnDisk),
             onOpen = { open = it },
             onReset = onReset,
             onClose = onClose,
@@ -104,6 +114,9 @@ fun SettingsScreen(
             itemCount = itemCount,
             onRemoveSource = onRemoveSource,
             onRenameSource = onRenameSource,
+            downloads = downloads,
+            bytesOnDisk = bytesOnDisk,
+            onRemoveDownload = onRemoveDownload,
         )
     }
 }
@@ -111,6 +124,7 @@ fun SettingsScreen(
 @Composable
 private fun GroupList(
     settings: AppSettings,
+    summary: LibrarySummary,
     onOpen: (SettingsGroup) -> Unit,
     onReset: () -> Unit,
     onClose: () -> Unit,
@@ -183,7 +197,7 @@ private fun GroupList(
                     supportingContent = {
                         Text(
                             if (match.settingRes == null) {
-                                match.group.summary(settings)
+                                match.group.summary(settings, summary)
                             } else {
                                 stringResource(match.group.titleRes)
                             },
@@ -260,6 +274,9 @@ private fun GroupDetail(
     itemCount: (Source) -> Int,
     onRemoveSource: (Source) -> Unit,
     onRenameSource: (Source, String) -> Unit,
+    downloads: DownloadLibrary,
+    bytesOnDisk: Long,
+    onRemoveDownload: (Download) -> Unit,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -293,7 +310,13 @@ private fun GroupDetail(
                 // that does not exist yet says so; hiding it leaves a reader hunting for
                 // where sources live.
                 SettingsGroup.SOURCES -> SourcesGroup(sources, itemCount, onRemoveSource, onRenameSource)
-                SettingsGroup.DOWNLOADS, SettingsGroup.LANGUAGE ->
+                SettingsGroup.DOWNLOADS -> DownloadsGroup(
+                    library = downloads,
+                    bytesOnDisk = bytesOnDisk,
+                    sourceName = { id -> sources.firstOrNull { it.id == id }?.displayName },
+                    onRemove = onRemoveDownload,
+                )
+                SettingsGroup.LANGUAGE ->
                     Text(
                         text = stringResource(group.pendingRes),
                         style = MaterialTheme.typography.bodyMedium,

@@ -59,7 +59,7 @@ public final class CatalogueAcquisition {
         }
         let file = store.location(
             for: entry.id,
-            extension: PublicationFormat(mediaType: download.mediaType)?.rawValue ?? "bin"
+            extension: DownloadStore.extension(for: download.mediaType)
         )
         // Asked of the filesystem, not of the record. A download the system reclaimed is
         // one the reader should be offered again rather than shown a missing file.
@@ -68,16 +68,7 @@ public final class CatalogueAcquisition {
 
     /// Forgets a download and deletes its file.
     public func remove(_ id: Download.ID) {
-        if let store, let download = library[id] {
-            store.delete(
-                store.location(
-                    for: id,
-                    extension: PublicationFormat(mediaType: download.mediaType)?.rawValue ?? "bin"
-                )
-            )
-        }
-        library = library.removing(id)
-        store?.save(library)
+        library = store?.removing(id, from: library) ?? library.removing(id)
     }
 
     /// Which acquisition to take when the entry offers several.
@@ -171,10 +162,7 @@ public final class CatalogueAcquisition {
         library = library.failing(id, reason: reason)
         if let store, let download = library[id] {
             store.delete(
-                store.location(
-                    for: id,
-                    extension: PublicationFormat(mediaType: download.mediaType)?.rawValue ?? "bin"
-                )
+                store.location(for: id, extension: DownloadStore.extension(for: download.mediaType))
             )
         }
         store?.save(library)
@@ -188,8 +176,10 @@ public final class CatalogueAcquisition {
     private func write(_ data: Data, for entry: OpdsEntry, as acquisition: OpdsAcquisition) throws -> URL {
         guard let store else { throw CocoaError(.fileNoSuchFile) }
         try store.prepare()
-        let format = PublicationFormat(mediaType: acquisition.mediaType)
-        let file = store.location(for: entry.id, extension: format?.rawValue ?? "bin")
+        let file = store.location(
+            for: entry.id,
+            extension: DownloadStore.extension(for: acquisition.mediaType)
+        )
         try data.write(to: file, options: .atomic)
         return file
     }
