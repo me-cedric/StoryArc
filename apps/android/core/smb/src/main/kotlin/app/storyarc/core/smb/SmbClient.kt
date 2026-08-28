@@ -108,7 +108,10 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
      * swallowed it -- a tap that did nothing at all.
      */
     suspend fun open(path: String): RandomAccessSource = withContext(Dispatchers.IO) {
-        translating { SmbSource(file(path)) }
+        // The opener rather than the handle, so the source can make a new one. A session
+        // does not survive the device sleeping, the Wi-Fi changing, or the server
+        // restarting, and `network-share` asks for all three to be invisible.
+        translating { SmbSource { SmbRandomAccessFile(file(path), "r") } }
     }
 
     /** Closes only what was opened: an unused client never built a context to close. */
@@ -169,26 +172,60 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
  * The third implementation ADR-0008 planned for. SMB2's `READ` takes an offset and a length
  * as a first-class operation, so this is the interface it was already shaped like.
  */
-private class SmbSource(private val file: SmbFile) : RandomAccessSource {
-    private val handle: SmbRandomAccessFile = SmbRandomAccessFile(file, "r")
+private class SmbSource(private val opener: () -> SmbRandomAccessFile) : RandomAccessSource {
+    private var handle: SmbRandomAccessFile = opener()
 
     override val length: Long = handle.length()
 
+    /**
+     * Reads, and opens a new session once if the old one has gone.
+     *
+     * `network-share` requires the app to "re-establish the session transparently on the
+     * next read" after the device sleeps, and to reconnect in the background when the
+     * connection drops. Both are the same act from here: the handle is stale, so make
+     * another and ask again. Once, not in a loop -- a share that is genuinely gone should
+     * say so rather than hang.
+     */
     override suspend fun read(offset: Long, count: Int): ByteArray =
         withContext(Dispatchers.IO) {
             val available = (length - offset).coerceAtLeast(0L)
             val toRead = minOf(count.toLong(), available).toInt()
             if (toRead <= 0) return@withContext ByteArray(0)
-            val buffer = ByteArray(toRead)
-            synchronized(handle) {
-                handle.seek(offset)
-                handle.readFully(buffer)
+
+            try {
+                val bytes = readOnce(offset, toRead)
+                SmbReachability.noteSuccess()
+                bytes
+            } catch (first: java.io.IOException) {
+                try {
+                    reopen()
+                    val bytes = readOnce(offset, toRead)
+                    SmbReachability.noteSuccess()
+                    bytes
+                } catch (second: java.io.IOException) {
+                    SmbReachability.noteFailure(System.currentTimeMillis())
+                    throw SmbError.HostUnreachable
+                }
             }
-            buffer
         }
 
+    private fun readOnce(offset: Long, count: Int): ByteArray {
+        val buffer = ByteArray(count)
+        synchronized(this) {
+            handle.seek(offset)
+            handle.readFully(buffer)
+        }
+        return buffer
+    }
+
+    private fun reopen() {
+        synchronized(this) {
+            runCatching { handle.close() }
+            handle = opener()
+        }
+    }
+
     override fun close() {
-        handle.close()
-        file.close()
+        runCatching { handle.close() }
     }
 }

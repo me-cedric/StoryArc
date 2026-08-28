@@ -4,6 +4,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -97,6 +98,30 @@ class SmbClientTest {
             assertThrows(SmbError::class.java) {
                 runBlocking { client.connect() }
             }
+        }
+    }
+
+    /**
+     * A read survives the session going away underneath it.
+     *
+     * `network-share` asks for the session to be re-established "transparently on the next
+     * read" after a sleep, and for a drop to be reconnected in the background. Closing the
+     * handle out from under the source is the same situation from the source's side: the
+     * next read finds a dead handle and has to make another.
+     */
+    @Test
+    fun `a read reopens the session rather than failing`() = runBlocking {
+        assumeTrue(isServerRunning())
+        SmbClient(address).use { client ->
+            val source = client.open("Quiet Machines.cbz")
+            val before = source.read(0, 4)
+
+            // What a sleep or a Wi-Fi change leaves behind: a handle that is no longer good.
+            source.close()
+
+            val after = source.read(0, 4)
+            assertEquals(before.toList(), after.toList())
+            assertNull(SmbReachability.blockedSince.value)
         }
     }
 

@@ -92,10 +92,19 @@ public actor SmbClient {
             // `FileReader.fileSize` is a nonisolated async property, and reaching it would
             // send a non-Sendable reader out of this actor.
             let stat = try await client.fileStat(path: path)
-            return SmbSource(
-                reader: Held(try await client.fileReader(path: path)),
-                length: Int64(stat.size)
-            )
+            // The opener rather than the reader, so the source can make a new one. A
+            // session does not survive the device sleeping, the Wi-Fi changing, or the
+            // server restarting, and `network-share` asks for all three to be invisible.
+            let address = self.address
+            return SmbSource(length: Int64(stat.size)) {
+                let fresh = SMBClient(host: address.host, port: address.port)
+                try await fresh.login(
+                    username: address.isGuest ? nil : address.username,
+                    password: address.isGuest ? nil : address.password
+                )
+                try await fresh.connectShare(address.share)
+                return Held(try await fresh.fileReader(path: path))
+            }
         }
     }
 
@@ -158,23 +167,58 @@ public actor SmbClient {
 private actor SmbSource: RandomAccessSource {
     /// `nonisolated(unsafe)` for the reason the client's own is: the library's reader is a
     /// plain class, and this actor is what serialises every use of it.
-    nonisolated(unsafe) private let reader: FileReader
+    nonisolated(unsafe) private var reader: FileReader?
+    private let opener: @Sendable () async throws -> Held<FileReader>
     nonisolated let length: Int64
 
-    init(reader: Held<FileReader>, length: Int64) {
-        self.reader = reader.value
+    init(length: Int64, opener: @escaping @Sendable () async throws -> Held<FileReader>) {
         self.length = length
+        self.opener = opener
     }
 
+    /// Reads, and opens a new session once if the old one has gone.
+    ///
+    /// `network-share` requires the app to "re-establish the session transparently on the
+    /// next read" after the device sleeps, and to reconnect in the background when the
+    /// connection drops. Both are the same act from here: the reader is stale, so make
+    /// another and ask again. Once, not in a loop — a share that is genuinely gone should
+    /// say so rather than hang.
     func read(offset: Int64, count: Int) async throws -> Data {
         let available = max(0, length - offset)
         let toRead = Int(min(Int64(count), available))
         guard toRead > 0 else { return Data() }
-        return try await reader.read(offset: UInt64(offset), length: UInt32(toRead))
+
+        do {
+            let bytes = try await readOnce(offset: offset, count: toRead)
+            SmbReachability.noteSuccess()
+            return bytes
+        } catch {
+            do {
+                reader = nil
+                let bytes = try await readOnce(offset: offset, count: toRead)
+                SmbReachability.noteSuccess()
+                return bytes
+            } catch {
+                SmbReachability.noteFailure()
+                throw SmbError.hostUnreachable
+            }
+        }
+    }
+
+    private func readOnce(offset: Int64, count: Int) async throws -> Data {
+        if reader == nil {
+            reader = try await opener().value
+        }
+        // Called straight on the stored property. Binding it to a local first would be a
+        // non-Sendable value leaving this actor, which is what Swift objects to.
+        guard let bytes = try await reader?.read(offset: UInt64(offset), length: UInt32(count))
+        else { throw SmbError.hostUnreachable }
+        return bytes
     }
 
     func close() async {
-        try? await reader.close()
+        try? await reader?.close()
+        reader = nil
     }
 }
 
