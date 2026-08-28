@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -108,6 +110,12 @@ fun CatalogueBrowserScreen(
                             contentDescription = stringResource(R.string.catalogue_back),
                             tint = palette.accent,
                         )
+                    }
+                },
+                actions = {
+                    val facets = feed?.facets.orEmpty()
+                    if (facets.isNotEmpty()) {
+                        FacetMenu(facets) { facet -> onEnter(facet.title, facet.href) }
                     }
                 },
             )
@@ -382,3 +390,51 @@ private fun subtitle(entry: OpdsEntry, offered: List<OpdsAcquisition>): String {
 /** `rememberCoroutineScope`, named so the import list stays legible. */
 @Composable
 private fun rememberCoroutineScopeCompat() = androidx.compose.runtime.rememberCoroutineScope()
+
+/**
+ * The filters the server offers, grouped as the feed grouped them.
+ *
+ * A facet is a link to a filtered view of the same feed, so choosing one enters a page like
+ * any other section. Grouped because facets in one group are alternatives to each other,
+ * which is what makes them a filter rather than a list.
+ */
+@Composable
+private fun FacetMenu(facets: List<OpdsFacet>, onChoose: (OpdsFacet) -> Unit) {
+    val palette = LocalStoryArcPalette.current
+    var open by remember { mutableStateOf(false) }
+
+    IconButton(onClick = { open = true }) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.Sort,
+            contentDescription = stringResource(R.string.catalogue_facets),
+            tint = palette.accent,
+        )
+    }
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        facets.groupBy { it.group }.toSortedMap().forEach { (group, members) ->
+            Text(
+                text = group,
+                style = MaterialTheme.typography.labelSmall,
+                color = palette.textSecondary,
+                modifier = Modifier.padding(
+                    horizontal = StoryArcSpace.md,
+                    vertical = StoryArcSpace.xs,
+                ),
+            )
+            members.forEach { facet ->
+                DropdownMenuItem(
+                    text = { Text(facet.title) },
+                    trailingIcon = {
+                        if (facet.isActive) {
+                            Icon(Icons.Filled.Check, contentDescription = null)
+                        }
+                    },
+                    onClick = {
+                        open = false
+                        onChoose(facet)
+                    },
+                )
+            }
+        }
+    }
+}
