@@ -64,9 +64,16 @@ public final class CatalogueConnection {
     /// The credential that worked, held only until the source is saved.
     private var accepted: OpdsCredential?
 
-    public init(pins: CertificatePins = CertificatePins(), credentials: CredentialStore? = nil) {
+    private let pinStore: CertificatePinStore?
+
+    public init(
+        pins: CertificatePins = CertificatePins(),
+        credentials: CredentialStore? = nil,
+        pinStore: CertificatePinStore? = nil
+    ) {
         self.pins = pins
         self.credentials = credentials
+        self.pinStore = pinStore
         client = OpdsClient(pins: pins)
     }
 
@@ -105,6 +112,10 @@ public final class CatalogueConnection {
             ?? OpdsDocument.address(from: address)
         else { return }
         pins.pin(certificate.fingerprint, for: certificate.host)
+        // Written now rather than when the source is saved. A reader who accepts a
+        // certificate and then abandons the flow has still made that decision, and asking
+        // again next time teaches them to tap through the warning.
+        pinStore?.save(pins.all)
         await attempt(url, credential: accepted)
     }
 
@@ -120,11 +131,7 @@ public final class CatalogueConnection {
         var reference: String?
         if let accepted, let credentials {
             let stored = CredentialStore.reference(for: id)
-            let secret = switch accepted {
-            case let .basic(user, password): "\(user):\(password)"
-            case let .bearer(token): token
-            }
-            reference = credentials.save(secret, for: stored) ? stored : nil
+            reference = credentials.save(accepted.stored, for: stored) ? stored : nil
         }
 
         return Source(
@@ -158,56 +165,12 @@ public final class CatalogueConnection {
             resolved = url
             step = Self.step(for: error)
         } catch {
-            step = .failed(Self.reachability(error))
+            step = .failed(CatalogueMessages.reachability(error))
         }
     }
 
     private static func step(for error: OpdsError) -> Step {
-        switch error {
-        case let .unauthorized(scheme):
-            .askingCredentials(scheme: scheme)
-        case .empty:
-            .failed(String(localized: "catalogue.error.empty", bundle: .module))
-        case .notAFeed(.html):
-            .failed(String(localized: "catalogue.error.html", bundle: .module))
-        case let .notAFeed(.unrecognised(contentType)):
-            .failed(
-                String(
-                    format: String(localized: "catalogue.error.notAFeed", bundle: .module),
-                    contentType ?? String(localized: "catalogue.error.unknownType", bundle: .module)
-                )
-            )
-        case let .malformed(reason):
-            .failed(
-                String(
-                    format: String(localized: "catalogue.error.malformed", bundle: .module),
-                    reason
-                )
-            )
-        case let .http(status):
-            .failed(
-                String(
-                    format: String(localized: "catalogue.error.http", bundle: .module),
-                    status,
-                    HTTPURLResponse.localizedString(forStatusCode: status)
-                )
-            )
-        }
+        if case let .unauthorized(scheme) = error { return .askingCredentials(scheme: scheme) }
+        return .failed(CatalogueMessages.describe(error))
     }
-
-    /// A transport failure, said in terms of what the reader can do about it.
-    private static func reachability(_ error: any Error) -> String {
-        let code = (error as? URLError)?.code
-        return switch code {
-        case .some(.cannotFindHost), .some(.cannotConnectToHost):
-            String(localized: "catalogue.error.noHost", bundle: .module)
-        case .some(.timedOut):
-            String(localized: "catalogue.error.timedOut", bundle: .module)
-        case .some(.notConnectedToInternet):
-            String(localized: "catalogue.error.offline", bundle: .module)
-        default:
-            error.localizedDescription
-        }
-    }
-
 }

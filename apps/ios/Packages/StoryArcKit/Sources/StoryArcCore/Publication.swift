@@ -179,6 +179,42 @@ public enum PublicationFormat: String, Sendable, Codable, CaseIterable {
         }
     }
 
+    /// The format a media type names, when it names one this app can read.
+    ///
+    /// For a catalogue, where the file has not been fetched and its type is all there is.
+    /// `opds-catalog` needs this twice: to pick the best acquisition when several are
+    /// offered, and to mark an entry unreadable when none of them map.
+    ///
+    /// Parameters after a semicolon are ignored — several servers append `;charset=utf-8`
+    /// to `application/epub+zip`, and an exact-match table would call that unreadable.
+    public init?(mediaType: String) {
+        let bare = mediaType
+            .split(separator: ";", maxSplits: 1)
+            .first?
+            .trimmingCharacters(in: .whitespaces)
+            .lowercased() ?? ""
+
+        switch bare {
+        case "application/epub+zip": self = .epub
+        case "application/pdf": self = .pdf
+        case "application/vnd.comicbook+zip", "application/x-cbz": self = .cbz
+        case "application/vnd.comicbook-rar", "application/x-cbr": self = .cbr
+        case "application/vnd.comicbook+tar", "application/x-cbt": self = .cbt
+        // Listed so a catalogue entry can be *named* as unreadable rather than dropped.
+        // `publication-formats` leaves CB7 undecoded, and the refusal has to say which
+        // format it refused.
+        case "application/vnd.comicbook+7z", "application/x-cb7": self = .cb7
+        default: return nil
+        }
+    }
+
+    /// Whether StoryArc can open a publication in this format today.
+    ///
+    /// CB7 is the one that parses as a format and does not open: `publication-formats`
+    /// records 7-Zip as an open question, and the app names the refusal rather than
+    /// pretending the file is not there.
+    public var isOpenable: Bool { self != .cb7 }
+
     /// How the format is named to a person — in a refusal, a filter, a detail row.
     ///
     /// `publication-formats` forbids a generic failure, and a name is what makes

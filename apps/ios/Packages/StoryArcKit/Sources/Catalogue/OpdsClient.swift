@@ -8,6 +8,38 @@ public enum OpdsCredential: Sendable, Equatable {
     case basic(user: String, password: String)
     case bearer(token: String)
 
+    /// The credential written as one string, for the secure store.
+    ///
+    /// Newline-separated and scheme-first. A colon would be ambiguous — a password may
+    /// contain one — and something has to say whether the stored secret is a token or a
+    /// pair, or a reader signed in with Bearer is sent back as Basic on the next launch.
+    public var stored: String {
+        switch self {
+        case let .basic(user, password): "basic\n\(user)\n\(password)"
+        case let .bearer(token): "bearer\n\(token)"
+        }
+    }
+
+    /// Reads back what ``stored`` wrote.
+    ///
+    /// Split once for the scheme, then once more for the pair. Splitting on every newline
+    /// would truncate a password that contains one, and a password pasted from a manager
+    /// can. A user name with a newline in it is not a case anyone has.
+    public init?(stored: String) {
+        let head = stored.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
+        guard head.count == 2, !head[1].isEmpty else { return nil }
+        switch head[0] {
+        case "basic":
+            let pair = head[1].split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
+            guard pair.count == 2 else { return nil }
+            self = .basic(user: String(pair[0]), password: String(pair[1]))
+        case "bearer":
+            self = .bearer(token: String(head[1]))
+        default:
+            return nil
+        }
+    }
+
     /// The `Authorization` header value.
     ///
     /// Built at the moment of use and not retained, which is the same rule the credential

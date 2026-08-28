@@ -1,0 +1,255 @@
+public import SwiftUI
+
+public import Catalogue
+internal import DesignSystem
+
+/// A page of a catalogue: its sections, then its publications.
+///
+/// Both on one screen, because a real feed carries both — Calibre-Web puts "Recently
+/// added" beside its sections — and a screen that showed one and hid the other would make
+/// half of every catalogue unreachable.
+public struct CatalogueBrowserView: View {
+    @Environment(\.theme) private var theme
+
+    /// Created here, once, from the values that describe the page.
+    ///
+    /// Owned rather than handed in. A destination closure is re-evaluated whenever the
+    /// screen behind it redraws, so a browser built inside one is a *new* browser each
+    /// time — the page fetched twice and displayed a third instance that had never
+    /// fetched at all, which showed as a permanently blank catalogue.
+    @State private var browser: CatalogueBrowser
+
+    private let onOpen: (OpdsEntry, CatalogueBrowser) -> Void
+
+    /// The term as typed, and the result of the last search that was not the server's.
+    @State private var term = ""
+    @State private var filtered: [OpdsEntry]?
+
+    public init(
+        title: String,
+        url: URL,
+        credential: OpdsCredential?,
+        pins: CertificatePins,
+        onOpen: @escaping (OpdsEntry, CatalogueBrowser) -> Void = { _, _ in }
+    ) {
+        _browser = State(
+            initialValue: CatalogueBrowser(
+                title: title,
+                url: url,
+                credential: credential,
+                pins: pins
+            )
+        )
+        self.onOpen = onOpen
+    }
+
+    public var body: some View {
+        // Read here, in the body, and passed down.
+        //
+        // A `LazyVStack` evaluates its content closure when a row is about to appear, which
+        // is outside the observation scope of this body. An `@Observable` property read in
+        // there registers no dependency, so the first evaluation is the only one — the page
+        // stayed on its initial empty state and never showed what it had fetched.
+        let state = browser.state
+        let feed = browser.feed
+        let shown = filtered ?? browser.entries
+
+        return ScrollView {
+            LazyVStack(alignment: .leading, spacing: StoryArcSpace.lg) {
+                if let feed, !feed.navigation.isEmpty {
+                    sections(feed.navigation)
+                }
+
+                if filtered != nil {
+                    // `opds-catalog`: a catalogue with no search "falls back to filtering
+                    // the cached catalogue, and says so". This is the saying so.
+                    Text("catalogue.search.local", bundle: .module)
+                        .textRole(.footnote)
+                        .foregroundStyle(theme.palette.textSecondary)
+                }
+
+                if !shown.isEmpty {
+                    publications(shown)
+                }
+
+                switch state {
+                case .loading:
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, StoryArcSpace.xl)
+                case let .failed(message):
+                    CatalogueFailure(message: message) {
+                        Task { await browser.reload() }
+                    }
+                case .ready where shown.isEmpty && feed?.navigation.isEmpty != false:
+                    Text("catalogue.empty", bundle: .module)
+                        .textRole(.subheadline)
+                        .foregroundStyle(theme.palette.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, StoryArcSpace.xl)
+                case .ready, .idle:
+                    EmptyView()
+                }
+            }
+            .padding(StoryArcSpace.gutter)
+        }
+        .background(theme.palette.surfaceCanvas)
+        .navigationTitle(browser.title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .searchable(text: $term, prompt: Text("catalogue.search.prompt", bundle: .module))
+        .onSubmit(of: .search) { runSearch() }
+        .onChange(of: term) { _, now in
+            if now.isEmpty { filtered = nil }
+        }
+        .toolbar {
+            if let facets = feed?.facets, !facets.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    facetMenu(facets)
+                }
+            }
+        }
+        .task { await browser.load() }
+    }
+
+    /// A search the server answers, or one this page answers itself.
+    private func runSearch() {
+        switch browser.search(term) {
+        case .server:
+            searching = term
+            filtered = nil
+        case let .local(matches):
+            filtered = matches
+        case .cleared:
+            filtered = nil
+        }
+    }
+
+    /// A server-answered search opens as its own page, like entering a section.
+    ///
+    /// Held as a term rather than the page itself: `navigationDestination(item:)` needs
+    /// something `Hashable`, and a browser is a reference type whose identity would change
+    /// on every recomposition.
+    @State private var searching: String?
+
+    @ViewBuilder
+    private func sections(_ list: [OpdsSection]) -> some View {
+        VStack(spacing: StoryArcSpace.sm) {
+            ForEach(list) { section in
+                NavigationLink {
+                    CatalogueBrowserView(
+                        title: section.title,
+                        url: section.href,
+                        credential: browser.credential,
+                        pins: browser.pins,
+                        onOpen: onOpen
+                    )
+                } label: {
+                    CatalogueSectionRow(section: section)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .navigationDestination(item: $searching) { term in
+            if let url = browser.searchURL(for: term) {
+                CatalogueBrowserView(
+                    title: term,
+                    url: url,
+                    credential: browser.credential,
+                    pins: browser.pins,
+                    onOpen: onOpen
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func publications(_ shown: [OpdsEntry]) -> some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: StoryArcSpace.huge * 2), spacing: StoryArcSpace.md)],
+            spacing: StoryArcSpace.lg
+        ) {
+            ForEach(shown) { entry in
+                Button {
+                    onOpen(entry, browser)
+                } label: {
+                    CatalogueEntryCell(entry: entry, credential: browser.credential)
+                }
+                .buttonStyle(.plain)
+                .task {
+                    // The next page arrives because the reader scrolled, not because they
+                    // pressed anything. Skipped while a local filter is showing: the filter
+                    // is over what is loaded, and loading more would change it underneath.
+                    if filtered == nil { await browser.loadMore(after: entry) }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func facetMenu(_ facets: [OpdsFacet]) -> some View {
+        Menu {
+            let grouped = Dictionary(grouping: facets, by: \.group).sorted { $0.key < $1.key }
+            ForEach(grouped, id: \.key) { group, members in
+                Section(group) {
+                    ForEach(members) { facet in
+                        NavigationLink {
+                            CatalogueBrowserView(
+                                title: facet.title,
+                                url: facet.href,
+                                credential: browser.credential,
+                                pins: browser.pins,
+                                onOpen: onOpen
+                            )
+                        } label: {
+                            if facet.isActive {
+                                Label(facet.title, systemImage: "checkmark")
+                            } else {
+                                Text(facet.title)
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            Label {
+                Text("catalogue.facets", bundle: .module)
+            } icon: {
+                Image(systemName: "line.3.horizontal.decrease")
+            }
+        }
+    }
+}
+
+/// A section, with its count where the feed gave one.
+struct CatalogueSectionRow: View {
+    @Environment(\.theme) private var theme
+
+    let section: OpdsSection
+
+    var body: some View {
+        HStack(spacing: StoryArcSpace.md) {
+            VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+                Text(section.title)
+                    .textRole(.headline)
+                    .foregroundStyle(theme.palette.textPrimary)
+
+                if let count = section.count {
+                    Text("catalogue.section.count \(count)", bundle: .module)
+                        .textRole(.footnote)
+                        .foregroundStyle(theme.palette.textSecondary)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .textRole(.footnote)
+                .foregroundStyle(theme.palette.textTertiary)
+        }
+        .padding(StoryArcSpace.md)
+        .frame(minHeight: StoryArcSpace.xxl + StoryArcSpace.md)
+        .background(theme.palette.surfaceRaised, in: .rect(cornerRadius: StoryArcRadius.lg))
+    }
+}

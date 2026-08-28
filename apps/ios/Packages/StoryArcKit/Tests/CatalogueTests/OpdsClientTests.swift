@@ -162,3 +162,27 @@ final class StubProtocol: URLProtocol {
 
     override func stopLoading() {}
 }
+
+/// What the secure store holds, and what comes back out.
+struct OpdsCredentialStorageTests {
+    @Test func aPairSurvivesTheRoundTrip() throws {
+        // A colon and a newline in the password. The colon is why the format is not
+        // colon-separated; the newline is what a paste from a password manager can carry,
+        // and it has to survive rather than truncate the password.
+        let credential = OpdsCredential.basic(user: "ada", password: "love:lace\nx")
+        #expect(OpdsCredential(stored: credential.stored) == credential)
+    }
+
+    @Test func aTokenSurvivesTheRoundTrip() throws {
+        let credential = OpdsCredential.bearer(token: "abc123")
+        #expect(OpdsCredential(stored: credential.stored) == credential)
+    }
+
+    @Test func aSchemeIsNotGuessed() {
+        // Without the scheme, a reader who signed in with a token is sent back as Basic on
+        // the next launch and the catalogue refuses them.
+        #expect(OpdsCredential(stored: "ada\nlovelace") == nil)
+        #expect(OpdsCredential(stored: "") == nil)
+        #expect(OpdsCredential(stored: "digest\na\nb") == nil)
+    }
+}

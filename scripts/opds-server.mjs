@@ -259,6 +259,11 @@ function authorized(request, expected) {
 
 const server = createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`)
+  // Logged, because the reason to run this server is to find out what the app actually
+  // asks for. A request that never arrives is the answer to most "why is it blank".
+  response.on('finish', () => {
+    console.log(`${response.statusCode} ${request.method} ${request.url}`)
+  })
   const base = `http://${request.headers.host}`
   const page = Number(url.searchParams.get('page') ?? 0)
   const query = url.searchParams.get('q') ?? url.searchParams.get('query')

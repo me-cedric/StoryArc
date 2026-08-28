@@ -2,6 +2,7 @@ public import SwiftUI
 
 internal import DesignSystem
 public import Persistence
+internal import Catalogue
 internal import UniformTypeIdentifiers
 public import StoryArcCore
 
@@ -14,6 +15,13 @@ public struct LibraryView: View {
     @Environment(\.theme) private var theme
     @State private var isPickingFolder = false
     @State private var isAddingCatalogue = false
+
+    /// The catalogue being browsed, by identifier.
+    ///
+    /// The identifier rather than the `Source`: a navigation destination needs something
+    /// `Hashable`, and a source carries a connection state that changes while the reader is
+    /// inside it — which would pop the screen they are reading.
+    @State private var browsing: Source.ID?
     /// Owned by the app layer, not by this view.
     ///
     /// The app is what knows the reader was just dismissed, and a `.task` on this
@@ -26,9 +34,17 @@ public struct LibraryView: View {
     private let progress: ProgressStore?
     private let onOpenSettings: () -> Void
 
+    /// One pin set for the whole app, loaded once.
+    ///
+    /// Shared between adding a catalogue and browsing one on purpose: a certificate the
+    /// reader accepted while adding a server has to still be accepted when its covers load.
+    @State private var pins: CertificatePins
+    private let pinStore = CertificatePinStore()
+    private let credentials = CredentialStore()
+
     /// Held by the view rather than made per presentation, so a reader who dismisses the
     /// sheet mid-sign-in and reopens it finds what they typed still there.
-    @State private var catalogue = CatalogueConnection()
+    @State private var catalogue: CatalogueConnection
 
     /// `onOpen` is how the app layer reaches the reader. The library knows which
     /// publication was chosen and where it lives; it does not know what a reader
@@ -48,6 +64,17 @@ public struct LibraryView: View {
         self.progress = progress
         self.onOpenSettings = onOpenSettings
         self.onOpen = onOpen
+
+        let store = CertificatePinStore()
+        let loaded = CertificatePins(store.pins())
+        _pins = State(initialValue: loaded)
+        _catalogue = State(
+            initialValue: CatalogueConnection(
+                pins: loaded,
+                credentials: CredentialStore(),
+                pinStore: store
+            )
+        )
     }
 
     /// The search text, written straight through to the query.
@@ -59,9 +86,19 @@ public struct LibraryView: View {
         Binding(get: { model.query.search }, set: { model.query.search = $0 })
     }
 
+    /// Opens a catalogue.
+    private func open(_ source: Source) {
+        browsing = source.id
+    }
+
     /// Where a publication lives, handed to the app layer.
     private func open(_ publication: Publication) {
         if let url = model.location(of: publication) { onOpen(publication, url) }
+    }
+
+    /// Every catalogue the reader has added, in registry order.
+    private var catalogues: [Source] {
+        model.registry.sources.filter { $0.kind == .opdsCatalog }
     }
 
     public var body: some View {
@@ -106,6 +143,23 @@ public struct LibraryView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(theme.palette.surfaceCanvas)
+            // Above the grid rather than inside it. A catalogue is not a shelf of local
+            // publications — nothing in it is on the device yet — and mixing the two would
+            // make "what can I read on the train" unanswerable.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if !catalogues.isEmpty { CatalogueStrip(sources: catalogues) { open($0) } }
+            }
+            .navigationDestination(item: $browsing) { id in
+                if let source = model.registry[id],
+                   let page = CataloguePage(source: source, credentials: credentials) {
+                    CatalogueBrowserView(
+                        title: page.title,
+                        url: page.url,
+                        credential: page.credential,
+                        pins: pins
+                    )
+                }
+            }
             .navigationTitle(Text("library.title", bundle: .module))
             // `library-browsing`: results update as the user types, debounced, with
             // no submit action. SwiftUI's own field already debounces per keystroke
