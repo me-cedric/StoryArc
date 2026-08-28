@@ -12,6 +12,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -21,10 +24,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
 import java.util.UUID
@@ -49,12 +54,17 @@ fun DownloadsGroup(
     /** The name of the source a download came from, when it came from one. */
     sourceName: (UUID) -> String?,
     onRemove: (Download) -> Unit,
+    /** The reader's own policy for the queue, and how to change it. */
+    settings: AppSettings = AppSettings.Defaults,
+    onChange: (AppSettings) -> Unit = {},
 ) {
     val palette = LocalStoryArcPalette.current
     var removing by remember { mutableStateOf<Download?>(null) }
 
     // Largest first, which is the order the question "what can I delete" is asked in.
     val finished = library.finished.sortedByDescending { it.downloadedBytes }
+
+    Policy(settings, onChange)
 
     if (finished.isEmpty() && library.pending.isEmpty()) {
         Text(
@@ -224,3 +234,83 @@ private val Download.Pause.explanationRes: Int
         Download.Pause.WAITING_FOR_WIFI -> R.string.downloads_paused_waiting_for_wifi
         Download.Pause.OUT_OF_SPACE -> R.string.downloads_paused_out_of_space
     }
+
+/**
+ * What the reader has asked of the queue.
+ *
+ * The three `offline-downloads` calls policy: whether to wait for Wi-Fi, how much disk to
+ * spend, and whether a finished publication keeps its download. All three change what the
+ * queue does rather than how it looks, which is why they sit above the list of files rather
+ * than inside it.
+ */
+@Composable
+private fun Policy(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    val palette = LocalStoryArcPalette.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    SwitchRow(
+        title = stringResource(R.string.downloads_wifi_only),
+        note = stringResource(R.string.downloads_wifi_only_note),
+        checked = settings.downloadOverWifiOnly,
+    ) { onChange(settings.copy(downloadOverWifiOnly = it)) }
+
+    SwitchRow(
+        title = stringResource(R.string.downloads_remove_after),
+        note = stringResource(R.string.downloads_remove_after_note),
+        checked = settings.removeDownloadsAfterFinishing,
+    ) { onChange(settings.copy(removeDownloadsAfterFinishing = it)) }
+
+    // A short ladder rather than a free number: a reader knows "about two gigabytes", not
+    // 2_147_483_648, and a text field for a byte count is a way to mistype one.
+    Text(
+        text = stringResource(R.string.downloads_limit),
+        style = MaterialTheme.typography.bodyMedium,
+        color = palette.textPrimary,
+        modifier = Modifier.padding(top = StoryArcSpace.sm),
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.xs)) {
+        LIMITS.forEach { limit ->
+            FilterChip(
+                selected = settings.maximumDownloadBytes == limit,
+                onClick = { onChange(settings.copy(maximumDownloadBytes = limit)) },
+                label = {
+                    Text(
+                        text = limit?.let {
+                            android.text.format.Formatter.formatShortFileSize(context, it)
+                        } ?: stringResource(R.string.downloads_limit_none),
+                    )
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SwitchRow(
+    title: String,
+    note: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+) {
+    val palette = LocalStoryArcPalette.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary)
+            Text(note, style = MaterialTheme.typography.labelLarge, color = palette.textTertiary)
+        }
+        Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+/**
+ * Null is "no limit", and it comes first because it is the default.
+ *
+ * Round decimal values rather than powers of two: the platform formats a size in decimal
+ * gigabytes, so 2^30 renders as "1.1 GB" and a ladder of those reads like a mistake.
+ */
+private val LIMITS = listOf<Long?>(null, 1_000_000_000, 5_000_000_000, 20_000_000_000)

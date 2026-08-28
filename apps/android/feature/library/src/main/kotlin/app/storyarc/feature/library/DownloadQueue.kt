@@ -10,6 +10,7 @@ import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.catalogue.OpdsError
 import app.storyarc.core.format.PublicationIndexer
+import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.PublicationFormat
@@ -44,6 +45,14 @@ class DownloadQueue(
     pins: CertificatePins,
     private val store: DownloadStore?,
     private val credential: (String) -> OpdsCredential? = { null },
+    /**
+     * What the reader has asked of the queue.
+     *
+     * A function rather than a value: `offline-downloads` requires a paused queue to
+     * "resume automatically when [Wi-Fi] returns", so the answer has to be re-asked rather
+     * than captured once at construction.
+     */
+    private val settings: () -> AppSettings = { AppSettings.Defaults },
 ) {
     private val _library = MutableStateFlow(store?.library() ?: DownloadLibrary())
 
@@ -151,8 +160,45 @@ class DownloadQueue(
     private fun extensionOf(mediaType: String): String =
         PublicationFormat.ofMediaType(mediaType)?.name?.lowercase() ?: "bin"
 
+    /**
+     * Why the queue is not starting anything, if it is not.
+     *
+     * Null when it may run. `offline-downloads` requires a held queue to *say* what it is
+     * waiting for -- "waiting for Wi-Fi" and "the storage limit is reached" are different
+     * situations with different remedies, and a stalled list that explains neither is the
+     * worst of the three.
+     */
+    fun held(): Held? {
+        val current = settings()
+        if (current.downloadOverWifiOnly && !isOnWifi()) return Held.WaitingForWifi
+        val limit = current.maximumDownloadBytes ?: return null
+        return if (_library.value.bytesOnDisk >= limit) Held.StorageFull else null
+    }
+
+    /** What is stopping the queue. */
+    enum class Held { WaitingForWifi, StorageFull }
+
+    private fun isOnWifi(): Boolean {
+        val manager = context.getSystemService(ConnectivityManager::class.java) ?: return false
+        val capabilities = manager.getNetworkCapabilities(manager.activeNetwork) ?: return false
+        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+    }
+
+    /**
+     * Re-examines a held queue.
+     *
+     * Called when the network or the settings change. `offline-downloads` promises downloads
+     * "resume automatically when [Wi-Fi] returns", and automatically means without the
+     * reader going back to the screen.
+     */
+    fun reconsider() = pump()
+
     /** Starts whatever should be running and is not. */
     private fun pump() {
+        // Held rather than cancelled: the queue keeps its order and its progress, and
+        // starts again by itself the next time this is asked.
+        if (held() != null) return
         val ready = _library.value.downloads.filter { it.state == Download.State.Queued }
         ready.take(maxOf(0, concurrency - running.size)).forEach { download ->
             // Enqueued by a previous launch, so nothing here knows what it was. Left queued

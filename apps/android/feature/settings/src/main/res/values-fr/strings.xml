@@ -124,4 +124,10 @@
         <item quantity="one">%1$d source</item>
         <item quantity="other">%1$d sources</item>
     </plurals>
+    <string name="downloads_wifi_only">Télécharger seulement en Wi-Fi</string>
+    <string name="downloads_wifi_only_note">En données mobiles, les téléchargements attendent au lieu de démarrer.</string>
+    <string name="downloads_remove_after">Supprimer les téléchargements après lecture</string>
+    <string name="downloads_remove_after_note">Votre place est conservée. Annulable pendant dix secondes.</string>
+    <string name="downloads_limit">Espace maximal</string>
+    <string name="downloads_limit_none">Sans limite</string>
 </resources>

@@ -129,4 +129,10 @@
         <item quantity="one">%1$d source</item>
         <item quantity="other">%1$d sources</item>
     </plurals>
+    <string name="downloads_wifi_only">Download over Wi-Fi only</string>
+    <string name="downloads_wifi_only_note">On mobile data, downloads wait rather than run.</string>
+    <string name="downloads_remove_after">Remove downloads after finishing</string>
+    <string name="downloads_remove_after_note">Your place is kept. You can undo it for ten seconds.</string>
+    <string name="downloads_limit">Most disk to use</string>
+    <string name="downloads_limit_none">No limit</string>
 </resources>

@@ -34,6 +34,24 @@ data class AppSettings(
     val language: String? = null,
     val turnPagesWithVolumeButtons: Boolean = false,
     val linkReadingThemeToAppearance: Boolean = false,
+    /**
+     * `offline-downloads`: downloads "pause and state that they are waiting for Wi-Fi" on
+     * cellular, and resume when it returns. Off by default, because a reader who has not
+     * asked for the restriction did not ask to be stopped either.
+     */
+    val downloadOverWifiOnly: Boolean = false,
+    /**
+     * The most disk downloads may take, in bytes, or null for no bound.
+     *
+     * `offline-downloads`: at the limit the app "stops downloading ... and offers to remove
+     * finished publications to make room". A bound nobody set is not a bound.
+     */
+    val maximumDownloadBytes: Long? = null,
+    /**
+     * `offline-downloads`: with this on, finishing a publication removes its download,
+     * "its progress is kept, and the removal is undoable for 10 seconds".
+     */
+    val removeDownloadsAfterFinishing: Boolean = false,
 ) {
     companion object {
         /**

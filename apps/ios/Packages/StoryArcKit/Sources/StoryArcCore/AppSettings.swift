@@ -37,16 +37,37 @@ public struct AppSettings: Sendable, Equatable, Codable {
     /// allows for readers who want them linked.
     public var linkReadingThemeToAppearance: Bool
 
+    /// `offline-downloads`: downloads "pause and state that they are waiting for Wi-Fi" on
+    /// cellular, and resume when it returns. Off by default, because a reader who has not
+    /// asked for the restriction did not ask to be stopped either.
+    public var downloadOverWifiOnly: Bool
+
+    /// The most disk downloads may take, in bytes, or nil for no bound.
+    ///
+    /// `offline-downloads`: at the limit the app "stops downloading … and offers to remove
+    /// finished publications to make room". A bound nobody set is not a bound.
+    public var maximumDownloadBytes: Int64?
+
+    /// `offline-downloads`: with this on, finishing a publication removes its download,
+    /// "its progress is kept, and the removal is undoable for 10 seconds".
+    public var removeDownloadsAfterFinishing: Bool
+
     public init(
         appearance: AppearanceMode = .system,
         language: String? = nil,
         turnPagesWithVolumeButtons: Bool = false,
-        linkReadingThemeToAppearance: Bool = false
+        linkReadingThemeToAppearance: Bool = false,
+        downloadOverWifiOnly: Bool = false,
+        maximumDownloadBytes: Int64? = nil,
+        removeDownloadsAfterFinishing: Bool = false
     ) {
         self.appearance = appearance
         self.language = language
         self.turnPagesWithVolumeButtons = turnPagesWithVolumeButtons
         self.linkReadingThemeToAppearance = linkReadingThemeToAppearance
+        self.downloadOverWifiOnly = downloadOverWifiOnly
+        self.maximumDownloadBytes = maximumDownloadBytes
+        self.removeDownloadsAfterFinishing = removeDownloadsAfterFinishing
     }
 
     /// Decodes what is there and defaults what is not.
@@ -65,6 +86,15 @@ public struct AppSettings: Sendable, Equatable, Codable {
             ) ?? false,
             linkReadingThemeToAppearance: try container.decodeIfPresent(
                 Bool.self, forKey: .linkReadingThemeToAppearance
+            ) ?? false,
+            downloadOverWifiOnly: try container.decodeIfPresent(
+                Bool.self, forKey: .downloadOverWifiOnly
+            ) ?? false,
+            maximumDownloadBytes: try container.decodeIfPresent(
+                Int64.self, forKey: .maximumDownloadBytes
+            ),
+            removeDownloadsAfterFinishing: try container.decodeIfPresent(
+                Bool.self, forKey: .removeDownloadsAfterFinishing
             ) ?? false
         )
     }

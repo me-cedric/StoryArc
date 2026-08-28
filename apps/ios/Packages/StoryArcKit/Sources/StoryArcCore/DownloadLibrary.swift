@@ -82,6 +82,32 @@ public struct DownloadLibrary: Sendable, Equatable {
     }
 
     /// Forgets everything a source contributed, for when the source itself is removed.
+    /// Moves a queued download one place earlier or later.
+    ///
+    /// `offline-downloads` requires "per-item and global pause, resume, cancel, and
+    /// reorder". One place at a time rather than a drag: the list is short, the action is
+    /// undoable by doing it again, and a swap needs no gesture recogniser to be reachable
+    /// by a screen reader.
+    ///
+    /// Only among the queued. A running download has already started, and a finished one
+    /// has no order left to have.
+    public func moving(_ id: Download.ID, later: Bool) -> DownloadLibrary {
+        let queued = downloads.filter { $0.state == .queued }
+        guard let at = queued.firstIndex(where: { $0.id == id }) else { return self }
+        let to = later ? at + 1 : at - 1
+        guard queued.indices.contains(to) else { return self }
+
+        var reordered = queued
+        reordered.insert(reordered.remove(at: at), at: to)
+
+        var next = 0
+        return DownloadLibrary(downloads: downloads.map { download in
+            guard download.state == .queued else { return download }
+            defer { next += 1 }
+            return reordered[next]
+        })
+    }
+
     public func removingAll(from sourceID: UUID) -> (library: DownloadLibrary, removed: [Download]) {
         let removed = downloads.filter { $0.sourceID == sourceID }
         let kept = downloads.filter { $0.sourceID != sourceID }

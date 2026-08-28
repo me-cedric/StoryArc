@@ -315,6 +315,8 @@ private fun GroupDetail(
                     bytesOnDisk = bytesOnDisk,
                     sourceName = { id -> sources.firstOrNull { it.id == id }?.displayName },
                     onRemove = onRemoveDownload,
+                    settings = settings,
+                    onChange = onChange,
                 )
                 SettingsGroup.LANGUAGE ->
                     Text(

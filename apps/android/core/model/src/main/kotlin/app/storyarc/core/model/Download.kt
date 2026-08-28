@@ -169,6 +169,32 @@ data class DownloadLibrary(val downloads: List<Download> = emptyList()) {
     /** Forgets a download. The file is the caller's to delete. */
     fun removing(id: String): DownloadLibrary = copy(downloads = downloads.filterNot { it.id == id })
 
+    /**
+     * Moves a queued download one place earlier or later.
+     *
+     * `offline-downloads` requires "per-item and global pause, resume, cancel, and reorder".
+     * One place at a time rather than a drag: the list is short, the action is undoable by
+     * doing it again, and a swap needs no gesture recogniser to be reachable by a screen
+     * reader.
+     *
+     * Only among the queued. A running download has already started, and a finished one has
+     * no order left to have.
+     */
+    fun moving(id: String, later: Boolean): DownloadLibrary {
+        val queued = downloads.filter { it.state == Download.State.Queued }
+        val at = queued.indexOfFirst { it.id == id }
+        val to = at + if (later) 1 else -1
+        if (at < 0 || to !in queued.indices) return this
+
+        val reordered = queued.toMutableList().apply { add(to, removeAt(at)) }
+        var next = 0
+        return copy(
+            downloads = downloads.map {
+                if (it.state == Download.State.Queued) reordered[next++] else it
+            },
+        )
+    }
+
     /** Forgets everything a source contributed, for when the source itself is removed. */
     fun removingAll(sourceId: UUID): Pair<DownloadLibrary, List<Download>> {
         val removed = downloads.filter { it.sourceId == sourceId }
