@@ -141,9 +141,18 @@ class CatalogueConnection(
         val id = UUID.randomUUID()
         var reference: String? = null
         val secret = accepted
-        if (secret != null && credentials != null) {
+        if (secret != null) {
+            // Null when the secret cannot be stored, and the step says so. A catalogue whose
+            // sign-in was accepted and then dropped is a row that fails on the next launch
+            // with nothing to explain why.
             val stored = CredentialStore.reference(id)
-            reference = if (credentials.save(secret.stored, stored)) stored else null
+            if (credentials == null || !credentials.save(secret.stored, stored)) {
+                _step.value = Step.Failed(
+                    context.getString(R.string.catalogue_error_secret_not_stored),
+                )
+                return null
+            }
+            reference = stored
         }
 
         return Source(

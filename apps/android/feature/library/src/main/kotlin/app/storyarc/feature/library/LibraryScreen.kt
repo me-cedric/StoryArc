@@ -122,6 +122,8 @@ fun LibraryScreen(
     onAddCatalogue: () -> Unit = {},
     /** Opens the collections screen, which the app layer hosts. */
     onOpenShelves: () -> Unit = {},
+    /** Opens the add-a-Kavita-server sheet, which the app layer hosts. */
+    onAddKavita: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -191,6 +193,7 @@ fun LibraryScreen(
                         AddSourceMenu(
                             onAddFolder = { pickFolder.launch(null) },
                             onAddCatalogue = onAddCatalogue,
+                            onAddKavita = onAddKavita,
                         )
                         IconButton(onClick = { viewModel.rescan() }) {
                             Icon(
@@ -247,7 +250,12 @@ fun LibraryScreen(
             // Above the library rather than inside it. A catalogue is not a shelf of local
             // publications -- nothing in it is on the device yet -- and mixing the two
             // would make "what can I read on the train" unanswerable.
-            val catalogues = registry.sources.filter { it.kind == SourceKind.OPDS_CATALOG }
+            // Catalogues and Kavita servers together: both are places to browse rather than
+            // shelves of local publications, and a reader with one of each should not have to
+            // learn two ways in.
+            val catalogues = registry.sources.filter {
+                it.kind == SourceKind.OPDS_CATALOG || it.kind == SourceKind.KAVITA_SERVER
+            }
             if (catalogues.isNotEmpty()) {
                 CatalogueStrip(sources = catalogues, onOpen = onBrowse)
             }

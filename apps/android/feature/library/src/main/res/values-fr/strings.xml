@@ -140,4 +140,23 @@
         <item quantity="one">%1$d publication</item>
         <item quantity="other">%1$d publications</item>
     </plurals>
+    <string name="kavita_title">Serveur Kavita</string>
+    <string name="kavita_address_label">Adresse</string>
+    <string name="kavita_address_prompt">kavita.example.com</string>
+    <string name="kavita_address_hint">L’adresse du serveur, ou collez son URL OPDS et StoryArc en extraira la clé.</string>
+    <string name="kavita_key_label">Clé d’API</string>
+    <string name="kavita_key_hint">Depuis les réglages de votre compte Kavita. Conservée dans le keystore de l’appareil.</string>
+    <string name="kavita_key_from_address">La clé a été extraite de l’adresse que vous avez collée.</string>
+    <string name="kavita_connect">Se connecter</string>
+    <string name="kavita_confirmed">Connecté en tant que %1$s · Kavita %2$s</string>
+    <string name="kavita_add">Ajouter le serveur</string>
+    <string name="kavita_error_not_an_address">StoryArc ne peut pas atteindre cette adresse.</string>
+    <string name="kavita_error_not_kavita">Cette adresse a répondu, mais pas comme un serveur Kavita.</string>
+    <string name="kavita_error_key_rejected">Cette clé d’API a été refusée. Vérifiez-la dans les réglages de votre compte Kavita.</string>
+    <string name="kavita_error_too_old">Ce serveur utilise Kavita %1$s. StoryArc a besoin de la version %2$s ou plus récente.</string>
+    <string name="kavita_error_key_not_stored">Cet appareil n’a pas voulu conserver la clé d’API : le serveur n’a pas été ajouté. Rien n’a été enregistré à moitié.</string>
+    <string name="kavita_empty">Cette bibliothèque est vide.</string>
+    <string name="kavita_loose_chapters">Chapitres</string>
+    <string name="catalogue_error_secret_not_stored">Cet appareil n’a pas voulu conserver l’identification : le catalogue n’a pas été ajouté. Rien n’a été enregistré à moitié.</string>
+    <string name="kavita_fetching">Téléchargement</string>
 </resources>

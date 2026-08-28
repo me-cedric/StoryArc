@@ -140,4 +140,23 @@
         <item quantity="one">%1$d publication</item>
         <item quantity="other">%1$d publications</item>
     </plurals>
+    <string name="kavita_title">Kavita server</string>
+    <string name="kavita_address_label">Address</string>
+    <string name="kavita_address_prompt">kavita.example.com</string>
+    <string name="kavita_address_hint">The server’s address, or paste its OPDS URL and StoryArc will take the key from it.</string>
+    <string name="kavita_key_label">API key</string>
+    <string name="kavita_key_hint">From your Kavita account settings. Stored in the device keystore.</string>
+    <string name="kavita_key_from_address">The key was taken from the address you pasted.</string>
+    <string name="kavita_connect">Connect</string>
+    <string name="kavita_confirmed">Signed in as %1$s · Kavita %2$s</string>
+    <string name="kavita_add">Add server</string>
+    <string name="kavita_error_not_an_address">That is not an address StoryArc can reach.</string>
+    <string name="kavita_error_not_kavita">That address answered, but not like a Kavita server.</string>
+    <string name="kavita_error_key_rejected">That API key was refused. Check it in your Kavita account settings.</string>
+    <string name="kavita_error_too_old">That server runs Kavita %1$s. StoryArc needs %2$s or newer.</string>
+    <string name="kavita_error_key_not_stored">This device would not store the API key, so the server was not added. Nothing was saved half-finished.</string>
+    <string name="kavita_empty">This library is empty.</string>
+    <string name="kavita_loose_chapters">Chapters</string>
+    <string name="catalogue_error_secret_not_stored">This device would not store the sign-in, so the catalogue was not added. Nothing was saved half-finished.</string>
+    <string name="kavita_fetching">Downloading</string>
 </resources>

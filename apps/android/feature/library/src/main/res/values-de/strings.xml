@@ -140,4 +140,23 @@
         <item quantity="one">%1$d Publikation</item>
         <item quantity="other">%1$d Publikationen</item>
     </plurals>
+    <string name="kavita_title">Kavita-Server</string>
+    <string name="kavita_address_label">Adresse</string>
+    <string name="kavita_address_prompt">kavita.example.com</string>
+    <string name="kavita_address_hint">Die Adresse des Servers, oder fügen Sie seine OPDS-URL ein und StoryArc entnimmt ihr den Schlüssel.</string>
+    <string name="kavita_key_label">API-Schlüssel</string>
+    <string name="kavita_key_hint">Aus Ihren Kavita-Kontoeinstellungen. Im Keystore des Geräts gespeichert.</string>
+    <string name="kavita_key_from_address">Der Schlüssel wurde aus der eingefügten Adresse übernommen.</string>
+    <string name="kavita_connect">Verbinden</string>
+    <string name="kavita_confirmed">Angemeldet als %1$s · Kavita %2$s</string>
+    <string name="kavita_add">Server hinzufügen</string>
+    <string name="kavita_error_not_an_address">Das ist keine Adresse, die StoryArc erreichen kann.</string>
+    <string name="kavita_error_not_kavita">Diese Adresse hat geantwortet, aber nicht wie ein Kavita-Server.</string>
+    <string name="kavita_error_key_rejected">Dieser API-Schlüssel wurde abgelehnt. Prüfen Sie ihn in Ihren Kavita-Kontoeinstellungen.</string>
+    <string name="kavita_error_too_old">Dieser Server verwendet Kavita %1$s. StoryArc benötigt %2$s oder neuer.</string>
+    <string name="kavita_error_key_not_stored">Dieses Gerät wollte den API-Schlüssel nicht speichern, daher wurde der Server nicht hinzugefügt. Es wurde nichts halbfertig gespeichert.</string>
+    <string name="kavita_empty">Diese Bibliothek ist leer.</string>
+    <string name="kavita_loose_chapters">Kapitel</string>
+    <string name="catalogue_error_secret_not_stored">Dieses Gerät wollte die Anmeldung nicht speichern, daher wurde der Katalog nicht hinzugefügt. Es wurde nichts halbfertig gespeichert.</string>
+    <string name="kavita_fetching">Wird heruntergeladen</string>
 </resources>

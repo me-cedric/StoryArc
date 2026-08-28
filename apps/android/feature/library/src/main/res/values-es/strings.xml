@@ -140,4 +140,23 @@
         <item quantity="one">%1$d publicación</item>
         <item quantity="other">%1$d publicaciones</item>
     </plurals>
+    <string name="kavita_title">Servidor Kavita</string>
+    <string name="kavita_address_label">Dirección</string>
+    <string name="kavita_address_prompt">kavita.example.com</string>
+    <string name="kavita_address_hint">La dirección del servidor, o pegue su URL de OPDS y StoryArc extraerá la clave.</string>
+    <string name="kavita_key_label">Clave de API</string>
+    <string name="kavita_key_hint">Desde los ajustes de su cuenta de Kavita. Se guarda en el almacén de claves del dispositivo.</string>
+    <string name="kavita_key_from_address">La clave se extrajo de la dirección que pegó.</string>
+    <string name="kavita_connect">Conectar</string>
+    <string name="kavita_confirmed">Sesión iniciada como %1$s · Kavita %2$s</string>
+    <string name="kavita_add">Añadir servidor</string>
+    <string name="kavita_error_not_an_address">Esa no es una dirección a la que StoryArc pueda llegar.</string>
+    <string name="kavita_error_not_kavita">Esa dirección respondió, pero no como un servidor Kavita.</string>
+    <string name="kavita_error_key_rejected">Se rechazó esa clave de API. Compruébela en los ajustes de su cuenta de Kavita.</string>
+    <string name="kavita_error_too_old">Ese servidor usa Kavita %1$s. StoryArc necesita la %2$s o posterior.</string>
+    <string name="kavita_error_key_not_stored">Este dispositivo no quiso guardar la clave de API, así que no se añadió el servidor. No se guardó nada a medias.</string>
+    <string name="kavita_empty">Esta biblioteca está vacía.</string>
+    <string name="kavita_loose_chapters">Capítulos</string>
+    <string name="catalogue_error_secret_not_stored">Este dispositivo no quiso guardar el inicio de sesión, así que no se añadió el catálogo. No se guardó nada a medias.</string>
+    <string name="kavita_fetching">Descargando</string>
 </resources>

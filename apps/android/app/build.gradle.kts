@@ -75,6 +75,7 @@ dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":core:persistence"))
     implementation(project(":core:catalogue"))
+    implementation(project(":core:kavita"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

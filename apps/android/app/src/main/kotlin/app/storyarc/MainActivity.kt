@@ -39,6 +39,11 @@ import app.storyarc.feature.library.CatalogueConnection
 import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.CatalogueSheet
 import app.storyarc.feature.library.CollectionDetailScreen
+import app.storyarc.feature.library.KavitaBrowserScreen
+import app.storyarc.feature.library.KavitaConnection
+import app.storyarc.feature.library.KavitaLevel
+import app.storyarc.feature.library.KavitaPage
+import app.storyarc.feature.library.KavitaSheet
 import app.storyarc.feature.library.ReadingListDetailScreen
 import app.storyarc.feature.library.ShelvesScreen
 import app.storyarc.feature.settings.SettingsScreen
@@ -210,6 +215,13 @@ class MainActivity : ComponentActivity() {
                 // gesture has to unwind them one at a time.
                 var catalogue by remember { mutableStateOf<List<CataloguePage>>(emptyList()) }
                 var isAddingCatalogue by remember { mutableStateOf(false) }
+                var isAddingKavita by remember { mutableStateOf(false) }
+                var kavita by remember { mutableStateOf<KavitaPage?>(null) }
+                // Held beside the server rather than inside the browser, so closing a chapter
+                // returns the reader to the series they were reading.
+                var kavitaLevel by remember {
+                    mutableStateOf<KavitaLevel>(KavitaLevel.Libraries)
+                }
                 var isShowingShelves by remember { mutableStateOf(false) }
                 // Which grouping is open, if any. Two nullable ids rather than a sealed
                 // type: only one can be open, and the back gesture unwinds them in order.
@@ -237,6 +249,18 @@ class MainActivity : ComponentActivity() {
                 //
                 // One rule, three callers: the library, a catalogue, and a file the system
                 // handed over. Three copies of it is how one of them ends up wrong.
+                if (isAddingKavita) {
+                    val connection = remember { KavitaConnection(applicationContext, credentials) }
+                    KavitaSheet(
+                        connection = connection,
+                        onAdd = { libraryViewModel.addSource(it) },
+                        onDismiss = {
+                            isAddingKavita = false
+                            connection.reset()
+                        },
+                    )
+                }
+
                 val route: (Publication, String) -> Unit = { publication, path ->
                     if (publication.format == PublicationFormat.EPUB && !publication.isFixedLayout) {
                         startActivity(
@@ -255,6 +279,7 @@ class MainActivity : ComponentActivity() {
                 val collectionOpen = openCollection
                 val listOpen = openList
                 val page = catalogue.lastOrNull()
+                val server = kavita
 
                 if (collectionOpen != null && selection == null) {
                     BackHandler { openCollection = null }
@@ -279,6 +304,16 @@ class MainActivity : ComponentActivity() {
                         onOpenCollection = { openCollection = it },
                         onOpenList = { openList = it },
                         onBack = { isShowingShelves = false },
+                    )
+                } else if (server != null && selection == null && !isShowingSettings) {
+                    BackHandler { kavita = null }
+                    KavitaBrowserScreen(
+                        title = server.title,
+                        address = server.address,
+                        level = kavitaLevel,
+                        onLevel = { kavitaLevel = it },
+                        onOpen = route,
+                        onBack = { kavita = null },
                     )
                 } else if (page != null && selection == null && !isShowingSettings) {
                     BackHandler { catalogue = catalogue.dropLast(1) }
@@ -370,9 +405,16 @@ class MainActivity : ComponentActivity() {
                             isShowingSettings = true
                         },
                         onBrowse = { source ->
+                            // One tap, two destinations, decided by what the source is. The
+                            // reader picked a place to browse, not a protocol.
                             CataloguePage.of(source, credentials)?.let { catalogue = listOf(it) }
+                            KavitaPage.of(source, credentials)?.let {
+                                kavita = it
+                                kavitaLevel = KavitaLevel.Libraries
+                            }
                         },
                         onAddCatalogue = { isAddingCatalogue = true },
+                        onAddKavita = { isAddingKavita = true },
                         onOpenShelves = { isShowingShelves = true },
                     )
                 } else {

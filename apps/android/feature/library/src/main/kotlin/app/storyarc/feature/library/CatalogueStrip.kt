@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.RssFeed
 import androidx.compose.material3.DropdownMenu
@@ -76,7 +77,11 @@ fun CatalogueStrip(sources: List<Source>, onOpen: (Source) -> Unit) {
                         vertical = StoryArcSpace.sm,
                     ),
                 ) {
-                    Icon(Icons.Filled.RssFeed, contentDescription = null, tint = palette.accent)
+                    Icon(
+                        imageVector = source.kind.icon,
+                        contentDescription = null,
+                        tint = palette.accent,
+                    )
                     Text(
                         text = source.displayName,
                         style = MaterialTheme.typography.bodyMedium,
@@ -97,7 +102,11 @@ fun CatalogueStrip(sources: List<Source>, onOpen: (Source) -> Unit) {
 
 /** The two ways to add a source that exist, behind one button. */
 @Composable
-fun AddSourceMenu(onAddFolder: () -> Unit, onAddCatalogue: () -> Unit) {
+fun AddSourceMenu(
+    onAddFolder: () -> Unit,
+    onAddCatalogue: () -> Unit,
+    onAddKavita: () -> Unit = {},
+) {
     val palette = LocalStoryArcPalette.current
     var open by remember { mutableStateOf(false) }
 
@@ -123,6 +132,14 @@ fun AddSourceMenu(onAddFolder: () -> Unit, onAddCatalogue: () -> Unit) {
             onClick = {
                 open = false
                 onAddCatalogue()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.kavita_title)) },
+            leadingIcon = { Icon(Icons.Filled.Dns, contentDescription = null) },
+            onClick = {
+                open = false
+                onAddKavita()
             },
         )
     }
