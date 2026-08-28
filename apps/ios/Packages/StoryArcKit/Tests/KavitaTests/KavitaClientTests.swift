@@ -4,19 +4,15 @@ import Testing
 @testable import Kavita
 
 /// The connection requirement, against a stubbed transport.
-///
-/// Serialised, because the stub is registered process-wide.
-@Suite(.serialized)
 struct KavitaClientTests {
+    /// A client on a host nothing else is using, so these tests can run beside others.
     private func client(
         _ answer: @escaping @Sendable (URLRequest) -> KavitaStub.Answer
     ) throws -> KavitaClient {
-        KavitaStub.answer = answer
-        KavitaStub.seen = []
-        let address = try #require(
-            KavitaAddress.from(base: "https://kavita.example", apiKey: "key")
-        )
-        return KavitaClient(address: address, configuration: KavitaStub.configuration())
+        let host = "\(UUID().uuidString).example"
+        let configuration = KavitaStub.session(host: host, answer: answer)
+        let address = try #require(KavitaAddress.from(base: "https://\(host)", apiKey: "key"))
+        return KavitaClient(address: address, configuration: configuration)
     }
 
     private func json(_ text: String) -> KavitaStub.Answer {
@@ -113,16 +109,26 @@ struct KavitaClientTests {
     }
 }
 
-/// A transport that answers from a closure.
+/// A transport that answers from a closure, one per host.
+///
+/// Keyed by host rather than a single global answer. `.serialized` orders the tests *within*
+/// a suite and nothing between two suites, so two suites sharing one closure set each
+/// other's answers — which is what happened, and what made half of these tests report the
+/// other half's responses.
 final class KavitaStub: URLProtocol {
     enum Answer {
         case response(status: Int, body: Data)
     }
 
-    nonisolated(unsafe) static var answer: (@Sendable (URLRequest) -> Answer)?
-    nonisolated(unsafe) static var seen: [String] = []
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var answers: [String: @Sendable (URLRequest) -> Answer] = [:]
 
-    static func configuration() -> URLSessionConfiguration {
+    /// Registers an answer for a host of its own, and returns a session that uses it.
+    static func session(
+        host: String,
+        answer: @escaping @Sendable (URLRequest) -> Answer
+    ) -> URLSessionConfiguration {
+        lock.withLock { answers[host] = answer }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [KavitaStub.self]
         return configuration
@@ -133,9 +139,10 @@ final class KavitaStub: URLProtocol {
     override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
-        guard let answer = Self.answer?(request),
+        guard let url = request.url,
+              let host = url.host(),
+              let answer = Self.lock.withLock({ Self.answers[host] })?(request),
               case let .response(status, body) = answer,
-              let url = request.url,
               let response = HTTPURLResponse(
                   url: url,
                   statusCode: status,

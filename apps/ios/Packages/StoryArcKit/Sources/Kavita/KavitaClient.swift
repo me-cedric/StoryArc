@@ -54,6 +54,16 @@ public actor KavitaClient {
         return try await send(URLRequest(url: url))
     }
 
+    /// Lets the session's own queue go when the client does.
+    ///
+    /// A `URLSession` holds its delegate and an operation queue until it is invalidated,
+    /// and neither is released by the client being deallocated. The catalogue client learnt
+    /// this the same way: a test run that passed every assertion and then crashed on the
+    /// way out.
+    deinit {
+        session.finishTasksAndInvalidate()
+    }
+
     /// The oldest Kavita this app knows how to talk to.
     ///
     /// `kavita-server` requires the app to reject an older server "naming the required

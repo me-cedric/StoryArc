@@ -33,6 +33,7 @@
     "notices": "node scripts/notices.mjs",
     "corpus": "node scripts/corpus.mjs",
     "opds": "node scripts/opds-server.mjs",
+    "kavita": "node scripts/kavita-server.mjs",
     "corpus:check": "node scripts/corpus.mjs --self-test",
     "notices:check": "node scripts/notices.mjs --check"
   },

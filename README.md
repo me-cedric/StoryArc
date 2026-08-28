@@ -330,7 +330,22 @@ pnpm opds ~/StoryArcCorpus
 | `/page`, `/empty` | The two refusals the spec requires by name |
 | `/flaky/…` | Fails twice with 503 then succeeds, so the retry-with-backoff can be watched |
 
-The simulator and the emulator both reach it: `http://localhost:4444/opds` on iOS, and
+There is a Kavita mock beside it, for the parts of `kavita-server` that OPDS cannot
+express:
+
+```bash
+pnpm kavita ~/StoryArcCorpus
+```
+
+It answers on port 5000 with API key `storyarc-test-key`, reporting version 0.8.3, two
+libraries and the corpus arranged as series and chapters. It is not a reimplementation of
+Kavita — it is the shape of the endpoints StoryArc calls, so the walkthrough can be
+watched. **StoryArc's Kavita client is built against Kavita's documented API and this
+mock, not against a live server.** Anyone who points it at a real Kavita and finds a
+difference should correct the mock as well as the client, so the next person inherits the
+correction.
+
+The simulator and the emulator both reach these: `http://localhost:4444/opds` on iOS, and
 `http://10.0.2.2:4444/opds` from an Android emulator. iOS permits plain HTTP here
 because `NSAllowsLocalNetworking` is set for self-hosted servers; a catalogue on the
 public internet still has to be HTTPS.
