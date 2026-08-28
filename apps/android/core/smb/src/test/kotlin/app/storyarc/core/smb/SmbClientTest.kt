@@ -21,13 +21,18 @@ import org.junit.Test
 class SmbClientTest {
 
     /**
-     * Guest, because `smb-server.py --guest` is the mode this suite drives.
+     * Authenticated, with signing mandatory on the server.
      *
-     * impacket signs SMB2 responses with a key jcifs then rejects -- a fault in the test
-     * server, not in the client, and one worth leaving the client strict about. A guest
-     * session has no signing key, so the two ends agree.
+     * Guest would prove less than nothing: a guest session is unsigned, so it would pass
+     * whether or not this client can sign, and signing is what a real share requires.
      */
-    private val address = SmbAddress(host = "127.0.0.1", share = SHARE, port = PORT)
+    private val address = SmbAddress(
+        host = "127.0.0.1",
+        share = SHARE,
+        username = USER,
+        password = PASSWORD,
+        port = PORT,
+    )
 
     @Test
     fun `connects and says what it negotiated`() = runBlocking {
@@ -76,6 +81,16 @@ class SmbClientTest {
      * never escapes the seam -- which is the part a caller depends on.
      */
     @Test
+    fun `a wrong password is rejected, and says so`() {
+        assumeTrue(isServerRunning())
+        SmbClient(address.copy(password = "wrong")).use { client ->
+            assertThrows(SmbError.AuthenticationRejected::class.java) {
+                runBlocking { client.connect() }
+            }
+        }
+    }
+
+    @Test
     fun `a share that is not there fails as a named error, not a raw jcifs one`() {
         assumeTrue(isServerRunning())
         SmbClient(address.copy(share = "NoSuchShare")).use { client ->
@@ -88,6 +103,10 @@ class SmbClientTest {
     private companion object {
         const val PORT = 4445
         const val SHARE = "Comics"
+
+        /** `smb-server.sh` maps its account onto the machine's own, so the name follows. */
+        val USER: String = System.getProperty("user.name") ?: "nobody"
+        const val PASSWORD = "lovelace"
 
         fun isServerRunning(): Boolean = runCatching {
             Socket().use { it.connect(InetSocketAddress("127.0.0.1", PORT), 300) }

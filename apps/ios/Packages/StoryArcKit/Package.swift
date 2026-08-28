@@ -23,6 +23,7 @@ let package = Package(
         .library(name: "SettingsFeature", targets: ["SettingsFeature"]),
         .library(name: "Catalogue", targets: ["Catalogue"]),
         .library(name: "Kavita", targets: ["Kavita"]),
+        .library(name: "Smb", targets: ["Smb"]),
     ],
     dependencies: [
         // The vendored libarchive RAR readers. A path dependency rather than a
@@ -31,7 +32,13 @@ let package = Package(
         .package(path: "../../../../third_party/libarchive"),
         // The bundled typefaces and the licence inventory, both read by Android from
         // the same directories. One copy on disk is the only way that stays true.
-        .package(path: "../../../../packages/licences")
+        .package(path: "../../../../packages/licences"),
+        // `network-share` needs SMB 2/3, which iOS has no API for. Pure Swift and
+        // MIT, so no FFI boundary and no licence to argue about. ADR-0010.
+        .package(
+            url: "https://github.com/kishikawakatsumi/SMBClient.git",
+            from: "0.3.1"
+        )
     ],
     targets: [
         .target(name: "DesignSystem", dependencies: ["StoryArcCore"]),
@@ -46,6 +53,16 @@ let package = Package(
             dependencies: [
                 "StoryArcCore",
                 .product(name: "CLibarchive", package: "libarchive"),
+            ]
+        ),
+        // The SMB seam. Everything above it works against `RandomAccessSource`
+        // and learns nothing about the protocol. ADR-0010.
+        .target(
+            name: "Smb",
+            dependencies: [
+                "Formats",
+                "StoryArcCore",
+                .product(name: "SMBClient", package: "SMBClient"),
             ]
         ),
         .target(
@@ -72,6 +89,10 @@ let package = Package(
                 .product(name: "StoryArcLicences", package: "licences"),
             ],
             resources: [.process("Resources")]
+        ),
+        .testTarget(
+            name: "SmbTests",
+            dependencies: ["Smb"]
         ),
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem"]),
         .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),

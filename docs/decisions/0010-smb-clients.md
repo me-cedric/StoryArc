@@ -50,13 +50,30 @@ the seam knows which library is underneath.
 - **Good.** Both licences permit static linking into a closed binary.
 - **Bad.** Two clients means two sets of bugs and two upgrade schedules. The
   seam limits the blast radius; it does not remove it.
-- **Bad.** SMB 3 encryption support differs between the two, so the source
-  detail screen has to report what *this* connection negotiated rather than what
-  the app supports in general — which the spec asks for anyway.
+- **Bad.** The two clients do not reach the same dialect. jcifs-ng negotiates
+  SMB 2.0.2 through 3.1.1 and reports the one it got; SMBClient offers 2.0.2 and
+  2.1 only and gives no supported way to read the result back without sending a
+  non-Sendable value out of the actor that owns it. iOS therefore reports the
+  range it offers rather than the dialect it landed on.
+- **Bad.** Neither client implements SMB 3 transport encryption. The source
+  detail screen reports what *this* connection actually negotiated, which is the
+  honest answer and is what the spec asks for — but "encrypted" is currently
+  never true, and the encryption scenario stays unmet until one of the two
+  clients grows it.
 
 ### Verification
 
-`scripts/smb-server.py` runs a real SMB2 server over the fixture corpus, so the
-client work is driven against a server rather than a stub. It is the same shape
-as `scripts/opds-server.mjs` and `scripts/kavita-server.mjs`, for the same
+`scripts/smb-server.sh` runs a real SMB2/3 server over the fixture corpus, so
+the client work is driven against a server rather than a stub. It is the same
+shape as `scripts/opds-server.mjs` and `scripts/kavita-server.mjs`, for the same
 reason: a capability nobody can re-run is a capability nobody can trust.
+
+Samba, not impacket. impacket installs without Docker or an administrator, which
+made it the obvious first choice, but it derives its SMB2 signing key without
+NTLM key exchange and every correct client then rejects its responses. That left
+only guest sessions testable — and a guest session is unsigned, so it would pass
+whether or not the client can sign. Signing is what a real share requires, so
+the server had to be one that does it properly.
+
+The suite therefore runs **authenticated, against `server signing = mandatory`**,
+on both platforms. `brew install samba` is the one prerequisite.
