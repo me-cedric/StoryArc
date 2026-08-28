@@ -427,6 +427,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onAddCatalogue = { isAddingCatalogue = true },
                         onAddKavita = { isAddingKavita = true },
+                        onProbeSources = {
+                            libraryViewModel.probeNetworkSources(credentials, pins)
+                        },
                         onOpenShelves = { isShowingShelves = true },
                     )
                 } else {

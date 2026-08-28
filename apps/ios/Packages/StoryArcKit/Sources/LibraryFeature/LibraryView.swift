@@ -202,6 +202,7 @@ public struct LibraryView: View {
             .task {
                 model.restoreFolders()
                 await model.refreshProgress()
+                await model.probeNetworkSources(credentials: credentials, pins: pins)
             }
             .toolbar {
                 if !model.publications.isEmpty {

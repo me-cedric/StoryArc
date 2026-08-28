@@ -124,6 +124,8 @@ fun LibraryScreen(
     onOpenShelves: () -> Unit = {},
     /** Opens the add-a-Kavita-server sheet, which the app layer hosts. */
     onAddKavita: () -> Unit = {},
+    /** Asks every network source whether it is there. The app layer owns the secrets. */
+    onProbeSources: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -150,7 +152,10 @@ fun LibraryScreen(
         }
     }
 
-    LaunchedEffect(viewModel) { viewModel?.restoreFolders() }
+    LaunchedEffect(viewModel) {
+        viewModel?.restoreFolders()
+        onProbeSources()
+    }
 
     // On resume, not on first composition. The comic reader is a composable in the
     // same activity and the EPUB reader is an activity of its own, so "the reader

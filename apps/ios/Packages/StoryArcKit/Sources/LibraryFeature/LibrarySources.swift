@@ -1,4 +1,8 @@
 public import Foundation
+
+internal import Catalogue
+internal import Kavita
+public import Persistence
 public import StoryArcCore
 
 /// What the library knows about where its publications came from.
@@ -219,5 +223,61 @@ extension LibraryModel {
             if let found = publications.first(where: { $0.id == nextID }) { return found }
         }
         return LibraryIndex.next(after: publication, in: publications)
+    }
+}
+
+extension LibraryModel {
+    /// Answers the question every network source asks on launch.
+    ///
+    /// `sources` requires a source's health to be shown. State is never persisted, so a
+    /// catalogue or a server loads as `connecting` and stays there unless something asks --
+    /// which nothing did, so every network source a reader added read "Connecting…" for
+    /// ever, whether it was reachable or not.
+    ///
+    /// One request each, on appearance. Cheap enough to repeat and honest enough to trust:
+    /// a state older than the last time the library was on screen is a claim about the past.
+    func probeNetworkSources(credentials: CredentialStore?, pins: CertificatePins) async {
+        for source in registry.sources
+        where source.kind == .opdsCatalog || source.kind == .kavitaServer {
+            let state = await reach(source, credentials: credentials, pins: pins)
+            registry = registry.marking(source.id, as: state)
+        }
+    }
+
+    private func reach(
+        _ source: Source,
+        credentials: CredentialStore?,
+        pins: CertificatePins
+    ) async -> SourceConnectionState {
+        if let page = KavitaPage(source: source, credentials: credentials) {
+            do {
+                _ = try await KavitaClient(address: page.address, pins: pins).connect()
+                return .connected
+            } catch KavitaError.keyRejected {
+                return .unauthorized(reason: String(localized: "source.state.unauthorized",
+                                                    bundle: .module))
+            } catch {
+                return .unreachable(since: Date())
+            }
+        }
+
+        if let page = CataloguePage(source: source, credentials: credentials) {
+            do {
+                _ = try await OpdsClient(pins: pins).feed(at: page.url, credential: page.credential)
+                return .connected
+            } catch let error as OpdsError {
+                if case .unauthorized = error {
+                    return .unauthorized(reason: String(localized: "source.state.unauthorized",
+                                                        bundle: .module))
+                }
+                return .unreachable(since: Date())
+            } catch {
+                return .unreachable(since: Date())
+            }
+        }
+
+        // Neither page could be built, so the secret this source needs has gone.
+        return .unauthorized(reason: String(localized: "source.state.unauthorized",
+                                            bundle: .module))
     }
 }

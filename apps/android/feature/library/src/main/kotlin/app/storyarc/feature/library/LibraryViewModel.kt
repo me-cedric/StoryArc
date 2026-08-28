@@ -20,6 +20,8 @@ import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.model.Source
 import java.util.UUID
+import app.storyarc.core.catalogue.CertificatePins
+import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
@@ -165,6 +167,29 @@ class LibraryViewModel(
      * back from the system, so this only has to decide which of them still point at
      * something readable.
      */
+    /**
+     * Asks every network source whether it is there, and records the answer.
+     *
+     * On appearance rather than on a timer: a state older than the last time the library was
+     * on screen is a claim about the past, and polling for one would be guessing.
+     */
+    fun probeNetworkSources(credentials: CredentialStore?, pins: CertificatePins) {
+        viewModelScope.launch {
+            val reason = getApplication<Application>()
+                .getString(R.string.source_state_unauthorized)
+            for (source in _registry.value.sources.filter(SourceHealth::canProbe)) {
+                val state = SourceHealth.probe(
+                    source,
+                    credentials,
+                    pins,
+                    System.currentTimeMillis(),
+                    reason,
+                )
+                _registry.update { it.marking(source.id, state) }
+            }
+        }
+    }
+
     fun restoreFolders() {
         if (_folders.value.isNotEmpty()) return
         val restored = SafTree.persistedTrees(resolver)
