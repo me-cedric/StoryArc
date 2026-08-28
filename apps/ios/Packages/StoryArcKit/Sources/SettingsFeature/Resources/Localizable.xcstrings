@@ -552,7 +552,7 @@
         }
       }
     },
-    "downloads.failed %1$@ %2$lld": {
+    "downloads.failed %@ %lld": {
       "extractionState": "manual",
       "localizations": {
         "de": {

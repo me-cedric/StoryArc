@@ -19,10 +19,17 @@ settings:
     SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
-    # No signing identity yet — see README. Device builds need a team set.
+    # No development team yet — see README. Device builds need one set.
     CODE_SIGN_STYLE: Automatic
-    CODE_SIGNING_REQUIRED: NO
-    CODE_SIGNING_ALLOWED: NO
+    # Ad-hoc rather than unsigned. An unsigned app carries no entitlements, and with no
+    # keychain access group `SecItemAdd` answers `errSecMissingEntitlement`: every source's
+    # password was discarded the moment it was typed, on every simulator build anyone has
+    # ever run, and nothing said so. Ad-hoc signing costs nothing and gives the app a
+    # keychain.
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: YES
+    CODE_SIGNING_ALLOWED: YES
+    CODE_SIGN_ENTITLEMENTS: App/StoryArc.entitlements
 
 packages:
   StoryArcKit:

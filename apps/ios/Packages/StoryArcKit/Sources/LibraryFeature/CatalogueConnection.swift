@@ -129,9 +129,18 @@ public final class CatalogueConnection {
 
         let id = UUID()
         var reference: String?
-        if let accepted, let credentials {
+        if let accepted {
+            // Nil when the secret cannot be stored, and the step says so. A catalogue
+            // whose sign-in was accepted and then dropped is a row that fails on the next
+            // launch with nothing to explain why.
             let stored = CredentialStore.reference(for: id)
-            reference = credentials.save(accepted.stored, for: stored) ? stored : nil
+            guard let credentials, credentials.save(accepted.stored, for: stored) else {
+                step = .failed(
+                    String(localized: "catalogue.error.secretNotStored", bundle: .module)
+                )
+                return nil
+            }
+            reference = stored
         }
 
         return Source(

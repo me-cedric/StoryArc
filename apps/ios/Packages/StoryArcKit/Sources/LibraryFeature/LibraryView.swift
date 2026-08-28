@@ -15,6 +15,7 @@ public struct LibraryView: View {
     @Environment(\.theme) private var theme
     @State private var isPickingFolder = false
     @State private var isAddingCatalogue = false
+    @State private var isAddingKavita = false
 
     /// The catalogue being browsed, by identifier.
     ///
@@ -45,6 +46,7 @@ public struct LibraryView: View {
     /// Held by the view rather than made per presentation, so a reader who dismisses the
     /// sheet mid-sign-in and reopens it finds what they typed still there.
     @State private var catalogue: CatalogueConnection
+    @State private var kavita: KavitaConnection
 
     /// `onOpen` is how the app layer reaches the reader. The library knows which
     /// publication was chosen and where it lives; it does not know what a reader
@@ -75,6 +77,9 @@ public struct LibraryView: View {
                 pinStore: store
             )
         )
+        _kavita = State(
+            initialValue: KavitaConnection(pins: loaded, credentials: CredentialStore())
+        )
     }
 
     /// The search text, written straight through to the query.
@@ -96,9 +101,13 @@ public struct LibraryView: View {
         if let url = model.location(of: publication) { onOpen(publication, url) }
     }
 
-    /// Every catalogue the reader has added, in registry order.
+    /// Every server the reader has added, in registry order.
+    ///
+    /// Catalogues and Kavita servers together: both are places to browse rather than
+    /// shelves of local publications, and a reader with one of each should not have to
+    /// learn two ways in.
     private var catalogues: [Source] {
-        model.registry.sources.filter { $0.kind == .opdsCatalog }
+        model.registry.sources.filter { $0.kind == .opdsCatalog || $0.kind == .kavitaServer }
     }
 
     public var body: some View {
@@ -131,7 +140,8 @@ public struct LibraryView: View {
                 } else if model.registry.sources.isEmpty {
                     EmptyLibraryView(
                         addFolder: { isPickingFolder = true },
-                        addCatalogue: { isAddingCatalogue = true }
+                        addCatalogue: { isAddingCatalogue = true },
+                        addKavita: { isAddingKavita = true }
                     )
                 } else {
                     SourceList(
@@ -150,17 +160,24 @@ public struct LibraryView: View {
                 if !catalogues.isEmpty { CatalogueStrip(sources: catalogues) { open($0) } }
             }
             .navigationDestination(item: $browsing) { id in
-                if let source = model.registry[id],
-                   let page = CataloguePage(source: source, credentials: credentials) {
-                    CatalogueBrowserView(
-                        title: page.title,
-                        url: page.url,
-                        credential: page.credential,
-                        pins: pins,
-                        // The same door a local publication goes through. A book fetched
-                        // from a catalogue is a book.
-                        onOpen: onOpen
-                    )
+                if let source = model.registry[id] {
+                    // Two kinds of server, two browsers, one door out: whatever is opened
+                    // goes to the same reader a local publication does.
+                    if let page = CataloguePage(source: source, credentials: credentials) {
+                        CatalogueBrowserView(
+                            title: page.title,
+                            url: page.url,
+                            credential: page.credential,
+                            pins: pins,
+                            onOpen: onOpen
+                        )
+                    } else if let page = KavitaPage(source: source, credentials: credentials) {
+                        KavitaBrowserView(
+                            title: page.title,
+                            address: page.address,
+                            onOpen: onOpen
+                        )
+                    }
                 }
             }
             .navigationTitle(Text("library.title", bundle: .module))
@@ -210,6 +227,15 @@ public struct LibraryView: View {
                                 Text("catalogue.title", bundle: .module)
                             } icon: {
                                 Image(systemName: "dot.radiowaves.up.forward")
+                            }
+                        }
+                        Button {
+                            isAddingKavita = true
+                        } label: {
+                            Label {
+                                Text("kavita.title", bundle: .module)
+                            } icon: {
+                                Image(systemName: "externaldrive.connected.to.line.below")
                             }
                         }
                     } label: {
@@ -269,6 +295,9 @@ public struct LibraryView: View {
         }
         .sheet(isPresented: $isAddingCatalogue) {
             CatalogueSheet(connection: catalogue) { model.add($0) }
+        }
+        .sheet(isPresented: $isAddingKavita) {
+            KavitaSheet(connection: kavita) { model.add($0) }
         }
     }
 }

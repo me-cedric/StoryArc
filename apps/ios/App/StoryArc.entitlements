@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Without a keychain access group the app has no keychain at all: `SecItemAdd` answers
+      `errSecMissingEntitlement` and every secret is silently discarded. That is what was
+      happening — sources were saved with no credential reference and their servers refused
+      them on the next launch, and nothing said so.
+    -->
+    <key>keychain-access-groups</key>
+    <array>
+        <string>$(AppIdentifierPrefix)app.storyarc.StoryArc</string>
+    </array>
+</dict>
+</plist>

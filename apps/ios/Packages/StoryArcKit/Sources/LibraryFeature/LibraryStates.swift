@@ -57,9 +57,10 @@ struct EmptyLibraryView: View {
     /// to offer an action rather than only describe one — see DESIGN.md §9.
     var addFolder: () -> Void = {}
 
-    /// The other kind that is built. Nil for a kind that is not, which is what keeps a row
-    /// from looking like a button that does nothing.
+    /// The other kinds that are built. Nil for a kind that is not, which is what keeps a
+    /// row from looking like a button that does nothing.
     var addCatalogue: (() -> Void)?
+    var addKavita: (() -> Void)?
 
     /// What tapping a kind does, when that kind exists.
     ///
@@ -70,7 +71,8 @@ struct EmptyLibraryView: View {
         switch kind {
         case .localFolder: addFolder
         case .opdsCatalog: addCatalogue
-        case .networkShare, .kavitaServer: nil
+        case .kavitaServer: addKavita
+        case .networkShare: nil
         }
     }
 
