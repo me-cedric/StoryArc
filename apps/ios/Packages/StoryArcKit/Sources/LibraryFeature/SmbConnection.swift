@@ -164,6 +164,8 @@ public final class SmbConnection {
             String(localized: "smb.error.authentication", bundle: .module)
         case .protocolUnsupported:
             String(localized: "smb.error.smb1", bundle: .module)
+        case .encryptionRequired:
+            String(localized: "smb.error.encryption", bundle: .module)
         case .unexpected:
             String(localized: "smb.error.unexpected", bundle: .module)
         }

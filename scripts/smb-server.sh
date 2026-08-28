@@ -13,8 +13,14 @@
 # The default port is 4445: binding 445 needs root, and macOS is often already using it.
 set -euo pipefail
 
+# `--encrypted` serves with `smb encrypt = required`, on its own port, so the client's
+# refusal of a server it cannot talk to is testable rather than assumed.
+ENCRYPTED=no
+if [[ "${1:-}" == "--encrypted" ]]; then ENCRYPTED=yes; shift; fi
+
 CORPUS="${1:-$HOME/StoryArcCorpus}"
 PORT="${2:-4445}"
+[[ "$ENCRYPTED" == yes && -z "${2:-}" ]] && PORT=4446
 # Samba maps its own accounts onto Unix ones, so the login has to be a user this machine
 # already has. The password below is Samba's, not the machine's.
 USER_NAME="$(id -un)"
@@ -31,7 +37,7 @@ if [[ ! -d "$CORPUS" ]]; then
   exit 2
 fi
 
-ROOT="${TMPDIR:-/tmp}/storyarc-smb"
+ROOT="${TMPDIR:-/tmp}/storyarc-smb${ENCRYPTED/no/}"
 rm -rf "$ROOT"
 mkdir -p "$ROOT/private" "$ROOT/lock" "$ROOT/state" "$ROOT/cache" "$ROOT/run"
 
@@ -45,6 +51,7 @@ cat > "$ROOT/smb.conf" <<CONF
    server min protocol = SMB2_02
    server max protocol = SMB3_11
    server signing = mandatory
+   smb encrypt = $( [[ "$ENCRYPTED" == yes ]] && echo required || echo default )
    smb ports = $PORT
    private dir = $ROOT/private
    lock directory = $ROOT/lock

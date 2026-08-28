@@ -55,11 +55,20 @@ the seam knows which library is underneath.
   2.1 only and gives no supported way to read the result back without sending a
   non-Sendable value out of the actor that owns it. iOS therefore reports the
   range it offers rather than the dialect it landed on.
-- **Bad.** Neither client implements SMB 3 transport encryption. The source
-  detail screen reports what *this* connection actually negotiated, which is the
-  honest answer and is what the spec asks for — but "encrypted" is currently
-  never true, and the encryption scenario stays unmet until one of the two
-  clients grows it.
+- **Bad.** Neither client implements SMB 3 transport encryption, and this is
+  now measured rather than assumed. jcifs-ng carries the negotiate context for
+  it and no cipher to go with it: pointed at a share with `smb encrypt =
+  required` it answers, in its own words, "Server requires encryption, not yet
+  supported". SMBClient offers SMB 2.0.2 and 2.1 only, so it never reaches the
+  question. The source detail screen reports what *this* connection actually
+  negotiated, which is the honest answer and is what the spec asks for — but
+  "encrypted" is never true, and the encryption scenario stays unmet.
+
+  What the app does instead is refuse clearly. Android advertises the capability
+  so that jcifs detects the requirement itself and the refusal can name it; that
+  costs nothing against a server which merely *supports* encryption, which the
+  fixture suite checks. iOS cannot tell that refusal from a wrong password, and
+  says the commoner thing.
 
 ### Verification
 

@@ -163,6 +163,7 @@ class SmbConnection(
             is SmbError.ShareNotFound -> R.string.smb_error_share_not_found
             is SmbError.AuthenticationRejected -> R.string.smb_error_authentication
             is SmbError.ProtocolUnsupported -> R.string.smb_error_smb1
+            is SmbError.EncryptionRequired -> R.string.smb_error_encryption
             is SmbError.Unexpected -> R.string.smb_error_unexpected
         },
     )

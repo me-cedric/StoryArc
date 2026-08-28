@@ -128,6 +128,7 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
         // accident.
         properties["jcifs.smb.client.minVersion"] = "SMB202"
         properties["jcifs.smb.client.maxVersion"] = "SMB311"
+        properties["jcifs.smb.client.encryptionEnabled"] = "true"
         properties["jcifs.smb.client.responseTimeout"] = "20000"
         properties["jcifs.smb.client.connTimeout"] = "10000"
         return BaseContext(PropertyConfiguration(properties))
@@ -153,17 +154,27 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
             NtStatus.NT_STATUS_BAD_NETWORK_NAME,
             NtStatus.NT_STATUS_OBJECT_PATH_NOT_FOUND,
             -> SmbError.ShareNotFound
-            NtStatus.NT_STATUS_UNSUCCESSFUL ->
-                if (error.message.orEmpty().contains("dialect", ignoreCase = true)) {
-                    SmbError.ProtocolUnsupported
-                } else {
-                    SmbError.Unexpected(error.message ?: "unsuccessful")
-                }
+            NtStatus.NT_STATUS_UNSUCCESSFUL -> fromMessage(error.message.orEmpty())
             else -> SmbError.HostUnreachable
         }
     } catch (error: java.io.IOException) {
-        throw SmbError.HostUnreachable
+        throw fromMessage(error.message.orEmpty(), fallback = SmbError.HostUnreachable)
     }
+}
+
+/**
+ * What jcifs said, read for the two refusals it only expresses in prose.
+ *
+ * Neither carries an NT status: a dialect mismatch and a demand for encryption both fail
+ * before the server ever answers with one.
+ */
+private fun fromMessage(
+    message: String,
+    fallback: SmbError = SmbError.Unexpected(message.ifEmpty { "unsuccessful" }),
+): SmbError = when {
+    message.contains("requires encryption", ignoreCase = true) -> SmbError.EncryptionRequired
+    message.contains("dialect", ignoreCase = true) -> SmbError.ProtocolUnsupported
+    else -> fallback
 }
 
 /**

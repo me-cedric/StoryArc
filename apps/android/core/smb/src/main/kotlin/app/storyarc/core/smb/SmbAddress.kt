@@ -84,6 +84,17 @@ sealed class SmbError(message: String) : Exception(message) {
         private fun readResolve(): Any = ProtocolUnsupported
     }
 
+    /**
+     * The server insists on SMB 3 transport encryption, which this app cannot do.
+     *
+     * Its own case because it is its own answer. A reader whose NAS requires encryption is
+     * not looking at a network fault or a typo -- there is a setting on their server, and a
+     * sentence that says so is worth more than a fifth way of saying "could not connect".
+     */
+    data object EncryptionRequired : SmbError("the server requires SMB 3 encryption") {
+        private fun readResolve(): Any = EncryptionRequired
+    }
+
     data class Unexpected(val detail: String) : SmbError(detail)
 }
 

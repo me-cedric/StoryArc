@@ -4367,6 +4367,35 @@
         }
       }
     },
+    "smb.error.encryption": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Server verlangt SMB-3-Verschlüsselung, die StoryArc noch nicht beherrscht. Stellen Sie die Verschlüsselung auf dem Server auf „aktiviert“ statt „erforderlich“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This server requires SMB 3 encryption, which StoryArc cannot do yet. Set encryption on the server to enabled rather than required."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este servidor requiere cifrado SMB 3, que StoryArc aún no admite. Configura el cifrado del servidor como activado en lugar de obligatorio."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce serveur exige le chiffrement SMB 3, que StoryArc ne sait pas encore faire. Réglez le chiffrement du serveur sur activé plutôt qu’obligatoire."
+          }
+        }
+      }
+    },
     "smb.error.hostUnreachable": {
       "extractionState": "manual",
       "localizations": {

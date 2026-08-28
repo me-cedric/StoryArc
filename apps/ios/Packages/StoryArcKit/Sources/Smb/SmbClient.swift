@@ -136,6 +136,11 @@ public actor SmbClient {
 
     /// The four failures `network-share` names, read out of the server's NT status.
     private static func meaning(of status: UInt32) -> SmbError {
+        // ACCESS_DENIED from a server that has agreed a dialect usually means a refused
+        // password, but a share with `smb encrypt = required` answers the same way to a
+        // client that cannot encrypt. This one cannot, so the two are indistinguishable
+        // here and the commoner reading wins. Android's client says which it was, because
+        // jcifs detects the requirement itself.
         switch status {
         case 0xC000_006D, 0xC000_006A, 0xC000_0022: return .authenticationRejected
         // BAD_NETWORK_NAME and OBJECT_PATH_NOT_FOUND only. OBJECT_NAME_NOT_FOUND means a
