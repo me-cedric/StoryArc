@@ -303,7 +303,7 @@ private suspend fun fetch(
     val file = withContext(Dispatchers.IO) {
         kavitaCacheFile(context, chapter.id, fetched.mediaType).apply { writeBytes(fetched.bytes) }
     }
-    PublicationIndexer.index(file, seriesName) to file.absolutePath
+    PublicationIndexer.index(file, catalogueSeries = seriesName) to file.absolutePath
 }.getOrNull()
 
 /**

@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -542,7 +543,11 @@ private fun Pager(
     }
 
     AnimatedVisibility(visible = isChromeVisible, enter = fadeIn(), exit = fadeOut()) {
-        Box(Modifier.fillMaxSize()) {
+        // Inside the system bars. The reader draws edge to edge so the page fills the
+        // screen, and without this the top row sat under the status bar's own gesture
+        // strip: the system took the touch and the buttons were all but unreachable.
+        // Measured on an emulator, where only the lowest sliver of each button worked.
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) {
             CloseButton(onClose)
             if (count > 1) {
                 ThumbnailToggle(

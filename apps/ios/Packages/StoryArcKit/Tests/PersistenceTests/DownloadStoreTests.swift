@@ -83,13 +83,27 @@ struct DownloadStoreTests {
         #expect(excluded.isExcludedFromBackup == true)
     }
 
-    @Test("A file name comes from identity, not from a title")
-    func namedByIdentity() throws {
+    @Test("A path is unique by identity, whatever the publication is called")
+    func uniqueByIdentity() throws {
         // Two catalogues can offer the same title. A collision hands the reader the wrong
-        // book, which is worse than any name they might have preferred.
+        // book, which is worse than any name they might have preferred. The identity is the
+        // *directory* now, so the file can carry the publication's own name -- which is
+        // what the indexer reads a title and a series out of -- and still not collide.
+        let store = try fixture().store
+        let one = store.location(for: "urn:uuid:1", extension: "cbz", named: "Bone")
+        let other = store.location(for: "urn:uuid:2", extension: "cbz", named: "Bone")
+        #expect(one != other)
+        #expect(one.lastPathComponent == "Bone.cbz")
+        #expect(one.deletingLastPathComponent().lastPathComponent == "urn-uuid-1")
+    }
+
+    @Test("A name a filesystem would choke on is made safe")
+    func namesAreMadeSafe() throws {
+        // A server's title is a server's, and a slash in one would make a directory.
         let store = try fixture().store
         let location = store.location(for: "urn:uuid:1/2 3", extension: "epub")
-        #expect(location.lastPathComponent == "urn-uuid-1-2-3.epub")
+        #expect(location.lastPathComponent == "urn-uuid-1-2 3.epub")
+        #expect(!location.deletingLastPathComponent().lastPathComponent.contains("/"))
     }
 
     @Test("Bytes on disk are counted from the disk")
@@ -99,7 +113,13 @@ struct DownloadStoreTests {
         let store = try fixture().store
         defer { store.reset() }
         try store.prepare()
-        try Data(count: 300).write(to: store.location(for: "a", extension: "cbz"))
+        let file = store.location(for: "a", extension: "cbz")
+        // The id is a directory now, so the fixture makes it like the queue does.
+        try FileManager.default.createDirectory(
+            at: file.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data(count: 300).write(to: file)
         #expect(store.bytesOnDisk() == 300)
     }
 }

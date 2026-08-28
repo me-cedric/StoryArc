@@ -30,7 +30,13 @@ struct FinishedCleanupTests {
             state: .finished,
             downloadedBytes: 3
         )
-        try? Data([1, 2, 3]).write(to: store.location(of: download))
+        let file = store.location(of: download)
+        // The id is a directory now, so the fixture has to make it like the queue does.
+        try? FileManager.default.createDirectory(
+            at: file.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try? Data([1, 2, 3]).write(to: file)
         return DownloadLibrary(downloads: [download])
     }
 
@@ -52,7 +58,7 @@ struct FinishedCleanupTests {
     func undoable() throws {
         let store = store("undo")
         let library = libraryWith(store, id: "one")
-        let home = store.location(for: "one", extension: "cbz")
+        let home = store.location(for: "one", extension: "cbz", named: "one")
 
         let outcome = store.removeAfterFinishing("one", from: library)
         let removed = try #require(outcome)

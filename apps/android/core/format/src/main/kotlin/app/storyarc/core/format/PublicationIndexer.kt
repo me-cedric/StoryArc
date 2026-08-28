@@ -163,9 +163,13 @@ object PublicationIndexer {
      *   because both are statements about *this* publication and a folder name is a
      *   statement about its neighbours.
      */
-    suspend fun index(file: File, seriesHint: String? = null): Publication {
+    suspend fun index(
+        file: File,
+        seriesHint: String? = null,
+        catalogueSeries: String? = null,
+    ): Publication {
         val filename = file.name
-        val fallback = FilenameMetadata.of(filename, seriesHint)
+        val fallback = FilenameMetadata.of(filename, seriesHint, catalogueSeries)
 
         if (file.isDirectory) {
             return comic(

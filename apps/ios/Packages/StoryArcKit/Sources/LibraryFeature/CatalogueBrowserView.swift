@@ -188,7 +188,7 @@ public struct CatalogueBrowserView: View {
     private func open(_ entry: OpdsEntry, from file: URL) async {
         guard let publication = try? await PublicationIndexer.index(
             fileAt: file,
-            seriesHint: entry.series
+            catalogueSeries: entry.series
         ) else { return }
         onOpen(publication, file)
     }

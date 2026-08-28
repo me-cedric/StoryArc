@@ -155,7 +155,7 @@ fun CatalogueBrowserScreen(
                         val local = queue.downloaded(entry)
                         if (local != null) {
                             scope.launch {
-                                runCatching { PublicationIndexer.index(local, entry.series) }
+                                runCatching { PublicationIndexer.index(local, catalogueSeries = entry.series) }
                                     .getOrNull()
                                     ?.let { onOpen(it, local.absolutePath) }
                             }
@@ -495,7 +495,7 @@ private suspend fun openWhenReady(
     onOpen: (Publication, String) -> Unit,
 ) {
     val file = queue.fetch(entry, link) ?: return
-    runCatching { PublicationIndexer.index(file, entry.series) }
+    runCatching { PublicationIndexer.index(file, catalogueSeries = entry.series) }
         .getOrNull()
         ?.let { onOpen(it, file.absolutePath) }
 }

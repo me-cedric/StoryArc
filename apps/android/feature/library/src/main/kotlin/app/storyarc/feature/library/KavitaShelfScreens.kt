@@ -201,5 +201,5 @@ private suspend fun fetchEntry(
         kavitaCacheFile(context, entry.chapterId, fetched.mediaType)
             .apply { writeBytes(fetched.bytes) }
     }
-    PublicationIndexer.index(file, entry.seriesName.orEmpty()) to file.absolutePath
+    PublicationIndexer.index(file, catalogueSeries = entry.seriesName) to file.absolutePath
 }.getOrNull()

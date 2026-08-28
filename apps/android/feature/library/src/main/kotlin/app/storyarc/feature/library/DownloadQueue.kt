@@ -151,14 +151,14 @@ class DownloadQueue(
      */
     fun downloaded(entry: OpdsEntry): File? {
         val download = _library.value[entry.id]?.takeIf { it.state.isFinished } ?: return null
-        val file = store?.location(entry.id, extensionOf(download.mediaType)) ?: return null
+        val file = store?.location(entry.id, extensionOf(download.mediaType), download.title) ?: return null
         return file.takeIf { it.exists() }
     }
 
     /** Forgets a download and deletes its file. */
     fun remove(id: String) {
         _library.value[id]?.let { download ->
-            store?.let { it.delete(it.location(id, extensionOf(download.mediaType))) }
+            store?.let { it.delete(it.location(id, extensionOf(download.mediaType), download.title)) }
         }
         _library.value = _library.value.removing(id)
         store?.save(_library.value)
@@ -255,13 +255,14 @@ class DownloadQueue(
         val bytes = client.bytes(download.remote, credential(download.id))
         val store = store ?: throw IOException("no download store")
         val file = withContext(Dispatchers.IO) {
-            store.prepare()
-            store.location(download.id, extensionOf(download.mediaType)).apply { writeBytes(bytes) }
+            val target = store.location(download.id, extensionOf(download.mediaType), download.title)
+            store.prepare(target)
+            target.apply { writeBytes(bytes) }
         }
         // Indexing *is* the verification. `offline-downloads` requires integrity to be
         // checked "before it is marked available offline", and with no checksum from the
         // server the honest check is whether the bytes are a publication this app can open.
-        PublicationIndexer.index(file, seriesHint)
+        PublicationIndexer.index(file, catalogueSeries = seriesHint)
         _library.value = _library.value
             .advancing(download.id, bytes.size.toLong(), bytes.size.toLong())
             .marking(download.id, Download.State.Finished)
@@ -284,7 +285,7 @@ class DownloadQueue(
             _library.value.marking(id, Download.State.Failed(reason, DownloadLibrary.ATTEMPT_LIMIT))
         }
         _library.value[id]?.let { download ->
-            store?.let { it.delete(it.location(id, extensionOf(download.mediaType))) }
+            store?.let { it.delete(it.location(id, extensionOf(download.mediaType), download.title)) }
         }
         store?.save(_library.value)
     }

@@ -199,7 +199,8 @@ public final class DownloadQueue {
         }
         let file = store.location(
             for: entry.id,
-            extension: DownloadStore.extension(for: download.mediaType)
+            extension: DownloadStore.extension(for: download.mediaType),
+            named: download.title
         )
         return FileManager.default.fileExists(atPath: file.path()) ? file : nil
     }
@@ -304,7 +305,13 @@ public final class DownloadQueue {
         try store.prepare()
         let file = store.location(
             for: download.id,
-            extension: DownloadStore.extension(for: download.mediaType)
+            extension: DownloadStore.extension(for: download.mediaType),
+            named: download.title
+        )
+        // The download's own folder, not just the store's: the id is a directory now.
+        try FileManager.default.createDirectory(
+            at: file.deletingLastPathComponent(),
+            withIntermediateDirectories: true
         )
         try? FileManager.default.removeItem(at: file)
         try FileManager.default.moveItem(at: temporary, to: file)
@@ -312,7 +319,7 @@ public final class DownloadQueue {
         // checked "before it is marked available offline", and with no checksum from the
         // server the honest check is whether the bytes are a publication this app can
         // open. A truncated archive fails here, not at the first page turn.
-        _ = try await PublicationIndexer.index(fileAt: file, seriesHint: seriesHint)
+        _ = try await PublicationIndexer.index(fileAt: file, catalogueSeries: seriesHint)
         // The size comes from the file now rather than from a buffer, because the bytes
         // never passed through one: the system wrote them straight to disk.
         let written = Int64((try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
@@ -334,7 +341,11 @@ public final class DownloadQueue {
             )
         if let store, let download = library[id] {
             store.delete(
-                store.location(for: id, extension: DownloadStore.extension(for: download.mediaType))
+                store.location(
+                    for: id,
+                    extension: DownloadStore.extension(for: download.mediaType),
+                    named: download.title
+                )
             )
         }
         store?.save(library)

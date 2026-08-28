@@ -35,7 +35,10 @@ class FinishedCleanupTest {
             state = Download.State.Finished,
             downloadedBytes = 3,
         )
-        store.location(id, "cbz").writeBytes(byteArrayOf(1, 2, 3))
+        val file = store.location(id, "cbz", download.title)
+        // The id is a directory now, so the fixture makes it like the queue does.
+        store.prepare(file)
+        file.writeBytes(byteArrayOf(1, 2, 3))
         return DownloadLibrary(downloads = listOf(download))
     }
 
@@ -57,7 +60,7 @@ class FinishedCleanupTest {
     fun `the bytes wait rather than going, so the removal can be undone`() = runBlocking {
         val store = store()
         val library = libraryWith(store, "one")
-        val home = store.location("one", "cbz")
+        val home = store.location("one", "cbz", "one")
 
         val (without, removed) = requireNotNull(removeAfterFinishing(store, library, "one"))
         assertNull(without["one"])
@@ -83,7 +86,7 @@ class FinishedCleanupTest {
     fun `a download with no file on disk is left alone`() = runBlocking {
         val store = store()
         val library = libraryWith(store, "one")
-        store.location("one", "cbz").delete()
+        store.location("one", "cbz", "one").delete()
         assertNull(removeAfterFinishing(store, library, "one"))
     }
 }

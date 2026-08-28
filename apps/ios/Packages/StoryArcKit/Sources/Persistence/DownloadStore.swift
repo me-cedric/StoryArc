@@ -38,10 +38,22 @@ public struct DownloadStore {
     ///
     /// Named by identity rather than title: two catalogues can offer the same title, and a
     /// filename collision would hand the reader the wrong book.
-    public func location(for id: String, extension ext: String) -> URL {
-        directory
-            .appending(path: id.replacing(#/[^A-Za-z0-9._-]/#, with: "-"))
-            .appendingPathExtension(ext)
+    /// - Parameter named: what the publication is called, when the caller knows.
+    ///
+    /// The id is the directory and the name is the file's. It used to be the other way
+    /// round, and an OPDS download landed as `urn-storyarc-6.cbz`: the indexer reads a
+    /// title and a series out of a filename, so a downloaded comic was called after its
+    /// identifier everywhere, and `comic-reader`'s per-series settings keyed on one issue.
+    /// The id still makes the path unique; it no longer has to be the name as well.
+    public func location(for id: String, extension ext: String, named: String? = nil) -> URL {
+        let folder = directory.appending(path: Self.safe(id), directoryHint: .isDirectory)
+        let stem = named.map(Self.safe).flatMap { $0.isEmpty ? nil : $0 } ?? Self.safe(id)
+        return folder.appending(path: stem).appendingPathExtension(ext)
+    }
+
+    /// A name a filesystem will take: no separators, nothing that reads as a path.
+    private static func safe(_ text: String) -> String {
+        text.replacing(#/[^A-Za-z0-9._ -]/#, with: "-")
     }
 
     /// Makes the directory, and keeps it out of backups.
@@ -91,14 +103,19 @@ public struct DownloadStore {
     /// a file, and a storage total that counts bytes nobody has is the kind of number that
     /// makes a reader distrust the whole screen.
     public func bytesOnDisk() -> Int64 {
-        guard let files = try? FileManager.default.contentsOfDirectory(
+        // Walked, not listed: each download sits in a directory of its own, so the top
+        // level holds no files at all and a listing of it would total zero.
+        guard let walk = FileManager.default.enumerator(
             at: directory,
-            includingPropertiesForKeys: [.fileSizeKey]
+            includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey]
         ) else { return 0 }
-        return files.reduce(0) { total, file in
-            let size = (try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-            return total + Int64(size)
+        var total: Int64 = 0
+        for case let file as URL in walk {
+            let values = try? file.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+            guard values?.isRegularFile == true else { continue }
+            total += Int64(values?.fileSize ?? 0)
         }
+        return total
     }
 
     /// Forgets every download. Used by a reset, and by the tests.

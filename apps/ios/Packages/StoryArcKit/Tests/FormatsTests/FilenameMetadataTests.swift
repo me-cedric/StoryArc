@@ -43,4 +43,22 @@ struct FilenameMetadataTests {
         #expect(FilenameMetadata(filename: "").series == nil)
         #expect(FilenameMetadata(filename: ".cbz").series == nil)
     }
+
+    @Test("A catalogue's series beats the filename")
+    func cataloguedSeriesWins() {
+        // A downloaded or cached publication is named after an identifier, not after
+        // itself: an OPDS download lands as `urn-storyarc-6.cbz` and a Kavita chapter as
+        // the chapter's id. `comic-reader` keeps per-series settings, and a series read
+        // out of one of those names is a series of one.
+        let parsed = FilenameMetadata(filename: "urn-storyarc-6.cbz", catalogued: "Quiet Machines")
+        #expect(parsed.series == "Quiet Machines")
+    }
+
+    @Test("A folder name still loses to the filename")
+    func folderStillLoses() {
+        // Unchanged, and the reason is unchanged: a folder name describes a shelf and a
+        // filename describes the book on it. Only a catalogue outranks the book.
+        let parsed = FilenameMetadata(filename: "Bone 01.cbz", seriesHint: "Comics")
+        #expect(parsed.series == "Bone")
+    }
 }

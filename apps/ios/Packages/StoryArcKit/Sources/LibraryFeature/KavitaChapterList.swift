@@ -201,7 +201,7 @@ struct KavitaChapterList: View {
         guard (try? fetched.bytes.write(to: file, options: .atomic)) != nil,
               let publication = try? await PublicationIndexer.index(
                   fileAt: file,
-                  seriesHint: series.name
+                  catalogueSeries: series.name
               )
         else { return }
 

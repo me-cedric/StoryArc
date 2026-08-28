@@ -37,9 +37,20 @@ public enum PublicationIndexer {
     ///   where nothing better exists. Embedded metadata and the filename both beat
     ///   it, because both are statements about *this* publication and a folder name
     ///   is a statement about its neighbours.
-    public static func index(fileAt url: URL, seriesHint: String? = nil) async throws -> Publication {
+    /// - Parameter catalogueSeries: the series a server that keeps the catalogue reported.
+    ///   It beats the filename, which for a downloaded or cached publication is often an
+    ///   identifier rather than a name.
+    public static func index(
+        fileAt url: URL,
+        seriesHint: String? = nil,
+        catalogueSeries: String? = nil
+    ) async throws -> Publication {
         let filename = url.lastPathComponent
-        let fallback = FilenameMetadata(filename: filename, seriesHint: seriesHint)
+        let fallback = FilenameMetadata(
+            filename: filename,
+            seriesHint: seriesHint,
+            catalogued: catalogueSeries
+        )
 
         var isDirectory: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)

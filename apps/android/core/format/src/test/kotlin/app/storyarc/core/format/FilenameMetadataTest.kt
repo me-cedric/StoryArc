@@ -49,4 +49,22 @@ class FilenameMetadataTest {
         assertNull(FilenameMetadata.of("").series)
         assertNull(FilenameMetadata.of(".cbz").series)
     }
+
+    @Test
+    fun `a catalogue's series beats the filename`() {
+        // A downloaded or cached publication is named after an identifier, not after
+        // itself: an OPDS download lands as `urn-storyarc-6.cbz` and a Kavita chapter as
+        // the chapter's id. `comic-reader` keeps per-series settings, and a series read
+        // out of one of those names is a series of one.
+        val parsed = FilenameMetadata.of("urn-storyarc-6.cbz", catalogued = "Quiet Machines")
+        assertEquals("Quiet Machines", parsed.series)
+    }
+
+    @Test
+    fun `a folder name still loses to the filename`() {
+        // Unchanged, and the reason is unchanged: a folder name describes a shelf and a
+        // filename describes the book on it. Only a catalogue outranks the book.
+        val parsed = FilenameMetadata.of("Bone 01.cbz", seriesHint = "Comics")
+        assertEquals("Bone", parsed.series)
+    }
 }

@@ -63,10 +63,17 @@ data class FilenameMetadata(
          * platforms agree on what "common naming pattern" means.
          */
         /**
+         * @param catalogued the series a server that keeps the catalogue reported. It beats
+         *   the filename, which for a downloaded or cached publication is often an
+         *   identifier rather than a name.
          * @param seriesHint what the containing folder is called, used only when
          *   the filename yields no series of its own.
          */
-        fun of(filename: String, seriesHint: String? = null): FilenameMetadata {
+        fun of(
+            filename: String,
+            seriesHint: String? = null,
+            catalogued: String? = null,
+        ): FilenameMetadata {
             // A dotfile is not a publication, and stripping an extension leaves
             // ".cbz" intact — which would be read as a series called "cbz".
             if (filename.startsWith(".")) return FilenameMetadata(null, null, null, null)
@@ -116,7 +123,14 @@ data class FilenameMetadata(
 
             // The filename first. A folder name describes a shelf; a filename
             // describes the book on it, and where they disagree the book wins.
-            return FilenameMetadata(tidySeries(stem) ?: seriesHint, number, volume, year)
+            // The catalogue first, when there is one. A server that keeps the library
+            // knows the series; the local filename may be nothing but a cache key.
+            return FilenameMetadata(
+                catalogued ?: tidySeries(stem) ?: seriesHint,
+                number,
+                volume,
+                year,
+            )
         }
 
         private fun trimLeadingZeros(value: String): String {

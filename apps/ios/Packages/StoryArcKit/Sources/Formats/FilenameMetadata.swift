@@ -32,7 +32,7 @@ public struct FilenameMetadata: Sendable, Equatable {
     /// agree on what "common naming pattern" means.
     /// - Parameter seriesHint: what the containing folder is called, used only
     ///   when the filename yields no series of its own.
-    public init(filename: String, seriesHint: String? = nil) {
+    public init(filename: String, seriesHint: String? = nil, catalogued: String? = nil) {
         // A dotfile is not a publication, and `deletingPathExtension` leaves
         // ".cbz" intact — which would otherwise be read as a series called "cbz".
         guard !filename.hasPrefix(".") else {
@@ -104,9 +104,11 @@ public struct FilenameMetadata: Sendable, Equatable {
         self.year = year
         self.volume = volume
         self.number = number
-        // The filename first. A folder name describes a shelf; a filename
-        // describes the book on it, and where they disagree the book wins.
-        self.series = Self.tidySeries(stem) ?? seriesHint
+        // The catalogue first, when there is one: a server that keeps the library knows
+        // the series, and a downloaded or cached file is often named after an identifier
+        // rather than after itself. Then the filename, because a folder name describes a
+        // shelf and a filename describes the book on it.
+        self.series = catalogued ?? Self.tidySeries(stem) ?? seriesHint
     }
 
     // MARK: - Private
