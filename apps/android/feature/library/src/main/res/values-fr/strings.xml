@@ -167,4 +167,23 @@
     <string name="shelves_server_only_local">Créer une liste locale à la place</string>
     <string name="kavita_chapter_actions">Actions du chapitre</string>
     <string name="kavita_add_to_list">Ajouter à « %1$s »</string>
+    <string name="smb_title">Partage réseau</string>
+    <string name="smb_host_label">Hôte</string>
+    <string name="smb_host_hint">Un nom ou une adresse, ou collez le chemin complet \\serveur\\partage.</string>
+    <string name="smb_share_label">Partage</string>
+    <string name="smb_user_label">Nom d’utilisateur</string>
+    <string name="smb_user_hint">Laissez vide pour vous connecter en invité.</string>
+    <string name="smb_password_label">Mot de passe</string>
+    <string name="smb_connect">Se connecter</string>
+    <string name="smb_use_folder">Lire depuis ce dossier</string>
+    <string name="smb_root">Tout le partage</string>
+    <string name="smb_encrypted">%1$s · chiffré</string>
+    <string name="smb_not_encrypted">%1$s · non chiffré</string>
+    <string name="smb_error_not_an_address">Saisissez un hôte et un nom de partage.</string>
+    <string name="smb_error_host_unreachable">Cet hôte n’a pas répondu. Vérifiez le nom et que l’appareil est sur le même réseau.</string>
+    <string name="smb_error_share_not_found">Ce partage n’existe pas sur cet hôte.</string>
+    <string name="smb_error_authentication">Le nom d’utilisateur ou le mot de passe a été refusé.</string>
+    <string name="smb_error_smb1">Ce serveur ne propose que SMB 1, désactivé pour des raisons de sécurité. Activez SMB 2 ou une version ultérieure sur le serveur — sur la plupart des NAS, dans Services de fichiers, SMB.</string>
+    <string name="smb_error_unexpected">Le partage n’a pas pu être atteint.</string>
+    <string name="smb_error_key_not_stored">Cet appareil n’a pas enregistré le mot de passe, le partage n’a donc pas été ajouté.</string>
 </resources>

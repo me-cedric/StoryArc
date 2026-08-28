@@ -167,4 +167,23 @@
     <string name="shelves_server_only_local">Crear una lista local en su lugar</string>
     <string name="kavita_chapter_actions">Acciones del capítulo</string>
     <string name="kavita_add_to_list">Añadir a «%1$s»</string>
+    <string name="smb_title">Recurso de red</string>
+    <string name="smb_host_label">Host</string>
+    <string name="smb_host_hint">Un nombre o una dirección, o pega la ruta completa \\servidor\\recurso.</string>
+    <string name="smb_share_label">Recurso</string>
+    <string name="smb_user_label">Nombre de usuario</string>
+    <string name="smb_user_hint">Déjalo vacío para conectar como invitado.</string>
+    <string name="smb_password_label">Contraseña</string>
+    <string name="smb_connect">Conectar</string>
+    <string name="smb_use_folder">Leer de esta carpeta</string>
+    <string name="smb_root">Todo el recurso</string>
+    <string name="smb_encrypted">%1$s · cifrado</string>
+    <string name="smb_not_encrypted">%1$s · sin cifrar</string>
+    <string name="smb_error_not_an_address">Introduce un host y un nombre de recurso.</string>
+    <string name="smb_error_host_unreachable">Ese host no respondió. Comprueba el nombre y que el dispositivo esté en la misma red.</string>
+    <string name="smb_error_share_not_found">Ese recurso no está en este host.</string>
+    <string name="smb_error_authentication">Se rechazó el nombre de usuario o la contraseña.</string>
+    <string name="smb_error_smb1">Este servidor solo ofrece SMB 1, que está desactivado por seguridad. Activa SMB 2 o posterior en el servidor — en la mayoría de los NAS está en Servicios de archivos, SMB.</string>
+    <string name="smb_error_unexpected">No se pudo acceder al recurso.</string>
+    <string name="smb_error_key_not_stored">Este dispositivo no guardó la contraseña, así que el recurso no se añadió.</string>
 </resources>

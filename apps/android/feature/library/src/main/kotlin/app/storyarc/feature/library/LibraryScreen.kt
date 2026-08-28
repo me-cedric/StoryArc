@@ -124,6 +124,8 @@ fun LibraryScreen(
     onOpenShelves: () -> Unit = {},
     /** Opens the add-a-Kavita-server sheet, which the app layer hosts. */
     onAddKavita: () -> Unit = {},
+    /** Opens the add-a-network-share sheet, which the app layer hosts. */
+    onAddShare: () -> Unit = {},
     /** Asks every network source whether it is there. The app layer owns the secrets. */
     onProbeSources: () -> Unit = {},
     /** Marks a publication read or unread. The app layer owns the secrets it may need. */
@@ -203,6 +205,7 @@ fun LibraryScreen(
                             onAddFolder = { pickFolder.launch(null) },
                             onAddCatalogue = onAddCatalogue,
                             onAddKavita = onAddKavita,
+                            onAddShare = onAddShare,
                         )
                         IconButton(onClick = { viewModel.rescan() }) {
                             Icon(
@@ -262,8 +265,13 @@ fun LibraryScreen(
             // Catalogues and Kavita servers together: both are places to browse rather than
             // shelves of local publications, and a reader with one of each should not have to
             // learn two ways in.
+            // Catalogues, servers and shares together: all three are places to browse
+            // rather than shelves of local publications, and a reader with one of each
+            // should not have to learn three ways in.
             val catalogues = registry.sources.filter {
-                it.kind == SourceKind.OPDS_CATALOG || it.kind == SourceKind.KAVITA_SERVER
+                it.kind == SourceKind.OPDS_CATALOG ||
+                    it.kind == SourceKind.KAVITA_SERVER ||
+                    it.kind == SourceKind.NETWORK_SHARE
             }
             if (catalogues.isNotEmpty()) {
                 CatalogueStrip(sources = catalogues, onOpen = onBrowse)

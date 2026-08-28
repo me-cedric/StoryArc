@@ -76,6 +76,7 @@ dependencies {
     implementation(project(":core:persistence"))
     implementation(project(":core:catalogue"))
     implementation(project(":core:kavita"))
+    implementation(project(":core:smb"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

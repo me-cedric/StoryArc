@@ -167,4 +167,23 @@
     <string name="shelves_server_only_local">Stattdessen lokale Liste erstellen</string>
     <string name="kavita_chapter_actions">Kapitelaktionen</string>
     <string name="kavita_add_to_list">Zu „%1$s“ hinzufügen</string>
+    <string name="smb_title">Netzwerkfreigabe</string>
+    <string name="smb_host_label">Host</string>
+    <string name="smb_host_hint">Ein Name oder eine Adresse, oder den ganzen Pfad \\Server\\Freigabe einfügen.</string>
+    <string name="smb_share_label">Freigabe</string>
+    <string name="smb_user_label">Benutzername</string>
+    <string name="smb_user_hint">Leer lassen, um als Gast zu verbinden.</string>
+    <string name="smb_password_label">Passwort</string>
+    <string name="smb_connect">Verbinden</string>
+    <string name="smb_use_folder">Aus diesem Ordner lesen</string>
+    <string name="smb_root">Die ganze Freigabe</string>
+    <string name="smb_encrypted">%1$s · verschlüsselt</string>
+    <string name="smb_not_encrypted">%1$s · nicht verschlüsselt</string>
+    <string name="smb_error_not_an_address">Geben Sie einen Host und einen Freigabenamen ein.</string>
+    <string name="smb_error_host_unreachable">Dieser Host hat nicht geantwortet. Prüfen Sie den Namen und ob das Gerät im selben Netzwerk ist.</string>
+    <string name="smb_error_share_not_found">Diese Freigabe gibt es auf diesem Host nicht.</string>
+    <string name="smb_error_authentication">Benutzername oder Passwort wurde abgelehnt.</string>
+    <string name="smb_error_smb1">Dieser Server bietet nur SMB 1 an, das aus Sicherheitsgründen deaktiviert ist. Aktivieren Sie SMB 2 oder neuer auf dem Server — bei den meisten NAS-Geräten unter Dateidienste, SMB.</string>
+    <string name="smb_error_unexpected">Die Freigabe konnte nicht erreicht werden.</string>
+    <string name="smb_error_key_not_stored">Dieses Gerät hat das Passwort nicht gespeichert, daher wurde die Freigabe nicht hinzugefügt.</string>
 </resources>

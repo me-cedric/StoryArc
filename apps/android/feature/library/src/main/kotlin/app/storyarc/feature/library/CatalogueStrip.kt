@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.RssFeed
 import androidx.compose.material3.DropdownMenu
@@ -106,6 +107,7 @@ fun AddSourceMenu(
     onAddFolder: () -> Unit,
     onAddCatalogue: () -> Unit,
     onAddKavita: () -> Unit = {},
+    onAddShare: () -> Unit = {},
 ) {
     val palette = LocalStoryArcPalette.current
     var open by remember { mutableStateOf(false) }
@@ -140,6 +142,14 @@ fun AddSourceMenu(
             onClick = {
                 open = false
                 onAddKavita()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.smb_title)) },
+            leadingIcon = { Icon(Icons.Filled.Storage, contentDescription = null) },
+            onClick = {
+                open = false
+                onAddShare()
             },
         )
     }

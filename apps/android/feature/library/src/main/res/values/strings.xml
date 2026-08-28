@@ -167,4 +167,23 @@
     <string name="shelves_server_only_local">Create a local list instead</string>
     <string name="kavita_chapter_actions">Chapter actions</string>
     <string name="kavita_add_to_list">Add to “%1$s”</string>
+    <string name="smb_title">Network share</string>
+    <string name="smb_host_label">Host</string>
+    <string name="smb_host_hint">A name or address, or paste the whole \\server\\share path.</string>
+    <string name="smb_share_label">Share</string>
+    <string name="smb_user_label">User name</string>
+    <string name="smb_user_hint">Leave empty to connect as a guest.</string>
+    <string name="smb_password_label">Password</string>
+    <string name="smb_connect">Connect</string>
+    <string name="smb_use_folder">Read from this folder</string>
+    <string name="smb_root">The whole share</string>
+    <string name="smb_encrypted">%1$s · encrypted</string>
+    <string name="smb_not_encrypted">%1$s · not encrypted</string>
+    <string name="smb_error_not_an_address">Enter a host and a share name.</string>
+    <string name="smb_error_host_unreachable">That host did not answer. Check the name and that the device is on the same network.</string>
+    <string name="smb_error_share_not_found">That share is not on this host.</string>
+    <string name="smb_error_authentication">The user name or password was refused.</string>
+    <string name="smb_error_smb1">This server only offers SMB 1, which is disabled for security reasons. Enable SMB 2 or later on the server — on most NAS boxes that is under File Services, SMB.</string>
+    <string name="smb_error_unexpected">The share could not be reached.</string>
+    <string name="smb_error_key_not_stored">This device would not store the password, so the share was not saved.</string>
 </resources>

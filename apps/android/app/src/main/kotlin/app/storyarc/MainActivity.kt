@@ -50,6 +50,10 @@ import app.storyarc.feature.library.KavitaConnection
 import app.storyarc.feature.library.KavitaLevel
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSheet
+import app.storyarc.feature.library.SmbBrowserScreen
+import app.storyarc.feature.library.SmbConnection
+import app.storyarc.feature.library.SmbPage
+import app.storyarc.feature.library.SmbSheet
 import app.storyarc.feature.library.KavitaSync
 import app.storyarc.feature.library.ReadingListDetailScreen
 import app.storyarc.feature.library.ShelvesScreen
@@ -230,6 +234,11 @@ class MainActivity : ComponentActivity() {
                 var catalogue by remember { mutableStateOf<List<CataloguePage>>(emptyList()) }
                 var isAddingCatalogue by remember { mutableStateOf(false) }
                 var isAddingKavita by remember { mutableStateOf(false) }
+                var isAddingShare by remember { mutableStateOf(false) }
+                var share by remember { mutableStateOf<SmbPage?>(null) }
+                // A stack of folders, like the catalogue's: the browser leaves the
+                // composition while a publication is open, so its position lives here.
+                var sharePath by remember { mutableStateOf<List<String>>(emptyList()) }
                 var kavita by remember { mutableStateOf<KavitaPage?>(null) }
                 // Held beside the server rather than inside the browser, so closing a chapter
                 // returns the reader to the series they were reading.
@@ -276,6 +285,18 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                if (isAddingShare) {
+                    val connection = remember { SmbConnection(applicationContext, credentials) }
+                    SmbSheet(
+                        connection = connection,
+                        onAdd = { libraryViewModel.addSource(it) },
+                        onDismiss = {
+                            isAddingShare = false
+                            connection.reset()
+                        },
+                    )
+                }
+
                 val route: (Publication, String) -> Unit = { publication, path ->
                     if (publication.format == PublicationFormat.EPUB && !publication.isFixedLayout) {
                         startActivity(
@@ -297,8 +318,27 @@ class MainActivity : ComponentActivity() {
                 val server = kavita
 
                 val serverLists by libraryViewModel.serverLists.collectAsStateWithLifecycle()
+                val openShare = share
                 val serverShelf = openServerShelf
-                if (serverShelf != null && selection == null) {
+                if (openShare != null && selection == null && !isShowingSettings) {
+                    BackHandler {
+                        if (sharePath.isEmpty()) share = null else sharePath = sharePath.dropLast(1)
+                    }
+                    SmbBrowserScreen(
+                        title = openShare.title,
+                        address = openShare.address,
+                        path = sharePath.lastOrNull() ?: openShare.address.path,
+                        onEnter = { sharePath = sharePath + it },
+                        onOpen = route,
+                        onBack = {
+                            if (sharePath.isEmpty()) {
+                                share = null
+                            } else {
+                                sharePath = sharePath.dropLast(1)
+                            }
+                        },
+                    )
+                } else if (serverShelf != null && selection == null) {
                     BackHandler { openServerShelf = null }
                     if (serverShelf.isList) {
                         KavitaListScreen(
@@ -467,9 +507,14 @@ class MainActivity : ComponentActivity() {
                                 kavita = it
                                 kavitaLevel = KavitaLevel.Libraries
                             }
+                            SmbPage.of(source, credentials)?.let {
+                                share = it
+                                sharePath = emptyList()
+                            }
                         },
                         onAddCatalogue = { isAddingCatalogue = true },
                         onAddKavita = { isAddingKavita = true },
+                        onAddShare = { isAddingShare = true },
                         onProbeSources = {
                             libraryViewModel.probeNetworkSources(credentials, pins)
                         },
