@@ -221,7 +221,11 @@ public struct CatalogueBrowserView: View {
                     guard let best = CatalogueAcquisition.best(of: entry) else { return }
                     Task { await take(entry, using: best) }
                 } label: {
-                    CatalogueEntryCell(entry: entry, credential: browser.credential)
+                    CatalogueEntryCell(
+                        entry: entry,
+                        credential: browser.credential,
+                        client: browser.client
+                    )
                 }
                 .buttonStyle(.plain)
                 .disabled(offered.isEmpty)

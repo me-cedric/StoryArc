@@ -20,6 +20,41 @@ sealed class OpdsCredential {
     data class Bearer(val token: String) : OpdsCredential()
 
     /**
+     * The credential written as one string, for the secure store.
+     *
+     * Newline-separated and scheme-first. A colon would be ambiguous -- a password may
+     * contain one -- and something has to say whether the stored secret is a token or a
+     * pair, or a reader signed in with Bearer is sent back as Basic on the next launch.
+     */
+    val stored: String
+        get() = when (this) {
+            is Basic -> "basic\n$user\n$password"
+            is Bearer -> "bearer\n$token"
+        }
+
+    companion object {
+        /**
+         * Reads back what [stored] wrote.
+         *
+         * Split once for the scheme, then once more for the pair. Splitting on every
+         * newline would truncate a password that contains one, and a password pasted from a
+         * manager can. A user name with a newline in it is not a case anyone has.
+         */
+        fun of(stored: String): OpdsCredential? {
+            val head = stored.split("\n", limit = 2)
+            if (head.size != 2 || head[1].isEmpty()) return null
+            return when (head[0]) {
+                "basic" -> {
+                    val pair = head[1].split("\n", limit = 2)
+                    if (pair.size != 2) null else Basic(pair[0], pair[1])
+                }
+                "bearer" -> Bearer(head[1])
+                else -> null
+            }
+        }
+    }
+
+    /**
      * The `Authorization` header value.
      *
      * Built at the moment of use and not retained, which is the same rule the credential

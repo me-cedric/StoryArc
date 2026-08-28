@@ -23,7 +23,7 @@ Keep this current. A status document that lags is worse than none, because it is
 | `native-experience` | partial | Context menus; haptics; quick actions; widgets; handoff; predictive back; tablet sidebar; foldables; cover-derived accent; Increase Contrast; scroll edge effect; launch and memory budgets |
 | `sources` | partial | Reordering has no UI; metadata cache; connection state is never probed for a remote source. **Registry, credential storage, folder-as-source, OPDS-catalogue-as-source, renaming, Settings › Sources and removal are built** |
 | `offline-downloads` | absent | Everything |
-| `opds-catalog` | partial | Android entirely; OPDS 2.0 groups are flattened rather than shown as groups; no publication detail screen, so choosing another format is a context menu; a fetched file is a cache entry, not a managed download. **iOS builds all three requirements: adding a catalogue with sign-in and certificate pinning, browsing sections and paginated grids with facets and search, and fetching a publication and opening it** |
+| `opds-catalog` | partial | OPDS 2.0 groups are flattened rather than shown as groups; no publication detail screen, so choosing another format is a menu; Android has no facet menu; a fetched file is a cache entry, not a managed download. **All three requirements are built on both platforms: adding a catalogue with sign-in and certificate pinning, browsing sections and paginated grids with search, and fetching a publication and opening it** |
 | `kavita-server` | absent | Everything |
 | `network-share` | absent | Everything |
 | `collections-and-reading-lists` | absent | Everything |
@@ -35,7 +35,7 @@ in `format-scope-and-libraries`:
 
 ```
 sources (registry, credentials, cache, health)
-  ├── opds-catalog          iOS built, Android absent
+  ├── opds-catalog          built on both
   ├── kavita-server ──── reading-progress: synchronisation
   ├── network-share
   └── offline-downloads ─ comic-reader: "offer to delete the download"
@@ -57,6 +57,12 @@ They are near line-for-line equal wherever code exists. The real divergences:
    `PdfRenderer` does not. `format-scope-and-libraries` makes that an iOS-only feature for
    1.0. No UI calls them on either platform yet.
 3. **Android has a manual library refresh; iOS has none.** Neither watches the filesystem.
+4. **The cleartext exception is wider on Android.** A self-hosted catalogue usually answers
+   over plain HTTP on a `.local` name or a private address. iOS says exactly that with
+   `NSAllowsLocalNetworking`; Android's network security config can name a host or an IP
+   literal but not a range, so the exception there covers every host. Both platforms
+   complete a typed address with no scheme to `https`, so reaching a server over cleartext
+   takes a reader typing `http://`.
 
 ## What the checks cover
 

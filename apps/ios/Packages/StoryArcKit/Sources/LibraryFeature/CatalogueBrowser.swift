@@ -36,7 +36,8 @@ public final class CatalogueBrowser {
     public let title: String
     public let credential: OpdsCredential?
 
-    private let client: OpdsClient
+    /// Shared with the cells, which fetch covers through the same credential.
+    let client: OpdsClient
 
     /// Carried so a section of this catalogue inherits the reader's trust decisions.
     public let pins: CertificatePins

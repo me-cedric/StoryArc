@@ -112,6 +112,13 @@ fun LibraryScreen(
      * module. It reports that the reader asked.
      */
     onOpenSettings: () -> Unit = {},
+    /**
+     * How the app layer reaches a catalogue's pages. Same reasoning as `onOpen`: the
+     * library knows which catalogue was chosen and does not know what a browser is.
+     */
+    onBrowse: (Source) -> Unit = {},
+    /** Opens the add-a-catalogue sheet, which the app layer hosts. */
+    onAddCatalogue: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -172,15 +179,13 @@ fun LibraryScreen(
                         FilterMenu(query, viewModel)
                     }
                     if (viewModel != null) {
-                        IconButton(onClick = { pickFolder.launch(null) }) {
-                            Icon(
-                                imageVector = Icons.Filled.CreateNewFolder,
-                                contentDescription = stringResource(
-                                    R.string.library_add_folder,
-                                ),
-                                tint = palette.accent,
-                            )
-                        }
+                        // A menu rather than a second button. There are two ways to add a
+                        // source now and there will be four; a toolbar with one button per
+                        // kind would crowd out the controls a reader uses every day.
+                        AddSourceMenu(
+                            onAddFolder = { pickFolder.launch(null) },
+                            onAddCatalogue = onAddCatalogue,
+                        )
                         IconButton(onClick = { viewModel.rescan() }) {
                             Icon(
                                 imageVector = Icons.Filled.Refresh,
@@ -225,8 +230,17 @@ fun LibraryScreen(
             }
         },
     ) { insets ->
+        Column(modifier = Modifier.fillMaxSize().padding(insets)) {
+            // Above the library rather than inside it. A catalogue is not a shelf of local
+            // publications -- nothing in it is on the device yet -- and mixing the two
+            // would make "what can I read on the train" unanswerable.
+            val catalogues = registry.sources.filter { it.kind == SourceKind.OPDS_CATALOG }
+            if (catalogues.isNotEmpty()) {
+                CatalogueStrip(sources = catalogues, onOpen = onBrowse)
+            }
+
         Box(
-            modifier = Modifier.fillMaxSize().padding(insets),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
             val state = scanState
@@ -281,6 +295,7 @@ fun LibraryScreen(
                     onRemove = viewModel?.let { model -> { model.removeSource(it) } },
                 )
             }
+        }
         }
     }
 }

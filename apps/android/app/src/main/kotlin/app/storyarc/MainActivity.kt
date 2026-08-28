@@ -23,7 +23,18 @@ import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.SettingsStore
+import app.storyarc.core.catalogue.CertificatePins
+import app.storyarc.core.catalogue.OpdsCredential
+import app.storyarc.core.model.Source
+import app.storyarc.core.persistence.CertificatePinStore
+import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.SourceStore
+import app.storyarc.feature.library.CatalogueAcquisition
+import app.storyarc.feature.library.CatalogueBrowser
+import app.storyarc.feature.library.CatalogueBrowserScreen
+import app.storyarc.feature.library.CatalogueConnection
+import app.storyarc.feature.library.CataloguePage
+import app.storyarc.feature.library.CatalogueSheet
 import app.storyarc.feature.settings.SettingsScreen
 import app.storyarc.feature.settings.BuildInfo
 import app.storyarc.feature.library.LibraryScreen
@@ -104,6 +115,12 @@ class MainActivity : ComponentActivity() {
         val readerPreferences = ReaderPreferences.open(applicationContext)
         val settingsStore = SettingsStore.open(applicationContext)
         val sourceStore = SourceStore.open(applicationContext)
+        val credentials = CredentialStore.open(applicationContext)
+        val pinStore = CertificatePinStore.open(applicationContext)
+        // One pin set for the whole app, loaded once. Shared between adding a catalogue
+        // and browsing one on purpose: a certificate the reader accepted while adding a
+        // server has to still be accepted when its covers load.
+        val pins = CertificatePins(pinStore.pins())
         BuildInfo.read(applicationContext)
 
         setContent {
@@ -177,7 +194,77 @@ class MainActivity : ComponentActivity() {
                     },
                 )
 
-                if (isShowingSettings) {
+                // A page of a catalogue, pushed on top of the library. A list rather than
+                // one value, because entering a section is another page and the back
+                // gesture has to unwind them one at a time.
+                var catalogue by remember { mutableStateOf<List<CataloguePage>>(emptyList()) }
+                var isAddingCatalogue by remember { mutableStateOf(false) }
+
+                if (isAddingCatalogue) {
+                    val connection = remember {
+                        CatalogueConnection(applicationContext, pins, pinStore, credentials)
+                    }
+                    CatalogueSheet(
+                        connection = connection,
+                        onAdd = { libraryViewModel.addSource(it) },
+                        onDismiss = {
+                            isAddingCatalogue = false
+                            connection.reset()
+                        },
+                    )
+                }
+
+                // Two readers, chosen by what the publication *is* rather than by a mode
+                // the user picks. A reflowable book is laid out by a rendering engine
+                // (ADR-0005); a comic is a list of images and needs none. A fixed-layout
+                // EPUB is the third case and belongs with the comic reader.
+                //
+                // One rule, three callers: the library, a catalogue, and a file the system
+                // handed over. Three copies of it is how one of them ends up wrong.
+                val route: (Publication, String) -> Unit = { publication, path ->
+                    if (publication.format == PublicationFormat.EPUB && !publication.isFixedLayout) {
+                        startActivity(
+                            EpubReaderActivity.intent(
+                                this@MainActivity,
+                                path,
+                                publication.displayTitle,
+                                publication.series,
+                            ),
+                        )
+                    } else {
+                        reading = publication to path
+                    }
+                }
+
+                val page = catalogue.lastOrNull()
+                if (page != null && selection == null && !isShowingSettings) {
+                    BackHandler { catalogue = catalogue.dropLast(1) }
+                    // Keyed on the address so entering a section builds a fresh browser
+                    // rather than showing the previous page's entries.
+                    val browser = remember(page.url) {
+                        CatalogueBrowser(
+                            applicationContext,
+                            page.title,
+                            page.url,
+                            page.credential,
+                            pins,
+                        )
+                    }
+                    val acquisition = remember(page.url) {
+                        CatalogueAcquisition(applicationContext, pins)
+                    }
+                    CatalogueBrowserScreen(
+                        browser = browser,
+                        acquisition = acquisition,
+                        onEnter = { title, url ->
+                            catalogue = catalogue + CataloguePage(title, url, page.credential)
+                        },
+                        // The same door a local publication goes through. A book fetched
+                        // from a catalogue is a book.
+                        onOpen = route,
+                        onBack = { catalogue = catalogue.dropLast(1) },
+                    )
+                } else if (isShowingSettings) {
                     BackHandler { isShowingSettings = false }
                     val registry by libraryViewModel.registry.collectAsStateWithLifecycle()
                     SettingsScreen(
@@ -215,30 +302,12 @@ class MainActivity : ComponentActivity() {
                 } else if (selection == null) {
                     LibraryScreen(
                         viewModel = libraryViewModel,
-                        onOpen = { publication, path ->
-                            // Two readers, chosen by what the publication *is*
-                            // rather than by a mode the user picks. A reflowable
-                            // book is laid out by a rendering engine (ADR-0005); a
-                            // comic is a list of images and needs none. A
-                            // fixed-layout EPUB is the third case and belongs with
-                            // the comic reader — it has pages, at a fixed aspect
-                            // ratio — which is what `ebook-reader` asks for.
-                            if (publication.format == PublicationFormat.EPUB &&
-                                !publication.isFixedLayout
-                            ) {
-                                startActivity(
-                                    EpubReaderActivity.intent(
-                                        this@MainActivity,
-                                        path,
-                                        publication.displayTitle,
-                                        publication.series,
-                                    ),
-                                )
-                            } else {
-                                reading = publication to path
-                            }
-                        },
+                        onOpen = route,
                         onOpenSettings = { isShowingSettings = true },
+                        onBrowse = { source ->
+                            CataloguePage.of(source, credentials)?.let { catalogue = listOf(it) }
+                        },
+                        onAddCatalogue = { isAddingCatalogue = true },
                     )
                 } else {
                     val publications by libraryViewModel.publications.collectAsStateWithLifecycle()

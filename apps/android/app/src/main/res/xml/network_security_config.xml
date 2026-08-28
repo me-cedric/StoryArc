@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext HTTP is permitted.
+
+  `opds-catalog` and `network-share` are about servers a reader runs at home, and a Synology
+  or a Raspberry Pi on the shelf usually answers over plain HTTP on a `.local` name or a
+  private address. Blocked, every self-hosted catalogue is unreachable with no way to say
+  why.
+
+  iOS expresses this narrowly: `NSAllowsLocalNetworking` permits insecure loads to local
+  names and private ranges and nothing else. Android has no equivalent — a network security
+  config can name a host or an IP literal, but not a range — so the exception here is wider
+  than the one on iOS, and that asymmetry is deliberate rather than an oversight.
+
+  What keeps it honest is the app: the address field completes a missing scheme to `https`,
+  never `http`, so reaching a catalogue over cleartext takes a reader typing `http://`.
+-->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      Lint's advice is right in general and wrong for this app: an app that only ever talks
+      to services it owns should refuse cleartext, and this one exists to talk to servers
+      its readers own. Suppressed at the line rather than project-wide, so the next
+      cleartext config somebody adds is still flagged.
+    -->
+    <base-config
+        cleartextTrafficPermitted="true"
+        tools:ignore="InsecureBaseConfiguration">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

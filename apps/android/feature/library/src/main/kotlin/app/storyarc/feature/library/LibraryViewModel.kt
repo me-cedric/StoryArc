@@ -226,6 +226,19 @@ class LibraryViewModel(
      * folder itself keeps its own name: a reader who calls a folder "Comics" has not asked
      * to rename the directory.
      */
+    /**
+     * Adds a source the reader configured elsewhere, such as a catalogue.
+     *
+     * Distinct from the folder path, which adopts a folder the app already found. A
+     * catalogue arrives already confirmed -- it answered, and it told us its name -- so
+     * there is nothing to match and nothing to probe.
+     */
+    fun addSource(source: Source) {
+        if (_registry.value[source.id] != null) return
+        _registry.update { it.adding(source) }
+        sourceStore?.save(_registry.value)
+    }
+
     fun renameSource(source: Source, name: String) {
         _registry.update { it.renaming(source.id, name) }
         sourceStore?.save(_registry.value)

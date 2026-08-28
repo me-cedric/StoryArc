@@ -74,6 +74,7 @@ dependencies {
     implementation(project(":feature:settings"))
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":core:persistence"))
+    implementation(project(":core:catalogue"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

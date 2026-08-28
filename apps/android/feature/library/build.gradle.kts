@@ -28,6 +28,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:persistence"))
     implementation(project(":core:format"))
+    implementation(project(":core:catalogue"))
 
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     // rememberLauncherForActivityResult, for the folder picker. Android gives no

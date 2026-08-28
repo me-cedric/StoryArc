@@ -390,3 +390,30 @@ class OpdsAddressTest {
         assertNull(OpdsDocument.address("not a host at all"))
     }
 }
+
+/** What the secure store holds, and what comes back out. */
+class OpdsCredentialStorageTest {
+    @Test
+    fun aPairSurvivesTheRoundTrip() {
+        // A colon and a newline in the password. The colon is why the format is not
+        // colon-separated; the newline is what a paste from a password manager can carry,
+        // and it has to survive rather than truncate the password.
+        val credential = OpdsCredential.Basic("ada", "love:lace\nx")
+        assertEquals(credential, OpdsCredential.of(credential.stored))
+    }
+
+    @Test
+    fun aTokenSurvivesTheRoundTrip() {
+        val credential = OpdsCredential.Bearer("abc123")
+        assertEquals(credential, OpdsCredential.of(credential.stored))
+    }
+
+    @Test
+    fun aSchemeIsNotGuessed() {
+        // Without the scheme, a reader who signed in with a token is sent back as Basic on
+        // the next launch and the catalogue refuses them.
+        assertNull(OpdsCredential.of("ada\nlovelace"))
+        assertNull(OpdsCredential.of(""))
+        assertNull(OpdsCredential.of("digest\na\nb"))
+    }
+}

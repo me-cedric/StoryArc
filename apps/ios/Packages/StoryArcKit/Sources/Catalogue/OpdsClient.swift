@@ -95,6 +95,16 @@ public actor OpdsClient {
         "*/*;q=0.1",
     ].joined(separator: ", ")
 
+    /// Lets the session's own queue go when the client does.
+    ///
+    /// A `URLSession` with a delegate holds that delegate and an operation queue until it
+    /// is invalidated, and neither is released by the client being deallocated. Left to
+    /// itself the app accumulated one session per client — and one client per cover cell,
+    /// before this type stopped being made in a loop.
+    deinit {
+        session.finishTasksAndInvalidate()
+    }
+
     /// One page of a catalogue.
     public func feed(at url: URL, credential: OpdsCredential? = nil) async throws -> OpdsFeed {
         let (data, response) = try await fetch(url, credential: credential)

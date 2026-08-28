@@ -22,6 +22,10 @@ struct CatalogueEntryCell: View {
     let entry: OpdsEntry
     let credential: OpdsCredential?
 
+    /// The page's client, not one of this cell's own. A session per cell is a session per
+    /// cell to tear down, and a grid makes plenty of both.
+    let client: OpdsClient
+
     @State private var cover: Image?
 
     /// The formats this entry offers that StoryArc can open.
@@ -100,7 +104,6 @@ struct CatalogueEntryCell: View {
     /// same credential as its feed, and `AsyncImage` has nowhere to put one.
     private func loadCover() async {
         guard cover == nil, let url = entry.thumbnail ?? entry.cover else { return }
-        let client = OpdsClient()
         guard let data = try? await client.data(at: url, credential: credential) else { return }
         #if canImport(UIKit)
         guard let image = UIImage(data: data) else { return }

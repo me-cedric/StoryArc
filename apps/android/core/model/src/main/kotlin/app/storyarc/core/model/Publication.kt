@@ -85,6 +85,15 @@ enum class PublicationFormat {
         }
 
     /**
+     * Whether StoryArc can open a publication in this format today.
+     *
+     * CB7 is the one that parses as a format and does not open: `publication-formats`
+     * records 7-Zip as an open question, and the app names the refusal rather than
+     * pretending the file is not there.
+     */
+    val isOpenable: Boolean get() = this != CB7
+
+    /**
      * How the format is named to a person — in a refusal, a filter, a detail row.
      *
      * `publication-formats` forbids a generic failure, and a name is what makes the
@@ -100,6 +109,33 @@ enum class PublicationFormat {
             PDF -> "PDF"
             IMAGE_FOLDER -> "Folder"
         }
+
+    companion object {
+        /**
+         * The format a media type names, when it names one this app can read.
+         *
+         * For a catalogue, where the file has not been fetched and its type is all there
+         * is. `opds-catalog` needs this twice: to pick the best acquisition when several
+         * are offered, and to mark an entry unreadable when none of them map.
+         *
+         * Parameters after a semicolon are ignored — several servers append
+         * `;charset=utf-8` to `application/epub+zip`, and an exact-match table would call
+         * that unreadable.
+         */
+        fun ofMediaType(mediaType: String): PublicationFormat? =
+            when (mediaType.substringBefore(';').trim().lowercase()) {
+                "application/epub+zip" -> EPUB
+                "application/pdf" -> PDF
+                "application/vnd.comicbook+zip", "application/x-cbz" -> CBZ
+                "application/vnd.comicbook-rar", "application/x-cbr" -> CBR
+                "application/vnd.comicbook+tar", "application/x-cbt" -> CBT
+                // Listed so a catalogue entry can be *named* as unreadable rather than
+                // dropped. `publication-formats` leaves CB7 undecoded, and the refusal has
+                // to say which format it refused.
+                "application/vnd.comicbook+7z", "application/x-cb7" -> CB7
+                else -> null
+            }
+    }
 }
 
 /**
