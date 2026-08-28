@@ -26,6 +26,9 @@ struct CatalogueEntryCell: View {
     /// cell to tear down, and a grid makes plenty of both.
     let client: OpdsClient
 
+    /// Whether this one is already on the device.
+    let isDownloaded: Bool
+
     @State private var cover: Image?
 
     /// The formats this entry offers that StoryArc can open.
@@ -48,6 +51,18 @@ struct CatalogueEntryCell: View {
                 )
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+                // `offline-downloads`: a downloaded publication shows "a state indicator"
+                // rather than an action to download it again.
+                if isDownloaded {
+                    Label {
+                        Text("catalogue.entry.downloaded", bundle: .module)
+                    } icon: {
+                        Image(systemName: "arrow.down.circle.fill")
+                    }
+                    .textRole(.caption)
+                    .foregroundStyle(StoryArcColor.Status.success)
+                }
+
                 Text(entry.title)
                     .textRole(.subheadline)
                     .foregroundStyle(theme.palette.textPrimary)

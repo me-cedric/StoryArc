@@ -2,6 +2,8 @@ public import SwiftUI
 
 public import Catalogue
 internal import DesignSystem
+internal import Formats
+public import Persistence
 public import StoryArcCore
 
 /// A page of a catalogue: its sections, then its publications.
@@ -45,7 +47,7 @@ public struct CatalogueBrowserView: View {
                 pins: pins
             )
         )
-        _acquisition = State(initialValue: CatalogueAcquisition(pins: pins))
+        _acquisition = State(initialValue: CatalogueAcquisition(pins: pins, store: DownloadStore()))
         self.onOpen = onOpen
     }
 
@@ -60,6 +62,7 @@ public struct CatalogueBrowserView: View {
         let feed = browser.feed
         let shown = filtered ?? browser.entries
         let fetching = acquisition.state
+        let onDevice = acquisition.onDevice
 
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: StoryArcSpace.lg) {
@@ -76,7 +79,7 @@ public struct CatalogueBrowserView: View {
                 }
 
                 if !shown.isEmpty {
-                    publications(shown)
+                    publications(shown, onDevice: onDevice)
                 }
 
                 switch state {
@@ -153,6 +156,15 @@ public struct CatalogueBrowserView: View {
         onOpen(fetched.publication, fetched.location)
     }
 
+    /// Opens a publication that is already on the device.
+    private func open(_ entry: OpdsEntry, from file: URL) async {
+        guard let publication = try? await PublicationIndexer.index(
+            fileAt: file,
+            seriesHint: entry.series
+        ) else { return }
+        onOpen(publication, file)
+    }
+
     /// How an acquisition is named in the choose-a-format menu.
     private func name(of link: OpdsAcquisition) -> String {
         PublicationFormat(mediaType: link.mediaType)?.displayName ?? link.mediaType
@@ -210,7 +222,7 @@ public struct CatalogueBrowserView: View {
     }
 
     @ViewBuilder
-    private func publications(_ shown: [OpdsEntry]) -> some View {
+    private func publications(_ shown: [OpdsEntry], onDevice: Set<String>) -> some View {
         LazyVGrid(
             columns: [GridItem(.adaptive(minimum: StoryArcSpace.huge * 2), spacing: StoryArcSpace.md)],
             spacing: StoryArcSpace.lg
@@ -218,13 +230,21 @@ public struct CatalogueBrowserView: View {
             ForEach(shown) { entry in
                 let offered = CatalogueAcquisition.readable(in: entry)
                 Button {
+                    // `offline-downloads`: an already-downloaded publication is not
+                    // re-fetched. It opens from disk, which also means it opens with no
+                    // network at all.
+                    if let file = acquisition.downloaded(entry) {
+                        Task { await open(entry, from: file) }
+                        return
+                    }
                     guard let best = CatalogueAcquisition.best(of: entry) else { return }
                     Task { await take(entry, using: best) }
                 } label: {
                     CatalogueEntryCell(
                         entry: entry,
                         credential: browser.credential,
-                        client: browser.client
+                        client: browser.client,
+                        isDownloaded: onDevice.contains(entry.id)
                     )
                 }
                 .buttonStyle(.plain)
