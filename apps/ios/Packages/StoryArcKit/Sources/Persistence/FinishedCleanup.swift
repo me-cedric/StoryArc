@@ -37,7 +37,7 @@ public struct RemovedDownload: Sendable {
 
 extension DownloadStore {
     /// Where a download's bytes live, from the record alone.
-    func location(of download: Download) -> URL {
+    public func location(of download: Download) -> URL {
         location(for: download.id, extension: Self.extension(for: download.mediaType))
     }
 

@@ -135,4 +135,6 @@
     <string name="downloads_remove_after_note">Your place is kept. You can undo it for ten seconds.</string>
     <string name="downloads_limit">Most disk to use</string>
     <string name="downloads_limit_none">No limit</string>
+    <string name="downloads_move_earlier">Move “%1$s” earlier</string>
+    <string name="downloads_move_later">Move “%1$s” later</string>
 </resources>

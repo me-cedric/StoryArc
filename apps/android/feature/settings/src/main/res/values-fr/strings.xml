@@ -130,4 +130,6 @@
     <string name="downloads_remove_after_note">Votre place est conservée. Annulable pendant dix secondes.</string>
     <string name="downloads_limit">Espace maximal</string>
     <string name="downloads_limit_none">Sans limite</string>
+    <string name="downloads_move_earlier">Avancer « %1$s »</string>
+    <string name="downloads_move_later">Reculer « %1$s »</string>
 </resources>

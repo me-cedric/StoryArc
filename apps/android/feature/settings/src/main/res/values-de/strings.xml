@@ -130,4 +130,6 @@
     <string name="downloads_remove_after_note">Ihre Stelle bleibt erhalten. Zehn Sekunden lang widerrufbar.</string>
     <string name="downloads_limit">Höchster Speicherplatz</string>
     <string name="downloads_limit_none">Kein Limit</string>
+    <string name="downloads_move_earlier">„%1$s“ nach vorn</string>
+    <string name="downloads_move_later">„%1$s“ nach hinten</string>
 </resources>

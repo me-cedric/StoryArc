@@ -489,6 +489,10 @@ class MainActivity : ComponentActivity() {
                         // having opened a catalogue.
                         downloads = downloads,
                         bytesOnDisk = downloadStore.bytesOnDisk(),
+                        onReorderDownload = { download, later ->
+                            downloads = downloads.moving(download.id, later)
+                            downloadStore.save(downloads)
+                        },
                         onRemoveDownload = { download ->
                             downloadStore.location(
                                 download.id,

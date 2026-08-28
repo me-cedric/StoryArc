@@ -15,6 +15,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Switch
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,6 +56,11 @@ fun DownloadsGroup(
     /** The name of the source a download came from, when it came from one. */
     sourceName: (UUID) -> String?,
     onRemove: (Download) -> Unit,
+    /**
+     * Moves a queued download one place. `offline-downloads` asks for reorder among the
+     * queue's own controls, and one place at a time is reachable without a drag gesture.
+     */
+    onReorder: (Download, Boolean) -> Unit = { _, _ -> },
     /** The reader's own policy for the queue, and how to change it. */
     settings: AppSettings = AppSettings.Defaults,
     onChange: (AppSettings) -> Unit = {},
@@ -100,7 +107,15 @@ fun DownloadsGroup(
             style = MaterialTheme.typography.labelLarge,
             color = palette.textSecondary,
         )
-        library.pending.forEach { download -> PendingRow(download) }
+        library.pending.forEach { download ->
+            PendingRow(
+                download = download,
+                // Only a queued download has an order to change: a running one has started
+                // and the list is short enough that its ends are obvious.
+                canReorder = download.state == Download.State.Queued,
+                onReorder = { later -> onReorder(download, later) },
+            )
+        }
     }
 
     if (finished.isNotEmpty()) {
@@ -182,17 +197,46 @@ private fun FinishedRow(
 }
 
 @Composable
-private fun PendingRow(download: Download) {
+private fun PendingRow(
+    download: Download,
+    canReorder: Boolean,
+    onReorder: (Boolean) -> Unit,
+) {
     val palette = LocalStoryArcPalette.current
     Column(
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
         modifier = Modifier.fillMaxWidth().padding(vertical = StoryArcSpace.xs),
     ) {
-        Text(
-            text = download.title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = palette.textPrimary,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = download.title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = palette.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            if (canReorder) {
+                IconButton(onClick = { onReorder(false) }) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
+                        contentDescription = stringResource(
+                            R.string.downloads_move_earlier,
+                            download.title,
+                        ),
+                        tint = palette.textSecondary,
+                    )
+                }
+                IconButton(onClick = { onReorder(true) }) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = stringResource(
+                            R.string.downloads_move_later,
+                            download.title,
+                        ),
+                        tint = palette.textSecondary,
+                    )
+                }
+            }
+        }
         when (val state = download.state) {
             is Download.State.Failed -> Text(
                 // The reason, in the reader's words, and how many times it was tried.

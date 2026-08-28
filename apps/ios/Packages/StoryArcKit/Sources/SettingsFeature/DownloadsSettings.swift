@@ -30,6 +30,10 @@ struct DownloadsSettings: View {
 
     let onRemove: (Download) -> Void
 
+    /// Moves a queued download one place. `offline-downloads` asks for reorder among the
+    /// queue's own controls, and one place at a time is reachable without a drag gesture.
+    var onReorder: (Download, Bool) -> Void = { _, _ in }
+
     @State private var removing: Download?
 
     private var isRemoving: Binding<Bool> {
@@ -137,8 +141,34 @@ struct DownloadsSettings: View {
     @ViewBuilder
     private func pending(_ download: Download) -> some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
-            Text(download.title)
-                .foregroundStyle(theme.palette.textPrimary)
+            HStack {
+                Text(download.title)
+                    .foregroundStyle(theme.palette.textPrimary)
+                Spacer(minLength: 0)
+                // Only a queued download has an order to change: a running one has started
+                // and the list is short enough that its ends are obvious.
+                if download.state == .queued {
+                    Button { onReorder(download, false) } label: {
+                        Label {
+                            Text("downloads.moveEarlier \(download.title)", bundle: .module)
+                        } icon: {
+                            Image(systemName: "chevron.up")
+                        }
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.plain)
+
+                    Button { onReorder(download, true) } label: {
+                        Label {
+                            Text("downloads.moveLater \(download.title)", bundle: .module)
+                        } icon: {
+                            Image(systemName: "chevron.down")
+                        }
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.plain)
+                }
+            }
 
             switch download.state {
             case let .failed(reason, attempts):

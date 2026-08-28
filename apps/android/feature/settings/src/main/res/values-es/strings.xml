@@ -130,4 +130,6 @@
     <string name="downloads_remove_after_note">Se conserva tu posición. Puedes deshacerlo durante diez segundos.</string>
     <string name="downloads_limit">Espacio máximo</string>
     <string name="downloads_limit_none">Sin límite</string>
+    <string name="downloads_move_earlier">Adelantar «%1$s»</string>
+    <string name="downloads_move_later">Retrasar «%1$s»</string>
 </resources>

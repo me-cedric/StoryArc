@@ -71,6 +71,10 @@ struct StoryArcApp: App {
     private let downloadStore = DownloadStore()
     @State private var downloads = DownloadStore().library()
 
+    /// A download removed because the reader finished it, and the bytes waiting in case
+    /// they change their mind. `offline-downloads` gives them ten seconds.
+    @State private var removedDownload: RemovedDownload?
+
     init() {
         // How the reader reaches a share. Registered here because this is where the source
         // registry and the credential store both are; `Formats` stays unaware that SMB
@@ -205,6 +209,40 @@ struct StoryArcApp: App {
         dismissed = reading
     }
 
+    /// Takes a finished publication's download off the device, reversibly.
+    private func sweepFinishedDownload() async {
+        let library = downloadStore.library()
+
+        // Asked of the store one path at a time, and awaited: `ProgressStore` is an actor,
+        // and a predicate that could not await it would answer "not finished" to everything
+        // and sweep nothing, for ever, silently.
+        var done: Set<String> = []
+        for download in library.finished {
+            let path = downloadStore.location(of: download).path
+            let record = try? await progress?.progress(
+                for: PublicationIdentity(normalizedPath: path)
+            )
+            if record?.isFinished == true { done.insert(path) }
+        }
+
+        let finished = downloadStore.finishedDownload(in: library) { done.contains($0) }
+        guard let finished,
+              let outcome = downloadStore.removeAfterFinishing(finished.id, from: library)
+        else { return }
+
+        downloads = outcome.library
+        removedDownload?.settle()
+        removedDownload = outcome.removed
+
+        let taken = outcome.removed
+        Task {
+            try? await Task.sleep(for: .seconds(10))
+            guard removedDownload?.download.id == taken.download.id else { return }
+            taken.settle()
+            removedDownload = nil
+        }
+    }
+
     /// Returns both stores to what a fresh install has, and nothing more.
     ///
     /// Two stores, and only what each one calls a setting. The reading *defaults* are
@@ -259,13 +297,25 @@ struct StoryArcApp: App {
                     // opened a catalogue.
                     downloads: downloads,
                     bytesOnDisk: downloadStore.bytesOnDisk(),
-                    onRemoveDownload: { downloads = downloadStore.removing($0.id, from: downloads) }
+                    onRemoveDownload: { downloads = downloadStore.removing($0.id, from: downloads) },
+                    onReorderDownload: { download, later in
+                        downloads = downloads.moving(download.id, later: later)
+                        downloadStore.save(downloads)
+                    }
                 )
                     .storyArcTheme(appearance: settings.appearance)
             }
             // The system hands a file over here, and until this existed it was dropped.
             // `Info.plist` declares StoryArc as a handler for six formats, so the app was
             // offered, chosen, and then showed its library as if nothing had happened.
+            // `offline-downloads`: a finished publication's download goes, and the reader
+            // has ten seconds to say otherwise. Swept when the library appears rather than
+            // in a reader's close path, because there are two readers and this is the one
+            // moment both of them pass through.
+            .task(id: reading?.id) {
+                guard reading == nil, settings.removeDownloadsAfterFinishing else { return }
+                await sweepFinishedDownload()
+            }
             .onOpenURL { url in Task { await openHandedOver(url) } }
             // Closing the reader is not the only way a reader leaves it. A phone is
             // usually closed by going home, and a position that only travelled on a

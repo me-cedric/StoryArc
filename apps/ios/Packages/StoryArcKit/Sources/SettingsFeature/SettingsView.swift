@@ -47,6 +47,7 @@ public struct SettingsView: View {
     private let downloads: DownloadLibrary
     private let bytesOnDisk: Int64
     private let onRemoveDownload: (Download) -> Void
+    private let onReorderDownload: (Download, Bool) -> Void
 
     /// What the summary rows state, so Sources and Downloads describe themselves.
     private var summary: LibrarySummary {
@@ -66,7 +67,8 @@ public struct SettingsView: View {
         onRenameSource: @escaping (Source, String) -> Void = { _, _ in },
         downloads: DownloadLibrary = DownloadLibrary(),
         bytesOnDisk: Int64 = 0,
-        onRemoveDownload: @escaping (Download) -> Void = { _ in }
+        onRemoveDownload: @escaping (Download) -> Void = { _ in },
+        onReorderDownload: @escaping (Download, Bool) -> Void = { _, _ in }
     ) {
         _settings = settings
         self.readerStore = readerStore
@@ -78,6 +80,7 @@ public struct SettingsView: View {
         self.downloads = downloads
         self.bytesOnDisk = bytesOnDisk
         self.onRemoveDownload = onRemoveDownload
+        self.onReorderDownload = onReorderDownload
     }
 
     public var body: some View {
@@ -168,7 +171,8 @@ public struct SettingsView: View {
                 bytesOnDisk: bytesOnDisk,
                 settings: $settings,
                 sourceName: { id in sources.first { $0.id == id }?.displayName },
-                onRemove: onRemoveDownload
+                onRemove: onRemoveDownload,
+                onReorder: onReorderDownload
             )
         // Named rather than hidden. A group whose rows arrive with a capability that does
         // not exist yet says so.

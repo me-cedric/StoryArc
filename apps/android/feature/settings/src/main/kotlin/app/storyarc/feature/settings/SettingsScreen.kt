@@ -85,6 +85,8 @@ fun SettingsScreen(
     downloads: DownloadLibrary = DownloadLibrary(),
     bytesOnDisk: Long = 0L,
     onRemoveDownload: (Download) -> Unit = {},
+    /** Moves a queued download one place earlier or later. */
+    onReorderDownload: (Download, Boolean) -> Unit = { _, _ -> },
 ) {
     var open by remember { mutableStateOf<SettingsGroup?>(null) }
 
@@ -117,6 +119,7 @@ fun SettingsScreen(
             downloads = downloads,
             bytesOnDisk = bytesOnDisk,
             onRemoveDownload = onRemoveDownload,
+            onReorderDownload = onReorderDownload,
         )
     }
 }
@@ -277,6 +280,7 @@ private fun GroupDetail(
     downloads: DownloadLibrary,
     bytesOnDisk: Long,
     onRemoveDownload: (Download) -> Unit,
+    onReorderDownload: (Download, Boolean) -> Unit,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -315,6 +319,7 @@ private fun GroupDetail(
                     bytesOnDisk = bytesOnDisk,
                     sourceName = { id -> sources.firstOrNull { it.id == id }?.displayName },
                     onRemove = onRemoveDownload,
+                    onReorder = onReorderDownload,
                     settings = settings,
                     onChange = onChange,
                 )
