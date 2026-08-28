@@ -31,6 +31,35 @@
         }
       }
     },
+    "reader.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Publikation enthält keine Seiten, die StoryArc anzeigen kann."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This publication has no pages StoryArc can show."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta publicación no tiene páginas que StoryArc pueda mostrar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette publication ne contient aucune page que StoryArc puisse afficher."
+          }
+        }
+      }
+    },
     "reader.end.back": {
       "extractionState": "manual",
       "localizations": {

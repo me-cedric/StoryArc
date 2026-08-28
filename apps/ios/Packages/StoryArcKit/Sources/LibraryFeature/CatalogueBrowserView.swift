@@ -2,6 +2,7 @@ public import SwiftUI
 
 public import Catalogue
 internal import DesignSystem
+public import StoryArcCore
 
 /// A page of a catalogue: its sections, then its publications.
 ///
@@ -19,7 +20,11 @@ public struct CatalogueBrowserView: View {
     /// fetched at all, which showed as a permanently blank catalogue.
     @State private var browser: CatalogueBrowser
 
-    private let onOpen: (OpdsEntry, CatalogueBrowser) -> Void
+    /// Where a fetched publication goes — the same door the library uses.
+    private let onOpen: (Publication, URL) -> Void
+
+    /// The fetch in progress, if any.
+    @State private var acquisition: CatalogueAcquisition
 
     /// The term as typed, and the result of the last search that was not the server's.
     @State private var term = ""
@@ -30,7 +35,7 @@ public struct CatalogueBrowserView: View {
         url: URL,
         credential: OpdsCredential?,
         pins: CertificatePins,
-        onOpen: @escaping (OpdsEntry, CatalogueBrowser) -> Void = { _, _ in }
+        onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
     ) {
         _browser = State(
             initialValue: CatalogueBrowser(
@@ -40,6 +45,7 @@ public struct CatalogueBrowserView: View {
                 pins: pins
             )
         )
+        _acquisition = State(initialValue: CatalogueAcquisition(pins: pins))
         self.onOpen = onOpen
     }
 
@@ -53,6 +59,7 @@ public struct CatalogueBrowserView: View {
         let state = browser.state
         let feed = browser.feed
         let shown = filtered ?? browser.entries
+        let fetching = acquisition.state
 
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: StoryArcSpace.lg) {
@@ -94,6 +101,29 @@ public struct CatalogueBrowserView: View {
             .padding(StoryArcSpace.gutter)
         }
         .background(theme.palette.surfaceCanvas)
+        .safeAreaInset(edge: .bottom) {
+            switch fetching {
+            case .idle:
+                EmptyView()
+            case let .fetching(fetching):
+                Label {
+                    Text("catalogue.acquire.fetching \(fetching)", bundle: .module)
+                        .textRole(.footnote)
+                } icon: {
+                    ProgressView()
+                }
+                .padding(StoryArcSpace.sm)
+                .frame(maxWidth: .infinity)
+                .background(.bar)
+            case let .failed(message):
+                Text(message)
+                    .textRole(.footnote)
+                    .foregroundStyle(theme.palette.textPrimary)
+                    .padding(StoryArcSpace.sm)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.bar)
+            }
+        }
         .navigationTitle(browser.title)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -111,6 +141,21 @@ public struct CatalogueBrowserView: View {
             }
         }
         .task { await browser.load() }
+    }
+
+    /// Fetches one acquisition and hands what came back to the reader.
+    private func take(_ entry: OpdsEntry, using link: OpdsAcquisition) async {
+        guard let fetched = await acquisition.fetch(
+            entry,
+            using: link,
+            credential: browser.credential
+        ) else { return }
+        onOpen(fetched.publication, fetched.location)
+    }
+
+    /// How an acquisition is named in the choose-a-format menu.
+    private func name(of link: OpdsAcquisition) -> String {
+        PublicationFormat(mediaType: link.mediaType)?.displayName ?? link.mediaType
     }
 
     /// A search the server answers, or one this page answers itself.
@@ -171,12 +216,29 @@ public struct CatalogueBrowserView: View {
             spacing: StoryArcSpace.lg
         ) {
             ForEach(shown) { entry in
+                let offered = CatalogueAcquisition.readable(in: entry)
                 Button {
-                    onOpen(entry, browser)
+                    guard let best = CatalogueAcquisition.best(of: entry) else { return }
+                    Task { await take(entry, using: best) }
                 } label: {
                     CatalogueEntryCell(entry: entry, credential: browser.credential)
                 }
                 .buttonStyle(.plain)
+                .disabled(offered.isEmpty)
+                // `opds-catalog`: the app picks the best format and "lets the user choose
+                // another". There is no detail screen yet, so the choice lives here —
+                // shown only when there is one to make.
+                .contextMenu {
+                    if offered.count > 1 {
+                        ForEach(offered, id: \.href) { link in
+                            Button {
+                                Task { await take(entry, using: link) }
+                            } label: {
+                                Text("catalogue.acquire.other \(name(of: link))", bundle: .module)
+                            }
+                        }
+                    }
+                }
                 .task {
                     // The next page arrives because the reader scrolled, not because they
                     // pressed anything. Skipped while a local filter is showing: the filter

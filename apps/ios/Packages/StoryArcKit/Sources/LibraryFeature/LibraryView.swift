@@ -156,7 +156,10 @@ public struct LibraryView: View {
                         title: page.title,
                         url: page.url,
                         credential: page.credential,
-                        pins: pins
+                        pins: pins,
+                        // The same door a local publication goes through. A book fetched
+                        // from a catalogue is a book.
+                        onOpen: onOpen
                     )
                 }
             }

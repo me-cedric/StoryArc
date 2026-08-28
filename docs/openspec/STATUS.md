@@ -21,9 +21,9 @@ Keep this current. A status document that lags is worse than none, because it is
 | `settings-and-about` | partial | Language group; Downloads group; search does not highlight the matched setting. **Sources group is built** |
 | `localization` | partial | Language override; no pseudo-locale test; no CI gate on a missing key for iOS. Plurals and locale-correct byte formatting are done |
 | `native-experience` | partial | Context menus; haptics; quick actions; widgets; handoff; predictive back; tablet sidebar; foldables; cover-derived accent; Increase Contrast; scroll edge effect; launch and memory budgets |
-| `sources` | partial | Reordering and renaming have no UI; metadata cache; connection state is never probed for a remote source. **Registry, credential storage, folder-as-source, Settings › Sources and removal are built** |
+| `sources` | partial | Reordering has no UI; metadata cache; connection state is never probed for a remote source. **Registry, credential storage, folder-as-source, OPDS-catalogue-as-source, renaming, Settings › Sources and removal are built** |
 | `offline-downloads` | absent | Everything |
-| `opds-catalog` | absent | Everything |
+| `opds-catalog` | partial | Android entirely; OPDS 2.0 groups are flattened rather than shown as groups; no publication detail screen, so choosing another format is a context menu; a fetched file is a cache entry, not a managed download. **iOS builds all three requirements: adding a catalogue with sign-in and certificate pinning, browsing sections and paginated grids with facets and search, and fetching a publication and opening it** |
 | `kavita-server` | absent | Everything |
 | `network-share` | absent | Everything |
 | `collections-and-reading-lists` | absent | Everything |
@@ -35,7 +35,7 @@ in `format-scope-and-libraries`:
 
 ```
 sources (registry, credentials, cache, health)
-  ├── opds-catalog
+  ├── opds-catalog          iOS built, Android absent
   ├── kavita-server ──── reading-progress: synchronisation
   ├── network-share
   └── offline-downloads ─ comic-reader: "offer to delete the download"
@@ -66,6 +66,8 @@ They are near line-for-line equal wherever code exists. The real divergences:
 | `pnpm smoke:android` | thirteen routes still open without crashing |
 | `pnpm a11y:android` | unnamed controls, raw values as names, targets under 48dp |
 | `AccessibilityAuditTests` | Apple's own audit, on the library only |
+| `pnpm corpus:check` | The generated test library is well-formed in every format |
+| `pnpm opds` | Not a check: a real OPDS server for the walkthrough a unit test cannot do |
 
 CI runs the first three. Nothing checks a screenshot against a reference, nothing tests
 a pseudo-locale, and nothing gates a missing iOS string. `native-experience` asks for the

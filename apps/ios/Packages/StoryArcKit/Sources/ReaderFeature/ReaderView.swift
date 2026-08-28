@@ -29,7 +29,15 @@ public struct ReaderView: View {
     @State var model: ReaderModel
     /// `comic-reader`: nothing is on screen while the user is reading. The chrome
     /// starts visible so the way out is discoverable, and a tap hides it.
-    @State var isChromeVisible = true
+    @State private var wantsChrome = true
+
+    /// Whether the chrome is on screen.
+    ///
+    /// Forced on over a failure. The gesture that reveals it lives on the pager, and a
+    /// publication that failed to open has no pager — so a reader who let the chrome time
+    /// out had a black screen, an error message, and no way back to the library except
+    /// force-quitting the app.
+    var isChromeVisible: Bool { wantsChrome || model.failure != nil }
     /// The pager's own position, which it owns outright.
     ///
     /// A two-way `Binding` into the model was tried twice and fights the gesture:
@@ -127,10 +135,14 @@ public struct ReaderView: View {
             // interaction". Keyed on the index too, so turning a page while the
             // chrome is up restarts the countdown rather than hiding mid-swipe.
             .task(id: chromeTimerKey) {
-                guard isChromeVisible, !isBrowsingThumbnails else { return }
+                // The chrome stays up over a failure. It is the only way back to the
+                // library, and hiding it four seconds after an error message left a black
+                // screen that could only be escaped by force-quitting the app.
+                guard isChromeVisible, !isBrowsingThumbnails, model.failure == nil
+                else { return }
                 try? await Task.sleep(for: .seconds(4))
                 guard !Task.isCancelled else { return }
-                withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible = false }
+                withAnimation(.easeInOut(duration: 0.2)) { wantsChrome = false }
             }
             .task {
                 // Bounded by the screen, not by the page. A 2000×3000 scan
@@ -222,7 +234,7 @@ public struct ReaderView: View {
         } else if location.x > size.width - edge {
             turn(by: 1)
         } else {
-            withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
+            withAnimation(.easeInOut(duration: 0.2)) { wantsChrome.toggle() }
         }
     }
 
