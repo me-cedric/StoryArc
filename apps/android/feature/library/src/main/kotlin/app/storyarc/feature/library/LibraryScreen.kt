@@ -43,6 +43,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -132,6 +136,15 @@ fun LibraryScreen(
     onMark: (Publication, Boolean) -> Unit = { _, _ -> },
     /** Adds to one of a server's reading lists. False when that server cannot hold it. */
     onAddToServerList: (suspend (Publication, ServerList) -> Boolean)? = null,
+    /**
+     * A download removed because the reader finished it, and how to put it back.
+     *
+     * `offline-downloads`: the removal "is undoable for 10 seconds". Held by the app layer,
+     * which owns the file, and shown here because this is the screen a reader lands on when
+     * the reader closes.
+     */
+    removedDownload: String? = null,
+    onUndoRemoval: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -185,9 +198,27 @@ fun LibraryScreen(
     val layout by (viewModel?.layout ?: MutableStateFlow(LibraryLayout.GRID))
         .collectAsStateWithLifecycle()
 
+    val snackbars = remember { SnackbarHostState() }
+    val undoLabel = stringResource(R.string.downloads_undo)
+    val removedMessage = removedDownload?.let {
+        stringResource(R.string.downloads_removed_after_finishing, it)
+    }
+    LaunchedEffect(removedMessage) {
+        val message = removedMessage ?: return@LaunchedEffect
+        // Ten seconds, which is what the spec promises, rather than the platform's default
+        // few. A reader who has just closed a book is not looking at the library yet.
+        val answer = snackbars.showSnackbar(
+            message = message,
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Indefinite,
+        )
+        if (answer == SnackbarResult.ActionPerformed) onUndoRemoval()
+    }
+
     Scaffold(
         modifier = modifier,
         containerColor = palette.surfaceCanvas,
+        snackbarHost = { SnackbarHost(snackbars) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.library_title)) },

@@ -20,6 +20,7 @@ import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ReaderPreferences
@@ -31,6 +32,9 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.RemovedDownload
+import app.storyarc.core.persistence.finishedDownload
+import app.storyarc.core.persistence.removeAfterFinishing
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.ShelvesStore
 import app.storyarc.core.persistence.SourceStore
@@ -80,6 +84,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+
+/** `offline-downloads`: "the removal is undoable for 10 seconds". */
+private const val UNDO_WINDOW_MILLIS = 10_000L
 
 class MainActivity : ComponentActivity() {
     /**
@@ -193,6 +200,7 @@ class MainActivity : ComponentActivity() {
                 // Re-read on the way in, so a download made while browsing a catalogue is on
                 // this screen rather than one launch behind it.
                 var downloads by remember { mutableStateOf(downloadStore.library()) }
+                var removed by remember { mutableStateOf<RemovedDownload?>(null) }
                 var refused by remember { mutableStateOf<OpenedFile.Outcome?>(null) }
                 val selection = reading
 
@@ -511,6 +519,33 @@ class MainActivity : ComponentActivity() {
                         onClose = { isShowingSettings = false },
                     )
                 } else if (selection == null) {
+                    val publications by libraryViewModel.publications
+                        .collectAsStateWithLifecycle()
+                    // `offline-downloads`: a finished publication's download goes, and the
+                    // reader has ten seconds to say otherwise. Swept here rather than in a
+                    // reader's close path, because there are two readers and the EPUB one
+                    // is a separate activity -- the library coming back is the one moment
+                    // both of them pass through.
+                    LaunchedEffect(settings.removeDownloadsAfterFinishing, publications) {
+                        if (!settings.removeDownloadsAfterFinishing) return@LaunchedEffect
+                        val target = finishedDownload(downloadStore, downloads) { path ->
+                            progress.progress(PublicationIdentity(normalizedPath = path))
+                                ?.isFinished == true
+                        } ?: return@LaunchedEffect
+                        removeAfterFinishing(downloadStore, downloads, target.id)
+                            ?.let { (without, taken) ->
+                                downloads = without
+                                removed?.settle()
+                                removed = taken
+                                launch {
+                                    kotlinx.coroutines.delay(UNDO_WINDOW_MILLIS)
+                                    if (removed === taken) {
+                                        taken.settle()
+                                        removed = null
+                                    }
+                                }
+                            }
+                    }
                     LibraryScreen(
                         viewModel = libraryViewModel,
                         onOpen = route,
@@ -544,6 +579,13 @@ class MainActivity : ComponentActivity() {
                                 kavitaProgress,
                                 credentials,
                             )
+                        },
+                        removedDownload = removed?.download?.title,
+                        onUndoRemoval = {
+                            lifecycleScope.launch {
+                                removed?.let { downloads = it.undo(downloads) }
+                                removed = null
+                            }
                         },
                         onAddToServerList = { publication, list ->
                             libraryViewModel.addToServerList(
@@ -579,6 +621,7 @@ class MainActivity : ComponentActivity() {
                     // travelled on a clean exit would be the evening's reading lost.
                     val report: suspend () -> Unit = {
                         val publication = selection.first
+
                         val origin = kavitaProgress.origin(publication.id)
                         val page = progress.progress(publication.identity)?.position
                         if (origin != null && page is ReadingPosition.Page) {
