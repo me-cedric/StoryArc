@@ -17,19 +17,42 @@ import java.io.File
  */
 object PublicationAccess {
 
+    /**
+     * How to reach a path this module knows nothing about.
+     *
+     * A share's path is `smb://...`, and teaching this module to open one would point the
+     * dependency the wrong way -- `core:format` would have to know about `core:smb`. Instead
+     * the app registers an opener for the scheme, and the branch below stays one line.
+     */
+    private val remote = mutableMapOf<String, suspend (String) -> RandomAccessSource>()
+
+    /** Registers how to open a path with the given scheme, such as `smb`. */
+    fun register(scheme: String, opener: suspend (String) -> RandomAccessSource) {
+        remote["$scheme://"] = opener
+    }
+
     /** Whether a recorded path is a document from the Storage Access Framework. */
     fun isDocument(path: String): Boolean = path.startsWith("content://")
+
+    /** Whether a recorded path belongs to a registered remote scheme. */
+    fun isRemote(path: String): Boolean = remote.keys.any { path.startsWith(it) }
 
     /** The publication's pages, opened. */
     suspend fun openArchive(
         resolver: ContentResolver,
         path: String,
-    ): ComicArchiveReading =
-        if (isDocument(path)) {
+    ): ComicArchiveReading {
+        remote.entries.firstOrNull { path.startsWith(it.key) }?.let { (_, opener) ->
+            // The whole point of `network-share`'s streaming requirement: the archive is
+            // read where the reader is looking, not fetched first.
+            return ComicArchiveOpener.open(opener(path))
+        }
+        return if (isDocument(path)) {
             ComicArchiveOpener.open(resolver, path.toUri())
         } else {
             ComicArchiveOpener.open(File(path))
         }
+    }
 
     /** A PDF, opened wherever it lives. */
     fun openPdf(resolver: ContentResolver, path: String): PdfDocumentReader =

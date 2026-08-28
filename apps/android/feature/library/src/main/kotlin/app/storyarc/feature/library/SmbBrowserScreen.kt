@@ -41,6 +41,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.smb.SmbClient
@@ -53,12 +54,13 @@ import kotlinx.coroutines.withContext
 /**
  * A share, browsed folder by folder.
  *
- * Opening a publication fetches the whole file first. That is not what `network-share` asks
- * for -- it wants the first page of a 400 MB archive without transferring 400 MB -- and the
- * pieces for the better answer are already here: the ZIP reader works through ranged reads
- * over a `RandomAccessSource`, which is what ADR-0008 built it for, and `SmbClient.open`
- * hands back exactly such a source. What is missing is a reader that takes one rather than a
- * path. Until it does, this downloads, and says so rather than pretending.
+ * A comic is read *over* the share rather than fetched from it: the ZIP and TAR readers work
+ * through ranged reads over a `RandomAccessSource`, which is what ADR-0008 built them for,
+ * and the reader resolves an `smb://` path through an opener the app registers. The first
+ * page of a 400 MB archive costs a few megabytes.
+ *
+ * A PDF and a compressed RAR are the exceptions, and they are honest ones: `PdfRenderer` and
+ * libarchive both want a real file, so those are copied down first.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -179,19 +181,29 @@ private fun EntryRow(entry: SmbEntry, isOpening: Boolean, onTap: () -> Unit) {
     }
 }
 
-/** Fetches a publication from the share and indexes it. */
+/**
+ * Indexes a publication on the share, and says where the reader should open it.
+ *
+ * The index itself is ranged reads over the share -- a header, not a file. The path handed
+ * back is the share's own for anything the reader can stream, and a local copy only for the
+ * two decoders that cannot take a source: `PdfRenderer` and libarchive both want a file.
+ */
 private suspend fun openFromShare(
     context: android.content.Context,
     client: SmbClient,
     address: SmbAddress,
     entry: SmbEntry,
 ): Pair<Publication, String> {
+    val remotePath = "${SmbLocator.of(address)}/${entry.path}"
     val source = client.open(entry.path)
-    val identity = PublicationIdentity(
-        normalizedPath = "${SmbLocator.of(address)}/${entry.path}",
+    val publication = PublicationIndexer.index(
+        source = source,
+        name = entry.name,
+        identity = PublicationIdentity(normalizedPath = remotePath),
     )
-    // A local copy for the decoders that insist on a path. `offline-downloads` owns keeping
-    // things on the device; this is the cache, and it is the reader's working copy.
+
+    if (!needsLocalFile(publication.format)) return publication to remotePath
+
     val local = withContext(Dispatchers.IO) {
         val directory = File(context.cacheDir, "smb").apply { mkdirs() }
         File(directory, entry.name).apply {
@@ -200,11 +212,19 @@ private suspend fun openFromShare(
             }
         }
     }
-    val publication = PublicationIndexer.index(
+    return PublicationIndexer.index(
         source = source,
         name = entry.name,
-        identity = identity,
+        identity = PublicationIdentity(normalizedPath = remotePath),
         decoderPath = local,
-    )
-    return publication to local.absolutePath
+    ) to local.absolutePath
 }
+
+/**
+ * Whether a format's decoder insists on a real file.
+ *
+ * `PdfRenderer` needs a descriptor and libarchive needs a path, so those two are fetched.
+ * Everything else is read where it lies.
+ */
+private fun needsLocalFile(format: PublicationFormat): Boolean =
+    format == PublicationFormat.PDF || format == PublicationFormat.CBR

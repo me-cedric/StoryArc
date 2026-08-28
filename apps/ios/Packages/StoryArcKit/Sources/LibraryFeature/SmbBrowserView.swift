@@ -88,35 +88,47 @@ public struct SmbBrowserView: View {
 
     /// Opens a publication that lives on the share.
     ///
-    /// The whole file is fetched first. That is not what `network-share` asks for — it wants
-    /// the first page of a 400 MB archive without transferring 400 MB — and the pieces for
-    /// the better answer are already here: `ComicArchiveOpener.open(source:)` reads a ZIP
-    /// through ranged reads, and `SmbClient.open` hands back exactly such a source. What is
-    /// missing is an indexer and a reader that take one. Until they do, this downloads, and
-    /// says so rather than pretending.
+    /// The index itself is ranged reads over the share — a header, not a file. The URL
+    /// handed back is the share's own for anything the reader can stream, and a local copy
+    /// only for the decoders that cannot take a source: PDFKit wants a file, libarchive
+    /// wants a path, and the EPUB reader opens one of its own.
     private func open(_ entry: SmbEntry) async {
         opening = entry.path
         defer { opening = nil }
 
         do {
             let client = SmbClient(address: address)
+            let remote = URL(string: "\(SmbLocator.write(address))/\(entry.path)")
+                ?? URL(fileURLWithPath: entry.path)
+            let source = try await client.open(entry.path)
+            let identity = PublicationIdentity(normalizedPath: remote.absoluteString)
+
+            let catalogued = try await PublicationIndexer.index(
+                source: source,
+                name: entry.name,
+                identity: identity
+            )
+            if catalogued.streaming != .refused {
+                return onOpen(catalogued, remote)
+            }
+
+            // Refused means the decoder needs a file. Fetch it, and index again with one.
             let directory = URL.cachesDirectory.appending(path: "Smb", directoryHint: .isDirectory)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-
             let local = directory.appending(path: entry.name)
             let existing = try? local.resourceValues(forKeys: [.fileSizeKey]).fileSize
             if existing.map({ Int64($0) }) != entry.length {
-                let source = try await client.open(entry.path)
                 try await source.read(offset: 0, count: Int(entry.length))
                     .write(to: local, options: .atomic)
             }
-
-            let publication = try await PublicationIndexer.index(fileAt: local)
-            onOpen(publication, local)
+            onOpen(try await PublicationIndexer.index(fileAt: local), local)
         } catch {
             // Said out loud rather than swallowed. A tap that does nothing is the worst
             // answer a screen can give.
-            failure = LocalizedStringResource("smb.error.unexpected", bundle: .atURL(Bundle.module.bundleURL))
+            failure = LocalizedStringResource(
+                "smb.error.unexpected",
+                bundle: .atURL(Bundle.module.bundleURL)
+            )
         }
     }
 }

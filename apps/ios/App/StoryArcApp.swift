@@ -4,6 +4,8 @@ import LibraryFeature
 import Persistence
 import ReaderFeature
 import SettingsFeature
+import Formats
+import Smb
 import StoryArcCore
 import SwiftUI
 
@@ -70,6 +72,26 @@ struct StoryArcApp: App {
     @State private var downloads = DownloadStore().library()
 
     init() {
+        // How the reader reaches a share. Registered here because this is where the source
+        // registry and the credential store both are; `Formats` stays unaware that SMB
+        // exists, which is the only way that dependency can point.
+        ComicArchiveOpener.register(scheme: "smb") { url in
+            let credentials = CredentialStore()
+            let sources = SourceStore().registry().sources
+            guard let page = sources.lazy
+                .compactMap({ SmbPage(source: $0, credentials: credentials) })
+                .first(where: { url.absoluteString.hasPrefix(SmbLocator.write($0.address)) })
+            else { throw SmbError.shareNotFound }
+
+            // Decoded, not as it appears in the URL: a filename with a space arrives as
+            // `%20`, and the server has no such file.
+            let encoded = url.absoluteString
+                .replacingOccurrences(of: SmbLocator.write(page.address), with: "")
+                .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let inside = encoded.removingPercentEncoding ?? encoded
+            return try await SmbClient(address: page.address).open(inside)
+        }
+
         let store = try? ProgressStore()
         self.progress = store
         _library = State(

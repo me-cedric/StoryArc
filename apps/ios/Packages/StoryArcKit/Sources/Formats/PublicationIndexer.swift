@@ -80,6 +80,94 @@ public enum PublicationIndexer {
         }
     }
 
+    /// Indexes a publication that is not a local file.
+    ///
+    /// Everything the file-based path does, over a `RandomAccessSource` instead — which is
+    /// what ADR-0008 put that interface there for. A share supplies one, so a comic on a NAS
+    /// is catalogued from its headers rather than fetched.
+    ///
+    /// - Parameter decoderPath: a local copy, for the two decoders that cannot take a
+    ///   source. PDFKit wants a file and libarchive wants a path; without one, those
+    ///   formats are catalogued as records with their pages marked refused rather than
+    ///   failing outright — the same honest degradation the file path already gives a
+    ///   solid archive.
+    public static func index(
+        source: any RandomAccessSource,
+        name: String,
+        identity: PublicationIdentity,
+        decoderPath: URL? = nil,
+        seriesHint: String? = nil
+    ) async throws -> Publication {
+        let fallback = FilenameMetadata(filename: name, seriesHint: seriesHint)
+        let probe = try await source.read(offset: 0, count: FormatSniffer.probeLength)
+
+        switch FormatSniffer.container(of: probe) {
+        case .pdf:
+            guard let decoderPath else { return record(.pdf, identity, name, fallback) }
+            return try pdf(at: decoderPath, filename: name, fallback: fallback)
+
+        case .zip:
+            // An EPUB is a ZIP too, and only its contents tell the two apart.
+            if let epub = try? await EpubReader(source: source) {
+                // The EPUB reader wants a file of its own, so a remote one is a record
+                // until it has been fetched. Its metadata is still read from the share.
+                guard let decoderPath else { return record(.epub, identity, name, fallback) }
+                return book(epub, at: decoderPath, filename: name, fallback: fallback)
+            }
+            return comic(
+                try await ComicArchiveOpener.open(source: source),
+                format: .cbz,
+                identity: identity,
+                filename: name,
+                fallback: fallback
+            )
+
+        case .tar:
+            return comic(
+                try await TarComicArchive(source: source),
+                format: .cbt,
+                identity: identity,
+                filename: name,
+                fallback: fallback
+            )
+
+        case .rar:
+            guard let decoderPath else { return record(.cbr, identity, name, fallback) }
+            return try await comicArchive(
+                url: decoderPath, format: .cbr, filename: name, fallback: fallback
+            )
+
+        case .sevenZip:
+            throw IndexError.unsupported(format: PublicationFormat.cb7.displayName)
+
+        case nil:
+            throw IndexError.unreadable(reason: "the format was not recognised")
+        }
+    }
+
+    /// A publication that exists but whose pages cannot be reached from here.
+    ///
+    /// The library should list it and say why, not silently drop it — the same answer a
+    /// solid archive already gets.
+    private static func record(
+        _ format: PublicationFormat,
+        _ identity: PublicationIdentity,
+        _ filename: String,
+        _ fallback: FilenameMetadata
+    ) -> Publication {
+        Publication(
+            identity: identity,
+            format: format,
+            displayTitle: title(from: nil, fallback: fallback, filename: filename),
+            series: fallback.series,
+            number: fallback.number,
+            volume: fallback.volume,
+            year: fallback.year,
+            origin: .inferred,
+            streaming: .refused
+        )
+    }
+
     // MARK: - Per-container
 
     private static func comicArchive(

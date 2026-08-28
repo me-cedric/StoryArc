@@ -129,7 +129,10 @@ public actor SmbClient {
     private static func meaning(of status: UInt32) -> SmbError {
         switch status {
         case 0xC000_006D, 0xC000_006A, 0xC000_0022: return .authenticationRejected
-        case 0xC000_00CC, 0xC000_003A, 0xC000_0034: return .shareNotFound
+        // BAD_NETWORK_NAME and OBJECT_PATH_NOT_FOUND only. OBJECT_NAME_NOT_FOUND means a
+        // missing *file*, which is not a missing share and must not be reported as one --
+        // it sent a reader looking at their server settings for a typo in a filename.
+        case 0xC000_00CC, 0xC000_003A: return .shareNotFound
         case 0xC000_0203, 0xC000_0205: return .hostUnreachable
         default: return .unexpected(detail: NTStatus(status).description)
         }

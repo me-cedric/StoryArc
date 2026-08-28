@@ -52,6 +52,9 @@ import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSheet
 import app.storyarc.feature.library.SmbBrowserScreen
 import app.storyarc.feature.library.SmbConnection
+import app.storyarc.core.format.PublicationAccess
+import app.storyarc.core.smb.SmbClient
+import app.storyarc.feature.library.SmbLocator
 import app.storyarc.feature.library.SmbPage
 import app.storyarc.feature.library.SmbSheet
 import app.storyarc.feature.library.KavitaSync
@@ -152,6 +155,21 @@ class MainActivity : ComponentActivity() {
         val pins = CertificatePins(pinStore.pins())
         val downloadStore = DownloadStore.open(applicationContext)
         val kavitaProgress = KavitaProgressStore.open(applicationContext)
+
+        // How the reader reaches a share. Registered here because this is where the source
+        // registry and the credential store both are; `core:format` stays unaware that SMB
+        // exists, which is the only way that dependency can point.
+        PublicationAccess.register("smb") { path ->
+            val source = sourceStore.registry().sources
+                .firstNotNullOfOrNull { candidate ->
+                    SmbPage.of(candidate, credentials)?.takeIf {
+                        path.startsWith(SmbLocator.of(it.address))
+                    }
+                }
+                ?: error("no share holds ${'$'}path")
+            val inside = path.removePrefix(SmbLocator.of(source.address)).trim('/')
+            SmbClient(source.address).open(inside)
+        }
         BuildInfo.read(applicationContext)
 
         setContent {
