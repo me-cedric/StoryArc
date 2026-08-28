@@ -22,6 +22,9 @@ struct DownloadsSettings: View {
     /// of number that makes a reader distrust the whole screen.
     let bytesOnDisk: Int64
 
+    /// The reader's own policy for the queue, and how to change it.
+    @Binding var settings: AppSettings
+
     /// The name of the source a download came from, when it came from one.
     let sourceName: (UUID) -> String?
 
@@ -40,6 +43,8 @@ struct DownloadsSettings: View {
 
     var body: some View {
         List {
+            policy
+
             if finished.isEmpty && library.pending.isEmpty {
                 Text("downloads.none", bundle: .module)
                     .textRole(.footnote)
@@ -168,4 +173,49 @@ extension Download.Pause {
         case .outOfSpace: "downloads.paused.outOfSpace"
         }
     }
+}
+
+extension DownloadsSettings {
+    /// What the reader has asked of the queue.
+    ///
+    /// The three `offline-downloads` calls policy: whether to wait for Wi-Fi, how much disk
+    /// to spend, and whether a finished publication keeps its download. All three change
+    /// what the queue does rather than how it looks, which is why they sit above the list of
+    /// files rather than inside it.
+    @ViewBuilder
+    fileprivate var policy: some View {
+        Section {
+            Toggle(isOn: $settings.downloadOverWifiOnly) {
+                VStack(alignment: .leading) {
+                    Text("downloads.wifiOnly", bundle: .module)
+                    Text("downloads.wifiOnly.note", bundle: .module)
+                        .textRole(.footnote)
+                        .foregroundStyle(theme.palette.textTertiary)
+                }
+            }
+
+            Toggle(isOn: $settings.removeDownloadsAfterFinishing) {
+                VStack(alignment: .leading) {
+                    Text("downloads.removeAfter", bundle: .module)
+                    Text("downloads.removeAfter.note", bundle: .module)
+                        .textRole(.footnote)
+                        .foregroundStyle(theme.palette.textTertiary)
+                }
+            }
+
+            // A short ladder rather than a free number: a reader knows "about five
+            // gigabytes", not 5_000_000_000, and a field for a byte count is a way to
+            // mistype one. Round decimal values, because that is how a size is shown.
+            Picker(selection: $settings.maximumDownloadBytes) {
+                Text("downloads.limit.none", bundle: .module).tag(Int64?.none)
+                ForEach(Self.limits, id: \.self) { limit in
+                    Text(limit.formatted(.byteCount(style: .file))).tag(Int64?.some(limit))
+                }
+            } label: {
+                Text("downloads.limit", bundle: .module)
+            }
+        }
+    }
+
+    fileprivate static let limits: [Int64] = [1_000_000_000, 5_000_000_000, 20_000_000_000]
 }

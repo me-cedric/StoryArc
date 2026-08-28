@@ -39,8 +39,15 @@ public final class DownloadQueue {
     public init(
         pins: CertificatePins = CertificatePins(),
         store: DownloadStore? = nil,
-        credential: @escaping (Download.ID) -> OpdsCredential? = { _ in nil }
+        credential: @escaping (Download.ID) -> OpdsCredential? = { _ in nil },
+        /// What the reader has asked of the queue.
+        ///
+        /// A closure rather than a value: `offline-downloads` requires a paused queue to
+        /// "resume automatically when [Wi-Fi] returns", so the answer has to be re-asked
+        /// rather than captured once at construction.
+        settings: @escaping () -> AppSettings = { .defaults }
     ) {
+        self.settings = settings
         client = OpdsClient(pins: pins)
         self.store = store
         self.credential = credential
@@ -57,6 +64,34 @@ public final class DownloadQueue {
     /// metered or constrained connection, which is what `offline-downloads` means by
     /// lowering the bound — Low Data Mode and a personal hotspot both land here.
     public var concurrency: Int { network.isCareful ? 1 : 2 }
+
+    private let settings: () -> AppSettings
+
+    /// What is stopping the queue.
+    public enum Held: Sendable, Equatable {
+        case waitingForWifi
+        case storageFull
+    }
+
+    /// Why the queue is not starting anything, if it is not.
+    ///
+    /// Nil when it may run. `offline-downloads` requires a held queue to *say* what it is
+    /// waiting for — "waiting for Wi-Fi" and "the storage limit is reached" are different
+    /// situations with different remedies, and a stalled list that explains neither is the
+    /// worst of the three.
+    public var held: Held? {
+        let current = settings()
+        if current.downloadOverWifiOnly, network.isCellular { return .waitingForWifi }
+        guard let limit = current.maximumDownloadBytes else { return nil }
+        return library.bytesOnDisk >= limit ? .storageFull : nil
+    }
+
+    /// Re-examines a held queue.
+    ///
+    /// Called when the network or the settings change. `offline-downloads` promises
+    /// downloads "resume automatically when [Wi-Fi] returns", and automatically means
+    /// without the reader going back to the screen.
+    public func reconsider() { pump() }
 
     /// Which publications are recorded as being on the device.
     public var onDevice: Set<String> { Set(library.finished.map(\.id)) }
@@ -146,6 +181,9 @@ public final class DownloadQueue {
 
     /// Starts whatever should be running and is not.
     private func pump() {
+        // Held rather than cancelled: the queue keeps its order and its progress, and
+        // starts again by itself the next time this is asked.
+        guard held == nil else { return }
         let ready = library.downloads.filter { $0.state == .queued }
         for download in ready.prefix(max(0, concurrency - running.count)) {
             guard let entry = titles[download.id] else {

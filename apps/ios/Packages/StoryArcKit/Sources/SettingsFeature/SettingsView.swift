@@ -166,6 +166,7 @@ public struct SettingsView: View {
             DownloadsSettings(
                 library: downloads,
                 bytesOnDisk: bytesOnDisk,
+                settings: $settings,
                 sourceName: { id in sources.first { $0.id == id }?.displayName },
                 onRemove: onRemoveDownload
             )

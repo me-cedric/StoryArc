@@ -32,4 +32,14 @@ final class NetworkCost {
         guard let path else { return true }
         return path.isConstrained || path.isExpensive
     }
+
+    /// Whether the only way out is cellular.
+    ///
+    /// Separate from ``isCareful``: Low Data Mode over Wi-Fi is careful but is still Wi-Fi,
+    /// and `offline-downloads`' "download over Wi-Fi only" is a question about the medium
+    /// rather than about the cost.
+    var isCellular: Bool {
+        guard let path else { return true }
+        return !path.usesInterfaceType(.wifi) && !path.usesInterfaceType(.wiredEthernet)
+    }
 }
