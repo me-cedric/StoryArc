@@ -12,7 +12,9 @@ internal import Security
 /// A generic password item per source, keyed by the source's identifier. Not one item
 /// holding a dictionary: removing a source has to remove exactly its own secret, and a
 /// shared blob makes that a read, an edit and a write where it should be a delete.
-public struct CredentialStore {
+/// The keychain is thread-safe and this holds nothing else, so crossing an actor boundary
+/// with one is safe; Swift cannot see that for itself.
+public struct CredentialStore: @unchecked Sendable {
     /// Which app the items belong to. A constant rather than the bundle identifier, so a
     /// debug build and a release build read the same items on the same device.
     private let service: String

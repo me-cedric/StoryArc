@@ -264,6 +264,31 @@ extension LibraryModel {
             let state = await reach(source, credentials: credentials, pins: pins)
             registry = registry.marking(source.id, as: state)
         }
+        // Asked at the same moment, because it is the same question — what does this server
+        // have — and the add-to menu cannot fetch it for itself without opening a connection
+        // every time a reader long-presses a cover.
+        serverLists = await ServerShelf.all(in: registry, credentials: credentials)
+            .filter(\.isList)
+    }
+
+    /// Adds a publication to one of a server's reading lists.
+    ///
+    /// Returns false when the publication did not come from that server. `kavita-server`
+    /// requires the app to explain that "a server list can only contain that server's
+    /// publications" rather than silently doing nothing or silently doing the wrong thing.
+    @discardableResult
+    func add(_ publication: Publication, toServerList list: ServerShelf) async -> Bool {
+        let kavita = KavitaProgressStore()
+        guard let origin = kavita.origin(of: publication.id),
+              origin.sourceId == list.server.id
+        else { return false }
+
+        let credentials = CredentialStore()
+        let address = registry.sources
+            .first { $0.id.uuidString == origin.sourceId }
+            .flatMap { KavitaPage(source: $0, credentials: credentials)?.address }
+        await KavitaSync.append(list.id, for: origin, to: address, in: kavita)
+        return true
     }
 
     private func reach(

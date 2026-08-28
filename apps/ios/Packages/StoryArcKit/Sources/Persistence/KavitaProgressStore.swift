@@ -31,11 +31,22 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
     public let page: Int
     /// Nil for a position. True or false for a mark the reader made deliberately.
     public let mark: Bool?
+    /// Set when this is an append to one of the server's reading lists.
+    public let listID: Int?
 
-    public init(origin: KavitaOrigin, page: Int, mark: Bool? = nil) {
+    /// What makes two held items the same thing.
+    ///
+    /// The chapter alone is not enough: a position, a mark and a list append can all be
+    /// waiting for the same chapter, and they are three different promises.
+    public var key: String {
+        "\(origin.chapterId):\(listID.map(String.init) ?? "-"):\(mark.map(String.init) ?? "-")"
+    }
+
+    public init(origin: KavitaOrigin, page: Int, mark: Bool? = nil, listID: Int? = nil) {
         self.origin = origin
         self.page = page
         self.mark = mark
+        self.listID = listID
     }
 
     /// A queue written before marks existed has no `mark` field, and it means "a position".
@@ -44,10 +55,11 @@ public struct KavitaUnsent: Sendable, Equatable, Codable {
         origin = try container.decode(KavitaOrigin.self, forKey: .origin)
         page = try container.decode(Int.self, forKey: .page)
         mark = try container.decodeIfPresent(Bool.self, forKey: .mark)
+        listID = try container.decodeIfPresent(Int.self, forKey: .listID)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case origin, page, mark
+        case origin, page, mark, listID
     }
 }
 
@@ -82,8 +94,7 @@ public struct KavitaProgressStore: @unchecked Sendable {
 
     /// Keeps a position that could not be sent. One per chapter: the latest page wins.
     public func hold(_ unsent: KavitaUnsent) {
-        let kept = self.unsent().filter { $0.origin.chapterId != unsent.origin.chapterId }
-        write(kept + [unsent])
+        write(self.unsent().filter { $0.key != unsent.key } + [unsent])
     }
 
     /// Everything still waiting for a server.
@@ -96,8 +107,8 @@ public struct KavitaProgressStore: @unchecked Sendable {
 
     /// Drops the positions that reached the server.
     public func sent(_ delivered: [KavitaUnsent]) {
-        let chapters = Set(delivered.map(\.origin.chapterId))
-        write(unsent().filter { !chapters.contains($0.origin.chapterId) })
+        let keys = Set(delivered.map(\.key))
+        write(unsent().filter { !keys.contains($0.key) })
     }
 
     private func links() -> [String: KavitaOrigin] {

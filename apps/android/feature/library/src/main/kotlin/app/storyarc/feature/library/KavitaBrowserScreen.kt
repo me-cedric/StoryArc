@@ -75,6 +75,8 @@ fun KavitaBrowserScreen(
     address: KavitaAddress,
     sourceId: String,
     store: KavitaProgressStore,
+    /** This server's own reading lists, which its chapters may be added to. */
+    lists: List<ServerList> = emptyList(),
     level: KavitaLevel,
     onLevel: (KavitaLevel) -> Unit,
     onOpen: (Publication, String) -> Unit,
@@ -179,6 +181,7 @@ fun KavitaBrowserScreen(
                 client = client,
                 sourceId = sourceId,
                 store = store,
+                lists = lists,
                 onOpen = onOpen,
                 modifier = body,
                 contentPadding = edges,

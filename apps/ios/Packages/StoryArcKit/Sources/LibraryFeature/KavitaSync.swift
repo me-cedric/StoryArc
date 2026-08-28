@@ -42,6 +42,23 @@ public enum KavitaSync {
         }
     }
 
+    /// Appends a chapter to one of the server's reading lists, holding it if the server is
+    /// not there.
+    public static func append(
+        _ listID: Int,
+        for origin: KavitaOrigin,
+        to address: KavitaAddress?,
+        in store: KavitaProgressStore
+    ) async {
+        let unsent = KavitaUnsent(origin: origin, page: 0, listID: listID)
+        guard let address else { return store.hold(unsent) }
+        do {
+            try await send(KavitaClient(address: address), unsent)
+        } catch {
+            store.hold(unsent)
+        }
+    }
+
     /// Sends everything held for one server.
     ///
     /// Held positions that still fail stay held. A server that is down now was down when the
@@ -65,6 +82,13 @@ public enum KavitaSync {
     }
 
     private static func send(_ client: KavitaClient, _ held: KavitaUnsent) async throws {
+        if let listID = held.listID {
+            return try await client.append(
+                toList: listID,
+                seriesId: held.origin.seriesId,
+                chapterIds: [held.origin.chapterId]
+            )
+        }
         guard let mark = held.mark else {
             return try await client.report(position(held.origin, held.page))
         }

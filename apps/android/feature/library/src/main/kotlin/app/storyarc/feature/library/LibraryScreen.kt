@@ -128,6 +128,8 @@ fun LibraryScreen(
     onProbeSources: () -> Unit = {},
     /** Marks a publication read or unread. The app layer owns the secrets it may need. */
     onMark: (Publication, Boolean) -> Unit = { _, _ -> },
+    /** Adds to one of a server's reading lists. False when that server cannot hold it. */
+    onAddToServerList: (suspend (Publication, ServerList) -> Boolean)? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -336,6 +338,7 @@ fun LibraryScreen(
             publication = shelved,
             onDismiss = { shelving = null },
             onMark = { isRead -> onMark(shelved, isRead) },
+            onAddToServerList = onAddToServerList?.let { add -> { list -> add(shelved, list) } },
         )
     }
 }

@@ -17,6 +17,7 @@ public struct KavitaBrowserView: View {
     private let address: KavitaAddress
     private let sourceId: String
     private let store: KavitaProgressStore
+    private let lists: [ServerShelf]
     private let onOpen: (Publication, URL) -> Void
 
     /// Created here, once, from the address.
@@ -35,12 +36,14 @@ public struct KavitaBrowserView: View {
         address: KavitaAddress,
         sourceId: String,
         store: KavitaProgressStore,
+        lists: [ServerShelf] = [],
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
     ) {
         self.title = title
         self.address = address
         self.sourceId = sourceId
         self.store = store
+        self.lists = lists
         _client = State(initialValue: KavitaClient(address: address))
         self.onOpen = onOpen
     }
@@ -59,6 +62,7 @@ public struct KavitaBrowserView: View {
                         library: library,
                         sourceId: sourceId,
                         store: store,
+                        lists: lists,
                         onOpen: onOpen
                     )
                 } label: {

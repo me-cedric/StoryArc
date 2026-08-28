@@ -116,6 +116,9 @@ struct ContinueReadingRow: View {
 
 /// One publication in the grid.
 struct CoverCell: View {
+    /// The server whose list just refused this publication, if one did.
+    @State private var refusedServer: String?
+
     @Environment(\.theme) private var theme
 
     let publication: Publication
@@ -174,7 +177,30 @@ struct CoverCell: View {
         // somewhere to add it to — a menu whose only content is "you have no collections"
         // is a menu that wastes a long press.
         .contextMenu {
-            AddToShelfMenu(model: model, publication: publication)
+            AddToShelfMenu(model: model, publication: publication) { refusedServer = $0 }
+        }
+        .alert(
+            Text("shelves.serverOnly.title", bundle: .module),
+            isPresented: Binding(
+                get: { refusedServer != nil },
+                set: { if !$0 { refusedServer = nil } }
+            )
+        ) {
+            Button {
+                // The offer the spec asks for: a local list can hold anything.
+                model.create(list: publication.displayTitle)
+                if let made = model.shelves.lists.last {
+                    model.append([publication.id], toList: made.id)
+                }
+                refusedServer = nil
+            } label: {
+                Text("shelves.serverOnly.local", bundle: .module)
+            }
+            Button(role: .cancel) { refusedServer = nil } label: {
+                Text("shelves.cancel", bundle: .module)
+            }
+        } message: {
+            Text("shelves.serverOnly.body \(refusedServer ?? "")", bundle: .module)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)

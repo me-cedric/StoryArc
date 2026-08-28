@@ -11,11 +11,11 @@ import StoryArcCore
 /// A collection and a reading list differ in kind — one groups series with no order, the
 /// other is an ordered run of chapters — so the flag chooses the screen rather than one
 /// screen guessing from what it finds.
-struct ServerShelf: Identifiable, Sendable {
-    let server: KavitaPage
-    let id: Int
-    let title: String
-    let isList: Bool
+public struct ServerShelf: Identifiable, Sendable {
+    public let server: KavitaPage
+    public let id: Int
+    public let title: String
+    public let isList: Bool
 
     /// Every Kavita server's shelves, asked for once.
     static func all(
@@ -49,6 +49,8 @@ struct KavitaCollectionView: View {
     let server: KavitaPage
     let collectionID: Int
     let title: String
+    /// This server's own reading lists, passed through to each chapter list.
+    var lists: [ServerShelf] = []
     let onOpen: (Publication, URL) -> Void
 
     @State private var series: [KavitaSeries] = []
@@ -66,6 +68,7 @@ struct KavitaCollectionView: View {
                             series: each,
                             sourceId: server.id,
                             store: KavitaProgressStore(),
+                            lists: lists,
                             onOpen: onOpen
                         )
                     } label: {

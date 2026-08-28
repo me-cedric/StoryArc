@@ -15,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -62,6 +64,8 @@ fun KavitaChapters(
     client: KavitaClient,
     sourceId: String,
     store: KavitaProgressStore,
+    /** This server's own reading lists, which its chapters may be added to. */
+    lists: List<ServerList> = emptyList(),
     onOpen: (Publication, String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -85,24 +89,25 @@ fun KavitaChapters(
 
     // `kavita-server`: marking read must reach the server so its own UI agrees. A long
     // press is where Android puts "what else can I do with this".
+    fun originOf(chapter: KavitaChapter) = KavitaOrigin(
+        sourceId = sourceId,
+        libraryId = series.libraryId,
+        seriesId = series.id,
+        volumeId = volumes.firstOrNull { volume ->
+            volume.chapters.any { it.id == chapter.id }
+        }?.id ?: 0,
+        chapterId = chapter.id,
+    )
+
     val mark: (KavitaChapter, Boolean) -> Unit = { chapter, isRead ->
         scope.launch {
-            KavitaSync.mark(
-                store,
-                client.address,
-                KavitaOrigin(
-                    sourceId = sourceId,
-                    libraryId = series.libraryId,
-                    seriesId = series.id,
-                    volumeId = volumes.firstOrNull { volume ->
-                        volume.chapters.any { it.id == chapter.id }
-                    }?.id ?: 0,
-                    chapterId = chapter.id,
-                ),
-                isRead,
-            )
+            KavitaSync.mark(store, client.address, originOf(chapter), isRead)
             volumes = runCatching { client.volumes(series.id) }.getOrDefault(volumes)
         }
+    }
+
+    val addTo: (KavitaChapter, ServerList) -> Unit = { chapter, list ->
+        scope.launch { KavitaSync.append(store, client.address, originOf(chapter), list.id) }
     }
 
     val open: (KavitaChapter) -> Unit = { chapter ->
@@ -163,8 +168,12 @@ fun KavitaChapters(
                 ChapterRow(
                     chapter = chapter,
                     isFetching = fetching == chapter.id,
+                    // Only this server's own lists: a Kavita list can hold nothing else,
+                    // and offering another server's would be offering a refusal.
+                    lists = lists.filter { it.server.id == sourceId },
                     onOpen = { open(chapter) },
                     onMark = { mark(chapter, !chapter.isFinished) },
+                    onAddTo = { addTo(chapter, it) },
                 )
             }
         }
@@ -201,9 +210,14 @@ private fun KavitaMetadataBlock(metadata: KavitaMetadata) {
 private fun ChapterRow(
     chapter: KavitaChapter,
     isFetching: Boolean,
+    lists: List<ServerList>,
     onOpen: () -> Unit,
     onMark: () -> Unit,
+    onAddTo: (ServerList) -> Unit,
 ) {
+    // A long press opens the choices rather than performing one, because there are two:
+    // marking read, and putting the chapter in one of the server's lists.
+    var menuOpen by remember { mutableStateOf(false) }
     val palette = LocalStoryArcPalette.current
     // The tick means "finished" and the spinner means "fetching". Both are silent to a
     // screen reader unless the row says so itself.
@@ -221,14 +235,8 @@ private fun ChapterRow(
             .combinedClickable(
                 enabled = !isFetching,
                 onClick = onOpen,
-                onLongClick = onMark,
-                onLongClickLabel = stringResource(
-                    if (chapter.isFinished) {
-                        R.string.library_mark_unread
-                    } else {
-                        R.string.library_mark_read
-                    },
-                ),
+                onLongClick = { menuOpen = true },
+                onLongClickLabel = stringResource(R.string.kavita_chapter_actions),
             )
             .defaultMinSize(minHeight = 48.dp)
             .padding(vertical = StoryArcSpace.xs)
@@ -245,6 +253,35 @@ private fun ChapterRow(
                 CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
             chapter.isFinished ->
                 Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = palette.accent)
+        }
+
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(
+                            if (chapter.isFinished) {
+                                R.string.library_mark_unread
+                            } else {
+                                R.string.library_mark_read
+                            },
+                        ),
+                    )
+                },
+                onClick = {
+                    menuOpen = false
+                    onMark()
+                },
+            )
+            lists.forEach { list ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.kavita_add_to_list, list.title)) },
+                    onClick = {
+                        menuOpen = false
+                        onAddTo(list)
+                    },
+                )
+            }
         }
     }
 }

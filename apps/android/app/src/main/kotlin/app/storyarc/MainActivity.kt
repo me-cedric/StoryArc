@@ -43,6 +43,7 @@ import app.storyarc.feature.library.CatalogueSheet
 import app.storyarc.feature.library.CollectionDetailScreen
 import app.storyarc.feature.library.KavitaBrowserScreen
 import app.storyarc.feature.library.KavitaCollectionScreen
+import app.storyarc.feature.library.ServerList
 import app.storyarc.feature.library.ServerShelf
 import app.storyarc.feature.library.KavitaListScreen
 import app.storyarc.feature.library.KavitaConnection
@@ -295,6 +296,7 @@ class MainActivity : ComponentActivity() {
                 val page = catalogue.lastOrNull()
                 val server = kavita
 
+                val serverLists by libraryViewModel.serverLists.collectAsStateWithLifecycle()
                 val serverShelf = openServerShelf
                 if (serverShelf != null && selection == null) {
                     BackHandler { openServerShelf = null }
@@ -362,6 +364,7 @@ class MainActivity : ComponentActivity() {
                         address = server.address,
                         sourceId = server.id,
                         store = kavitaProgress,
+                        lists = serverLists,
                         level = kavitaLevel,
                         onLevel = { kavitaLevel = it },
                         onOpen = route,
@@ -474,6 +477,14 @@ class MainActivity : ComponentActivity() {
                             libraryViewModel.mark(
                                 publication,
                                 isRead,
+                                kavitaProgress,
+                                credentials,
+                            )
+                        },
+                        onAddToServerList = { publication, list ->
+                            libraryViewModel.addToServerList(
+                                publication,
+                                list,
                                 kavitaProgress,
                                 credentials,
                             )

@@ -162,4 +162,9 @@
     <string name="kavita_continue">Weiterlesen · %1$s</string>
     <string name="library_mark_read">Als gelesen markieren</string>
     <string name="library_mark_unread">Als ungelesen markieren</string>
+    <string name="shelves_server_only_title">Nur von diesem Server</string>
+    <string name="shelves_server_only_body">„%1$s“ kann nur Publikationen von diesem Server enthalten.</string>
+    <string name="shelves_server_only_local">Stattdessen lokale Liste erstellen</string>
+    <string name="kavita_chapter_actions">Kapitelaktionen</string>
+    <string name="kavita_add_to_list">Zu „%1$s“ hinzufügen</string>
 </resources>

@@ -34,7 +34,17 @@ data class KavitaUnsent(
     val page: Int,
     /** Null for a position. True or false for a mark the reader made deliberately. */
     val mark: Boolean? = null,
-)
+    /** Set when this is an append to one of the server's reading lists. */
+    val listId: Int? = null,
+) {
+    /**
+     * What makes two held items the same thing.
+     *
+     * The chapter alone is not enough: a position, a mark and a list append can all be
+     * waiting for the same chapter, and they are three different promises.
+     */
+    val key: String get() = listOf(origin.chapterId, listId, mark).joinToString(":")
+}
 
 /**
  * The link between a local publication and its Kavita chapter, and what has not been sent.
@@ -68,7 +78,7 @@ class KavitaProgressStore internal constructor(
 
     /** Keeps a position that could not be sent. One per chapter: the latest page wins. */
     fun hold(unsent: KavitaUnsent) {
-        val kept = unsent().filterNot { it.origin.chapterId == unsent.origin.chapterId } + unsent
+        val kept = unsent().filterNot { it.key == unsent.key } + unsent
         preferences.edit().putString(UNSENT, encodeUnsent(kept)).apply()
     }
 
@@ -80,8 +90,8 @@ class KavitaProgressStore internal constructor(
 
     /** Drops the positions that reached the server. */
     fun sent(delivered: List<KavitaUnsent>) {
-        val chapters = delivered.map { it.origin.chapterId }.toSet()
-        val kept = unsent().filterNot { it.origin.chapterId in chapters }
+        val keys = delivered.map { it.key }.toSet()
+        val kept = unsent().filterNot { it.key in keys }
         preferences.edit().putString(UNSENT, encodeUnsent(kept)).apply()
     }
 

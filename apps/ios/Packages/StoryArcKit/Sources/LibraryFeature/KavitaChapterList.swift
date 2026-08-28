@@ -18,6 +18,8 @@ struct KavitaChapterList: View {
     let series: KavitaSeries
     let sourceId: String
     let store: KavitaProgressStore
+    /// This server's own reading lists, which its chapters may be added to.
+    var lists: [ServerShelf] = []
     let onOpen: (Publication, URL) -> Void
 
     @State private var volumes: [KavitaVolume] = []
@@ -118,6 +120,21 @@ struct KavitaChapterList: View {
                     systemImage: chapter.isFinished ? "circle" : "checkmark.circle"
                 )
             }
+            // Only this server's own lists: a Kavita list can hold nothing else, and
+            // offering another server's would be offering a refusal.
+            ForEach(lists.filter { $0.server.id == sourceId }) { list in
+                Button {
+                    Task { await add(chapter, to: list) }
+                } label: {
+                    Label(
+                        String(
+                            format: String(localized: "kavita.addToList %@", bundle: .module),
+                            list.title
+                        ),
+                        systemImage: "text.append"
+                    )
+                }
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken(chapter))
@@ -145,17 +162,27 @@ struct KavitaChapterList: View {
     private func mark(_ chapter: KavitaChapter, read isRead: Bool) async {
         await KavitaSync.mark(
             isRead,
-            for: KavitaOrigin(
-                sourceId: sourceId,
-                libraryId: series.libraryId,
-                seriesId: series.id,
-                volumeId: volumes.first { $0.chapters.contains(chapter) }?.id ?? 0,
-                chapterId: chapter.id
-            ),
+            for: origin(of: chapter),
             to: client.address,
             in: store
         )
         volumes = (try? await client.volumes(ofSeries: series.id)) ?? volumes
+    }
+
+    /// Puts a chapter in one of this server's reading lists.
+    private func add(_ chapter: KavitaChapter, to list: ServerShelf) async {
+        await KavitaSync.append(list.id, for: origin(of: chapter), to: client.address, in: store)
+    }
+
+    /// Where a chapter sits on the server, which every write needs to name.
+    private func origin(of chapter: KavitaChapter) -> KavitaOrigin {
+        KavitaOrigin(
+            sourceId: sourceId,
+            libraryId: series.libraryId,
+            seriesId: series.id,
+            volumeId: volumes.first { $0.chapters.contains(chapter) }?.id ?? 0,
+            chapterId: chapter.id
+        )
     }
 
     private func open(_ chapter: KavitaChapter) async {
@@ -174,16 +201,7 @@ struct KavitaChapterList: View {
 
         // The note the reader cannot leave for itself: it opens a file and knows nothing
         // about servers, so this is what lets the position get home.
-        store.remember(
-            KavitaOrigin(
-                sourceId: sourceId,
-                libraryId: series.libraryId,
-                seriesId: series.id,
-                volumeId: volumes.first { $0.chapters.contains(chapter) }?.id ?? 0,
-                chapterId: chapter.id
-            ),
-            for: publication.id
-        )
+        store.remember(origin(of: chapter), for: publication.id)
         onOpen(publication, file)
     }
 }

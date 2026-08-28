@@ -178,6 +178,7 @@ public struct LibraryView: View {
                             address: page.address,
                             sourceId: page.id,
                             store: kavitaProgress,
+                            lists: model.serverLists,
                             onOpen: onOpen
                         )
                     } else {

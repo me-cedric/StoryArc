@@ -21,6 +21,7 @@ import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.model.Source
 import java.util.UUID
 import app.storyarc.core.catalogue.CertificatePins
+import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.model.SourceConnectionState
@@ -67,6 +68,11 @@ class LibraryViewModel(
      * so it never drew a row for the folder a reader had picked.
      */
     private val _registry = MutableStateFlow(sourceStore?.registry() ?: SourceRegistry())
+
+    private val _serverLists = MutableStateFlow<List<ServerList>>(emptyList())
+
+    /** The reading lists every known Kavita server holds, once they have been asked. */
+    val serverLists: StateFlow<List<ServerList>> = _serverLists.asStateFlow()
     val registry: StateFlow<SourceRegistry> = _registry.asStateFlow()
 
     private val _shelves = MutableStateFlow(shelvesStore?.shelves() ?: Shelves())
@@ -218,7 +224,43 @@ class LibraryViewModel(
                 )
                 _registry.update { it.marking(source.id, state) }
             }
+            // Asked at the same moment, because it is the same question -- what does this
+            // server have -- and the add-to sheet cannot fetch it for itself without
+            // opening a connection every time a reader long-presses a cover.
+            _serverLists.value = _registry.value.sources.flatMap { source ->
+                val page = KavitaPage.of(source, credentials) ?: return@flatMap emptyList()
+                runCatching { KavitaClient(page.address).readingLists() }
+                    .getOrDefault(emptyList())
+                    .map { ServerList(page, it.id, it.title) }
+            }
         }
+    }
+
+    /**
+     * Adds a publication to one of a server's reading lists.
+     *
+     * Returns false when the publication did not come from that server. `kavita-server`
+     * requires the app to explain that "a server list can only contain that server's
+     * publications" rather than silently doing nothing or silently doing the wrong thing.
+     */
+    suspend fun addToServerList(
+        publication: Publication,
+        list: ServerList,
+        kavita: KavitaProgressStore?,
+        credentials: CredentialStore?,
+    ): Boolean {
+        val origin = kavita?.origin(publication.id) ?: return false
+        if (origin.sourceId != list.server.id) return false
+
+        KavitaSync.append(
+            kavita,
+            _registry.value.sources
+                .firstOrNull { it.id.toString() == origin.sourceId }
+                ?.let { KavitaPage.of(it, credentials)?.address },
+            origin,
+            list.id,
+        )
+        return true
     }
 
     fun restoreFolders() {

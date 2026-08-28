@@ -17,6 +17,8 @@ struct KavitaSeriesList: View {
     let library: KavitaLibraryFolder
     let sourceId: String
     let store: KavitaProgressStore
+    /// This server's own reading lists, passed through to each chapter list.
+    var lists: [ServerShelf] = []
     let onOpen: (Publication, URL) -> Void
 
     @State private var series: [KavitaSeries] = []
@@ -40,6 +42,7 @@ struct KavitaSeriesList: View {
                             series: each,
                             sourceId: sourceId,
                             store: store,
+                            lists: lists,
                             onOpen: onOpen
                         )
                     } label: {

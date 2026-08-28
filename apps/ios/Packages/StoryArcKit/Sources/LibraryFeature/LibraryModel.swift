@@ -68,6 +68,9 @@ public final class LibraryModel {
     private var locations: [String: URL] = [:]
     private var scanTask: Task<Void, Never>?
     let progressStore: ProgressStore?
+
+    /// The reading lists every known Kavita server holds, once they have been asked.
+    var serverLists: [ServerShelf] = []
     // Internal, not private: the shelves half of this type lives in another file.
     /// How far through each publication the reader got, keyed by publication id.
     var progress: [String: ReadingProgress] = [:]

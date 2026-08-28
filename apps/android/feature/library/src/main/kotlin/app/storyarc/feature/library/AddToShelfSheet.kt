@@ -7,10 +7,16 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -18,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
+import kotlinx.coroutines.launch
 
 /**
  * What can be done with a publication that is not "open it".
@@ -37,11 +44,17 @@ fun AddToShelfSheet(
     publication: Publication,
     onDismiss: () -> Unit,
     onMark: ((Boolean) -> Unit)? = null,
+    onAddToServerList: (suspend (ServerList) -> Boolean)? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
+    val serverLists by viewModel.serverLists.collectAsStateWithLifecycle()
     val already = shelves.collectionsContaining(publication.id).map { it.id }.toSet()
     val isRead = publication.id in viewModel.finishedPublications()
+    val scope = rememberCoroutineScope()
+
+    // Shown when a reader tries to put a publication into a list that cannot hold it.
+    var refused by remember { mutableStateOf<String?>(null) }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -103,7 +116,55 @@ fun AddToShelfSheet(
                     onDismiss()
                 }
             }
+
+            // A server's own lists, offered like any other. Whether this publication can go
+            // in one is the server's rule, not something to hide by leaving the row out: a
+            // list a reader cannot see is a list they will look for.
+            if (onAddToServerList != null) {
+                serverLists.forEach { list ->
+                    Row(
+                        name = "${list.title} · ${list.server.title}",
+                        isMember = false,
+                        enabled = true,
+                    ) {
+                        scope.launch {
+                            if (onAddToServerList(list)) {
+                                onDismiss()
+                            } else {
+                                refused = list.server.title
+                            }
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    refused?.let { server ->
+        AlertDialog(
+            onDismissRequest = { refused = null },
+            title = { Text(stringResource(R.string.shelves_server_only_title)) },
+            text = { Text(stringResource(R.string.shelves_server_only_body, server)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    // The offer the spec asks for: a local list can hold anything.
+                    viewModel.createList(publication.displayTitle)
+                    viewModel.appendToList(
+                        listOf(publication.id),
+                        viewModel.shelves.value.lists.last().id,
+                    )
+                    refused = null
+                    onDismiss()
+                }) {
+                    Text(stringResource(R.string.shelves_server_only_local))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { refused = null }) {
+                    Text(stringResource(R.string.shelves_cancel))
+                }
+            },
+        )
     }
 }
 

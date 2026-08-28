@@ -42,6 +42,19 @@ object KavitaSync {
         if (sent.isFailure) store.hold(unsent)
     }
 
+    /** Appends a chapter to one of the server's reading lists, holding it if the server is not there. */
+    suspend fun append(
+        store: KavitaProgressStore,
+        address: KavitaAddress?,
+        origin: KavitaOrigin,
+        listId: Int,
+    ) {
+        val unsent = KavitaUnsent(origin, page = 0, listId = listId)
+        if (address == null) return store.hold(unsent)
+        val sent = runCatching { send(KavitaClient(address), unsent) }
+        if (sent.isFailure) store.hold(unsent)
+    }
+
     /**
      * Sends everything held for one server.
      *
@@ -59,11 +72,13 @@ object KavitaSync {
     }
 
     private suspend fun send(client: KavitaClient, held: KavitaUnsent) {
+        val listId = held.listId
         val mark = held.mark
-        if (mark == null) {
-            client.report(position(held.origin, held.page))
-        } else {
-            client.mark(held.origin.seriesId, held.origin.chapterId, mark)
+        when {
+            listId != null ->
+                client.append(listId, held.origin.seriesId, listOf(held.origin.chapterId))
+            mark != null -> client.mark(held.origin.seriesId, held.origin.chapterId, mark)
+            else -> client.report(position(held.origin, held.page))
         }
     }
 

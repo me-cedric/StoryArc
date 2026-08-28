@@ -1779,6 +1779,35 @@
         }
       }
     },
+    "kavita.addToList %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu „%@“ hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to “%@”"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir a «%@»"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter à « %@ »"
+          }
+        }
+      }
+    },
     "kavita.address.hint": {
       "extractionState": "manual",
       "localizations": {
@@ -3565,6 +3594,35 @@
         }
       }
     },
+    "shelves.addTo %@ %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu „%1$@“ hinzufügen · %2$@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to “%1$@” · %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir a «%1$@» · %2$@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter à « %1$@ » · %2$@"
+          }
+        }
+      }
+    },
     "shelves.cancel": {
       "extractionState": "manual",
       "localizations": {
@@ -4073,6 +4131,93 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conservé sur cet appareil. Rien n’est envoyé nulle part."
+          }
+        }
+      }
+    },
+    "shelves.serverOnly.body %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ kann nur Publikationen von diesem Server enthalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” can only hold publications from that server."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» solo puede contener publicaciones de ese servidor."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » ne peut contenir que des publications de ce serveur."
+          }
+        }
+      }
+    },
+    "shelves.serverOnly.local": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stattdessen lokale Liste erstellen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create a local list instead"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear una lista local en su lugar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Créer une liste locale à la place"
+          }
+        }
+      }
+    },
+    "shelves.serverOnly.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur von diesem Server"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only from this server"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo de este servidor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seulement depuis ce serveur"
           }
         }
       }

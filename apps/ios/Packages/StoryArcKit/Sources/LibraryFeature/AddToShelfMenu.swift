@@ -11,6 +11,9 @@ public import StoryArcCore
 struct AddToShelfMenu: View {
     let model: LibraryModel
     let publication: Publication
+    /// Called with the server's name when a list cannot hold this publication. The alert
+    /// lives in the parent: a context menu cannot present one.
+    let onRefused: (String) -> Void
 
     var body: some View {
         let shelves = model.shelves
@@ -28,6 +31,21 @@ struct AddToShelfMenu: View {
                     : String(localized: "library.mark.read", bundle: .module),
                 systemImage: isRead ? "circle" : "checkmark.circle"
             )
+        }
+
+        // A server's own lists, offered like any other. Whether this publication can go in
+        // one is the server's rule, not something to hide by leaving the row out: a list a
+        // reader cannot see is a list they will look for.
+        ForEach(model.serverLists) { list in
+            Button {
+                Task {
+                    if await model.add(publication, toServerList: list) == false {
+                        onRefused(list.server.title)
+                    }
+                }
+            } label: {
+                Text("shelves.addTo \(list.title) \(list.server.title)", bundle: .module)
+            }
         }
 
         if !shelves.collections.isEmpty || !shelves.lists.isEmpty {
