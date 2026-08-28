@@ -1924,6 +1924,35 @@
         }
       }
     },
+    "kavita.continue %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiterlesen · %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue · %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar · %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuer · %@"
+          }
+        }
+      }
+    },
     "kavita.empty": {
       "extractionState": "manual",
       "localizations": {
@@ -2094,6 +2123,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ce serveur utilise Kavita %1$@. StoryArc a besoin de la version %2$@ ou plus récente."
+          }
+        }
+      }
+    },
+    "kavita.fetching": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird heruntergeladen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargando"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Téléchargement"
           }
         }
       }
@@ -4421,6 +4479,64 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hors ligne — contenu en cache"
+          }
+        }
+      }
+    },
+    "source.unauthorized.body %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Gerät hat den Schlüssel für %@ nicht mehr. Entfernen Sie die Quelle in den Einstellungen und fügen Sie sie erneut hinzu."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device no longer holds the key for %@. Remove the source in Settings and add it again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este dispositivo ya no guarda la clave de %@. Elimina la fuente en Ajustes y vuelve a añadirla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cet appareil ne conserve plus la clé de %@. Supprimez la source dans les réglages, puis ajoutez-la de nouveau."
+          }
+        }
+      }
+    },
+    "source.unauthorized.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zugang nicht mehr gespeichert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sign-in is no longer stored"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El acceso ya no está guardado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’identifiant n’est plus enregistré"
           }
         }
       }

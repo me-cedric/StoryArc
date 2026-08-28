@@ -11,6 +11,7 @@
 //
 // Usage: node scripts/kavita-server.mjs [corpus-directory] [--port 5000]
 
+import { png } from './png.mjs'
 import { createServer } from 'node:http'
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { join, extname, basename } from 'node:path'
@@ -71,6 +72,31 @@ for (const [index, file] of files.entries()) {
   })
 }
 
+/** The colours covers are drawn in, one per series, so a wrong cover is visible. */
+const COVERS = [
+  [214, 90, 44], [58, 96, 158], [72, 138, 96],
+  [148, 78, 148], [176, 148, 52], [96, 108, 128], [188, 64, 96],
+]
+
+/**
+ * Metadata the server holds, which the spec says wins over the file's own.
+ *
+ * Deliberately disagrees with what `ComicInfo.xml` in the corpus says, so a client that
+ * quietly prefers the file is visible rather than merely unproven.
+ */
+const metadata = new Map(series.map((each, index) => [each.id, {
+  seriesId: each.id,
+  summary: `${each.name} is a fixture series held by the StoryArc Kavita mock. ` +
+    'The server is the curated source, so this text wins over anything in the file.',
+  genres: [{ id: 1, title: 'Fixture' }, { id: 2, title: index % 2 ? 'Drama' : 'Adventure' }],
+  tags: [{ id: 3, title: 'test-corpus' }],
+  writers: [{ id: 4, name: 'Ada Lovelace' }],
+  publishers: [{ id: 5, name: 'StoryArc Press' }],
+  ageRating: 0,
+  releaseYear: 2020 + (index % 5),
+  publicationStatus: index % 3,
+}]))
+
 const libraries = [
   { id: 1, name: 'Comics', type: 0 },
   { id: 2, name: 'Books', type: 2 },
@@ -104,6 +130,19 @@ const server = createServer((request, response) => {
     return send(response, 200, { kavitaVersion: VERSION, installId: 'mock' })
   }
 
+  // Kavita's image endpoints take the key in the query rather than a bearer token, so an
+  // <img> can point straight at them. Checked before the token gate for that reason.
+  if (url.pathname.startsWith('/api/Image/')) {
+    if (url.searchParams.get('apiKey') !== API_KEY) {
+      return send(response, 401, { message: 'unauthorised' })
+    }
+    const id = Number(
+      url.searchParams.get('seriesId') ?? url.searchParams.get('chapterId') ?? 0,
+    )
+    if (!id) return send(response, 400, { message: 'no id' })
+    return send(response, 200, png(300, 450, COVERS[id % COVERS.length]), 'image/png')
+  }
+
   if (!authorised(request)) {
     return send(response, 401, { message: 'token expired' })
   }
@@ -122,6 +161,12 @@ const server = createServer((request, response) => {
       pages: each.chapters.reduce((total, chapter) => total + chapter.pages, 0),
       pagesRead: each.chapters.reduce((total, chapter) => total + chapter.pagesRead, 0),
     })))
+  }
+
+  if (url.pathname === '/api/Series/metadata') {
+    const found = metadata.get(Number(url.searchParams.get('seriesId')))
+    if (!found) return send(response, 404, { message: 'no such series' })
+    return send(response, 200, found)
   }
 
   if (url.pathname === '/api/Series/volumes') {
@@ -153,6 +198,22 @@ const server = createServer((request, response) => {
       readFileSync(join(root, chapter.file)),
       TYPES[extname(chapter.file).toLowerCase()],
     )
+  }
+
+  // The chapter a reader should open next: the first unfinished one, or the first of all
+  // when nothing has been read. Kavita answers this itself so a client does not have to
+  // guess from progress it may not have pulled yet.
+  if (url.pathname === '/api/Reader/continue-point') {
+    const found = series.find((each) => each.id === Number(url.searchParams.get('seriesId')))
+    if (!found) return send(response, 404, { message: 'no such series' })
+    const next = found.chapters.find((each) => each.pagesRead < each.pages) ?? found.chapters[0]
+    return send(response, 200, {
+      id: next.id,
+      number: next.number,
+      title: next.title,
+      pages: next.pages,
+      pagesRead: next.pagesRead,
+    })
   }
 
   if (url.pathname === '/api/Reader/progress' && request.method === 'POST') {

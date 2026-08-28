@@ -159,4 +159,5 @@
     <string name="kavita_loose_chapters">Capítulos</string>
     <string name="catalogue_error_secret_not_stored">Este dispositivo no quiso guardar el inicio de sesión, así que no se añadió el catálogo. No se guardó nada a medias.</string>
     <string name="kavita_fetching">Descargando</string>
+    <string name="kavita_continue">Continuar · %1$s</string>
 </resources>

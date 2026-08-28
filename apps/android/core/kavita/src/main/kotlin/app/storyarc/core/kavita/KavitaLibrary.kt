@@ -75,3 +75,40 @@ data class KavitaVolume(
      */
     val isLooseChapters: Boolean get() = number == 0
 }
+
+/** A name the server holds for a genre, a tag, a person or a publisher. */
+@Serializable
+data class KavitaNamed(
+    val id: Int = 0,
+    val title: String? = null,
+    val name: String? = null,
+) {
+    /** Kavita calls a genre's name `title` and a person's name `name`. Either will do. */
+    val label: String get() = title?.takeIf { it.isNotEmpty() } ?: name.orEmpty()
+}
+
+/**
+ * What the server holds about a series.
+ *
+ * `kavita-server` requires this to be preferred over metadata embedded in the file, because
+ * the server is the curated source. Cached with the download so it survives the server
+ * being unreachable.
+ */
+@Serializable
+data class KavitaMetadata(
+    val seriesId: Int = 0,
+    val summary: String? = null,
+    val genres: List<KavitaNamed> = emptyList(),
+    val tags: List<KavitaNamed> = emptyList(),
+    val writers: List<KavitaNamed> = emptyList(),
+    val publishers: List<KavitaNamed> = emptyList(),
+    val ageRating: Int = 0,
+    val releaseYear: Int = 0,
+    val publicationStatus: Int = 0,
+) {
+    /** The people worth naming on a detail screen, in the order a reader looks for them. */
+    val people: List<String> get() = (writers + publishers).map { it.label }.filter { it.isNotEmpty() }
+
+    /** Genres and tags read as one list; the distinction is Kavita's, not the reader's. */
+    val subjects: List<String> get() = (genres + tags).map { it.label }.filter { it.isNotEmpty() }
+}

@@ -159,4 +159,5 @@
     <string name="kavita_loose_chapters">Chapters</string>
     <string name="catalogue_error_secret_not_stored">This device would not store the sign-in, so the catalogue was not added. Nothing was saved half-finished.</string>
     <string name="kavita_fetching">Downloading</string>
+    <string name="kavita_continue">Continue · %1$s</string>
 </resources>

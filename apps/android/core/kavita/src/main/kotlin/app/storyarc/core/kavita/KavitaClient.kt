@@ -84,6 +84,37 @@ class KavitaClient(val address: KavitaAddress) {
         get("Download/chapter", mapOf("chapterId" to id.toString()))
 
     /**
+     * A series cover, as image bytes.
+     *
+     * Kavita's image routes take the key in the query rather than a bearer token, but this
+     * goes through the same request path anyway: one place that knows how to reach the
+     * server is easier to keep correct than two.
+     */
+    suspend fun seriesCover(id: Int): ByteArray = get(
+        "Image/series-cover",
+        mapOf("seriesId" to id.toString(), "apiKey" to address.apiKey),
+    )
+
+    /** A chapter cover, as image bytes. */
+    suspend fun chapterCover(id: Int): ByteArray = get(
+        "Image/chapter-cover",
+        mapOf("chapterId" to id.toString(), "apiKey" to address.apiKey),
+    )
+
+    /**
+     * The chapter the reader should open next in a series.
+     *
+     * Asked of the server rather than worked out from the chapter list: Kavita knows what
+     * other devices have read, and this app may not have pulled that yet.
+     */
+    suspend fun continuePoint(seriesId: Int): KavitaChapter =
+        decode(get("Reader/continue-point", mapOf("seriesId" to seriesId.toString())))
+
+    /** What the server holds about a series, which the spec prefers over the file's own. */
+    suspend fun metadata(seriesId: Int): KavitaMetadata =
+        decode(get("Series/metadata", mapOf("seriesId" to seriesId.toString())))
+
+    /**
      * Series matching a query, answered by the server.
      *
      * Only the series half is read. The rest of what Kavita returns -- chapters, people,

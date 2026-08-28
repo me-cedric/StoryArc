@@ -159,4 +159,5 @@
     <string name="kavita_loose_chapters">Kapitel</string>
     <string name="catalogue_error_secret_not_stored">Dieses Gerät wollte die Anmeldung nicht speichern, daher wurde der Katalog nicht hinzugefügt. Es wurde nichts halbfertig gespeichert.</string>
     <string name="kavita_fetching">Wird heruntergeladen</string>
+    <string name="kavita_continue">Weiterlesen · %1$s</string>
 </resources>

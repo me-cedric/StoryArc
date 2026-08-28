@@ -159,4 +159,5 @@
     <string name="kavita_loose_chapters">Chapitres</string>
     <string name="catalogue_error_secret_not_stored">Cet appareil n’a pas voulu conserver l’identification : le catalogue n’a pas été ajouté. Rien n’a été enregistré à moitié.</string>
     <string name="kavita_fetching">Téléchargement</string>
+    <string name="kavita_continue">Continuer · %1$s</string>
 </resources>

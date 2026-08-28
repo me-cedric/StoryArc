@@ -177,6 +177,12 @@ public struct LibraryView: View {
                             address: page.address,
                             onOpen: onOpen
                         )
+                    } else {
+                        // Neither page could be built, which means the secret this source
+                        // needs is not in the keychain any more. Saying so beats the blank
+                        // screen this used to push -- a screen with nothing on it and no way
+                        // to tell whether the server was slow or the app was broken.
+                        UnreachableSource(name: source.displayName)
                     }
                 }
             }
