@@ -9,6 +9,7 @@ kotlin = "2.4.10"
 ksp = "2.3.9"
 room = "2.8.4"
 coreKtx = "1.19.0"
+jcifsNg = "2.1.10"
 lifecycle = "2.11.0"
 activityCompose = "1.13.0"
 # ADR-0005: Readium renders reflowable EPUB. iOS pins the same 3.x line.
@@ -65,6 +66,8 @@ androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+# `network-share` needs SMB 2/3, which Android has no API for. ADR-0010.
+jcifs-ng = { group = "eu.agno3.jcifs", name = "jcifs-ng", version.ref = "jcifsNg" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

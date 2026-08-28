@@ -34,6 +34,7 @@
     "corpus": "node scripts/corpus.mjs",
     "opds": "node scripts/opds-server.mjs",
     "kavita": "node scripts/kavita-server.mjs",
+    "smb": "python3 scripts/smb-server.py",
     "corpus:check": "node scripts/corpus.mjs --self-test",
     "notices:check": "node scripts/notices.mjs --check"
   },
