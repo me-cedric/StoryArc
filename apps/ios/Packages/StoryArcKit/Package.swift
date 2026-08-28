@@ -22,6 +22,7 @@ let package = Package(
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "SettingsFeature", targets: ["SettingsFeature"]),
         .library(name: "Catalogue", targets: ["Catalogue"]),
+        .library(name: "Kavita", targets: ["Kavita"]),
     ],
     dependencies: [
         // The vendored libarchive RAR readers. A path dependency rather than a
@@ -63,6 +64,7 @@ let package = Package(
         // are shared; the implementations are not.
         .target(name: "Persistence", dependencies: ["StoryArcCore"]),
         .target(name: "Catalogue", dependencies: ["StoryArcCore"]),
+        .target(name: "Kavita", dependencies: ["StoryArcCore", "Catalogue"]),
         .target(
             name: "SettingsFeature",
             dependencies: [
@@ -76,6 +78,7 @@ let package = Package(
         .testTarget(name: "FormatsTests", dependencies: ["Formats"]),
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
         .testTarget(name: "CatalogueTests", dependencies: ["Catalogue"]),
+        .testTarget(name: "KavitaTests", dependencies: ["Kavita"]),
         .testTarget(name: "ReaderFeatureTests", dependencies: ["ReaderFeature"]),
     ]
 )
