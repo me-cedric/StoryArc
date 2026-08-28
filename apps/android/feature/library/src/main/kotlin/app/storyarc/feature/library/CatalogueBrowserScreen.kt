@@ -35,6 +35,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,6 +63,7 @@ import app.storyarc.core.catalogue.OpdsSection
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.PublicationFormat
@@ -78,7 +80,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CatalogueBrowserScreen(
     browser: CatalogueBrowser,
-    acquisition: CatalogueAcquisition,
+    queue: DownloadQueue,
     onEnter: (title: String, url: String) -> Unit,
     onOpen: (Publication, String) -> Unit,
     onBack: () -> Unit = {},
@@ -87,9 +89,9 @@ fun CatalogueBrowserScreen(
     val state by browser.state.collectAsStateWithLifecycle()
     val feed by browser.feed.collectAsStateWithLifecycle()
     val entries by browser.entries.collectAsStateWithLifecycle()
-    val fetching by acquisition.state.collectAsStateWithLifecycle()
-    val downloads by acquisition.library.collectAsStateWithLifecycle()
+    val downloads by queue.library.collectAsStateWithLifecycle()
     val onDevice = downloads.finished.map { it.id }.toSet()
+    val active = downloads.pending
     val scope = rememberCoroutineScopeCompat()
 
     LaunchedEffect(browser) { browser.load() }
@@ -150,7 +152,7 @@ fun CatalogueBrowserScreen(
                         // `offline-downloads`: an already-downloaded publication is not
                         // re-fetched. It opens from disk, which also means it opens with no
                         // network at all.
-                        val local = acquisition.downloaded(entry)
+                        val local = queue.downloaded(entry)
                         if (local != null) {
                             scope.launch {
                                 runCatching { PublicationIndexer.index(local, entry.series) }
@@ -160,16 +162,10 @@ fun CatalogueBrowserScreen(
                             return@CatalogueEntryCell
                         }
                         val best = CatalogueAcquisition.best(entry) ?: return@CatalogueEntryCell
-                        scope.launch {
-                            acquisition.fetch(entry, best, browser.credential)
-                                ?.let { (publication, path) -> onOpen(publication, path) }
-                        }
+                        scope.launch { openWhenReady(queue, entry, best, onOpen) }
                     },
                     onChoose = { link ->
-                        scope.launch {
-                            acquisition.fetch(entry, link, browser.credential)
-                                ?.let { (publication, path) -> onOpen(publication, path) }
-                        }
+                        scope.launch { openWhenReady(queue, entry, link, onOpen) }
                     },
                     // `offline-downloads`: "the app SHALL let a user download any
                     // publication from a remote source for offline reading". Tapping opens
@@ -177,9 +173,9 @@ fun CatalogueBrowserScreen(
                     // flight wants the download without the reading.
                     onDownload = {
                         val best = CatalogueAcquisition.best(entry) ?: return@CatalogueEntryCell
-                        scope.launch { acquisition.fetch(entry, best, browser.credential) }
+                        queue.enqueue(entry, best)
                     },
-                    onRemove = { acquisition.remove(entry.id) },
+                    onRemove = { queue.remove(entry.id) },
                 )
                 // The next page arrives because the reader scrolled, not because they
                 // pressed anything.
@@ -223,32 +219,12 @@ fun CatalogueBrowserScreen(
             }
         }
 
-        when (val current = fetching) {
-            is CatalogueAcquisition.State.Idle -> Unit
-            is CatalogueAcquisition.State.Fetching -> Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(palette.surfaceRaised)
-                    .padding(StoryArcSpace.md),
-            ) {
-                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
-                Text(
-                    text = stringResource(R.string.catalogue_acquire_fetching, current.title),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.textSecondary,
-                )
-            }
-            is CatalogueAcquisition.State.Failed -> Text(
-                text = current.message,
-                style = MaterialTheme.typography.bodySmall,
-                color = palette.textPrimary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(palette.surfaceRaised)
-                    .clickable { acquisition.clear() }
-                    .padding(StoryArcSpace.md),
+        active.firstOrNull()?.let { first ->
+            DownloadBanner(
+                download = first,
+                others = active.size - 1,
+                onCancel = { queue.cancel(first.id) },
+                onResume = { queue.resume(first.id) },
             )
         }
     }
@@ -501,6 +477,82 @@ private fun FacetMenu(facets: List<OpdsFacet>, onChoose: (OpdsFacet) -> Unit) {
                     },
                 )
             }
+        }
+    }
+}
+
+/**
+ * Waits for a download and opens it.
+ *
+ * Separate from the tap so the tap returns immediately: `offline-downloads` wants a
+ * publication that is still downloading to be openable, and a handler that blocks is a
+ * handler nothing else can happen during.
+ */
+private suspend fun openWhenReady(
+    queue: DownloadQueue,
+    entry: OpdsEntry,
+    link: OpdsAcquisition,
+    onOpen: (Publication, String) -> Unit,
+) {
+    val file = queue.fetch(entry, link) ?: return
+    runCatching { PublicationIndexer.index(file, entry.series) }
+        .getOrNull()
+        ?.let { onOpen(it, file.absolutePath) }
+}
+
+/**
+ * What the queue is doing, along the foot of the catalogue.
+ *
+ * One line for the download at the front and a count for the rest, because a reader browsing
+ * a catalogue wants to keep browsing -- a list of six transfers belongs in Settings, not over
+ * the grid they are reading.
+ */
+@Composable
+private fun DownloadBanner(
+    download: Download,
+    others: Int,
+    onCancel: () -> Unit,
+    onResume: () -> Unit,
+) {
+    val palette = LocalStoryArcPalette.current
+    val failed = download.state as? Download.State.Failed
+    val paused = download.state as? Download.State.Paused
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(palette.surfaceRaised)
+            .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = when {
+                    failed != null -> failed.reason
+                    paused != null -> stringResource(R.string.downloads_paused_title, download.title)
+                    else -> stringResource(R.string.catalogue_acquire_fetching, download.title)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.textPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (others > 0) {
+                Text(
+                    text = pluralStringResource(R.plurals.downloads_queued, others, others),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.textSecondary,
+                )
+            }
+        }
+
+        // One button, and which one depends on what would help. Two on a strip this size is
+        // a strip nobody can hit either half of.
+        if (failed != null || paused != null) {
+            TextButton(onClick = onResume) { Text(stringResource(R.string.downloads_retry)) }
+        } else {
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.downloads_stop)) }
         }
     }
 }

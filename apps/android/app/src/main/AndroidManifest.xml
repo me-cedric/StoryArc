@@ -4,6 +4,10 @@
     <!-- `network-share` and `opds-catalog` reach servers the user configures.
          StoryArc has no backend of its own. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Read, never changed. `offline-downloads` lowers the number of concurrent transfers
+         "on a metered connection" and treats Data Saver as metered, and this is the only
+         way to know which kind of connection a reader is on. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application

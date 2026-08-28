@@ -31,8 +31,8 @@ import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.SourceStore
-import app.storyarc.feature.library.CatalogueAcquisition
 import app.storyarc.feature.library.CatalogueBrowser
+import app.storyarc.feature.library.DownloadQueue
 import app.storyarc.feature.library.CatalogueBrowserScreen
 import app.storyarc.feature.library.CatalogueConnection
 import app.storyarc.feature.library.CataloguePage
@@ -256,12 +256,17 @@ class MainActivity : ComponentActivity() {
                             pins,
                         )
                     }
-                    val acquisition = remember(page.url) {
-                        CatalogueAcquisition(applicationContext, pins, downloadStore)
+                    val queue = remember(page.url) {
+                        DownloadQueue(
+                            applicationContext,
+                            pins,
+                            downloadStore,
+                            credential = { page.credential },
+                        )
                     }
                     CatalogueBrowserScreen(
                         browser = browser,
-                        acquisition = acquisition,
+                        queue = queue,
                         onEnter = { title, url ->
                             catalogue = catalogue + CataloguePage(title, url, page.credential)
                         },

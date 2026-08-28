@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A library module declares the permissions its own code requires, and they merge into the
+  app. Declared here rather than only in the app because this is the module that calls
+  `ConnectivityManager`, and a module whose permissions live somewhere else is a module that
+  cannot be moved.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Read, never changed. `offline-downloads` lowers the number of concurrent transfers
+         "on a metered connection" and treats Data Saver as metered, and this is the only
+         way to know which kind of connection a reader is on. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+</manifest>

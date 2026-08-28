@@ -108,4 +108,11 @@
     <string name="catalogue_entry_downloaded">On this device</string>
     <string name="catalogue_acquire_download">Download</string>
     <string name="downloads_remove">Remove download</string>
+    <string name="downloads_paused_title">%1$s is paused</string>
+    <string name="downloads_retry">Retry</string>
+    <string name="downloads_stop">Stop</string>
+    <plurals name="downloads_queued">
+        <item quantity="one">%1$d more waiting</item>
+        <item quantity="other">%1$d more waiting</item>
+    </plurals>
 </resources>

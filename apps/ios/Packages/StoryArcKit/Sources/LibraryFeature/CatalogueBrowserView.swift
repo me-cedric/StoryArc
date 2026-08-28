@@ -25,8 +25,8 @@ public struct CatalogueBrowserView: View {
     /// Where a fetched publication goes — the same door the library uses.
     private let onOpen: (Publication, URL) -> Void
 
-    /// The fetch in progress, if any.
-    @State private var acquisition: CatalogueAcquisition
+    /// What is downloading, and what is already here.
+    @State private var queue: DownloadQueue
 
     /// The term as typed, and the result of the last search that was not the server's.
     @State private var term = ""
@@ -47,7 +47,13 @@ public struct CatalogueBrowserView: View {
                 pins: pins
             )
         )
-        _acquisition = State(initialValue: CatalogueAcquisition(pins: pins, store: DownloadStore()))
+        _queue = State(
+            initialValue: DownloadQueue(
+                pins: pins,
+                store: DownloadStore(),
+                credential: { _ in credential }
+            )
+        )
         self.onOpen = onOpen
     }
 
@@ -61,8 +67,8 @@ public struct CatalogueBrowserView: View {
         let state = browser.state
         let feed = browser.feed
         let shown = filtered ?? browser.entries
-        let fetching = acquisition.state
-        let onDevice = acquisition.onDevice
+        let onDevice = queue.onDevice
+        let active = queue.library.pending
 
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: StoryArcSpace.lg) {
@@ -105,26 +111,13 @@ public struct CatalogueBrowserView: View {
         }
         .background(theme.palette.surfaceCanvas)
         .safeAreaInset(edge: .bottom) {
-            switch fetching {
-            case .idle:
-                EmptyView()
-            case let .fetching(fetching):
-                Label {
-                    Text("catalogue.acquire.fetching \(fetching)", bundle: .module)
-                        .textRole(.footnote)
-                } icon: {
-                    ProgressView()
-                }
-                .padding(StoryArcSpace.sm)
-                .frame(maxWidth: .infinity)
-                .background(.bar)
-            case let .failed(message):
-                Text(message)
-                    .textRole(.footnote)
-                    .foregroundStyle(theme.palette.textPrimary)
-                    .padding(StoryArcSpace.sm)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.bar)
+            if let first = active.first {
+                DownloadBanner(
+                    download: first,
+                    others: active.count - 1,
+                    onCancel: { queue.cancel(first.id) },
+                    onResume: { queue.resume(first.id) }
+                )
             }
         }
         .navigationTitle(browser.title)
@@ -169,7 +162,7 @@ public struct CatalogueBrowserView: View {
     /// `offline-downloads`: an already-downloaded publication is not re-fetched. It opens
     /// from disk, which also means it opens with no network at all.
     private func choose(_ entry: OpdsEntry) {
-        if let file = acquisition.downloaded(entry) {
+        if let file = queue.downloaded(entry) {
             Task { await open(entry, from: file) }
             return
         }
@@ -179,12 +172,8 @@ public struct CatalogueBrowserView: View {
 
     /// Fetches one acquisition and hands what came back to the reader.
     private func take(_ entry: OpdsEntry, using link: OpdsAcquisition) async {
-        guard let fetched = await acquisition.fetch(
-            entry,
-            using: link,
-            credential: browser.credential
-        ) else { return }
-        onOpen(fetched.publication, fetched.location)
+        guard let file = await queue.fetch(entry, using: link) else { return }
+        await open(entry, from: file)
     }
 
     /// Opens a publication that is already on the device.
@@ -278,7 +267,7 @@ public struct CatalogueBrowserView: View {
                 .contextMenu {
                     if onDevice.contains(entry.id) {
                         Button(role: .destructive) {
-                            acquisition.remove(entry.id)
+                            queue.remove(entry.id)
                         } label: {
                             Text("downloads.remove", bundle: .module)
                         }
@@ -288,11 +277,7 @@ public struct CatalogueBrowserView: View {
                         // opens it, which downloads it as a side effect; a reader packing
                         // for a flight wants the download without the reading.
                         Button {
-                            Task { _ = await acquisition.fetch(
-                                entry,
-                                using: best,
-                                credential: browser.credential
-                            ) }
+                            queue.enqueue(entry, using: best)
                         } label: {
                             Text("catalogue.acquire.download", bundle: .module)
                         }
