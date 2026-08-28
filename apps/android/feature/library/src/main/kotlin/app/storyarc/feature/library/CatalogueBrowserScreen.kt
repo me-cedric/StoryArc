@@ -3,7 +3,9 @@ package app.storyarc.feature.library
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -169,6 +171,15 @@ fun CatalogueBrowserScreen(
                                 ?.let { (publication, path) -> onOpen(publication, path) }
                         }
                     },
+                    // `offline-downloads`: "the app SHALL let a user download any
+                    // publication from a remote source for offline reading". Tapping opens
+                    // it, which downloads it as a side effect; a reader packing for a
+                    // flight wants the download without the reading.
+                    onDownload = {
+                        val best = CatalogueAcquisition.best(entry) ?: return@CatalogueEntryCell
+                        scope.launch { acquisition.fetch(entry, best, browser.credential) }
+                    },
+                    onRemove = { acquisition.remove(entry.id) },
                 )
                 // The next page arrives because the reader scrolled, not because they
                 // pressed anything.
@@ -277,6 +288,9 @@ private fun CatalogueSectionRow(section: OpdsSection, onEnter: () -> Unit) {
  * marked unreadable, naming the formats offered", which is a state a local publication never
  * has.
  */
+// `combinedClickable` is still experimental and is the only way to have a tap and a long
+// press on one surface. Opted in here, where the long press is the menu.
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CatalogueEntryCell(
     entry: OpdsEntry,
@@ -287,6 +301,8 @@ private fun CatalogueEntryCell(
     isDownloaded: Boolean,
     onOpen: () -> Unit,
     onChoose: (OpdsAcquisition) -> Unit,
+    onDownload: () -> Unit,
+    onRemove: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
     val offered = CatalogueAcquisition.readable(entry)
@@ -306,9 +322,13 @@ private fun CatalogueEntryCell(
     Column(
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         modifier = Modifier
-            .clickable(enabled = offered.isNotEmpty()) {
-                if (offered.size > 1) choosing = true else onOpen()
-            }
+            .combinedClickable(
+                enabled = offered.isNotEmpty(),
+                onClick = { if (offered.size > 1) choosing = true else onOpen() },
+                // A long press is where Android puts "what else can I do with this",
+                // matching the context menu iOS offers on the same gesture.
+                onLongClick = { choosing = true },
+            )
             // Merged and named. `Modifier.clickable` makes a node a screen reader can reach
             // and does not pull the title into it, so every cell announced itself as an
             // unnamed button — which `pnpm a11y:android` found and a screenshot could not.
@@ -374,6 +394,24 @@ private fun CatalogueEntryCell(
         // `opds-catalog`: the app picks the best format and "lets the user choose another".
         // There is no detail screen yet, so the choice lives here.
         DropdownMenu(expanded = choosing, onDismissRequest = { choosing = false }) {
+            if (isDownloaded) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.downloads_remove)) },
+                    onClick = {
+                        choosing = false
+                        onRemove()
+                    },
+                )
+            } else {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.catalogue_acquire_download)) },
+                    onClick = {
+                        choosing = false
+                        onDownload()
+                    },
+                )
+            }
+
             offered.forEach { link ->
                 DropdownMenuItem(
                     text = {

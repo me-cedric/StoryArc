@@ -106,4 +106,6 @@
     </plurals>
     <string name="catalogue_back">Zurück</string>
     <string name="catalogue_entry_downloaded">Auf diesem Gerät</string>
+    <string name="catalogue_acquire_download">Herunterladen</string>
+    <string name="downloads_remove">Download entfernen</string>
 </resources>

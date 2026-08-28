@@ -146,6 +146,37 @@ public struct CatalogueBrowserView: View {
         .task { await browser.load() }
     }
 
+    /// The formats besides the one a tap would take.
+    ///
+    /// `opds-catalog`: the app picks the best format and "lets the user choose another".
+    /// Empty when there is nothing to choose between, so the menu does not offer a decision
+    /// that has already been made.
+    @ViewBuilder
+    private func otherFormats(_ entry: OpdsEntry, offered: [OpdsAcquisition]) -> some View {
+        if offered.count > 1 {
+            ForEach(offered, id: \.href) { link in
+                Button {
+                    Task { await take(entry, using: link) }
+                } label: {
+                    Text("catalogue.acquire.other \(name(of: link))", bundle: .module)
+                }
+            }
+        }
+    }
+
+    /// What tapping an entry does.
+    ///
+    /// `offline-downloads`: an already-downloaded publication is not re-fetched. It opens
+    /// from disk, which also means it opens with no network at all.
+    private func choose(_ entry: OpdsEntry) {
+        if let file = acquisition.downloaded(entry) {
+            Task { await open(entry, from: file) }
+            return
+        }
+        guard let best = CatalogueAcquisition.best(of: entry) else { return }
+        Task { await take(entry, using: best) }
+    }
+
     /// Fetches one acquisition and hands what came back to the reader.
     private func take(_ entry: OpdsEntry, using link: OpdsAcquisition) async {
         guard let fetched = await acquisition.fetch(
@@ -230,15 +261,7 @@ public struct CatalogueBrowserView: View {
             ForEach(shown) { entry in
                 let offered = CatalogueAcquisition.readable(in: entry)
                 Button {
-                    // `offline-downloads`: an already-downloaded publication is not
-                    // re-fetched. It opens from disk, which also means it opens with no
-                    // network at all.
-                    if let file = acquisition.downloaded(entry) {
-                        Task { await open(entry, from: file) }
-                        return
-                    }
-                    guard let best = CatalogueAcquisition.best(of: entry) else { return }
-                    Task { await take(entry, using: best) }
+                    choose(entry)
                 } label: {
                     CatalogueEntryCell(
                         entry: entry,
@@ -253,15 +276,29 @@ public struct CatalogueBrowserView: View {
                 // another". There is no detail screen yet, so the choice lives here —
                 // shown only when there is one to make.
                 .contextMenu {
-                    if offered.count > 1 {
-                        ForEach(offered, id: \.href) { link in
-                            Button {
-                                Task { await take(entry, using: link) }
-                            } label: {
-                                Text("catalogue.acquire.other \(name(of: link))", bundle: .module)
-                            }
+                    if onDevice.contains(entry.id) {
+                        Button(role: .destructive) {
+                            acquisition.remove(entry.id)
+                        } label: {
+                            Text("downloads.remove", bundle: .module)
+                        }
+                    } else if let best = CatalogueAcquisition.best(of: entry) {
+                        // `offline-downloads`: "the app SHALL let a user download any
+                        // publication from a remote source for offline reading". Tapping
+                        // opens it, which downloads it as a side effect; a reader packing
+                        // for a flight wants the download without the reading.
+                        Button {
+                            Task { _ = await acquisition.fetch(
+                                entry,
+                                using: best,
+                                credential: browser.credential
+                            ) }
+                        } label: {
+                            Text("catalogue.acquire.download", bundle: .module)
                         }
                     }
+
+                    otherFormats(entry, offered: offered)
                 }
                 .task {
                     // The next page arrives because the reader scrolled, not because they
