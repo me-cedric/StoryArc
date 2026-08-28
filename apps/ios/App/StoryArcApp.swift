@@ -184,6 +184,27 @@ struct StoryArcApp: App {
         return .matching(resolved)
     }
 
+    /// Copies a publication off a share and onto the device.
+    ///
+    /// `network-share`: when reconnection has failed for a minute "the app offers to
+    /// download the current publication for offline reading". This is that offer carried
+    /// out — the bytes are fetched once and the reader reopens from the copy, so the rest
+    /// of the session no longer depends on the network.
+    private func keepForOffline(_ selection: ReadingSelection) async {
+        guard let source = try? await ComicArchiveOpener.source(for: selection.url),
+              let bytes = try? await source.read(offset: 0, count: Int(source.length))
+        else { return }
+
+        let directory = downloadStore.directory
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = directory.appending(path: selection.url.lastPathComponent)
+        guard (try? bytes.write(to: file, options: .atomic)) != nil else { return }
+
+        SmbReachability.clear()
+        reading = ReadingSelection(publication: selection.publication, url: file)
+        dismissed = reading
+    }
+
     /// Returns both stores to what a fresh install has, and nothing more.
     ///
     /// Two stores, and only what each one calls a setting. The reading *defaults* are
@@ -298,7 +319,15 @@ struct StoryArcApp: App {
                         // the reader and the library — and the library is what knows a
                         // reading list may have a different opinion about what comes next.
                         nextInSeries: library.next(after: selection.publication),
-                        onOpenNext: openNext
+                        onOpenNext: openNext,
+                        blockedSince: { SmbReachability.blockedSince },
+                        onDismissTrouble: { SmbReachability.clear() },
+                        // Only for a publication that lives on a share. Everything else is
+                        // already on the device, and offering to download it would be
+                        // offering nothing.
+                        onDownloadForOffline: selection.url.scheme == "smb"
+                            ? { Task { await keepForOffline(selection) } }
+                            : nil
                     )
                     .storyArcTheme(appearance: settings.appearance)
                 }

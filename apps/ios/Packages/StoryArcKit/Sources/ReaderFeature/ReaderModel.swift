@@ -321,6 +321,8 @@ public final class ReaderModel {
             if let image = await pdf.image(at: index, maxPixelSize: size) {
                 decoded[index] = image
                 noteDecoded(image)
+            } else {
+                attempted.remove(index)
             }
             return
         }
@@ -334,6 +336,12 @@ public final class ReaderModel {
         if let image {
             decoded[index] = image
             noteDecoded(image)
+        } else {
+            // Forgotten rather than remembered as tried. A page that failed because the
+            // share was away must be readable once it comes back — `network-share` asks the
+            // app to "resume streaming at the current page" after reconnecting, and a page
+            // marked attempted for ever never gets a second chance.
+            attempted.remove(index)
         }
     }
 }

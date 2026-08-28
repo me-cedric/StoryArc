@@ -57,13 +57,23 @@ public struct ReaderView: View {
     private let nextInSeries: Publication?
     private let onOpenNext: (Publication) -> Void
 
+    /// Supplied by the app layer for the same reason as the above: the reader does not know
+    /// what a network share is, and `network-share`'s two thresholds are the only part of
+    /// that it needs.
+    private let blockedSince: () -> Date?
+    private let onDismissTrouble: () -> Void
+    private let onDownloadForOffline: (() -> Void)?
+
     public init(
         publication: Publication,
         url: URL,
         progress: ProgressStore? = nil,
         preferences: ReaderPreferences? = nil,
         nextInSeries: Publication? = nil,
-        onOpenNext: @escaping (Publication) -> Void = { _ in }
+        onOpenNext: @escaping (Publication) -> Void = { _ in },
+        blockedSince: @escaping () -> Date? = { nil },
+        onDismissTrouble: @escaping () -> Void = {},
+        onDownloadForOffline: (() -> Void)? = nil
     ) {
         _model = State(
             initialValue: ReaderModel(
@@ -74,6 +84,9 @@ public struct ReaderView: View {
             )
         )
         self.preferences = preferences
+        self.blockedSince = blockedSince
+        self.onDismissTrouble = onDismissTrouble
+        self.onDownloadForOffline = onDownloadForOffline
         self.nextInSeries = nextInSeries
         self.onOpenNext = onOpenNext
         _fit = State(initialValue: preferences?.pageFit() ?? .screen)
@@ -154,6 +167,16 @@ public struct ReaderView: View {
             }
         }
         // `comic-reader`: the mapped keys turn pages. Arrow and page keys only —
+        // Over the page rather than in place of it: `network-share` requires pages already
+        // read to stay readable while the network is away.
+        .overlay(alignment: .bottom) {
+            NetworkNotice(
+                blockedSince: blockedSince,
+                onDismiss: onDismissTrouble,
+                onDownload: onDownloadForOffline,
+                onLeave: { dismiss() }
+            )
+        }
         // volume buttons are behind a setting the app does not have yet.
         .focusable()
         .onKeyPress(.leftArrow) { turn(by: -1); return .handled }

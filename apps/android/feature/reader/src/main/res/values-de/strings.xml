@@ -27,4 +27,9 @@
     <string name="reader_transition_no_curl">Blättern wird hier nicht angeboten: dieses Gerät kann es nicht flüssig genug darstellen.</string>
     <string name="reader_transition_reflowable">Nicht verfügbar für Text, der neu umbricht.</string>
     <string name="reader_empty">Diese Publikation enthält keine Seiten, die StoryArc anzeigen kann.</string>
+    <string name="reader_offline_brief">Warten auf das Netzwerk…</string>
+    <string name="reader_offline_long">Diese Publikation liegt auf einer Freigabe, die nicht erreichbar ist. Bereits gelesene Seiten sind weiterhin da.</string>
+    <string name="reader_offline_download">Herunterladen</string>
+    <string name="reader_offline_leave">Zurück zur Bibliothek</string>
+    <string name="reader_offline_dismiss">Ausblenden</string>
 </resources>

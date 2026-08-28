@@ -137,6 +137,16 @@ fun ReaderScreen(
      */
     nextInSeries: Publication? = null,
     onOpenNext: (Publication) -> Unit = {},
+    /**
+     * When reads from the source started failing, if they have.
+     *
+     * Supplied by the app layer for the same reason as the above: the reader does not know
+     * what a network share is, and `network-share`'s two thresholds are the only part of
+     * that it needs.
+     */
+    blockedSince: Long? = null,
+    onDismissTrouble: () -> Unit = {},
+    onDownloadForOffline: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val pages by viewModel.pages.collectAsStateWithLifecycle()
@@ -204,6 +214,16 @@ fun ReaderScreen(
                 matte = matte,
             )
         }
+
+        // Over the page rather than in place of it: `network-share` requires pages already
+        // read to stay readable while the network is away.
+        NetworkNotice(
+            blockedSince = blockedSince,
+            onDismiss = onDismissTrouble,
+            onDownload = onDownloadForOffline,
+            onLeave = onClose,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }
 

@@ -37,6 +37,10 @@ object PublicationAccess {
     /** Whether a recorded path belongs to a registered remote scheme. */
     fun isRemote(path: String): Boolean = remote.keys.any { path.startsWith(it) }
 
+    /** The source behind a remote path, when one is registered. */
+    suspend fun remoteSource(path: String): RandomAccessSource? =
+        remote.entries.firstOrNull { path.startsWith(it.key) }?.value?.invoke(path)
+
     /** The publication's pages, opened. */
     suspend fun openArchive(
         resolver: ContentResolver,

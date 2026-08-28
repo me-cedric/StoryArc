@@ -395,6 +395,13 @@ class ReaderViewModel(
                 runCatching { PageDecoder.decode(opened.data(page), maxPixelSize) }.getOrNull()
             }
         }
+        if (bitmap == null) {
+            // Forgotten rather than remembered as tried. A page that failed because the
+            // share was away must be readable once it comes back -- `network-share` asks
+            // the app to "resume streaming at the current page" after reconnecting, and a
+            // page marked attempted for ever never gets a second chance.
+            attempted.remove(index)
+        }
         if (bitmap != null) {
             decoded[index] = bitmap
             // The first page that decodes settles the implied scroll axis. First

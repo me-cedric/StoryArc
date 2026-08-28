@@ -27,4 +27,9 @@
     <string name="reader_transition_no_curl">Curl is not offered here: this device cannot draw it smoothly enough to be worth it.</string>
     <string name="reader_transition_reflowable">Not available for text that reflows.</string>
     <string name="reader_empty">This publication has no pages StoryArc can show.</string>
+    <string name="reader_offline_brief">Waiting for the network…</string>
+    <string name="reader_offline_long">This publication is on a share that cannot be reached. Pages already read are still here.</string>
+    <string name="reader_offline_download">Download it</string>
+    <string name="reader_offline_leave">Back to library</string>
+    <string name="reader_offline_dismiss">Dismiss</string>
 </resources>

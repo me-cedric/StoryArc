@@ -27,4 +27,9 @@
     <string name="reader_transition_no_curl">El doblez no se ofrece aquí: este dispositivo no puede dibujarlo con suficiente fluidez.</string>
     <string name="reader_transition_reflowable">No disponible para texto que se recompone.</string>
     <string name="reader_empty">Esta publicación no tiene páginas que StoryArc pueda mostrar.</string>
+    <string name="reader_offline_brief">Esperando la red…</string>
+    <string name="reader_offline_long">Esta publicación está en un recurso que no se puede alcanzar. Las páginas ya leídas siguen aquí.</string>
+    <string name="reader_offline_download">Descargarla</string>
+    <string name="reader_offline_leave">Volver a la biblioteca</string>
+    <string name="reader_offline_dismiss">Descartar</string>
 </resources>

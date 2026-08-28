@@ -27,4 +27,9 @@
     <string name="reader_transition_no_curl">La pliure n’est pas proposée ici : cet appareil ne peut pas la dessiner assez fluidement.</string>
     <string name="reader_transition_reflowable">Indisponible pour un texte qui se recompose.</string>
     <string name="reader_empty">Cette publication ne contient aucune page que StoryArc peut afficher.</string>
+    <string name="reader_offline_brief">En attente du réseau…</string>
+    <string name="reader_offline_long">Cette publication est sur un partage inaccessible. Les pages déjà lues sont toujours là.</string>
+    <string name="reader_offline_download">La télécharger</string>
+    <string name="reader_offline_leave">Retour à la bibliothèque</string>
+    <string name="reader_offline_dismiss">Masquer</string>
 </resources>

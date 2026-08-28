@@ -54,6 +54,7 @@ import app.storyarc.feature.library.SmbBrowserScreen
 import app.storyarc.feature.library.SmbConnection
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.smb.SmbClient
+import app.storyarc.core.smb.SmbReachability
 import app.storyarc.feature.library.SmbLocator
 import app.storyarc.feature.library.SmbPage
 import app.storyarc.feature.library.SmbSheet
@@ -555,6 +556,8 @@ class MainActivity : ComponentActivity() {
                         onOpenShelves = { isShowingShelves = true },
                     )
                 } else {
+                    val blockedSince by SmbReachability.blockedSince
+                        .collectAsStateWithLifecycle()
                     val publications by libraryViewModel.publications.collectAsStateWithLifecycle()
                     // Keyed on the publication so opening a different one builds a
                     // fresh model rather than showing the previous book's pages.
@@ -608,6 +611,25 @@ class MainActivity : ComponentActivity() {
                         ReaderScreen(
                         viewModel = readerViewModel,
                         onClose = close,
+                        blockedSince = blockedSince,
+                        onDismissTrouble = { SmbReachability.clear() },
+                        // Only for a publication that lives on a share. Everything else is
+                        // already on the device, and offering to download it would be
+                        // offering nothing.
+                        onDownloadForOffline = selection.second
+                            .takeIf { it.startsWith("smb://") }
+                            ?.let { remote ->
+                                {
+                                    lifecycleScope.launch {
+                                        keepForOffline(
+                                            downloadStore,
+                                            selection.first,
+                                            remote,
+                                        )?.let { local -> reading = selection.first to local }
+                                        SmbReachability.clear()
+                                    }
+                                }
+                            },
                         preferences = readerPreferences,
                         // `comic-reader`: the end of one volume offers the next.
                         // The app layer answers this because it is the only place
