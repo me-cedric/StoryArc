@@ -189,4 +189,5 @@
     <string name="smb_metered_title">Mobile Daten verwenden?</string>
     <string name="smb_metered_body">Diese Verbindung ist kostenpflichtig oder der Datensparmodus ist an. „%1$s“ zu lesen verbraucht Daten von der Freigabe.</string>
     <string name="smb_metered_continue">Lesen</string>
+    <string name="smb_found">In diesem Netzwerk</string>
 </resources>

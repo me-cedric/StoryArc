@@ -189,4 +189,5 @@
     <string name="smb_metered_title">Use mobile data?</string>
     <string name="smb_metered_body">This connection is metered or data saver is on. Reading “%1$s” will use data from the share.</string>
     <string name="smb_metered_continue">Read it</string>
+    <string name="smb_found">On this network</string>
 </resources>

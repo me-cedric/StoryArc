@@ -189,4 +189,5 @@
     <string name="smb_metered_title">Utiliser les données mobiles ?</string>
     <string name="smb_metered_body">Cette connexion est limitée ou l’économiseur de données est actif. Lire « %1$s » consommera des données du partage.</string>
     <string name="smb_metered_continue">Le lire</string>
+    <string name="smb_found">Sur ce réseau</string>
 </resources>

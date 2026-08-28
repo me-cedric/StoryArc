@@ -25,9 +25,11 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -35,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.smb.SmbDiscovery
+import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.model.Source
 
 /**
@@ -80,6 +84,40 @@ fun SmbSheet(
 @Composable
 private fun ColumnScope.Details(connection: SmbConnection, step: SmbConnection.Step) {
     val palette = LocalStoryArcPalette.current
+    val context = LocalContext.current
+    // `network-share` marks discovery a SHOULD and is firm that "manual entry is always
+    // available and never gated behind discovery". So the list sits above the form and an
+    // empty one shows nothing at all -- no spinner, no "searching", no reason to wait.
+    val discovery = remember(context) { SmbDiscovery.hosts(context) }
+    val hosts by discovery.collectAsStateWithLifecycle(initialValue = emptyList())
+
+    if (hosts.isNotEmpty()) {
+        Text(
+            text = stringResource(R.string.smb_found),
+            style = MaterialTheme.typography.labelLarge,
+            color = palette.textSecondary,
+        )
+        hosts.forEach { host ->
+            Text(
+                text = "${host.name} · ${host.address}",
+                style = MaterialTheme.typography.bodyLarge,
+                color = palette.textPrimary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        connection.host.value =
+                            if (host.port == SmbAddress.DEFAULT_PORT) {
+                                host.address
+                            } else {
+                                "${host.address}:${host.port}"
+                            }
+                    }
+                    .defaultMinSize(minHeight = 48.dp)
+                    .padding(vertical = StoryArcSpace.xs),
+            )
+        }
+    }
+
     val host by connection.host.collectAsStateWithLifecycle()
     val share by connection.share.collectAsStateWithLifecycle()
     val username by connection.username.collectAsStateWithLifecycle()

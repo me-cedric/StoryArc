@@ -17,6 +17,12 @@ public struct SmbSheet: View {
     private let connection: SmbConnection
     private let onAdd: (Source) -> Void
 
+    /// `network-share` marks discovery a SHOULD and is firm that "manual entry is always
+    /// available and never gated behind discovery". So the list sits above the form and an
+    /// empty one shows nothing at all — no spinner, no "searching", no reason to wait. A
+    /// refused local-network permission arrives here as simply no results.
+    @State private var discovery = SmbDiscovery()
+
     public init(connection: SmbConnection, onAdd: @escaping (Source) -> Void) {
         self.connection = connection
         self.onAdd = onAdd
@@ -32,6 +38,8 @@ public struct SmbSheet: View {
                 }
             }
             .navigationTitle(Text("smb.title", bundle: .module))
+            .task { discovery.start() }
+            .onDisappear { discovery.stop() }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -45,6 +53,20 @@ public struct SmbSheet: View {
 
     @ViewBuilder
     private var details: some View {
+        if !discovery.hosts.isEmpty {
+            Section {
+                ForEach(discovery.hosts) { host in
+                    Button {
+                        connection.host = host.name
+                    } label: {
+                        Label(host.name, systemImage: "externaldrive.badge.wifi")
+                    }
+                }
+            } header: {
+                Text("smb.found", bundle: .module)
+            }
+        }
+
         Section {
             TextField(
                 String(localized: "smb.host.label", bundle: .module),

@@ -99,6 +99,10 @@ targets:
           NSAllowsLocalNetworking: true
         # Shown when the app first reaches a device on the same network. Says what for,
         # because "StoryArc would like to find devices" answers nothing.
+        # `network-share` discovery: the one service type this app looks for. iOS refuses
+        # a Bonjour browse for anything not listed here.
+        NSBonjourServices:
+          - _smb._tcp
         NSLocalNetworkUsageDescription: >-
           StoryArc connects to library servers you run yourself, such as a NAS or a
           Raspberry Pi on your own network.
@@ -141,6 +145,10 @@ targets:
             UTTypeConformsTo: [public.tar-archive]
             UTTypeTagSpecification: { public.filename-extension: [cbt] }
         # `network-share` needs this to discover SMB hosts on the local network.
+        # `network-share` discovery: the one service type this app looks for. iOS refuses
+        # a Bonjour browse for anything not listed here.
+        NSBonjourServices:
+          - _smb._tcp
         NSLocalNetworkUsageDescription: >-
           StoryArc looks for SMB shares on your local network so you can add one
           without typing its address. You can always enter it by hand instead.
