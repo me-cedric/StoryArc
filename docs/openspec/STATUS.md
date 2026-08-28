@@ -26,7 +26,7 @@ Keep this current. A status document that lags is worse than none, because it is
 | `opds-catalog` | partial | OPDS 2.0 groups are flattened rather than shown as groups; no publication detail screen, so choosing another format is a menu. **All three requirements are built on both platforms: adding a catalogue with sign-in and certificate pinning, browsing sections and paginated grids with search, and fetching a publication and opening it** |
 | `kavita-server` | absent | Everything |
 | `network-share` | absent | Everything |
-| `collections-and-reading-lists` | partial | The server-backed half entirely, which waits on `kavita-server`: no mixed listing from a server, no pending edits, no conflict rule, no converting a local list. No composite cover, no bulk selection from the library, no bulk download or mark-read. **A reader can create, rename by re-creating, delete and populate local collections and ordered reading lists on both platforms, reorder a list, see their position in it, and add any publication to any number of them** |
+| `collections-and-reading-lists` | partial | The server-backed half entirely, which waits on `kavita-server`: no mixed listing from a server, no pending edits, no conflict rule, no converting a local list. No composite cover, no bulk selection from the library, no bulk download or mark-read. **A reader can create, rename by re-creating, delete and populate local collections and ordered reading lists on both platforms, reorder a list, see their position in it, add any publication to any number of them, and be offered the next entry in list order rather than the next in series when they finish one** |
 
 ## What blocks what
 

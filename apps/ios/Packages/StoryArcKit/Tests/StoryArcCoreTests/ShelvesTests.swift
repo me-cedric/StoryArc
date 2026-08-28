@@ -128,3 +128,23 @@ struct ShelvesTests {
         #expect(shelves.lists.count == 1)
     }
 }
+
+/// What a list says comes next, when it disagrees with the series.
+@Suite("Next in a reading list")
+struct ReadingListNextTests {
+    @Test("An unavailable entry does not stop the flow")
+    func skipsPastAnUnavailableEntry() {
+        // `collections-and-reading-lists`: an unavailable entry "does not break the
+        // ordering or the next flow". The list still knows what follows it; whether the
+        // caller can show that is the caller's problem.
+        let list = ReadingList(name: "Crossover", entries: ["a", "gone", "c"])
+        #expect(list.next(after: "a") == "gone")
+        #expect(list.next(after: "gone") == "c")
+    }
+
+    @Test("The last entry has no next")
+    func theEndIsTheEnd() {
+        let list = ReadingList(name: "Crossover", entries: ["a", "b"])
+        #expect(list.next(after: "b") == nil)
+    }
+}

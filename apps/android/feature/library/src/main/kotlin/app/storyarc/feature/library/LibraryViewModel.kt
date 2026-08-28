@@ -576,4 +576,31 @@ class LibraryViewModel(
         _shelves.update { it.deletingList(id) }
         shelvesStore?.save(_shelves.value)
     }
+
+    /**
+     * What to offer when a publication is finished.
+     *
+     * A reading list wins over a series. `collections-and-reading-lists`: when a reader
+     * finishes an entry in a list, "the next entry in list order is offered, regardless of
+     * series or source" -- a crossover read in publication order is exactly a case where the
+     * series' own next issue is the wrong answer.
+     *
+     * The first list containing it decides, when a publication is in several. Any rule here
+     * is arbitrary; this one is at least the reader's own order, since the lists are in the
+     * order they made them.
+     *
+     * Falls back to the series, which is what `comic-reader` asks for and what a reader who
+     * keeps no lists will always get.
+     */
+    fun next(after: Publication): Publication? {
+        val known = _publications.value
+        for (list in _shelves.value.lists) {
+            if (after.id !in list.entries) continue
+            val nextId = list.next(after.id) ?: continue
+            // An entry whose publication is gone does not stop the flow: the spec says an
+            // unavailable entry "does not break the ordering or the next flow".
+            known.firstOrNull { it.id == nextId }?.let { return it }
+        }
+        return LibraryIndex.next(after, known)
+    }
 }

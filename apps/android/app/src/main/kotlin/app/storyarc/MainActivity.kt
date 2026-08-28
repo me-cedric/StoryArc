@@ -404,7 +404,9 @@ class MainActivity : ComponentActivity() {
                         // composition is a snapshot nothing recomposes on, so the
                         // end screen would offer whatever was there when the reader
                         // opened.
-                        nextInSeries = LibraryIndex.next(selection.first, publications),
+                        // The library is what knows a reading list may have a different
+                        // opinion about what comes next than the series does.
+                        nextInSeries = libraryViewModel.next(selection.first),
                         onOpenNext = { publication ->
                             // The selection is replaced rather than a second reader
                             // pushed: stacking them would leave a pile behind a

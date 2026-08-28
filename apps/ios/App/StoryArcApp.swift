@@ -222,13 +222,11 @@ struct StoryArcApp: App {
                         url: selection.url,
                         progress: progress,
                         preferences: ReaderPreferences(),
-                        // `comic-reader`: the end of one volume offers the next.
-                        // The app layer answers this because it is the only place
-                        // that can see both the reader and the library.
-                        nextInSeries: LibraryIndex.next(
-                            after: selection.publication,
-                            in: library.publications
-                        ),
+                        // `comic-reader`: the end of one volume offers the next. The app
+                        // layer answers this because it is the only place that can see both
+                        // the reader and the library — and the library is what knows a
+                        // reading list may have a different opinion about what comes next.
+                        nextInSeries: library.next(after: selection.publication),
                         onOpenNext: openNext
                     )
                     .storyArcTheme(appearance: settings.appearance)
