@@ -40,4 +40,7 @@
     <string name="reader_adjust_invert">Invertir colores</string>
     <string name="reader_adjust_reset">Restablecer ajustes</string>
     <string name="reader_adjust_scope">Se aplica solo a «%1$s», no a todo lo que lee.</string>
+    <string name="reader_adjust_crop">Recortar bordes</string>
+    <string name="reader_adjust_crop_note">Elimina un margen blanco o negro liso, página a página. Una página sin ese margen se deja intacta.</string>
+    <string name="reader_adjust_crop_this_page">Recortar esta página</string>
 </resources>

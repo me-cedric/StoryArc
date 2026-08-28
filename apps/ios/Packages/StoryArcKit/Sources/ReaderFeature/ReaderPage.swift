@@ -28,7 +28,7 @@ struct PageView: View {
             // `comic-reader` treats the whole page as the unit. Zoom starts from
             // that fit rather than replacing it.
             ZoomablePage(
-                image: sharpened(image, by: adjustments.sharpness),
+                image: sharpened(cropped(image, when: adjustments.cropsBorders), by: adjustments.sharpness),
                 pageID: pageID,
                 fit: fit,
                 onTap: onTap
@@ -192,7 +192,13 @@ struct StitchedPage: View {
             ZStack {
                 Color.black
                 if let image {
-                    Image(decorative: sharpened(image, by: adjustments.sharpness), scale: 1)
+                    Image(
+                        decorative: sharpened(
+                            cropped(image, when: adjustments.cropsBorders),
+                            by: adjustments.sharpness
+                        ),
+                        scale: 1
+                    )
                         .resizable()
                         .scaledToFit()
                         .adjusted(adjustments)

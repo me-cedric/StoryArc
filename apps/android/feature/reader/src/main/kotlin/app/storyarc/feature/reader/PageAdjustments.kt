@@ -1,11 +1,13 @@
 package app.storyarc.feature.reader
 
+import android.graphics.Bitmap
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import app.storyarc.core.model.BorderCrop
 import app.storyarc.core.model.ImageAdjustments
 
 /**
@@ -54,6 +56,56 @@ internal fun ImageAdjustments.colourFilter(): ColorFilter? {
     }
 
     return ColorFilter.colorMatrix(matrix)
+}
+
+/**
+ * The same page with its uniform margin gone, or the same page when there was none.
+ *
+ * `comic-reader`: "uniform white or black margins are detected and trimmed per page". Per
+ * page is the requirement and also the only thing that works -- a scan's margin varies from
+ * sheet to sheet, and one inset applied to a whole comic crops half of it wrongly.
+ *
+ * The detection reads a thumbnail rather than the page. A margin is uniform by definition, so
+ * it survives being scaled down, and reading two million pixels on every page turn is the
+ * difference between a reader who notices and one who does not.
+ */
+internal fun Bitmap.cropped(isEnabled: Boolean): Bitmap {
+    if (!isEnabled) return this
+    val small = thumbnail() ?: return this
+    val pixels = IntArray(small.width * small.height)
+    small.getPixels(pixels, 0, small.width, 0, 0, small.width, small.height)
+
+    val inset = BorderCrop.inset(small.width, small.height) { x, y ->
+        // The red channel alone. A margin is grey by definition -- white or black -- so the
+        // other two say the same thing, and asking for one is a third of the work.
+        (pixels[y * small.width + x] shr 16) and 0xFF
+    }
+    if (small !== this) small.recycle()
+    if (inset.isEmpty) return this
+
+    // Back up to the page's own scale, which is what the crop has to be expressed in.
+    val scale = width.toFloat() / small.width
+    val left = (inset.left * scale).toInt()
+    val top = (inset.top * scale).toInt()
+    val cropWidth = width - left - (inset.right * scale).toInt()
+    val cropHeight = height - top - (inset.bottom * scale).toInt()
+    if (cropWidth <= 0 || cropHeight <= 0) return this
+    return Bitmap.createBitmap(this, left, top, cropWidth, cropHeight)
+}
+
+/** A small copy, small enough that reading every pixel of it costs nothing. */
+private fun Bitmap.thumbnail(): Bitmap? {
+    val side = 256
+    if (maxOf(width, height) <= side) return this
+    val scale = side.toFloat() / maxOf(width, height)
+    return runCatching {
+        Bitmap.createScaledBitmap(
+            this,
+            maxOf(1, (width * scale).toInt()),
+            maxOf(1, (height * scale).toInt()),
+            false,
+        )
+    }.getOrNull()
 }
 
 /**

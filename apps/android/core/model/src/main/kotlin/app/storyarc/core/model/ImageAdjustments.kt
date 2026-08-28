@@ -19,6 +19,8 @@ import kotlinx.serialization.Serializable
  * @property sharpness 0 to 1. Not signed: blurring a scan is not a repair anyone asks for.
  * @property isInverted white on black, for a scan whose page is already dark.
  * @property isGreyscale colour removed, which reads better than a bad colour cast.
+ * @property cropsBorders uniform white or black margins trimmed, page by page. See
+ *   [BorderCrop].
  */
 @Serializable
 data class ImageAdjustments(
@@ -27,6 +29,7 @@ data class ImageAdjustments(
     val sharpness: Float = 0f,
     val isInverted: Boolean = false,
     val isGreyscale: Boolean = false,
+    val cropsBorders: Boolean = false,
 ) {
     /**
      * Nothing to do.

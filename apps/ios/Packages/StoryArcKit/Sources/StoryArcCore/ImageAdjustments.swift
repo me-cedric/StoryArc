@@ -20,19 +20,23 @@ public struct ImageAdjustments: Sendable, Equatable, Codable {
     /// Colour removed. A colour cover in a black-and-white run is a distraction, and a
     /// badly colour-cast scan reads better without the cast.
     public var isGreyscale: Bool
+    /// Uniform white or black margins trimmed, page by page. See ``BorderCrop``.
+    public var cropsBorders: Bool
 
     public init(
         brightness: Double = 0,
         contrast: Double = 0,
         sharpness: Double = 0,
         isInverted: Bool = false,
-        isGreyscale: Bool = false
+        isGreyscale: Bool = false,
+        cropsBorders: Bool = false
     ) {
         self.brightness = brightness.clamped(to: -1 ... 1)
         self.contrast = contrast.clamped(to: -1 ... 1)
         self.sharpness = sharpness.clamped(to: 0 ... 1)
         self.isInverted = isInverted
         self.isGreyscale = isGreyscale
+        self.cropsBorders = cropsBorders
     }
 
     /// Nothing to do. Worth asking, because applying a no-op filter still costs a redraw of
@@ -47,7 +51,8 @@ public struct ImageAdjustments: Sendable, Equatable, Codable {
             contrast: try container.decodeIfPresent(Double.self, forKey: .contrast) ?? 0,
             sharpness: try container.decodeIfPresent(Double.self, forKey: .sharpness) ?? 0,
             isInverted: try container.decodeIfPresent(Bool.self, forKey: .isInverted) ?? false,
-            isGreyscale: try container.decodeIfPresent(Bool.self, forKey: .isGreyscale) ?? false
+            isGreyscale: try container.decodeIfPresent(Bool.self, forKey: .isGreyscale) ?? false,
+            cropsBorders: try container.decodeIfPresent(Bool.self, forKey: .cropsBorders) ?? false
         )
     }
 }

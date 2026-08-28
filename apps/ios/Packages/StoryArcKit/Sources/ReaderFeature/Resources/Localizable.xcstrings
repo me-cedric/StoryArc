@@ -88,6 +88,93 @@
         }
       }
     },
+    "reader.adjust.crop": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ränder beschneiden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trim borders"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recortar bordes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rogner les bords"
+          }
+        }
+      }
+    },
+    "reader.adjust.crop.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernt einen einfarbig weißen oder schwarzen Rand, Seite für Seite. Eine Seite ohne solchen Rand bleibt unverändert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removes a plain white or black margin, page by page. A page with no such margin is left alone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina un margen blanco o negro liso, página a página. Una página sin ese margen se deja intacta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprime une marge unie blanche ou noire, page par page. Une page sans une telle marge reste intacte."
+          }
+        }
+      }
+    },
+    "reader.adjust.crop.thisPage": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Seite beschneiden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trim this page"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recortar esta página"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rogner cette page"
+          }
+        }
+      }
+    },
     "reader.adjust.done": {
       "extractionState": "manual",
       "localizations": {

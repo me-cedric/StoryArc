@@ -17,6 +17,9 @@ struct AdjustmentsSheet: View {
     /// The series the change applies to, named so the reader can see it is not global.
     let shelf: String
 
+    /// Whether the page in front of the reader is being trimmed.
+    @Binding var cropsThisPage: Bool
+
     var body: some View {
         NavigationStack {
             List {

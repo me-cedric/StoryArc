@@ -98,7 +98,7 @@ extension ReaderView {
             pageID: model.pages[index].path,
             label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
             fit: fit,
-            adjustments: adjustments,
+            adjustments: trimming(at: index),
             onTap: { location, size in handleTap(at: location, in: size) }
         )
     }
@@ -114,9 +114,17 @@ extension ReaderView {
             isUnavailable: model.isUnavailable(at: index),
             label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
             axis: axis,
-            adjustments: adjustments,
+            adjustments: trimming(at: index),
             onTap: { location, size in handleTap(at: location, in: size) }
         )
+    }
+
+    /// The series' adjustments, with the trim off for a page the reader excused.
+    func trimming(at index: Int) -> ImageAdjustments {
+        guard uncropped.contains(index) else { return adjustments }
+        var excused = adjustments
+        excused.cropsBorders = false
+        return excused
     }
 
     /// Short enough not to read as an animation, which is the point of the name.

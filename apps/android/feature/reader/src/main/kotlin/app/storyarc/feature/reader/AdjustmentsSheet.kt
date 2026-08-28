@@ -67,6 +67,8 @@ internal fun AdjustButton(isNeutral: Boolean, onOpen: () -> Unit) {
 internal fun AdjustmentsSheet(
     adjustments: ImageAdjustments,
     shelf: String,
+    cropsThisPage: Boolean,
+    onCropThisPage: (Boolean) -> Unit,
     onChange: (ImageAdjustments) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -111,6 +113,22 @@ internal fun AdjustmentsSheet(
                 labelRes = R.string.reader_adjust_invert,
                 checked = adjustments.isInverted,
             ) { onChange(adjustments.copy(isInverted = it)) }
+
+            AdjustmentSwitch(
+                labelRes = R.string.reader_adjust_crop,
+                noteRes = R.string.reader_adjust_crop_note,
+                checked = adjustments.cropsBorders,
+            ) { onChange(adjustments.copy(cropsBorders = it)) }
+
+            // `comic-reader`: "the user can disable it for a page that crops wrongly". Only
+            // where there is a trim to disable, and about *this* page.
+            if (adjustments.cropsBorders) {
+                AdjustmentSwitch(
+                    labelRes = R.string.reader_adjust_crop_this_page,
+                    checked = cropsThisPage,
+                    onChange = onCropThisPage,
+                )
+            }
 
             // Named, because `comic-reader` requires the change to apply "to the series and
             // [not be] applied globally", and a reader cannot tell that from the controls.
@@ -161,17 +179,31 @@ private fun AdjustmentSlider(
 }
 
 @Composable
-private fun AdjustmentSwitch(labelRes: Int, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun AdjustmentSwitch(
+    labelRes: Int,
+    checked: Boolean,
+    noteRes: Int? = null,
+    onChange: (Boolean) -> Unit,
+) {
+    val palette = LocalStoryArcPalette.current
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = StoryArcSpace.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = stringResource(labelRes),
-            style = MaterialTheme.typography.bodyMedium,
-            color = LocalStoryArcPalette.current.textPrimary,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(labelRes),
+                style = MaterialTheme.typography.bodyMedium,
+                color = palette.textPrimary,
+            )
+            noteRes?.let {
+                Text(
+                    text = stringResource(it),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = palette.textTertiary,
+                )
+            }
+        }
         Switch(checked = checked, onCheckedChange = onChange)
     }
 }

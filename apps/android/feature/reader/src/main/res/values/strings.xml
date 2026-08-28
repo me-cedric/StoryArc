@@ -40,4 +40,7 @@
     <string name="reader_adjust_invert">Invert colours</string>
     <string name="reader_adjust_reset">Reset adjustments</string>
     <string name="reader_adjust_scope">Applies to “%1$s” only, not to everything you read.</string>
+    <string name="reader_adjust_crop">Trim borders</string>
+    <string name="reader_adjust_crop_note">Removes a plain white or black margin, page by page. A page with no such margin is left alone.</string>
+    <string name="reader_adjust_crop_this_page">Trim this page</string>
 </resources>

@@ -57,6 +57,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -285,6 +286,12 @@ private fun Pager(
     /** Whether the adjustment controls are open. */
     var isAdjusting by rememberSaveable { mutableStateOf(false) }
 
+    // `comic-reader`: "the user can disable it for a page that crops wrongly". Detection on
+    // a scan is a guess, and a guess needs a way to be overruled. Held for the session
+    // rather than stored: an exemption is about one page of one book in front of the reader
+    // now, and a store of page numbers outlives the pages it describes.
+    val uncropped = remember { mutableStateSetOf<Int>() }
+
     val choices = viewModel.transitions(settings)
     val paging = rememberPaging(choices.effective, count, position)
     LaunchedEffect(paging) {
@@ -417,9 +424,14 @@ private fun Pager(
     fun Page(display: Int, stitch: ScrollAxis? = null) {
         val index = modelIndex(display)
         val bitmap = viewModel.image(index)
+        val trims = adjustments.cropsBorders && index !in uncropped
         when {
             bitmap != null -> ZoomablePage(
-                bitmap = bitmap.asImageBitmap(),
+                // Cropped before it becomes an `ImageBitmap`: the trim changes the page's
+                // size, which everything downstream measures from.
+                bitmap = remember(bitmap, trims) {
+                    bitmap.cropped(trims).asImageBitmap()
+                },
                 // The page number, not the archive entry's path. TalkBack read
                 // "page10.png" aloud, which names a file inside a CBZ rather than a
                 // page — and the reader never chose that name.
@@ -537,6 +549,11 @@ private fun Pager(
         AdjustmentsSheet(
             adjustments = adjustments,
             shelf = viewModel.shelfName,
+            cropsThisPage = modelIndex(position) !in uncropped,
+            onCropThisPage = { wanted ->
+                val page = modelIndex(position)
+                if (wanted) uncropped.remove(page) else uncropped.add(page)
+            },
             onChange = viewModel::choose,
             onDismiss = { isAdjusting = false },
         )

@@ -105,6 +105,20 @@ public struct ReaderView: View {
     /// Where the fit choice is remembered. Absent in previews.
     let preferences: ReaderPreferences?
 
+    /// Whether the page in front of the reader is being trimmed, and a way to say no.
+    private var cropsThisPage: Binding<Bool> {
+        Binding(
+            get: { !uncropped.contains(model.currentIndex) },
+            set: { wanted in
+                if wanted {
+                    uncropped.remove(model.currentIndex)
+                } else {
+                    uncropped.insert(model.currentIndex)
+                }
+            }
+        )
+    }
+
     /// Keeps the adjustment against this series alone.
     private func rememberAdjustments(_ now: ImageAdjustments) {
         guard let preferences else { return }
@@ -127,6 +141,14 @@ public struct ReaderView: View {
 
     /// Whether the adjustment controls are open.
     @State var isAdjusting = false
+
+    /// Pages the reader has told the trimmer to leave alone.
+    ///
+    /// `comic-reader`: "the user can disable it for a page that crops wrongly". Detection on
+    /// a scan is a guess, and a guess needs a way to be overruled. Held for the session
+    /// rather than stored: an exemption is about one page of one book in front of the
+    /// reader now, and a store of page numbers outlives the pages it describes.
+    @State var uncropped: Set<Int> = []
 
     public var body: some View {
         GeometryReader { geometry in
@@ -174,7 +196,11 @@ public struct ReaderView: View {
             // Held open while the controls are: `comic-reader` calls for a live preview,
             // and a preview whose chrome times out mid-drag hides the button that opened it.
             .sheet(isPresented: $isAdjusting) {
-                AdjustmentsSheet(adjustments: $adjustments, shelf: shelf)
+                AdjustmentsSheet(
+                    adjustments: $adjustments,
+                    shelf: shelf,
+                    cropsThisPage: cropsThisPage
+                )
             }
             // Written when the drag stops, not on every value: a slider produces dozens of
             // changes a second and each one would be a `UserDefaults` write.

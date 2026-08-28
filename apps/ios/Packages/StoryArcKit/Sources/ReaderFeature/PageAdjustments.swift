@@ -1,3 +1,4 @@
+internal import CoreGraphics
 internal import CoreImage
 internal import SwiftUI
 
@@ -46,6 +47,63 @@ extension View {
     func adjusted(_ adjustments: ImageAdjustments) -> some View {
         modifier(Adjusted(adjustments: adjustments))
     }
+}
+
+/// The same page with its uniform margin gone, or the same page when there was none.
+///
+/// `comic-reader`: "uniform white or black margins are detected and trimmed per page". Per
+/// page is the requirement and also the only thing that works -- a scan's margin varies from
+/// sheet to sheet, and one inset applied to a whole comic crops half of it wrongly.
+///
+/// The detection reads a thumbnail rather than the page. A margin is uniform by definition,
+/// so it survives being scaled down, and reading two million pixels on every page turn is
+/// the difference between a reader who notices and one who does not.
+func cropped(_ image: CGImage, when isEnabled: Bool) -> CGImage {
+    guard isEnabled else { return image }
+    guard let small = thumbnail(of: image), let data = small.dataProvider?.data,
+          let bytes = CFDataGetBytePtr(data)
+    else { return image }
+
+    let stride = small.bytesPerRow
+    let step = small.bitsPerPixel / 8
+    let inset = BorderCrop.inset(width: small.width, height: small.height) { x, y in
+        // The red channel alone. A margin is grey by definition -- white or black -- so the
+        // other two say the same thing, and asking for one is a third of the work.
+        Int(bytes[y * stride + x * step])
+    }
+    guard !inset.isEmpty else { return image }
+
+    // Back up to the page's own scale, which is what the crop has to be expressed in.
+    let scale = Double(image.width) / Double(small.width)
+    let rect = CGRect(
+        x: Double(inset.left) * scale,
+        y: Double(inset.top) * scale,
+        width: Double(small.width - inset.left - inset.right) * scale,
+        height: Double(small.height - inset.top - inset.bottom) * scale
+    )
+    return image.cropping(to: rect) ?? image
+}
+
+/// A small greyscale copy, laid out so a byte can be read straight out of it.
+private func thumbnail(of image: CGImage) -> CGImage? {
+    let side = 256
+    let scale = Double(side) / Double(max(image.width, image.height))
+    let size = (
+        width: max(1, Int(Double(image.width) * scale)),
+        height: max(1, Int(Double(image.height) * scale))
+    )
+    guard let context = CGContext(
+        data: nil,
+        width: size.width,
+        height: size.height,
+        bitsPerComponent: 8,
+        bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceGray(),
+        bitmapInfo: CGImageAlphaInfo.none.rawValue
+    ) else { return nil }
+    context.interpolationQuality = .low
+    context.draw(image, in: CGRect(x: 0, y: 0, width: size.width, height: size.height))
+    return context.makeImage()
 }
 
 /// One shared context. Building a `CIContext` per page is the expensive part of CoreImage,
