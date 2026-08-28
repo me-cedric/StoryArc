@@ -305,7 +305,7 @@ extension LibraryModel {
                 return .connected
             } catch SmbError.authenticationRejected {
                 return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                                    bundle: .module))
+                                                    bundle: .module, locale: .storyArc))
             } catch {
                 return .unreachable(since: Date())
             }
@@ -317,7 +317,7 @@ extension LibraryModel {
                 return .connected
             } catch KavitaError.keyRejected {
                 return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                                    bundle: .module))
+                                                    bundle: .module, locale: .storyArc))
             } catch {
                 return .unreachable(since: Date())
             }
@@ -330,7 +330,7 @@ extension LibraryModel {
             } catch let error as OpdsError {
                 if case .unauthorized = error {
                     return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                                        bundle: .module))
+                                                        bundle: .module, locale: .storyArc))
                 }
                 return .unreachable(since: Date())
             } catch {
@@ -340,6 +340,6 @@ extension LibraryModel {
 
         // Neither page could be built, so the secret this source needs has gone.
         return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                            bundle: .module))
+                                            bundle: .module, locale: .storyArc))
     }
 }

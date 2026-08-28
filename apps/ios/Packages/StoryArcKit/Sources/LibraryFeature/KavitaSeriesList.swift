@@ -84,7 +84,8 @@ struct KavitaSeriesCell: View {
     private var spoken: String {
         guard let read else { return series.name }
         let percent = Int(read * 100)
-        return "\(series.name), \(String(localized: "library.cell.progress \(percent)", bundle: .module))"
+        let progress = String(localized: "library.cell.progress \(percent)", bundle: .module, locale: .storyArc)
+        return "\(series.name), \(progress)"
     }
 
     var body: some View {

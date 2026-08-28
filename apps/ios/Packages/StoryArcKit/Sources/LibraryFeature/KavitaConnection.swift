@@ -57,7 +57,7 @@ public final class KavitaConnection {
         guard let address = KavitaAddress.fromOpds(self.address)
             ?? KavitaAddress.from(base: self.address, apiKey: apiKey)
         else {
-            step = .failed(String(localized: "kavita.error.notAnAddress", bundle: .module))
+            step = .failed(String(localized: "kavita.error.notAnAddress", bundle: .module, locale: .storyArc))
             return
         }
 
@@ -84,7 +84,7 @@ public final class KavitaConnection {
         let id = UUID()
         let stored = CredentialStore.reference(for: id)
         guard let credentials, credentials.save(address.apiKey, for: stored) else {
-            step = .failed(String(localized: "kavita.error.keyNotStored", bundle: .module))
+            step = .failed(String(localized: "kavita.error.keyNotStored", bundle: .module, locale: .storyArc))
             return nil
         }
         let reference = stored
@@ -109,19 +109,19 @@ public final class KavitaConnection {
         switch error {
         case let .serverTooOld(found, required):
             String(
-                format: String(localized: "kavita.error.tooOld", bundle: .module),
+                format: String(localized: "kavita.error.tooOld", bundle: .module, locale: .storyArc),
                 found.description,
                 required.description
             )
         case .keyRejected:
-            String(localized: "kavita.error.keyRejected", bundle: .module)
+            String(localized: "kavita.error.keyRejected", bundle: .module, locale: .storyArc)
         case .badAddress:
-            String(localized: "kavita.error.notAnAddress", bundle: .module)
+            String(localized: "kavita.error.notAnAddress", bundle: .module, locale: .storyArc)
         case .unexpectedResponse:
-            String(localized: "kavita.error.notKavita", bundle: .module)
+            String(localized: "kavita.error.notKavita", bundle: .module, locale: .storyArc)
         case let .http(status):
             String(
-                format: String(localized: "catalogue.error.http", bundle: .module),
+                format: String(localized: "catalogue.error.http", bundle: .module, locale: .storyArc),
                 status,
                 HTTPURLResponse.localizedString(forStatusCode: status)
             )

@@ -276,11 +276,11 @@ public final class DownloadQueue {
             // Not retryable. Fetching the same bytes again produces the same format.
             let message = if case let .unsupported(format) = error {
                 String(
-                    format: String(localized: "catalogue.acquire.unsupported", bundle: .module),
+                    format: String(localized: "catalogue.acquire.unsupported", bundle: .module, locale: .storyArc),
                     format
                 )
             } else {
-                String(localized: "catalogue.acquire.unreadable", bundle: .module)
+                String(localized: "catalogue.acquire.unreadable", bundle: .module, locale: .storyArc)
             }
             fail(download.id, reason: message, retryable: false)
         } catch let error as OpdsError {

@@ -249,7 +249,7 @@ struct CoverCell: View {
         if !publication.isOpenable {
             // Said plainly rather than shown as a broken cover. `publication-formats`
             // requires a named refusal, and a grid cell is where a user meets it.
-            return String(localized: "library.cell.cannotOpen", bundle: .module)
+            return String(localized: "library.cell.cannotOpen", bundle: .module, locale: .storyArc)
         }
         if let series = publication.series, series != publication.displayTitle {
             return publication.number.map { "\(series) #\($0)" } ?? series
@@ -272,7 +272,7 @@ struct CoverCell: View {
             )
         }
         if let pageCount = publication.pageCount {
-            parts.append(String(localized: "library.cell.pages \(pageCount)", bundle: .module))
+            parts.append(String(localized: "library.cell.pages \(pageCount)", bundle: .module, locale: .storyArc))
         }
         return parts.joined(separator: ", ")
     }

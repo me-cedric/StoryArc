@@ -107,7 +107,7 @@ struct ListRow: View {
     private var subtitle: String {
         var parts: [String] = []
         if !publication.isOpenable {
-            parts.append(String(localized: "library.cell.cannotOpen", bundle: .module))
+            parts.append(String(localized: "library.cell.cannotOpen", bundle: .module, locale: .storyArc))
         }
         if let series = publication.series, series != publication.displayTitle {
             parts.append(publication.number.map { "\(series) #\($0)" } ?? series)

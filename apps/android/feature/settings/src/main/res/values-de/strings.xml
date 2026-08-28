@@ -13,7 +13,6 @@
     <string name="settings_pending">Noch nicht gebaut.</string>
     <string name="settings_sources_pending">Ordner, Netzwerkfreigaben, OPDS-Kataloge und Kavita-Server. Vorläufig aus der Bibliothek hinzugefügt.</string>
     <string name="settings_downloads_pending">Es wird noch nichts heruntergeladen, also gibt es nichts zu verwalten.</string>
-    <string name="settings_language_pending">StoryArc folgt Ihrer Systemsprache. Eine Übersteuerung ist noch nicht gebaut.</string>
     <string name="settings_language_system">System</string>
     <string name="settings_reading_summary">Seitenwechsel und Lesevorgaben</string>
     <string name="settings_reading_summary_volume">Lautstärketasten blättern</string>

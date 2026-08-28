@@ -80,7 +80,7 @@ public final class CatalogueConnection {
     /// Fetches the root feed and reports what came back.
     public func connect() async {
         guard let url = OpdsDocument.address(from: address) else {
-            step = .failed(String(localized: "catalogue.error.notAURL", bundle: .module))
+            step = .failed(String(localized: "catalogue.error.notAURL", bundle: .module, locale: .storyArc))
             return
         }
         await attempt(url, credential: accepted)
@@ -136,7 +136,7 @@ public final class CatalogueConnection {
             let stored = CredentialStore.reference(for: id)
             guard let credentials, credentials.save(accepted.stored, for: stored) else {
                 step = .failed(
-                    String(localized: "catalogue.error.secretNotStored", bundle: .module)
+                    String(localized: "catalogue.error.secretNotStored", bundle: .module, locale: .storyArc)
                 )
                 return nil
             }

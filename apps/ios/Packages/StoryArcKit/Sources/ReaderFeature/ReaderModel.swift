@@ -222,7 +222,7 @@ public final class ReaderModel {
     /// rather than a spinner that never stops.
     private func noteIfEmpty() {
         guard failure == nil, pages.isEmpty else { return }
-        failure = String(localized: "reader.empty", bundle: .module)
+        failure = String(localized: "reader.empty", bundle: .module, locale: .storyArc)
     }
 
     /// Opens a PDF.

@@ -55,7 +55,6 @@ enum class SettingsGroup {
         get() = when (this) {
             SOURCES -> R.string.settings_sources_pending
             DOWNLOADS -> R.string.settings_downloads_pending
-            LANGUAGE -> R.string.settings_language_pending
             else -> R.string.settings_pending
         }
 
@@ -87,7 +86,10 @@ enum class SettingsGroup {
                 R.string.settings_reading_summary
             },
         )
-        LANGUAGE -> settings.language ?: stringResource(R.string.settings_language_system)
+        LANGUAGE -> settings.language?.let { tag ->
+            val locale = java.util.Locale.forLanguageTag(tag)
+            locale.getDisplayLanguage(locale).replaceFirstChar { it.titlecase(locale) }
+        } ?: stringResource(R.string.settings_language_system)
         PRIVACY -> stringResource(R.string.settings_privacy_summary)
         ABOUT -> stringResource(R.string.settings_about_summary)
         // Both of these are built now, so both state a value. A summary that still said

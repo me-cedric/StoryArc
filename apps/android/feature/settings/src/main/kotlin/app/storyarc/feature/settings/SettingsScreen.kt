@@ -307,6 +307,7 @@ private fun GroupDetail(
         ) {
             when (group) {
                 SettingsGroup.APPEARANCE -> AppearanceGroup(settings, onChange)
+                SettingsGroup.LANGUAGE -> LanguageGroup(settings, onChange)
                 SettingsGroup.READING -> ReadingGroup(settings, onChange, readerStore)
                 SettingsGroup.PRIVACY -> PrivacyGroup()
                 SettingsGroup.ABOUT -> AboutGroup()
@@ -323,11 +324,6 @@ private fun GroupDetail(
                     settings = settings,
                     onChange = onChange,
                 )
-                SettingsGroup.LANGUAGE ->
-                    Text(
-                        text = stringResource(group.pendingRes),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
             }
         }
     }

@@ -50,7 +50,11 @@ struct PrivacySettings: View {
                     // so the reader who tapped Clear was told nothing at all. The row's
                     // own string, so there is nothing new to translate.
                     AccessibilityNotification.Announcement(
-                        String(localized: "privacy.cache \(formattedBytes(cacheBytes))", bundle: .module)
+                        String(
+                            localized: "privacy.cache \(formattedBytes(cacheBytes))",
+                            bundle: .module,
+                            locale: .storyArc
+                        )
                     ).post()
                 }
 
@@ -82,7 +86,11 @@ struct PrivacySettings: View {
                     await measure()
                     // Silent for the same reason the cache row was.
                     AccessibilityNotification.Announcement(
-                        String(localized: "privacy.history \(formattedBytes(historyBytes))", bundle: .module)
+                        String(
+                            localized: "privacy.history \(formattedBytes(historyBytes))",
+                            bundle: .module,
+                            locale: .storyArc
+                        )
                     ).post()
                 }
             } label: {

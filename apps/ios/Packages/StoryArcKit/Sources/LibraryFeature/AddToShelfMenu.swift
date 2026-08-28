@@ -27,8 +27,8 @@ struct AddToShelfMenu: View {
         } label: {
             Label(
                 isRead
-                    ? String(localized: "library.mark.unread", bundle: .module)
-                    : String(localized: "library.mark.read", bundle: .module),
+                    ? String(localized: "library.mark.unread", bundle: .module, locale: .storyArc)
+                    : String(localized: "library.mark.read", bundle: .module, locale: .storyArc),
                 systemImage: isRead ? "circle" : "checkmark.circle"
             )
         }

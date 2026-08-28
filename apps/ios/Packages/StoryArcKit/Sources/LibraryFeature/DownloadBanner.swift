@@ -51,12 +51,12 @@ struct DownloadBanner: View {
             reason
         case .paused:
             String(
-                format: String(localized: "downloads.pausedTitle", bundle: .module),
+                format: String(localized: "downloads.pausedTitle", bundle: .module, locale: .storyArc),
                 download.title
             )
         case .queued, .running, .finished:
             String(
-                format: String(localized: "catalogue.acquire.fetching", bundle: .module),
+                format: String(localized: "catalogue.acquire.fetching", bundle: .module, locale: .storyArc),
                 download.title
             )
         }

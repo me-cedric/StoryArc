@@ -174,13 +174,8 @@ public struct SettingsView: View {
                 onRemove: onRemoveDownload,
                 onReorder: onReorderDownload
             )
-        // Named rather than hidden. A group whose rows arrive with a capability that does
-        // not exist yet says so.
         case .language:
-            List {
-                Text(group.pendingKey, bundle: .module)
-                    .foregroundStyle(theme.palette.textSecondary)
-            }
+            LanguageSettings(settings: $settings)
         }
     }
 }

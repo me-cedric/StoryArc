@@ -13,7 +13,6 @@
     <string name="settings_pending">Aún no desarrollado.</string>
     <string name="settings_sources_pending">Carpetas, recursos de red, catálogos OPDS y servidores Kavita. Por ahora se añaden desde la biblioteca.</string>
     <string name="settings_downloads_pending">Todavía no se descarga nada, así que no hay nada que gestionar.</string>
-    <string name="settings_language_pending">StoryArc sigue el idioma de su sistema. La anulación aún no está desarrollada.</string>
     <string name="settings_language_system">Sistema</string>
     <string name="settings_reading_summary">Cambios de página y ajustes por defecto</string>
     <string name="settings_reading_summary_volume">Los botones de volumen cambian de página</string>

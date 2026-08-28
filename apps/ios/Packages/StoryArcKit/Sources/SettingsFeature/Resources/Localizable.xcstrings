@@ -2611,60 +2611,31 @@
         }
       }
     },
-    "settings.language.custom": {
+    "settings.language.note": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gewählt"
+            "value": "StoryArc spricht Englisch, Deutsch, Spanisch und Französisch. Alles Übrige folgt Ihrem Gerät."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chosen"
+            "value": "StoryArc speaks English, German, Spanish and French. Everything else follows your device."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elegido"
+            "value": "StoryArc habla inglés, alemán, español y francés. Todo lo demás sigue a su dispositivo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choisie"
-          }
-        }
-      }
-    },
-    "settings.language.pending": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StoryArc folgt Ihrer Systemsprache. Eine Übersteuerung ist noch nicht gebaut."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StoryArc follows your system language. An override is not built yet."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StoryArc sigue el idioma de su sistema. La anulación aún no está desarrollada."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "StoryArc suit la langue de votre système. Un remplacement n’est pas encore développé."
+            "value": "StoryArc parle anglais, allemand, espagnol et français. Le reste suit votre appareil."
           }
         }
       }

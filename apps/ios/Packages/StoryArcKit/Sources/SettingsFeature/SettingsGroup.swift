@@ -46,7 +46,6 @@ enum SettingsGroup: String, CaseIterable, Identifiable {
         switch self {
         case .sources: "settings.sources.pending"
         case .downloads: "settings.downloads.pending"
-        case .language: "settings.language.pending"
         default: "settings.pending"
         }
     }
@@ -63,7 +62,8 @@ enum SettingsGroup: String, CaseIterable, Identifiable {
         // a summary of something that does not happen.
         case .reading: "settings.reading.summary"
         case .language:
-            settings.language == nil ? "settings.language.system" : "settings.language.custom"
+            settings.language.map { LocalizedStringKey(InterfaceLanguage.name(of: $0)) }
+                ?? "settings.language.system"
         case .privacy: "settings.privacy.summary"
         case .about: "settings.about.summary"
         // Both of these are built now, so both state a value. A summary that still said

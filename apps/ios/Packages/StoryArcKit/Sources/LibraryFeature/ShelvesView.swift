@@ -155,7 +155,7 @@ public struct ShelvesView: View {
             isPresented: Binding(get: { creating != nil }, set: { if !$0 { creating = nil } }),
             presenting: creating
         ) { kind in
-            TextField(String(localized: "shelves.new.field", bundle: .module), text: $draftName)
+            TextField(String(localized: "shelves.new.field", bundle: .module, locale: .storyArc), text: $draftName)
             Button(role: .cancel) {} label: { Text("shelves.cancel", bundle: .module) }
             Button {
                 switch kind {
@@ -199,7 +199,7 @@ public struct ShelvesView: View {
     /// The count, and where the grouping came from.
     private func subtitle(count: Int, origin: ShelfOrigin) -> String {
         let items = String(
-            format: String(localized: "shelves.count \(count)", bundle: .module),
+            format: String(localized: "shelves.count \(count)", bundle: .module, locale: .storyArc),
             count
         )
         guard let sourceID = origin.sourceID,

@@ -1,4 +1,5 @@
 import Catalogue
+import StoryArcCore
 import SwiftUI
 
 extension Scene {
@@ -15,5 +16,19 @@ extension Scene {
                 BackgroundTransfers.shared().onFinishedEvents { continuation.resume() }
             }
         }
+    }
+}
+
+extension View {
+    /// Runs everything below in the language the reader chose.
+    ///
+    /// `localization` requires the override to switch "immediately without a restart", and
+    /// `Bundle.main`'s language is fixed at launch, so nothing is reloaded: SwiftUI resolves
+    /// a `Text` against the environment's locale, and changing that redraws the interface in
+    /// the new language on the next frame. ``InterfaceLanguage`` carries the same choice to
+    /// the strings built outside a view.
+    func speaking(_ tag: String?) -> some View {
+        InterfaceLanguage.choose(tag)
+        return environment(\.locale, .storyArc)
     }
 }

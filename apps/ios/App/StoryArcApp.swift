@@ -283,6 +283,7 @@ struct StoryArcApp: App {
                 }
             )
             .storyArcTheme(appearance: settings.appearance)
+            .speaking(settings.language)
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView(
                     settings: settingsBinding,
@@ -304,6 +305,7 @@ struct StoryArcApp: App {
                     }
                 )
                     .storyArcTheme(appearance: settings.appearance)
+                    .speaking(settings.language)
             }
             // The system hands a file over here, and until this existed it was dropped.
             // `Info.plist` declares StoryArc as a handler for six formats, so the app was
@@ -358,6 +360,7 @@ struct StoryArcApp: App {
                     // `@State`.
                     .id(selection.publication.id)
                     .storyArcTheme(appearance: settings.appearance)
+                    .speaking(settings.language)
                 } else {
                     ReaderView(
                         publication: selection.publication,
@@ -380,6 +383,7 @@ struct StoryArcApp: App {
                             : nil
                     )
                     .storyArcTheme(appearance: settings.appearance)
+                    .speaking(settings.language)
                 }
             }
         }

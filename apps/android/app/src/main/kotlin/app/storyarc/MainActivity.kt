@@ -187,6 +187,9 @@ class MainActivity : ComponentActivity() {
             // reads changed.
             var settings by remember { mutableStateOf(settingsStore.settings()) }
 
+            // `localization`: the reader's own language, applied to the composition rather
+            // than by recreating the activity, so the switch is immediate.
+            WithInterfaceLanguage(settings.language) {
             StoryArcTheme(appearance = settings.appearance, useDynamicColor = true) {
                 // Provided here so both readers can fill it in, and so `onKeyDown` has
                 // something to read. Volume-down turns forward, which is the convention
@@ -699,6 +702,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+            }
             }
         }
     }

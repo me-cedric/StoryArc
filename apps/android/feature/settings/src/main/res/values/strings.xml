@@ -13,7 +13,6 @@
     <string name="settings_pending">Not built yet.</string>
     <string name="settings_sources_pending">Folders, network shares, OPDS catalogues and Kavita servers. Added from the library for now.</string>
     <string name="settings_downloads_pending">Nothing downloads yet, so there is nothing to manage.</string>
-    <string name="settings_language_pending">StoryArc follows your system language. An override is not built yet.</string>
     <string name="settings_language_system">System</string>
     <string name="settings_reading_summary">Page turns and reading defaults</string>
     <string name="settings_reading_summary_volume">Volume buttons turn pages</string>

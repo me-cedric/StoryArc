@@ -104,6 +104,6 @@ private struct MissingLicence: CustomStringConvertible {
     let identifier: String
 
     var description: String {
-        String(localized: "about.licence.missing \(identifier)", bundle: .module)
+        String(localized: "about.licence.missing \(identifier)", bundle: .module, locale: .storyArc)
     }
 }

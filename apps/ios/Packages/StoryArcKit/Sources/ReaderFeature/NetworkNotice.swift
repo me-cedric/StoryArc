@@ -56,8 +56,8 @@ struct NetworkNotice: View {
     @ViewBuilder
     private var notice: some View {
         let message = isLong
-            ? String(localized: "reader.offline.long", bundle: .module)
-            : String(localized: "reader.offline.brief", bundle: .module)
+            ? String(localized: "reader.offline.long", bundle: .module, locale: .storyArc)
+            : String(localized: "reader.offline.brief", bundle: .module, locale: .storyArc)
 
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
             Text(message)

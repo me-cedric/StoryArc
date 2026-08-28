@@ -66,7 +66,7 @@ struct KavitaChapterList: View {
                     // invent a "Volume 0" the server never had.
                     Text(
                         volume.isLooseChapters
-                            ? String(localized: "kavita.looseChapters", bundle: .module)
+                            ? String(localized: "kavita.looseChapters", bundle: .module, locale: .storyArc)
                             : (volume.name ?? "\(volume.number)")
                     )
                 }
@@ -115,8 +115,8 @@ struct KavitaChapterList: View {
             } label: {
                 Label(
                     chapter.isFinished
-                        ? String(localized: "library.mark.unread", bundle: .module)
-                        : String(localized: "library.mark.read", bundle: .module),
+                        ? String(localized: "library.mark.unread", bundle: .module, locale: .storyArc)
+                        : String(localized: "library.mark.read", bundle: .module, locale: .storyArc),
                     systemImage: chapter.isFinished ? "circle" : "checkmark.circle"
                 )
             }
@@ -128,7 +128,7 @@ struct KavitaChapterList: View {
                 } label: {
                     Label(
                         String(
-                            format: String(localized: "kavita.addToList %@", bundle: .module),
+                            format: String(localized: "kavita.addToList %@", bundle: .module, locale: .storyArc),
                             list.title
                         ),
                         systemImage: "text.append"
@@ -144,11 +144,11 @@ struct KavitaChapterList: View {
     private func spoken(_ chapter: KavitaChapter) -> String {
         if fetching == chapter.id {
             return "\(chapter.displayName), " +
-                String(localized: "kavita.fetching", bundle: .module)
+                String(localized: "kavita.fetching", bundle: .module, locale: .storyArc)
         }
         if chapter.isFinished {
             return "\(chapter.displayName), " +
-                String(localized: "library.readState.finished", bundle: .module)
+                String(localized: "library.readState.finished", bundle: .module, locale: .storyArc)
         }
         return chapter.displayName
     }

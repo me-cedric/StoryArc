@@ -60,6 +60,16 @@ android {
             allWarningsAsErrors.set(true)
         }
     }
+
+    bundle {
+        language {
+            // Every language ships in the base install. `localization` lets a reader choose
+            // one from inside the app, and a bundle split by language delivers only the
+            // device's own -- the other three would resolve to English on a device that
+            // never asked for them.
+            enableSplit = false
+        }
+    }
 }
 
 dependencies {

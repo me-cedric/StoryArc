@@ -87,10 +87,10 @@ struct CatalogueEntryCell: View {
         }
         let offered = entry.acquisitions.map(\.mediaType).filter { !$0.isEmpty }
         guard !offered.isEmpty else {
-            return String(localized: "catalogue.entry.noDownload", bundle: .module)
+            return String(localized: "catalogue.entry.noDownload", bundle: .module, locale: .storyArc)
         }
         return String(
-            format: String(localized: "catalogue.entry.unreadable", bundle: .module),
+            format: String(localized: "catalogue.entry.unreadable", bundle: .module, locale: .storyArc),
             ListFormatter.localizedString(byJoining: Array(Set(offered)).sorted())
         )
     }
