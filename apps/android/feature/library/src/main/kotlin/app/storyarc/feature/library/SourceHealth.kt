@@ -9,6 +9,8 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.persistence.CredentialStore
+import app.storyarc.core.smb.SmbClient
+import app.storyarc.core.smb.SmbError
 
 /**
  * Whether a source is actually there.
@@ -22,7 +24,9 @@ object SourceHealth {
 
     /** Which sources this can answer for. A folder answers itself when it is restored. */
     fun canProbe(source: Source): Boolean =
-        source.kind == SourceKind.OPDS_CATALOG || source.kind == SourceKind.KAVITA_SERVER
+        source.kind == SourceKind.OPDS_CATALOG ||
+            source.kind == SourceKind.KAVITA_SERVER ||
+            source.kind == SourceKind.NETWORK_SHARE
 
     /**
      * One request, and what it means.
@@ -37,6 +41,17 @@ object SourceHealth {
         now: Long,
         unauthorizedReason: String,
     ): SourceConnectionState {
+        SmbPage.of(source, credentials)?.let { page ->
+            return try {
+                SmbClient(page.address).use { it.connect() }
+                SourceConnectionState.Connected
+            } catch (error: SmbError.AuthenticationRejected) {
+                SourceConnectionState.Unauthorized(unauthorizedReason)
+            } catch (error: Exception) {
+                SourceConnectionState.Unreachable(now)
+            }
+        }
+
         KavitaPage.of(source, credentials)?.let { page ->
             return try {
                 KavitaClient(page.address).connect()

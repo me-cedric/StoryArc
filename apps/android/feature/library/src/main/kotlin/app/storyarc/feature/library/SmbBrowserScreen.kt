@@ -53,11 +53,12 @@ import kotlinx.coroutines.withContext
 /**
  * A share, browsed folder by folder.
  *
- * The publication is indexed from the share itself rather than from a copy:
- * `PublicationIndexer` takes a `RandomAccessSource`, and
- * [ADR-0008](../../../../../../../../docs/decisions/0008-ranged-reads-and-own-zip-reader.md)
- * put that interface there so a remote archive could supply one. The first page of a 400 MB
- * comic costs a few megabytes, not four hundred.
+ * Opening a publication fetches the whole file first. That is not what `network-share` asks
+ * for -- it wants the first page of a 400 MB archive without transferring 400 MB -- and the
+ * pieces for the better answer are already here: the ZIP reader works through ranged reads
+ * over a `RandomAccessSource`, which is what ADR-0008 built it for, and `SmbClient.open`
+ * hands back exactly such a source. What is missing is a reader that takes one rather than a
+ * path. Until it does, this downloads, and says so rather than pretending.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -178,13 +179,7 @@ private fun EntryRow(entry: SmbEntry, isOpening: Boolean, onTap: () -> Unit) {
     }
 }
 
-/**
- * Opens a publication that lives on the share.
- *
- * Indexed over the share, so opening a folder of comics costs a header read each rather
- * than a download each. The bytes are only copied when a decoder demands a real path --
- * libarchive and `PdfRenderer` both do -- and that copy is the exception, not the route.
- */
+/** Fetches a publication from the share and indexes it. */
 private suspend fun openFromShare(
     context: android.content.Context,
     client: SmbClient,

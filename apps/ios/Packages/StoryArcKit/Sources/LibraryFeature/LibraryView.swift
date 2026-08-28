@@ -16,6 +16,7 @@ public struct LibraryView: View {
     @State private var isPickingFolder = false
     @State private var isAddingCatalogue = false
     @State private var isAddingKavita = false
+    @State private var isAddingShare = false
 
     /// The catalogue being browsed, by identifier.
     ///
@@ -43,6 +44,7 @@ public struct LibraryView: View {
     private let pinStore = CertificatePinStore()
     private let credentials = CredentialStore()
     private let kavitaProgress = KavitaProgressStore()
+    @State private var smb = SmbConnection(credentials: CredentialStore())
 
     /// Held by the view rather than made per presentation, so a reader who dismisses the
     /// sheet mid-sign-in and reopens it finds what they typed still there.
@@ -108,7 +110,12 @@ public struct LibraryView: View {
     /// shelves of local publications, and a reader with one of each should not have to
     /// learn two ways in.
     private var catalogues: [Source] {
-        model.registry.sources.filter { $0.kind == .opdsCatalog || $0.kind == .kavitaServer }
+        // Catalogues, servers and shares together: all three are places to browse rather
+        // than shelves of local publications, and a reader with one of each should not have
+        // to learn three ways in.
+        model.registry.sources.filter {
+            $0.kind == .opdsCatalog || $0.kind == .kavitaServer || $0.kind == .networkShare
+        }
     }
 
     public var body: some View {
@@ -170,6 +177,13 @@ public struct LibraryView: View {
                             url: page.url,
                             credential: page.credential,
                             pins: pins,
+                            onOpen: onOpen
+                        )
+                    } else if let page = SmbPage(source: source, credentials: credentials) {
+                        SmbBrowserView(
+                            title: page.title,
+                            address: page.address,
+                            path: page.address.path,
                             onOpen: onOpen
                         )
                     } else if let page = KavitaPage(source: source, credentials: credentials) {
@@ -249,6 +263,15 @@ public struct LibraryView: View {
                                 Image(systemName: "externaldrive.connected.to.line.below")
                             }
                         }
+                        Button {
+                            isAddingShare = true
+                        } label: {
+                            Label {
+                                Text("smb.title", bundle: .module)
+                            } icon: {
+                                Image(systemName: "externaldrive.badge.wifi")
+                            }
+                        }
                     } label: {
                         Label {
                             Text("library.addSource", bundle: .module)
@@ -309,6 +332,9 @@ public struct LibraryView: View {
         }
         .sheet(isPresented: $isAddingKavita) {
             KavitaSheet(connection: kavita) { model.add($0) }
+        }
+        .sheet(isPresented: $isAddingShare) {
+            SmbSheet(connection: smb) { model.add($0) }
         }
     }
 }

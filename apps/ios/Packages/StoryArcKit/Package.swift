@@ -67,7 +67,7 @@ let package = Package(
         ),
         .target(
             name: "LibraryFeature",
-            dependencies: ["DesignSystem", "StoryArcCore", "Formats", "Persistence", "Catalogue", "Kavita"],
+            dependencies: ["DesignSystem", "StoryArcCore", "Formats", "Persistence", "Catalogue", "Kavita", "Smb"],
             resources: [.process("Resources")]
         ),
         // One module per screen area, and no feature depends on another

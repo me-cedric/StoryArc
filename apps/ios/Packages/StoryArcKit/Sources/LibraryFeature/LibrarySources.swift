@@ -2,6 +2,7 @@ public import Foundation
 
 internal import Catalogue
 internal import Kavita
+internal import Smb
 public import Persistence
 public import StoryArcCore
 
@@ -260,7 +261,9 @@ extension LibraryModel {
     /// a state older than the last time the library was on screen is a claim about the past.
     func probeNetworkSources(credentials: CredentialStore?, pins: CertificatePins) async {
         for source in registry.sources
-        where source.kind == .opdsCatalog || source.kind == .kavitaServer {
+        where source.kind == .opdsCatalog
+            || source.kind == .kavitaServer
+            || source.kind == .networkShare {
             let state = await reach(source, credentials: credentials, pins: pins)
             registry = registry.marking(source.id, as: state)
         }
@@ -296,6 +299,18 @@ extension LibraryModel {
         credentials: CredentialStore?,
         pins: CertificatePins
     ) async -> SourceConnectionState {
+        if let page = SmbPage(source: source, credentials: credentials) {
+            do {
+                _ = try await SmbClient(address: page.address).connect()
+                return .connected
+            } catch SmbError.authenticationRejected {
+                return .unauthorized(reason: String(localized: "source.state.unauthorized",
+                                                    bundle: .module))
+            } catch {
+                return .unreachable(since: Date())
+            }
+        }
+
         if let page = KavitaPage(source: source, credentials: credentials) {
             do {
                 _ = try await KavitaClient(address: page.address, pins: pins).connect()
