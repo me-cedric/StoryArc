@@ -152,3 +152,28 @@ extension KavitaClient {
         _ = try await send(request)
     }
 }
+
+/// Which chapter to mark, in the shape Kavita's mark endpoints want.
+struct KavitaMark: Encodable {
+    let seriesId: Int
+    let chapterId: Int
+}
+
+extension KavitaClient {
+    /// Marks one chapter read or unread on the server.
+    ///
+    /// `kavita-server` asks for the state to be "reflected in that server's own UI", which a
+    /// position cannot do on its own: page zero of an unread chapter and page zero of a
+    /// chapter the reader deliberately unmarked are the same number.
+    public func mark(seriesId: Int, chapterId: Int, isRead: Bool) async throws {
+        let path = isRead ? "Reader/mark-chapter-read" : "Reader/mark-chapter-unread"
+        guard let url = address.endpoint(path) else { throw KavitaError.badAddress }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(
+            KavitaMark(seriesId: seriesId, chapterId: chapterId)
+        )
+        _ = try await send(request)
+    }
+}

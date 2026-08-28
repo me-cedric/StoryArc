@@ -26,6 +26,22 @@ public enum KavitaSync {
         }
     }
 
+    /// Sends one deliberate mark, keeping it for later if the server is not there.
+    public static func mark(
+        _ isRead: Bool,
+        for origin: KavitaOrigin,
+        to address: KavitaAddress?,
+        in store: KavitaProgressStore
+    ) async {
+        let unsent = KavitaUnsent(origin: origin, page: 0, mark: isRead)
+        guard let address else { return store.hold(unsent) }
+        do {
+            try await send(KavitaClient(address: address), unsent)
+        } catch {
+            store.hold(unsent)
+        }
+    }
+
     /// Sends everything held for one server.
     ///
     /// Held positions that still fail stay held. A server that is down now was down when the
@@ -42,12 +58,21 @@ public enum KavitaSync {
         let client = KavitaClient(address: address)
         var delivered: [KavitaUnsent] = []
         for each in held {
-            guard (try? await client.report(position(each.origin, each.page))) != nil else {
-                continue
-            }
+            guard (try? await send(client, each)) != nil else { continue }
             delivered.append(each)
         }
         store.sent(delivered)
+    }
+
+    private static func send(_ client: KavitaClient, _ held: KavitaUnsent) async throws {
+        guard let mark = held.mark else {
+            return try await client.report(position(held.origin, held.page))
+        }
+        try await client.mark(
+            seriesId: held.origin.seriesId,
+            chapterId: held.origin.chapterId,
+            isRead: mark
+        )
     }
 
     private static func position(_ origin: KavitaOrigin, _ page: Int) -> KavitaPosition {

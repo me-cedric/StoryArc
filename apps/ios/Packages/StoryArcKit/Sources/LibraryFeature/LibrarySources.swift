@@ -227,6 +227,28 @@ extension LibraryModel {
 }
 
 extension LibraryModel {
+    /// Marks a publication read or unread, and tells the server it came from.
+    ///
+    /// `reading-progress` allows a reader to mark a publication read by hand rather than by
+    /// turning every page, and `kavita-server` requires that state to reach the server so
+    /// its own UI agrees. Both halves happen here, because a mark that only landed locally
+    /// would disagree with the shelf the reader is looking at on another device.
+    /// The stores are built here rather than passed in. Both are thin wrappers -- one over
+    /// `UserDefaults`, one over the keychain -- and threading them through four view
+    /// initialisers to reach one menu button would be four parameters carrying nothing.
+    func mark(_ publication: Publication, read isRead: Bool) async {
+        let kavita = KavitaProgressStore()
+        let credentials = CredentialStore()
+        try? await progressStore?.mark(publication.identity, finished: isRead)
+        await refreshProgress()
+
+        guard let origin = kavita.origin(of: publication.id) else { return }
+        let address = registry.sources
+            .first { $0.id.uuidString == origin.sourceId }
+            .flatMap { KavitaPage(source: $0, credentials: credentials)?.address }
+        await KavitaSync.mark(isRead, for: origin, to: address, in: kavita)
+    }
+
     /// Answers the question every network source asks on launch.
     ///
     /// `sources` requires a source's health to be shown. State is never persisted, so a

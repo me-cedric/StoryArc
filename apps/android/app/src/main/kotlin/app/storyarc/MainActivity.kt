@@ -430,6 +430,14 @@ class MainActivity : ComponentActivity() {
                         onProbeSources = {
                             libraryViewModel.probeNetworkSources(credentials, pins)
                         },
+                        onMark = { publication, isRead ->
+                            libraryViewModel.mark(
+                                publication,
+                                isRead,
+                                kavitaProgress,
+                                credentials,
+                            )
+                        },
                         onOpenShelves = { isShowingShelves = true },
                     )
                 } else {

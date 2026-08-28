@@ -173,6 +173,47 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
     suspend fun recent(limit: Int = 50): List<ReadingProgress> =
         withContext(Dispatchers.IO) { database.progress().recent(limit).map(::toDomain) }
 
+    /**
+     * Sets the finished flag, in either direction.
+     *
+     * Separate from [save] because finished is sticky there: a routine save must never
+     * unmark a publication. `reading-progress` calls unmarking "a deliberate act", and this
+     * is the deliberate act -- a reader choosing the state, not a page turn implying it.
+     */
+    suspend fun mark(
+        identity: PublicationIdentity,
+        isFinished: Boolean,
+        at: Long = System.currentTimeMillis(),
+    ): Unit = withContext(Dispatchers.IO) {
+        val dao = database.progress()
+        val row = existing(identity)
+        if (row == null) {
+            // Nothing recorded yet, and marking read is still a position: the whole of it.
+            dao.insert(
+                ProgressRow(
+                    serverKey = serverKey(identity),
+                    contentDigest = identity.contentDigest,
+                    normalizedPath = identity.normalizedPath,
+                    pageIndex = -1,
+                    pageCount = 0,
+                    progression = if (isFinished) 1.0 else 0.0,
+                    locator = null,
+                    isFinished = isFinished,
+                    updatedAt = at,
+                    syncedProgression = null,
+                ),
+            )
+        } else {
+            dao.update(
+                row.copy(
+                    isFinished = isFinished,
+                    progression = if (isFinished) 1.0 else row.progression,
+                    updatedAt = at,
+                ),
+            )
+        }
+    }
+
     /** Forgets one publication's position. A deliberate act, per ADR-0006. */
     suspend fun forget(identity: PublicationIdentity): Unit = withContext(Dispatchers.IO) {
         existing(identity)?.let { database.progress().delete(it.id) }

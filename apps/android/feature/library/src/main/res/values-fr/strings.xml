@@ -160,4 +160,6 @@
     <string name="catalogue_error_secret_not_stored">Cet appareil n’a pas voulu conserver l’identification : le catalogue n’a pas été ajouté. Rien n’a été enregistré à moitié.</string>
     <string name="kavita_fetching">Téléchargement</string>
     <string name="kavita_continue">Continuer · %1$s</string>
+    <string name="library_mark_read">Marquer comme lu</string>
+    <string name="library_mark_unread">Marquer comme non lu</string>
 </resources>

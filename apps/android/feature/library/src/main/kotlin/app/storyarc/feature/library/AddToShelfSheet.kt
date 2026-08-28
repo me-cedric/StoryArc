@@ -20,7 +20,9 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
 
 /**
- * Where a publication can be put.
+ * What can be done with a publication that is not "open it".
+ *
+ * Where a publication can be put, and whether it has been read.
  *
  * `collections-and-reading-lists`: "a publication may belong to any number of collections".
  * So this offers every one of them rather than a picker that implies a single answer, and
@@ -34,10 +36,12 @@ fun AddToShelfSheet(
     viewModel: LibraryViewModel,
     publication: Publication,
     onDismiss: () -> Unit,
+    onMark: ((Boolean) -> Unit)? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
     val already = shelves.collectionsContaining(publication.id).map { it.id }.toSet()
+    val isRead = publication.id in viewModel.finishedPublications()
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -46,6 +50,21 @@ fun AddToShelfSheet(
                 .padding(bottom = StoryArcSpace.xl),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
         ) {
+            // `reading-progress`: a reader can mark a publication read "manually", which
+            // until now they could only do by turning every page of it.
+            if (onMark != null) {
+                Row(
+                    name = stringResource(
+                        if (isRead) R.string.library_mark_unread else R.string.library_mark_read,
+                    ),
+                    isMember = false,
+                    enabled = true,
+                ) {
+                    onMark(!isRead)
+                    onDismiss()
+                }
+            }
+
             Text(
                 text = stringResource(R.string.shelves_add_to),
                 style = MaterialTheme.typography.titleMedium,

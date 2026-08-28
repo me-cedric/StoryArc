@@ -102,6 +102,25 @@ class KavitaClient(val address: KavitaAddress) {
     )
 
     /**
+     * Marks one chapter read or unread on the server.
+     *
+     * `kavita-server` asks for the state to be "reflected in that server's own UI", which a
+     * position cannot do on its own: page zero of an unread chapter and page zero of a
+     * chapter the reader deliberately unmarked are the same number.
+     */
+    suspend fun mark(seriesId: Int, chapterId: Int, isRead: Boolean) {
+        val path = if (isRead) "Reader/mark-chapter-read" else "Reader/mark-chapter-unread"
+        request(
+            address.endpoint(path),
+            method = "POST",
+            body = Json.encodeToString(
+                KavitaMark.serializer(),
+                KavitaMark(seriesId = seriesId, chapterId = chapterId),
+            ),
+        )
+    }
+
+    /**
      * The chapter the reader should open next in a series.
      *
      * Asked of the server rather than worked out from the chapter list: Kavita knows what

@@ -160,4 +160,6 @@
     <string name="catalogue_error_secret_not_stored">Dieses Gerät wollte die Anmeldung nicht speichern, daher wurde der Katalog nicht hinzugefügt. Es wurde nichts halbfertig gespeichert.</string>
     <string name="kavita_fetching">Wird heruntergeladen</string>
     <string name="kavita_continue">Weiterlesen · %1$s</string>
+    <string name="library_mark_read">Als gelesen markieren</string>
+    <string name="library_mark_unread">Als ungelesen markieren</string>
 </resources>

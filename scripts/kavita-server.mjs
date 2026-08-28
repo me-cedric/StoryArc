@@ -216,6 +216,23 @@ const server = createServer((request, response) => {
     })
   }
 
+  // Kavita's own way of saying "I have read this" without having turned the pages.
+  const marking = url.pathname === '/api/Reader/mark-chapter-read' ||
+    url.pathname === '/api/Reader/mark-chapter-unread'
+  if (marking && request.method === 'POST') {
+    let body = ''
+    request.on('data', (chunk) => { body += chunk })
+    request.on('end', () => {
+      const posted = JSON.parse(body || '{}')
+      const chapter = series.flatMap((each) => each.chapters)
+        .find((each) => each.id === posted.chapterId)
+      if (!chapter) return send(response, 404, { message: 'no such chapter' })
+      chapter.pagesRead = url.pathname.endsWith('unread') ? 0 : chapter.pages
+      send(response, 200, {})
+    })
+    return undefined
+  }
+
   if (url.pathname === '/api/Reader/progress' && request.method === 'POST') {
     let body = ''
     request.on('data', (chunk) => { body += chunk })

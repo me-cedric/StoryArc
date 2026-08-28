@@ -126,6 +126,8 @@ fun LibraryScreen(
     onAddKavita: () -> Unit = {},
     /** Asks every network source whether it is there. The app layer owns the secrets. */
     onProbeSources: () -> Unit = {},
+    /** Marks a publication read or unread. The app layer owns the secrets it may need. */
+    onMark: (Publication, Boolean) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -333,6 +335,7 @@ fun LibraryScreen(
             viewModel = viewModel,
             publication = shelved,
             onDismiss = { shelving = null },
+            onMark = { isRead -> onMark(shelved, isRead) },
         )
     }
 }

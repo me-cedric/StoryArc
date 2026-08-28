@@ -29,6 +29,19 @@ object KavitaSync {
         if (sent.isFailure) store.hold(unsent)
     }
 
+    /** Sends one deliberate mark, keeping it for later if the server is not there. */
+    suspend fun mark(
+        store: KavitaProgressStore,
+        address: KavitaAddress?,
+        origin: KavitaOrigin,
+        isRead: Boolean,
+    ) {
+        val unsent = KavitaUnsent(origin, page = 0, mark = isRead)
+        if (address == null) return store.hold(unsent)
+        val sent = runCatching { send(KavitaClient(address), unsent) }
+        if (sent.isFailure) store.hold(unsent)
+    }
+
     /**
      * Sends everything held for one server.
      *
@@ -41,10 +54,17 @@ object KavitaSync {
         if (waiting.isEmpty()) return
 
         val client = KavitaClient(address)
-        val delivered = waiting.filter { held ->
-            runCatching { client.report(position(held.origin, held.page)) }.isSuccess
-        }
+        val delivered = waiting.filter { held -> runCatching { send(client, held) }.isSuccess }
         store.sent(delivered)
+    }
+
+    private suspend fun send(client: KavitaClient, held: KavitaUnsent) {
+        val mark = held.mark
+        if (mark == null) {
+            client.report(position(held.origin, held.page))
+        } else {
+            client.mark(held.origin.seriesId, held.origin.chapterId, mark)
+        }
     }
 
     private fun position(origin: KavitaOrigin, page: Int) = KavitaPosition(

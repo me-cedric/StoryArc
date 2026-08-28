@@ -15,6 +15,20 @@ struct AddToShelfMenu: View {
     var body: some View {
         let shelves = model.shelves
         let already = Set(shelves.collections(containing: publication.id).map(\.id))
+        let isRead = model.finishedPublications.contains(publication.id)
+
+        // `reading-progress`: a reader can mark a publication read "manually", which until
+        // now they could only do by turning every page of it.
+        Button {
+            Task { await model.mark(publication, read: !isRead) }
+        } label: {
+            Label(
+                isRead
+                    ? String(localized: "library.mark.unread", bundle: .module)
+                    : String(localized: "library.mark.read", bundle: .module),
+                systemImage: isRead ? "circle" : "checkmark.circle"
+            )
+        }
 
         if !shelves.collections.isEmpty || !shelves.lists.isEmpty {
             Menu {

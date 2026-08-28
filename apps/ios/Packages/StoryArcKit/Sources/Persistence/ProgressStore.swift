@@ -149,6 +149,36 @@ public actor ProgressStore {
         return try context.fetch(descriptor).map(Self.domain)
     }
 
+    /// Sets the finished flag, in either direction.
+    ///
+    /// Separate from ``save(_:)`` because finished is sticky there: a routine save must
+    /// never unmark a publication. `reading-progress` calls unmarking "a deliberate act",
+    /// and this is the deliberate act — a reader choosing the state, not a page turn
+    /// implying it.
+    public func mark(_ identity: PublicationIdentity, finished: Bool, at: Date = Date()) throws {
+        if let record = try existing(for: identity) {
+            record.isFinished = finished
+            record.updatedAt = at
+        } else {
+            // Nothing recorded yet, and marking read is still a position: the whole of it.
+            let position = try JSONEncoder().encode(
+                ReadingPosition.page(index: 0, of: finished ? 1 : 0)
+            )
+            context.insert(
+                StoredProgress(
+                    serverKey: Self.serverKey(identity),
+                    contentDigest: identity.contentDigest,
+                    normalizedPath: identity.normalizedPath,
+                    positionData: position,
+                    isFinished: finished,
+                    updatedAt: at,
+                    syncedPositionData: nil
+                )
+            )
+        }
+        try context.save()
+    }
+
     /// Forgets one publication's position. A deliberate act, per ADR-0006.
     public func forget(_ identity: PublicationIdentity) throws {
         guard let record = try existing(for: identity) else { return }

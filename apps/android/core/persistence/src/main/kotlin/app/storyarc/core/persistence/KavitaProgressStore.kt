@@ -21,9 +21,20 @@ data class KavitaOrigin(
     val chapterId: Int,
 )
 
-/** One position waiting to reach a server that was not there when it was read. */
+/**
+ * One thing waiting to reach a server that was not there when it happened.
+ *
+ * A position, or a deliberate mark. They are held together because they are the same
+ * promise -- "this reaches the server when the server comes back" -- and a second queue
+ * would be a second thing to forget to flush.
+ */
 @Serializable
-data class KavitaUnsent(val origin: KavitaOrigin, val page: Int)
+data class KavitaUnsent(
+    val origin: KavitaOrigin,
+    val page: Int,
+    /** Null for a position. True or false for a mark the reader made deliberately. */
+    val mark: Boolean? = null,
+)
 
 /**
  * The link between a local publication and its Kavita chapter, and what has not been sent.

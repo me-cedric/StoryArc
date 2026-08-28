@@ -105,6 +105,20 @@ struct KavitaChapterList: View {
         }
         .buttonStyle(.plain)
         .disabled(fetching != nil)
+        // `kavita-server`: marking read must reach the server so its own UI agrees. A
+        // context menu is where iOS puts "what else can I do with this".
+        .contextMenu {
+            Button {
+                Task { await mark(chapter, read: !chapter.isFinished) }
+            } label: {
+                Label(
+                    chapter.isFinished
+                        ? String(localized: "library.mark.unread", bundle: .module)
+                        : String(localized: "library.mark.read", bundle: .module),
+                    systemImage: chapter.isFinished ? "circle" : "checkmark.circle"
+                )
+            }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken(chapter))
     }
@@ -127,6 +141,23 @@ struct KavitaChapterList: View {
     /// Into the caches directory, not the download store: `kavita-server` and
     /// `offline-downloads` are different promises, and a chapter opened once is not a
     /// download the reader asked to keep.
+    /// Tells the server the reader has, or has not, read this chapter.
+    private func mark(_ chapter: KavitaChapter, read isRead: Bool) async {
+        await KavitaSync.mark(
+            isRead,
+            for: KavitaOrigin(
+                sourceId: sourceId,
+                libraryId: series.libraryId,
+                seriesId: series.id,
+                volumeId: volumes.first { $0.chapters.contains(chapter) }?.id ?? 0,
+                chapterId: chapter.id
+            ),
+            to: client.address,
+            in: store
+        )
+        volumes = (try? await client.volumes(ofSeries: series.id)) ?? volumes
+    }
+
     private func open(_ chapter: KavitaChapter) async {
         fetching = chapter.id
         defer { fetching = nil }

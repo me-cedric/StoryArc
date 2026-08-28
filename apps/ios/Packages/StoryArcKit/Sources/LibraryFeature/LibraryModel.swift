@@ -67,7 +67,7 @@ public final class LibraryModel {
     /// Where each publication came from, so a cover can be loaded later.
     private var locations: [String: URL] = [:]
     private var scanTask: Task<Void, Never>?
-    private let progressStore: ProgressStore?
+    let progressStore: ProgressStore?
     // Internal, not private: the shelves half of this type lives in another file.
     /// How far through each publication the reader got, keyed by publication id.
     var progress: [String: ReadingProgress] = [:]

@@ -160,4 +160,6 @@
     <string name="catalogue_error_secret_not_stored">This device would not store the sign-in, so the catalogue was not added. Nothing was saved half-finished.</string>
     <string name="kavita_fetching">Downloading</string>
     <string name="kavita_continue">Continue · %1$s</string>
+    <string name="library_mark_read">Mark as read</string>
+    <string name="library_mark_unread">Mark as unread</string>
 </resources>

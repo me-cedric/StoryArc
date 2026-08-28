@@ -22,6 +22,7 @@ import app.storyarc.core.model.Source
 import java.util.UUID
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.persistence.CredentialStore
+import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
@@ -173,6 +174,36 @@ class LibraryViewModel(
      * On appearance rather than on a timer: a state older than the last time the library was
      * on screen is a claim about the past, and polling for one would be guessing.
      */
+    /**
+     * Marks a publication read or unread, and tells the server it came from.
+     *
+     * `reading-progress` allows a reader to mark a publication read by hand rather than by
+     * turning every page, and `kavita-server` requires that state to reach the server so its
+     * own UI agrees. Both halves happen here, because a mark that only landed locally would
+     * disagree with the shelf the reader is looking at on another device.
+     */
+    fun mark(
+        publication: Publication,
+        isRead: Boolean,
+        kavita: KavitaProgressStore?,
+        credentials: CredentialStore?,
+    ) {
+        viewModelScope.launch {
+            progressStore?.mark(publication.identity, isRead)
+            refreshProgress()
+
+            val origin = kavita?.origin(publication.id) ?: return@launch
+            KavitaSync.mark(
+                kavita,
+                _registry.value.sources
+                    .firstOrNull { it.id.toString() == origin.sourceId }
+                    ?.let { KavitaPage.of(it, credentials)?.address },
+                origin,
+                isRead,
+            )
+        }
+    }
+
     fun probeNetworkSources(credentials: CredentialStore?, pins: CertificatePins) {
         viewModelScope.launch {
             val reason = getApplication<Application>()

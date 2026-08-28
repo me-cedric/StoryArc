@@ -21,14 +21,33 @@ public struct KavitaOrigin: Sendable, Equatable, Codable {
     }
 }
 
-/// One position waiting to reach a server that was not there when it was read.
+/// One thing waiting to reach a server that was not there when it happened.
+///
+/// A position, or a deliberate mark. They are held together because they are the same
+/// promise — "this reaches the server when the server comes back" — and a second queue
+/// would be a second thing to forget to flush.
 public struct KavitaUnsent: Sendable, Equatable, Codable {
     public let origin: KavitaOrigin
     public let page: Int
+    /// Nil for a position. True or false for a mark the reader made deliberately.
+    public let mark: Bool?
 
-    public init(origin: KavitaOrigin, page: Int) {
+    public init(origin: KavitaOrigin, page: Int, mark: Bool? = nil) {
         self.origin = origin
         self.page = page
+        self.mark = mark
+    }
+
+    /// A queue written before marks existed has no `mark` field, and it means "a position".
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        origin = try container.decode(KavitaOrigin.self, forKey: .origin)
+        page = try container.decode(Int.self, forKey: .page)
+        mark = try container.decodeIfPresent(Bool.self, forKey: .mark)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case origin, page, mark
     }
 }
 

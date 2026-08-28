@@ -127,3 +127,7 @@ data class KavitaPosition(
     val chapterId: Int,
     val pageNum: Int,
 )
+
+/** Which chapter to mark, in the shape Kavita's mark endpoints want. */
+@Serializable
+data class KavitaMark(val seriesId: Int, val chapterId: Int)

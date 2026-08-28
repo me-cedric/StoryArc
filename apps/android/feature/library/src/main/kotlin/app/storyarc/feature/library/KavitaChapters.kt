@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -81,6 +82,28 @@ fun KavitaChapters(
         resume = runCatching { client.continuePoint(series.id) }.getOrNull()
     }
 
+    // `kavita-server`: marking read must reach the server so its own UI agrees. A long
+    // press is where Android puts "what else can I do with this".
+    val mark: (KavitaChapter, Boolean) -> Unit = { chapter, isRead ->
+        scope.launch {
+            KavitaSync.mark(
+                store,
+                client.address,
+                KavitaOrigin(
+                    sourceId = sourceId,
+                    libraryId = series.libraryId,
+                    seriesId = series.id,
+                    volumeId = volumes.firstOrNull { volume ->
+                        volume.chapters.any { it.id == chapter.id }
+                    }?.id ?: 0,
+                    chapterId = chapter.id,
+                ),
+                isRead,
+            )
+            volumes = runCatching { client.volumes(series.id) }.getOrDefault(volumes)
+        }
+    }
+
     val open: (KavitaChapter) -> Unit = { chapter ->
         scope.launch {
             fetching = chapter.id
@@ -136,7 +159,12 @@ fun KavitaChapters(
                 )
             }
             items(volume.chapters, key = { it.id }) { chapter ->
-                ChapterRow(chapter, isFetching = fetching == chapter.id) { open(chapter) }
+                ChapterRow(
+                    chapter = chapter,
+                    isFetching = fetching == chapter.id,
+                    onOpen = { open(chapter) },
+                    onMark = { mark(chapter, !chapter.isFinished) },
+                )
             }
         }
     }
@@ -169,7 +197,12 @@ private fun KavitaMetadataBlock(metadata: KavitaMetadata) {
 }
 
 @Composable
-private fun ChapterRow(chapter: KavitaChapter, isFetching: Boolean, onOpen: () -> Unit) {
+private fun ChapterRow(
+    chapter: KavitaChapter,
+    isFetching: Boolean,
+    onOpen: () -> Unit,
+    onMark: () -> Unit,
+) {
     val palette = LocalStoryArcPalette.current
     // The tick means "finished" and the spinner means "fetching". Both are silent to a
     // screen reader unless the row says so itself.
@@ -184,7 +217,18 @@ private fun ChapterRow(chapter: KavitaChapter, isFetching: Boolean, onOpen: () -
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !isFetching, onClick = onOpen)
+            .combinedClickable(
+                enabled = !isFetching,
+                onClick = onOpen,
+                onLongClick = onMark,
+                onLongClickLabel = stringResource(
+                    if (chapter.isFinished) {
+                        R.string.library_mark_unread
+                    } else {
+                        R.string.library_mark_read
+                    },
+                ),
+            )
             .defaultMinSize(minHeight = 48.dp)
             .padding(vertical = StoryArcSpace.xs)
             .semantics(mergeDescendants = true) { contentDescription = spoken },
