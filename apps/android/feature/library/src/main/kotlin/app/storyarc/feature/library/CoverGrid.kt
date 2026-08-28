@@ -6,7 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,6 +77,8 @@ internal fun CoverGrid(
      * app layer wires the two together.
      */
     onOpen: (Publication) -> Unit,
+    /** A long press, where a publication is put on a shelf. Nil where there is nowhere to put it. */
+    onAddToShelf: ((Publication) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     // The readable range. Below the minimum a cover stops being recognisable;
@@ -109,11 +113,11 @@ internal fun CoverGrid(
     ) {
         if (continueReading.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }, key = "continue-reading") {
-                ContinueReadingRow(continueReading, viewModel, onOpen, maxPixelSize)
+                ContinueReadingRow(continueReading, viewModel, onOpen, maxPixelSize, onAddToShelf)
             }
         }
         items(publications, key = { it.id }) { publication ->
-            CoverCell(publication, viewModel, onOpen, maxPixelSize)
+            CoverCell(publication, viewModel, onOpen, maxPixelSize, onAddToShelf)
         }
     }
 }
@@ -131,6 +135,8 @@ private fun ContinueReadingRow(
     viewModel: LibraryViewModel,
     onOpen: (Publication) -> Unit,
     maxPixelSize: Int,
+    /** A long press, where a publication is put on a shelf. Null where there is nowhere to put it. */
+    onAddToShelf: ((Publication) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -161,11 +167,14 @@ private fun ContinueReadingRow(
 
 /** One publication in the grid. */
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun CoverCell(
     publication: Publication,
     viewModel: LibraryViewModel,
     onOpen: (Publication) -> Unit,
     maxPixelSize: Int,
+    /** A long press, where a publication is put on a shelf. Null where there is nowhere to put it. */
+    onAddToShelf: ((Publication) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -186,7 +195,12 @@ private fun CoverCell(
             // to show the same refusal twice wastes the user's tap.
             .then(
                 if (publication.isOpenable) {
-                    Modifier.clickable { onOpen(publication) }
+                    // `collections-and-reading-lists`: a publication "may belong to any
+                    // number of collections", and a long press is where a reader says so.
+                    Modifier.combinedClickable(
+                        onClick = { onOpen(publication) },
+                        onLongClick = { onAddToShelf?.invoke(publication) },
+                    )
                 } else {
                     Modifier
                 },

@@ -23,6 +23,10 @@ import java.util.UUID
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.model.PublicationCollection
+import app.storyarc.core.model.ReadingList
+import app.storyarc.core.model.Shelves
+import app.storyarc.core.persistence.ShelvesStore
 import app.storyarc.core.persistence.SourceStore
 import app.storyarc.core.persistence.ProgressStore
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +53,7 @@ class LibraryViewModel(
     private val progressStore: ProgressStore? = null,
     private val preferences: LibraryPreferences? = null,
     private val sourceStore: SourceStore? = null,
+    private val shelvesStore: ShelvesStore? = null,
 ) : AndroidViewModel(application) {
 
     /**
@@ -60,6 +65,11 @@ class LibraryViewModel(
      */
     private val _registry = MutableStateFlow(sourceStore?.registry() ?: SourceRegistry())
     val registry: StateFlow<SourceRegistry> = _registry.asStateFlow()
+
+    private val _shelves = MutableStateFlow(shelvesStore?.shelves() ?: Shelves())
+
+    /** The reader's collections and reading lists. */
+    val shelves: StateFlow<Shelves> = _shelves.asStateFlow()
 
     private val _publications = MutableStateFlow<List<Publication>>(emptyList())
     val publications: StateFlow<List<Publication>> = _publications.asStateFlow()
@@ -512,5 +522,58 @@ class LibraryViewModel(
         } ?: return null
         covers[publication.id] = bitmap
         return bitmap
+    }
+
+    // Collections and reading lists
+
+    /**
+     * Every publication the reader has finished, for a reading list's progress line.
+     *
+     * A set rather than a predicate, because a list of forty entries would otherwise ask the
+     * progress store forty times while drawing one screen.
+     */
+    fun finishedPublications(): Set<String> =
+        progress.filterValues { it.isFinished }.keys
+
+    fun createCollection(name: String) {
+        if (name.isBlank()) return
+        _shelves.update { it.adding(PublicationCollection(name = name.trim())) }
+        shelvesStore?.save(_shelves.value)
+    }
+
+    fun createList(name: String) {
+        if (name.isBlank()) return
+        _shelves.update { it.adding(ReadingList(name = name.trim())) }
+        shelvesStore?.save(_shelves.value)
+    }
+
+    fun addToCollection(members: Set<String>, id: UUID) {
+        _shelves.update { it.adding(members, id) }
+        shelvesStore?.save(_shelves.value)
+    }
+
+    fun appendToList(entries: List<String>, id: UUID) {
+        _shelves.update { it.appending(entries, id) }
+        shelvesStore?.save(_shelves.value)
+    }
+
+    fun removeFromList(entry: String, id: UUID) {
+        _shelves.update { it.removing(entry, id) }
+        shelvesStore?.save(_shelves.value)
+    }
+
+    fun moveInList(entry: String, destination: Int, id: UUID) {
+        _shelves.update { it.moving(entry, destination, id) }
+        shelvesStore?.save(_shelves.value)
+    }
+
+    fun deleteCollection(id: UUID) {
+        _shelves.update { it.deletingCollection(id) }
+        shelvesStore?.save(_shelves.value)
+    }
+
+    fun deleteList(id: UUID) {
+        _shelves.update { it.deletingList(id) }
+        shelvesStore?.save(_shelves.value)
     }
 }

@@ -115,4 +115,29 @@
         <item quantity="one">%1$d más en espera</item>
         <item quantity="other">%1$d más en espera</item>
     </plurals>
+    <string name="shelves_title">Colecciones</string>
+    <string name="shelves_collections">Colecciones</string>
+    <string name="shelves_lists">Listas de lectura</string>
+    <string name="shelves_collections_none">Aún no hay colecciones. Una colección agrupa publicaciones sin un orden concreto.</string>
+    <string name="shelves_lists_none">Aún no hay listas de lectura. Una lista conserva su orden y ofrece la siguiente entrada cuando termina una.</string>
+    <string name="shelves_new">Nuevo</string>
+    <string name="shelves_new_collection">Nueva colección</string>
+    <string name="shelves_new_list">Nueva lista de lectura</string>
+    <string name="shelves_new_field">Nombre</string>
+    <string name="shelves_new_stored_locally">Se guarda en este dispositivo. No se envía nada a ninguna parte.</string>
+    <string name="shelves_create">Crear</string>
+    <string name="shelves_cancel">Cancelar</string>
+    <string name="shelves_delete">Eliminar %1$s</string>
+    <string name="shelves_collection_empty">Aún no hay nada en esta colección. Añada publicaciones desde la biblioteca.</string>
+    <string name="shelves_list_empty">Aún no hay nada en esta lista. Añada publicaciones desde la biblioteca.</string>
+    <string name="shelves_list_unavailable">Ya no está disponible en su fuente</string>
+    <string name="shelves_list_progress">%1$d de %2$d leídos</string>
+    <string name="shelves_add_to">Añadir a…</string>
+    <string name="shelves_move_up">Mover %1$s hacia arriba</string>
+    <string name="shelves_move_down">Mover %1$s hacia abajo</string>
+    <string name="shelves_remove_entry">Quitar %1$s de esta lista</string>
+    <plurals name="shelves_count">
+        <item quantity="one">%1$d publicación</item>
+        <item quantity="other">%1$d publicaciones</item>
+    </plurals>
 </resources>

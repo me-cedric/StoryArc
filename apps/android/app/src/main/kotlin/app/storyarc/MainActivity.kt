@@ -30,6 +30,7 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.ShelvesStore
 import app.storyarc.core.persistence.SourceStore
 import app.storyarc.feature.library.CatalogueBrowser
 import app.storyarc.feature.library.DownloadQueue
@@ -37,6 +38,9 @@ import app.storyarc.feature.library.CatalogueBrowserScreen
 import app.storyarc.feature.library.CatalogueConnection
 import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.CatalogueSheet
+import app.storyarc.feature.library.CollectionDetailScreen
+import app.storyarc.feature.library.ReadingListDetailScreen
+import app.storyarc.feature.library.ShelvesScreen
 import app.storyarc.feature.settings.SettingsScreen
 import app.storyarc.feature.settings.BuildInfo
 import app.storyarc.feature.library.LibraryScreen
@@ -117,6 +121,7 @@ class MainActivity : ComponentActivity() {
         val readerPreferences = ReaderPreferences.open(applicationContext)
         val settingsStore = SettingsStore.open(applicationContext)
         val sourceStore = SourceStore.open(applicationContext)
+        val shelvesStore = ShelvesStore.open(applicationContext)
         val credentials = CredentialStore.open(applicationContext)
         val pinStore = CertificatePinStore.open(applicationContext)
         // One pin set for the whole app, loaded once. Shared between adding a catalogue
@@ -195,7 +200,7 @@ class MainActivity : ComponentActivity() {
                 val libraryViewModel = viewModel<LibraryViewModel>(
                     factory = viewModelFactory {
                         initializer {
-                            LibraryViewModel(application, progress, preferences, sourceStore)
+                            LibraryViewModel(application, progress, preferences, sourceStore, shelvesStore)
                         }
                     },
                 )
@@ -205,6 +210,11 @@ class MainActivity : ComponentActivity() {
                 // gesture has to unwind them one at a time.
                 var catalogue by remember { mutableStateOf<List<CataloguePage>>(emptyList()) }
                 var isAddingCatalogue by remember { mutableStateOf(false) }
+                var isShowingShelves by remember { mutableStateOf(false) }
+                // Which grouping is open, if any. Two nullable ids rather than a sealed
+                // type: only one can be open, and the back gesture unwinds them in order.
+                var openCollection by remember { mutableStateOf<java.util.UUID?>(null) }
+                var openList by remember { mutableStateOf<java.util.UUID?>(null) }
 
                 if (isAddingCatalogue) {
                     val connection = remember {
@@ -242,8 +252,35 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                val collectionOpen = openCollection
+                val listOpen = openList
                 val page = catalogue.lastOrNull()
-                if (page != null && selection == null && !isShowingSettings) {
+
+                if (collectionOpen != null && selection == null) {
+                    BackHandler { openCollection = null }
+                    CollectionDetailScreen(
+                        viewModel = libraryViewModel,
+                        id = collectionOpen,
+                        onOpen = route,
+                        onBack = { openCollection = null },
+                    )
+                } else if (listOpen != null && selection == null) {
+                    BackHandler { openList = null }
+                    ReadingListDetailScreen(
+                        viewModel = libraryViewModel,
+                        id = listOpen,
+                        onOpen = route,
+                        onBack = { openList = null },
+                    )
+                } else if (isShowingShelves && selection == null) {
+                    BackHandler { isShowingShelves = false }
+                    ShelvesScreen(
+                        viewModel = libraryViewModel,
+                        onOpenCollection = { openCollection = it },
+                        onOpenList = { openList = it },
+                        onBack = { isShowingShelves = false },
+                    )
+                } else if (page != null && selection == null && !isShowingSettings) {
                     BackHandler { catalogue = catalogue.dropLast(1) }
                     // Keyed on the address so entering a section builds a fresh browser
                     // rather than showing the previous page's entries.
@@ -336,6 +373,7 @@ class MainActivity : ComponentActivity() {
                             CataloguePage.of(source, credentials)?.let { catalogue = listOf(it) }
                         },
                         onAddCatalogue = { isAddingCatalogue = true },
+                        onOpenShelves = { isShowingShelves = true },
                     )
                 } else {
                     val publications by libraryViewModel.publications.collectAsStateWithLifecycle()

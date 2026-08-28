@@ -115,4 +115,29 @@
         <item quantity="one">%1$d autre en attente</item>
         <item quantity="other">%1$d autres en attente</item>
     </plurals>
+    <string name="shelves_title">Collections</string>
+    <string name="shelves_collections">Collections</string>
+    <string name="shelves_lists">Listes de lecture</string>
+    <string name="shelves_collections_none">Aucune collection pour l’instant. Une collection regroupe des publications sans ordre particulier.</string>
+    <string name="shelves_lists_none">Aucune liste de lecture pour l’instant. Une liste conserve son ordre et propose l’entrée suivante quand vous en terminez une.</string>
+    <string name="shelves_new">Nouveau</string>
+    <string name="shelves_new_collection">Nouvelle collection</string>
+    <string name="shelves_new_list">Nouvelle liste de lecture</string>
+    <string name="shelves_new_field">Nom</string>
+    <string name="shelves_new_stored_locally">Conservé sur cet appareil. Rien n’est envoyé nulle part.</string>
+    <string name="shelves_create">Créer</string>
+    <string name="shelves_cancel">Annuler</string>
+    <string name="shelves_delete">Supprimer %1$s</string>
+    <string name="shelves_collection_empty">Rien dans cette collection pour l’instant. Ajoutez des publications depuis la bibliothèque.</string>
+    <string name="shelves_list_empty">Rien dans cette liste pour l’instant. Ajoutez des publications depuis la bibliothèque.</string>
+    <string name="shelves_list_unavailable">N’est plus disponible depuis sa source</string>
+    <string name="shelves_list_progress">%1$d sur %2$d lus</string>
+    <string name="shelves_add_to">Ajouter à…</string>
+    <string name="shelves_move_up">Déplacer %1$s vers le haut</string>
+    <string name="shelves_move_down">Déplacer %1$s vers le bas</string>
+    <string name="shelves_remove_entry">Retirer %1$s de cette liste</string>
+    <plurals name="shelves_count">
+        <item quantity="one">%1$d publication</item>
+        <item quantity="other">%1$d publications</item>
+    </plurals>
 </resources>

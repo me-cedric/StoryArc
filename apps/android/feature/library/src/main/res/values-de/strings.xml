@@ -115,4 +115,29 @@
         <item quantity="one">%1$d weiterer wartet</item>
         <item quantity="other">%1$d weitere warten</item>
     </plurals>
+    <string name="shelves_title">Sammlungen</string>
+    <string name="shelves_collections">Sammlungen</string>
+    <string name="shelves_lists">Leselisten</string>
+    <string name="shelves_collections_none">Noch keine Sammlungen. Eine Sammlung fasst Publikationen ohne feste Reihenfolge zusammen.</string>
+    <string name="shelves_lists_none">Noch keine Leselisten. Eine Leseliste behält ihre Reihenfolge und schlägt den nächsten Eintrag vor, wenn Sie einen beenden.</string>
+    <string name="shelves_new">Neu</string>
+    <string name="shelves_new_collection">Neue Sammlung</string>
+    <string name="shelves_new_list">Neue Leseliste</string>
+    <string name="shelves_new_field">Name</string>
+    <string name="shelves_new_stored_locally">Auf diesem Gerät gespeichert. Es wird nichts irgendwohin gesendet.</string>
+    <string name="shelves_create">Erstellen</string>
+    <string name="shelves_cancel">Abbrechen</string>
+    <string name="shelves_delete">%1$s löschen</string>
+    <string name="shelves_collection_empty">Noch nichts in dieser Sammlung. Fügen Sie Publikationen aus der Bibliothek hinzu.</string>
+    <string name="shelves_list_empty">Noch nichts in dieser Liste. Fügen Sie Publikationen aus der Bibliothek hinzu.</string>
+    <string name="shelves_list_unavailable">Von seiner Quelle nicht mehr verfügbar</string>
+    <string name="shelves_list_progress">%1$d von %2$d gelesen</string>
+    <string name="shelves_add_to">Hinzufügen zu…</string>
+    <string name="shelves_move_up">%1$s nach oben verschieben</string>
+    <string name="shelves_move_down">%1$s nach unten verschieben</string>
+    <string name="shelves_remove_entry">%1$s aus dieser Liste entfernen</string>
+    <plurals name="shelves_count">
+        <item quantity="one">%1$d Publikation</item>
+        <item quantity="other">%1$d Publikationen</item>
+    </plurals>
 </resources>

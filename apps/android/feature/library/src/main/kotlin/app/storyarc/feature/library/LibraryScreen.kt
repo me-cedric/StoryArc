@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -119,10 +120,15 @@ fun LibraryScreen(
     onBrowse: (Source) -> Unit = {},
     /** Opens the add-a-catalogue sheet, which the app layer hosts. */
     onAddCatalogue: () -> Unit = {},
+    /** Opens the collections screen, which the app layer hosts. */
+    onOpenShelves: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
+
+    /** The publication whose add-to-shelf sheet is open, if any. */
+    var shelving by remember { mutableStateOf<Publication?>(null) }
 
     // Android hands a picked folder over as a tree `Uri` and grants access to it
     // only for this process — until the app asks for the grant to be persisted,
@@ -199,6 +205,13 @@ fun LibraryScreen(
                     // Last, and always present. A reader with an empty library still
                     // needs to reach About, and `settings-and-about` puts the licences
                     // there.
+                    IconButton(onClick = onOpenShelves) {
+                        Icon(
+                            imageVector = Icons.Filled.Inventory2,
+                            contentDescription = stringResource(R.string.shelves_title),
+                            tint = palette.accent,
+                        )
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
                             imageVector = Icons.Filled.Settings,
@@ -251,6 +264,7 @@ fun LibraryScreen(
                         val open: (Publication) -> Unit = { publication ->
                             viewModel.location(publication)?.let { onOpen(publication, it) }
                         }
+                        val addToShelf: (Publication) -> Unit = { shelving = it }
                         if (layout == LibraryLayout.GRID) {
                             CoverGrid(
                                 publications = visible,
@@ -262,6 +276,7 @@ fun LibraryScreen(
                                 continueReading =
                                     if (query.isNarrowed) emptyList() else continueReading,
                                 onOpen = open,
+                                onAddToShelf = addToShelf,
                             )
                         } else {
                             CoverList(
@@ -297,6 +312,15 @@ fun LibraryScreen(
             }
         }
         }
+    }
+
+    val shelved = shelving
+    if (shelved != null && viewModel != null) {
+        AddToShelfSheet(
+            viewModel = viewModel,
+            publication = shelved,
+            onDismiss = { shelving = null },
+        )
     }
 }
 
