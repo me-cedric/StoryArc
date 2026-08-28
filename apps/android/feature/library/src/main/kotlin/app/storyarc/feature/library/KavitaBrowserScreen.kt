@@ -42,6 +42,7 @@ import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.kavita.KavitaLibraryFolder
 import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.model.Publication
+import app.storyarc.core.persistence.KavitaProgressStore
 
 /**
  * Where the reader is inside a Kavita server.
@@ -72,6 +73,8 @@ sealed interface KavitaLevel {
 fun KavitaBrowserScreen(
     title: String,
     address: KavitaAddress,
+    sourceId: String,
+    store: KavitaProgressStore,
     level: KavitaLevel,
     onLevel: (KavitaLevel) -> Unit,
     onOpen: (Publication, String) -> Unit,
@@ -88,6 +91,8 @@ fun KavitaBrowserScreen(
 
     LaunchedEffect(client) {
         libraries = runCatching { client.libraries() }.getOrDefault(emptyList())
+        // Reaching the server is the "next successful connection" the spec retries on.
+        KavitaSync.flush(store, sourceId, address)
     }
 
     val current = level
@@ -172,6 +177,8 @@ fun KavitaBrowserScreen(
             is KavitaLevel.Chapters -> KavitaChapters(
                 series = current.series,
                 client = client,
+                sourceId = sourceId,
+                store = store,
                 onOpen = onOpen,
                 modifier = body,
                 contentPadding = edges,

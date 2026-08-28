@@ -131,6 +131,7 @@ public final class KavitaConnection {
 
 /// What is needed to open a saved Kavita source.
 public struct KavitaPage: Sendable {
+    public let id: String
     public let title: String
     public let address: KavitaAddress
 
@@ -144,6 +145,7 @@ public struct KavitaPage: Sendable {
               let key = credentials?.secret(for: reference)
         else { return nil }
 
+        id = source.id.uuidString
         title = source.displayName
         address = KavitaAddress(base: base, apiKey: key)
     }

@@ -117,3 +117,38 @@ extension KavitaClient {
         return value
     }
 }
+
+/// Where a reader got to in one chapter, in the shape Kavita's own progress endpoint wants.
+///
+/// The whole chain, not the chapter alone: Kavita keys its progress rows by library, series,
+/// volume and chapter together, and a post missing one of them is refused.
+public struct KavitaPosition: Sendable, Equatable, Codable {
+    public let libraryId: Int
+    public let seriesId: Int
+    public let volumeId: Int
+    public let chapterId: Int
+    public let pageNum: Int
+
+    public init(libraryId: Int, seriesId: Int, volumeId: Int, chapterId: Int, pageNum: Int) {
+        self.libraryId = libraryId
+        self.seriesId = seriesId
+        self.volumeId = volumeId
+        self.chapterId = chapterId
+        self.pageNum = pageNum
+    }
+}
+
+extension KavitaClient {
+    /// Tells the server where the reader got to.
+    ///
+    /// `kavita-server`: the page position is sent "when a user reads a Kavita publication and
+    /// leaves the reader".
+    public func report(_ position: KavitaPosition) async throws {
+        guard let url = address.endpoint("Reader/progress") else { throw KavitaError.badAddress }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(position)
+        _ = try await send(request)
+    }
+}

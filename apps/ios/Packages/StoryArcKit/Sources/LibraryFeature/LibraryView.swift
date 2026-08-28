@@ -42,6 +42,7 @@ public struct LibraryView: View {
     @State private var pins: CertificatePins
     private let pinStore = CertificatePinStore()
     private let credentials = CredentialStore()
+    private let kavitaProgress = KavitaProgressStore()
 
     /// Held by the view rather than made per presentation, so a reader who dismisses the
     /// sheet mid-sign-in and reopens it finds what they typed still there.
@@ -175,6 +176,8 @@ public struct LibraryView: View {
                         KavitaBrowserView(
                             title: page.title,
                             address: page.address,
+                            sourceId: page.id,
+                            store: kavitaProgress,
                             onOpen: onOpen
                         )
                     } else {

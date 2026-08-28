@@ -223,7 +223,9 @@ const server = createServer((request, response) => {
       const posted = JSON.parse(body || '{}')
       const chapter = series.flatMap((each) => each.chapters)
         .find((each) => each.id === posted.chapterId)
-      if (chapter) chapter.pagesRead = posted.pageNum ?? 0
+      // Kavita's `pageNum` is the page the reader is on, counted from zero, so the number
+      // of pages read is one more than that.
+      if (chapter) chapter.pagesRead = Math.min((posted.pageNum ?? 0) + 1, chapter.pages)
       send(response, 200, {})
     })
     return undefined

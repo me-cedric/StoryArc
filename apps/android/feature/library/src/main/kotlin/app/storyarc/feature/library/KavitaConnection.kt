@@ -131,7 +131,7 @@ class KavitaConnection(
 }
 
 /** What is needed to open a saved Kavita source. */
-data class KavitaPage(val title: String, val address: KavitaAddress) {
+data class KavitaPage(val id: String, val title: String, val address: KavitaAddress) {
     companion object {
         /**
          * Null when the source is not a Kavita server, has no address, or has lost its key --
@@ -142,7 +142,11 @@ data class KavitaPage(val title: String, val address: KavitaAddress) {
             val base = source.locator ?: return null
             val reference = source.credentialReference ?: return null
             val key = credentials?.secret(reference) ?: return null
-            return KavitaPage(source.displayName, KavitaAddress(base, key))
+            return KavitaPage(
+                source.id.toString(),
+                source.displayName,
+                KavitaAddress(base, key),
+            )
         }
     }
 }

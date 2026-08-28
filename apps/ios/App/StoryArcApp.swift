@@ -23,6 +23,7 @@ struct StoryArcApp: App {
     /// It replaces an `@AppStorage("appearanceMode")` that predated the settings store —
     /// two homes for one value, and only one of them was ever written.
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var settings = SettingsStore().settings()
     private let settingsStore = SettingsStore()
@@ -35,6 +36,10 @@ struct StoryArcApp: App {
     /// feature module (docs/architecture) — the library reports a choice and the
     /// reader accepts one, and neither knows the other exists.
     @State private var reading: ReadingSelection?
+
+    /// What was open a moment ago. `onDismiss` runs after the item is cleared, and the
+    /// position has to be sent for the publication that was being read, not for nothing.
+    @State private var dismissed: ReadingSelection?
 
     /// One store for the whole app. ADR-0006 makes the local record authoritative,
     /// so the reader writing and the library reading have to be the same store —
@@ -52,6 +57,11 @@ struct StoryArcApp: App {
     @State private var refusedFile: RefusedFile?
 
     private let bookmarks = FolderBookmarks()
+
+    /// The link between a publication the reader just closed and the Kavita chapter it came
+    /// from. Held here because this is where the reader closes.
+    private let kavitaProgress = KavitaProgressStore()
+    private let credentials = CredentialStore()
 
     /// What is on the device. Held here because Settings can be reached without ever
     /// opening a catalogue, and re-read on each appearance so a download made while
@@ -84,7 +94,9 @@ struct StoryArcApp: App {
     private func openHandedOver(_ url: URL) async {
         switch await OpenedFile.index(url) {
         case let .opened(publication):
-            reading = ReadingSelection(publication: publication, url: url)
+            let selection = ReadingSelection(publication: publication, url: url)
+            reading = selection
+            dismissed = selection
             _ = OpenedFile.remember(url, in: bookmarks)
         case let .unsupported(detected):
             refusedFile = RefusedFile(name: url.lastPathComponent, detected: detected)
@@ -96,8 +108,34 @@ struct StoryArcApp: App {
     /// The one moment progress is known to have changed. Called when the reader
     /// closes rather than on a timer or on every appearance, because this is the
     /// event — polling for it would be guessing.
-    private func refreshProgress() {
-        Task { await library.refreshProgress() }
+    ///
+    /// The same moment `kavita-server` sends a position: the reader has stopped, and the
+    /// page they stopped on is the answer.
+    /// Named rather than inline, because `onDismiss` and the content closure together
+    /// are two trailing closures, which SwiftLint rejects.
+    private func dismissedReader() {
+        refreshProgress(dismissed)
+    }
+
+    private func refreshProgress(_ closed: ReadingSelection?) {
+        Task {
+            await library.refreshProgress()
+            await reportToKavita(closed?.publication)
+        }
+    }
+
+    /// Tells the server where the reader got to, when the publication came from one.
+    private func reportToKavita(_ publication: Publication?) async {
+        guard let publication,
+              let origin = kavitaProgress.origin(of: publication.id),
+              let recorded = try? await progress?.progress(for: publication.identity),
+              case let .page(index, _) = recorded.position
+        else { return }
+
+        let address = library.registry.sources
+            .first { $0.id.uuidString == origin.sourceId }
+            .flatMap { KavitaPage(source: $0, credentials: credentials)?.address }
+        await KavitaSync.report(index, for: origin, to: address, in: kavitaProgress)
     }
 
     /// Swaps the reader's contents for the next publication.
@@ -106,7 +144,9 @@ struct StoryArcApp: App {
     /// readers would leave a pile of them behind a long series.
     private func openNext(_ publication: Publication) {
         guard let url = library.location(of: publication) else { return }
-        reading = ReadingSelection(publication: publication, url: url)
+        let selection = ReadingSelection(publication: publication, url: url)
+        reading = selection
+        dismissed = selection
     }
 
     /// The reading preset the appearance dictates, when the reader opted into that.
@@ -150,7 +190,9 @@ struct StoryArcApp: App {
                 model: library,
                 progress: progress,
                 onOpen: { publication, url in
-                    reading = ReadingSelection(publication: publication, url: url)
+                    let selection = ReadingSelection(publication: publication, url: url)
+                    reading = selection
+                    dismissed = selection
                 },
                 onOpenSettings: {
                     // Re-read on the way in, so a download made while browsing a catalogue
@@ -182,6 +224,13 @@ struct StoryArcApp: App {
             // `Info.plist` declares StoryArc as a handler for six formats, so the app was
             // offered, chosen, and then showed its library as if nothing had happened.
             .onOpenURL { url in Task { await openHandedOver(url) } }
+            // Closing the reader is not the only way a reader leaves it. A phone is
+            // usually closed by going home, and a position that only travelled on a
+            // clean exit would be the evening's reading lost.
+            .onChange(of: scenePhase) { _, phase in
+                guard phase != .active else { return }
+                Task { await reportToKavita(reading?.publication ?? dismissed?.publication) }
+            }
             .alert(
                 Text(verbatim: "Cannot open this file"),
                 isPresented: Binding(
@@ -193,7 +242,7 @@ struct StoryArcApp: App {
             } message: {
                 Text(refusedFile?.message ?? "")
             }
-            .fullScreenCover(item: $reading, onDismiss: refreshProgress) { selection in
+            .fullScreenCover(item: $reading, onDismiss: dismissedReader) { selection in
                 // Full screen, not a sheet: `comic-reader` wants nothing on screen
                 // while reading, and a sheet keeps a card edge and the view behind
                 // it in view.

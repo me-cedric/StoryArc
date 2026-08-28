@@ -112,3 +112,18 @@ data class KavitaMetadata(
     /** Genres and tags read as one list; the distinction is Kavita's, not the reader's. */
     val subjects: List<String> get() = (genres + tags).map { it.label }.filter { it.isNotEmpty() }
 }
+
+/**
+ * Where a reader got to in one chapter, in the shape Kavita's own progress endpoint wants.
+ *
+ * The whole chain, not the chapter alone: Kavita keys its progress rows by library, series,
+ * volume and chapter together, and a post missing one of them is refused.
+ */
+@Serializable
+data class KavitaPosition(
+    val libraryId: Int,
+    val seriesId: Int,
+    val volumeId: Int,
+    val chapterId: Int,
+    val pageNum: Int,
+)

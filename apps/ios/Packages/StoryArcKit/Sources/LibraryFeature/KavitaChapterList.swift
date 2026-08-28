@@ -3,6 +3,7 @@ import SwiftUI
 internal import DesignSystem
 internal import Formats
 import Kavita
+import Persistence
 import StoryArcCore
 
 /// One series: what the server says about it, where to resume, and every chapter.
@@ -15,6 +16,8 @@ struct KavitaChapterList: View {
 
     let client: KavitaClient
     let series: KavitaSeries
+    let sourceId: String
+    let store: KavitaProgressStore
     let onOpen: (Publication, URL) -> Void
 
     @State private var volumes: [KavitaVolume] = []
@@ -142,6 +145,19 @@ struct KavitaChapterList: View {
                   seriesHint: series.name
               )
         else { return }
+
+        // The note the reader cannot leave for itself: it opens a file and knows nothing
+        // about servers, so this is what lets the position get home.
+        store.remember(
+            KavitaOrigin(
+                sourceId: sourceId,
+                libraryId: series.libraryId,
+                seriesId: series.id,
+                volumeId: volumes.first { $0.chapters.contains(chapter) }?.id ?? 0,
+                chapterId: chapter.id
+            ),
+            for: publication.id
+        )
         onOpen(publication, file)
     }
 }

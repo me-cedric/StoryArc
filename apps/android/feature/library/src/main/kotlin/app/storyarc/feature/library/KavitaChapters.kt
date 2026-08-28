@@ -40,6 +40,8 @@ import app.storyarc.core.kavita.KavitaMetadata
 import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.kavita.KavitaVolume
 import app.storyarc.core.model.Publication
+import app.storyarc.core.persistence.KavitaOrigin
+import app.storyarc.core.persistence.KavitaProgressStore
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,6 +58,8 @@ import kotlinx.coroutines.withContext
 fun KavitaChapters(
     series: KavitaSeries,
     client: KavitaClient,
+    sourceId: String,
+    store: KavitaProgressStore,
     onOpen: (Publication, String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -81,6 +85,20 @@ fun KavitaChapters(
         scope.launch {
             fetching = chapter.id
             fetch(context, client, series.name, chapter)?.let { (publication, path) ->
+                // The note the reader cannot leave for itself: it opens a file and knows
+                // nothing about servers, so this is what lets the position get home.
+                store.remember(
+                    publication.id,
+                    KavitaOrigin(
+                        sourceId = sourceId,
+                        libraryId = series.libraryId,
+                        seriesId = series.id,
+                        volumeId = volumes.firstOrNull { volume ->
+                            volume.chapters.any { it.id == chapter.id }
+                        }?.id ?: 0,
+                        chapterId = chapter.id,
+                    ),
+                )
                 onOpen(publication, path)
             }
             fetching = null

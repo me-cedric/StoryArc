@@ -2,6 +2,7 @@ import SwiftUI
 
 internal import DesignSystem
 import Kavita
+import Persistence
 import StoryArcCore
 
 /// A Kavita library's series, as covers.
@@ -14,6 +15,8 @@ struct KavitaSeriesList: View {
 
     let client: KavitaClient
     let library: KavitaLibraryFolder
+    let sourceId: String
+    let store: KavitaProgressStore
     let onOpen: (Publication, URL) -> Void
 
     @State private var series: [KavitaSeries] = []
@@ -32,7 +35,13 @@ struct KavitaSeriesList: View {
             LazyVGrid(columns: columns, spacing: StoryArcSpace.md) {
                 ForEach(series) { each in
                     NavigationLink {
-                        KavitaChapterList(client: client, series: each, onOpen: onOpen)
+                        KavitaChapterList(
+                            client: client,
+                            series: each,
+                            sourceId: sourceId,
+                            store: store,
+                            onOpen: onOpen
+                        )
                     } label: {
                         KavitaSeriesCell(series: each, client: client)
                     }

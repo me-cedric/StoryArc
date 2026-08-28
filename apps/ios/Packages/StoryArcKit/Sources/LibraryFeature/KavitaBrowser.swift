@@ -14,6 +14,9 @@ public struct KavitaBrowserView: View {
     @Environment(\.theme) private var theme
 
     private let title: String
+    private let address: KavitaAddress
+    private let sourceId: String
+    private let store: KavitaProgressStore
     private let onOpen: (Publication, URL) -> Void
 
     /// Created here, once, from the address.
@@ -30,9 +33,14 @@ public struct KavitaBrowserView: View {
     public init(
         title: String,
         address: KavitaAddress,
+        sourceId: String,
+        store: KavitaProgressStore,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
     ) {
         self.title = title
+        self.address = address
+        self.sourceId = sourceId
+        self.store = store
         _client = State(initialValue: KavitaClient(address: address))
         self.onOpen = onOpen
     }
@@ -46,7 +54,13 @@ public struct KavitaBrowserView: View {
             }
             ForEach(libraries) { library in
                 NavigationLink {
-                    KavitaSeriesList(client: client, library: library, onOpen: onOpen)
+                    KavitaSeriesList(
+                        client: client,
+                        library: library,
+                        sourceId: sourceId,
+                        store: store,
+                        onOpen: onOpen
+                    )
                 } label: {
                     Text(library.name)
                 }
@@ -60,6 +74,8 @@ public struct KavitaBrowserView: View {
             guard libraries.isEmpty, failure == nil else { return }
             do {
                 libraries = try await client.libraries()
+                // Reaching the server is the "next successful connection" the spec retries on.
+                await KavitaSync.flush(sourceId, to: address, in: store)
             } catch {
                 failure = String(describing: error)
             }

@@ -110,6 +110,21 @@ class KavitaClient(val address: KavitaAddress) {
     suspend fun continuePoint(seriesId: Int): KavitaChapter =
         decode(get("Reader/continue-point", mapOf("seriesId" to seriesId.toString())))
 
+    /**
+     * Tells the server where the reader got to.
+     *
+     * `kavita-server`: the page position is sent "when a user reads a Kavita publication and
+     * leaves the reader". Kavita wants the whole chain rather than the chapter alone, because
+     * its own progress rows are keyed by all of it.
+     */
+    suspend fun report(progress: KavitaPosition) {
+        request(
+            address.endpoint("Reader/progress"),
+            method = "POST",
+            body = Json.encodeToString(KavitaPosition.serializer(), progress),
+        )
+    }
+
     /** What the server holds about a series, which the spec prefers over the file's own. */
     suspend fun metadata(seriesId: Int): KavitaMetadata =
         decode(get("Series/metadata", mapOf("seriesId" to seriesId.toString())))
@@ -156,14 +171,15 @@ class KavitaClient(val address: KavitaAddress) {
         url: String,
         method: String = "GET",
         authenticated: Boolean = true,
+        body: String? = null,
     ): ByteArray {
         if (authenticated && token == null) authenticate()
-        val first = attempt(url, method, if (authenticated) token else null)
+        val first = attempt(url, method, if (authenticated) token else null, body)
         if (first.status != 401 || !authenticated) return first.orThrow()
 
         token = null
         authenticate()
-        val retried = attempt(url, method, token)
+        val retried = attempt(url, method, token, body)
         // Still refused after a fresh token: the key itself is no longer valid.
         if (retried.status == 401) throw KavitaError.KeyRejected
         return retried.orThrow()
@@ -177,7 +193,12 @@ class KavitaClient(val address: KavitaAddress) {
         }
     }
 
-    private suspend fun attempt(url: String, method: String, bearer: String?): Answer =
+    private suspend fun attempt(
+        url: String,
+        method: String,
+        bearer: String?,
+        body: String? = null,
+    ): Answer =
         withContext(Dispatchers.IO) {
             val connection = URL(url).openConnection() as HttpURLConnection
             connection.requestMethod = method
@@ -186,6 +207,11 @@ class KavitaClient(val address: KavitaAddress) {
             connection.useCaches = false
             connection.setRequestProperty("Accept", "application/json")
             bearer?.let { connection.setRequestProperty("Authorization", "Bearer $it") }
+            if (body != null) {
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use { it.write(body.toByteArray()) }
+            }
             try {
                 val status = connection.responseCode
                 val stream = if (status in 200..299) {

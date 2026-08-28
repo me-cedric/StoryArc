@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.PublicationFormat
@@ -30,6 +31,7 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.ShelvesStore
 import app.storyarc.core.persistence.SourceStore
 import app.storyarc.feature.library.CatalogueBrowser
@@ -44,6 +46,7 @@ import app.storyarc.feature.library.KavitaConnection
 import app.storyarc.feature.library.KavitaLevel
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSheet
+import app.storyarc.feature.library.KavitaSync
 import app.storyarc.feature.library.ReadingListDetailScreen
 import app.storyarc.feature.library.ShelvesScreen
 import app.storyarc.feature.settings.SettingsScreen
@@ -59,6 +62,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     /**
@@ -134,6 +143,7 @@ class MainActivity : ComponentActivity() {
         // server has to still be accepted when its covers load.
         val pins = CertificatePins(pinStore.pins())
         val downloadStore = DownloadStore.open(applicationContext)
+        val kavitaProgress = KavitaProgressStore.open(applicationContext)
         BuildInfo.read(applicationContext)
 
         setContent {
@@ -310,6 +320,8 @@ class MainActivity : ComponentActivity() {
                     KavitaBrowserScreen(
                         title = server.title,
                         address = server.address,
+                        sourceId = server.id,
+                        store = kavitaProgress,
                         level = kavitaLevel,
                         onLevel = { kavitaLevel = it },
                         onOpen = route,
@@ -433,11 +445,44 @@ class MainActivity : ComponentActivity() {
                             shelfStore = readerPreferences,
                         )
                     }
-                    BackHandler { reading = null }
+                    // Closing the reader is one moment `kavita-server` sends a position.
+                    // Leaving for the home screen is the other, and the commoner one: a
+                    // phone is usually closed by going home, and a position that only
+                    // travelled on a clean exit would be the evening's reading lost.
+                    val report: suspend () -> Unit = {
+                        val publication = selection.first
+                        val origin = kavitaProgress.origin(publication.id)
+                        val page = progress.progress(publication.identity)?.position
+                        if (origin != null && page is ReadingPosition.Page) {
+                            KavitaSync.report(
+                                kavitaProgress,
+                                libraryViewModel.registry.value.sources
+                                    .firstOrNull { it.id.toString() == origin.sourceId }
+                                    ?.let { KavitaPage.of(it, credentials)?.address },
+                                origin,
+                                page.index,
+                            )
+                        }
+                    }
+                    val close: () -> Unit = {
+                        reading = null
+                        lifecycleScope.launch { report() }
+                    }
+                    val owner = LocalLifecycleOwner.current
+                    DisposableEffect(owner) {
+                        val watcher = LifecycleEventObserver { _, event ->
+                            if (event == Lifecycle.Event.ON_STOP) {
+                                lifecycleScope.launch { report() }
+                            }
+                        }
+                        owner.lifecycle.addObserver(watcher)
+                        onDispose { owner.lifecycle.removeObserver(watcher) }
+                    }
+                    BackHandler { close() }
                     CompositionLocalProvider(LocalVolumeTurns provides volumeTurns) {
                         ReaderScreen(
                         viewModel = readerViewModel,
-                        onClose = { reading = null },
+                        onClose = close,
                         preferences = readerPreferences,
                         // `comic-reader`: the end of one volume offers the next.
                         // The app layer answers this because it is the only place
