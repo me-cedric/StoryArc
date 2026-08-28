@@ -32,4 +32,12 @@
     <string name="reader_offline_download">La télécharger</string>
     <string name="reader_offline_leave">Retour à la bibliothèque</string>
     <string name="reader_offline_dismiss">Masquer</string>
+    <string name="reader_adjust">Réglages de l’image</string>
+    <string name="reader_adjust_brightness">Luminosité</string>
+    <string name="reader_adjust_contrast">Contraste</string>
+    <string name="reader_adjust_sharpness">Netteté</string>
+    <string name="reader_adjust_greyscale">Niveaux de gris</string>
+    <string name="reader_adjust_invert">Inverser les couleurs</string>
+    <string name="reader_adjust_reset">Réinitialiser les ajustements</string>
+    <string name="reader_adjust_scope">S’applique uniquement à « %1$s », pas à tout ce que vous lisez.</string>
 </resources>

@@ -31,6 +31,9 @@ enum class ThemeScope { REFLOWABLE, FIXED_LAYOUT }
  *   device without one.
  * @property scrollAxis null means "whatever the publication implies", which is the
  *   default and the only value that can follow a webtoon into vertical unprompted.
+ * @property adjustments what to do to a page before it is shown. `comic-reader` requires an
+ *   adjustment to apply "to the series and [not be] applied globally", which is what this
+ *   store is.
  */
 @Serializable
 data class ShelfSettings(
@@ -38,6 +41,7 @@ data class ShelfSettings(
     val values: ThemeValues = theme.preset.values,
     val transition: PageTransition = PageTransition.SLIDE,
     val scrollAxis: ScrollAxis? = null,
+    val adjustments: ImageAdjustments = ImageAdjustments(),
 )
 
 /**

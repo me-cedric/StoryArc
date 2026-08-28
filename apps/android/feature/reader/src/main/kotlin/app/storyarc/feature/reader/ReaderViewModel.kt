@@ -15,6 +15,7 @@ import app.storyarc.core.format.PdfDocumentReader
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.ImageAdjustments
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.ShelfMemory
@@ -81,6 +82,14 @@ class ReaderViewModel(
     /** The shelf this publication's reading mode is remembered under. */
     private val shelf =
         ShelfMemory.shelf(publication.series, publication.identity.stableId)
+
+    /**
+     * What to call the shelf when telling the reader what a setting applies to.
+     *
+     * The series when there is one. A publication with none is its own shelf, and its title
+     * is what a reader would call that.
+     */
+    val shelfName: String get() = publication.series ?: publication.displayTitle
 
     private val _settings = MutableStateFlow(
         shelfStore?.themes()?.theme(ThemeScope.FIXED_LAYOUT, shelf) ?: ShelfSettings(),
@@ -158,6 +167,16 @@ class ReaderViewModel(
     /** Overrides the scroll axis, which `page-transitions` requires to be possible. */
     fun choose(axis: ScrollAxis) {
         update(_settings.value.copy(scrollAxis = axis, transition = scrollAlong(axis)))
+    }
+
+    /**
+     * Changes what is done to a page before it is shown, for this shelf.
+     *
+     * `comic-reader` requires an adjustment to apply "to the series and [not be] applied
+     * globally", and the shelf is exactly that.
+     */
+    fun choose(adjustments: ImageAdjustments) {
+        update(_settings.value.copy(adjustments = adjustments.clamped()))
     }
 
     private fun update(settings: ShelfSettings) {

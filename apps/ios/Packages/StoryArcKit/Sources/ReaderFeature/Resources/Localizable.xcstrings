@@ -7,25 +7,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Anpassen"
+            "value": "Bildanpassungen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Adjust"
+            "value": "Image adjustments"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajustar"
+            "value": "Ajustes de imagen"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajuster"
+            "value": "Réglages de l’image"
           }
         }
       }

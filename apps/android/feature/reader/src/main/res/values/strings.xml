@@ -32,4 +32,12 @@
     <string name="reader_offline_download">Download it</string>
     <string name="reader_offline_leave">Back to library</string>
     <string name="reader_offline_dismiss">Dismiss</string>
+    <string name="reader_adjust">Image adjustments</string>
+    <string name="reader_adjust_brightness">Brightness</string>
+    <string name="reader_adjust_contrast">Contrast</string>
+    <string name="reader_adjust_sharpness">Sharpness</string>
+    <string name="reader_adjust_greyscale">Greyscale</string>
+    <string name="reader_adjust_invert">Invert colours</string>
+    <string name="reader_adjust_reset">Reset adjustments</string>
+    <string name="reader_adjust_scope">Applies to “%1$s” only, not to everything you read.</string>
 </resources>

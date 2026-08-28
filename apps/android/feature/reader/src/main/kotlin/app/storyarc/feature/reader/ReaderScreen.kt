@@ -94,6 +94,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.LocalVolumeTurns
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PageEntry
+import app.storyarc.core.model.ImageAdjustments
 import app.storyarc.core.model.PageFit
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.Publication
@@ -278,6 +279,11 @@ private fun Pager(
     // change seeds the new container from where the reader already is.
     var position by remember { mutableIntStateOf(displayIndex(viewModel.initialIndex)) }
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val adjustments = settings.adjustments
+
+    /** Whether the adjustment controls are open. */
+    var isAdjusting by rememberSaveable { mutableStateOf(false) }
+
     val choices = viewModel.transitions(settings)
     val paging = rememberPaging(choices.effective, count, position)
     LaunchedEffect(paging) {
@@ -319,8 +325,12 @@ private fun Pager(
     // The strip and an open menu both count as interaction: reading either takes
     // longer than four seconds, and the chrome vanishing underneath would take them
     // with it.
-    LaunchedEffect(isChromeVisible, position, isMenuOpen, isBrowsingThumbnails) {
-        if (!isChromeVisible || isMenuOpen || isBrowsingThumbnails) return@LaunchedEffect
+    LaunchedEffect(isChromeVisible, position, isMenuOpen, isBrowsingThumbnails, isAdjusting) {
+        // Not while the adjustment controls are open: a reader dragging a slider has not
+        // stopped interacting because they have not touched the page.
+        if (!isChromeVisible || isMenuOpen || isBrowsingThumbnails || isAdjusting) {
+            return@LaunchedEffect
+        }
         delay(CHROME_TIMEOUT_MILLIS)
         isChromeVisible = false
     }
@@ -414,6 +424,7 @@ private fun Pager(
                 // page — and the reader never chose that name.
                 contentDescription = stringResource(R.string.reader_page_label, index + 1, pages.size),
                 fit = fit,
+                adjustments = adjustments,
                 onTap = ::handleTap,
                 // In a continuous scroll a page takes the height its own proportions
                 // ask for. Fitting each one to the screen instead would put a band of
@@ -519,6 +530,17 @@ private fun Pager(
         return
     }
 
+    // Outside the chrome, not inside it: the chrome fades and takes its children with it,
+    // and a sheet that vanishes four seconds after it opens is not a sheet.
+    if (isAdjusting) {
+        AdjustmentsSheet(
+            adjustments = adjustments,
+            shelf = viewModel.shelfName,
+            onChange = viewModel::choose,
+            onDismiss = { isAdjusting = false },
+        )
+    }
+
     AnimatedVisibility(visible = isChromeVisible, enter = fadeIn(), exit = fadeOut()) {
         Box(Modifier.fillMaxSize()) {
             CloseButton(onClose)
@@ -546,6 +568,7 @@ private fun Pager(
                     onChange = onFitChange,
                     onOpenChange = { isMenuOpen = it },
                 )
+                AdjustButton(isNeutral = adjustments.isNeutral) { isAdjusting = true }
             }
 
             Column(
@@ -643,6 +666,7 @@ private fun ZoomablePage(
     bitmap: ImageBitmap,
     contentDescription: String?,
     fit: PageFit,
+    adjustments: ImageAdjustments,
     onTap: (Offset, IntSize) -> Unit,
     modifier: Modifier = Modifier,
     /**
@@ -659,6 +683,10 @@ private fun ZoomablePage(
      */
     stitch: ScrollAxis? = null,
 ) {
+    // Rebuilt only when the reader moves a control, not on every frame of a scroll.
+    val colours = remember(adjustments) { adjustments.colourFilter() }
+    val sharpen = remember(adjustments) { adjustments.sharpeningEffect() }
+
     var size by remember { mutableStateOf(IntSize.Zero) }
     val page = remember(bitmap, size) {
         PageBounds.of(IntSize(bitmap.width, bitmap.height), size)
@@ -678,6 +706,7 @@ private fun ZoomablePage(
         Image(
             bitmap = bitmap,
             contentDescription = contentDescription,
+            colorFilter = colours,
             contentScale = if (stitch == ScrollAxis.VERTICAL) {
                 ContentScale.FillWidth
             } else {
@@ -689,7 +718,9 @@ private fun ZoomablePage(
             } else {
                 // Full height, natural width: pages side by side, edge to edge.
                 modifier.fillMaxHeight()
-            }.tappable(onTap = onTap),
+            }
+                .graphicsLayer { renderEffect = sharpen }
+                .tappable(onTap = onTap),
         )
         return
     }
@@ -697,6 +728,7 @@ private fun ZoomablePage(
     Image(
         bitmap = bitmap,
         contentDescription = contentDescription,
+        colorFilter = colours,
         // Fit, not fill: cropping a comic page loses artwork, and `comic-reader`
         // treats the whole page as the unit. Zoom starts from that fit.
         contentScale = ContentScale.Fit,
@@ -714,6 +746,7 @@ private fun ZoomablePage(
                 scaleY = zoom.scale
                 translationX = zoom.offset.x
                 translationY = zoom.offset.y
+                renderEffect = sharpen
             },
     )
 }

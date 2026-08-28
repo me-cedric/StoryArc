@@ -4,6 +4,7 @@ import android.view.KeyEvent
 import app.storyarc.core.designsystem.theme.LocalVolumeTurns
 import app.storyarc.core.designsystem.theme.VolumeTurns
 import androidx.compose.runtime.CompositionLocalProvider
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -137,6 +138,26 @@ class MainActivity : ComponentActivity() {
         OpenedFile.uriFrom(intent)?.let { handedOver.value = it }
     }
 
+    /**
+     * The language this activity was built with.
+     *
+     * Kept so a change can be told from the value it already has: the composition reads the
+     * setting on every launch, and recreating on that would be a loop.
+     */
+    private var language: String? = null
+
+    /**
+     * `localization`: the reader's own language, before anything reads a resource.
+     *
+     * Here rather than in the composition because a `Popup` -- every dropdown menu in the
+     * app -- is its own window built from this context, and would otherwise stay in the
+     * system's language while the screen behind it changed.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        language = newBase.chosenLanguage()
+        super.attachBaseContext(newBase.speaking(language))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // `native-experience`: draw edge to edge and handle insets, rather than
         // avoiding them. Not optional on API 35+, and correct below it anyway.
@@ -187,9 +208,13 @@ class MainActivity : ComponentActivity() {
             // reads changed.
             var settings by remember { mutableStateOf(settingsStore.settings()) }
 
-            // `localization`: the reader's own language, applied to the composition rather
-            // than by recreating the activity, so the switch is immediate.
-            WithInterfaceLanguage(settings.language) {
+            // `localization`: a language chosen here is applied by rebuilding the activity
+            // against it, because a composition local does not reach a menu -- see
+            // `InterfaceLanguage`. Guarded on a real change so this does not fire on launch.
+            LaunchedEffect(settings.language) {
+                if (settings.language != language) recreate()
+            }
+
             StoryArcTheme(appearance = settings.appearance, useDynamicColor = true) {
                 // Provided here so both readers can fill it in, and so `onKeyDown` has
                 // something to read. Volume-down turns forward, which is the convention
@@ -702,7 +727,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
-            }
             }
         }
     }
