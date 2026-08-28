@@ -68,8 +68,9 @@ public final class LibraryModel {
     private var locations: [String: URL] = [:]
     private var scanTask: Task<Void, Never>?
     private let progressStore: ProgressStore?
+    // Internal, not private: the shelves half of this type lives in another file.
     /// How far through each publication the reader got, keyed by publication id.
-    private var progress: [String: ReadingProgress] = [:]
+    var progress: [String: ReadingProgress] = [:]
 
     let bookmarks: FolderBookmarks?
     /// Folders that were remembered and can no longer be reached.
@@ -88,15 +89,22 @@ public final class LibraryModel {
     /// picked.
     public internal(set) var registry = SourceRegistry()
 
+    /// The reader's collections and reading lists.
+    public internal(set) var shelves = Shelves()
+
     let sourceStore: SourceStore?
+    let shelvesStore: ShelvesStore?
 
     public init(
         progress: ProgressStore? = nil,
         bookmarks: FolderBookmarks? = nil,
         preferences: LibraryPreferences? = nil,
-        sourceStore: SourceStore? = nil
+        sourceStore: SourceStore? = nil,
+        shelvesStore: ShelvesStore? = nil
     ) {
         self.sourceStore = sourceStore
+        self.shelvesStore = shelvesStore
+        shelves = shelvesStore?.shelves() ?? Shelves()
         self.registry = sourceStore?.registry() ?? SourceRegistry()
         self.progressStore = progress
         self.bookmarks = bookmarks

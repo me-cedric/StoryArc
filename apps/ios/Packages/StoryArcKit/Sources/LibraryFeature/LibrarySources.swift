@@ -136,3 +136,62 @@ extension LibraryModel {
         rebuild()
     }
 }
+
+/// Collections and reading lists, and the reader's edits to them.
+///
+/// On ``LibraryModel`` because a grouping is a set of publication identities and the model
+/// is what turns an identity back into a publication. A separate model would have to be
+/// handed the library to be useful, which is the same thing with an extra hop.
+extension LibraryModel {
+    /// Every publication the reader has finished, for a reading list's progress line.
+    ///
+    /// A set rather than a predicate, because a list of forty entries would otherwise ask
+    /// the progress store forty times while drawing one screen.
+    public var finishedPublications: Set<String> {
+        Set(progress.filter { $0.value.isFinished }.keys)
+    }
+
+    public func create(collection name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        shelves = shelves.adding(PublicationCollection(name: trimmed))
+        shelvesStore?.save(shelves)
+    }
+
+    public func create(list name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        shelves = shelves.adding(ReadingList(name: trimmed))
+        shelvesStore?.save(shelves)
+    }
+
+    public func add(_ members: Set<String>, toCollection id: UUID) {
+        shelves = shelves.adding(members, to: id)
+        shelvesStore?.save(shelves)
+    }
+
+    public func append(_ entries: [String], toList id: UUID) {
+        shelves = shelves.appending(entries, to: id)
+        shelvesStore?.save(shelves)
+    }
+
+    public func remove(_ entry: String, fromList id: UUID) {
+        shelves = shelves.removing(entry, fromList: id)
+        shelvesStore?.save(shelves)
+    }
+
+    public func move(_ entry: String, to destination: Int, inList id: UUID) {
+        shelves = shelves.moving(entry, to: destination, inList: id)
+        shelvesStore?.save(shelves)
+    }
+
+    public func delete(collection id: UUID) {
+        shelves = shelves.deleting(collection: id)
+        shelvesStore?.save(shelves)
+    }
+
+    public func delete(list id: UUID) {
+        shelves = shelves.deleting(list: id)
+        shelvesStore?.save(shelves)
+    }
+}

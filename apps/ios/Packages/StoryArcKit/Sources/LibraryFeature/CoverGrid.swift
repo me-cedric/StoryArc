@@ -169,6 +169,13 @@ struct CoverCell: View {
         // A publication that cannot be read is not tappable. Opening it only to
         // show the same refusal a second time wastes the user's tap.
         .onTapGesture { if publication.isOpenable { onOpen(publication) } }
+        // `collections-and-reading-lists`: a publication "may belong to any number of
+        // collections", and this is where a reader says so. Only shown when there is
+        // somewhere to add it to — a menu whose only content is "you have no collections"
+        // is a menu that wastes a long press.
+        .contextMenu {
+            AddToShelfMenu(model: model, publication: publication)
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(publication.isOpenable ? .isButton : [])

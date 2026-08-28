@@ -223,6 +223,17 @@ public struct LibraryView: View {
                 // Last, and always present. A reader with an empty library still needs
                 // to reach About, and `settings-and-about` puts the licences there.
                 ToolbarItem(placement: .primaryAction) {
+                    NavigationLink {
+                        ShelvesView(model: model, onOpen: onOpen)
+                    } label: {
+                        Label {
+                            Text("shelves.title", bundle: .module)
+                        } icon: {
+                            Image(systemName: "square.stack")
+                        }
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
                     Button(action: onOpenSettings) {
                         Label {
                             Text("library.settings", bundle: .module)
