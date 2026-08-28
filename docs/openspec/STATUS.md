@@ -22,8 +22,8 @@ Keep this current. A status document that lags is worse than none, because it is
 | `localization` | partial | Language override; no pseudo-locale test; no CI gate on a missing key for iOS. Plurals and locale-correct byte formatting are done |
 | `native-experience` | partial | Context menus; haptics; quick actions; widgets; handoff; predictive back; tablet sidebar; foldables; cover-derived accent; Increase Contrast; scroll edge effect; launch and memory budgets |
 | `sources` | partial | Reordering has no UI; metadata cache; connection state is never probed for a remote source. **Registry, credential storage, folder-as-source, OPDS-catalogue-as-source, renaming, Settings › Sources and removal are built** |
-| `offline-downloads` | absent | Everything |
-| `opds-catalog` | partial | OPDS 2.0 groups are flattened rather than shown as groups; no publication detail screen, so choosing another format is a menu; a fetched file is a cache entry, not a managed download. **All three requirements are built on both platforms: adding a catalogue with sign-in and certificate pinning, browsing sections and paginated grids with search, and fetching a publication and opening it** |
+| `offline-downloads` | partial | The queue: no pause, resume, reorder, concurrency bound, background transfer or Wi-Fi-only policy; no downloads view; no storage view or limit; no automatic cleanup; nothing downloads a whole series. **A publication fetched from a catalogue is a recorded download in a backup-excluded directory, verified by indexing, not re-fetched once present, and removable** |
+| `opds-catalog` | partial | OPDS 2.0 groups are flattened rather than shown as groups; no publication detail screen, so choosing another format is a menu; **All three requirements are built on both platforms: adding a catalogue with sign-in and certificate pinning, browsing sections and paginated grids with search, and fetching a publication and opening it** |
 | `kavita-server` | absent | Everything |
 | `network-share` | absent | Everything |
 | `collections-and-reading-lists` | absent | Everything |
@@ -38,7 +38,7 @@ sources (registry, credentials, cache, health)
   ├── opds-catalog          built on both
   ├── kavita-server ──── reading-progress: synchronisation
   ├── network-share
-  └── offline-downloads ─ comic-reader: "offer to delete the download"
+  └── offline-downloads ─ comic-reader: "offer to delete the download"   partial on both
                         └ settings-and-about: clearable downloads
                         └ format-scope-and-libraries 5.2, 5.3, 6.5
 ```

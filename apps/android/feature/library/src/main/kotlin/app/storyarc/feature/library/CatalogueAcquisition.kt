@@ -9,7 +9,10 @@ import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.catalogue.OpdsError
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.Download
+import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.persistence.DownloadStore
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
@@ -25,14 +28,15 @@ import kotlinx.coroutines.withContext
  * promise of one, in one or more formats, some of which this app cannot read. This is what
  * turns the promise into a file.
  *
- * The file lands in the cache directory. `offline-downloads` is a separate capability with
- * its own promises about storage, eviction and a reader's control over both; until that
- * exists, calling this a download would be a claim the app cannot keep. The system may
- * reclaim a cached file, and the catalogue can always be asked again.
+ * The file is a download, not a cache entry. It lands in `files/downloads`, which the backup
+ * rules already exclude, it is recorded so it can be listed and removed, and it is verified
+ * before it is called finished. What is still missing from `offline-downloads` is the queue:
+ * this fetches one publication at a time, in the foreground, with no pause and no resume.
  */
 class CatalogueAcquisition(
     private val context: Context,
     pins: CertificatePins,
+    private val store: DownloadStore? = null,
 ) {
     sealed interface State {
         data object Idle : State
@@ -44,6 +48,37 @@ class CatalogueAcquisition(
     val state: StateFlow<State> = _state.asStateFlow()
 
     private val client = OpdsClient(pins)
+
+    private val _library = MutableStateFlow(store?.library() ?: DownloadLibrary())
+
+    /** What has been downloaded, published so the grid can show it. */
+    val library: StateFlow<DownloadLibrary> = _library.asStateFlow()
+
+    /**
+     * Where a publication already downloaded lives, if it does.
+     *
+     * `offline-downloads`: when a publication is already downloaded "the download action is
+     * replaced by a state indicator and a remove-download action, and the app does not
+     * re-fetch it". Asked of the filesystem, not of the record: a download the system
+     * reclaimed is one the reader should be offered again rather than shown a missing file.
+     */
+    fun downloaded(entry: OpdsEntry): File? {
+        val download = _library.value[entry.id]?.takeIf { it.state.isFinished } ?: return null
+        val file = store?.location(entry.id, extensionOf(download.mediaType)) ?: return null
+        return file.takeIf { it.exists() }
+    }
+
+    /** Forgets a download and deletes its file. */
+    fun remove(id: String) {
+        _library.value[id]?.let { download ->
+            store?.let { it.delete(it.location(id, extensionOf(download.mediaType))) }
+        }
+        _library.value = _library.value.removing(id)
+        store?.save(_library.value)
+    }
+
+    private fun extensionOf(mediaType: String): String =
+        PublicationFormat.ofMediaType(mediaType)?.name?.lowercase() ?: "bin"
 
     /**
      * Fetches one acquisition and indexes it.
@@ -57,19 +92,52 @@ class CatalogueAcquisition(
         credential: OpdsCredential?,
     ): Pair<Publication, String>? {
         _state.value = State.Fetching(entry.title)
+        _library.value = _library.value.queueing(
+            Download(
+                id = entry.id,
+                title = entry.title,
+                remote = link.href,
+                mediaType = link.mediaType,
+                state = Download.State.Running,
+            ),
+        ).marking(entry.id, Download.State.Running)
+
         return try {
             val bytes = client.bytes(link.href, credential)
             val file = withContext(Dispatchers.IO) { write(bytes, entry, link) }
+            // Indexing *is* the verification. `offline-downloads` requires integrity to be
+            // checked "before it is marked available offline", and with no checksum from the
+            // server the honest check is whether the bytes are a publication this app can
+            // open. A truncated archive fails here rather than at the first page turn.
             val publication = PublicationIndexer.index(file, entry.series)
+            _library.value = _library.value
+                .advancing(entry.id, bytes.size.toLong(), bytes.size.toLong())
+                .marking(entry.id, Download.State.Finished)
+            store?.save(_library.value)
             _state.value = State.Idle
             publication to file.absolutePath
         } catch (error: OpdsError) {
-            _state.value = State.Failed(CatalogueMessages.describe(context, error))
+            fail(entry.id, CatalogueMessages.describe(context, error))
             null
         } catch (error: IOException) {
-            _state.value = State.Failed(CatalogueMessages.reachability(context, error))
+            fail(entry.id, CatalogueMessages.reachability(context, error))
             null
         }
+    }
+
+    /**
+     * Records a failure, throws away the partial file, and tells the reader.
+     *
+     * The file goes because it did not verify, and a half-written archive left on disk is
+     * counted by the storage view as a book the reader has.
+     */
+    private fun fail(id: String, reason: String) {
+        _library.value = _library.value.failing(id, reason)
+        _library.value[id]?.let { download ->
+            store?.let { it.delete(it.location(id, extensionOf(download.mediaType))) }
+        }
+        store?.save(_library.value)
+        _state.value = State.Failed(reason)
     }
 
     /** Puts the banner away, after a failure the reader has read. */
@@ -80,15 +148,13 @@ class CatalogueAcquisition(
     /**
      * Where a fetched publication is put.
      *
-     * Named by the entry's identifier rather than its title: two catalogues can offer the
-     * same title, and a filename collision would hand the reader the wrong book. The
-     * extension is kept because the indexer reads it as one signal among several.
+     * The store decides, because the store is what knows which directory the backup rules
+     * exclude and how a file is named from an identity.
      */
     private fun write(bytes: ByteArray, entry: OpdsEntry, link: OpdsAcquisition): File {
-        val directory = File(context.cacheDir, "catalogue").apply { mkdirs() }
-        val name = entry.id.replace(Regex("[^A-Za-z0-9._-]"), "-")
-        val extension = PublicationFormat.ofMediaType(link.mediaType)?.name?.lowercase() ?: "bin"
-        val file = File(directory, "$name.$extension")
+        val store = store ?: throw IOException("no download store")
+        store.prepare()
+        val file = store.location(entry.id, extensionOf(link.mediaType))
         file.writeBytes(bytes)
         return file
     }

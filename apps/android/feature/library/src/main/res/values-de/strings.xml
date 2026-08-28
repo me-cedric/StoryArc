@@ -105,4 +105,5 @@
         <item quantity="other">%1$d Publikationen</item>
     </plurals>
     <string name="catalogue_back">Zurück</string>
+    <string name="catalogue_entry_downloaded">Auf diesem Gerät</string>
 </resources>

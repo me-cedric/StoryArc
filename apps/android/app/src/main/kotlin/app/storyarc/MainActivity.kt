@@ -28,6 +28,7 @@ import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
+import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.SourceStore
 import app.storyarc.feature.library.CatalogueAcquisition
 import app.storyarc.feature.library.CatalogueBrowser
@@ -121,6 +122,7 @@ class MainActivity : ComponentActivity() {
         // and browsing one on purpose: a certificate the reader accepted while adding a
         // server has to still be accepted when its covers load.
         val pins = CertificatePins(pinStore.pins())
+        val downloadStore = DownloadStore.open(applicationContext)
         BuildInfo.read(applicationContext)
 
         setContent {
@@ -251,7 +253,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     val acquisition = remember(page.url) {
-                        CatalogueAcquisition(applicationContext, pins)
+                        CatalogueAcquisition(applicationContext, pins, downloadStore)
                     }
                     CatalogueBrowserScreen(
                         browser = browser,

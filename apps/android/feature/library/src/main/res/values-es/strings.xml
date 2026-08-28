@@ -105,4 +105,5 @@
         <item quantity="other">%1$d publicaciones</item>
     </plurals>
     <string name="catalogue_back">Atrás</string>
+    <string name="catalogue_entry_downloaded">En este dispositivo</string>
 </resources>

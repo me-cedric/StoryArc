@@ -61,6 +61,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
+import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.PublicationFormat
 import kotlinx.coroutines.launch
 
@@ -85,6 +86,8 @@ fun CatalogueBrowserScreen(
     val feed by browser.feed.collectAsStateWithLifecycle()
     val entries by browser.entries.collectAsStateWithLifecycle()
     val fetching by acquisition.state.collectAsStateWithLifecycle()
+    val downloads by acquisition.library.collectAsStateWithLifecycle()
+    val onDevice = downloads.finished.map { it.id }.toSet()
     val scope = rememberCoroutineScopeCompat()
 
     LaunchedEffect(browser) { browser.load() }
@@ -140,7 +143,20 @@ fun CatalogueBrowserScreen(
                     entry = entry,
                     credential = browser.credential,
                     client = browser.client,
+                    isDownloaded = entry.id in onDevice,
                     onOpen = {
+                        // `offline-downloads`: an already-downloaded publication is not
+                        // re-fetched. It opens from disk, which also means it opens with no
+                        // network at all.
+                        val local = acquisition.downloaded(entry)
+                        if (local != null) {
+                            scope.launch {
+                                runCatching { PublicationIndexer.index(local, entry.series) }
+                                    .getOrNull()
+                                    ?.let { onOpen(it, local.absolutePath) }
+                            }
+                            return@CatalogueEntryCell
+                        }
                         val best = CatalogueAcquisition.best(entry) ?: return@CatalogueEntryCell
                         scope.launch {
                             acquisition.fetch(entry, best, browser.credential)
@@ -267,6 +283,8 @@ private fun CatalogueEntryCell(
     credential: app.storyarc.core.catalogue.OpdsCredential?,
     /** The page's client, not one of this cell's own. */
     client: OpdsClient,
+    /** Whether this one is already on the device. */
+    isDownloaded: Boolean,
     onOpen: () -> Unit,
     onChoose: (OpdsAcquisition) -> Unit,
 ) {
@@ -326,6 +344,16 @@ private fun CatalogueEntryCell(
                     )
                 }
             }
+        }
+
+        // `offline-downloads`: a downloaded publication shows "a state indicator" rather
+        // than an action to download it again.
+        if (isDownloaded) {
+            Text(
+                text = stringResource(R.string.catalogue_entry_downloaded),
+                style = MaterialTheme.typography.labelSmall,
+                color = palette.accent,
+            )
         }
 
         Text(
