@@ -16,6 +16,7 @@ import app.storyarc.core.persistence.DownloadStore
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -91,7 +92,6 @@ class CatalogueAcquisition(
         link: OpdsAcquisition,
         credential: OpdsCredential?,
     ): Pair<Publication, String>? {
-        _state.value = State.Fetching(entry.title)
         _library.value = _library.value.queueing(
             Download(
                 id = entry.id,
@@ -100,29 +100,48 @@ class CatalogueAcquisition(
                 mediaType = link.mediaType,
                 state = Download.State.Running,
             ),
-        ).marking(entry.id, Download.State.Running)
+        )
 
-        return try {
-            val bytes = client.bytes(link.href, credential)
-            val file = withContext(Dispatchers.IO) { write(bytes, entry, link) }
-            // Indexing *is* the verification. `offline-downloads` requires integrity to be
-            // checked "before it is marked available offline", and with no checksum from the
-            // server the honest check is whether the bytes are a publication this app can
-            // open. A truncated archive fails here rather than at the first page turn.
-            val publication = PublicationIndexer.index(file, entry.series)
-            _library.value = _library.value
-                .advancing(entry.id, bytes.size.toLong(), bytes.size.toLong())
-                .marking(entry.id, Download.State.Finished)
-            store?.save(_library.value)
-            _state.value = State.Idle
-            publication to file.absolutePath
-        } catch (error: OpdsError) {
-            fail(entry.id, CatalogueMessages.describe(context, error))
-            null
-        } catch (error: IOException) {
-            fail(entry.id, CatalogueMessages.reachability(context, error))
-            null
+        // `offline-downloads`: a failure "is retried automatically up to three times with
+        // backoff, then marked failed". The loop lives here rather than in the caller
+        // because the caller is a tap, and a tap should not be responsible for waiting.
+        while (true) {
+            _state.value = State.Fetching(entry.title)
+            _library.value = _library.value.marking(entry.id, Download.State.Running)
+
+            attempt(entry, link, credential)?.let { return it }
+
+            val failed = _library.value[entry.id]?.state as? Download.State.Failed ?: return null
+            if (!DownloadLibrary.shouldRetry(_library.value[entry.id]!!)) return null
+            delay(DownloadLibrary.backoffMillis(failed.attempts))
         }
+    }
+
+    /** One try, with no opinion about whether there will be another. */
+    private suspend fun attempt(
+        entry: OpdsEntry,
+        link: OpdsAcquisition,
+        credential: OpdsCredential?,
+    ): Pair<Publication, String>? = try {
+        val bytes = client.bytes(link.href, credential)
+        val file = withContext(Dispatchers.IO) { write(bytes, entry, link) }
+        // Indexing *is* the verification. `offline-downloads` requires integrity to be
+        // checked "before it is marked available offline", and with no checksum from the
+        // server the honest check is whether the bytes are a publication this app can open.
+        // A truncated archive fails here rather than at the first page turn.
+        val publication = PublicationIndexer.index(file, entry.series)
+        _library.value = _library.value
+            .advancing(entry.id, bytes.size.toLong(), bytes.size.toLong())
+            .marking(entry.id, Download.State.Finished)
+        store?.save(_library.value)
+        _state.value = State.Idle
+        publication to file.absolutePath
+    } catch (error: OpdsError) {
+        fail(entry.id, CatalogueMessages.describe(context, error), error.isTransient)
+        null
+    } catch (error: IOException) {
+        fail(entry.id, CatalogueMessages.reachability(context, error))
+        null
     }
 
     /**
@@ -131,8 +150,17 @@ class CatalogueAcquisition(
      * The file goes because it did not verify, and a half-written archive left on disk is
      * counted by the storage view as a book the reader has.
      */
-    private fun fail(id: String, reason: String) {
-        _library.value = _library.value.failing(id, reason)
+    private fun fail(id: String, reason: String, retryable: Boolean = true) {
+        _library.value = if (retryable) {
+            _library.value.failing(id, reason)
+        } else {
+            // Marked as though every attempt were spent, so the queue stops asking and the
+            // reader sees the reason rather than a spinner that returns twice more.
+            _library.value.marking(
+                id,
+                Download.State.Failed(reason, DownloadLibrary.ATTEMPT_LIMIT),
+            )
+        }
         _library.value[id]?.let { download ->
             store?.let { it.delete(it.location(id, extensionOf(download.mediaType))) }
         }

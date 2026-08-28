@@ -180,7 +180,16 @@ ${next}
         opds:facetGroup="Language" opds:activeFacet="true" thr:count="${entries.length}"/>
   <link rel="http://opds-spec.org/facet" href="/opds/all?lang=fr" title="French"
         opds:facetGroup="Language" thr:count="0"/>
-${shown.map((entry) => `  <entry>
+${page === 0 && !query && title === 'All publications' ? `  <entry>
+    <id>urn:storyarc:flaky</id>
+    <title>Flaky Transfer</title>
+    <updated>${new Date(0).toISOString().replace(/\.\d+Z$/, 'Z')}</updated>
+    <author><name>Ada Lovelace</name></author>
+    <summary>Fails twice with 503, then succeeds. For watching the retry.</summary>
+    <link rel="http://opds-spec.org/acquisition" href="/flaky/retry.cbz"
+          type="application/vnd.comicbook+zip"/>
+  </entry>
+` : ''}${shown.map((entry) => `  <entry>
     <id>${entry.id}</id>
     <title>${escape(entry.title)}</title>
     <updated>${entry.updated}</updated>
@@ -256,6 +265,8 @@ function authorized(request, expected) {
   }
   return header === `Bearer ${expected.value}`
 }
+
+let flaky = 0
 
 const server = createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`)
@@ -345,6 +356,16 @@ const server = createServer((request, response) => {
     const index = entries.findIndex((entry) => entry.file === name)
     if (index < 0) return send(404, 'text/plain', 'no such publication')
     return send(200, 'image/png', cover(index + 1))
+  }
+
+  // A file that fails twice and then works, so the retry-with-backoff path can be watched
+  // rather than reasoned about. `offline-downloads` retries three times; this proves the
+  // second attempt happens and the third succeeds.
+  if (url.pathname.startsWith('/flaky/')) {
+    flaky += 1
+    if (flaky % 3 !== 0) return send(503, 'text/plain', 'busy')
+    const entry = entries.find((each) => each.file.endsWith('.cbz'))
+    return send(200, entry.type, readFileSync(join(root, entry.file)))
   }
 
   if (url.pathname.startsWith('/files/')) {

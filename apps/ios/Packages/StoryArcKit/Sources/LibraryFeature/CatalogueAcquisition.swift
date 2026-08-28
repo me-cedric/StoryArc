@@ -108,7 +108,6 @@ public final class CatalogueAcquisition {
         using acquisition: OpdsAcquisition,
         credential: OpdsCredential?
     ) async -> (publication: Publication, location: URL)? {
-        state = .fetching(title: entry.title)
         library = library.queueing(
             Download(
                 id: entry.id,
@@ -117,8 +116,36 @@ public final class CatalogueAcquisition {
                 mediaType: acquisition.mediaType,
                 state: .running
             )
-        ).marking(entry.id, as: .running)
+        )
 
+        // `offline-downloads`: a failure "is retried automatically up to three times with
+        // backoff, then marked failed". The loop lives here rather than in the caller
+        // because the caller is a tap, and a tap should not be responsible for waiting.
+        while true {
+            state = .fetching(title: entry.title)
+            library = library.marking(entry.id, as: .running)
+
+            if let fetched = await attempt(entry, using: acquisition, credential: credential) {
+                return fetched
+            }
+
+            guard let failed = library[entry.id], DownloadLibrary.shouldRetry(failed),
+                  case let .failed(_, attempts) = failed.state
+            else { return nil }
+
+            try? await Task.sleep(for: DownloadLibrary.backoff(afterAttempts: attempts))
+            // Cancelled while waiting — a reader who left the screen is not asking for
+            // three more attempts.
+            if Task.isCancelled { return nil }
+        }
+    }
+
+    /// One try, with no opinion about whether there will be another.
+    private func attempt(
+        _ entry: OpdsEntry,
+        using acquisition: OpdsAcquisition,
+        credential: OpdsCredential?
+    ) async -> (publication: Publication, location: URL)? {
         do {
             let data = try await client.data(at: acquisition.href, credential: credential)
             let file = try write(data, for: entry, as: acquisition)
@@ -145,9 +172,12 @@ public final class CatalogueAcquisition {
             } else {
                 String(localized: "catalogue.acquire.unreadable", bundle: .module)
             }
-            fail(entry.id, reason: message)
+            // Not retryable. Fetching the same bytes a second time produces the same
+            // format, and three attempts at it is three times the reader's data for the
+            // same answer.
+            fail(entry.id, reason: message, retryable: false)
         } catch let error as OpdsError {
-            fail(entry.id, reason: CatalogueMessages.describe(error))
+            fail(entry.id, reason: CatalogueMessages.describe(error), retryable: error.isTransient)
         } catch {
             fail(entry.id, reason: CatalogueMessages.reachability(error))
         }
@@ -158,8 +188,15 @@ public final class CatalogueAcquisition {
     ///
     /// The file goes because it did not verify, and a half-written archive left on disk is
     /// counted by the storage view as a book the reader has.
-    private func fail(_ id: Download.ID, reason: String) {
-        library = library.failing(id, reason: reason)
+    private func fail(_ id: Download.ID, reason: String, retryable: Bool = true) {
+        library = retryable
+            ? library.failing(id, reason: reason)
+            // Marked as though every attempt were spent, so the queue stops asking and the
+            // reader sees the reason rather than a spinner that returns twice more.
+            : library.marking(
+                id,
+                as: .failed(reason: reason, attempts: DownloadLibrary.attemptLimit)
+            )
         if let store, let download = library[id] {
             store.delete(
                 store.location(for: id, extension: DownloadStore.extension(for: download.mediaType))

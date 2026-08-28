@@ -417,3 +417,29 @@ class OpdsCredentialStorageTest {
         assertNull(OpdsCredential.of("digest\na\nb"))
     }
 }
+
+/**
+ * Which failures are worth trying again.
+ *
+ * `offline-downloads` retries a failed download three times. Retrying one that cannot
+ * succeed spends a reader's data to arrive at the same answer.
+ */
+class OpdsTransienceTest {
+    @Test
+    fun aServerHavingAMomentIsWorthRetrying() {
+        assertTrue(OpdsError.Http(500).isTransient)
+        assertTrue(OpdsError.Http(503).isTransient)
+        assertTrue(OpdsError.Http(408).isTransient)
+        assertTrue(OpdsError.Http(429).isTransient)
+        assertTrue(OpdsError.Empty.isTransient)
+    }
+
+    @Test
+    fun anAnswerThatWillNotChangeIsNot() {
+        assertFalse(OpdsError.Http(404).isTransient)
+        assertFalse(OpdsError.Http(403).isTransient)
+        assertFalse(OpdsError.Unauthorized(OpdsError.AuthenticationScheme.BASIC).isTransient)
+        assertFalse(OpdsError.NotAFeed(OpdsError.Received.Html).isTransient)
+        assertFalse(OpdsError.Malformed("bad XML").isTransient)
+    }
+}

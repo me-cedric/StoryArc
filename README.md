@@ -328,6 +328,7 @@ pnpm opds ~/StoryArcCorpus
 | `/private` | A 401 answered by Basic `ada` / `lovelace` |
 | `/bearer` | A 401 answered by Bearer `storyarc-token` |
 | `/page`, `/empty` | The two refusals the spec requires by name |
+| `/flaky/…` | Fails twice with 503 then succeeds, so the retry-with-backoff can be watched |
 
 The simulator and the emulator both reach it: `http://localhost:4444/opds` on iOS, and
 `http://10.0.2.2:4444/opds` from an Android emulator. iOS permits plain HTTP here

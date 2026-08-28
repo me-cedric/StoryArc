@@ -107,6 +107,19 @@ public enum OpdsError: Error, Equatable, Sendable {
         case unrecognised(contentType: String?)
     }
 
+    /// Whether trying the same request again could plausibly succeed.
+    ///
+    /// A 503 or a 500 is a server having a moment; a 404 is a URL that will still be a 404
+    /// in eight seconds, and a body that is not a feed will not become one. Retrying those
+    /// spends a reader's data to arrive at the same answer.
+    public var isTransient: Bool {
+        switch self {
+        case let .http(status): status >= 500 || status == 408 || status == 429
+        case .empty: true
+        case .notAFeed, .malformed, .unauthorized: false
+        }
+    }
+
     /// How a 401 asked to be answered.
     ///
     /// `opds-catalog` requires support for "HTTP Basic and Bearer tokens", and the
