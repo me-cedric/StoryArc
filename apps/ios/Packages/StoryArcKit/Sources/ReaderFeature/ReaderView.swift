@@ -90,10 +90,28 @@ public struct ReaderView: View {
         self.nextInSeries = nextInSeries
         self.onOpenNext = onOpenNext
         _fit = State(initialValue: preferences?.pageFit() ?? .screen)
+        let shelf = publication.series ?? publication.displayTitle
+        self.shelf = shelf
+        _adjustments = State(
+            initialValue: preferences?.themes().theme(for: .fixedLayout, shelf: shelf).adjustments
+                ?? ImageAdjustments()
+        )
     }
+
+    /// The series these adjustments belong to. `comic-reader` requires them to apply "to the
+    /// series and [not be] applied globally", and a comic with no series is its own shelf.
+    let shelf: String
 
     /// Where the fit choice is remembered. Absent in previews.
     let preferences: ReaderPreferences?
+
+    /// Keeps the adjustment against this series alone.
+    private func rememberAdjustments(_ now: ImageAdjustments) {
+        guard let preferences else { return }
+        let memory = preferences.themes()
+        let stored = memory.theme(for: .fixedLayout, shelf: shelf).settingAdjustments(now)
+        preferences.save(memory.remembering(stored, for: .fixedLayout, shelf: shelf))
+    }
 
     /// Set when the reader turns past the last page.
     @State private var hasReachedEnd = false
@@ -103,6 +121,12 @@ public struct ReaderView: View {
 
     /// Whether the thumbnail strip is open.
     @State var isBrowsingThumbnails = false
+
+    /// What to do to a page before it is shown, for this series.
+    @State var adjustments = ImageAdjustments()
+
+    /// Whether the adjustment controls are open.
+    @State var isAdjusting = false
 
     public var body: some View {
         GeometryReader { geometry in
@@ -147,11 +171,24 @@ public struct ReaderView: View {
             // `comic-reader`: the chrome fades out again "after 4 seconds of no
             // interaction". Keyed on the index too, so turning a page while the
             // chrome is up restarts the countdown rather than hiding mid-swipe.
+            // Held open while the controls are: `comic-reader` calls for a live preview,
+            // and a preview whose chrome times out mid-drag hides the button that opened it.
+            .sheet(isPresented: $isAdjusting) {
+                AdjustmentsSheet(adjustments: $adjustments, shelf: shelf)
+            }
+            // Written when the drag stops, not on every value: a slider produces dozens of
+            // changes a second and each one would be a `UserDefaults` write.
+            .onChange(of: adjustments) { _, now in
+                rememberAdjustments(now)
+            }
             .task(id: chromeTimerKey) {
                 // The chrome stays up over a failure. It is the only way back to the
                 // library, and hiding it four seconds after an error message left a black
                 // screen that could only be escaped by force-quitting the app.
-                guard isChromeVisible, !isBrowsingThumbnails, model.failure == nil
+                // Not while the adjustment controls are open: they sit over the page with
+                // the chrome behind them, and a reader dragging a slider has not stopped
+                // interacting just because they have not touched the page.
+                guard isChromeVisible, !isBrowsingThumbnails, !isAdjusting, model.failure == nil
                 else { return }
                 try? await Task.sleep(for: .seconds(4))
                 guard !Task.isCancelled else { return }
@@ -310,7 +347,7 @@ public struct ReaderView: View {
         // The strip counts as interaction: reading a row of thumbnails takes longer
         // than four seconds, and the chrome vanishing underneath would take the
         // strip with it.
-        "\(isChromeVisible)-\(displayIndex)-\(isBrowsingThumbnails)"
+        "\(isChromeVisible)-\(displayIndex)-\(isBrowsingThumbnails)-\(isAdjusting)"
     }
 
 }

@@ -19,6 +19,7 @@ struct PageView: View {
     /// which names a file inside a CBZ rather than a page.
     let label: Text
     let fit: PageFit
+    let adjustments: ImageAdjustments
     let onTap: (CGPoint, CGSize) -> Void
 
     var body: some View {
@@ -26,8 +27,14 @@ struct PageView: View {
             // Fit, not fill: cropping a comic page loses artwork, and
             // `comic-reader` treats the whole page as the unit. Zoom starts from
             // that fit rather than replacing it.
-            ZoomablePage(image: image, pageID: pageID, fit: fit, onTap: onTap)
-                .accessibilityLabel(label)
+            ZoomablePage(
+                image: sharpened(image, by: adjustments.sharpness),
+                pageID: pageID,
+                fit: fit,
+                onTap: onTap
+            )
+            .adjusted(adjustments)
+            .accessibilityLabel(label)
         } else {
             // A page that is not drawn still has to accept a tap: a reader who
             // lands on a skipped page must be able to turn away from it, and one
@@ -169,6 +176,7 @@ struct StitchedPage: View {
     /// What VoiceOver says. See ``PageView/label`` for why this is not the entry path.
     let label: Text
     let axis: ScrollAxis
+    let adjustments: ImageAdjustments
     let onTap: (CGPoint, CGSize) -> Void
 
     /// A page's shape before it is decoded.
@@ -184,9 +192,10 @@ struct StitchedPage: View {
             ZStack {
                 Color.black
                 if let image {
-                    Image(decorative: image, scale: 1)
+                    Image(decorative: sharpened(image, by: adjustments.sharpness), scale: 1)
                         .resizable()
                         .scaledToFit()
+                        .adjusted(adjustments)
                         .accessibilityLabel(label)
                 } else if isUnavailable {
                     // Said, not blank. `publication-formats` requires an archive to

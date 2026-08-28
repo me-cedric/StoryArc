@@ -30,6 +30,21 @@ extension ReaderView {
 
                 Spacer()
 
+                Button { isAdjusting = true } label: {
+                    Label {
+                        Text("reader.adjust", bundle: .module)
+                    } icon: {
+                        // Filled while something is applied, so a reader who wonders why
+                        // the page looks like that can see that they asked for it.
+                        Image(systemName: adjustments.isNeutral
+                            ? "slider.horizontal.below.rectangle"
+                            : "slider.horizontal.below.square.filled.and.square")
+                    }
+                    .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.glass)
+                .tint(.white)
+
                 if model.pages.count > 1 {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {

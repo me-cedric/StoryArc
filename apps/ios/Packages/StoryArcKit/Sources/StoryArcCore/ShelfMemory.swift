@@ -31,6 +31,9 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
     /// `nil` means "whatever the publication implies", which is the default and the
     /// only value that can follow a webtoon into vertical without being told.
     public var scrollAxis: ScrollAxis?
+    /// What to do to a page before it is shown. `comic-reader` requires an adjustment to
+    /// apply "to the series and [not be] applied globally", which is what this store is.
+    public var adjustments: ImageAdjustments
 
     /// - Parameter values: the typography. Defaults to the preset's own, which is
     ///   what an unmodified theme means.
@@ -38,12 +41,14 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
         theme: ReadingTheme = ReadingTheme(),
         values: ThemeValues? = nil,
         transition: PageTransition = .slide,
-        scrollAxis: ScrollAxis? = nil
+        scrollAxis: ScrollAxis? = nil,
+        adjustments: ImageAdjustments = ImageAdjustments()
     ) {
         self.theme = theme
         self.values = values ?? theme.preset.values
         self.transition = transition
         self.scrollAxis = scrollAxis
+        self.adjustments = adjustments
     }
 
     /// Decodes what is there and defaults what is not.
@@ -60,7 +65,9 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
             theme: theme,
             values: try container.decodeIfPresent(ThemeValues.self, forKey: .values),
             transition: try container.decodeIfPresent(PageTransition.self, forKey: .transition) ?? .slide,
-            scrollAxis: try container.decodeIfPresent(ScrollAxis.self, forKey: .scrollAxis)
+            scrollAxis: try container.decodeIfPresent(ScrollAxis.self, forKey: .scrollAxis),
+            adjustments: try container.decodeIfPresent(ImageAdjustments.self, forKey: .adjustments)
+                ?? ImageAdjustments()
         )
     }
 }
@@ -70,6 +77,13 @@ extension ShelfSettings {
     public func settingTransition(_ transition: PageTransition) -> ShelfSettings {
         var copy = self
         copy.transition = transition
+        return copy
+    }
+
+    /// The same settings with different image adjustments.
+    public func settingAdjustments(_ adjustments: ImageAdjustments) -> ShelfSettings {
+        var copy = self
+        copy.adjustments = adjustments
         return copy
     }
 

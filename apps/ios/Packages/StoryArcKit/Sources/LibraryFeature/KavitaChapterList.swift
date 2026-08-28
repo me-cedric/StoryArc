@@ -190,7 +190,13 @@ struct KavitaChapterList: View {
         defer { fetching = nil }
 
         guard let fetched = try? await client.chapter(chapter.id),
-              let file = kavitaCacheFile(chapterId: chapter.id, mediaType: fetched.mediaType)
+              let file = kavitaCacheFile(
+                  chapterId: chapter.id,
+                  mediaType: fetched.mediaType,
+                  // The series, so the indexer reads it back out. Kavita's own chapter
+                  // number after it, which is what tells one cached file from the next.
+                  named: "\(series.name) \(chapter.number)"
+              )
         else { return }
         guard (try? fetched.bytes.write(to: file, options: .atomic)) != nil,
               let publication = try? await PublicationIndexer.index(
@@ -211,8 +217,17 @@ struct KavitaChapterList: View {
 /// `kavita-server` serves comics and books from the same endpoint, and the reader the app
 /// opens is chosen by the file's format. Writing every chapter as `.cbz` sent an EPUB to the
 /// comic reader, which spun for ever on a file it could not page.
-func kavitaCacheFile(chapterId: Int, mediaType: String?) -> URL? {
-    let directory = URL.cachesDirectory.appending(path: "Kavita", directoryHint: .isDirectory)
+/// Where a chapter fetched from a server is kept while it is read.
+///
+/// The chapter's id is the *directory* and the name is the publication's own. It used to be
+/// the other way round, and `chapter-5.cbz` was then the only name anything downstream had:
+/// the indexer reads a series out of a filename, so every chapter of one series landed on a
+/// shelf of its own, and `comic-reader`'s "applies to the series" applied to one chapter.
+/// The id still makes the path unique; it no longer has to be the name as well.
+func kavitaCacheFile(chapterId: Int, mediaType: String?, named: String? = nil) -> URL? {
+    let directory = URL.cachesDirectory
+        .appending(path: "Kavita", directoryHint: .isDirectory)
+        .appending(path: String(chapterId), directoryHint: .isDirectory)
     guard (try? FileManager.default.createDirectory(
         at: directory,
         withIntermediateDirectories: true
@@ -220,5 +235,9 @@ func kavitaCacheFile(chapterId: Int, mediaType: String?) -> URL? {
 
     let format = mediaType.flatMap(PublicationFormat.init(mediaType:))
     let ext = format.map { String(describing: $0).lowercased() } ?? "cbz"
-    return directory.appending(path: "chapter-\(chapterId).\(ext)")
+    // A path separator in a server's title would make a directory rather than a name.
+    let stem = (named?.replacingOccurrences(of: "/", with: "-")).flatMap {
+        $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0
+    } ?? "chapter-\(chapterId)"
+    return directory.appending(path: "\(stem).\(ext)")
 }

@@ -154,7 +154,11 @@ struct KavitaListView: View {
 
         let client = KavitaClient(address: server.address)
         guard let fetched = try? await client.chapter(entry.chapterId),
-              let file = kavitaCacheFile(chapterId: entry.chapterId, mediaType: fetched.mediaType),
+              let file = kavitaCacheFile(
+                  chapterId: entry.chapterId,
+                  mediaType: fetched.mediaType,
+                  named: entry.seriesName.map { "\($0) \(entry.chapterId)" }
+              ),
               (try? fetched.bytes.write(to: file, options: .atomic)) != nil,
               let publication = try? await PublicationIndexer.index(
                   fileAt: file,

@@ -98,6 +98,7 @@ extension ReaderView {
             pageID: model.pages[index].path,
             label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
             fit: fit,
+            adjustments: adjustments,
             onTap: { location, size in handleTap(at: location, in: size) }
         )
     }
@@ -113,6 +114,7 @@ extension ReaderView {
             isUnavailable: model.isUnavailable(at: index),
             label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
             axis: axis,
+            adjustments: adjustments,
             onTap: { location, size in handleTap(at: location, in: size) }
         )
     }
