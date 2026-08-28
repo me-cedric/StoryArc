@@ -155,6 +155,17 @@ data class DownloadLibrary(val downloads: List<Download> = emptyList()) {
      * -- the same convention [SourceRegistry.moving] uses, and for the same reason: removing
      * first and inserting after lands one place early on every downward drag.
      */
+    /**
+     * Puts back every running download that nothing is actually carrying.
+     *
+     * [carried] is what is genuinely in flight: the platform's own list of transfers, plus
+     * whatever this process started. A download outside it waits for a completion that will
+     * never arrive, and it holds a concurrency slot while it waits.
+     */
+    fun reclaiming(carried: Set<String>): DownloadLibrary =
+        downloads.filter { it.state == Download.State.Running && it.id !in carried }
+            .fold(this) { library, download -> library.marking(download.id, Download.State.Queued) }
+
     fun moving(id: String, destination: Int): DownloadLibrary {
         val from = downloads.indexOfFirst { it.id == id }
         if (from < 0) return this

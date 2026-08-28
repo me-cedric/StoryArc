@@ -46,7 +46,7 @@ public enum OpdsCredential: Sendable, Equatable {
     /// store follows: `sources` forbids a secret in "preferences, logs, crash reports,
     /// backups, or exported diagnostics", and a value held longer than the request is a
     /// value something else can read.
-    var header: String {
+    public var header: String {
         switch self {
         case let .basic(user, password):
             let pair = Data("\(user):\(password)".utf8).base64EncodedString()

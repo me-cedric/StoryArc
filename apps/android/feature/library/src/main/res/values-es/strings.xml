@@ -193,4 +193,9 @@
     <string name="smb_error_encryption">Este servidor requiere cifrado SMB 3, que StoryArc aún no admite. Configura el cifrado del servidor como activado en lugar de obligatorio.</string>
     <string name="downloads_undo">Deshacer</string>
     <string name="downloads_removed_after_finishing">«%1$s» eliminado de este dispositivo. Se conserva tu posición.</string>
+    <string name="downloads_channel">Descargas</string>
+    <plurals name="downloads_running">
+        <item quantity="one">Descargando una publicación</item>
+        <item quantity="other">Descargando %1$d publicaciones</item>
+    </plurals>
 </resources>

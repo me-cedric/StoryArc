@@ -11,4 +11,20 @@
          "on a metered connection" and treats Data Saver as metered, and this is the only
          way to know which kind of connection a reader is on. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- `offline-downloads`: a download continues while the app is off the screen. On
+         Android that means the process must survive, and a foreground service is the only
+         supported way to ask. `dataSync` is the type for a transfer the reader started. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- The notification the service is required to show. A reader may refuse it; the
+         download then runs unprotected rather than not at all. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <service
+            android:name="app.storyarc.feature.library.DownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+    </application>
 </manifest>

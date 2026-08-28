@@ -128,4 +128,30 @@ struct DownloadLibraryTests {
         #expect(library.pending.map(\.id) == ["b"])
         #expect(library.finished.map(\.id) == ["a"])
     }
+
+    @Test("A running download nobody is carrying goes back in the queue")
+    func reclaimsTheStranded() {
+        // A background transfer can finish with its caller gone, and the completion is
+        // then delivered to nobody. Without this, the download waits for ever and keeps a
+        // concurrency slot while it waits.
+        let library = DownloadLibrary()
+            .queueing(download("carried"))
+            .queueing(download("stranded"))
+            .marking("carried", as: .running)
+            .marking("stranded", as: .running)
+            .reclaiming(carriedBy: ["carried"])
+        #expect(library["carried"]?.state == .running)
+        #expect(library["stranded"]?.state == .queued)
+    }
+
+    @Test("Reclaiming leaves alone what is not running")
+    func reclaimingSparesTheRest() {
+        let library = DownloadLibrary()
+            .queueing(download("done"))
+            .queueing(download("waiting"))
+            .marking("done", as: .finished)
+            .reclaiming(carriedBy: [])
+        #expect(library["done"]?.state == .finished)
+        #expect(library["waiting"]?.state == .queued)
+    }
 }

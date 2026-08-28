@@ -157,6 +157,9 @@ ${series.map((name) => `  <link rel="subsection" href="/opds/all?series=${encode
 `
 }
 
+/// The publication the slow endpoint serves: any comic in the corpus will do.
+const slowFile = entries.find((entry) => entry.file.endsWith('.cbz'))?.file ?? entries[0]?.file
+
 function acquisitionFeed({ path, title, page, matching, query }) {
   const filtered = matching ? entries.filter(matching) : entries
   const start = page * PER_PAGE
@@ -187,6 +190,16 @@ ${page === 0 && !query && title === 'All publications' ? `  <entry>
     <author><name>Ada Lovelace</name></author>
     <summary>Fails twice with 503, then succeeds. For watching the retry.</summary>
     <link rel="http://opds-spec.org/acquisition" href="/flaky/retry.cbz"
+          type="application/vnd.comicbook+zip"/>
+  </entry>
+  <entry>
+    <id>urn:storyarc:slow</id>
+    <title>Slow Transfer</title>
+    <updated>${new Date(0).toISOString().replace(/\.\d+Z$/, 'Z')}</updated>
+    <author><name>Ada Lovelace</name></author>
+    <summary>Takes 45 seconds. For watching a download survive the app going away.</summary>
+    <link rel="http://opds-spec.org/acquisition"
+          href="/files/${encodeURIComponent(slowFile)}?slow=45"
           type="application/vnd.comicbook+zip"/>
   </entry>
 ` : ''}${shown.map((entry) => `  <entry>
@@ -372,7 +385,28 @@ const server = createServer((request, response) => {
     const name = decodeURIComponent(url.pathname.slice('/files/'.length))
     const entry = entries.find((each) => each.file === name)
     if (!entry) return send(404, 'text/plain', 'no such publication')
-    return send(200, entry.type, readFileSync(join(root, name)))
+    const body = readFileSync(join(root, name))
+    // `?slow=<seconds>` trickles the body out instead of sending it at once. A fixture
+    // corpus is small enough that every download finishes before the app can be
+    // backgrounded, which makes background transfer and pause both untestable. This
+    // makes a download last long enough to interrupt.
+    const slow = Number(url.searchParams.get('slow') ?? 0)
+    if (!slow) return send(200, entry.type, body)
+    response.writeHead(200, {
+      'Content-Type': entry.type,
+      'Content-Length': String(body.length),
+      'Cache-Control': 'no-store',
+    })
+    const chunks = 20
+    const size = Math.ceil(body.length / chunks)
+    let sent = 0
+    const tick = () => {
+      if (sent >= body.length) return response.end()
+      response.write(body.subarray(sent, sent + size))
+      sent += size
+      setTimeout(tick, (slow * 1000) / chunks)
+    }
+    return tick()
   }
 
   send(404, 'text/plain', 'no such route')

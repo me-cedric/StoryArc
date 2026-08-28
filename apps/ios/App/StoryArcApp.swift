@@ -383,6 +383,7 @@ struct StoryArcApp: App {
                 }
             }
         }
+        .continuingDownloadsInBackground()
     }
 }
 

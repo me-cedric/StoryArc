@@ -67,6 +67,17 @@ public struct DownloadLibrary: Sendable, Equatable {
     /// move — the same convention ``SourceRegistry/moving(_:to:)`` uses, and for the same
     /// reason: removing first and inserting after lands one place early on every downward
     /// drag.
+    /// Puts back every running download that nothing is actually carrying.
+    ///
+    /// `carried` is what is genuinely in flight — the platform's own list of transfers,
+    /// plus whatever this process started. A download outside it is waiting for a
+    /// completion that will never arrive, and it holds a concurrency slot while it waits.
+    public func reclaiming(carriedBy carried: Set<Download.ID>) -> DownloadLibrary {
+        downloads
+            .filter { $0.state == .running && !carried.contains($0.id) }
+            .reduce(self) { $0.marking($1.id, as: .queued) }
+    }
+
     public func moving(_ id: Download.ID, to destination: Int) -> DownloadLibrary {
         guard let from = downloads.firstIndex(where: { $0.id == id }) else { return self }
         var moved = downloads

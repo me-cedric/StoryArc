@@ -54,7 +54,12 @@ class DownloadQueue(
      */
     private val settings: () -> AppSettings = { AppSettings.Defaults },
 ) {
-    private val _library = MutableStateFlow(store?.library() ?: DownloadLibrary())
+    private val _library = MutableStateFlow(
+        // Nothing outside this process carries a transfer on Android, so a download the
+        // store calls running is one whose process died mid-flight. It goes back in the
+        // queue rather than waiting for a coroutine that no longer exists.
+        (store?.library() ?: DownloadLibrary()).reclaiming(emptySet()),
+    )
 
     /** What has been downloaded and what is on its way. */
     val library: StateFlow<DownloadLibrary> = _library.asStateFlow()
@@ -108,6 +113,7 @@ class DownloadQueue(
     /** Stops a download and forgets it, deleting whatever arrived. */
     fun cancel(id: String) {
         running.remove(id)?.cancel()
+        follow()
         remove(id)
         finish(id, null)
         pump()
@@ -116,6 +122,7 @@ class DownloadQueue(
     /** Holds a download where it is. The reader asked, so the reason says so. */
     fun pause(id: String) {
         running.remove(id)?.cancel()
+        follow()
         _library.value = _library.value.marking(id, Download.State.Paused(Download.Pause.BY_READER))
         store?.save(_library.value)
         finish(id, null)
@@ -201,20 +208,32 @@ class DownloadQueue(
         if (held() != null) return
         val ready = _library.value.downloads.filter { it.state == Download.State.Queued }
         ready.take(maxOf(0, concurrency - running.size)).forEach { download ->
-            // Enqueued by a previous launch, so nothing here knows what it was. Left queued
-            // rather than failed: the reader can tap it again from the catalogue and the
-            // record is already correct.
-            val entry = entries[download.id] ?: return@forEach
+            // No catalogue entry is needed to fetch one: the record carries the address, the
+            // media type and the name. An entry enqueued by a previous launch is gone from
+            // `entries`, and a download that only resumes while the app that started it is
+            // still alive is not the offline promise `offline-downloads` makes.
+            val seriesHint = entries[download.id]?.series
             _library.value = _library.value.marking(download.id, Download.State.Running)
-            running[download.id] = scope.launch { transfer(download, entry) }
+            running[download.id] = scope.launch { transfer(download, seriesHint) }
         }
+        follow()
     }
 
-    private suspend fun transfer(download: Download, entry: OpdsEntry) {
+    /**
+     * Tells the platform how much work there is, so the process survives long enough to do it.
+     *
+     * Called wherever [running] changes. `offline-downloads` asks for a backgrounded download
+     * to continue as far as the platform allows, and on Android that is exactly as far as the
+     * process lives.
+     */
+    private fun follow() = DownloadService.follow(context, running.size)
+
+    private suspend fun transfer(download: Download, seriesHint: String?) {
         while (true) {
-            val file = attempt(download, entry)
+            val file = attempt(download, seriesHint)
             if (file != null) {
                 running.remove(download.id)
+                follow()
                 finish(download.id, file)
                 pump()
                 return
@@ -226,12 +245,13 @@ class DownloadQueue(
             _library.value = _library.value.marking(download.id, Download.State.Running)
         }
         running.remove(download.id)
+        follow()
         finish(download.id, null)
         pump()
     }
 
     /** One attempt, with no opinion about whether there will be another. */
-    private suspend fun attempt(download: Download, entry: OpdsEntry): File? = try {
+    private suspend fun attempt(download: Download, seriesHint: String?): File? = try {
         val bytes = client.bytes(download.remote, credential(download.id))
         val store = store ?: throw IOException("no download store")
         val file = withContext(Dispatchers.IO) {
@@ -241,7 +261,7 @@ class DownloadQueue(
         // Indexing *is* the verification. `offline-downloads` requires integrity to be
         // checked "before it is marked available offline", and with no checksum from the
         // server the honest check is whether the bytes are a publication this app can open.
-        PublicationIndexer.index(file, entry.series)
+        PublicationIndexer.index(file, seriesHint)
         _library.value = _library.value
             .advancing(download.id, bytes.size.toLong(), bytes.size.toLong())
             .marking(download.id, Download.State.Finished)

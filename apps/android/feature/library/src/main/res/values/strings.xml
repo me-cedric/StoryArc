@@ -193,4 +193,9 @@
     <string name="smb_error_encryption">This server requires SMB 3 encryption, which StoryArc cannot do yet. Set encryption on the server to enabled rather than required.</string>
     <string name="downloads_undo">Undo</string>
     <string name="downloads_removed_after_finishing">“%1$s” removed from this device. Your place is kept.</string>
+    <string name="downloads_channel">Downloads</string>
+    <plurals name="downloads_running">
+        <item quantity="one">Downloading one publication</item>
+        <item quantity="other">Downloading %1$d publications</item>
+    </plurals>
 </resources>

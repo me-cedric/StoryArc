@@ -66,7 +66,7 @@ public struct UntrustedCertificate: Sendable, Equatable {
 ///
 /// Split from the client so the rule can be read on its own. The rule is: the system
 /// decides, and the reader can overrule it only for one certificate they have seen.
-final class OpdsTrustDelegate: NSObject, URLSessionDelegate, Sendable {
+public final class OpdsTrustDelegate: NSObject, URLSessionDelegate, Sendable {
     private let pins: CertificatePins
 
     /// The last certificate refused, so the caller can offer to pin it.
@@ -76,7 +76,7 @@ final class OpdsTrustDelegate: NSObject, URLSessionDelegate, Sendable {
     /// and the throw happens somewhere else entirely.
     private let refused: Mutex<UntrustedCertificate?> = Mutex(nil)
 
-    init(pins: CertificatePins) {
+    public init(pins: CertificatePins) {
         self.pins = pins
     }
 
@@ -88,7 +88,7 @@ final class OpdsTrustDelegate: NSObject, URLSessionDelegate, Sendable {
         }
     }
 
-    func urlSession(
+    public func urlSession(
         _ session: URLSession,
         didReceive challenge: URLAuthenticationChallenge
     ) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {

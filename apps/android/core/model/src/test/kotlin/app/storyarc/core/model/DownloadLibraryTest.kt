@@ -114,4 +114,28 @@ class DownloadLibraryTest {
         assertEquals(listOf("b"), library.pending.map { it.id })
         assertEquals(listOf("a"), library.finished.map { it.id })
     }
+
+    @Test
+    fun aRunningDownloadNobodyCarriesGoesBackInTheQueue() {
+        // A background transfer can finish with its caller gone, and the completion is then
+        // delivered to nobody. Without this, the download waits for ever and keeps a
+        // concurrency slot while it waits.
+        val library = DownloadLibrary()
+            .queueing(download("carried")).queueing(download("stranded"))
+            .marking("carried", Download.State.Running)
+            .marking("stranded", Download.State.Running)
+            .reclaiming(setOf("carried"))
+        assertEquals(Download.State.Running, library["carried"]?.state)
+        assertEquals(Download.State.Queued, library["stranded"]?.state)
+    }
+
+    @Test
+    fun reclaimingLeavesAloneWhatIsNotRunning() {
+        val library = DownloadLibrary()
+            .queueing(download("done")).queueing(download("waiting"))
+            .marking("done", Download.State.Finished)
+            .reclaiming(emptySet())
+        assertEquals(Download.State.Finished, library["done"]?.state)
+        assertEquals(Download.State.Queued, library["waiting"]?.state)
+    }
 }

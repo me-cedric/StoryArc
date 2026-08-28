@@ -12,6 +12,7 @@ public import StoryArcCore
 /// added" beside its sections — and a screen that showed one and hid the other would make
 /// half of every catalogue unreachable.
 public struct CatalogueBrowserView: View {
+    @Environment(\.scenePhase) private var phase
     @Environment(\.theme) private var theme
 
     /// Created here, once, from the values that describe the page.
@@ -137,6 +138,13 @@ public struct CatalogueBrowserView: View {
             }
         }
         .task { await browser.load() }
+        // Coming back is when a lost transfer becomes visible: the system's list of tasks
+        // is the only thing that knows whether a download the queue calls running is one
+        // anybody is still carrying.
+        .onChange(of: phase) { _, now in
+            guard now == .active else { return }
+            Task { await queue.reclaim() }
+        }
     }
 
     /// The formats besides the one a tap would take.

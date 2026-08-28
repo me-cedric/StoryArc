@@ -49,11 +49,41 @@ public final class DownloadQueue {
     ) {
         self.settings = settings
         client = OpdsClient(pins: pins)
+        transfers = BackgroundTransfers.shared(pins: pins)
         self.store = store
         self.credential = credential
         library = store?.library() ?? DownloadLibrary()
         // Anything that was mid-flight when the app died comes back queued, so the pump
         // picks it up rather than leaving it stuck at "in progress" for ever.
+        pump()
+        transfers.onOrphan { [weak self] name, file in
+            Task { @MainActor in await self?.adopt(name, from: file) }
+        }
+        Task { await reclaim() }
+    }
+
+    /// Puts back anything the queue believes is running and nothing is.
+    ///
+    /// A completion can go missing — the process is killed, the transfer daemon drops the
+    /// connection — and the download is then waiting on a callback that will never come,
+    /// holding a concurrency slot for ever. The system's own list of tasks is the authority
+    /// on what is actually in flight.
+    public func reclaim() async {
+        let carried = await transfers.outstanding().union(running.keys)
+        library = library.reclaiming(carriedBy: carried)
+        pump()
+    }
+
+    /// Takes in a transfer that finished with nothing waiting for it.
+    private func adopt(_ id: Download.ID, from temporary: URL) async {
+        guard let download = library[id],
+              let file = try? await land(download, from: temporary)
+        else {
+            try? FileManager.default.removeItem(at: temporary)
+            return
+        }
+        running[id] = nil
+        finish(id, with: file)
         pump()
     }
 
@@ -66,6 +96,12 @@ public final class DownloadQueue {
     public var concurrency: Int { network.isCareful ? 1 : 2 }
 
     private let settings: () -> AppSettings
+
+    /// Where the bytes actually come from, so a backgrounded app keeps downloading.
+    private let transfers: BackgroundTransfers
+
+    /// Handed to the app so it can give the system its completion handler back.
+    public var backgroundEvents: BackgroundTransfers { transfers }
 
     /// What is stopping the queue.
     public enum Held: Sendable, Equatable {
@@ -186,33 +222,26 @@ public final class DownloadQueue {
         guard held == nil else { return }
         let ready = library.downloads.filter { $0.state == .queued }
         for download in ready.prefix(max(0, concurrency - running.count)) {
-            guard let entry = titles[download.id] else {
-                // Enqueued by a previous launch, so nothing here knows what it was. Left
-                // queued rather than failed: the reader can tap it again from the catalogue
-                // and the record is already correct.
-                continue
-            }
-            start(download, entry: entry)
+            // No catalogue entry is needed to fetch one: the record carries the address, the
+            // media type and the name. An entry enqueued by a previous launch is gone from
+            // `titles`, and a download that only resumes while the app that started it is
+            // still alive is not the offline promise `offline-downloads` makes.
+            start(download, seriesHint: titles[download.id]?.series)
         }
     }
 
-    private func start(_ download: Download, entry: OpdsEntry) {
+    private func start(_ download: Download, seriesHint: String?) {
         library = library.marking(download.id, as: .running)
         running[download.id] = Task { [weak self] in
-            await self?.transfer(download, entry: entry)
+            await self?.transfer(download, seriesHint: seriesHint)
         }
     }
 
-    private func transfer(_ download: Download, entry: OpdsEntry) async {
-        let acquisition = OpdsAcquisition(
-            href: download.remote,
-            mediaType: download.mediaType,
-            kind: .direct
-        )
+    private func transfer(_ download: Download, seriesHint: String?) async {
         var attempt = 0
         while !Task.isCancelled {
             attempt += 1
-            if let file = await one(download, entry: entry, acquisition: acquisition) {
+            if let file = await one(download, seriesHint: seriesHint) {
                 running[download.id] = nil
                 finish(download.id, with: file)
                 pump()
@@ -231,31 +260,18 @@ public final class DownloadQueue {
     /// One attempt, with no opinion about whether there will be another.
     private func one(
         _ download: Download,
-        entry: OpdsEntry,
-        acquisition: OpdsAcquisition
+        seriesHint: String?
     ) async -> URL? {
         do {
-            let data = try await client.data(
-                at: download.remote,
-                credential: credential(download.id)
-            )
-            guard let store else { return nil }
-            try store.prepare()
-            let file = store.location(
-                for: download.id,
-                extension: DownloadStore.extension(for: download.mediaType)
-            )
-            try data.write(to: file, options: .atomic)
-            // Indexing *is* the verification. `offline-downloads` requires integrity to be
-            // checked "before it is marked available offline", and with no checksum from
-            // the server the honest check is whether the bytes are a publication this app
-            // can open. A truncated archive fails here, not at the first page turn.
-            _ = try await PublicationIndexer.index(fileAt: file, seriesHint: entry.series)
-            library = library
-                .advancing(download.id, downloaded: Int64(data.count), expected: Int64(data.count))
-                .marking(download.id, as: .finished)
-            store.save(library)
-            return file
+            // Through the background session rather than an ordinary request:
+            // `offline-downloads` wants a backgrounded transfer to continue "as far as the
+            // platform allows", and on iOS that is what allows it.
+            var request = URLRequest(url: download.remote)
+            if let credential = credential(download.id) {
+                request.setValue(credential.header, forHTTPHeaderField: "Authorization")
+            }
+            let temporary = try await transfers.download(request, named: download.id)
+            return try await land(download, from: temporary, seriesHint: seriesHint)
         } catch let error as PublicationIndexer.IndexError {
             // Not retryable. Fetching the same bytes again produces the same format.
             let message = if case let .unsupported(format) = error {
@@ -273,6 +289,38 @@ public final class DownloadQueue {
             fail(download.id, reason: CatalogueMessages.reachability(error))
         }
         return nil
+    }
+
+    /// Moves a finished transfer into the download store and records it.
+    ///
+    /// Shared by the ordinary path and by adoption: a transfer that outlived the caller
+    /// that asked for it has to end up in exactly the state one that did not would.
+    private func land(
+        _ download: Download,
+        from temporary: URL,
+        seriesHint: String? = nil
+    ) async throws -> URL {
+        guard let store else { throw CocoaError(.fileNoSuchFile) }
+        try store.prepare()
+        let file = store.location(
+            for: download.id,
+            extension: DownloadStore.extension(for: download.mediaType)
+        )
+        try? FileManager.default.removeItem(at: file)
+        try FileManager.default.moveItem(at: temporary, to: file)
+        // Indexing *is* the verification. `offline-downloads` requires integrity to be
+        // checked "before it is marked available offline", and with no checksum from the
+        // server the honest check is whether the bytes are a publication this app can
+        // open. A truncated archive fails here, not at the first page turn.
+        _ = try await PublicationIndexer.index(fileAt: file, seriesHint: seriesHint)
+        // The size comes from the file now rather than from a buffer, because the bytes
+        // never passed through one: the system wrote them straight to disk.
+        let written = Int64((try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        library = library
+            .advancing(download.id, downloaded: written, expected: written)
+            .marking(download.id, as: .finished)
+        store.save(library)
+        return file
     }
 
     private func fail(_ id: Download.ID, reason: String, retryable: Bool = true) {
