@@ -250,6 +250,11 @@ public final class LibraryModel {
 
     /// Forgets everything. Used when a folder is removed, and by previews.
     public func reset() {
+        // Before the cancel, not after: cancelling writes down where a scan got to, and a
+        // reset is the one moment there is nothing worth picking up.
+        scanningFolder = nil
+        scanned = []
+        snapshots = [:]
         cancelScan()
         publications = []
         visible = []
