@@ -2,7 +2,9 @@ package app.storyarc.feature.epubreader
 
 import android.app.Application
 import android.net.Uri
+import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.Bookmark
+import app.storyarc.core.model.HighlightColour
 import app.storyarc.core.model.Excerpt
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.SearchSnippet
@@ -25,6 +27,7 @@ import app.storyarc.core.model.setting
 import app.storyarc.core.model.values
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.BookmarkStore
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ReaderPreferences
@@ -81,6 +84,8 @@ class EpubReaderViewModel(
     private val themeStore: ReaderPreferences? = null,
     /** Where the marks a reader makes live between sessions. Null in a test. */
     private val bookmarkStore: BookmarkStore? = null,
+    /** Where the highlights and notes a reader makes live between sessions. Null in a test. */
+    private val annotationStore: AnnotationStore? = null,
     /** What shelf this book sits on. Null for a standalone book. */
     series: String? = null,
     /**
@@ -636,6 +641,49 @@ class EpubReaderViewModel(
 
     /** Taken once. The control goes away when it has done what it offers. */
     fun takeReturnPoint(): String? = _returnPoint.value.also { _returnPoint.value = null }
+
+    private val _annotations = MutableStateFlow(
+        annotationStore?.annotations(identity.stableId).orEmpty(),
+    )
+
+    /** Every highlight and note in this publication, in book order. */
+    val annotations: StateFlow<List<Annotation>> = _annotations.asStateFlow()
+
+    /**
+     * Marks a selection, or adds another mark beside it.
+     *
+     * The words come from the selection rather than from the resource: this is the one place
+     * the renderer knows exactly what the reader meant, down to the character.
+     */
+    fun highlight(locator: Locator, colour: HighlightColour): Annotation? {
+        val store = annotationStore ?: return null
+        val text = locator.text.highlight?.trim().orEmpty()
+        if (text.isEmpty()) return null
+
+        val mark = Annotation(
+            id = UUID.randomUUID().toString(),
+            locator = locator.toJSON().toString(),
+            resource = locator.href.removeFragment().toString(),
+            progression = totalProgressionOf(locator),
+            chapter = locator.title ?: _chapterTitle.value.orEmpty(),
+            text = text,
+            colour = colour,
+            createdAtEpochMillis = System.currentTimeMillis(),
+        )
+        _annotations.value = store.save(mark, identity.stableId)
+        return mark
+    }
+
+    /** Writes on a mark, or replaces what was written. */
+    fun annotate(mark: Annotation, note: String) {
+        val store = annotationStore ?: return
+        _annotations.value = store.save(mark.copy(note = note), identity.stableId)
+    }
+
+    fun removeAnnotation(id: String) {
+        val store = annotationStore ?: return
+        _annotations.value = store.remove(id, identity.stableId)
+    }
 
     /** Forgets one mark, which is what its row in the list offers. */
     fun removeBookmark(id: String) {

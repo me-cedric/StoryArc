@@ -85,4 +85,18 @@
     <string name="epub_search_none">Aucun résultat pour « %1$s ».</string>
     <string name="epub_return">Revenir où vous étiez</string>
     <string name="theme_axis_hyphenation">Césure</string>
+    <string name="annotations_title">Notes</string>
+    <string name="annotations_empty">Rien de marqué. Sélectionnez un mot ou un passage et un menu propose une couleur.</string>
+    <string name="annotations_note">Note</string>
+    <string name="annotations_copy">Copier</string>
+    <string name="annotations_remove">Supprimer</string>
+    <string name="annotations_save">Enregistrer</string>
+    <string name="annotations_cancel">Annuler</string>
+    <string name="annotations_export_text">Partager en texte</string>
+    <string name="annotations_export_markdown">Partager en Markdown</string>
+    <string name="annotations_colour_yellow">Jaune</string>
+    <string name="annotations_colour_green">Vert</string>
+    <string name="annotations_colour_blue">Bleu</string>
+    <string name="annotations_colour_pink">Rose</string>
+    <string name="annotations_colour_purple">Violet</string>
 </resources>

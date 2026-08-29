@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
+import kotlinx.coroutines.flow.MutableStateFlow
+import org.readium.r2.navigator.Decoration
 import org.readium.r2.navigator.HyperlinkNavigator
 import org.readium.r2.shared.util.AbsoluteUrl
 import androidx.fragment.app.FragmentContainerView
@@ -33,6 +35,10 @@ import androidx.fragment.app.commitNow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import app.storyarc.core.model.AppearanceMode
+import androidx.compose.ui.graphics.toArgb
+import app.storyarc.core.model.Annotation
+import app.storyarc.core.model.HighlightColour
+import app.storyarc.core.model.AnnotationExport
 import app.storyarc.core.model.Bookmark
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.PageTransition
@@ -42,6 +48,7 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.SettingsStore
 import app.storyarc.core.model.presetMatching
 import app.storyarc.core.designsystem.theme.resolved
+import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.BookmarkStore
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ReaderPreferences
@@ -165,6 +172,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             progress = ProgressStore.open(applicationContext),
             themeStore = ReaderPreferences.open(applicationContext),
             bookmarkStore = BookmarkStore.open(applicationContext),
+            annotationStore = AnnotationStore.open(applicationContext),
             series = intent.getStringExtra(EXTRA_SERIES),
             // Resolved here, because "System" is a question about the device and only
             // something holding a `Context` can answer it. Null when the reader has not
@@ -229,6 +237,13 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     val isSearching by model.isSearching.collectAsStateWithLifecycle()
                     val note by model.note.collectAsStateWithLifecycle()
                     val returnPoint by model.returnPoint.collectAsStateWithLifecycle()
+                    val annotations by model.annotations.collectAsStateWithLifecycle()
+                    val writing by writingNote.collectAsStateWithLifecycle()
+                    var editingNote by remember { mutableStateOf<Annotation?>(null) }
+                    // Either route into the editor: the selection bar's "Note", which
+                    // highlights first and lands here, or a row's own pencil. Named apart
+                    // from `note` above, which is the footnote a reader tapped.
+                    val writtenOn = writing ?: editingNote
                     var isShowingTheme by remember { mutableStateOf(false) }
                     var isShowingContents by remember { mutableStateOf(false) }
 
@@ -271,6 +286,21 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                         }
                     }
 
+                    writtenOn?.let { mark ->
+                        NoteDialog(
+                            initial = mark.note,
+                            onSave = { text ->
+                                model.annotate(mark, text)
+                                writingNote.value = null
+                                editingNote = null
+                            },
+                            onDismiss = {
+                                writingNote.value = null
+                                editingNote = null
+                            },
+                        )
+                    }
+
                     if (isShowingContents) {
                         ContentsBottomSheet(
                             entries = contents.orEmpty(),
@@ -283,6 +313,14 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                                 go(match)
                                 isShowingContents = false
                             },
+                            annotations = annotations,
+                            onGoToAnnotation = { mark ->
+                                go(mark)
+                                isShowingContents = false
+                            },
+                            onEditAnnotation = { editingNote = it },
+                            onRemoveAnnotation = { model.removeAnnotation(it.id) },
+                            onExportAnnotations = { format -> share(annotations, format) },
                             onGo = { link ->
                                 go(link)
                                 isShowingContents = false
@@ -361,7 +399,15 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             initialLocator = model.initialLocator(),
             // Without these a preference naming a bundled family resolves to nothing
             // and the page falls back silently.
-            configuration = EpubNavigatorFragment.Configuration { declareBundledFonts() },
+            configuration = EpubNavigatorFragment.Configuration {
+                declareBundledFonts()
+                // `ebook-reader`'s selection actions, in the bar Android puts them in.
+                selectionActionModeCallback = SelectionActions(
+                    onHighlight = { colour -> markSelection(colour) },
+                    onNote = { markSelection(HighlightColour.YELLOW, thenWrite = true) },
+                    onSearch = { searchSelection() },
+                )
+            },
         )
 
         // Replace rather than add: on a process restore the dummy fragment is
@@ -388,6 +434,9 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         )
 
         model.follow(navigator.currentLocator)
+        // Painted once the navigator exists: a decoration applied before it is on
+        // screen is a decoration Readium has nowhere to put.
+        lifecycleScope.launch { drawAnnotations() }
         applyTheme()
     }
 
@@ -432,6 +481,100 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      */
     @OptIn(ExperimentalReadiumApi::class)
     private fun go(bookmark: Bookmark) = goToLocator(bookmark.locator)
+
+    /** A mark the reader is writing on, or null. Held here because the bar cannot hold it. */
+    private val writingNote = MutableStateFlow<Annotation?>(null)
+
+    /**
+     * Marks what is selected, and paints it.
+     *
+     * The selection is asked for rather than passed in: Readium reports it through a
+     * suspending call on the navigator, and the action bar's callback cannot wait.
+     */
+    @OptIn(ExperimentalReadiumApi::class)
+    private fun markSelection(colour: HighlightColour, thenWrite: Boolean = false) {
+        val navigator =
+            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
+                ?: return
+        lifecycleScope.launch {
+            val selection = navigator.currentSelection() ?: return@launch
+            val mark = model.highlight(selection.locator, colour) ?: return@launch
+            navigator.clearSelection()
+            drawAnnotations()
+            if (thenWrite) writingNote.value = mark
+        }
+    }
+
+    /** Searches for what is selected, which `ebook-reader` offers beside the colours. */
+    @OptIn(ExperimentalReadiumApi::class)
+    private fun searchSelection() {
+        val navigator =
+            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
+                ?: return
+        lifecycleScope.launch {
+            val words = navigator.currentSelection()?.locator?.text?.highlight ?: return@launch
+            navigator.clearSelection()
+            model.search(words)
+        }
+    }
+
+    /**
+     * Paints every mark this publication holds back onto the page.
+     *
+     * Declared wholesale rather than one at a time: Readium diffs the group against what it
+     * is already showing and decides what to redraw, which is cheaper than guessing here.
+     */
+    @OptIn(ExperimentalReadiumApi::class)
+    private suspend fun drawAnnotations() {
+        val navigator =
+            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
+                ?: return
+        navigator.applyDecorations(
+            model.annotations.value.mapNotNull { mark ->
+                val locator = runCatching { Locator.fromJSON(JSONObject(mark.locator)) }
+                    .getOrNull() ?: return@mapNotNull null
+                Decoration(
+                    id = mark.id,
+                    locator = locator,
+                    style = Decoration.Style.Highlight(
+                        tint = mark.colour.swatch.toArgb(),
+                        isActive = false,
+                    ),
+                )
+            },
+            // Its own group so a future one — a search hit, a spoken sentence — can be
+            // applied and withdrawn without touching what the reader made.
+            "annotations",
+        )
+    }
+
+    /** Goes to a mark. The same journey a bookmark takes, from the same kind of record. */
+    @OptIn(ExperimentalReadiumApi::class)
+    private fun go(annotation: Annotation) = goToLocator(annotation.locator)
+
+    /**
+     * Hands the marks to whatever the reader wants to put them in.
+     *
+     * The platform's own share sheet rather than a file this app writes: `ebook-reader` asks
+     * for them to be "exportable", and where they go is the reader's business.
+     */
+    private fun share(annotations: List<Annotation>, format: AnnotationExport.Format) {
+        val document = AnnotationExport.document(
+            annotations,
+            title = intent.getStringExtra(EXTRA_TITLE).orEmpty(),
+            format = format,
+        )
+        if (document.isBlank()) return
+        startActivity(
+            Intent.createChooser(
+                Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, document)
+                },
+                null,
+            ),
+        )
+    }
 
     /** Goes to a search hit. The same journey a bookmark takes, from the same kind of record. */
     @OptIn(ExperimentalReadiumApi::class)
@@ -520,11 +663,16 @@ private fun ContentsBottomSheet(
     bookmarks: List<Bookmark>,
     matches: List<SearchMatch>,
     isSearching: Boolean,
+    annotations: List<Annotation>,
     onGo: (Link) -> Unit,
     onGoToBookmark: (Bookmark) -> Unit,
     onRemoveBookmark: (Bookmark) -> Unit,
     onSearch: (String) -> Unit,
     onGoToMatch: (SearchMatch) -> Unit,
+    onGoToAnnotation: (Annotation) -> Unit,
+    onEditAnnotation: (Annotation) -> Unit,
+    onRemoveAnnotation: (Annotation) -> Unit,
+    onExportAnnotations: (AnnotationExport.Format) -> Unit,
     onDismiss: () -> Unit,
 ) {
     // `ebook-reader` puts bookmarks "alongside the table of contents", and searching inside
@@ -535,7 +683,12 @@ private fun ContentsBottomSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         PrimaryTabRow(selectedTabIndex = tab) {
-            listOf(R.string.epub_contents, R.string.epub_bookmarks, R.string.epub_search)
+            listOf(
+                R.string.epub_contents,
+                R.string.epub_bookmarks,
+                R.string.epub_search,
+                R.string.annotations_title,
+            )
                 .forEachIndexed { index, label ->
                     Tab(
                         selected = tab == index,
@@ -556,6 +709,13 @@ private fun ContentsBottomSheet(
                 isSearching = isSearching,
                 onSearch = onSearch,
                 onGo = onGoToMatch,
+            )
+            3 -> Annotations(
+                annotations = annotations,
+                onGo = onGoToAnnotation,
+                onEdit = onEditAnnotation,
+                onRemove = onRemoveAnnotation,
+                onExport = onExportAnnotations,
             )
             else -> TableOfContents(
                 entries = entries,
