@@ -150,6 +150,14 @@ public struct ReaderView: View {
     /// reader now, and a store of page numbers outlives the pages it describes.
     @State var uncropped: Set<Int> = []
 
+    /// Whether the reader is holding the device at one way up.
+    ///
+    /// Held for the session rather than stored, like the exemptions above: `comic-reader`
+    /// scopes the lock to "the reader only" and asks nothing about it surviving the book
+    /// being closed, and a reader who has just put the phone down flat is answering about
+    /// now rather than about every book they will ever open.
+    @State var isOrientationLocked = false
+
     public var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -256,7 +264,16 @@ public struct ReaderView: View {
         // and normal locking resumes on leaving". A long look at one page is
         // reading, not idling.
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
+            // However the reader left — the close button, the end screen, a swipe — the
+            // rest of the app follows the device again, which is the other half of what
+            // `comic-reader` asks of the lock.
+            ReaderOrientation.release()
+        }
+        .onChange(of: isOrientationLocked) { _, isLocked in
+            if isLocked { ReaderOrientation.hold() } else { ReaderOrientation.release() }
+        }
         #endif
     }
 
@@ -299,12 +316,26 @@ public struct ReaderView: View {
             // And once, the other way, when the publication opens on a page that is
             // not the first — a ComicInfo cover, or a resumed position later.
             .onAppear { displayIndex = displayIndex(forModel: model.currentIndex) }
+            // `comic-reader`: a direction change "applies immediately without losing the
+            // current page". The run the pager lays out reverses under the reader, so the
+            // position holding the page they are on moves to the other end of it. Asked
+            // again here, or turning a manga around would leave them the same distance
+            // from the other cover.
+            //
+            // Not animated, because this is not a turn: the page in front of the reader
+            // does not change, only where the pager keeps it, and animating that would
+            // fling across the publication to arrive back where it started.
+            .onChange(of: model.readingDirection) { _, _ in
+                var instant = Transaction()
+                instant.disablesAnimations = true
+                withTransaction(instant) {
+                    displayIndex = displayIndex(forModel: model.currentIndex)
+                }
+            }
             .accessibilityLabel(
                 isRightToLeft ? Text("reader.rightToLeft", bundle: .module) : Text(verbatim: "")
             )
     }
-
-    private var isRightToLeft: Bool { model.readingDirection == .rightToLeft }
 
     /// What a tap means, by where it landed.
     ///
@@ -340,32 +371,6 @@ public struct ReaderView: View {
         withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .default) {
             displayIndex = next
         }
-    }
-
-    /// Display positions, in the order the pager lays them out.
-    var displayOrder: [Int] { Array(model.pages.indices) }
-
-    /// A display position turned back into the publication's own page number.
-    ///
-    /// The only place the reversal lives. Everything above and below this line
-    /// counts pages the way the file does.
-    func modelIndex(forDisplay displayIndex: Int) -> Int {
-        isRightToLeft ? model.pages.count - 1 - displayIndex : displayIndex
-    }
-
-    func displayIndex(forModel index: Int) -> Int {
-        isRightToLeft ? model.pages.count - 1 - index : index
-    }
-
-    var pageSlider: Binding<Double> {
-        Binding(
-            get: { Double(model.currentIndex) },
-            set: { new in
-                let index = Int(new.rounded())
-                guard model.pages.indices.contains(index) else { return }
-                displayIndex = displayIndex(forModel: index)
-            }
-        )
     }
 
     /// Restarts the auto-hide countdown whenever either of these changes.

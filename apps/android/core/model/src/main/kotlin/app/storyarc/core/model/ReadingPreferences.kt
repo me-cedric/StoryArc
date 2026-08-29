@@ -33,6 +33,18 @@ enum class ReadingDirection {
     RIGHT_TO_LEFT,
     ;
 
+    /**
+     * Where a page sits in the run the reader swipes through.
+     *
+     * The page's own number left-to-right, and the mirror of it right-to-left, where
+     * the first page is at the far end. Its own inverse, so the one function answers
+     * both "which page is at this position" and "which position holds this page" —
+     * which is what makes `comic-reader`'s "applies immediately without losing the
+     * current page" a single expression when the direction changes under the reader.
+     */
+    fun position(index: Int, count: Int): Int =
+        if (this == RIGHT_TO_LEFT) count - 1 - index else index
+
     companion object {
         /**
          * `publication-formats`: an explicit declaration wins; otherwise

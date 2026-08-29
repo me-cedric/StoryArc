@@ -276,3 +276,17 @@ extension TransitionUnavailability {
         }
     }
 }
+
+extension ReadingDirection {
+    /// Which way the pages run, named the way a reader would say it.
+    ///
+    /// Right-to-left reuses the sentence VoiceOver already reads out on entering a
+    /// manga, because it is the same fact and a second wording of it would be one to
+    /// keep in step for nothing.
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .leftToRight: "reader.leftToRight"
+        case .rightToLeft: "reader.rightToLeft"
+        }
+    }
+}

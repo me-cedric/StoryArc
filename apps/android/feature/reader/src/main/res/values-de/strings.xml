@@ -6,6 +6,10 @@
     <string name="reader_page_slider">Seitenregler</string>
     <string name="reader_page_unavailable">Diese Seite konnte nicht gelesen werden</string>
     <string name="reader_right_to_left">Von rechts nach links</string>
+    <string name="reader_left_to_right">Von links nach rechts</string>
+    <string name="reader_direction">Leserichtung</string>
+    <string name="reader_orientation_lock">Drehung sperren</string>
+    <string name="reader_orientation_unlock">Drehung entsperren</string>
     <string name="reader_end_finished">Gelesen</string>
     <string name="reader_end_next">Weiter: %1$s</string>
     <string name="reader_end_back">Zurück zur letzten Seite</string>

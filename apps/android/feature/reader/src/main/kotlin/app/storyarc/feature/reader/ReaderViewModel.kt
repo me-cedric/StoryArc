@@ -169,6 +169,11 @@ class ReaderViewModel(
         update(_settings.value.copy(scrollAxis = axis, transition = scrollAlong(axis)))
     }
 
+    /** Reads this shelf the other way round, from now on. */
+    fun choose(direction: ReadingDirection) {
+        update(_settings.value.copy(readingDirection = direction))
+    }
+
     /**
      * Changes what is done to a page before it is shown, for this shelf.
      *
@@ -253,11 +258,19 @@ class ReaderViewModel(
     /**
      * The direction the reader turns pages in.
      *
-     * From the publication, which took it from `ComicInfo` or the language. The
-     * reader never guesses it separately — a manga that opens left-to-right on one
-     * screen and right-to-left on another is worse than either.
+     * The publication's own — from `ComicInfo` or the language — until the reader
+     * overrules it. `comic-reader` lets them, because metadata is often wrong about this
+     * and a manga tagged left-to-right is unreadable; the override is "remembered for the
+     * series", so it is kept where every other per-series decision is kept rather than
+     * against this one file.
+     *
+     * Takes the settings rather than reading them, exactly as [transitions] does: the
+     * screen already collects that flow, and a `.value` read inside a composition is a
+     * snapshot nothing recomposes on — the reader would have to leave and come back to
+     * see the pages turn the other way.
      */
-    val readingDirection: ReadingDirection get() = publication.readingDirection
+    fun readingDirection(settings: ShelfSettings): ReadingDirection =
+        settings.readingDirection ?: publication.readingDirection
 
     /** Where to open. A ComicInfo cover that is not page one starts there. */
     var initialIndex: Int = 0

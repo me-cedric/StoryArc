@@ -81,6 +81,17 @@ extension ReaderView {
             VStack(spacing: StoryArcSpace.sm) {
                 transitionPicker
 
+                // Down here with the other choices about how this publication is laid
+                // out, not up in the top row, which is already the way out of the reader
+                // and two content tools wide on a phone.
+                HStack(spacing: StoryArcSpace.sm) {
+                    directionPicker
+                    #if os(iOS)
+                    orientationButton
+                    #endif
+                    Spacer()
+                }
+
                 // A segmented control rather than a menu. Four options fit across a
                 // phone, and a control with no open state cannot be swallowed by
                 // the chrome auto-hiding under it. That holds at the default text
@@ -177,6 +188,65 @@ extension ReaderView {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+
+    /// The reading-direction picker.
+    ///
+    /// `comic-reader` opens a publication in the direction its metadata declares and lets
+    /// the reader overrule that. Two rows and a checkmark, the same shape as the
+    /// transition menu above rather than a bare toggle: metadata gets this wrong often
+    /// enough that a reader who suspects it needs to see which way the comic is running,
+    /// not only be able to change it.
+    var directionPicker: some View {
+        Menu {
+            ForEach(ReadingDirection.allCases, id: \.self) { candidate in
+                Button { model.choose(candidate) } label: {
+                    if model.readingDirection == candidate {
+                        Label {
+                            Text(candidate.titleKey, bundle: .module)
+                        } icon: {
+                            Image(systemName: "checkmark")
+                        }
+                    } else {
+                        Text(candidate.titleKey, bundle: .module)
+                    }
+                }
+            }
+        } label: {
+            Label {
+                Text("reader.direction", bundle: .module)
+            } icon: {
+                Image(systemName: "arrow.left.arrow.right")
+            }
+            .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.glass)
+        .tint(.white)
+    }
+
+    #if os(iOS)
+    /// Holds the reader at the way up it is now.
+    ///
+    /// `comic-reader` scopes the lock to the reader, so this is a button here rather than
+    /// a row in Settings. Its title says what pressing it would do rather than what the
+    /// state is: with no label on screen beside the icon, that sentence is all VoiceOver
+    /// has to go on.
+    var orientationButton: some View {
+        Button { isOrientationLocked.toggle() } label: {
+            Label {
+                Text(orientationTitleKey, bundle: .module)
+            } icon: {
+                Image(systemName: isOrientationLocked ? "lock.rotation" : "lock.rotation.open")
+            }
+            .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.glass)
+        .tint(.white)
+    }
+
+    private var orientationTitleKey: LocalizedStringKey {
+        isOrientationLocked ? "reader.orientation.unlock" : "reader.orientation.lock"
+    }
+    #endif
 
     /// The page-fit picker, without a style.
     ///

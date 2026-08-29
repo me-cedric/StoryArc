@@ -6,6 +6,10 @@
     <string name="reader_page_slider">Control de páginas</string>
     <string name="reader_page_unavailable">No se pudo leer esta página</string>
     <string name="reader_right_to_left">De derecha a izquierda</string>
+    <string name="reader_left_to_right">De izquierda a derecha</string>
+    <string name="reader_direction">Dirección de lectura</string>
+    <string name="reader_orientation_lock">Bloquear la rotación</string>
+    <string name="reader_orientation_unlock">Desbloquear la rotación</string>
     <string name="reader_end_finished">Terminado</string>
     <string name="reader_end_next">Siguiente: %1$s</string>
     <string name="reader_end_back">Volver a la última página</string>
