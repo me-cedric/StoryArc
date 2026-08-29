@@ -425,6 +425,9 @@ class MainActivity : ComponentActivity() {
                         id = collectionOpen,
                         onOpen = route,
                         onBack = { openCollection = null },
+                        onMark = { publication, isRead ->
+                            libraryViewModel.mark(publication, isRead, kavitaProgress, credentials)
+                        },
                     )
                 } else if (listOpen != null && selection == null) {
                     BackHandler { openList = null }
@@ -433,6 +436,9 @@ class MainActivity : ComponentActivity() {
                         id = listOpen,
                         onOpen = route,
                         onBack = { openList = null },
+                        onMark = { publication, isRead ->
+                            libraryViewModel.mark(publication, isRead, kavitaProgress, credentials)
+                        },
                     )
                 } else if (isShowingShelves && selection == null) {
                     BackHandler { isShowingShelves = false }

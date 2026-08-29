@@ -198,4 +198,22 @@
         <item quantity="one">Descargando una publicación</item>
         <item quantity="other">Descargando %1$d publicaciones</item>
     </plurals>
+    <string name="library_select">Seleccionar</string>
+    <string name="library_select_done">Listo</string>
+    <string name="library_bulk_download">Descargar</string>
+    <string name="library_bulk_download_none">Ya están todas en este dispositivo.</string>
+    <string name="library_bulk_download_size">Se copiarán %1$s al almacenamiento de StoryArc.</string>
+    <plurals name="library_selected">
+        <item quantity="one">%1$d seleccionada</item>
+        <item quantity="other">%1$d seleccionadas</item>
+    </plurals>
+    <plurals name="library_bulk_changed">
+        <item quantity="one">%1$d publicación cambiada</item>
+        <item quantity="other">%1$d publicaciones cambiadas</item>
+    </plurals>
+    <plurals name="library_bulk_download_title">
+        <item quantity="one">¿Guardar %1$d publicación en este dispositivo?</item>
+        <item quantity="other">¿Guardar %1$d publicaciones en este dispositivo?</item>
+    </plurals>
+    <string name="shelves_bulk">Todo el estante</string>
 </resources>

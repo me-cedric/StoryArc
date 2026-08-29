@@ -20,6 +20,14 @@ struct CoverList: View {
     let model: LibraryModel
     let onOpen: (Publication) -> Void
 
+    /// What the reader has picked, or `nil` when they are not picking.
+    ///
+    /// `collections-and-reading-lists` asks for bulk selection from the library, and the
+    /// library is whichever of these two layouts the reader chose. Selecting in one and not
+    /// the other would make the layout toggle a feature switch.
+    var selection: Set<String>?
+    var onToggle: (Publication) -> Void = { _ in }
+
     private let thumbnailWidth: CGFloat = 44
 
     var body: some View {
@@ -29,7 +37,9 @@ struct CoverList: View {
                 model: model,
                 onOpen: onOpen,
                 thumbnailWidth: thumbnailWidth,
-                maxPixelSize: Int(thumbnailWidth * displayScale)
+                maxPixelSize: Int(thumbnailWidth * displayScale),
+                isPicked: selection?.contains(publication.id),
+                onToggle: onToggle
             )
             .listRowBackground(theme.palette.surfaceCanvas)
         }
@@ -47,10 +57,16 @@ struct ListRow: View {
     let thumbnailWidth: CGFloat
     let maxPixelSize: Int
 
+    /// Whether this one is picked, or `nil` when the library is not in selection mode.
+    var isPicked: Bool?
+    var onToggle: (Publication) -> Void = { _ in }
+
     @State private var cover: CGImage?
 
     var body: some View {
         HStack(spacing: StoryArcSpace.md) {
+            if let isPicked { PickMark(isPicked: isPicked) }
+
             thumbnail
                 .frame(width: thumbnailWidth, height: thumbnailWidth * 1.5)
                 .clipShape(.rect(cornerRadius: StoryArcRadius.sm))
@@ -83,9 +99,18 @@ struct ListRow: View {
             }
         }
         .contentShape(.rect)
-        .onTapGesture { if publication.isOpenable { onOpen(publication) } }
+        // While the reader is picking, a tap picks. Opening the reader mid-selection would
+        // throw away everything they had chosen so far.
+        .onTapGesture {
+            if isPicked != nil {
+                onToggle(publication)
+            } else if publication.isOpenable {
+                onOpen(publication)
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
+        .accessibilityAddTraits(isPicked == true ? .isSelected : [])
         .task(id: publication.id) {
             if cover == nil {
                 cover = await model.cover(for: publication, maxPixelSize: maxPixelSize)

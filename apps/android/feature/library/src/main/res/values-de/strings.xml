@@ -198,4 +198,22 @@
         <item quantity="one">Eine Veröffentlichung wird heruntergeladen</item>
         <item quantity="other">%1$d Veröffentlichungen werden heruntergeladen</item>
     </plurals>
+    <string name="library_select">Auswählen</string>
+    <string name="library_select_done">Fertig</string>
+    <string name="library_bulk_download">Herunterladen</string>
+    <string name="library_bulk_download_none">Alle sind bereits auf diesem Gerät.</string>
+    <string name="library_bulk_download_size">%1$s werden in StoryArcs eigenen Speicher kopiert.</string>
+    <plurals name="library_selected">
+        <item quantity="one">%1$d ausgewählt</item>
+        <item quantity="other">%1$d ausgewählt</item>
+    </plurals>
+    <plurals name="library_bulk_changed">
+        <item quantity="one">%1$d Publikation geändert</item>
+        <item quantity="other">%1$d Publikationen geändert</item>
+    </plurals>
+    <plurals name="library_bulk_download_title">
+        <item quantity="one">%1$d Publikation auf diesem Gerät behalten?</item>
+        <item quantity="other">%1$d Publikationen auf diesem Gerät behalten?</item>
+    </plurals>
+    <string name="shelves_bulk">Ganzes Regal</string>
 </resources>

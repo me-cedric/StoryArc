@@ -180,3 +180,48 @@ struct NarrowedToNothing: View {
         return Text("library.empty.search \(term)", bundle: .module)
     }
 }
+
+/// The four ways to add somewhere to read from.
+///
+/// A menu rather than four buttons. There are four kinds of source now and there will be
+/// more; a toolbar with one button per kind would crowd out the controls a reader uses
+/// every day. Android's `AddSourceMenu` is the same menu.
+///
+/// Out of `LibraryView` for the reason the rest of this file is: the shape of the screen is
+/// not what forty lines of labels and glyphs are about.
+struct AddSourceMenu: View {
+    let addFolder: () -> Void
+    let addCatalogue: () -> Void
+    let addKavita: () -> Void
+    let addShare: () -> Void
+
+    var body: some View {
+        Menu {
+            item("library.addFolder", "folder.badge.plus", addFolder)
+            item("catalogue.title", "dot.radiowaves.up.forward", addCatalogue)
+            item("kavita.title", "externaldrive.connected.to.line.below", addKavita)
+            item("smb.title", "externaldrive.badge.wifi", addShare)
+        } label: {
+            Label {
+                Text("library.addSource", bundle: .module)
+            } icon: {
+                Image(systemName: "plus")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func item(
+        _ key: LocalizedStringKey,
+        _ symbol: String,
+        _ action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label {
+                Text(key, bundle: .module)
+            } icon: {
+                Image(systemName: symbol)
+            }
+        }
+    }
+}

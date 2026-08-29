@@ -26,6 +26,10 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,6 +47,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -79,6 +84,15 @@ internal fun CoverGrid(
     onOpen: (Publication) -> Unit,
     /** A long press, where a publication is put on a shelf. Nil where there is nowhere to put it. */
     onAddToShelf: ((Publication) -> Unit)? = null,
+    /**
+     * What the reader has picked, or null when they are not picking.
+     *
+     * `collections-and-reading-lists` wants publications "selected in bulk from the
+     * library", and the library is a grid or a list depending on a control the reader
+     * already owns -- so both of them take this, and neither is the one that works.
+     */
+    selection: Set<String>? = null,
+    onToggle: (Publication) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // The readable range. Below the minimum a cover stops being recognisable;
@@ -117,7 +131,15 @@ internal fun CoverGrid(
             }
         }
         items(publications, key = { it.id }) { publication ->
-            CoverCell(publication, viewModel, onOpen, maxPixelSize, onAddToShelf)
+            CoverCell(
+                publication,
+                viewModel,
+                onOpen,
+                maxPixelSize,
+                onAddToShelf,
+                isPicked = selection?.contains(publication.id),
+                onToggle = onToggle,
+            )
         }
     }
 }
@@ -175,6 +197,9 @@ private fun CoverCell(
     maxPixelSize: Int,
     /** A long press, where a publication is put on a shelf. Null where there is nowhere to put it. */
     onAddToShelf: ((Publication) -> Unit)? = null,
+    /** Whether this one is picked, or null when the library is not in selection mode. */
+    isPicked: Boolean? = null,
+    onToggle: (Publication) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -194,15 +219,20 @@ private fun CoverCell(
             // A publication that cannot be read is not tappable. Opening it only
             // to show the same refusal twice wastes the user's tap.
             .then(
-                if (publication.isOpenable) {
+                when {
+                    // While the reader is picking, a tap picks -- even a publication that
+                    // cannot be opened, which can still be shelved and marked read. A cover
+                    // that opened the reader mid-selection would throw away every pick.
+                    isPicked != null -> Modifier.clickable { onToggle(publication) }
+
                     // `collections-and-reading-lists`: a publication "may belong to any
                     // number of collections", and a long press is where a reader says so.
-                    Modifier.combinedClickable(
+                    publication.isOpenable -> Modifier.combinedClickable(
                         onClick = { onOpen(publication) },
                         onLongClick = { onAddToShelf?.invoke(publication) },
                     )
-                } else {
-                    Modifier
+
+                    else -> Modifier
                 },
             )
             .semantics {
@@ -211,6 +241,10 @@ private fun CoverCell(
                     subtitle,
                     publication.format.displayName,
                 ).joinToString(", ")
+                // Spoken, because a tick in the corner of a cover is invisible to
+                // TalkBack and "is this one picked" is the only question selection mode
+                // asks.
+                if (isPicked != null) selected = isPicked
             },
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
     ) {
@@ -294,6 +328,12 @@ private fun CoverCell(
                     )
                 }
             }
+
+            if (isPicked != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
+                    PickMark(isPicked)
+                }
+            }
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair)) {
@@ -315,6 +355,27 @@ private fun CoverCell(
             }
         }
     }
+}
+
+/**
+ * Whether a cover is one of the ones the reader has picked.
+ *
+ * A mark in the corner rather than a tint over the artwork: the artwork is the interface, and
+ * a wash of accent colour across a cover hides the one thing the reader is using to tell it
+ * from its neighbour.
+ *
+ * iOS's `PickMark` sits in the same corner.
+ */
+@Composable
+internal fun PickMark(isPicked: Boolean, modifier: Modifier = Modifier) {
+    val palette = LocalStoryArcPalette.current
+    Icon(
+        imageVector = if (isPicked) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
+        // Announced by the cell, which already speaks the title this belongs to.
+        contentDescription = null,
+        tint = if (isPicked) palette.accent else palette.textTertiary,
+        modifier = modifier.padding(StoryArcSpace.xs),
+    )
 }
 
 /** The second line: what distinguishes this cell from its neighbours. */

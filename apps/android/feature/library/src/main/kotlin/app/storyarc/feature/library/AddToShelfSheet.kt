@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.BulkSelection
 import app.storyarc.core.model.Publication
 import kotlinx.coroutines.launch
 
@@ -35,26 +36,45 @@ import kotlinx.coroutines.launch
  * So this offers every one of them rather than a picker that implies a single answer, and
  * says so plainly when there is nowhere to put it yet.
  *
+ * Takes a set rather than one publication, because the spec also asks for publications to be
+ * "selected in bulk from the library" and a bulk add is this sheet with more than one thing
+ * in it. A long press passes the one cover it was opened on; the selection bar passes what
+ * the reader picked. There is no second implementation of either.
+ *
  * iOS puts the same choice in a context menu, which is where iOS readers look.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun AddToShelfSheet(
     viewModel: LibraryViewModel,
-    publication: Publication,
+    publications: List<Publication>,
     onDismiss: () -> Unit,
-    onMark: ((Boolean) -> Unit)? = null,
-    onAddToServerList: (suspend (ServerList) -> Boolean)? = null,
+    /** Called with the publications whose read state actually changes, and what it becomes. */
+    onMark: ((List<Publication>, Boolean) -> Unit)? = null,
+    onAddToServerList: (suspend (Publication, ServerList) -> Boolean)? = null,
+    /**
+     * What the action changed, for a caller that offers an undo. Null for one publication
+     * out of a long press, which has nothing to undo it with.
+     */
+    onChange: ((BulkUndo) -> Unit)? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
     val serverLists by viewModel.serverLists.collectAsStateWithLifecycle()
-    val already = shelves.collectionsContaining(publication.id).map { it.id }.toSet()
-    val isRead = publication.id in viewModel.finishedPublications()
+    val visible by viewModel.visible.collectAsStateWithLifecycle()
+    val ids = publications.map { it.id }.toSet()
+    val finished = viewModel.finishedPublications()
+    // Read, unless every one of them already is -- which for a single cover is the same
+    // read/unread toggle it has always been.
+    val marksRead = !finished.containsAll(ids)
     val scope = rememberCoroutineScope()
 
     // Shown when a reader tries to put a publication into a list that cannot hold it.
     var refused by remember { mutableStateOf<String?>(null) }
+
+    fun report(kind: BulkUndo.Kind, changed: Set<String>) {
+        if (changed.isNotEmpty()) onChange?.invoke(BulkUndo(kind, changed))
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -68,12 +88,14 @@ fun AddToShelfSheet(
             if (onMark != null) {
                 Row(
                     name = stringResource(
-                        if (isRead) R.string.library_mark_unread else R.string.library_mark_read,
+                        if (marksRead) R.string.library_mark_read else R.string.library_mark_unread,
                     ),
                     isMember = false,
                     enabled = true,
                 ) {
-                    onMark(!isRead)
+                    val changing = BulkSelection.marking(ids, marksRead, finished)
+                    onMark(publications.filter { it.id in changing }, marksRead)
+                    report(BulkUndo.Kind.Read(marksRead), changing)
                     onDismiss()
                 }
             }
@@ -94,32 +116,39 @@ fun AddToShelfSheet(
             }
 
             shelves.collections.forEach { collection ->
-                val contains = collection.id in already
+                val joining = BulkSelection.joining(ids, collection)
                 Row(
                     name = collection.name,
-                    isMember = contains,
-                    enabled = !contains,
+                    isMember = joining.isEmpty(),
+                    // Every one of them is already in it, so there is nothing a tap changes.
+                    enabled = joining.isNotEmpty(),
                 ) {
-                    viewModel.addToCollection(setOf(publication.id), collection.id)
+                    report(
+                        BulkUndo.Kind.Collection(collection.id),
+                        viewModel.addSelectionToCollection(ids, collection.id),
+                    )
                     onDismiss()
                 }
             }
 
             shelves.lists.forEach { list ->
-                val contains = publication.id in list.entries
+                val appending = BulkSelection.appending(ids, list, visible.map { it.id })
                 Row(
                     name = list.name,
-                    isMember = contains,
-                    enabled = !contains,
+                    isMember = appending.isEmpty(),
+                    enabled = appending.isNotEmpty(),
                 ) {
-                    viewModel.appendToList(listOf(publication.id), list.id)
+                    report(
+                        BulkUndo.Kind.Listing(list.id),
+                        viewModel.appendSelectionToList(ids, list.id).toSet(),
+                    )
                     onDismiss()
                 }
             }
 
-            // A server's own lists, offered like any other. Whether this publication can go
-            // in one is the server's rule, not something to hide by leaving the row out: a
-            // list a reader cannot see is a list they will look for.
+            // A server's own lists, offered like any other. Whether these publications can
+            // go in one is the server's rule, not something to hide by leaving the row out:
+            // a list a reader cannot see is a list they will look for.
             if (onAddToServerList != null) {
                 serverLists.forEach { list ->
                     Row(
@@ -128,10 +157,17 @@ fun AddToShelfSheet(
                         enabled = true,
                     ) {
                         scope.launch {
-                            if (onAddToServerList(list)) {
-                                onDismiss()
-                            } else {
+                            // Refused once rather than once per publication: a selection of
+                            // forty from a folder would otherwise raise forty identical
+                            // alerts about the same server.
+                            var accepted = 0
+                            for (publication in publications) {
+                                accepted += if (onAddToServerList(publication, list)) 1 else 0
+                            }
+                            if (accepted < publications.size) {
                                 refused = list.server.title
+                            } else {
+                                onDismiss()
                             }
                         }
                     }
@@ -148,11 +184,14 @@ fun AddToShelfSheet(
             confirmButton = {
                 TextButton(onClick = {
                     // The offer the spec asks for: a local list can hold anything.
-                    viewModel.createList(publication.displayTitle)
-                    viewModel.appendToList(
-                        listOf(publication.id),
-                        viewModel.shelves.value.lists.last().id,
-                    )
+                    val named = publications.firstOrNull()?.displayTitle
+                    if (named != null) {
+                        viewModel.createList(named)
+                        viewModel.appendToList(
+                            publications.map { it.id },
+                            viewModel.shelves.value.lists.last().id,
+                        )
+                    }
                     refused = null
                     onDismiss()
                 }) {

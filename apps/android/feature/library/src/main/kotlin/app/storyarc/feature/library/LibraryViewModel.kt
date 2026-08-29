@@ -27,9 +27,11 @@ import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.model.BulkSelection
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
 import app.storyarc.core.model.Shelves
+import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.ShelvesStore
 import app.storyarc.core.persistence.SourceStore
 import app.storyarc.core.persistence.ProgressStore
@@ -663,6 +665,58 @@ class LibraryViewModel(
     fun moveInList(entry: String, destination: Int, id: UUID) {
         _shelves.update { it.moving(entry, destination, id) }
         shelvesStore?.save(_shelves.value)
+    }
+
+    /**
+     * The app's own download store, for keeping a library publication on the device.
+     *
+     * Opened here rather than handed in, the same way [mark] builds the stores it needs: it
+     * is a thin wrapper over shared preferences and a directory, and threading it through
+     * the app shell to reach one button in a bar would be a parameter carrying nothing.
+     */
+    private val downloads by lazy { DownloadStore.open(getApplication()) }
+
+    /** Which publications already have a copy of their own. */
+    fun keptOffline(): Set<String> = KeepOffline.kept(downloads)
+
+    /** What a set of publications weighs, for the confirmation that has to state a size. */
+    fun bytesOnDisk(ids: Set<String>): Long = KeepOffline.bytesOnDisk(
+        resolver,
+        _publications.value.filter { it.id in ids }.mapNotNull(::location),
+    )
+
+    /** Copies a whole selection into the download store, and reports what it copied. */
+    suspend fun keepOffline(selection: Set<String>): Set<String> =
+        KeepOffline.keep(resolver, downloads, _publications.value, selection, ::location)
+
+    /** Forgets copies [keepOffline] made, deleting the files with them. */
+    fun forgetKept(ids: Set<String>) = KeepOffline.forget(downloads, ids)
+
+    fun removeFromCollection(members: Set<String>, id: UUID) {
+        _shelves.update { it.removing(members, id) }
+        shelvesStore?.save(_shelves.value)
+    }
+
+    // Bulk actions: the single-publication paths, applied to a set. Each answers with what
+    // it changed rather than with nothing, because the undo is built from the change --
+    // [BulkSelection] works out what that is, and these carry it out.
+
+    /** Adds a whole selection to a collection. */
+    fun addSelectionToCollection(selection: Set<String>, id: UUID): Set<String> {
+        val collection = _shelves.value.collections.firstOrNull { it.id == id } ?: return emptySet()
+        val joining = BulkSelection.joining(selection, collection)
+        if (joining.isEmpty()) return emptySet()
+        addToCollection(joining, id)
+        return joining
+    }
+
+    /** Appends a whole selection to a reading list, in the order the library is showing it. */
+    fun appendSelectionToList(selection: Set<String>, id: UUID): List<String> {
+        val list = _shelves.value.lists.firstOrNull { it.id == id } ?: return emptyList()
+        val entries = BulkSelection.appending(selection, list, _visible.value.map { it.id })
+        if (entries.isEmpty()) return emptyList()
+        appendToList(entries, id)
+        return entries
     }
 
     fun deleteCollection(id: UUID) {
