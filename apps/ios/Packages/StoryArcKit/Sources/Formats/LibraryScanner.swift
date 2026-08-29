@@ -55,14 +55,25 @@ public enum LibraryScanner {
     ///
     ///   A closure rather than a store: this module reads containers and knows nothing
     ///   about caches or registries, and handing it a question keeps it that way.
+    /// - Parameter skipping: paths an earlier, interrupted scan of this folder already
+    ///   indexed. `local-library` requires a scan to be "cancellable and resumable", and
+    ///   this is the resumable half: the walk still visits them, which costs one directory
+    ///   listing, and opens none of them, which is where the minutes go.
+    ///
+    ///   The two are different refusals and both are wanted: `known` still emits a
+    ///   publication and only declines to reopen its container, while `skipping` emits
+    ///   nothing at all because the caller has already put those back itself.
     public static func scan(
         folderAt folder: URL,
-        known: (@Sendable (URL) -> Publication?)? = nil
+        known: (@Sendable (URL) -> Publication?)? = nil,
+        skipping: Set<String> = []
     ) -> AsyncStream<ScanEvent> {
         AsyncStream<ScanEvent> { continuation in
             let task = Task {
                 // The picked folder's own name is not a series: it is the library.
-                let tally = await walk(folder, seriesHint: nil, known: known) { continuation.yield($0) }
+                let tally = await walk(folder, seriesHint: nil, known: known, skipping: skipping) {
+                    continuation.yield($0)
+                }
                 if !Task.isCancelled {
                     continuation.yield(.finished(found: tally.found, skipped: tally.skipped))
                 }
@@ -82,6 +93,63 @@ public enum LibraryScanner {
             if case let .found(publication) = event { publications.append(publication) }
         }
         return publications
+    }
+
+    // MARK: - Listing
+
+    /// What a folder holds, without opening anything in it.
+    ///
+    /// The cheap half of `local-library`'s watched changes: the app "reconciles by comparing
+    /// file modification times and sizes rather than re-reading every archive". A directory
+    /// listing is one call per folder; opening an archive is hundreds of reads, and a
+    /// reconcile that opened them all would be the full rescan the requirement forbids.
+    ///
+    /// The same decisions as ``scan(folderAt:)`` — the same extensions, and the same
+    /// a-folder-of-images-is-one-publication rule — because the two lists are compared
+    /// against each other. A disagreement would make the same publication appear and
+    /// disappear on every pass.
+    public static func entries(in folder: URL) -> [FolderSnapshot.Entry] {
+        var found: [FolderSnapshot.Entry] = []
+        list(folder, into: &found)
+        return found
+    }
+
+    private static func list(_ directory: URL, into found: inout [FolderSnapshot.Entry]) {
+        let children = (try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey, .contentModificationDateKey, .fileSizeKey],
+            options: [.skipsHiddenFiles]
+        )) ?? []
+
+        var files: [URL] = []
+        var directories: [URL] = []
+        for child in children {
+            let isDirectory = (try? child.resourceValues(forKeys: [.isDirectoryKey]))?
+                .isDirectory ?? false
+            if isDirectory { directories.append(child) } else { files.append(child) }
+        }
+
+        let publications = files.filter {
+            candidateExtensions.contains($0.pathExtension.lowercased())
+        }
+        let images = files.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
+        if publications.isEmpty, !images.isEmpty {
+            found.append(entry(for: directory))
+            return
+        }
+        for file in publications { found.append(entry(for: file)) }
+        for child in directories { list(child, into: &found) }
+    }
+
+    /// One listing row. A folder of images has no size of its own, so it is compared on its
+    /// modification date alone — which is what changes when a page is added to it.
+    private static func entry(for url: URL) -> FolderSnapshot.Entry {
+        let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+        return FolderSnapshot.Entry(
+            path: normalized(url),
+            modified: values?.contentModificationDate ?? .distantPast,
+            size: Int64(values?.fileSize ?? 0)
+        )
     }
 
     // MARK: - Walking
@@ -110,6 +178,7 @@ public enum LibraryScanner {
         _ directory: URL,
         seriesHint: String?,
         known: (@Sendable (URL) -> Publication?)? = nil,
+        skipping: Set<String>,
         emit: @Sendable (ScanEvent) -> Void
     ) async -> Tally {
         var tally = Tally()
@@ -143,18 +212,35 @@ public enum LibraryScanner {
 
         if publicationFiles.isEmpty, !imageFiles.isEmpty {
             // Its subdirectories are chapters of it, not separate publications.
+            guard !skipping.contains(normalized(directory)) else { return tally }
             return tally + (await index(directory, seriesHint: seriesHint, known: known, emit: emit))
         }
 
         for file in publicationFiles {
             guard !Task.isCancelled else { return tally }
+            // Already done by the scan this one is picking up from. Not counted either: the
+            // caller put those publications back itself and has already counted them.
+            guard !skipping.contains(normalized(file)) else { continue }
             tally += await index(file, seriesHint: seriesHint, known: known, emit: emit)
         }
         for child in directories {
             guard !Task.isCancelled else { return tally }
-            tally += await walk(child, seriesHint: child.lastPathComponent, known: known, emit: emit)
+            tally += await walk(
+                child, seriesHint: child.lastPathComponent,
+                known: known, skipping: skipping, emit: emit
+            )
         }
         return tally
+    }
+
+    /// The form a publication's identity records a path in.
+    ///
+    /// `contentsOfDirectory` hands back `/private/var/…` where the identity holds `/var/…`,
+    /// because the indexer standardises what it is given. Comparing the two raw is how a
+    /// resumed scan skips nothing and re-opens the whole folder, and how a reconcile fails
+    /// to find the row belonging to a file that has gone.
+    static func normalized(_ url: URL) -> String {
+        (url.path as NSString).standardizingPath
     }
 
     private static func index(

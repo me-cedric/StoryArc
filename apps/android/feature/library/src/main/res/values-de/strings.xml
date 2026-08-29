@@ -242,4 +242,10 @@
         <item quantity="other">%1$d Publikationen auf diesem Gerät behalten?</item>
     </plurals>
     <string name="shelves_bulk">Ganzes Regal</string>
+    <string name="catalogue_acquire_other">Als %1$s öffnen</string>
+    <string name="library_import">Datei importieren</string>
+    <string name="library_import_failed_title">Diese Datei lässt sich nicht importieren</string>
+    <string name="library_import_failed">%1$s konnte nicht in StoryArc kopiert werden. Die App liest CBZ, CBR, CBT, EPUB und PDF.</string>
+    <string name="library_import_dismiss">OK</string>
+    <string name="source_on_this_device">Auf diesem Gerät</string>
 </resources>

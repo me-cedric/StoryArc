@@ -4,49 +4,47 @@ internal import Formats
 internal import Persistence
 internal import StoryArcCore
 
-/// How the shelf gets filled: the walk, what it adds, and what it stops finding.
+/// Walking a folder, and picking up a walk that was interrupted.
 ///
-/// Its own file rather than a tail on `LibraryModel.swift`, which had grown past the length
-/// the linter allows. One subject — a scan is the only thing that puts a publication on the
-/// shelf or takes one off it, and the cache above is the same story written down.
+/// `local-library`: a scan "is cancellable and resumable, and does not block browsing what
+/// it has already found". The first and the third were free — the stream stops when nothing
+/// consumes it, and rows appear as they arrive. Resumable was not: a scan of ten thousand
+/// comics is minutes of opening archives, and a reader whose phone reclaimed the process
+/// watched the whole thing happen again from an empty grid.
+///
+/// Split out of ``LibraryModel`` for the same reason ``LibrarySources`` was: the file is at
+/// its line cap, and this is a seam that was already there.
 extension LibraryModel {
+    /// Scans a folder, picking up where an interrupted scan of it stopped.
     func scan(_ folder: URL) {
         scanTask?.cancel()
-        scanState = .scanning(found: publications.count)
 
-        // What the shelf already holds, so a container that has not changed since the last
-        // launch is never opened. The cache restore is what makes this worth having: the
-        // publications it hands back came from disk, so the first scan after a launch
-        // reconciles instead of re-reading the whole library.
-        //
-        // Snapshotted here rather than read inside the walk, because it is a question about
-        // the shelf as it stands now — and because the walk runs off the main actor.
-        let byPath = Dictionary(
-            publications.compactMap { publication -> (String, Publication)? in
-                guard let path = publication.identity.normalizedPath else { return nil }
-                return (path, publication)
-            },
-            uniquingKeysWith: { first, _ in first }
-        )
-        let known: @Sendable (URL) -> Publication? = { url in byPath[url.path()] }
+        // Put back before the walk starts, so a reader who left mid-scan comes back to the
+        // library they had rather than to an empty grid filling up again.
+        let resumed = journal?.indexed(inFolder: folder.path) ?? []
+        let sourceID = source(of: folder)
+        for publication in resumed { adopt(publication, from: sourceID) }
+        if !resumed.isEmpty { rebuild() }
+
+        scanningFolder = folder
+        scanned = resumed
+        scanState = .scanning(found: publications.count)
+        // Matched on the path, which is what a directory walk knows. A publication whose
+        // identity is a content digest is still filed under the file it came out of.
+        let done = Set(resumed.compactMap(\.identity.normalizedPath))
 
         scanTask = Task { [weak self] in
-            // What this walk actually saw, so what it did not see can go afterwards.
-            var seen: Set<String> = []
-            for await event in LibraryScanner.scan(folderAt: folder, known: known) {
+            for await event in LibraryScanner.scan(folderAt: folder, skipping: done) {
                 guard let self, !Task.isCancelled else { return }
                 switch event {
                 case let .found(publication):
-                    seen.insert(publication.id)
                     self.append(publication, in: folder)
                 case .skipped:
                     // Counted in the finished event. Not surfaced per-file: a scan
                     // of a messy folder would otherwise be a wall of notices.
                     break
                 case let .finished(found, skipped):
-                    self.forgetVanished(under: folder, seen: seen)
-                    self.scanState = .finished(found: found, skipped: skipped)
-                    self.cacheLibrary()
+                    self.finish(folder, found: found + resumed.count, skipped: skipped)
                     // Progress is loaded here rather than only when the view
                     // appears. The view appears before the scan produces anything,
                     // so a load at that point matches recorded positions against an
@@ -55,6 +53,25 @@ extension LibraryModel {
                 }
             }
         }
+    }
+
+    /// Everything a finished scan settles.
+    private func finish(_ folder: URL, found: Int, skipped: Int) {
+        scanState = .finished(found: found, skipped: skipped)
+        // Before the snapshot below, so what the walk did not meet is gone from the shelf
+        // and from the snapshot alike.
+        forgetVanished(under: folder, seen: seenInThisScan)
+        seenInThisScan = []
+        // Nothing left to resume. Cleared rather than kept: this is a journal, not the
+        // metadata cache `sources` asks for, and a journal that outlived its scan would be
+        // a stale library nobody decided to keep.
+        journal?.clear(folder: folder.path)
+        scanningFolder = nil
+        scanned = []
+        // What the folder held at the moment the scan agreed with it. Without this the
+        // first reconcile would see every file as new and re-read the whole library to
+        // learn nothing.
+        snapshots[folder.path] = FolderSnapshot(LibraryScanner.entries(in: folder))
     }
 
     /// Drops what this folder no longer holds.
@@ -97,8 +114,37 @@ extension LibraryModel {
         // is, and the library is the only thing that knows which source it was reached
         // through. `sources` needs this for a source's item count, and
         // `library-browsing` for the order two sources holding one title appear in.
+        guard adopt(publication, from: source(of: folder)) else { return }
+        seenInThisScan.insert(publication.id)
+        scanned.append(publication)
+        if case let .scanning(found) = scanState {
+            scanState = .scanning(found: found + 1)
+        }
+        // ponytail: re-arranged in batches during a scan, not per publication —
+        // sorting after every one of 10,000 appends is quadratic. The scan's own
+        // completion rebuilds the rest, so the only visible effect is that the
+        // last few rows arrive together.
+        if publications.count % rebuildEvery == 0 { rebuild() }
+        // Written down on the same beat. A journal flushed per publication would cost a
+        // `UserDefaults` write per file; one every two dozen loses at most that many to a
+        // process the system reclaims without warning — which is the case this exists for,
+        // because a killed process runs no cleanup of its own.
+        if scanned.count % rebuildEvery == 0 {
+            journal?.record(scanned, inFolder: folder.path)
+        }
+    }
+
+    // Internal, not private: `private` is file-scoped, and the imported copies sit in
+    // another file.
+    /// Puts a publication in the library under the source it was reached through, and
+    /// says whether it was new.
+    ///
+    /// Shared by the folder scan and by the imported copies, which find publications two
+    /// entirely different ways and have to agree about what one row means.
+    @discardableResult
+    func adopt(_ publication: Publication, from sourceID: UUID?) -> Bool {
         var attributed = publication
-        attributed.sourceID = source(of: folder)
+        attributed.sourceID = sourceID
 
         // A publication already present from another folder is not added twice.
         // Identity is what decides, not the path, so the same file reached two ways
@@ -114,20 +160,13 @@ extension LibraryModel {
             if publications[seen].sourceID == nil, attributed.sourceID != nil {
                 publications[seen].sourceID = attributed.sourceID
             }
-            return
+            return false
         }
 
         publications.append(attributed)
         if let path = publication.identity.normalizedPath {
             locations[publication.id] = URL(fileURLWithPath: path)
         }
-        if case let .scanning(found) = scanState {
-            scanState = .scanning(found: found + 1)
-        }
-        // ponytail: re-arranged in batches during a scan, not per publication —
-        // sorting after every one of 10,000 appends is quadratic. The scan's own
-        // completion rebuilds the rest, so the only visible effect is that the
-        // last few rows arrive together.
-        if publications.count % rebuildEvery == 0 { rebuild() }
+        return true
     }
 }

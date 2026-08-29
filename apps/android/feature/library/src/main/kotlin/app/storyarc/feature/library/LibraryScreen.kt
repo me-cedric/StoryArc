@@ -195,6 +195,14 @@ fun LibraryScreen(
     // indicator lying quietly in the corner. iOS shows the same line above its grid.
     val cachedAt by (viewModel?.cachedAt ?: MutableStateFlow(null)).collectAsStateWithLifecycle()
 
+    // Everything, rather than a list of comic types. A provider resolves `.cbz` through
+    // `MimeTypeMap`, which has never heard of it, so it answers `application/octet-stream` --
+    // a filter naming the comic types would grey out every comic on the device. The refusal
+    // below is what actually decides, and it names the format it refused.
+    val importFile = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { file -> if (file != null) viewModel?.importFile(file) }
+
     LaunchedEffect(viewModel) {
         viewModel?.restoreFolders()
         onProbeSources()
@@ -211,7 +219,16 @@ fun LibraryScreen(
     // same activity and the EPUB reader is an activity of its own, so "the reader
     // closed" reaches this screen two different ways — and only one of them
     // recomposes it. Resuming covers both.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel?.refreshProgress() }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel?.refreshProgress()
+        // Settings is where an imported copy is deleted, and a library that only read the
+        // store at startup would keep offering a book whose bytes are gone.
+        viewModel?.refreshImports()
+        // `local-library`: on returning to the foreground the app "reconciles by comparing
+        // file modification times and sizes rather than re-reading every archive". The
+        // watcher covers the app being on screen; a provider notifies nobody while it is not.
+        viewModel?.reconcileWatchedFolders()
+    }
     val publications by (viewModel?.publications ?: MutableStateFlow(emptyList()))
         .collectAsStateWithLifecycle()
     val scanState by (viewModel?.scanState ?: MutableStateFlow(LibraryScanState.Idle))
@@ -230,6 +247,23 @@ fun LibraryScreen(
         .collectAsStateWithLifecycle()
     val recentSearches by (viewModel?.recentSearches ?: MutableStateFlow(RecentSearches()))
         .collectAsStateWithLifecycle()
+
+    // Named, not swallowed. `local-library` forbids a generic failure elsewhere and there is
+    // no reason an import should be the exception.
+    val importFailure by (viewModel?.importFailure ?: MutableStateFlow<String?>(null))
+        .collectAsStateWithLifecycle()
+    importFailure?.let { name ->
+        AlertDialog(
+            onDismissRequest = { viewModel?.dismissImportFailure() },
+            title = { Text(stringResource(R.string.library_import_failed_title)) },
+            text = { Text(stringResource(R.string.library_import_failed, name)) },
+            confirmButton = {
+                TextButton(onClick = { viewModel?.dismissImportFailure() }) {
+                    Text(stringResource(R.string.library_import_dismiss))
+                }
+            },
+        )
+    }
 
     val snackbars = remember { SnackbarHostState() }
     val undoLabel = stringResource(R.string.downloads_undo)
@@ -284,6 +318,7 @@ fun LibraryScreen(
                             onAddCatalogue = onAddCatalogue,
                             onAddKavita = onAddKavita,
                             onAddShare = onAddShare,
+                            onImport = { importFile.launch(arrayOf("*/*")) },
                         )
                         IconButton(onClick = { viewModel.rescan() }) {
                             Icon(

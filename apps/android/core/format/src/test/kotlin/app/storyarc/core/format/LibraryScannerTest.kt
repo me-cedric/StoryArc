@@ -171,6 +171,71 @@ class LibraryScannerTest {
         assertEquals(listOf(ScanEvent.Finished(0, 0)), events)
     }
 
+    @Test
+    fun `the listing holds everything the scan found`() = runTest {
+        // The two walks are compared against each other by every reconcile, so a file the
+        // scan finds and the listing misses would be removed from the library the first time
+        // it was reconciled, and found again by the next full scan.
+        val scanned = LibraryScanner.scanAll(corpus).mapNotNull { it.identity.normalizedPath }
+        val listed = LibraryScanner.entries(corpus).map { it.path }.toSet()
+        assertTrue(listed.containsAll(scanned))
+    }
+
+    @Test
+    fun `the listing also holds what the scan refused`() {
+        // Deliberately wider than the scan. A file StoryArc will not open is still a file
+        // that was there, and a listing that left it out would report it as newly arrived on
+        // every single pass -- which is the opposite of noticing a change.
+        val listed = LibraryScanner.entries(corpus).map { it.path }
+        assertTrue(listed.any { it.endsWith("refused.cb7") })
+    }
+
+    @Test
+    fun `a listing carries a size and a time for every entry`() {
+        // Either alone misses a real case: a file replaced with one of the same length keeps
+        // its size, and one restored from a backup keeps its time.
+        val listed = LibraryScanner.entries(shelf("Bone", listOf("single-page.cbz")))
+        assertEquals(1, listed.size)
+        assertTrue(listed.first().size > 0)
+        assertTrue(listed.first().modifiedAtEpochMillis > 0)
+    }
+
+    @Test
+    fun `a folder that cannot be read lists nothing rather than throwing`() {
+        // Which is what makes the snapshot's refusal reachable: the empty list is the signal
+        // that the folder could not be walked, and it must arrive rather than crash.
+        assertTrue(LibraryScanner.entries(File("/nowhere/at/all")).isEmpty())
+    }
+
+    @Test
+    fun `a resumed scan does not open what the interrupted one already did`() = runTest {
+        // `local-library`: a scan "is cancellable and resumable". Resumable means this and
+        // nothing else -- the archives already read are not read again, which is where the
+        // minutes of a ten-thousand-file scan go.
+        val root = shelf("Bone", listOf("single-page.cbz", "natural-sort.cbz"))
+        val first = LibraryScanner.scanAll(root)
+        val done = first.mapNotNull { it.identity.normalizedPath }.take(1).toSet()
+
+        val resumed = LibraryScanner.scan(root, done).toList()
+            .filterIsInstance<ScanEvent.Found>()
+            .map { it.publication }
+
+        assertEquals(1, resumed.size)
+        assertTrue(resumed.none { it.identity.normalizedPath in done })
+    }
+
+    @Test
+    fun `a resumed scan that has nothing left to do finds nothing and still finishes`() = runTest {
+        // The end of a resume, and the state a reader is in when the process was reclaimed
+        // one file from the end. It must finish rather than report the whole folder again.
+        val root = shelf("Bone", listOf("single-page.cbz"))
+        val done = LibraryScanner.scanAll(root).mapNotNull { it.identity.normalizedPath }.toSet()
+        assertEquals(
+            listOf(ScanEvent.Finished(0, 0)),
+            LibraryScanner.scan(root, done).toList(),
+        )
+    }
+
     private companion object {
         /** A 2x3 PNG, the same shape every committed fixture page uses. */
         val PNG = byteArrayOf(

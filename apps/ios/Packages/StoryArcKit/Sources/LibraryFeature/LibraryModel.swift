@@ -76,6 +76,8 @@ public final class LibraryModel {
     /// In-progress publications, most recently read first. Empty means the row is
     /// not drawn at all, which is what `library-browsing` asks for.
     public private(set) var continueReading: [Publication] = []
+    // `internal(set)`, not `private(set)`: the scanning half of this type lives in
+    // another file, and `private` is file-scoped.
     public internal(set) var scanState: LibraryScanState = .idle
     /// Folders the user has added, in the order they added them.
     public internal(set) var folders: [URL] = []
@@ -85,6 +87,9 @@ public final class LibraryModel {
     /// `publication-formats` requires covers to be extracted as rows approach the
     /// viewport rather than during the scan, so this fills in as cells appear and
     /// never during `scan`.
+    ///
+    /// Internal, not private: the scanning and the imported-copies halves of this type
+    /// live in other files, and `private` is file-scoped.
     var covers: [String: CGImage] = [:]
     /// Where each publication came from, so a cover can be loaded later.
     var locations: [String: URL] = [:]
@@ -98,9 +103,28 @@ public final class LibraryModel {
     /// point the shelf is not cached — it is current, and saying otherwise would be the
     /// indicator lying quietly in the corner.
     public internal(set) var cachedAt: Date?
-    /// Not `private`: the walk lives in `LibraryScanning.swift`, which is the same type
-    /// in the same module and the only other thing that touches it.
+
     var scanTask: Task<Void, Never>?
+
+    /// The folder being walked, and what has been indexed in it so far.
+    ///
+    /// Held so an interrupted scan can be written down and picked up. `local-library`
+    /// requires a scan to be "cancellable and resumable", which are one promise: a reader
+    /// who stops a scan and starts it again should not wait for the same archives twice.
+    var scanningFolder: URL?
+    var scanned: [Publication] = []
+    /// Every publication this scan has met, so the ones it did not can be dropped.
+    var seenInThisScan: Set<String> = []
+    let journal: ScanJournal?
+
+    /// What each watched folder held when it was last looked at, keyed by the folder's path.
+    ///
+    /// In memory rather than on disk. `local-library` asks for a change made while the app
+    /// was away to be reconciled cheaply, and a launch has nothing to reconcile *against* —
+    /// the publications themselves are not cached either, so a snapshot read from disk would
+    /// describe a library this process has not built yet.
+    var snapshots: [String: FolderSnapshot] = [:]
+    let watcher = FolderWatcher()
     let progressStore: ProgressStore?
 
     /// The reading lists every known Kavita server holds, once they have been asked.
@@ -132,13 +156,29 @@ public final class LibraryModel {
     let sourceStore: SourceStore?
     let shelvesStore: ShelvesStore?
 
+    /// Where copies the reader imported live. `local-library` asks for them to be kept in
+    /// "app-managed storage", and this store already owns exactly that — see
+    /// ``ImportedCopies``.
+    let downloadStore: DownloadStore?
+
+    /// The last import that did not happen, named so the reader can be told which file.
+    ///
+    /// `local-library` forbids a generic failure elsewhere and there is no reason an import
+    /// should be the exception: a reader who picked the wrong file needs to know it was the
+    /// file rather than the app.
+    public var importFailure: String?
+
     public init(
         progress: ProgressStore? = nil,
         bookmarks: FolderBookmarks? = nil,
         preferences: LibraryPreferences? = nil,
         sourceStore: SourceStore? = nil,
-        shelvesStore: ShelvesStore? = nil
+        shelvesStore: ShelvesStore? = nil,
+        downloadStore: DownloadStore? = nil,
+        journal: ScanJournal? = nil
     ) {
+        self.journal = journal
+        self.downloadStore = downloadStore
         self.sourceStore = sourceStore
         self.shelvesStore = shelvesStore
         shelves = shelvesStore?.shelves() ?? Shelves()
@@ -170,6 +210,7 @@ public final class LibraryModel {
                 register(folder)
                 scan(folder)
             }
+            startWatching()
         }
         if folders.isEmpty { scan(documentsFolder) }
     }
@@ -267,12 +308,16 @@ public final class LibraryModel {
         try? bookmarks?.add(url)
         register(url)
         scan(url)
+        startWatching()
     }
 
     /// Stops a running scan. `local-library` requires the scan to be cancellable.
     public func cancelScan() {
         scanTask?.cancel()
         scanTask = nil
+        // Written down rather than lost, which is what makes the next scan of this folder a
+        // resumption instead of a repetition.
+        if let scanningFolder { journal?.record(scanned, inFolder: scanningFolder.path) }
         if case .scanning(let found) = scanState {
             scanState = .finished(found: found, skipped: 0)
         }
@@ -280,6 +325,11 @@ public final class LibraryModel {
 
     /// Forgets everything. Used when a folder is removed, and by previews.
     public func reset() {
+        // Before the cancel, not after: cancelling writes down where a scan got to, and a
+        // reset is the one moment there is nothing worth picking up.
+        scanningFolder = nil
+        scanned = []
+        snapshots = [:]
         cancelScan()
         publications = []
         visible = []
@@ -290,6 +340,7 @@ public final class LibraryModel {
         scanState = .idle
     }
 
+    // Internal, not private: the scanning half of this type lives in another file.
     let rebuildEvery = 24
 
     // Internal, not private: `private` is file-scoped, and the callers now sit

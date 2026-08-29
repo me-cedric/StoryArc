@@ -155,6 +155,10 @@ struct NarrowedToNothing: View {
 /// not what forty lines of labels and glyphs are about.
 struct AddSourceMenu: View {
     let addFolder: () -> Void
+    /// `local-library`: a file brought in from elsewhere is copied into storage the app
+    /// owns. Its own control rather than a mode of "add a folder", because a reader adding
+    /// a folder is pointing at something they keep, and a reader importing is handing it over.
+    let importFile: () -> Void
     let addCatalogue: () -> Void
     let addKavita: () -> Void
     let addShare: () -> Void
@@ -162,6 +166,7 @@ struct AddSourceMenu: View {
     var body: some View {
         Menu {
             item("library.addFolder", "folder.badge.plus", addFolder)
+            ImportPublicationButton(action: importFile)
             item("catalogue.title", "dot.radiowaves.up.forward", addCatalogue)
             item("kavita.title", "externaldrive.connected.to.line.below", addKavita)
             item("smb.title", "externaldrive.badge.wifi", addShare)

@@ -29,14 +29,16 @@ object SafTree {
         val isDirectory: Boolean,
         val size: Long,
         /**
-         * When the provider last saw the document change, or 0 when it will not say.
+         * When the provider says it last changed, or 0 when it does not say.
          *
-         * The nearest thing a picked folder offers to a date added: the Storage
-         * Access Framework publishes one timestamp per document and no creation
-         * time, so this is the whole of what `library-browsing`'s date-added sort
-         * has to work with on this side of the walk.
+         * Two callers want it and neither would query twice for it. `library-browsing`
+         * sorts by date added, and the Storage Access Framework publishes one timestamp per
+         * document and no creation time, so this is the whole of what that sort has on this
+         * side of the walk. `local-library` reconciles a watched folder "by comparing file
+         * modification times and sizes", and a second query per file would cost more than
+         * the archive read it is there to avoid.
          */
-        val lastModified: Long,
+        val modifiedAtEpochMillis: Long = 0,
     )
 
     private val PROJECTION = arrayOf(
@@ -155,14 +157,16 @@ object SafTree {
                             } else {
                                 it.getLong(sizeColumn)
                             },
-                            // 0 means "the provider did not say". A document last
-                            // touched at the epoch is not a case worth telling
-                            // apart, and the library treats both as undated.
-                            lastModified = if (modifiedColumn < 0 || it.isNull(modifiedColumn)) {
-                                0L
-                            } else {
-                                it.getLong(modifiedColumn)
-                            },
+                            // 0 rather than -1, and 0 rather than absent: a provider that
+                            // does not say gets compared on its size alone, which is the
+                            // honest half of the answer, and the library treats a document
+                            // dated at the epoch as undated rather than as very old.
+                            modifiedAtEpochMillis =
+                                if (modifiedColumn < 0 || it.isNull(modifiedColumn)) {
+                                    0L
+                                } else {
+                                    it.getLong(modifiedColumn)
+                                },
                         ),
                     )
                 }

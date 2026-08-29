@@ -150,6 +150,8 @@ extension LibraryModel {
 
         // The publications it contributed go with it, and the rest of the shelf stays.
         publications.removeAll { $0.sourceID == source.id }
+        snapshots.removeValue(forKey: folder.path)
+        startWatching()
         rebuild()
     }
 }

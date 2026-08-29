@@ -242,4 +242,10 @@
         <item quantity="other">Garder %1$d publications sur cet appareil ?</item>
     </plurals>
     <string name="shelves_bulk">Toute l’étagère</string>
+    <string name="catalogue_acquire_other">Ouvrir en %1$s</string>
+    <string name="library_import">Importer un fichier</string>
+    <string name="library_import_failed_title">Impossible d’importer ce fichier</string>
+    <string name="library_import_failed">%1$s n’a pas pu être copié dans StoryArc. L’app lit les formats CBZ, CBR, CBT, EPUB et PDF.</string>
+    <string name="library_import_dismiss">OK</string>
+    <string name="source_on_this_device">Sur cet appareil</string>
 </resources>

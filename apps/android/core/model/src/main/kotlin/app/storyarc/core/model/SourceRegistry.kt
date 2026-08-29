@@ -93,6 +93,20 @@ data class SourceRegistry(
         copy(sources = sources.map { if (it.id == id) it.copy(state = state) else it })
 
     /**
+     * Drops a source outright, leaving no tombstone.
+     *
+     * For a row that should never have existed rather than for a removal. A tombstone says
+     * "the reader removed this and their progress should outlive it"; a source the app added
+     * on their behalf -- "On this device", holding copies they have since deleted -- says
+     * nothing of the sort, and leaving one would hold thirty days of retention open for it.
+     *
+     * iOS's `SourceRegistry.discarding(_:)` is the same operation, added there first for the
+     * duplicate-folder migration.
+     */
+    fun discarding(id: UUID): SourceRegistry =
+        copy(sources = sources.filterNot { it.id == id })
+
+    /**
      * Removes a source, and remembers that it was removed.
      *
      * The tombstone is the whole point. `sources` requires the app to retain "local

@@ -285,12 +285,15 @@ public enum PublicationFormat: String, Sendable, Codable, CaseIterable {
         }
     }
 
-    /// The media type that names this format, for a record that has to be read back.
+    /// The media type that names this format — the inverse of ``init(mediaType:)``.
     ///
-    /// The inverse of ``init(mediaType:)``, and it has to stay the inverse: a download
-    /// record keeps a media type and the store names the file on disk from it, so a type
-    /// that did not round-trip would write `x.cbz` and later go looking for `x.bin`.
-    public var mediaType: String {
+    /// `nil` for a folder of images, which is not a file and has no type of its own.
+    ///
+    /// Needed by `local-library`'s imported copies: the record of a copy on the device
+    /// stores a media type, and the store works the file's extension back out of it. A
+    /// format whose type did not round-trip would be written as `Bone.cbz` and looked for
+    /// as `Bone.bin`, which is a copy the app can no longer find.
+    public var mediaType: String? {
         switch self {
         case .cbz: "application/vnd.comicbook+zip"
         case .cbr: "application/vnd.comicbook-rar"
@@ -298,10 +301,7 @@ public enum PublicationFormat: String, Sendable, Codable, CaseIterable {
         case .cbt: "application/vnd.comicbook+tar"
         case .epub: "application/epub+zip"
         case .pdf: "application/pdf"
-        // A folder of images is not a type anybody publishes, and it round-trips through
-        // nothing. Named rather than defaulted so the switch stays total, and answered
-        // honestly so a caller that needs one file can see there is none.
-        case .imageFolder: "inode/directory"
+        case .imageFolder: nil
         }
     }
 

@@ -77,9 +77,12 @@ extension LibraryModel {
         // Named by identity, deliberately, and not by the title: ``DownloadStore/removing``
         // looks for the file under the identity, so a copy filed under its title is a copy
         // Settings › Downloads and storage can forget but not delete.
+        // A folder of images has no media type and is not one file, so there is nothing
+        // here to copy. It is also already on the device, which is what this exists for.
+        guard let mediaType = publication.format.mediaType else { return nil }
         let destination = store.location(
             for: publication.id,
-            extension: DownloadStore.extension(for: publication.format.mediaType)
+            extension: DownloadStore.extension(for: mediaType)
         )
         return await Task.detached(priority: .utility) { () -> Int64? in
             let manager = FileManager.default
@@ -103,6 +106,8 @@ extension LibraryModel {
         bytes: Int64,
         in store: DownloadStore
     ) {
+        // The copy would not exist without one; `copy` refuses before reaching here.
+        guard let mediaType = publication.format.mediaType else { return }
         store.save(
             store.library().queueing(
                 Download(
@@ -111,7 +116,7 @@ extension LibraryModel {
                     title: publication.displayTitle,
                     // Where it came from, which for this one is the reader's own folder.
                     remote: url,
-                    mediaType: publication.format.mediaType,
+                    mediaType: mediaType,
                     state: .finished,
                     expectedBytes: bytes,
                     downloadedBytes: bytes,

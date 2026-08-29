@@ -99,7 +99,10 @@ internal object KeepOffline {
         publication: Publication,
         path: String,
     ): Long? = withContext(Dispatchers.IO) {
-        val target = store.location(publication.id, extensionOf(publication.format.mediaType))
+        // A folder of images has no media type and is not one file, so there is nothing
+        // here to copy. It is also already on the device, which is what this exists for.
+        val mediaType = publication.format.mediaType ?: return@withContext null
+        val target = store.location(publication.id, extensionOf(mediaType))
         store.prepare(target)
         runCatching {
             // Replaced rather than refused: a copy left behind by a removal that only got
@@ -114,6 +117,8 @@ internal object KeepOffline {
 
     /** Writes the record that makes the copy a download rather than a stray file. */
     private fun record(store: DownloadStore, publication: Publication, path: String, bytes: Long) {
+        // The copy would not exist without one; `copy` refuses before reaching here.
+        val mediaType = publication.format.mediaType ?: return
         store.save(
             store.library().queueing(
                 Download(
@@ -122,7 +127,7 @@ internal object KeepOffline {
                     title = publication.displayTitle,
                     // Where it came from, which for this one is the reader's own folder.
                     remote = path,
-                    mediaType = publication.format.mediaType,
+                    mediaType = mediaType,
                     state = Download.State.Finished,
                     expectedBytes = bytes,
                     downloadedBytes = bytes,

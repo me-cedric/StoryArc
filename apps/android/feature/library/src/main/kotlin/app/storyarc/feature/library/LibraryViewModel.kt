@@ -10,8 +10,10 @@ import androidx.lifecycle.viewModelScope
 import app.storyarc.core.format.LibraryScanner
 import app.storyarc.core.format.CoverCache
 import app.storyarc.core.format.PublicationAccess
+import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.format.SafTree
 import app.storyarc.core.format.ScanEvent
+import app.storyarc.core.model.FolderSnapshot
 import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
@@ -19,6 +21,13 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.model.RecentSearches
+import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.ImportedCopies
+import app.storyarc.core.persistence.ImportedCopy
+import app.storyarc.core.persistence.documentNameOf
+import app.storyarc.core.persistence.importing
+import app.storyarc.core.persistence.imports
+import app.storyarc.core.persistence.locationOf
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.model.Source
 import java.util.UUID
@@ -35,10 +44,10 @@ import app.storyarc.core.model.BulkSelection
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
 import app.storyarc.core.model.Shelves
-import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.ShelvesStore
 import app.storyarc.core.persistence.SourceStore
 import app.storyarc.core.persistence.ProgressStore
+import app.storyarc.core.persistence.ScanJournal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -66,6 +75,17 @@ class LibraryViewModel(
     private val preferences: LibraryPreferences? = null,
     private val sourceStore: SourceStore? = null,
     private val shelvesStore: ShelvesStore? = null,
+    /**
+     * Where copies the reader imported live. `local-library` asks for them to be kept in
+     * "app-managed storage", and this store already owns exactly that -- see
+     * [ImportedCopies].
+     */
+    private val downloadStore: DownloadStore? = null,
+    /**
+     * What an interrupted scan wrote down. `local-library` requires a scan to be
+     * "cancellable and resumable" -- see [ScanJournal] for why those are one promise.
+     */
+    private val journal: ScanJournal? = null,
 ) : AndroidViewModel(application) {
 
     /**
@@ -353,6 +373,7 @@ class LibraryViewModel(
         // at launch at all, and a comic dropped into the app's own folder stayed invisible
         // until someone pressed refresh.
         rescan()
+        startWatching()
     }
 
     /**
@@ -367,6 +388,7 @@ class LibraryViewModel(
         _unavailableFolders.value = emptyList()
         register(tree)
         rescan()
+        startWatching()
     }
 
     /**
@@ -490,7 +512,9 @@ class LibraryViewModel(
                 Intent.FLAG_GRANT_READ_URI_PERMISSION,
             )
         }
+        snapshots.remove(tree.toString())
         rescan()
+        startWatching()
     }
 
     /**
@@ -520,9 +544,26 @@ class LibraryViewModel(
         _scanState.value = LibraryScanState.Scanning(_publications.value.size)
 
         val trees = _folders.value
+        // Put back before the walk starts, so a reader who left mid-scan comes back to the
+        // library they had rather than to an empty grid filling up again.
+        val resumed = trees.associate { tree ->
+            tree.toString() to journal?.indexed(tree.toString()).orEmpty()
+        }
+        for ((tree, publications) in resumed) {
+            val sourceId = sourceOf(Uri.parse(tree))
+            for (publication in publications) {
+                adopt(publication, sourceId)
+                publication.identity.normalizedPath?.let { locations[publication.id] = it }
+            }
+        }
+        if (_publications.value.isNotEmpty()) {
+            _scanState.value = LibraryScanState.Scanning(_publications.value.size)
+            rebuild()
+        }
+
         scanJob = viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                var found = 0
+                var found = _publications.value.size
                 var skipped = 0
                 // What this walk actually saw, so what it did not see can go afterwards.
                 val seen = mutableSetOf<String>()
@@ -533,9 +574,20 @@ class LibraryViewModel(
                     if (trees.isEmpty()) {
                         listOf(null to LibraryScanner.scan(managedFolder))
                     } else {
-                        trees.map { it to LibraryScanner.scan(resolver, it) }
+                        trees.map { tree ->
+                            // Matched on the path, which is what a directory walk knows. A
+                            // publication whose identity is a content digest is still filed
+                            // under the document it came out of.
+                            val done = resumed[tree.toString()]
+                                .orEmpty()
+                                .mapNotNull { it.identity.normalizedPath }
+                                .toSet()
+                            tree to LibraryScanner.scan(resolver, tree, done)
+                        }
                     }
                 for ((tree, walk) in walks) {
+                    scanningFolder = tree?.toString()
+                    scanned = resumed[tree?.toString()].orEmpty().toMutableList()
                     walk.collect { event ->
                         when (event) {
                             is ScanEvent.Found -> {
@@ -546,6 +598,11 @@ class LibraryViewModel(
                             is ScanEvent.Finished -> {
                                 found += event.found
                                 skipped += event.skipped
+                                // Nothing left to resume. Cleared rather than kept: this is
+                                // a journal, not the metadata cache `sources` asks for, and
+                                // a journal that outlived its scan would be a stale library
+                                // nobody decided to keep.
+                                tree?.let { journal?.clear(it.toString()) }
                             }
                         }
                     }
@@ -569,7 +626,16 @@ class LibraryViewModel(
                     _publications.update { list -> list.filterNot { it.id in vanished } }
                     vanished.forEach { covers.remove(it); locations.remove(it) }
                 }
+                scanningFolder = null
+                scanned = mutableListOf()
                 _scanState.value = LibraryScanState.Finished(found, skipped)
+                // What each folder held at the moment the scan agreed with it. Without this
+                // the first reconcile would see every file as new and re-read the whole
+                // library to learn nothing.
+                for (tree in trees) {
+                    snapshots[tree.toString()] =
+                        FolderSnapshot.of(LibraryScanner.entries(resolver, tree))
+                }
                 rebuild()
                 cacheLibrary()
             }
@@ -633,6 +699,9 @@ class LibraryViewModel(
     fun cancelScan() {
         scanJob?.cancel()
         scanJob = null
+        // Written down rather than lost, which is what makes the next scan of this folder a
+        // resumption instead of a repetition.
+        scanningFolder?.let { journal?.record(scanned, it) }
         (_scanState.value as? LibraryScanState.Scanning)?.let {
             _scanState.value = LibraryScanState.Finished(it.found, 0)
         }
@@ -642,8 +711,32 @@ class LibraryViewModel(
         // Attributed here rather than by the indexer, which reads bytes and has no idea a
         // registry exists. `sources` needs this for a source's item count, and
         // `library-browsing` for the order two sources holding one title appear in.
-        val sourceId = sourceOf(tree)
+        if (!adopt(publication, sourceOf(tree))) return
+        (_scanState.value as? LibraryScanState.Scanning)?.let {
+            _scanState.value = LibraryScanState.Scanning(it.found + 1)
+        }
+        // ponytail: re-arranged in batches during a scan, not per publication --
+        // sorting after every one of 10,000 appends is quadratic. The scan's own
+        // completion rebuilds the rest, so the only visible effect is that the
+        // last few rows arrive together.
+        if (_publications.value.size % REBUILD_EVERY == 0) rebuild()
+        // Written down on the same beat. A journal flushed per publication would cost a
+        // preferences write per file; one every two dozen loses at most that many to a
+        // process the system reclaims without warning -- which is the case this exists for,
+        // because a killed process runs no cleanup of its own.
+        scanned += publication
+        val folder = scanningFolder
+        if (folder != null && scanned.size % REBUILD_EVERY == 0) journal?.record(scanned, folder)
+    }
 
+    /**
+     * Puts a publication in the library under the source it was reached through, and says
+     * whether it was new.
+     *
+     * Shared by the folder scan and by the imported copies, which find publications two
+     * entirely different ways and have to agree about what one row means.
+     */
+    private fun adopt(publication: Publication, sourceId: UUID?): Boolean {
         val seen = _publications.value.indexOfFirst { it.identity.matches(publication.identity) }
         if (seen >= 0) {
             // Unless the second find knows something the first did not. The app's own files
@@ -657,23 +750,268 @@ class LibraryViewModel(
                     }
                 }
             }
-            return
+            return false
         }
 
         publication.identity.normalizedPath?.let { locations[publication.id] = it }
         _publications.update { it + publication.copy(sourceId = sourceId) }
-        (_scanState.value as? LibraryScanState.Scanning)?.let {
-            _scanState.value = LibraryScanState.Scanning(it.found + 1)
+        return true
+    }
+
+    /**
+     * The folder being walked, and what has been indexed in it so far.
+     *
+     * Held so an interrupted scan can be written down and picked up. `local-library` requires
+     * a scan to be "cancellable and resumable", which are one promise: a reader who stops a
+     * scan and starts it again should not wait for the same archives twice.
+     */
+    private var scanningFolder: String? = null
+    private var scanned: MutableList<Publication> = mutableListOf()
+
+    // Watched changes
+
+    /**
+     * What each watched folder held when it was last looked at, keyed by the tree it came
+     * from.
+     *
+     * In memory rather than on disk. `local-library` asks for a change made while the app was
+     * away to be reconciled cheaply, and a launch has nothing to reconcile *against* -- the
+     * publications themselves are not cached either, so a snapshot read from disk would
+     * describe a library this process has not built yet.
+     */
+    private val snapshots = mutableMapOf<String, FolderSnapshot>()
+
+    private val watcher = FolderWatcher(resolver)
+
+    /**
+     * Watches every folder the reader added.
+     *
+     * Called whenever the set of folders changes, which is the only thing that invalidates
+     * what is being watched.
+     */
+    private fun startWatching() {
+        if (_folders.value.isEmpty()) {
+            watcher.stop()
+            return
         }
-        // ponytail: re-arranged in batches during a scan, not per publication --
-        // sorting after every one of 10,000 appends is quadratic. The scan's own
-        // completion rebuilds the rest, so the only visible effect is that the
-        // last few rows arrive together.
-        if (_publications.value.size % REBUILD_EVERY == 0) rebuild()
+        watcher.watch(_folders.value) { reconcileWatchedFolders() }
+    }
+
+    /** Stops watching. The library stays; only the registrations go. */
+    fun stopWatching() {
+        watcher.stop()
+    }
+
+    override fun onCleared() {
+        watcher.stop()
+        super.onCleared()
+    }
+
+    /** Brings every watched folder up to date. */
+    fun reconcileWatchedFolders() {
+        val trees = _folders.value
+        if (trees.isEmpty()) return
+        viewModelScope.launch {
+            for (tree in trees) reconcile(tree)
+        }
+    }
+
+    /**
+     * Notices what changed in one folder, and re-reads only that.
+     *
+     * Nothing happens at all when the folder is unchanged, which is the common case: the
+     * listing is compared, it matches, and not one archive is opened.
+     */
+    private suspend fun reconcile(tree: Uri) {
+        val listing = withContext(Dispatchers.IO) { LibraryScanner.listing(resolver, tree) }
+        val walked = listing.map { it.entry }
+        val snapshot = snapshots[tree.toString()] ?: FolderSnapshot()
+        // Null means the walk found nothing where something used to be -- an unreadable
+        // folder far more often than a reader who deleted every book. Nothing is removed and
+        // the snapshot is left alone; see `FolderSnapshot.change`.
+        val change = snapshot.change(walked) ?: return
+        if (change.isEmpty) return
+
+        val sourceId = sourceOf(tree)
+        // A changed file is re-read from scratch rather than patched: its series, its page
+        // count and its cover can all have moved, and there is no cheaper honest answer.
+        for (path in change.removed + change.changed.map { it.path }) forget(path)
+
+        val byPath = listing.associateBy { it.entry.path }
+        for (entry in change.toIndex) {
+            val listed = byPath[entry.path] ?: continue
+            val publication = withContext(Dispatchers.IO) {
+                runCatching { LibraryScanner.index(resolver, tree, listed) }.getOrNull()
+            } ?: continue
+            adopt(publication, sourceId)
+            locations[publication.id] = entry.path
+        }
+
+        snapshots[tree.toString()] = snapshot.updated(walked)
+        rebuild()
+        refreshProgress()
+    }
+
+    /**
+     * Drops the row for a file that has gone or has been replaced.
+     *
+     * By path rather than by identity, because the path is the only thing a directory
+     * listing knows -- and it is what [locations] is keyed on for exactly this.
+     */
+    private fun forget(path: String) {
+        val gone = locations.filterValues { it == path }.keys.toSet()
+        if (gone.isEmpty()) return
+        _publications.update { current -> current.filterNot { it.id in gone } }
+        locations.keys.removeAll(gone)
+    }
+
+    // Imported copies
+
+    /**
+     * The last import that did not happen, named so the reader can be told which file.
+     *
+     * `local-library` forbids a generic failure elsewhere and there is no reason an import
+     * should be the exception: a reader who picked the wrong file needs to know it was the
+     * file rather than the app.
+     */
+    private val _importFailure = MutableStateFlow<String?>(null)
+    val importFailure: StateFlow<String?> = _importFailure.asStateFlow()
+
+    fun dismissImportFailure() {
+        _importFailure.value = null
+    }
+
+    /**
+     * Copies a publication into app storage and puts it in the library.
+     *
+     * The copy is indexed the same way a scanned file is, through [PublicationIndexer], so
+     * an imported comic carries the same title, series and cover a found one does. Indexing
+     * the *copy* rather than the original is what makes the promise true: from here on the
+     * library reads only bytes the app owns.
+     */
+    fun importFile(uri: Uri) {
+        val store = downloadStore ?: return
+        viewModelScope.launch {
+            val copy: ImportedCopy? = withContext(Dispatchers.IO) {
+                runCatching { store.importing(resolver, uri, store.library()) }.getOrNull()
+            }
+            if (copy == null) {
+                // Named, not silent. A reader who picked a file StoryArc cannot read has no
+                // way to tell that from a broken app unless the app says which it is.
+                _importFailure.value = withContext(Dispatchers.IO) {
+                    documentNameOf(resolver, uri)
+                }
+                return@launch
+            }
+            registerImportedSource()
+            indexImport(copy.file)
+            rebuild()
+        }
+    }
+
+    /**
+     * Reconciles the library with what has actually been imported.
+     *
+     * Called on every resume rather than once on launch, because the copies can change while
+     * the library is off screen: Settings is where one is deleted, and a library that only
+     * read the store at startup would keep offering a book whose bytes are gone.
+     */
+    fun refreshImports() {
+        val store = downloadStore ?: return
+        viewModelScope.launch {
+            val imports = withContext(Dispatchers.IO) { store.imports(store.library()) }
+            val files = imports.map { store.locationOf(it).absolutePath }.toSet()
+
+            // Rows whose copy has been deleted go. The record is the authority here, not a
+            // filesystem walk: this store is the app's own, so an empty list means the
+            // reader deleted their last import rather than that a folder could not be read.
+            _publications.update { current ->
+                current.filterNot { publication ->
+                    publication.sourceId == ImportedCopies.SOURCE_ID &&
+                        locations[publication.id].orEmpty() !in files
+                }
+            }
+
+            if (imports.isEmpty()) {
+                forgetImportedSource()
+                rebuild()
+                return@launch
+            }
+
+            registerImportedSource()
+            for (download in imports) {
+                val file = store.locationOf(download)
+                if (!file.exists() || file.absolutePath in locations.values) continue
+                indexImport(file)
+            }
+            rebuild()
+        }
+    }
+
+    /** What all the imported copies weigh, for a screen that reports the space used. */
+    suspend fun importedBytes(): Long {
+        val store = downloadStore ?: return 0
+        return withContext(Dispatchers.IO) {
+            store.imports(store.library()).sumOf { it.downloadedBytes }
+        }
+    }
+
+    private suspend fun indexImport(file: File) {
+        val publication = withContext(Dispatchers.IO) {
+            runCatching { PublicationIndexer.index(file) }.getOrNull()
+        } ?: return
+        adopt(publication, ImportedCopies.SOURCE_ID)
+        // Set again rather than left to `adopt`: the identity of a PDF or an EPUB can carry
+        // a content digest instead of a path, and the reader still has to be handed the file.
+        locations[publication.id] = file.absolutePath
+    }
+
+    /**
+     * Puts "On this device" in the registry, if it is not there already.
+     *
+     * Added the moment there is something in it rather than at launch: `sources` requires
+     * the empty state to name the four source types, and a fifth row for a source holding
+     * nothing would be a source the reader never added.
+     */
+    private fun registerImportedSource() {
+        if (_registry.value[ImportedCopies.SOURCE_ID] != null) return
+        _registry.update {
+            it.adding(
+                Source(
+                    id = ImportedCopies.SOURCE_ID,
+                    displayName = getApplication<Application>()
+                        .getString(R.string.source_on_this_device),
+                    kind = SourceKind.LOCAL_FOLDER,
+                    state = SourceConnectionState.Connected,
+                    // Not a tree `Uri`, and deliberately something no picked folder can be:
+                    // a folder's locator is the `Uri` the picker returned, which always
+                    // carries a scheme. Without that, a matching folder would be adopted as
+                    // the reader's imports.
+                    locator = IMPORTED_LOCATOR,
+                ),
+            )
+        }
+        sourceStore?.save(_registry.value)
+    }
+
+    /**
+     * Takes "On this device" out again when the last copy has been deleted.
+     *
+     * Discarded rather than tombstoned. A tombstone says the reader removed a source and
+     * their progress should outlive it; this source was never added by hand, and holding
+     * thirty days of retention open for it would be retention for nothing.
+     */
+    private fun forgetImportedSource() {
+        if (_registry.value[ImportedCopies.SOURCE_ID] == null) return
+        _registry.update { it.discarding(ImportedCopies.SOURCE_ID) }
+        sourceStore?.save(_registry.value)
     }
 
     private companion object {
         const val REBUILD_EVERY = 24
+
+        /** What "On this device" points at, which is not a folder anyone picked. */
+        const val IMPORTED_LOCATOR = "storyarc/imported"
     }
 
     fun setQuery(value: LibraryQuery) {

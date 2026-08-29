@@ -958,6 +958,36 @@
         }
       }
     },
+    "downloads.remove.body.imported %@ %@": {
+      "comment": "Shown before deleting a copy the reader imported. The first value is the title, the second the space it frees.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dies löscht die von StoryArc aufbewahrte Kopie von %@ und gibt %@ frei. Die Originaldatei anderswo auf Ihrem Gerät bleibt unberührt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This deletes the copy of %@ that StoryArc keeps, freeing %@. The original file elsewhere on your device is not touched."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto elimina la copia de %@ que guarda StoryArc y libera %@. El archivo original en otro lugar de su dispositivo no se toca."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cela supprime la copie de %@ conservée par StoryArc et libère %@. Le fichier d’origine ailleurs sur votre appareil n’est pas touché."
+          }
+        }
+      }
+    },
     "downloads.remove.title": {
       "extractionState": "manual",
       "localizations": {

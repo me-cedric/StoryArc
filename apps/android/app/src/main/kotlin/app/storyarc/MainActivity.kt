@@ -34,6 +34,8 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.ScanJournal
+import app.storyarc.core.persistence.locationOf
 import app.storyarc.core.persistence.RemovedDownload
 import app.storyarc.core.persistence.finishedDownload
 import app.storyarc.core.persistence.removeAfterFinishing
@@ -186,6 +188,9 @@ class MainActivity : ComponentActivity() {
         val pins = CertificatePins(pinStore.pins())
         val downloadStore = DownloadStore.open(applicationContext)
         val kavitaProgress = KavitaProgressStore.open(applicationContext)
+        // What an interrupted scan wrote down, so the next one picks up rather than starting
+        // again. `local-library` requires a scan to be "cancellable and resumable".
+        val scanJournal = ScanJournal.open(applicationContext)
 
         // How the reader reaches a share. Registered here because this is where the source
         // registry and the credential store both are; `core:format` stays unaware that SMB
@@ -280,7 +285,18 @@ class MainActivity : ComponentActivity() {
                 val libraryViewModel = viewModel<LibraryViewModel>(
                     factory = viewModelFactory {
                         initializer {
-                            LibraryViewModel(application, progress, preferences, sourceStore, shelvesStore)
+                            LibraryViewModel(
+                                application,
+                                progress,
+                                preferences,
+                                sourceStore,
+                                shelvesStore,
+                                // The same store the downloads use. `local-library`'s
+                                // imported copies live beside them on purpose -- see
+                                // `ImportedCopies`.
+                                downloadStore,
+                                scanJournal,
+                            )
                         }
                     },
                 )
@@ -550,13 +566,17 @@ class MainActivity : ComponentActivity() {
                             downloadStore.save(downloads)
                         },
                         onRemoveDownload = { download ->
-                            downloadStore.location(
-                                download.id,
-                                PublicationFormat.ofMediaType(download.mediaType)
-                                    ?.name?.lowercase() ?: "bin",
-                            ).delete()
+                            // Asked of the store rather than composed here. The file is named
+                            // after the publication and filed under its identifier, and this
+                            // deleted `<id>/<id>.cbz` -- a path nothing has been written to
+                            // since downloads started carrying the reader's own title.
+                            downloadStore.delete(downloadStore.locationOf(download))
                             downloads = downloads.removing(download.id)
                             downloadStore.save(downloads)
+                            // The library holds a row for every imported copy, and a row
+                            // whose file has just been deleted is a book that opens onto
+                            // nothing.
+                            libraryViewModel.refreshImports()
                         },
                         onClearDownloads = {
                             // The bytes behind the ten-second undo are staged *inside* the

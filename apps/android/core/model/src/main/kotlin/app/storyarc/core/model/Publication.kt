@@ -90,13 +90,16 @@ enum class PublicationFormat {
         }
 
     /**
-     * The media type that names this format, for a record that has to be read back.
+     * The media type that names this format — the inverse of [ofMediaType].
      *
-     * The inverse of [ofMediaType], and it has to stay the inverse: a download record keeps
-     * a media type and the store names the file on disk from it, so a type that did not
-     * round-trip would write `x.cbz` and later go looking for `x.bin`.
+     * Null for a folder of images, which is not a file and has no type of its own.
+     *
+     * Needed by `local-library`'s imported copies: the record of a copy on the device
+     * stores a media type, and the store works the file's extension back out of it. A
+     * format whose type did not round-trip would be written as `Bone.cbz` and looked for as
+     * `Bone.bin`, which is a copy the app can no longer find.
      */
-    val mediaType: String
+    val mediaType: String?
         get() = when (this) {
             CBZ -> "application/vnd.comicbook+zip"
             CBR -> "application/vnd.comicbook-rar"
@@ -104,10 +107,7 @@ enum class PublicationFormat {
             CBT -> "application/vnd.comicbook+tar"
             EPUB -> "application/epub+zip"
             PDF -> "application/pdf"
-            // A folder of images is not a type anybody publishes, and it round-trips
-            // through nothing. Named rather than defaulted so the `when` stays exhaustive,
-            // and answered honestly so a caller that needs one file can see there is none.
-            IMAGE_FOLDER -> "inode/directory"
+            IMAGE_FOLDER -> null
         }
 
     /**
