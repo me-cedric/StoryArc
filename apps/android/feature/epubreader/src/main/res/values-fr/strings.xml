@@ -84,4 +84,5 @@
     <string name="epub_search_running">Recherche en cours…</string>
     <string name="epub_search_none">Aucun résultat pour « %1$s ».</string>
     <string name="epub_return">Revenir où vous étiez</string>
+    <string name="theme_axis_hyphenation">Césure</string>
 </resources>

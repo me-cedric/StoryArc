@@ -67,6 +67,7 @@ enum class ThemeAxis {
     PARAGRAPH_SPACING,
     MARGINS,
     TEXT_ALIGNMENT,
+    HYPHENATION,
 
     ;
 
@@ -80,7 +81,11 @@ enum class ThemeAxis {
     val requiresPublisherStylesOff: Boolean
         get() = when (this) {
             FONT_SIZE, FONT_FAMILY, BOLD_TEXT, MARGINS -> false
-            LINE_SPACING, CHARACTER_SPACING, WORD_SPACING, PARAGRAPH_SPACING, TEXT_ALIGNMENT -> true
+            // A publisher's stylesheet can set `hyphens` too, and Readium's own mapping
+            // puts it with the properties publisher CSS overrides.
+            LINE_SPACING, CHARACTER_SPACING, WORD_SPACING, PARAGRAPH_SPACING, TEXT_ALIGNMENT,
+            HYPHENATION,
+            -> true
         }
 }
 

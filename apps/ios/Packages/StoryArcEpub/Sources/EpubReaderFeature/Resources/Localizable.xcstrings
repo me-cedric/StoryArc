@@ -726,6 +726,35 @@
         }
       }
     },
+    "theme.axis.hyphenation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hyphenation"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Césure"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Silbentrennung"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partición de palabras"
+          }
+        }
+      }
+    },
     "theme.axis.lineSpacing": {
       "extractionState": "manual",
       "localizations": {

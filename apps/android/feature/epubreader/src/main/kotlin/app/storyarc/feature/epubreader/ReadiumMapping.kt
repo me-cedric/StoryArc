@@ -65,6 +65,10 @@ internal fun ReadingTheme.preferences(
         // A weight rather than a family: `reading-themes` says bold "raises weight
         // without changing family".
         fontWeight = if (values.isBold) 1.5 else null,
+        // Null rather than false when the reader has not asked for it, so the publication
+        // keeps whatever its own stylesheet says. Passing false would be StoryArc turning
+        // off a publisher's hyphenation on every book that wanted it.
+        hyphens = if (values.isHyphenated) true else null,
         letterSpacing = values.letterSpacing,
         lineHeight = values.lineHeight,
         pageMargins = values.pageMargins,

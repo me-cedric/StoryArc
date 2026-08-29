@@ -23,15 +23,16 @@ struct ReadingThemeTests {
         }
     }
 
-    @Test("Nine axes, and the spacing ones need the publisher's styles off")
+    @Test("Ten axes, and the ones publisher CSS overrides need its styles off")
     func axes() {
-        #expect(ThemeAxis.allCases.count == 9)
+        #expect(ThemeAxis.allCases.count == 10)
         // From `design.md`'s mapping table — Readium's behaviour, not ours.
         for axis in [ThemeAxis.fontSize, .fontFamily, .boldText, .margins] {
             #expect(!axis.requiresPublisherStylesOff, "\(axis) reaches the page regardless")
         }
         for axis in [
-            ThemeAxis.lineSpacing, .characterSpacing, .wordSpacing, .paragraphSpacing, .textAlignment,
+            ThemeAxis.lineSpacing, .characterSpacing, .wordSpacing, .paragraphSpacing,
+            .textAlignment, .hyphenation,
         ] {
             #expect(axis.requiresPublisherStylesOff, "\(axis) is overridden by publisher CSS")
         }
@@ -47,14 +48,15 @@ struct ReadingThemeTests {
         #expect(theme.isEffective(.margins))
         #expect(!theme.isEffective(.lineSpacing))
         #expect(!theme.isEffective(.textAlignment))
-        // Four of nine, which is what the sheet has to show as unavailable.
+        #expect(!theme.isEffective(.hyphenation))
+        // Four of ten, which is what the sheet has to show as unavailable.
         #expect(theme.effectiveAxes.count == 4)
     }
 
-    @Test("Under every other preset all nine axes reach the page")
+    @Test("Under every other preset all ten axes reach the page")
     func othersEnableEverything() {
         for preset in ThemePreset.allCases where preset != .original {
-            #expect(ReadingTheme(preset: preset).effectiveAxes.count == 9)
+            #expect(ReadingTheme(preset: preset).effectiveAxes.count == 10)
         }
     }
 

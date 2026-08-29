@@ -155,6 +155,13 @@ public struct ThemeValues: Sendable, Equatable, Codable {
     /// Multiplier on Readium's own page margin.
     public var pageMargins: Double
     public var textAlignment: ReaderTextAlignment
+    /// Whether words may break across a line.
+    ///
+    /// `ebook-reader` lists hyphenation beside the spacings as something a reader adjusts.
+    /// Off by default because that is what a browser does with no `hyphens` property, so
+    /// leaving it alone is the publication as its publisher laid it out — and because a
+    /// justified column is where hyphenation earns its keep, which is not every book.
+    public var isHyphenated: Bool
 
     public init(
         typeface: ReaderTypeface = .publisher,
@@ -165,12 +172,14 @@ public struct ThemeValues: Sendable, Equatable, Codable {
         wordSpacing: Double = 0,
         paragraphSpacing: Double = 0.5,
         pageMargins: Double = 1,
-        textAlignment: ReaderTextAlignment = .publisher
+        textAlignment: ReaderTextAlignment = .publisher,
+        isHyphenated: Bool = false
     ) {
         self.typeface = typeface
         self.fontSize = fontSize
         self.isBold = isBold
         self.lineHeight = lineHeight
+        self.isHyphenated = isHyphenated
         self.letterSpacing = letterSpacing
         self.wordSpacing = wordSpacing
         self.paragraphSpacing = paragraphSpacing
@@ -189,7 +198,8 @@ public extension ThemeAxis {
     /// switches phones.
     var sliderRange: ClosedRange<Double>? {
         switch self {
-        case .fontSize, .fontFamily, .boldText, .textAlignment: nil
+        // Hyphenation is a switch, like bold: a word either may break or it may not.
+        case .fontSize, .fontFamily, .boldText, .textAlignment, .hyphenation: nil
         // Below 1.0 the lines collide; above 2.5 a paragraph stops reading as one.
         case .lineSpacing: 1.0...2.5
         // Loose tracking is a legibility aid for some readers and unreadable past a
@@ -212,7 +222,7 @@ public extension ThemeAxis {
         switch self {
         case .lineSpacing, .margins: .multiple
         case .characterSpacing, .wordSpacing, .paragraphSpacing: .em
-        case .fontSize, .fontFamily, .boldText, .textAlignment: nil
+        case .fontSize, .fontFamily, .boldText, .textAlignment, .hyphenation: nil
         }
     }
 
@@ -255,7 +265,7 @@ public extension ThemeValues {
         case .paragraphSpacing: paragraphSpacing
         case .margins: pageMargins
         case .fontSize: Double(fontSize.rawValue)
-        case .fontFamily, .boldText, .textAlignment: 0
+        case .fontFamily, .boldText, .textAlignment, .hyphenation: 0
         }
     }
 
@@ -269,7 +279,7 @@ public extension ThemeValues {
         case .paragraphSpacing: copy.paragraphSpacing = value
         case .margins: copy.pageMargins = value
         // The ladder and the pickers are set directly; a Double cannot express them.
-        case .fontSize, .fontFamily, .boldText, .textAlignment: break
+        case .fontSize, .fontFamily, .boldText, .textAlignment, .hyphenation: break
         }
         return copy
     }

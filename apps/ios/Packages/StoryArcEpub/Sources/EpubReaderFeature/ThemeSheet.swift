@@ -223,6 +223,14 @@ struct ThemeSheet: View {
                     .textRole(.body)
                     .foregroundStyle(theme.palette.textPrimary)
             }
+
+            // Beside bold rather than among the sliders: both are switches, and
+            // `ebook-reader` lists hyphenation with the things a reader adjusts.
+            Toggle(isOn: hyphenationBinding) {
+                Text("theme.axis.hyphenation", bundle: .module)
+                    .textRole(.body)
+                    .foregroundStyle(theme.palette.textPrimary)
+            }
         }
     }
 

@@ -375,6 +375,32 @@ private fun TypefaceControl(
                 onCheckedChange = null,
             )
         }
+
+        // Beside bold rather than among the sliders: both are switches, and
+        // `ebook-reader` lists hyphenation with the things a reader adjusts.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = values.isHyphenated,
+                    role = Role.Switch,
+                    onValueChange = {
+                        onChange(ThemeAxis.HYPHENATION, values.copy(isHyphenated = it))
+                    },
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.theme_axis_hyphenation),
+                style = MaterialTheme.typography.bodyMedium,
+                color = palette.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = values.isHyphenated,
+                onCheckedChange = null,
+            )
+        }
     }
 }
 
@@ -881,4 +907,5 @@ internal val ThemeAxis.labelRes: Int
         ThemeAxis.PARAGRAPH_SPACING -> R.string.theme_axis_paragraph_spacing
         ThemeAxis.MARGINS -> R.string.theme_axis_margins
         ThemeAxis.TEXT_ALIGNMENT -> R.string.theme_axis_text_alignment
+        ThemeAxis.HYPHENATION -> R.string.theme_axis_hyphenation
     }

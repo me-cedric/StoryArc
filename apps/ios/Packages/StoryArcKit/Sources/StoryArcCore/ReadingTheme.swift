@@ -49,6 +49,7 @@ public enum ThemeAxis: String, Sendable, Codable, CaseIterable {
     case paragraphSpacing
     case margins
     case textAlignment
+    case hyphenation
 
     /// Whether this axis needs the publisher's stylesheet switched off.
     ///
@@ -58,7 +59,10 @@ public enum ThemeAxis: String, Sendable, Codable, CaseIterable {
     public var requiresPublisherStylesOff: Bool {
         switch self {
         case .fontSize, .fontFamily, .boldText, .margins: false
-        case .lineSpacing, .characterSpacing, .wordSpacing, .paragraphSpacing, .textAlignment: true
+        case .lineSpacing, .characterSpacing, .wordSpacing, .paragraphSpacing, .textAlignment,
+             // A publisher's stylesheet can set `hyphens` too, and Readium's own mapping
+             // puts it with the properties publisher CSS overrides.
+             .hyphenation: true
         }
     }
 }

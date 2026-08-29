@@ -211,6 +211,7 @@ extension ThemeAxis {
         case .paragraphSpacing: "theme.axis.paragraphSpacing"
         case .margins: "theme.axis.margins"
         case .textAlignment: "theme.axis.textAlignment"
+        case .hyphenation: "theme.axis.hyphenation"
         }
     }
 }

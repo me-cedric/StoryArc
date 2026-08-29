@@ -103,7 +103,7 @@ cp packages/test-fixtures/comics/*.cbz "$(xcrun simctl get_app_container booted 
 `Packages/StoryArcKit` holds everything: the domain, the format layer, the design
 system, the library and the comic reader. It builds for iOS **and macOS**, so its
 pure-Swift targets can be tested on the host without a simulator — that is what
-makes 252 tests run in a fraction of a second.
+makes 622 tests run in a fraction of a second.
 
 `Packages/StoryArcEpub` holds one thing: reflowable EPUB rendering, on Readium.
 It exists only because Readium declares iOS support alone, and SwiftPM validates a

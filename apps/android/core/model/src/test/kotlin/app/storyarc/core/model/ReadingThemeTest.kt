@@ -29,8 +29,8 @@ class ReadingThemeTest {
     }
 
     @Test
-    fun `nine axes, and the spacing ones need the publisher's styles off`() {
-        assertEquals(9, ThemeAxis.entries.size)
+    fun `ten axes, and the ones publisher CSS overrides need its styles off`() {
+        assertEquals(10, ThemeAxis.entries.size)
         // From `design.md`'s mapping table — Readium's behaviour, not ours.
         listOf(ThemeAxis.FONT_SIZE, ThemeAxis.FONT_FAMILY, ThemeAxis.BOLD_TEXT, ThemeAxis.MARGINS)
             .forEach { assertFalse("$it reaches the page regardless", it.requiresPublisherStylesOff) }
@@ -53,14 +53,15 @@ class ReadingThemeTest {
         assertTrue(theme.isEffective(ThemeAxis.MARGINS))
         assertFalse(theme.isEffective(ThemeAxis.LINE_SPACING))
         assertFalse(theme.isEffective(ThemeAxis.TEXT_ALIGNMENT))
-        // Four of nine, which is what the sheet has to show as unavailable.
+        assertFalse(theme.isEffective(ThemeAxis.HYPHENATION))
+        // Four of ten, which is what the sheet has to show as unavailable.
         assertEquals(4, theme.effectiveAxes.size)
     }
 
     @Test
-    fun `under every other preset all nine axes reach the page`() {
+    fun `under every other preset all ten axes reach the page`() {
         ThemePreset.entries.filter { it != ThemePreset.ORIGINAL }.forEach {
-            assertEquals(9, ReadingTheme(it).effectiveAxes.size)
+            assertEquals(10, ReadingTheme(it).effectiveAxes.size)
         }
     }
 

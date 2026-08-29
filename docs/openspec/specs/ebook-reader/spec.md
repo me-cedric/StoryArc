@@ -85,6 +85,15 @@ The app SHALL let a user move around a publication and mark places in it.
 - **WHEN** a user follows a footnote or internal link
 - **THEN** a footnote opens in place as a popover, and a longer jump navigates with a control to return to where they were
 
+#### Scenario: Returning from any jump
+- **WHEN** a user has been moved away from where they were reading — by a link, a table-of-contents entry, a bookmark, or a search result
+- **THEN** the same control to return is offered, because these are one act from the reader's side
+- **AND** it is offered until it is used or another jump replaces it, and using it does not itself become somewhere to return from
+
+#### Scenario: Following a link out of the publication
+- **WHEN** a user follows a link to somewhere outside the publication
+- **THEN** it is handed to the system rather than opened over the text, and nothing is fetched until the link is followed
+
 ### Requirement: PDF rendering
 
 The app SHALL render PDF as a paged publication.

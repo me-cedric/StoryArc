@@ -161,6 +161,15 @@ data class ThemeValues(
     val typeface: ReaderTypeface = ReaderTypeface.PUBLISHER,
     val fontSize: FontSizeStep = FontSizeStep.NORMAL,
     val isBold: Boolean = false,
+    /**
+     * Whether words may break across a line.
+     *
+     * `ebook-reader` lists hyphenation beside the spacings as something a reader adjusts.
+     * Off by default because that is what a browser does with no `hyphens` property, so
+     * leaving it alone is the publication as its publisher laid it out -- and because a
+     * justified column is where hyphenation earns its keep, which is not every book.
+     */
+    val isHyphenated: Boolean = false,
     /** Multiplier on the publication's line height. 1.0 leaves it alone. */
     val lineHeight: Double = 1.4,
     /** Fractions of an em, the units Readium uses for both. */
@@ -185,6 +194,8 @@ val ThemeAxis.sliderRange: ClosedFloatingPointRange<Double>?
     get() = when (this) {
         ThemeAxis.FONT_SIZE, ThemeAxis.FONT_FAMILY, ThemeAxis.BOLD_TEXT,
         ThemeAxis.TEXT_ALIGNMENT,
+    ThemeAxis.HYPHENATION,
+        ThemeAxis.HYPHENATION,
         -> null
         // Below 1.0 the lines collide; above 2.5 a paragraph stops reading as one.
         ThemeAxis.LINE_SPACING -> 1.0..2.5
@@ -222,6 +233,8 @@ val ThemeAxis.unit: AxisUnit?
         -> AxisUnit.EM
         ThemeAxis.FONT_SIZE, ThemeAxis.FONT_FAMILY, ThemeAxis.BOLD_TEXT,
         ThemeAxis.TEXT_ALIGNMENT,
+    ThemeAxis.HYPHENATION,
+        ThemeAxis.HYPHENATION,
         -> null
     }
 
@@ -255,7 +268,9 @@ fun ThemeValues.value(of: ThemeAxis): Double = when (of) {
     ThemeAxis.PARAGRAPH_SPACING -> paragraphSpacing
     ThemeAxis.MARGINS -> pageMargins
     ThemeAxis.FONT_SIZE -> fontSize.percent.toDouble()
-    ThemeAxis.FONT_FAMILY, ThemeAxis.BOLD_TEXT, ThemeAxis.TEXT_ALIGNMENT -> 0.0
+    ThemeAxis.FONT_FAMILY, ThemeAxis.BOLD_TEXT, ThemeAxis.TEXT_ALIGNMENT,
+    ThemeAxis.HYPHENATION,
+    -> 0.0
 }
 
 /** The same values with one axis moved. */
@@ -268,6 +283,7 @@ fun ThemeValues.setting(axis: ThemeAxis, to: Double): ThemeValues = when (axis) 
     // The ladder and the pickers are set directly; a Double cannot express them.
     ThemeAxis.FONT_SIZE, ThemeAxis.FONT_FAMILY, ThemeAxis.BOLD_TEXT,
     ThemeAxis.TEXT_ALIGNMENT,
+    ThemeAxis.HYPHENATION,
     -> this
 }
 

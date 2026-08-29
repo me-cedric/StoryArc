@@ -84,4 +84,5 @@
     <string name="epub_search_running">Searching…</string>
     <string name="epub_search_none">Nothing found for “%1$s”.</string>
     <string name="epub_return">Back to where you were</string>
+    <string name="theme_axis_hyphenation">Hyphenation</string>
 </resources>

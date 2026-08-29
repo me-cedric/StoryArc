@@ -33,6 +33,17 @@ extension ThemeSheet {
         )
     }
 
+    var hyphenationBinding: Binding<Bool> {
+        Binding(
+            get: { model.values.isHyphenated },
+            set: { new in
+                var values = model.values
+                values.isHyphenated = new
+                model.change(.hyphenation, to: values)
+            }
+        )
+    }
+
     var alignmentBinding: Binding<ReaderTextAlignment> {
         Binding(
             get: { model.values.textAlignment },
