@@ -324,12 +324,28 @@ public final class LibraryModel {
     /// cover is a normal state and the cell draws a placeholder.
     public func cover(for publication: Publication, maxPixelSize: Int) async -> CGImage? {
         if let cached = covers[publication.id] { return cached }
+
+        // Disk before the archive. `sources` asks for a cover to be "stored on disk at
+        // display resolution", and the reason is what this skips: without it every launch
+        // reopened a ZIP, read its central directory, inflated an entry and decoded an
+        // image, per cover, to draw a grid the reader had already seen.
+        let cache = CoverCache()
+        let identity = publication.id
+        if let stored = await Task.detached(priority: .utility, operation: {
+            cache.image(for: identity, maxPixelSize: maxPixelSize)
+        }).value {
+            covers[publication.id] = stored
+            return stored
+        }
+
         guard let url = locations[publication.id] else { return nil }
 
         let image = await Task.detached(priority: .utility) {
-            try? await CoverLoader.anyCover(
+            let decoded = try? await CoverLoader.anyCover(
                 for: publication, at: url, maxPixelSize: maxPixelSize
             )
+            if let decoded { cache.store(decoded, for: identity, maxPixelSize: maxPixelSize) }
+            return decoded
         }.value
 
         guard let image else { return nil }

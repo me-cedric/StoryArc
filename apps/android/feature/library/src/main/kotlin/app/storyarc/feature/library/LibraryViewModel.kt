@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.format.LibraryScanner
+import app.storyarc.core.format.CoverCache
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.format.SafTree
 import app.storyarc.core.format.ScanEvent
@@ -689,13 +690,28 @@ class LibraryViewModel(
             ?: tree.lastPathSegment?.substringAfterLast(':')?.substringAfterLast('/')
             ?: tree.toString()
 
+    /**
+     * Covers on disk, between the ones in memory and the archives they came from.
+     *
+     * `sources` asks for a cover to be "stored on disk at display resolution", and the
+     * reason is what it skips: without it every launch reopened an archive, inflated an
+     * entry and decoded an image, per cover, to draw a grid the reader had already seen.
+     */
+    private val coverCache by lazy { CoverCache(File(getApplication<Application>().cacheDir, "covers")) }
+
     suspend fun cover(publication: Publication, maxPixelSize: Int): Bitmap? {
         covers[publication.id]?.let { return it }
+
+        withContext(Dispatchers.IO) { coverCache.bitmap(publication.id, maxPixelSize) }?.let {
+            covers[publication.id] = it
+            return it
+        }
+
         val path = locations[publication.id] ?: return null
         val bitmap = withContext(Dispatchers.IO) {
             runCatching {
                 PublicationAccess.anyCover(resolver, publication, path, maxPixelSize)
-            }.getOrNull()
+            }.getOrNull()?.also { coverCache.store(it, publication.id, maxPixelSize) }
         } ?: return null
         covers[publication.id] = bitmap
         return bitmap
