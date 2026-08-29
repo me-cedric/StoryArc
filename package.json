@@ -2,7 +2,7 @@
   "name": "storyarc",
   "version": "0.1.0",
   "private": true,
-  "description": "Monorepo tooling for StoryArc \u2014 native comic, manga and ebook readers for iOS and Android.",
+  "description": "Monorepo tooling for StoryArc — native comic, manga and ebook readers for iOS and Android.",
   "license": "MIT",
   "packageManager": "pnpm@11.20.0",
   "engines": {
@@ -14,10 +14,12 @@
     "tokens:sync": "node scripts/sync-tokens.mjs",
     "a11y:android": "node scripts/a11y-scan.mjs",
     "a11y:selftest": "node scripts/a11y-scan.mjs --self-test",
+    "pseudo:android": "node scripts/pseudo-locale.mjs",
+    "pseudo:selftest": "node scripts/pseudo-locale.mjs --self-test",
     "tokens:verify": "node scripts/verify-tokens-in-sync.mjs",
     "spec:validate": "cd docs && openspec validate --all",
     "spec:list": "cd docs && openspec list --specs",
-    "lint": "pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm corpus:check",
+    "lint": "pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm corpus:check && pnpm strings:ios",
     "lint:ios": "swiftlint lint --strict",
     "lint:android": "cd apps/android && ./gradlew lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test",
@@ -36,7 +38,9 @@
     "kavita": "node scripts/kavita-server.mjs",
     "smb": "bash scripts/smb-server.sh",
     "corpus:check": "node scripts/corpus.mjs --self-test",
-    "notices:check": "node scripts/notices.mjs --check"
+    "notices:check": "node scripts/notices.mjs --check",
+    "strings:ios": "node scripts/ios-strings.mjs",
+    "strings:ios:check": "node scripts/ios-strings.mjs --self-test"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",

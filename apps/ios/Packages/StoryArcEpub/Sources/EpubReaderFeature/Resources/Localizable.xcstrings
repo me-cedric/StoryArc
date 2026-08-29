@@ -813,7 +813,7 @@
         }
       }
     },
-    "theme.fontSize.position %1$lld %2$lld": {
+    "theme.fontSize.position %lld %lld": {
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -1074,7 +1074,7 @@
         }
       }
     },
-    "theme.pageColour.refused %1$@ %2$@": {
+    "theme.pageColour.refused %@ %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {

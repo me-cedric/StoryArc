@@ -54,21 +54,22 @@
   "runbook": null,
   "notes": [
     "Agents must use this file before inventing validation commands.",
-    "Run the smallest set that covers the change \u2014 see AGENTS.md \u00a75.",
+    "Run the smallest set that covers the change — see AGENTS.md §5.",
     "typecheck is null on purpose: Swift and Kotlin type-check as part of their build.",
     "A change to packages/design-tokens must be followed by `pnpm tokens:sync`, and the regenerated app copies committed in the same change.",
-    "A change a user can see also owes a simulator or emulator screenshot \u2014 see AGENTS.md \u00a76."
+    "A change a user can see also owes a simulator or emulator screenshot — see AGENTS.md §6."
   ],
   "platforms": {
     "ios": {
-      "lint": "cd apps/ios && swiftlint lint --strict",
+      "lint": "swiftlint lint --strict",
       "test": "cd apps/ios/Packages/StoryArcKit && swift test",
       "build": "cd apps/ios && xcodegen generate && xcodebuild build -project StoryArc.xcodeproj -scheme StoryArc -destination 'generic/platform=iOS Simulator' -quiet",
       "generateProject": "cd apps/ios && xcodegen generate",
       "screenshot": "xcrun simctl io booted screenshot shot.png",
       "notes": [
-        "swift test runs the pure-Swift targets on the host \u2014 no simulator needed.",
-        "StoryArc.xcodeproj is generated from project.yml and gitignored. Never hand-edit it."
+        "swift test runs the pure-Swift targets on the host — no simulator needed.",
+        "StoryArc.xcodeproj is generated from project.yml and gitignored. Never hand-edit it.",
+        "swiftlint runs from the repository root on purpose. `cd apps/ios` first and it stops finding .swiftlint.yml, falls back to the default rule set, and reports hundreds of violations for rules this project disables on purpose."
       ]
     },
     "android": {

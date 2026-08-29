@@ -94,3 +94,7 @@ secrets/
 
 # agent-compass transient update cache
 .agent/.update-check.json
+
+# Screenshots a device check writes. Evidence of one run on one emulator, not a
+# reference to compare against — `pnpm pseudo:android` rewrites them every time.
+artifacts/
