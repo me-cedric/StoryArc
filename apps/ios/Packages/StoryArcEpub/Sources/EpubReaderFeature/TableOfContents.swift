@@ -93,6 +93,7 @@ extension EpubReaderModel {
     /// Not animated: a jump to another chapter has no page to slide, and Readium
     /// animating one would suggest the reader turned there.
     func go(to entry: ContentsEntry) async {
+        markReturnPoint()
         _ = await navigator?.go(to: entry.link, options: NavigatorGoOptions(animated: false))
     }
 }

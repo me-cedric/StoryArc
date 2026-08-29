@@ -102,6 +102,30 @@ public struct EpubReaderView: View {
                 // page stays readable beside it.
                 .frame(idealWidth: 380, idealHeight: 620)
         }
+        // `ebook-reader` asks for a footnote to open "in place as a popover", which is
+        // the word this file already uses for the other two: a popover on a tablet, and
+        // the same declaration adapted to a detented sheet on a phone. The page stays
+        // visible either way, which is what makes it in place rather than a departure.
+        .popover(
+            isPresented: Binding(
+                get: { model.note != nil },
+                set: { if !$0 { model.dismissNote() } }
+            ),
+            attachmentAnchor: .rect(.bounds),
+            arrowEdge: .top
+        ) {
+            ScrollView {
+                Text(model.note ?? "")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(StoryArcSpace.gutter)
+            }
+            .presentationCompactAdaptation(.sheet)
+            // Smaller than the other two: a note is a sentence or two, and a half-screen
+            // sheet for one sentence reads as a departure from the page rather than an
+            // aside beside it.
+            .presentationDetents([.fraction(0.3), .medium])
+            .frame(idealWidth: 380, idealHeight: 260)
+        }
         // Presented like the theme sheet, for the same reason: on a tablet the
         // navigation sits beside the page it is about, and on a phone the platform
         // turns the same declaration into a detented sheet.

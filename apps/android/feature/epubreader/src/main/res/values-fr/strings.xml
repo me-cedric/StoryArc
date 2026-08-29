@@ -83,4 +83,5 @@
     <string name="epub_search">Rechercher dans ce livre</string>
     <string name="epub_search_running">Recherche en cours…</string>
     <string name="epub_search_none">Aucun résultat pour « %1$s ».</string>
+    <string name="epub_return">Revenir où vous étiez</string>
 </resources>

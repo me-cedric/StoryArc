@@ -16,13 +16,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
+import org.readium.r2.navigator.HyperlinkNavigator
+import org.readium.r2.shared.util.AbsoluteUrl
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commitNow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,6 +37,7 @@ import app.storyarc.core.model.Bookmark
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.designsystem.theme.StoryArcTheme
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.SettingsStore
 import app.storyarc.core.model.presetMatching
@@ -68,7 +74,47 @@ import org.readium.r2.shared.util.Url
  * `reader-theming-and-page-transitions` change, and a sheet of sliders that does
  * nothing would be worse than no sheet at all.
  */
-class EpubReaderActivity : FragmentActivity() {
+class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
+
+    /**
+     * What to do with a link inside the book.
+     *
+     * `ebook-reader`: "a footnote opens in place as a popover, and a longer jump navigates
+     * with a control to return to where they were". Readium tells the two apart -- it
+     * fetches a note's own markup and hands it over as a [HyperlinkNavigator.FootnoteContext]
+     * -- so this only has to decide what each one means here.
+     *
+     * A note is refused: answering no keeps the reader on their page and their place in the
+     * sentence, which is what "in place" means. Anything else is a real jump, so where they
+     * were is written down first and offered back.
+     */
+    @OptIn(ExperimentalReadiumApi::class)
+    override fun shouldFollowInternalLink(
+        link: Link,
+        context: HyperlinkNavigator.LinkContext?,
+    ): Boolean {
+        val footnote = context as? HyperlinkNavigator.FootnoteContext
+        if (footnote != null) {
+            model.showNote(footnote.noteContent)
+            return false
+        }
+        model.markReturnPoint()
+        return true
+    }
+
+    /**
+     * A link out of the book.
+     *
+     * Handed to the system rather than opened in the reader: a book is not a browser, and a
+     * page loaded over the text would be the reader losing their place to something the
+     * publication does not own. `privacy` is why nothing is prefetched -- this happens on a
+     * tap and only on a tap. A device with nothing able to open it does nothing, which is
+     * better than a crash on a link the reader was merely curious about.
+     */
+    @OptIn(ExperimentalReadiumApi::class)
+    override fun onExternalLinkActivated(url: AbsoluteUrl) {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url.toString()))) }
+    }
 
     companion object {
         private const val EXTRA_LOCATION = "location"
@@ -140,6 +186,7 @@ class EpubReaderActivity : FragmentActivity() {
     /** A turn already running. A second swipe during one would fade over a fade. */
     private var isTurning = false
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         // The navigator cannot be restored: its publication is not parcelable, and
         // re-parsing takes a moment. Readium provides a dummy factory for exactly
@@ -180,6 +227,8 @@ class EpubReaderActivity : FragmentActivity() {
                     val isPageBookmarked by model.isPageBookmarked.collectAsStateWithLifecycle()
                     val matches by model.matches.collectAsStateWithLifecycle()
                     val isSearching by model.isSearching.collectAsStateWithLifecycle()
+                    val note by model.note.collectAsStateWithLifecycle()
+                    val returnPoint by model.returnPoint.collectAsStateWithLifecycle()
                     var isShowingTheme by remember { mutableStateOf(false) }
                     var isShowingContents by remember { mutableStateOf(false) }
 
@@ -204,6 +253,22 @@ class EpubReaderActivity : FragmentActivity() {
                     LaunchedEffect(transition) {
                         interceptor.onTurn =
                             if (transition == PageTransition.FAST_FADE) ::turnWithFade else null
+                    }
+
+                    // `ebook-reader`: a footnote "opens in place". A bottom sheet is the
+                    // platform's own in-place, and it leaves the page it was tapped on
+                    // visible behind it.
+                    note?.let { text ->
+                        ModalBottomSheet(onDismissRequest = { model.dismissNote() }) {
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(
+                                    horizontal = StoryArcSpace.gutter,
+                                    vertical = StoryArcSpace.lg,
+                                ),
+                            )
+                        }
                     }
 
                     if (isShowingContents) {
@@ -258,6 +323,8 @@ class EpubReaderActivity : FragmentActivity() {
                         isVisible = isVisible,
                         isContentsReady = contents != null,
                         isPageBookmarked = isPageBookmarked,
+                        canReturn = returnPoint != null,
+                        onReturn = { model.takeReturnPoint()?.let { goToLocator(it, remember = false) } },
                         onClose = { finish() },
                         onToggleBookmark = { model.toggleBookmark() },
                         onOpenContents = { isShowingContents = true },
@@ -370,8 +437,20 @@ class EpubReaderActivity : FragmentActivity() {
     @OptIn(ExperimentalReadiumApi::class)
     private fun go(match: SearchMatch) = goToLocator(match.locator)
 
+    /**
+     * Goes somewhere in the book, remembering where the reader was.
+     *
+     * `ebook-reader` asks for the return control on "a longer jump" from a link. It is
+     * offered on every long jump instead -- a contents entry, a search hit, a bookmark --
+     * because they are the same act from the reader's side, and a control that appeared
+     * after one kind of jump and not another would look like a bug rather than a rule.
+     */
     @OptIn(ExperimentalReadiumApi::class)
-    private fun goToLocator(json: String) {
+    private fun goToLocator(json: String, remember: Boolean = true) {
+        // Not on the way back: the control's whole promise is that it goes away once it
+        // has done what it offers, and a return that recorded where it returned *from*
+        // would leave a button that bounces the reader between two pages for ever.
+        if (remember) model.markReturnPoint()
         val navigator =
             supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
                 ?: return
@@ -427,6 +506,7 @@ class EpubReaderActivity : FragmentActivity() {
             supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
                 ?: return
 
+        model.markReturnPoint()
         navigator.go(link, animated = false)
     }
 }

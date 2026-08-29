@@ -597,6 +597,46 @@ class EpubReaderViewModel(
         ),
     )
 
+    private val _note = MutableStateFlow<String?>(null)
+
+    /**
+     * A footnote the reader tapped, as text, or null when none is open.
+     *
+     * `ebook-reader`: "a footnote opens in place as a popover". Readium hands over the
+     * note's markup and asks whether to navigate; answering no and showing this is what
+     * "in place" means -- the reader keeps their page and their place in the sentence.
+     */
+    val note: StateFlow<String?> = _note.asStateFlow()
+
+    /** Shows a footnote. The markup Readium reports, as the words in it. */
+    fun showNote(markup: String) {
+        _note.value = Excerpt.plainText(markup).takeIf { it.isNotBlank() }
+    }
+
+    fun dismissNote() {
+        _note.value = null
+    }
+
+    private val _returnPoint = MutableStateFlow<String?>(null)
+
+    /**
+     * Where the reader was before a jump, or null when they have not jumped.
+     *
+     * `ebook-reader`: "a longer jump navigates with a control to return to where they
+     * were". One point rather than a stack: the control answers "take me back", and a
+     * reader who has followed four links in a row means the place they were reading, not
+     * the third link.
+     */
+    val returnPoint: StateFlow<String?> = _returnPoint.asStateFlow()
+
+    /** Remembers where the reader is, because they are about to not be there. */
+    fun markReturnPoint() {
+        _returnPoint.value = here?.toJSON()?.toString()
+    }
+
+    /** Taken once. The control goes away when it has done what it offers. */
+    fun takeReturnPoint(): String? = _returnPoint.value.also { _returnPoint.value = null }
+
     /** Forgets one mark, which is what its row in the list offers. */
     fun removeBookmark(id: String) {
         val store = bookmarkStore ?: return

@@ -378,6 +378,35 @@
         }
       }
     },
+    "return.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to where you were"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenir où vous étiez"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück zu Ihrer Stelle"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a donde estaba"
+          }
+        }
+      }
+    },
     "search.field": {
       "extractionState": "manual",
       "localizations": {

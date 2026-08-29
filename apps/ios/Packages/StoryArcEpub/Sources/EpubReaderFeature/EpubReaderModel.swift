@@ -69,6 +69,21 @@ public final class EpubReaderModel {
     /// The reading order's hrefs, for the progress fallback below.
     var readingOrder: [String] = []
 
+    /// A footnote the reader tapped, as text, or nil when none is open.
+    ///
+    /// `ebook-reader`: "a footnote opens in place as a popover". Readium fetches the note's
+    /// markup and asks whether to navigate; answering no and showing this is what "in place"
+    /// means — the reader keeps their page and their place in the sentence.
+    public internal(set) var note: String?
+
+    /// Where the reader was before a jump, or nil when they have not jumped.
+    ///
+    /// `ebook-reader`: "a longer jump navigates with a control to return to where they
+    /// were". One point rather than a stack: the control answers "take me back", and a
+    /// reader who has followed four links in a row means the place they were reading, not
+    /// the third link.
+    public internal(set) var returnPoint: String?
+
     /// What the last search found, in the order the publication holds them.
     public internal(set) var matches: [SearchMatch] = []
 

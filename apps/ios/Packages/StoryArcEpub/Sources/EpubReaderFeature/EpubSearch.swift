@@ -65,6 +65,7 @@ public extension EpubReaderModel {
     /// Goes to a hit. The same journey a bookmark takes, from the same kind of record.
     func go(to match: SearchMatch) async {
         guard let navigator, let locator = try? Locator(jsonString: match.locator) else { return }
+        markReturnPoint()
         _ = await navigator.go(to: locator, options: NavigatorGoOptions(animated: false))
     }
 

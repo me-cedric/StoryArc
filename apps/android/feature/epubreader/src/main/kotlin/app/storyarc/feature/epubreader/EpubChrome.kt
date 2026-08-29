@@ -52,7 +52,10 @@ internal fun EpubChrome(
     isVisible: Boolean,
     isContentsReady: Boolean,
     isPageBookmarked: Boolean,
+    /** Whether a jump has left somewhere worth going back to. */
+    canReturn: Boolean,
     onClose: () -> Unit,
+    onReturn: () -> Unit,
     onToggleBookmark: () -> Unit,
     onOpenContents: () -> Unit,
     onOpenTheme: () -> Unit,
@@ -161,10 +164,34 @@ internal fun EpubChrome(
                 }
             }
 
-            Box(
+            Column(
                 modifier = Modifier.fillMaxWidth().padding(StoryArcSpace.lg),
-                contentAlignment = Alignment.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
             ) {
+                // `ebook-reader`: "a longer jump navigates with a control to return to
+                // where they were". Above the percentage rather than in the bar at the
+                // top, because it is about where the reader just was and the bar is about
+                // the book -- and because it comes and goes, and a control that appeared
+                // among the others would move them.
+                if (canReturn) {
+                    Surface(
+                        shape = RoundedCornerShape(StoryArcRadius.lg),
+                        color = palette.surfaceRaised,
+                        onClick = onReturn,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.epub_return),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = palette.accent,
+                            modifier = Modifier.padding(
+                                horizontal = StoryArcSpace.md,
+                                vertical = StoryArcSpace.xs,
+                            ),
+                        )
+                    }
+                }
+
                 Surface(
                     shape = RoundedCornerShape(StoryArcRadius.lg),
                     color = palette.surfaceRaised,

@@ -262,4 +262,29 @@ final class NavigatorObserver: EPUBNavigatorDelegate {
     /// the page with an error because one resource misbehaved would lose the
     /// reader's place over something they may never notice.
     func navigator(_ navigator: any Navigator, presentError error: NavigatorError) {}
+
+    /// What a link inside the book does.
+    ///
+    /// A note is refused: answering `false` keeps the reader on their page and their place
+    /// in the sentence, which is what `ebook-reader`'s "opens in place" means. Anything
+    /// else is a real jump, so where they were is written down first and offered back.
+    func navigator(
+        _ navigator: Navigator,
+        shouldNavigateToNoteAt link: ReadiumShared.Link,
+        content: String,
+        referrer: String?
+    ) -> Bool {
+        Task { @MainActor in model?.showNote(content) }
+        return false
+    }
+
+    /// A link out of the book.
+    ///
+    /// Handed to the system rather than opened in the reader: a book is not a browser, and
+    /// a page loaded over the text would be the reader losing their place to something the
+    /// publication does not own. `privacy` is why nothing is prefetched — this happens on a
+    /// tap and only on a tap.
+    func navigator(_ navigator: Navigator, presentExternalURL url: URL) {
+        Task { @MainActor in UIApplication.shared.open(url) }
+    }
 }

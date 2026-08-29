@@ -73,6 +73,7 @@ public extension EpubReaderModel {
         guard let navigator,
               let locator = try? Locator(jsonString: bookmark.locator)
         else { return }
+        markReturnPoint()
         _ = await navigator.go(to: locator, options: NavigatorGoOptions(animated: false))
     }
 
