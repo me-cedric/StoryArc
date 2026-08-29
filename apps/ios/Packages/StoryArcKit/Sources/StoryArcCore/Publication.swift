@@ -127,6 +127,14 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
     /// as zero bytes.
     public var fileSize: Int64?
 
+    /// When the file was last written, as the filesystem reports it.
+    ///
+    /// `local-library` asks a returning app to reconcile "by comparing file modification
+    /// times and sizes rather than re-reading every archive". This is the other half of
+    /// that comparison — cheap to read from a directory entry, and enough, with the size,
+    /// to say that a container has not changed since it was last indexed.
+    public var modifiedAt: Date?
+
     /// When the file arrived where the app found it.
     ///
     /// `library-browsing` sorts by date added, and there is nowhere else for the
@@ -161,10 +169,12 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
         streaming: StreamingCapability = .streams,
         sourceID: UUID? = nil,
         fileSize: Int64? = nil,
+        modifiedAt: Date? = nil,
         addedAt: Date? = nil
     ) {
         self.sourceID = sourceID
         self.fileSize = fileSize
+        self.modifiedAt = modifiedAt
         self.addedAt = addedAt
         self.identity = identity
         self.format = format
@@ -191,6 +201,22 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
     /// False only for `refused`. A download-only publication is openable — it just
     /// has to arrive first, which is the library's problem and not the reader's.
     public var isOpenable: Bool { streaming != .refused }
+
+    /// Whether this publication still describes the file on disk.
+    ///
+    /// `local-library`: a returning app reconciles "by comparing file modification times
+    /// and sizes rather than re-reading every archive". This is that comparison, and the
+    /// reason it is worth having is what it avoids — opening a container, reading its
+    /// central directory and its metadata, per publication, to learn nothing.
+    ///
+    /// Unknown facts mean *not* unchanged. A publication indexed before these were
+    /// recorded, or a file the walk could not stat, is re-read rather than trusted: the
+    /// cost of a needless re-index is a slow scan, and the cost of a wrong reuse is a
+    /// library that disagrees with the disk and never notices.
+    public func matchesFile(size: Int64?, modifiedAt moment: Date?) -> Bool {
+        guard let fileSize, let modifiedAt, let size, let moment else { return false }
+        return fileSize == size && modifiedAt == moment
+    }
 
     /// Whether some pages are missing from what the reader will show.
     public var isPartial: Bool { skippedPageCount > 0 }

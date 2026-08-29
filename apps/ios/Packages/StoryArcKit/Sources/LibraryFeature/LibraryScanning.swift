@@ -14,10 +14,26 @@ extension LibraryModel {
         scanTask?.cancel()
         scanState = .scanning(found: publications.count)
 
+        // What the shelf already holds, so a container that has not changed since the last
+        // launch is never opened. The cache restore is what makes this worth having: the
+        // publications it hands back came from disk, so the first scan after a launch
+        // reconciles instead of re-reading the whole library.
+        //
+        // Snapshotted here rather than read inside the walk, because it is a question about
+        // the shelf as it stands now — and because the walk runs off the main actor.
+        let byPath = Dictionary(
+            publications.compactMap { publication -> (String, Publication)? in
+                guard let path = publication.identity.normalizedPath else { return nil }
+                return (path, publication)
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let known: @Sendable (URL) -> Publication? = { url in byPath[url.path()] }
+
         scanTask = Task { [weak self] in
             // What this walk actually saw, so what it did not see can go afterwards.
             var seen: Set<String> = []
-            for await event in LibraryScanner.scan(folderAt: folder) {
+            for await event in LibraryScanner.scan(folderAt: folder, known: known) {
                 guard let self, !Task.isCancelled else { return }
                 switch event {
                 case let .found(publication):

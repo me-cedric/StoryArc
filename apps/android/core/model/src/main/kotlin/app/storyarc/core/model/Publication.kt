@@ -212,6 +212,15 @@ data class Publication(
      */
     val fileSize: Long? = null,
     /**
+     * When the file was last written, as the filesystem reports it.
+     *
+     * `local-library` asks a returning app to reconcile "by comparing file modification
+     * times and sizes rather than re-reading every archive". This is the other half of that
+     * comparison — cheap to read from a directory entry, and enough, with the size, to say
+     * that a container has not changed since it was last indexed.
+     */
+    val modifiedAtEpochMillis: Long? = null,
+    /**
      * When the file arrived where the app found it.
      *
      * `library-browsing` sorts by date added, and there is nowhere else for the date
@@ -225,6 +234,26 @@ data class Publication(
      */
     val addedAtEpochMillis: Long? = null,
 ) {
+    /**
+     * Whether this publication still describes the file on disk.
+     *
+     * `local-library`: a returning app reconciles "by comparing file modification times and
+     * sizes rather than re-reading every archive". This is that comparison, and the reason
+     * it is worth having is what it avoids — opening a container, reading its central
+     * directory and its metadata, per publication, to learn nothing.
+     *
+     * Unknown facts mean *not* unchanged. A publication indexed before these were recorded,
+     * or a file the walk could not stat, is re-read rather than trusted: the cost of a
+     * needless re-index is a slow scan, and the cost of a wrong reuse is a library that
+     * disagrees with the disk and never notices.
+     */
+    fun matchesFile(size: Long?, modifiedAt: Long?): Boolean {
+        if (fileSize == null || modifiedAtEpochMillis == null || size == null || modifiedAt == null) {
+            return false
+        }
+        return fileSize == size && modifiedAtEpochMillis == modifiedAt
+    }
+
     /** A stable key for lists and diffing. See [PublicationIdentity.stableId]. */
     val id: String get() = identity.stableId
 
