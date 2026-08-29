@@ -228,11 +228,11 @@ class EpubReaderViewModel(
             axis = ScrollAxis.VERTICAL,
             reduceMotion = reduceMotion,
             canCurl = true,
-            // False until this reader takes the turn over from Readium. iOS does that in
-            // `EpubReaderModel.turnWithFade(forward:)`; the Android half is task 4.3b.
-            // Offering a mode that quietly gives a Slide instead would be worse than
-            // saying it is not available yet, which is what the reader is told.
-            canFade = false,
+            // The activity takes the turn over from Readium when this is chosen —
+            // `TurnInterceptor` steals the drag, `FadeTurn` draws the dip. Until that
+            // existed this was false, because offering a mode that quietly gave a Slide
+            // instead would have been worse than saying it was not available yet.
+            canFade = true,
             isReflowable = true,
         )
 

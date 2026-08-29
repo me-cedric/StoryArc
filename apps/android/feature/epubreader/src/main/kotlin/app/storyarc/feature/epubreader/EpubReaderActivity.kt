@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.graphics.Color as AndroidColor
 import android.widget.FrameLayout
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +23,7 @@ import androidx.fragment.app.commitNow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import app.storyarc.core.model.AppearanceMode
+import app.storyarc.core.model.PageTransition
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.SettingsStore
@@ -63,6 +65,15 @@ class EpubReaderActivity : FragmentActivity() {
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_SERIES = "series"
         private const val NAVIGATOR_TAG = "epub-navigator"
+
+        /**
+         * Between the book and the chrome.
+         *
+         * Over the book because that is what it is dipping, and under the chrome because
+         * a progress bar that vanished for a quarter of a second on every turn would be
+         * the transition drawing attention to itself.
+         */
+        private const val DIP_INDEX = 1
 
         /** Long enough for Readium to re-paginate, short enough not to be seen. */
         private const val REFLOW_SETTLE_MILLIS = 120L
@@ -108,6 +119,15 @@ class EpubReaderActivity : FragmentActivity() {
     }
 
     private lateinit var container: FragmentContainerView
+
+    /// The navigator's parent, which steals a horizontal drag only while Fast fade is on.
+    private lateinit var interceptor: TurnInterceptor
+
+    /// What the dip is added to, above the book and below the chrome.
+    private lateinit var root: FrameLayout
+
+    /** A turn already running. A second swipe during one would fade over a fade. */
+    private var isTurning = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // The navigator cannot be restored: its publication is not parcelable, and
@@ -163,6 +183,14 @@ class EpubReaderActivity : FragmentActivity() {
                     // closes.
                     LaunchedEffect(theme, values, transition) { applyTheme() }
 
+                    // `page-transitions`: the reader picks a page turn *after* the book
+                    // is open, so ownership changes here rather than when the navigator
+                    // is created. Nil hands Readium back its own Slide.
+                    LaunchedEffect(transition) {
+                        interceptor.onTurn =
+                            if (transition == PageTransition.FAST_FADE) ::turnWithFade else null
+                    }
+
                     if (isShowingContents) {
                         ContentsBottomSheet(
                             entries = contents.orEmpty(),
@@ -209,12 +237,18 @@ class EpubReaderActivity : FragmentActivity() {
             }
         }
 
-        setContentView(
-            FrameLayout(this).apply {
-                addView(container)
-                addView(chrome)
-            },
-        )
+        interceptor = TurnInterceptor(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            )
+            addView(container)
+        }
+        root = FrameLayout(this).apply {
+            addView(interceptor)
+            addView(chrome)
+        }
+        setContentView(root)
 
         lifecycleScope.launch { showNavigator() }
     }
@@ -289,6 +323,42 @@ class EpubReaderActivity : FragmentActivity() {
         lifecycleScope.launch {
             delay(REFLOW_SETTLE_MILLIS)
             navigator.go(locator, animated = false)
+        }
+    }
+
+    /**
+     * Turns a page with a transition StoryArc draws rather than one Readium draws.
+     *
+     * The dip is opaque before the navigator moves, so the swap is never on screen: what
+     * a reader sees is the page they were on fading to the page colour, and the next one
+     * arriving out of it. `page-transitions` calls this Fast fade.
+     *
+     * A turn that cannot happen — the last page, the first page — takes the dip straight
+     * back off instead of completing, because a full fade there would read as a turn that
+     * did happen.
+     */
+    @OptIn(ExperimentalReadiumApi::class)
+    private fun turnWithFade(forward: Boolean) {
+        val navigator =
+            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
+                ?: return
+        if (isTurning) return
+        isTurning = true
+
+        lifecycleScope.launch {
+            try {
+                FadeTurn(root, DIP_INDEX).run(
+                    pageColour = AndroidColor.parseColor(model.theme.value.background),
+                ) {
+                    if (forward) {
+                        navigator.goForward(animated = false)
+                    } else {
+                        navigator.goBackward(animated = false)
+                    }
+                }
+            } finally {
+                isTurning = false
+            }
         }
     }
 
