@@ -2,6 +2,8 @@ package app.storyarc.feature.epubreader
 
 import android.app.Application
 import android.net.Uri
+import app.storyarc.core.model.Bookmark
+import app.storyarc.core.model.Excerpt
 import app.storyarc.core.model.PublicationIdentity
 import android.provider.Settings
 import app.storyarc.core.model.PageTransition
@@ -16,12 +18,15 @@ import app.storyarc.core.model.TotalProgression
 import app.storyarc.core.model.ThemeAxis
 import app.storyarc.core.model.ThemePreset
 import app.storyarc.core.model.ThemeValues
+import app.storyarc.core.model.markAt
 import app.storyarc.core.model.setting
 import app.storyarc.core.model.values
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.persistence.BookmarkStore
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ReaderPreferences
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -69,6 +74,8 @@ class EpubReaderViewModel(
      * with one name in one file is how a wrong one gets passed.
      */
     private val themeStore: ReaderPreferences? = null,
+    /** Where the marks a reader makes live between sessions. Null in a test. */
+    private val bookmarkStore: BookmarkStore? = null,
     /** What shelf this book sits on. Null for a standalone book. */
     series: String? = null,
     /**
@@ -368,6 +375,7 @@ class EpubReaderViewModel(
             return@withContext null
         }
         readingOrder = publication.readingOrder.map { it.href.toString() }
+        opened = publication
         _tableOfContents.value = publication.tableOfContents
         publication
     }
@@ -414,9 +422,115 @@ class EpubReaderViewModel(
                 _currentResource.value = locator.href.removeFragment()
                 val total = totalProgressionOf(locator)
                 _progression.value = total
+                here = locator
+                _isPageBookmarked.value = markHere() != null
                 record(locator, total)
             }
         }
+    }
+
+    /** Where the reader is, kept so a bookmark can be made of it. */
+    private var here: Locator? = null
+
+    /**
+     * The open publication, kept so a bookmark's excerpt can be read out of its resource.
+     *
+     * Held rather than reopened: opening parses the container, and this is wanted on a
+     * button press.
+     */
+    private var opened: Publication? = null
+
+    private val _bookmarks = MutableStateFlow(bookmarkStore?.bookmarks(identity.stableId).orEmpty())
+
+    /** Every mark in this publication, in book order. */
+    val bookmarks: StateFlow<List<Bookmark>> = _bookmarks.asStateFlow()
+
+    private val _isPageBookmarked = MutableStateFlow(false)
+
+    /**
+     * Whether the page on screen is already marked.
+     *
+     * What makes the control a toggle rather than a button that only ever adds.
+     */
+    val isPageBookmarked: StateFlow<Boolean> = _isPageBookmarked.asStateFlow()
+
+    private fun markHere(): Bookmark? {
+        val locator = here ?: return null
+        return _bookmarks.value.markAt(
+            progression = totalProgressionOf(locator),
+            resource = locator.href.removeFragment().toString(),
+        )
+    }
+
+    /**
+     * Marks this page, or unmarks it.
+     *
+     * The excerpt is whatever Readium reports as the text at this position. It can be
+     * empty -- a locator that came from a page turn rather than from a search carries no
+     * text -- and then the chapter carries the row on its own, which is still more than a
+     * percentage would say.
+     */
+    fun toggleBookmark() {
+        val store = bookmarkStore ?: return
+        val locator = here ?: return
+
+        // Removing needs nothing read, so it does not wait on a resource.
+        if (markHere() != null) {
+            _bookmarks.value = store.toggle(placeholder(locator, excerpt = ""), identity.stableId)
+            _isPageBookmarked.value = false
+            return
+        }
+
+        // The control answers now; the excerpt catches up. Reading a resource is quick but
+        // it is I/O, and a bookmark button that waited for a disk read before changing
+        // colour would feel broken on the one press a reader is most sure about.
+        _isPageBookmarked.value = true
+        scope.launch {
+            val mark = placeholder(locator, excerpt = excerptAt(locator))
+            _bookmarks.value = store.toggle(mark, identity.stableId)
+            _isPageBookmarked.value = markHere() != null
+        }
+    }
+
+    private fun placeholder(locator: Locator, excerpt: String) = Bookmark(
+        id = UUID.randomUUID().toString(),
+        locator = locator.toJSON().toString(),
+        resource = locator.href.removeFragment().toString(),
+        progression = totalProgressionOf(locator),
+        chapter = locator.title.orEmpty(),
+        excerpt = excerpt,
+        createdAtEpochMillis = System.currentTimeMillis(),
+    )
+
+    /**
+     * A little of the text where the reader is.
+     *
+     * Readium reports text on a locator that came from a search or a selection and none on
+     * one that came from a page turn, which is every locator a bookmark is made from -- so
+     * what it does report is preferred, and the resource is read only when it reports
+     * nothing. A resource that cannot be read gives an empty excerpt and a row that names
+     * its chapter alone, which is still more than a percentage would say.
+     */
+    private suspend fun excerptAt(locator: Locator): String {
+        locator.text.highlight?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
+        val publication = opened ?: return ""
+        val markup = withContext(Dispatchers.IO) {
+            runCatching {
+                publication.get(locator.href.removeFragment())?.read()?.getOrNull()
+                    ?.toString(Charsets.UTF_8)
+            }.getOrNull()
+        } ?: return ""
+        return Excerpt.at(
+            text = Excerpt.plainText(markup),
+            fraction = locator.locations.progression ?: 0.0,
+        )
+    }
+
+    /** Forgets one mark, which is what its row in the list offers. */
+    fun removeBookmark(id: String) {
+        val store = bookmarkStore ?: return
+        _bookmarks.value = store.remove(id, identity.stableId)
+        _isPageBookmarked.value = markHere() != null
     }
 
     /**

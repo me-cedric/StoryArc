@@ -16,8 +16,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Toc
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.TextFormat
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,7 +51,9 @@ internal fun EpubChrome(
     failure: String?,
     isVisible: Boolean,
     isContentsReady: Boolean,
+    isPageBookmarked: Boolean,
     onClose: () -> Unit,
+    onToggleBookmark: () -> Unit,
     onOpenContents: () -> Unit,
     onOpenTheme: () -> Unit,
     modifier: Modifier = Modifier,
@@ -108,6 +112,31 @@ internal fun EpubChrome(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+
+                Surface(shape = CircleShape, color = palette.surfaceRaised) {
+                    // One control, filled or not, rather than an add beside a remove:
+                    // `ebook-reader` marks a *position*, and a position is either marked
+                    // or it is not. The icon carries that state and the label says which
+                    // way pressing it goes, so a screen reader is not left to infer it
+                    // from a picture.
+                    IconButton(onClick = onToggleBookmark) {
+                        Icon(
+                            imageVector = if (isPageBookmarked) {
+                                Icons.Filled.Bookmark
+                            } else {
+                                Icons.Outlined.BookmarkBorder
+                            },
+                            contentDescription = stringResource(
+                                if (isPageBookmarked) {
+                                    R.string.epub_bookmark_remove
+                                } else {
+                                    R.string.epub_bookmark_add
+                                },
+                            ),
+                            tint = if (isPageBookmarked) palette.accent else palette.textPrimary,
+                        )
+                    }
+                }
 
                 Surface(shape = CircleShape, color = palette.surfaceRaised) {
                     // Refused rather than hidden until the publication is open. A control

@@ -16,19 +16,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.Text
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commitNow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import app.storyarc.core.model.AppearanceMode
+import app.storyarc.core.model.Bookmark
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.SettingsStore
 import app.storyarc.core.model.presetMatching
 import app.storyarc.core.designsystem.theme.resolved
+import app.storyarc.core.persistence.BookmarkStore
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ReaderPreferences
 import kotlinx.coroutines.delay
@@ -38,7 +44,9 @@ import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.shared.ExperimentalReadiumApi
+import org.json.JSONObject
 import org.readium.r2.shared.publication.Link
+import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.util.Url
 
 /**
@@ -108,6 +116,7 @@ class EpubReaderActivity : FragmentActivity() {
             ),
             progress = ProgressStore.open(applicationContext),
             themeStore = ReaderPreferences.open(applicationContext),
+            bookmarkStore = BookmarkStore.open(applicationContext),
             series = intent.getStringExtra(EXTRA_SERIES),
             // Resolved here, because "System" is a question about the device and only
             // something holding a `Context` can answer it. Null when the reader has not
@@ -165,6 +174,8 @@ class EpubReaderActivity : FragmentActivity() {
                     val brightness by model.brightness.collectAsStateWithLifecycle()
                     val contents by model.tableOfContents.collectAsStateWithLifecycle()
                     val resource by model.currentResource.collectAsStateWithLifecycle()
+                    val bookmarks by model.bookmarks.collectAsStateWithLifecycle()
+                    val isPageBookmarked by model.isPageBookmarked.collectAsStateWithLifecycle()
                     var isShowingTheme by remember { mutableStateOf(false) }
                     var isShowingContents by remember { mutableStateOf(false) }
 
@@ -195,10 +206,16 @@ class EpubReaderActivity : FragmentActivity() {
                         ContentsBottomSheet(
                             entries = contents.orEmpty(),
                             currentResource = resource,
+                            bookmarks = bookmarks,
                             onGo = { link ->
                                 go(link)
                                 isShowingContents = false
                             },
+                            onGoToBookmark = { bookmark ->
+                                go(bookmark)
+                                isShowingContents = false
+                            },
+                            onRemoveBookmark = { model.removeBookmark(it.id) },
                             onDismiss = { isShowingContents = false },
                         )
                     }
@@ -229,7 +246,9 @@ class EpubReaderActivity : FragmentActivity() {
                         failure = failure,
                         isVisible = isVisible,
                         isContentsReady = contents != null,
+                        isPageBookmarked = isPageBookmarked,
                         onClose = { finish() },
+                        onToggleBookmark = { model.toggleBookmark() },
                         onOpenContents = { isShowingContents = true },
                         onOpenTheme = { isShowingTheme = true },
                     )
@@ -327,6 +346,23 @@ class EpubReaderActivity : FragmentActivity() {
     }
 
     /**
+     * Goes back to a mark.
+     *
+     * The stored locator rather than a position derived from it: a bookmark records where
+     * Readium said the reader was, and handing that back is the only way to land on the
+     * same words after a type size has moved every page break.
+     */
+    @OptIn(ExperimentalReadiumApi::class)
+    private fun go(bookmark: Bookmark) {
+        val navigator =
+            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
+                ?: return
+        val locator = runCatching { Locator.fromJSON(JSONObject(bookmark.locator)) }.getOrNull()
+            ?: return
+        navigator.go(locator, animated = false)
+    }
+
+    /**
      * Turns a page with a transition StoryArc draws rather than one Readium draws.
      *
      * The dip is opaque before the navigator moves, so the swap is never on screen: what
@@ -384,15 +420,50 @@ class EpubReaderActivity : FragmentActivity() {
 private fun ContentsBottomSheet(
     entries: List<Link>,
     currentResource: Url?,
+    bookmarks: List<Bookmark>,
     onGo: (Link) -> Unit,
+    onGoToBookmark: (Bookmark) -> Unit,
+    onRemoveBookmark: (Bookmark) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    // `ebook-reader` puts bookmarks "alongside the table of contents". Two tabs in the one
+    // sheet rather than two sheets: they answer the same question — where in this book can
+    // I go — and a reader who opened the wrong one would have to close it to ask again.
+    var isShowingBookmarks by remember { mutableStateOf(false) }
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        TableOfContents(
-            entries = entries,
-            currentResource = currentResource,
-            onGo = onGo,
-        )
+        PrimaryTabRow(
+            selectedTabIndex = if (isShowingBookmarks) 1 else 0,
+        ) {
+            Tab(
+                selected = !isShowingBookmarks,
+                onClick = { isShowingBookmarks = false },
+                text = {
+                    Text(stringResource(R.string.epub_contents))
+                },
+            )
+            Tab(
+                selected = isShowingBookmarks,
+                onClick = { isShowingBookmarks = true },
+                text = {
+                    Text(stringResource(R.string.epub_bookmarks))
+                },
+            )
+        }
+
+        if (isShowingBookmarks) {
+            Bookmarks(
+                bookmarks = bookmarks,
+                onGo = onGoToBookmark,
+                onRemove = onRemoveBookmark,
+            )
+        } else {
+            TableOfContents(
+                entries = entries,
+                currentResource = currentResource,
+                onGo = onGo,
+            )
+        }
     }
 }
 
@@ -417,7 +488,7 @@ private fun ThemeBottomSheet(
     onAdoptColours: (app.storyarc.core.model.ReaderPalette) -> Boolean,
     onDiscardColours: () -> Unit,
     choices: app.storyarc.core.model.TransitionChoices,
-    onChooseTransition: (app.storyarc.core.model.PageTransition) -> Unit,
+    onChooseTransition: (PageTransition) -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {

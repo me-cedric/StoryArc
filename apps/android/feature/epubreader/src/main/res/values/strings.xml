@@ -75,4 +75,9 @@
     <string name="epub_contents_none">This book declares no table of contents.</string>
     <string name="epub_contents_here">Here</string>
     <string name="epub_contents_untitled">Untitled section</string>
+    <string name="epub_bookmarks">Bookmarks</string>
+    <string name="epub_bookmarks_none">Nothing marked yet. The ribbon in the bar above marks the page you are on.</string>
+    <string name="epub_bookmark_add">Bookmark this page</string>
+    <string name="epub_bookmark_remove">Remove bookmark</string>
+    <string name="epub_bookmark_unnamed">Unnamed chapter</string>
 </resources>

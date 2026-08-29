@@ -75,4 +75,9 @@
     <string name="epub_contents_none">Ce livre ne déclare aucun sommaire.</string>
     <string name="epub_contents_here">Ici</string>
     <string name="epub_contents_untitled">Section sans titre</string>
+    <string name="epub_bookmarks">Signets</string>
+    <string name="epub_bookmarks_none">Aucun signet. Le ruban dans la barre ci-dessus marque la page où vous êtes.</string>
+    <string name="epub_bookmark_add">Marquer cette page</string>
+    <string name="epub_bookmark_remove">Supprimer le signet</string>
+    <string name="epub_bookmark_unnamed">Chapitre sans titre</string>
 </resources>

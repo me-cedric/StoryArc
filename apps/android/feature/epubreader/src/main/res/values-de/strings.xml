@@ -75,4 +75,9 @@
     <string name="epub_contents_none">Dieses Buch deklariert kein Inhaltsverzeichnis.</string>
     <string name="epub_contents_here">Hier</string>
     <string name="epub_contents_untitled">Abschnitt ohne Titel</string>
+    <string name="epub_bookmarks">Lesezeichen</string>
+    <string name="epub_bookmarks_none">Noch nichts markiert. Das Band in der Leiste oben markiert die Seite, auf der Sie sind.</string>
+    <string name="epub_bookmark_add">Diese Seite mit einem Lesezeichen versehen</string>
+    <string name="epub_bookmark_remove">Lesezeichen entfernen</string>
+    <string name="epub_bookmark_unnamed">Kapitel ohne Titel</string>
 </resources>
