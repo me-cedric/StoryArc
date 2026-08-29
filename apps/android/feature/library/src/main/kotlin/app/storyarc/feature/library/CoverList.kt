@@ -33,6 +33,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -54,6 +56,15 @@ internal fun CoverList(
     publications: List<Publication>,
     viewModel: LibraryViewModel,
     onOpen: (Publication) -> Unit,
+    /**
+     * What the reader has picked, or null when they are not picking.
+     *
+     * `collections-and-reading-lists` asks for bulk selection from the library, and the
+     * library is whichever of these two layouts the reader chose. Selecting in one and not
+     * the other would make the layout toggle a feature switch.
+     */
+    selection: Set<String>? = null,
+    onToggle: (Publication) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val thumbnailWidth = 44.dp
@@ -65,7 +76,15 @@ internal fun CoverList(
         contentPadding = PaddingValues(vertical = StoryArcSpace.sm),
     ) {
         items(publications, key = { it.id }) { publication ->
-            ListRow(publication, viewModel, onOpen, thumbnailWidth, maxPixelSize)
+            ListRow(
+                publication,
+                viewModel,
+                onOpen,
+                thumbnailWidth,
+                maxPixelSize,
+                isPicked = selection?.contains(publication.id),
+                onToggle = onToggle,
+            )
             HorizontalDivider()
         }
     }
@@ -78,6 +97,9 @@ private fun ListRow(
     onOpen: (Publication) -> Unit,
     thumbnailWidth: androidx.compose.ui.unit.Dp,
     maxPixelSize: Int,
+    /** Whether this one is picked, or null when the library is not in selection mode. */
+    isPicked: Boolean? = null,
+    onToggle: (Publication) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -92,13 +114,21 @@ private fun ListRow(
             .fillMaxWidth()
             // A publication that cannot be read is not tappable. Opening it only
             // to show the same refusal a second time wastes the user's tap.
-            .clickable(enabled = publication.isOpenable) { onOpen(publication) }
+            //
+            // While the reader is picking, a tap picks -- even one that cannot be opened,
+            // which can still be shelved and marked read.
+            .clickable(enabled = isPicked != null || publication.isOpenable) {
+                if (isPicked != null) onToggle(publication) else onOpen(publication)
+            }
+            .semantics { if (isPicked != null) selected = isPicked }
             // Material's 48 dp touch-target floor, per `native-experience`.
             .heightIn(min = StoryArcSpace.xxl + StoryArcSpace.lg)
             .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm),
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (isPicked != null) PickMark(isPicked)
+
         Box(
             modifier = Modifier
                 .width(thumbnailWidth)

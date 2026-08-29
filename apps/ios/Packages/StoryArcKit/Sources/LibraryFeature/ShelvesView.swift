@@ -57,11 +57,18 @@ public struct ShelvesView: View {
                         NavigationLink {
                             CollectionDetail(model: model, id: collection.id, onOpen: onOpen)
                         } label: {
-                            row(
-                                name: collection.name,
-                                count: collection.members.count,
-                                origin: collection.origin
-                            )
+                            HStack(spacing: StoryArcSpace.md) {
+                                // `collections-and-reading-lists` gives a collection with
+                                // contents a cover "composite of its first four member
+                                // covers", and the artwork is the interface: a shelf of
+                                // collections is a shelf of covers, not a list of names.
+                                ShelfCover(model: model, collection: collection)
+                                row(
+                                    name: collection.name,
+                                    count: collection.members.count,
+                                    origin: collection.origin
+                                )
+                            }
                         }
                     }
                     .onDelete { offsets in

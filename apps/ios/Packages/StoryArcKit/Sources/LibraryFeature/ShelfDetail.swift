@@ -40,6 +40,10 @@ struct CollectionDetail: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        // `collections-and-reading-lists` asks for a whole collection to be downloaded or
+        // marked read. Membership rather than the grid: a publication whose file has gone is
+        // still a member, and marking it read is still what the reader asked for.
+        .shelfBulkActions(model: model, members: collection?.members ?? [])
     }
 }
 
@@ -97,6 +101,10 @@ struct ReadingListDetail: View {
         // pure targets can be tested on the host.
         .toolbar { EditButton() }
         #endif
+        // The whole list at once, per `collections-and-reading-lists`. Its entries rather
+        // than the publications behind them: an entry whose source dropped the publication
+        // is skipped by the action itself rather than left out of what the reader asked for.
+        .shelfBulkActions(model: model, members: Set(entries))
     }
 
     @ViewBuilder

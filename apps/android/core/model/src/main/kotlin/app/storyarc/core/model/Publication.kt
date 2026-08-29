@@ -90,6 +90,27 @@ enum class PublicationFormat {
         }
 
     /**
+     * The media type that names this format, for a record that has to be read back.
+     *
+     * The inverse of [ofMediaType], and it has to stay the inverse: a download record keeps
+     * a media type and the store names the file on disk from it, so a type that did not
+     * round-trip would write `x.cbz` and later go looking for `x.bin`.
+     */
+    val mediaType: String
+        get() = when (this) {
+            CBZ -> "application/vnd.comicbook+zip"
+            CBR -> "application/vnd.comicbook-rar"
+            CB7 -> "application/vnd.comicbook+7z"
+            CBT -> "application/vnd.comicbook+tar"
+            EPUB -> "application/epub+zip"
+            PDF -> "application/pdf"
+            // A folder of images is not a type anybody publishes, and it round-trips
+            // through nothing. Named rather than defaulted so the `when` stays exhaustive,
+            // and answered honestly so a caller that needs one file can see there is none.
+            IMAGE_FOLDER -> "inode/directory"
+        }
+
+    /**
      * Whether StoryArc can open a publication in this format today.
      *
      * CB7 is the one that parses as a format and does not open: `publication-formats`

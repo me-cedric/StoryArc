@@ -158,6 +158,11 @@ fun ShelvesScreen(
                         source = collection.origin.sourceName(registry.sources),
                         onOpen = { onOpenCollection(collection.id) },
                         onDelete = { viewModel.deleteCollection(collection.id) },
+                        // `collections-and-reading-lists` gives a collection with contents a
+                        // cover "composite of its first four member covers", and the artwork
+                        // is the interface: a shelf of collections is a shelf of covers, not
+                        // a list of names.
+                        cover = { ShelfCover(collection, viewModel) },
                     )
                 }
                 items(serverCollections, key = { "c-${it.server.id}-${it.id}" }) { shelf ->
@@ -264,18 +269,22 @@ private fun ShelfRow(
     // Null for a server's own shelf. Deleting one is the server's business, and a bin icon
     // that only ever failed would be worse than no bin icon.
     onDelete: (() -> Unit)?,
+    /** The composite, for a local collection. Null for a shelf whose contents are elsewhere. */
+    cover: (@Composable () -> Unit)? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val items = count?.let { pluralStringResource(R.plurals.shelves_count, it, it) }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen)
             .defaultMinSize(minHeight = 48.dp)
             .padding(vertical = StoryArcSpace.xs),
     ) {
+        cover?.invoke()
         Column(modifier = Modifier.weight(1f)) {
             Text(name, style = MaterialTheme.typography.bodyLarge, color = palette.textPrimary)
             val subtitle = listOfNotNull(source, items).joinToString(" · ")

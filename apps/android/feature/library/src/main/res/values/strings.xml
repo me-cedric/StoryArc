@@ -215,4 +215,22 @@
         <item quantity="one">Downloading one publication</item>
         <item quantity="other">Downloading %1$d publications</item>
     </plurals>
+    <string name="library_select">Select</string>
+    <string name="library_select_done">Done</string>
+    <string name="library_bulk_download">Download</string>
+    <string name="library_bulk_download_none">Every one of them is already on this device.</string>
+    <string name="library_bulk_download_size">%1$s will be copied into StoryArc’s own storage.</string>
+    <plurals name="library_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <plurals name="library_bulk_changed">
+        <item quantity="one">%1$d publication changed</item>
+        <item quantity="other">%1$d publications changed</item>
+    </plurals>
+    <plurals name="library_bulk_download_title">
+        <item quantity="one">Keep %1$d publication on this device?</item>
+        <item quantity="other">Keep %1$d publications on this device?</item>
+    </plurals>
+    <string name="shelves_bulk">Whole shelf</string>
 </resources>

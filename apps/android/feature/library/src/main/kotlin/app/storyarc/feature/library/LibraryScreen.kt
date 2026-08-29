@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.GridView
@@ -74,6 +75,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.BulkSelection
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
@@ -156,6 +158,19 @@ fun LibraryScreen(
     var shelving by remember { mutableStateOf<Publication?>(null) }
     var restarting by remember { mutableStateOf<Publication?>(null) }
 
+    /**
+     * What the reader has picked, when they are picking.
+     *
+     * `collections-and-reading-lists`: publications "can be selected in bulk from the
+     * library". Held here rather than in either layout, because the reader may switch
+     * between the grid and the list mid-selection and should not lose what they picked.
+     */
+    var selection by remember { mutableStateOf(LibrarySelection()) }
+    /** Whether the add-to sheet is open over the whole selection rather than one cover. */
+    var isShelvingSelection by remember { mutableStateOf(false) }
+    /** The last bulk action, until its ten seconds are up. */
+    var undo by remember { mutableStateOf<BulkUndo?>(null) }
+
     // Android hands a picked folder over as a tree `Uri` and grants access to it
     // only for this process — until the app asks for the grant to be persisted,
     // which can only be done here, with the result in hand. That single call is
@@ -233,6 +248,8 @@ fun LibraryScreen(
         if (answer == SnackbarResult.ActionPerformed) onUndoRemoval()
     }
 
+    BulkUndoEffect(undo, snackbars, viewModel, publications, onMark) { undo = null }
+
     Scaffold(
         modifier = modifier,
         containerColor = palette.surfaceCanvas,
@@ -242,6 +259,18 @@ fun LibraryScreen(
                 title = { Text(stringResource(R.string.library_title)) },
                 actions = {
                     if (viewModel != null && publications.isNotEmpty()) {
+                        // The way in. The way out is in the bar the selection puts up, so
+                        // the toolbar does not gain a control that is only half useful.
+                        IconButton(
+                            onClick = { selection = selection.begin() },
+                            enabled = !selection.isActive,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Checklist,
+                                contentDescription = stringResource(R.string.library_select),
+                                tint = palette.accent,
+                            )
+                        }
                         LayoutToggle(layout, viewModel::setLayout)
                         SortMenu(query, viewModel::setQuery)
                         FilterMenu(query, viewModel)
@@ -288,7 +317,24 @@ fun LibraryScreen(
         },
         bottomBar = {
             val state = scanState
-            if (unavailable.isNotEmpty()) {
+            if (selection.isActive && viewModel != null) {
+                BulkActionBar(
+                    viewModel = viewModel,
+                    selection = selection,
+                    onSelectionChange = { selection = it },
+                    onAddToShelf = { isShelvingSelection = true },
+                    onMarkRead = {
+                        val changing = BulkSelection.marking(
+                            selection.ids,
+                            read = true,
+                            finished = viewModel.finishedPublications(),
+                        )
+                        publications.filter { it.id in changing }.forEach { onMark(it, true) }
+                        undo = BulkUndo(BulkUndo.Kind.Read(true), changing)
+                    },
+                    onChange = { undo = it },
+                )
+            } else if (unavailable.isNotEmpty()) {
                 UnavailableFolders(
                     names = unavailable,
                     onRepick = { pickFolder.launch(null) },
@@ -353,16 +399,26 @@ fun LibraryScreen(
                                 // row is a shortcut to what you were reading, and
                                 // showing publications the query excluded reads as
                                 // a bug.
-                                continueReading =
-                                    if (query.isNarrowed) emptyList() else continueReading,
+                                // Hidden while picking as well: the row is a shortcut into
+                                // the reader, and a cover that opened one mid-selection
+                                // would throw away everything the reader had chosen.
+                                continueReading = if (query.isNarrowed || selection.isActive) {
+                                    emptyList()
+                                } else {
+                                    continueReading
+                                },
                                 onOpen = open,
                                 onAddToShelf = addToShelf,
+                                selection = selection.ids.takeIf { selection.isActive },
+                                onToggle = { selection = selection.toggle(it.id) },
                             )
                         } else {
                             CoverList(
                                 publications = visible,
                                 viewModel = viewModel,
                                 onOpen = open,
+                                selection = selection.ids.takeIf { selection.isActive },
+                                onToggle = { selection = selection.toggle(it.id) },
                             )
                         }
                     }
@@ -404,11 +460,24 @@ fun LibraryScreen(
     if (shelved != null && viewModel != null) {
         AddToShelfSheet(
             viewModel = viewModel,
-            publication = shelved,
+            publications = listOf(shelved),
             onDismiss = { shelving = null },
-            onMark = { isRead -> onMark(shelved, isRead) },
+            onMark = { changing, isRead -> changing.forEach { onMark(it, isRead) } },
             onRestart = { restarting = shelved },
-            onAddToServerList = onAddToServerList?.let { add -> { list -> add(shelved, list) } },
+            onAddToServerList = onAddToServerList,
+        )
+    }
+
+    // The same sheet, handed the whole selection. `collections-and-reading-lists` asks for a
+    // bulk add, and a bulk add is this sheet with more than one thing in it.
+    if (isShelvingSelection && viewModel != null) {
+        AddToShelfSheet(
+            viewModel = viewModel,
+            publications = publications.filter { it.id in selection },
+            onDismiss = { isShelvingSelection = false },
+            onMark = { changing, isRead -> changing.forEach { onMark(it, isRead) } },
+            onAddToServerList = onAddToServerList,
+            onChange = { undo = it },
         )
     }
 

@@ -21,10 +21,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -49,6 +54,8 @@ fun CollectionDetailScreen(
     id: UUID,
     onOpen: (Publication, String) -> Unit,
     onBack: () -> Unit,
+    /** Marks a publication read. The app layer owns the secrets the server may need. */
+    onMark: (Publication, Boolean) -> Unit = { _, _ -> },
 ) {
     val palette = LocalStoryArcPalette.current
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
@@ -57,9 +64,28 @@ fun CollectionDetailScreen(
     val collection = shelves.collections.firstOrNull { it.id == id }
     val members = publications.filter { it.id in (collection?.members ?: emptySet()) }
 
+    val snackbars = remember { SnackbarHostState() }
+    var undo by remember { mutableStateOf<BulkUndo?>(null) }
+    BulkUndoEffect(undo, snackbars, viewModel, publications, onMark) { undo = null }
+
     Scaffold(
         containerColor = palette.surfaceCanvas,
-        topBar = { DetailBar(collection?.name.orEmpty(), onBack) },
+        snackbarHost = { SnackbarHost(snackbars) },
+        topBar = {
+            DetailBar(collection?.name.orEmpty(), onBack) {
+                // `collections-and-reading-lists` asks for a whole collection to be
+                // downloaded or marked read. Membership rather than the grid: a publication
+                // whose file has gone is still a member, and marking it read is still what
+                // the reader asked for.
+                ShelfBulkMenu(
+                    viewModel = viewModel,
+                    members = collection?.members ?: emptySet(),
+                    publications = publications,
+                    onMark = onMark,
+                    onChange = { undo = it },
+                )
+            }
+        },
     ) { insets ->
         Column(modifier = Modifier.fillMaxSize().padding(insets)) {
             if (members.isEmpty()) {
@@ -100,6 +126,8 @@ fun ReadingListDetailScreen(
     id: UUID,
     onOpen: (Publication, String) -> Unit,
     onBack: () -> Unit,
+    /** Marks a publication read. The app layer owns the secrets the server may need. */
+    onMark: (Publication, Boolean) -> Unit = { _, _ -> },
 ) {
     val palette = LocalStoryArcPalette.current
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
@@ -110,9 +138,27 @@ fun ReadingListDetailScreen(
     val finished = viewModel.finishedPublications()
     val position = list?.position { it in finished } ?: 0
 
+    val snackbars = remember { SnackbarHostState() }
+    var undo by remember { mutableStateOf<BulkUndo?>(null) }
+    BulkUndoEffect(undo, snackbars, viewModel, publications, onMark) { undo = null }
+
     Scaffold(
         containerColor = palette.surfaceCanvas,
-        topBar = { DetailBar(list?.name.orEmpty(), onBack) },
+        snackbarHost = { SnackbarHost(snackbars) },
+        topBar = {
+            DetailBar(list?.name.orEmpty(), onBack) {
+                // The whole list at once. Its entries rather than the publications behind
+                // them: an entry whose source dropped the publication is skipped by the
+                // action itself rather than left out of what the reader asked for.
+                ShelfBulkMenu(
+                    viewModel = viewModel,
+                    members = entries.toSet(),
+                    publications = publications,
+                    onMark = onMark,
+                    onChange = { undo = it },
+                )
+            }
+        },
     ) { insets ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(insets),
@@ -167,7 +213,11 @@ fun ReadingListDetailScreen(
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun DetailBar(title: String, onBack: () -> Unit) {
+private fun DetailBar(
+    title: String,
+    onBack: () -> Unit,
+    actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
+) {
     val palette = LocalStoryArcPalette.current
     TopAppBar(
         title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -180,6 +230,7 @@ private fun DetailBar(title: String, onBack: () -> Unit) {
                 )
             }
         },
+        actions = actions,
     )
 }
 

@@ -23,6 +23,14 @@ struct CoverGrid: View {
     /// app layer wires the two together.
     let onOpen: (Publication) -> Void
 
+    /// What the reader has picked, or `nil` when they are not picking.
+    ///
+    /// `collections-and-reading-lists` wants publications "selected in bulk from the
+    /// library", and the library is a grid or a list depending on a control the reader
+    /// already owns — so both of them take this, and neither is the one that works.
+    var selection: Set<String>?
+    var onToggle: (Publication) -> Void = { _ in }
+
     /// The readable range. Below the minimum a cover stops being recognisable;
     /// above the maximum a phone shows one and a half of them.
     private let minimumWidth: CGFloat = 108
@@ -64,7 +72,9 @@ struct CoverGrid: View {
                         onOpen: onOpen,
                         // Pixels, not points: a cover decoded at point size is
                         // blurry on every device made since 2010.
-                        maxPixelSize: Int(maximumWidth * displayScale)
+                        maxPixelSize: Int(maximumWidth * displayScale),
+                        isPicked: selection?.contains(publication.id),
+                        onToggle: onToggle
                     )
                 }
             }
@@ -127,6 +137,10 @@ struct CoverCell: View {
     let onOpen: (Publication) -> Void
     let maxPixelSize: Int
 
+    /// Whether this one is picked, or `nil` when the library is not in selection mode.
+    var isPicked: Bool?
+    var onToggle: (Publication) -> Void = { _ in }
+
     @State private var cover: CGImage?
     @State private var didAttemptLoad = false
 
@@ -151,6 +165,9 @@ struct CoverCell: View {
                         ProgressBar(fraction: fraction)
                     }
                 }
+                .overlay(alignment: .topTrailing) {
+                    if let isPicked { PickMark(isPicked: isPicked) }
+                }
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                 Text(publication.displayTitle)
@@ -172,18 +189,30 @@ struct CoverCell: View {
         .contentShape(.rect)
         // A publication that cannot be read is not tappable. Opening it only to
         // show the same refusal a second time wastes the user's tap.
-        .onTapGesture { if publication.isOpenable { onOpen(publication) } }
+        //
+        // While the reader is picking, a tap picks. A cover that opened the reader
+        // mid-selection would throw away everything they had chosen so far.
+        .onTapGesture {
+            if isPicked != nil {
+                onToggle(publication)
+            } else if publication.isOpenable {
+                onOpen(publication)
+            }
+        }
         // `collections-and-reading-lists`: a publication "may belong to any number of
         // collections", and this is where a reader says so. Only shown when there is
         // somewhere to add it to — a menu whose only content is "you have no collections"
-        // is a menu that wastes a long press.
+        // is a menu that wastes a long press. Absent while picking: the bar below is
+        // already offering the same actions for everything that is picked.
         .contextMenu {
-            AddToShelfMenu(
-                model: model,
-                publication: publication,
-                onRefused: { refusedServer = $0 },
-                onRestart: { restarting = publication }
-            )
+            if isPicked == nil {
+                AddToShelfMenu(
+                    model: model,
+                    publications: [publication],
+                    onRefused: { refusedServer = $0 },
+                    onRestart: { restarting = publication }
+                )
+            }
         }
         // `reading-progress` requires the clear to be confirmed. Here rather than in the
         // menu because a context menu cannot present one, and destructive because it is:
@@ -231,6 +260,9 @@ struct CoverCell: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
+        // Spoken, because a tick in the corner of a cover is invisible to VoiceOver and
+        // "is this one picked" is the only question selection mode asks.
+        .accessibilityAddTraits(isPicked == true ? .isSelected : [])
         .task(id: publication.id) {
             guard !didAttemptLoad else { return }
             didAttemptLoad = true
@@ -301,6 +333,30 @@ struct CoverCell: View {
             parts.append(String(localized: "library.cell.pages \(pageCount)", bundle: .module, locale: .storyArc))
         }
         return parts.joined(separator: ", ")
+    }
+}
+
+/// Whether a cover is one of the ones the reader has picked.
+///
+/// A mark in the corner rather than a tint over the artwork: the artwork is the interface,
+/// and a wash of accent colour across a cover hides the one thing the reader is using to
+/// tell it from its neighbour.
+struct PickMark: View {
+    @Environment(\.theme) private var theme
+
+    let isPicked: Bool
+
+    var body: some View {
+        Image(systemName: isPicked ? "checkmark.circle.fill" : "circle")
+            .symbolRenderingMode(.palette)
+            .foregroundStyle(
+                isPicked ? theme.palette.surfaceCanvas : .white,
+                isPicked ? theme.accent : .black.opacity(0.35)
+            )
+            .font(.title3)
+            .padding(StoryArcSpace.xs)
+            // Announced by the cell, which already speaks the title this belongs to.
+            .accessibilityHidden(true)
     }
 }
 

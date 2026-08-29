@@ -18,6 +18,13 @@ public struct LibraryView: View {
     @State private var isAddingKavita = false
     @State private var isAddingShare = false
 
+    /// What the reader has picked, when they are picking.
+    ///
+    /// `collections-and-reading-lists`: publications "can be selected in bulk from the
+    /// library". Held here rather than in either layout, because the reader may switch
+    /// between the grid and the list mid-selection and should not lose what they picked.
+    @State private var selection = LibrarySelection()
+
     /// The catalogue being browsed, by identifier.
     ///
     /// The identifier rather than the `Source`: a navigation destination needs something
@@ -128,12 +135,25 @@ public struct LibraryView: View {
                             // Hidden while a search or filter is running: the row
                             // is a shortcut to what you were reading, and showing
                             // publications the query excluded reads as a bug.
-                            continueReading: model.query.isNarrowed ? [] : model.continueReading,
+                            // Hidden while picking as well: the row is a shortcut into the
+                            // reader, and a cover that opened one mid-selection would throw
+                            // away everything the reader had chosen.
+                            continueReading: model.query.isNarrowed || selection.isActive
+                                ? []
+                                : model.continueReading,
                             model: model,
-                            onOpen: open
+                            onOpen: open,
+                            selection: selection.isActive ? selection.ids : nil,
+                            onToggle: { selection.toggle($0.id) }
                         )
                     } else {
-                        CoverList(publications: model.visible, model: model, onOpen: open)
+                        CoverList(
+                            publications: model.visible,
+                            model: model,
+                            onOpen: open,
+                            selection: selection.isActive ? selection.ids : nil,
+                            onToggle: { selection.toggle($0.id) }
+                        )
                     }
                 } else if !model.publications.isEmpty {
                     // A library that is not empty but looks it. `library-browsing`
@@ -228,6 +248,20 @@ public struct LibraryView: View {
             }
             .toolbar {
                 if !model.publications.isEmpty {
+                    // The way in. The way out is in the bar the selection puts up, so the
+                    // toolbar does not gain a control that is only ever half useful.
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            selection.begin()
+                        } label: {
+                            Label {
+                                Text("library.select", bundle: .module)
+                            } icon: {
+                                Image(systemName: "checklist")
+                            }
+                        }
+                        .disabled(selection.isActive)
+                    }
                     ToolbarItem(placement: .primaryAction) {
                         LayoutToggle(model: model)
                     }
@@ -238,54 +272,13 @@ public struct LibraryView: View {
                         FilterMenu(model: model)
                     }
                 }
-                // A menu rather than a second button. There are two ways to add a
-                // source now and there will be four; a toolbar with one button per kind
-                // would crowd out the controls a reader uses every day.
                 ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Button {
-                            isPickingFolder = true
-                        } label: {
-                            Label {
-                                Text("library.addFolder", bundle: .module)
-                            } icon: {
-                                Image(systemName: "folder.badge.plus")
-                            }
-                        }
-                        Button {
-                            isAddingCatalogue = true
-                        } label: {
-                            Label {
-                                Text("catalogue.title", bundle: .module)
-                            } icon: {
-                                Image(systemName: "dot.radiowaves.up.forward")
-                            }
-                        }
-                        Button {
-                            isAddingKavita = true
-                        } label: {
-                            Label {
-                                Text("kavita.title", bundle: .module)
-                            } icon: {
-                                Image(systemName: "externaldrive.connected.to.line.below")
-                            }
-                        }
-                        Button {
-                            isAddingShare = true
-                        } label: {
-                            Label {
-                                Text("smb.title", bundle: .module)
-                            } icon: {
-                                Image(systemName: "externaldrive.badge.wifi")
-                            }
-                        }
-                    } label: {
-                        Label {
-                            Text("library.addSource", bundle: .module)
-                        } icon: {
-                            Image(systemName: "plus")
-                        }
-                    }
+                    AddSourceMenu(
+                        addFolder: { isPickingFolder = true },
+                        addCatalogue: { isAddingCatalogue = true },
+                        addKavita: { isAddingKavita = true },
+                        addShare: { isAddingShare = true }
+                    )
                 }
                 // Last, and always present. A reader with an empty library still needs
                 // to reach About, and `settings-and-about` puts the licences there.
@@ -311,7 +304,9 @@ public struct LibraryView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if let missing = model.unavailableFolders.first {
+                if selection.isActive {
+                    BulkActionBar(model: model, selection: $selection)
+                } else if let missing = model.unavailableFolders.first {
                     // Named, per `local-library`. "A folder is no longer available"
                     // sends someone hunting through four of them.
                     UnavailableFolderNotice(name: missing) { isPickingFolder = true }
