@@ -105,7 +105,8 @@ struct StoryArcApp: App {
                 preferences: LibraryPreferences(),
                 sourceStore: SourceStore(),
                 // The same store the downloads use — see `ImportedCopies` for why.
-                downloadStore: DownloadStore()
+                downloadStore: DownloadStore(),
+                journal: ScanJournal()
             )
         )
     }

@@ -45,11 +45,20 @@ public enum LibraryScanner {
     /// Depth-first and alphabetical, so the order a user sees matches the order
     /// they would see in a file browser — a scan that returns rows in filesystem
     /// order looks broken even when it is complete.
-    public static func scan(folderAt folder: URL) -> AsyncStream<ScanEvent> {
+    /// - Parameter skipping: paths an earlier, interrupted scan of this folder already
+    ///   indexed. `local-library` requires a scan to be "cancellable and resumable", and
+    ///   this is the resumable half: the walk still visits them, which costs one directory
+    ///   listing, and opens none of them, which is where the minutes go.
+    public static func scan(
+        folderAt folder: URL,
+        skipping: Set<String> = []
+    ) -> AsyncStream<ScanEvent> {
         AsyncStream<ScanEvent> { continuation in
             let task = Task {
                 // The picked folder's own name is not a series: it is the library.
-                let tally = await walk(folder, seriesHint: nil) { continuation.yield($0) }
+                let tally = await walk(folder, seriesHint: nil, skipping: skipping) {
+                    continuation.yield($0)
+                }
                 if !Task.isCancelled {
                     continuation.yield(.finished(found: tally.found, skipped: tally.skipped))
                 }
@@ -122,7 +131,7 @@ public enum LibraryScanner {
     private static func entry(for url: URL) -> FolderSnapshot.Entry {
         let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
         return FolderSnapshot.Entry(
-            path: url.path,
+            path: normalized(url),
             modified: values?.contentModificationDate ?? .distantPast,
             size: Int64(values?.fileSize ?? 0)
         )
@@ -153,6 +162,7 @@ public enum LibraryScanner {
     private static func walk(
         _ directory: URL,
         seriesHint: String?,
+        skipping: Set<String>,
         emit: @Sendable (ScanEvent) -> Void
     ) async -> Tally {
         var tally = Tally()
@@ -186,18 +196,34 @@ public enum LibraryScanner {
 
         if publicationFiles.isEmpty, !imageFiles.isEmpty {
             // Its subdirectories are chapters of it, not separate publications.
+            guard !skipping.contains(normalized(directory)) else { return tally }
             return tally + (await index(directory, seriesHint: seriesHint, emit: emit))
         }
 
         for file in publicationFiles {
             guard !Task.isCancelled else { return tally }
+            // Already done by the scan this one is picking up from. Not counted either: the
+            // caller put those publications back itself and has already counted them.
+            guard !skipping.contains(normalized(file)) else { continue }
             tally += await index(file, seriesHint: seriesHint, emit: emit)
         }
         for child in directories {
             guard !Task.isCancelled else { return tally }
-            tally += await walk(child, seriesHint: child.lastPathComponent, emit: emit)
+            tally += await walk(
+                child, seriesHint: child.lastPathComponent, skipping: skipping, emit: emit
+            )
         }
         return tally
+    }
+
+    /// The form a publication's identity records a path in.
+    ///
+    /// `contentsOfDirectory` hands back `/private/var/…` where the identity holds `/var/…`,
+    /// because the indexer standardises what it is given. Comparing the two raw is how a
+    /// resumed scan skips nothing and re-opens the whole folder, and how a reconcile fails
+    /// to find the row belonging to a file that has gone.
+    static func normalized(_ url: URL) -> String {
+        (url.path as NSString).standardizingPath
     }
 
     private static func index(

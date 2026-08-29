@@ -54,7 +54,9 @@ public final class LibraryModel {
     /// In-progress publications, most recently read first. Empty means the row is
     /// not drawn at all, which is what `library-browsing` asks for.
     public private(set) var continueReading: [Publication] = []
-    public private(set) var scanState: LibraryScanState = .idle
+    // `internal(set)`, not `private(set)`: the scanning half of this type lives in
+    // another file, and `private` is file-scoped.
+    public internal(set) var scanState: LibraryScanState = .idle
     /// Folders the user has added, in the order they added them.
     public internal(set) var folders: [URL] = []
 
@@ -67,7 +69,17 @@ public final class LibraryModel {
     // Internal, not private: the imported copies half of this type lives in another file.
     /// Where each publication came from, so a cover can be loaded later.
     var locations: [String: URL] = [:]
-    private var scanTask: Task<Void, Never>?
+    // Internal, not private: the scanning half of this type lives in another file.
+    var scanTask: Task<Void, Never>?
+
+    /// The folder being walked, and what has been indexed in it so far.
+    ///
+    /// Held so an interrupted scan can be written down and picked up. `local-library`
+    /// requires a scan to be "cancellable and resumable", which are one promise: a reader
+    /// who stops a scan and starts it again should not wait for the same archives twice.
+    var scanningFolder: URL?
+    var scanned: [Publication] = []
+    let journal: ScanJournal?
 
     // Internal, not private: the watching half of this type lives in another file.
     /// What each watched folder held when it was last looked at, keyed by the folder's path.
@@ -128,8 +140,10 @@ public final class LibraryModel {
         preferences: LibraryPreferences? = nil,
         sourceStore: SourceStore? = nil,
         shelvesStore: ShelvesStore? = nil,
-        downloadStore: DownloadStore? = nil
+        downloadStore: DownloadStore? = nil,
+        journal: ScanJournal? = nil
     ) {
+        self.journal = journal
         self.downloadStore = downloadStore
         self.sourceStore = sourceStore
         self.shelvesStore = shelvesStore
@@ -226,6 +240,9 @@ public final class LibraryModel {
     public func cancelScan() {
         scanTask?.cancel()
         scanTask = nil
+        // Written down rather than lost, which is what makes the next scan of this folder a
+        // resumption instead of a repetition.
+        if let scanningFolder { journal?.record(scanned, inFolder: scanningFolder.path) }
         if case .scanning(let found) = scanState {
             scanState = .finished(found: found, skipped: 0)
         }
@@ -243,91 +260,8 @@ public final class LibraryModel {
         scanState = .idle
     }
 
-    private func scan(_ folder: URL) {
-        scanTask?.cancel()
-        scanState = .scanning(found: publications.count)
-
-        scanTask = Task { [weak self] in
-            for await event in LibraryScanner.scan(folderAt: folder) {
-                guard let self, !Task.isCancelled else { return }
-                switch event {
-                case let .found(publication):
-                    self.append(publication, in: folder)
-                case .skipped:
-                    // Counted in the finished event. Not surfaced per-file: a scan
-                    // of a messy folder would otherwise be a wall of notices.
-                    break
-                case let .finished(found, skipped):
-                    self.scanState = .finished(found: found, skipped: skipped)
-                    // What the folder held at the moment the scan agreed with it. Without
-                    // this the first reconcile would see every file as new and re-read the
-                    // whole library to learn nothing.
-                    self.snapshots[folder.path] = FolderSnapshot(
-                        LibraryScanner.entries(in: folder)
-                    )
-                    // Progress is loaded here rather than only when the view
-                    // appears. The view appears before the scan produces anything,
-                    // so a load at that point matches recorded positions against an
-                    // empty library and the continue row never fills.
-                    await self.refreshProgress()
-                }
-            }
-        }
-    }
-
-    private func append(_ publication: Publication, in folder: URL) {
-        // Attributed here rather than by the indexer: indexing decides what a publication
-        // is, and the library is the only thing that knows which source it was reached
-        // through. `sources` needs this for a source's item count, and
-        // `library-browsing` for the order two sources holding one title appear in.
-        guard adopt(publication, from: source(of: folder)) else { return }
-        if case let .scanning(found) = scanState {
-            scanState = .scanning(found: found + 1)
-        }
-        // ponytail: re-arranged in batches during a scan, not per publication —
-        // sorting after every one of 10,000 appends is quadratic. The scan's own
-        // completion rebuilds the rest, so the only visible effect is that the
-        // last few rows arrive together.
-        if publications.count % rebuildEvery == 0 { rebuild() }
-    }
-
-    // Internal, not private: `private` is file-scoped, and the imported copies sit in
-    // another file.
-    /// Puts a publication in the library under the source it was reached through, and
-    /// says whether it was new.
-    ///
-    /// Shared by the folder scan and by the imported copies, which find publications two
-    /// entirely different ways and have to agree about what one row means.
-    @discardableResult
-    func adopt(_ publication: Publication, from sourceID: UUID?) -> Bool {
-        var attributed = publication
-        attributed.sourceID = sourceID
-
-        // A publication already present from another folder is not added twice.
-        // Identity is what decides, not the path, so the same file reached two ways
-        // is one row (ADR-0006).
-        if let seen = publications.firstIndex(
-            where: { $0.identity.matches(publication.identity) }
-        ) {
-            // Unless the second find knows something the first did not. The app's own
-            // Documents folder is scanned before any source is restored, so a reader whose
-            // library lives there had every publication found unattributed first — and a
-            // source that holds eleven books reported nought. Whichever scan carries a
-            // source wins; the earlier row is otherwise identical.
-            if publications[seen].sourceID == nil, attributed.sourceID != nil {
-                publications[seen].sourceID = attributed.sourceID
-            }
-            return false
-        }
-
-        publications.append(attributed)
-        if let path = publication.identity.normalizedPath {
-            locations[publication.id] = URL(fileURLWithPath: path)
-        }
-        return true
-    }
-
-    private let rebuildEvery = 24
+    // Internal, not private: the scanning half of this type lives in another file.
+    let rebuildEvery = 24
 
     // Internal, not private: `private` is file-scoped, and the callers now sit
     // in the other half of this type.

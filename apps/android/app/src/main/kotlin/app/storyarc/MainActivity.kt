@@ -33,6 +33,7 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.ScanJournal
 import app.storyarc.core.persistence.locationOf
 import app.storyarc.core.persistence.RemovedDownload
 import app.storyarc.core.persistence.finishedDownload
@@ -185,6 +186,9 @@ class MainActivity : ComponentActivity() {
         val pins = CertificatePins(pinStore.pins())
         val downloadStore = DownloadStore.open(applicationContext)
         val kavitaProgress = KavitaProgressStore.open(applicationContext)
+        // What an interrupted scan wrote down, so the next one picks up rather than starting
+        // again. `local-library` requires a scan to be "cancellable and resumable".
+        val scanJournal = ScanJournal.open(applicationContext)
 
         // How the reader reaches a share. Registered here because this is where the source
         // registry and the credential store both are; `core:format` stays unaware that SMB
@@ -289,6 +293,7 @@ class MainActivity : ComponentActivity() {
                                 // imported copies live beside them on purpose -- see
                                 // `ImportedCopies`.
                                 downloadStore,
+                                scanJournal,
                             )
                         }
                     },

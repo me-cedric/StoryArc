@@ -42,6 +42,7 @@ import app.storyarc.core.model.Shelves
 import app.storyarc.core.persistence.ShelvesStore
 import app.storyarc.core.persistence.SourceStore
 import app.storyarc.core.persistence.ProgressStore
+import app.storyarc.core.persistence.ScanJournal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -73,6 +74,11 @@ class LibraryViewModel(
      * [ImportedCopies].
      */
     private val downloadStore: DownloadStore? = null,
+    /**
+     * What an interrupted scan wrote down. `local-library` requires a scan to be
+     * "cancellable and resumable" -- see [ScanJournal] for why those are one promise.
+     */
+    private val journal: ScanJournal? = null,
 ) : AndroidViewModel(application) {
 
     /**
@@ -429,9 +435,26 @@ class LibraryViewModel(
         _scanState.value = LibraryScanState.Scanning(0)
 
         val trees = _folders.value
+        // Put back before the walk starts, so a reader who left mid-scan comes back to the
+        // library they had rather than to an empty grid filling up again.
+        val resumed = trees.associate { tree ->
+            tree.toString() to journal?.indexed(tree.toString()).orEmpty()
+        }
+        for ((tree, publications) in resumed) {
+            val sourceId = sourceOf(Uri.parse(tree))
+            for (publication in publications) {
+                adopt(publication, sourceId)
+                publication.identity.normalizedPath?.let { locations[publication.id] = it }
+            }
+        }
+        if (_publications.value.isNotEmpty()) {
+            _scanState.value = LibraryScanState.Scanning(_publications.value.size)
+            rebuild()
+        }
+
         scanJob = viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                var found = 0
+                var found = _publications.value.size
                 var skipped = 0
                 // Each walk carries the tree it came from, so a publication can be
                 // attributed to the source it was reached through. The managed folder is
@@ -440,9 +463,20 @@ class LibraryViewModel(
                     if (trees.isEmpty()) {
                         listOf(null to LibraryScanner.scan(managedFolder))
                     } else {
-                        trees.map { it to LibraryScanner.scan(resolver, it) }
+                        trees.map { tree ->
+                            // Matched on the path, which is what a directory walk knows. A
+                            // publication whose identity is a content digest is still filed
+                            // under the document it came out of.
+                            val done = resumed[tree.toString()]
+                                .orEmpty()
+                                .mapNotNull { it.identity.normalizedPath }
+                                .toSet()
+                            tree to LibraryScanner.scan(resolver, tree, done)
+                        }
                     }
                 for ((tree, walk) in walks) {
+                    scanningFolder = tree?.toString()
+                    scanned = resumed[tree?.toString()].orEmpty().toMutableList()
                     walk.collect { event ->
                         when (event) {
                             is ScanEvent.Found -> append(event.publication, tree)
@@ -450,10 +484,17 @@ class LibraryViewModel(
                             is ScanEvent.Finished -> {
                                 found += event.found
                                 skipped += event.skipped
+                                // Nothing left to resume. Cleared rather than kept: this is
+                                // a journal, not the metadata cache `sources` asks for, and
+                                // a journal that outlived its scan would be a stale library
+                                // nobody decided to keep.
+                                tree?.let { journal?.clear(it.toString()) }
                             }
                         }
                     }
                 }
+                scanningFolder = null
+                scanned = mutableListOf()
                 _scanState.value = LibraryScanState.Finished(found, skipped)
                 // What each folder held at the moment the scan agreed with it. Without this
                 // the first reconcile would see every file as new and re-read the whole
@@ -524,6 +565,9 @@ class LibraryViewModel(
     fun cancelScan() {
         scanJob?.cancel()
         scanJob = null
+        // Written down rather than lost, which is what makes the next scan of this folder a
+        // resumption instead of a repetition.
+        scanningFolder?.let { journal?.record(scanned, it) }
         (_scanState.value as? LibraryScanState.Scanning)?.let {
             _scanState.value = LibraryScanState.Finished(it.found, 0)
         }
@@ -542,6 +586,13 @@ class LibraryViewModel(
         // completion rebuilds the rest, so the only visible effect is that the
         // last few rows arrive together.
         if (_publications.value.size % REBUILD_EVERY == 0) rebuild()
+        // Written down on the same beat. A journal flushed per publication would cost a
+        // preferences write per file; one every two dozen loses at most that many to a
+        // process the system reclaims without warning -- which is the case this exists for,
+        // because a killed process runs no cleanup of its own.
+        scanned += publication
+        val folder = scanningFolder
+        if (folder != null && scanned.size % REBUILD_EVERY == 0) journal?.record(scanned, folder)
     }
 
     /**
@@ -572,6 +623,16 @@ class LibraryViewModel(
         _publications.update { it + publication.copy(sourceId = sourceId) }
         return true
     }
+
+    /**
+     * The folder being walked, and what has been indexed in it so far.
+     *
+     * Held so an interrupted scan can be written down and picked up. `local-library` requires
+     * a scan to be "cancellable and resumable", which are one promise: a reader who stops a
+     * scan and starts it again should not wait for the same archives twice.
+     */
+    private var scanningFolder: String? = null
+    private var scanned: MutableList<Publication> = mutableListOf()
 
     // Watched changes
 

@@ -70,9 +70,15 @@ object LibraryScanner {
      * would see in a file browser — a scan that returns rows in filesystem order
      * looks broken even when it is complete.
      */
-    fun scan(folder: File): Flow<ScanEvent> = flow {
+    /**
+     * @param skipping paths an earlier, interrupted scan of this folder already indexed.
+     *   `local-library` requires a scan to be "cancellable and resumable", and this is the
+     *   resumable half: the walk still visits them, which costs one directory listing, and
+     *   opens none of them, which is where the minutes go.
+     */
+    fun scan(folder: File, skipping: Set<String> = emptySet()): Flow<ScanEvent> = flow {
         // The picked folder's own name is not a series: it is the library.
-        val tally = walk(folder, seriesHint = null) { emit(it) }
+        val tally = walk(folder, seriesHint = null, skipping = skipping) { emit(it) }
         emit(ScanEvent.Finished(tally.found, tally.skipped))
     }
 
@@ -97,10 +103,18 @@ object LibraryScanner {
      * same image-folder-is-a-publication decision. A user who moves a shelf from
      * internal storage to an SD card should see the same library.
      */
-    fun scan(resolver: ContentResolver, tree: Uri): Flow<ScanEvent> = flow {
-        val tally = walkTree(resolver, tree, SafTree.rootDocumentId(tree), seriesHint = null) {
-            emit(it)
-        }
+    fun scan(
+        resolver: ContentResolver,
+        tree: Uri,
+        skipping: Set<String> = emptySet(),
+    ): Flow<ScanEvent> = flow {
+        val tally = walkTree(
+            resolver,
+            tree,
+            SafTree.rootDocumentId(tree),
+            seriesHint = null,
+            skipping = skipping,
+        ) { emit(it) }
         emit(ScanEvent.Finished(tally.found, tally.skipped))
     }
 
@@ -264,6 +278,7 @@ object LibraryScanner {
     private suspend fun walk(
         directory: File,
         seriesHint: String?,
+        skipping: Set<String>,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         currentCoroutineContext().ensureActive()
@@ -283,17 +298,21 @@ object LibraryScanner {
         // mistaken for the other.
         if (publicationFiles.isEmpty() && imageFiles.isNotEmpty()) {
             // Its subdirectories are chapters of it, not separate publications.
+            if (directory.absolutePath in skipping) return Tally()
             return index(directory, seriesHint, emit)
         }
 
         var tally = Tally()
         for (file in publicationFiles) {
             currentCoroutineContext().ensureActive()
+            // Already done by the scan this one is picking up from. Not counted either: the
+            // caller put those publications back itself and has already counted them.
+            if (file.absolutePath in skipping) continue
             tally += index(file, seriesHint, emit)
         }
         for (child in directories) {
             currentCoroutineContext().ensureActive()
-            tally += walk(child, child.name, emit)
+            tally += walk(child, child.name, skipping, emit)
         }
         return tally
     }
@@ -303,6 +322,7 @@ object LibraryScanner {
         tree: Uri,
         documentId: String,
         seriesHint: String?,
+        skipping: Set<String>,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         currentCoroutineContext().ensureActive()
@@ -316,17 +336,22 @@ object LibraryScanner {
         val images = files.filter { extensionOf(it.name) in IMAGE_EXTENSIONS }
 
         if (publications.isEmpty() && images.isNotEmpty()) {
+            val folder = SafTree.documentUri(tree, documentId).toString()
+            if (folder in skipping) return Tally()
             return indexDocumentFolder(resolver, tree, documentId, seriesHint, emit)
         }
 
         var tally = Tally()
         for (entry in publications) {
             currentCoroutineContext().ensureActive()
+            // Already done by the scan this one is picking up from, and identified the way
+            // the library identifies a document: by the `Uri` its identity carries.
+            if (SafTree.documentUri(tree, entry.documentId).toString() in skipping) continue
             tally += indexDocument(resolver, tree, entry, seriesHint, emit)
         }
         for (child in directories) {
             currentCoroutineContext().ensureActive()
-            tally += walkTree(resolver, tree, child.documentId, child.name, emit)
+            tally += walkTree(resolver, tree, child.documentId, child.name, skipping, emit)
         }
         return tally
     }

@@ -192,6 +192,49 @@ struct LibraryScannerTests {
         #expect(events == [.finished(found: 0, skipped: 0)])
     }
 
+    // MARK: - Resuming
+
+    @Test("A resumed scan does not open what the interrupted one already did")
+    func resumingSkipsWhatIsDone() async throws {
+        // `local-library`: a scan "is cancellable and resumable". Resumable means this and
+        // nothing else — the archives already read are not read again, which is where the
+        // minutes of a ten-thousand-file scan go.
+        let root = try shelf(series: "Bone", files: ["single-page.cbz", "natural-sort.cbz"])
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let first = await LibraryScanner.scanAll(folderAt: root)
+        let done = Set(first.compactMap(\.identity.normalizedPath).prefix(1))
+
+        var resumed: [Publication] = []
+        for await event in LibraryScanner.scan(folderAt: root, skipping: done) {
+            if let publication = event.publication { resumed.append(publication) }
+        }
+
+        #expect(resumed.count == 1)
+        #expect(!resumed.contains { done.contains($0.identity.normalizedPath ?? "") })
+    }
+
+    @Test("A resumed scan that has nothing left to do finds nothing and still finishes")
+    func resumingWhenEverythingIsDone() async throws {
+        // The end of a resume, and the state a reader is in when the process was reclaimed
+        // one file from the end. It must finish rather than report the whole folder again.
+        let root = try shelf(series: "Bone", files: ["single-page.cbz"])
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let first = await LibraryScanner.scanAll(folderAt: root)
+        let done = Set(first.compactMap(\.identity.normalizedPath))
+        let events = await events(in: root, skipping: done)
+        #expect(events == [.finished(found: 0, skipped: 0)])
+    }
+
+    private func events(in folder: URL, skipping: Set<String>) async -> [ScanEvent] {
+        var collected: [ScanEvent] = []
+        for await event in LibraryScanner.scan(folderAt: folder, skipping: skipping) {
+            collected.append(event)
+        }
+        return collected
+    }
+
     // MARK: - Listing
 
     @Test("The listing holds everything the scan found")
