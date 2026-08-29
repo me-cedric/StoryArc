@@ -7,6 +7,7 @@ import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadState
+import app.storyarc.core.model.RecentSearches
 
 /**
  * How the library was left, remembered across launches.
@@ -37,6 +38,17 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
         private const val FORMATS = "formats"
         private const val LANGUAGES = "languages"
         private const val LAYOUT = "layout"
+        private const val RECENT_SEARCHES = "recentSearches"
+
+        /**
+         * What the stored searches are joined with.
+         *
+         * A set would lose the order, and the order is the whole point of a recent
+         * list — [SharedPreferences] has no ordered collection, so one string it is.
+         * A newline cannot appear in a term: the search field is single-line, and
+         * the value is trimmed before it is kept.
+         */
+        private const val SEPARATOR = "\n"
     }
 
     /**
@@ -61,6 +73,27 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
             .putStringSet(READ_STATES, query.readStates.map { it.name }.toSet())
             .putStringSet(FORMATS, query.formats.map { it.name }.toSet())
             .putStringSet(LANGUAGES, query.languages)
+            .apply()
+    }
+
+    /**
+     * The searches offered when the reader opens the field.
+     *
+     * Kept although the half-typed term above is not, and the two are not in
+     * conflict: a finished search is something the reader did, and a library that
+     * forgot every one of them between launches would offer an empty list to
+     * exactly the reader `library-browsing` wrote the requirement for.
+     */
+    fun recentSearches(): RecentSearches = RecentSearches(
+        preferences.getString(RECENT_SEARCHES, null)
+            ?.split(SEPARATOR)
+            ?.filter { it.isNotBlank() }
+            .orEmpty(),
+    )
+
+    fun save(searches: RecentSearches) {
+        preferences.edit()
+            .putString(RECENT_SEARCHES, searches.terms.joinToString(SEPARATOR))
             .apply()
     }
 

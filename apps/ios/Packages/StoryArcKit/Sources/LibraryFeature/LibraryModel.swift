@@ -33,9 +33,31 @@ public final class LibraryModel {
     public var query = LibraryQuery() {
         didSet {
             guard query != oldValue else { return }
+            // A term is filed as it is typed. `library-browsing` has results update
+            // per keystroke with no submit action, and a reader who taps a cover
+            // never ends the search at all — so there is no later moment to hang
+            // the record on. `RecentSearches` folds the keystrokes of one word back
+            // into one entry, which is what makes recording each of them safe.
+            remember(query.search)
             preferences?.save(query)
             rebuild()
         }
+    }
+
+    /// What the reader searched for lately, offered when the field opens.
+    public private(set) var recentSearches = RecentSearches()
+
+    /// `library-browsing`: the offered queries "can be cleared".
+    public func clearRecentSearches() {
+        recentSearches = RecentSearches()
+        preferences?.save(recentSearches)
+    }
+
+    private func remember(_ term: String) {
+        let updated = recentSearches.recording(term)
+        guard updated != recentSearches else { return }
+        recentSearches = updated
+        preferences?.save(updated)
     }
 
     /// Grid or list. `library-browsing` requires both, and requires the choice to
@@ -129,6 +151,7 @@ public final class LibraryModel {
         if let preferences {
             self.query = preferences.query()
             self.layout = preferences.layout()
+            self.recentSearches = preferences.recentSearches()
         }
     }
 

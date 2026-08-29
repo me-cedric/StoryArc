@@ -202,6 +202,28 @@ data class Publication(
      * publication *is*, and the indexer reads bytes and has no idea a registry exists.
      */
     @Serializable(with = UuidSerializer::class) val sourceId: UUID? = null,
+    /**
+     * How much disk the publication occupies, when the app has been told.
+     *
+     * `library-browsing` sorts by file size, and no container reports its own length
+     * from the inside — the walk that found the file is what knows it, the same way
+     * it knows when the file arrived. Null for a publication reached somewhere the
+     * size was never asked for, which sorts as unknown rather than as zero bytes.
+     */
+    val fileSize: Long? = null,
+    /**
+     * When the file arrived where the app found it.
+     *
+     * `library-browsing` sorts by date added, and there is nowhere else for the date
+     * to come from: StoryArc keeps no record of publications between launches, so
+     * the only thing that remembers when a comic turned up is the filesystem it
+     * turned up in.
+     *
+     * Assigned by the walk rather than by the indexer, like [sourceId] and for a
+     * neighbouring reason: the container decides what a publication *is*, and this
+     * is a fact about the file rather than about the book.
+     */
+    val addedAtEpochMillis: Long? = null,
 ) {
     /** A stable key for lists and diffing. See [PublicationIdentity.stableId]. */
     val id: String get() = identity.stableId

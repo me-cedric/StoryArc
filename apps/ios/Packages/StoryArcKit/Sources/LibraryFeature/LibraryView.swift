@@ -215,6 +215,7 @@ public struct LibraryView: View {
                 text: searchBinding,
                 prompt: Text("library.search.prompt", bundle: .module)
             )
+            .searchSuggestions { RecentSearchSuggestions(model: model) }
             // Reloaded on every appearance, which is what makes the bar under a
             // cover reflect the page the reader just reached.
             .task {

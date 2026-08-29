@@ -22,6 +22,8 @@ class LibraryIndexTest {
         authors: List<String> = emptyList(),
         format: PublicationFormat = PublicationFormat.CBZ,
         year: Int? = null,
+        fileSize: Long? = null,
+        addedAtEpochMillis: Long? = null,
     ) = Publication(
         identity = PublicationIdentity(normalizedPath = "/library/$title"),
         format = format,
@@ -31,6 +33,8 @@ class LibraryIndexTest {
         authors = authors,
         year = year,
         origin = MetadataOrigin.INFERRED,
+        fileSize = fileSize,
+        addedAtEpochMillis = addedAtEpochMillis,
     )
 
     private fun titles(publications: List<Publication>) = publications.map { it.displayTitle }
@@ -89,6 +93,36 @@ class LibraryIndexTest {
         )
         val sorted = LibraryIndex.arrange(library, LibraryQuery(sort = LibrarySort.SERIES), Locale.ENGLISH)
         assertEquals(listOf("Bone #2", "Bone #9", "Bone #10"), titles(sorted))
+    }
+
+    @Test
+    fun `date added puts the newest first, and never-dated last`() {
+        val library = listOf(
+            publication("Maus"),
+            publication("Bone", addedAtEpochMillis = 100L),
+            publication("Akira", addedAtEpochMillis = 300L),
+        )
+        val sorted = LibraryIndex.arrange(
+            library,
+            LibraryQuery(sort = LibrarySort.DATE_ADDED),
+            Locale.ENGLISH,
+        )
+        assertEquals(listOf("Akira", "Bone", "Maus"), titles(sorted))
+    }
+
+    @Test
+    fun `file size puts the largest first, and unweighed last`() {
+        val library = listOf(
+            publication("Maus"),
+            publication("Bone", fileSize = 100L),
+            publication("Akira", fileSize = 300L),
+        )
+        val sorted = LibraryIndex.arrange(
+            library,
+            LibraryQuery(sort = LibrarySort.FILE_SIZE),
+            Locale.ENGLISH,
+        )
+        assertEquals(listOf("Akira", "Bone", "Maus"), titles(sorted))
     }
 
     // Search.

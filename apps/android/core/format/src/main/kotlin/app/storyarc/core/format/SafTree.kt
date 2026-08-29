@@ -28,6 +28,15 @@ object SafTree {
         val name: String,
         val isDirectory: Boolean,
         val size: Long,
+        /**
+         * When the provider last saw the document change, or 0 when it will not say.
+         *
+         * The nearest thing a picked folder offers to a date added: the Storage
+         * Access Framework publishes one timestamp per document and no creation
+         * time, so this is the whole of what `library-browsing`'s date-added sort
+         * has to work with on this side of the walk.
+         */
+        val lastModified: Long,
     )
 
     private val PROJECTION = arrayOf(
@@ -35,6 +44,7 @@ object SafTree {
         DocumentsContract.Document.COLUMN_DISPLAY_NAME,
         DocumentsContract.Document.COLUMN_MIME_TYPE,
         DocumentsContract.Document.COLUMN_SIZE,
+        DocumentsContract.Document.COLUMN_LAST_MODIFIED,
     )
 
     /**
@@ -124,6 +134,8 @@ object SafTree {
             val nameColumn = it.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
             val mimeColumn = it.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
             val sizeColumn = it.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
+            val modifiedColumn =
+                it.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
             if (idColumn < 0 || nameColumn < 0) return@use emptyList()
 
             buildList {
@@ -142,6 +154,14 @@ object SafTree {
                                 -1L
                             } else {
                                 it.getLong(sizeColumn)
+                            },
+                            // 0 means "the provider did not say". A document last
+                            // touched at the epoch is not a case worth telling
+                            // apart, and the library treats both as undated.
+                            lastModified = if (modifiedColumn < 0 || it.isNull(modifiedColumn)) {
+                                0L
+                            } else {
+                                it.getLong(modifiedColumn)
                             },
                         ),
                     )

@@ -18,7 +18,9 @@ struct LibraryIndexTests {
         number: String? = nil,
         authors: [String] = [],
         format: PublicationFormat = .cbz,
-        year: Int? = nil
+        year: Int? = nil,
+        fileSize: Int64? = nil,
+        addedAt: Date? = nil
     ) -> Publication {
         Publication(
             identity: PublicationIdentity(normalizedPath: "/library/\(title)"),
@@ -28,7 +30,9 @@ struct LibraryIndexTests {
             number: number,
             authors: authors,
             year: year,
-            origin: .inferred
+            origin: .inferred,
+            fileSize: fileSize,
+            addedAt: addedAt
         )
     }
 
@@ -92,6 +96,32 @@ struct LibraryIndexTests {
         ]
         let sorted = LibraryIndex.arrange(library, query: LibraryQuery(sort: .series), locale: english)
         #expect(titles(sorted) == ["Bone #2", "Bone #9", "Bone #10"])
+    }
+
+    @Test("Date added puts the newest first, and never-dated last")
+    func dateAddedSort() {
+        let library = [
+            publication("Maus"),
+            publication("Bone", addedAt: Date(timeIntervalSince1970: 100)),
+            publication("Akira", addedAt: Date(timeIntervalSince1970: 300)),
+        ]
+        let sorted = LibraryIndex.arrange(
+            library, query: LibraryQuery(sort: .dateAdded), locale: english
+        )
+        #expect(titles(sorted) == ["Akira", "Bone", "Maus"])
+    }
+
+    @Test("File size puts the largest first, and unweighed last")
+    func fileSizeSort() {
+        let library = [
+            publication("Maus"),
+            publication("Bone", fileSize: 100),
+            publication("Akira", fileSize: 300),
+        ]
+        let sorted = LibraryIndex.arrange(
+            library, query: LibraryQuery(sort: .fileSize), locale: english
+        )
+        #expect(titles(sorted) == ["Akira", "Bone", "Maus"])
     }
 
     // MARK: - Search

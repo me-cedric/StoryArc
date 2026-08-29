@@ -9,16 +9,18 @@ public enum ReadState: String, Sendable, CaseIterable, Codable {
 
 /// What the library is ordered by.
 ///
-/// `library-browsing` also lists date added and file size. Neither is recorded
-/// yet — a scan does not write down when it first saw a file, and the archive
-/// layer reports page sizes rather than a file size. They are absent rather than
-/// present and wrong.
+/// The seven fields `library-browsing` names. Date added and file size come last
+/// because they arrived last: adding them at the end leaves every earlier case
+/// where a reader's stored preference already points, and the raw values are the
+/// names rather than the positions anyway.
 public enum LibrarySort: String, Sendable, CaseIterable, Codable {
     case title
     case series
     case lastRead
     case progress
     case year
+    case dateAdded
+    case fileSize
 }
 
 /// What the user is looking at, and in what order.
@@ -247,6 +249,19 @@ public enum LibraryIndex {
 
         case .year:
             return order(right.year ?? 0, left.year ?? 0)
+
+        // Newest first, the same way as `year` and `lastRead`: for a date, the
+        // interesting end of the list is the recent one, and a reader asking for
+        // what they added lately does not want 2019 at the top.
+        case .dateAdded:
+            let leftDate = left.addedAt ?? .distantPast
+            let rightDate = right.addedAt ?? .distantPast
+            return order(rightDate, leftDate)
+
+        // Largest first, for the same reason `progress` puts the most-read first:
+        // the reason to sort by size is to find what is taking up the disk.
+        case .fileSize:
+            return order(right.fileSize ?? 0, left.fileSize ?? 0)
         }
     }
 

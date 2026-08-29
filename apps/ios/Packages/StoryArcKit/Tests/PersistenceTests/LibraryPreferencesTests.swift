@@ -8,7 +8,7 @@ import StoryArcCore
 /// library. A private `UserDefaults` suite is used rather than a mock: what is
 /// being asserted is that the values actually round-trip through storage.
 ///
-/// Android's `LibraryPreferencesTest` asserts the same three things.
+/// Android's `LibraryPreferencesTest` asserts the same four things.
 @Suite("Library preferences")
 struct LibraryPreferencesTests {
     /// A private defaults suite, and the means to throw it away afterwards.
@@ -60,6 +60,17 @@ struct LibraryPreferencesTests {
 
         #expect(preferences.query().search.isEmpty)
         #expect(preferences.query().sort == .series)
+    }
+
+    @Test("Recent searches survive the launch the term they came from does not")
+    func recentSearches() throws {
+        let suite = try fresh()
+        let preferences = suite.preferences
+        defer { suite.discard() }
+
+        #expect(preferences.recentSearches().isEmpty)
+        preferences.save(RecentSearches().recording("sandman").recording("bone"))
+        #expect(preferences.recentSearches().terms == ["bone", "sandman"])
     }
 
     @Test("The layout defaults to the grid and survives a change")

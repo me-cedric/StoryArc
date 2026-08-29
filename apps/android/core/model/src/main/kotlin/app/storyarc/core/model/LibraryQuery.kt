@@ -13,10 +13,10 @@ enum class ReadState {
 /**
  * What the library is ordered by.
  *
- * `library-browsing` also lists date added and file size. Neither is recorded
- * yet — a scan does not write down when it first saw a file, and the archive
- * layer reports page sizes rather than a file size. They are absent rather than
- * present and wrong.
+ * The seven fields `library-browsing` names. Date added and file size come last
+ * because they arrived last: adding them at the end leaves every earlier case
+ * where a reader's stored preference already points, and `LibraryPreferences`
+ * stores the names rather than the positions anyway.
  */
 enum class LibrarySort {
     TITLE,
@@ -24,6 +24,8 @@ enum class LibrarySort {
     LAST_READ,
     PROGRESS,
     YEAR,
+    DATE_ADDED,
+    FILE_SIZE,
 }
 
 /**
@@ -252,6 +254,16 @@ object LibraryIndex {
         LibrarySort.PROGRESS -> -progress(left).fraction.compareTo(progress(right).fraction)
 
         LibrarySort.YEAR -> -(left.year ?: 0).compareTo(right.year ?: 0)
+
+        // Newest first, the same way as YEAR and LAST_READ: for a date, the
+        // interesting end of the list is the recent one, and a reader asking for
+        // what they added lately does not want 2019 at the top.
+        LibrarySort.DATE_ADDED ->
+            -(left.addedAtEpochMillis ?: 0L).compareTo(right.addedAtEpochMillis ?: 0L)
+
+        // Largest first, for the same reason PROGRESS puts the most-read first: the
+        // reason to sort by size is to find what is taking up the disk.
+        LibrarySort.FILE_SIZE -> -(left.fileSize ?: 0L).compareTo(right.fileSize ?: 0L)
     }
 
     private fun numberOf(publication: Publication): Double =
