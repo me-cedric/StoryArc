@@ -19,6 +19,11 @@ data class OpdsFeed(
     val navigation: List<OpdsSection> = emptyList(),
     /** Publications on this page. Empty for a pure navigation feed. */
     val publications: List<OpdsEntry> = emptyList(),
+    /**
+     * The named runs an OPDS 2.0 feed divides itself into. Empty for OPDS 1.2, which has no
+     * such thing, and for a 2.0 feed that declares none.
+     */
+    val groups: List<OpdsGroup> = emptyList(),
     /** Filters the server offers, surfaced through `library-browsing`'s controls. */
     val facets: List<OpdsFacet> = emptyList(),
     /**
@@ -47,8 +52,51 @@ data class OpdsFeed(
      * A feed can hold both, and several real servers do -- Calibre-Web puts "Recently
      * added" beside its sections. So this asks what to *show first*, not what the feed is.
      */
-    val isAcquisition: Boolean get() = publications.isNotEmpty()
+    val isAcquisition: Boolean
+        get() = publications.isNotEmpty() || groups.any { it.publications.isNotEmpty() }
+
+    /**
+     * Whether there is nothing on this page at all.
+     *
+     * Asked by the browser before it says a section is empty, and it has to count the
+     * groups: a 2.0 feed that puts everything in groups has no top-level anything, and
+     * calling that empty told readers their catalogue was.
+     */
+    val isEmpty: Boolean
+        get() = navigation.isEmpty() && publications.isEmpty() && groups.isEmpty()
 }
+
+/**
+ * A named run of a catalogue, as an OPDS 2.0 feed declares it.
+ *
+ * `opds-catalog` browses what the feed says, and a 2.0 feed says "New this week" and
+ * "Continue reading" are two things rather than one. They used to be poured into a single
+ * list, which lost both names -- the reader saw one undivided run of covers, and a server
+ * that had carefully arranged its front page might as well not have bothered.
+ *
+ * A group holds the same three things a feed does, because in the standard it is a feed: the
+ * shape recurses, and the browser renders the group with the same composables it renders the
+ * page with. iOS's `OpdsGroup` is the same four fields.
+ */
+data class OpdsGroup(
+    /**
+     * What the group is called. A group without one is not a group anybody can label, so the
+     * parser folds its contents into the feed instead of showing an unnamed section.
+     */
+    val title: String,
+    /** Sections inside the group. */
+    val navigation: List<OpdsSection> = emptyList(),
+    /** Publications inside the group. */
+    val publications: List<OpdsEntry> = emptyList(),
+    /**
+     * The whole of this group, as its own page.
+     *
+     * A group is a *sample* -- a server sends the first handful of "Recently added" and a
+     * `self` link to the rest. Null where the feed offers no such link, and then the group is
+     * all there is and there is nothing to open.
+     */
+    val more: String? = null,
+)
 
 /** A section of a catalogue, which is a link to another feed. */
 data class OpdsSection(

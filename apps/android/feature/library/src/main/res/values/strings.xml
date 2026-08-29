@@ -95,7 +95,6 @@
     <string name="catalogue_entry_unreadable">Offered as %1$s, which StoryArc cannot open</string>
     <string name="catalogue_entry_no_download">No download offered</string>
     <string name="catalogue_acquire_fetching">Fetching %1$s…</string>
-    <string name="catalogue_acquire_other">Open as %1$s</string>
     <string name="catalogue_acquire_unsupported">The server sent %1$s, which StoryArc cannot open.</string>
     <string name="catalogue_acquire_unreadable">What the server sent could not be read as a publication.</string>
     <string name="catalogue_strip_hint">Browses this catalogue</string>
@@ -107,6 +106,16 @@
     <string name="catalogue_back">Back</string>
     <string name="catalogue_entry_downloaded">On this device</string>
     <string name="catalogue_acquire_download">Download</string>
+    <string name="catalogue_group_more">See all</string>
+    <string name="catalogue_detail_read">Read</string>
+    <string name="catalogue_detail_formats">Formats offered</string>
+    <string name="catalogue_detail_default">Opens by default</string>
+    <string name="catalogue_detail_updated">Updated %1$s</string>
+    <string name="catalogue_detail_unsupported">Offered as %1$s, which StoryArc cannot follow.</string>
+    <string name="catalogue_acquire_kind_borrow">a loan</string>
+    <string name="catalogue_acquire_kind_buy">a purchase</string>
+    <string name="catalogue_acquire_kind_subscribe">a subscription</string>
+    <string name="catalogue_acquire_kind_indirect">a further acquisition step</string>
     <string name="downloads_remove">Remove download</string>
     <string name="downloads_paused_title">%1$s is paused</string>
     <string name="downloads_retry">Retry</string>

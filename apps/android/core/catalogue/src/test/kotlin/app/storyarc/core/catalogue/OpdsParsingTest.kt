@@ -184,6 +184,10 @@ class OpdsParsingTest {
       ],
       "groups": [
         {
+          "metadata": { "title": "Recently added" },
+          "links": [
+            { "rel": "self", "href": "/opds/recent", "type": "application/opds+json" }
+          ],
           "navigation": [
             { "title": "Series", "href": "/opds/series", "type": "application/opds+json" }
           ],
@@ -196,6 +200,16 @@ class OpdsParsingTest {
               "links": [
                 { "href": "/download/9.epub", "type": "application/epub+zip",
                   "rel": "http://opds-spec.org/acquisition" }
+              ]
+            }
+          ]
+        },
+        {
+          "publications": [
+            {
+              "metadata": { "identifier": "urn:uuid:10", "title": "Untitled Group Member" },
+              "links": [
+                { "href": "/download/10.epub", "type": "application/epub+zip" }
               ]
             }
           ]
@@ -241,13 +255,46 @@ class OpdsParsingTest {
     }
 
     @Test
-    fun groupsAreFlattenedIntoTheFeed() {
+    fun aNamedGroupIsItsOwnSectionRatherThanPartOfTheRun() {
         val feed = OpdsDocument.parse(json.toByteArray(), baseUrl = base)
-        assertEquals(listOf("Unread", "Series"), feed.navigation.map { it.title })
+        val group = feed.groups.first()
+        assertEquals("Recently added", group.title)
+        assertEquals(listOf("Grouped Title"), group.publications.map { it.title })
+        assertEquals(listOf("Series"), group.navigation.map { it.title })
+        // What was in a group has left the feed's own run, or it would be shown twice.
+        assertEquals(listOf("Unread"), feed.navigation.map { it.title })
+        assertTrue(feed.publications.none { it.title == "Grouped Title" })
+    }
+
+    @Test
+    fun aGroupCarriesTheLinkToTheRestOfItself() {
+        val feed = OpdsDocument.parse(json.toByteArray(), baseUrl = base)
+        assertEquals("https://library.example/opds/recent", feed.groups.first().more)
+    }
+
+    @Test
+    fun anUnnamedGroupIsPouredIntoTheFeed() {
+        // A section with no title is a heading nobody can read, so its contents join the
+        // page rather than sitting under a blank one.
+        val feed = OpdsDocument.parse(json.toByteArray(), baseUrl = base)
+        assertEquals(1, feed.groups.size)
         assertEquals(
-            listOf("Harbour Lights 02", "Grouped Title"),
+            listOf("Harbour Lights 02", "Untitled Group Member"),
             feed.publications.map { it.title },
         )
+    }
+
+    @Test
+    fun aFeedWithGroupsIsNotAnEmptyPage() {
+        val feed = OpdsDocument.parse(json.toByteArray(), baseUrl = base)
+        assertFalse(feed.isEmpty)
+        assertTrue(feed.isAcquisition)
+
+        // Named but empty is still a page that says something, and still not an acquisition.
+        val grouped = OpdsFeed(title = "t", groups = listOf(OpdsGroup(title = "g")))
+        assertFalse(grouped.isEmpty)
+        assertFalse(grouped.isAcquisition)
+        assertTrue(OpdsFeed(title = "t").isEmpty)
     }
 
     @Test
@@ -257,7 +304,10 @@ class OpdsParsingTest {
             listOf("Ada Lovelace", "Alan Turing"),
             feed.publications.first().authors,
         )
-        assertEquals(listOf("Grace Hopper"), feed.publications.last().authors)
+        assertEquals(
+            listOf("Grace Hopper"),
+            feed.groups.first().publications.first().authors,
+        )
     }
 
     @Test

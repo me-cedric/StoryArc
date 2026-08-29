@@ -58,6 +58,16 @@ class CatalogueBrowser(
     private val _entries = MutableStateFlow<List<OpdsEntry>>(emptyList())
     val entries: StateFlow<List<OpdsEntry>> = _entries.asStateFlow()
 
+    /**
+     * Everything on this page a local search can look through.
+     *
+     * The grid *and* every group: an OPDS 2.0 feed can put its whole catalogue in named
+     * groups and leave the top level empty, and a search that only looked at [entries] would
+     * answer "nothing" for a page full of publications.
+     */
+    val searchable: List<OpdsEntry>
+        get() = _entries.value + _feed.value?.groups.orEmpty().flatMap { it.publications }
+
     /** Shared with the cells, which fetch covers through the same credential. */
     val client = OpdsClient(pins)
     private var next: String? = null
@@ -119,7 +129,7 @@ class CatalogueBrowser(
         val trimmed = term.trim()
         if (trimmed.isEmpty()) return SearchOutcome.Cleared
         val url = searchUrl(trimmed)
-            ?: return SearchOutcome.Local(_entries.value.filter { it.matches(trimmed) })
+            ?: return SearchOutcome.Local(searchable.filter { it.matches(trimmed) })
         return SearchOutcome.Server(url)
     }
 

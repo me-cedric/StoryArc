@@ -95,7 +95,6 @@
     <string name="catalogue_entry_unreadable">Se ofrece como %1$s, que StoryArc no puede abrir</string>
     <string name="catalogue_entry_no_download">No se ofrece descarga</string>
     <string name="catalogue_acquire_fetching">Obteniendo %1$s…</string>
-    <string name="catalogue_acquire_other">Abrir como %1$s</string>
     <string name="catalogue_acquire_unsupported">El servidor envió %1$s, que StoryArc no puede abrir.</string>
     <string name="catalogue_acquire_unreadable">Lo que envió el servidor no se pudo leer como una publicación.</string>
     <string name="catalogue_strip_hint">Explora este catálogo</string>
@@ -107,6 +106,16 @@
     <string name="catalogue_back">Atrás</string>
     <string name="catalogue_entry_downloaded">En este dispositivo</string>
     <string name="catalogue_acquire_download">Descargar</string>
+    <string name="catalogue_group_more">Ver todo</string>
+    <string name="catalogue_detail_read">Leer</string>
+    <string name="catalogue_detail_formats">Formatos ofrecidos</string>
+    <string name="catalogue_detail_default">Se abre por omisión</string>
+    <string name="catalogue_detail_updated">Actualizado el %1$s</string>
+    <string name="catalogue_detail_unsupported">Se ofrece como %1$s, algo que StoryArc no puede seguir.</string>
+    <string name="catalogue_acquire_kind_borrow">préstamo</string>
+    <string name="catalogue_acquire_kind_buy">compra</string>
+    <string name="catalogue_acquire_kind_subscribe">suscripción</string>
+    <string name="catalogue_acquire_kind_indirect">otro paso de adquisición</string>
     <string name="downloads_remove">Eliminar la descarga</string>
     <string name="downloads_paused_title">%1$s está en pausa</string>
     <string name="downloads_retry">Reintentar</string>

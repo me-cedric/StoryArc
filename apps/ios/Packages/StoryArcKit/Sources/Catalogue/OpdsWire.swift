@@ -19,6 +19,11 @@ struct OpdsWireTitle: Decodable {
 }
 
 struct OpdsWireGroup: Decodable {
+    /// Read as publication metadata rather than as ``OpdsWireTitle`` because a group is
+    /// allowed to carry metadata with no title in it, and a required title would fail the
+    /// whole feed over a section nobody could have named anyway.
+    let metadata: OpdsWireMetadata?
+    let links: [OpdsWireLink]?
     let navigation: [OpdsWireLink]?
     let publications: [OpdsWirePublication]?
 }

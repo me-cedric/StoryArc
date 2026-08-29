@@ -40,6 +40,14 @@ feeds as publication grids, following facets and pagination.
 - **WHEN** a feed contains navigation links
 - **THEN** each is shown as a section the user can enter, with its title and, where the feed provides one, its item count
 
+#### Scenario: Grouped feed
+- **WHEN** an OPDS 2.0 feed divides itself into named groups
+- **THEN** each group is shown under its own title, rather than merged into one run of
+  entries
+- **AND** a group that carries a link to its own feed offers a way into the rest of it
+- **AND** a group the feed left unnamed is shown as part of the page, because there is no
+  title to head it with
+
 #### Scenario: Paginated feed
 - **WHEN** an acquisition feed provides a `next` link
 - **THEN** the app loads further pages as the user scrolls, without a visible "load more" control
@@ -57,6 +65,12 @@ feeds as publication grids, following facets and pagination.
 
 The app SHALL open or download a publication using the acquisition link the feed
 provides, choosing the best supported format when several are offered.
+
+#### Scenario: Publication detail
+- **WHEN** a user chooses a publication in a catalogue
+- **THEN** the app shows what the feed says about it — its cover at a size worth looking at,
+  its title, authors, series and description — and every acquisition the catalogue offers,
+  with the format the app would take marked as the one a single press opens
 
 #### Scenario: Multiple formats offered
 - **WHEN** an entry offers both EPUB and PDF

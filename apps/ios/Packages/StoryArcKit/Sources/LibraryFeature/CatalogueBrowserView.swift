@@ -2,7 +2,6 @@ public import SwiftUI
 
 public import Catalogue
 internal import DesignSystem
-internal import Formats
 public import Persistence
 public import StoryArcCore
 
@@ -89,6 +88,14 @@ public struct CatalogueBrowserView: View {
                     publications(shown, onDevice: onDevice)
                 }
 
+                // After the feed's own publications, because a group is a named part of the
+                // page and the page's own run of covers is the unnamed rest of it. Hidden
+                // while a local filter is showing: the filter is over a flat list of
+                // matches, and a match has left the group it was found in.
+                if let feed, filtered == nil, !feed.groups.isEmpty {
+                    groups(feed.groups, onDevice: onDevice)
+                }
+
                 switch state {
                 case .loading:
                     ProgressView()
@@ -98,7 +105,7 @@ public struct CatalogueBrowserView: View {
                     CatalogueFailure(message: message) {
                         Task { await browser.reload() }
                     }
-                case .ready where shown.isEmpty && feed?.navigation.isEmpty != false:
+                case .ready where shown.isEmpty && feed?.isEmpty != false:
                     Text("catalogue.empty", bundle: .module)
                         .textRole(.subheadline)
                         .foregroundStyle(theme.palette.textSecondary)
@@ -111,6 +118,20 @@ public struct CatalogueBrowserView: View {
             .padding(StoryArcSpace.gutter)
         }
         .background(theme.palette.surfaceCanvas)
+        // On the page itself, not on the run of sections: a feed can be all publications or
+        // all groups and have no sections at all, and a destination declared inside one that
+        // is never rendered is a search the server answers into nowhere.
+        .navigationDestination(item: $searching) { term in
+            if let url = browser.searchURL(for: term) {
+                CatalogueBrowserView(
+                    title: term,
+                    url: url,
+                    credential: browser.credential,
+                    pins: browser.pins,
+                    onOpen: onOpen
+                )
+            }
+        }
         .safeAreaInset(edge: .bottom) {
             if let first = active.first {
                 DownloadBanner(
@@ -147,57 +168,6 @@ public struct CatalogueBrowserView: View {
         }
     }
 
-    /// The formats besides the one a tap would take.
-    ///
-    /// `opds-catalog`: the app picks the best format and "lets the user choose another".
-    /// Empty when there is nothing to choose between, so the menu does not offer a decision
-    /// that has already been made.
-    @ViewBuilder
-    private func otherFormats(_ entry: OpdsEntry, offered: [OpdsAcquisition]) -> some View {
-        if offered.count > 1 {
-            ForEach(offered, id: \.href) { link in
-                Button {
-                    Task { await take(entry, using: link) }
-                } label: {
-                    Text("catalogue.acquire.other \(name(of: link))", bundle: .module)
-                }
-            }
-        }
-    }
-
-    /// What tapping an entry does.
-    ///
-    /// `offline-downloads`: an already-downloaded publication is not re-fetched. It opens
-    /// from disk, which also means it opens with no network at all.
-    private func choose(_ entry: OpdsEntry) {
-        if let file = queue.downloaded(entry) {
-            Task { await open(entry, from: file) }
-            return
-        }
-        guard let best = CatalogueAcquisition.best(of: entry) else { return }
-        Task { await take(entry, using: best) }
-    }
-
-    /// Fetches one acquisition and hands what came back to the reader.
-    private func take(_ entry: OpdsEntry, using link: OpdsAcquisition) async {
-        guard let file = await queue.fetch(entry, using: link) else { return }
-        await open(entry, from: file)
-    }
-
-    /// Opens a publication that is already on the device.
-    private func open(_ entry: OpdsEntry, from file: URL) async {
-        guard let publication = try? await PublicationIndexer.index(
-            fileAt: file,
-            catalogueSeries: entry.series
-        ) else { return }
-        onOpen(publication, file)
-    }
-
-    /// How an acquisition is named in the choose-a-format menu.
-    private func name(of link: OpdsAcquisition) -> String {
-        PublicationFormat(mediaType: link.mediaType)?.displayName ?? link.mediaType
-    }
-
     /// A search the server answers, or one this page answers itself.
     private func runSearch() {
         switch browser.search(term) {
@@ -222,29 +192,7 @@ public struct CatalogueBrowserView: View {
     private func sections(_ list: [OpdsSection]) -> some View {
         VStack(spacing: StoryArcSpace.sm) {
             ForEach(list) { section in
-                NavigationLink {
-                    CatalogueBrowserView(
-                        title: section.title,
-                        url: section.href,
-                        credential: browser.credential,
-                        pins: browser.pins,
-                        onOpen: onOpen
-                    )
-                } label: {
-                    CatalogueSectionRow(section: section)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .navigationDestination(item: $searching) { term in
-            if let url = browser.searchURL(for: term) {
-                CatalogueBrowserView(
-                    title: term,
-                    url: url,
-                    credential: browser.credential,
-                    pins: browser.pins,
-                    onOpen: onOpen
-                )
+                CatalogueSectionLink(section: section, browser: browser, onOpen: onOpen)
             }
         }
     }
@@ -256,49 +204,38 @@ public struct CatalogueBrowserView: View {
             spacing: StoryArcSpace.lg
         ) {
             ForEach(shown) { entry in
-                let offered = CatalogueAcquisition.readable(in: entry)
-                Button {
-                    choose(entry)
-                } label: {
-                    CatalogueEntryCell(
-                        entry: entry,
-                        credential: browser.credential,
-                        client: browser.client,
-                        isDownloaded: onDevice.contains(entry.id)
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(offered.isEmpty)
-                // `opds-catalog`: the app picks the best format and "lets the user choose
-                // another". There is no detail screen yet, so the choice lives here —
-                // shown only when there is one to make.
-                .contextMenu {
-                    if onDevice.contains(entry.id) {
-                        Button(role: .destructive) {
-                            queue.remove(entry.id)
-                        } label: {
-                            Text("downloads.remove", bundle: .module)
-                        }
-                    } else if let best = CatalogueAcquisition.best(of: entry) {
-                        // `offline-downloads`: "the app SHALL let a user download any
-                        // publication from a remote source for offline reading". Tapping
-                        // opens it, which downloads it as a side effect; a reader packing
-                        // for a flight wants the download without the reading.
-                        Button {
-                            queue.enqueue(entry, using: best)
-                        } label: {
-                            Text("catalogue.acquire.download", bundle: .module)
-                        }
-                    }
-
-                    otherFormats(entry, offered: offered)
-                }
+                CatalogueEntryLink(
+                    entry: entry,
+                    browser: browser,
+                    queue: queue,
+                    isDownloaded: onDevice.contains(entry.id),
+                    onOpen: onOpen
+                )
                 .task {
                     // The next page arrives because the reader scrolled, not because they
                     // pressed anything. Skipped while a local filter is showing: the filter
                     // is over what is loaded, and loading more would change it underneath.
                     if filtered == nil { await browser.loadMore(after: entry) }
                 }
+            }
+        }
+    }
+
+    /// The named runs of an OPDS 2.0 feed, each with its own title and its own row.
+    ///
+    /// Keyed by position rather than by title: nothing in the standard makes a group's name
+    /// unique, and two groups sharing one would collapse into a single row.
+    @ViewBuilder
+    private func groups(_ list: [OpdsGroup], onDevice: Set<String>) -> some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
+            ForEach(Array(list.enumerated()), id: \.offset) { _, group in
+                CatalogueGroupSection(
+                    group: group,
+                    browser: browser,
+                    queue: queue,
+                    onDevice: onDevice,
+                    onOpen: onOpen
+                )
             }
         }
     }
@@ -335,37 +272,5 @@ public struct CatalogueBrowserView: View {
                 Image(systemName: "line.3.horizontal.decrease")
             }
         }
-    }
-}
-
-/// A section, with its count where the feed gave one.
-struct CatalogueSectionRow: View {
-    @Environment(\.theme) private var theme
-
-    let section: OpdsSection
-
-    var body: some View {
-        HStack(spacing: StoryArcSpace.md) {
-            VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                Text(section.title)
-                    .textRole(.headline)
-                    .foregroundStyle(theme.palette.textPrimary)
-
-                if let count = section.count {
-                    Text("catalogue.section.count \(count)", bundle: .module)
-                        .textRole(.footnote)
-                        .foregroundStyle(theme.palette.textSecondary)
-                }
-            }
-
-            Spacer(minLength: 0)
-
-            Image(systemName: "chevron.right")
-                .textRole(.footnote)
-                .foregroundStyle(theme.palette.textTertiary)
-        }
-        .padding(StoryArcSpace.md)
-        .frame(minHeight: StoryArcSpace.xxl + StoryArcSpace.md)
-        .background(theme.palette.surfaceRaised, in: .rect(cornerRadius: StoryArcRadius.lg))
     }
 }
