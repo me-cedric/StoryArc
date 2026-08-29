@@ -157,8 +157,13 @@ extension EpubReaderModel {
         if let still {
             still.frame = page.bounds
             still.isUserInteractionEnabled = false
-            page.addSubview(dip)
+            // The still first, the dip over it. The other order occludes the whole first
+            // half: a still is opaque, so a dip fading in *underneath* it is invisible,
+            // and the turn reads as the old page held still and then cut to the page
+            // colour. Fading out means fading the page colour in over the outgoing page,
+            // which is what the comment above describes and what this order does.
             page.addSubview(still)
+            page.addSubview(dip)
         }
 
         let options = NavigatorGoOptions(animated: false)
