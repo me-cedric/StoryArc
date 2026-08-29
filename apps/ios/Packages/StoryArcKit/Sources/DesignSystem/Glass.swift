@@ -10,6 +10,11 @@ extension View {
     /// fallback that has to be remembered at every call site is a fallback that
     /// will be missing at one of them.
     ///
+    /// Increase Contrast takes the same fallback. `native-experience` names the two
+    /// settings in one breath — "WHEN Increase Contrast or Reduce Transparency is on" —
+    /// and it is right to: glass over a page is a low-contrast surface whichever of the
+    /// two the reader turned on to say so.
+    ///
     /// Untinted, deliberately: the spec wants the glass to pick up the page
     /// beneath it, and a tint is precisely what stops it doing that.
     ///
@@ -23,13 +28,14 @@ extension View {
 
 private struct GlassChrome<ChromeShape: InsettableShape>: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.theme) private var theme
 
     let shape: ChromeShape
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if reduceTransparency {
+        if reduceTransparency || contrast == .increased {
             // `surfaceOverlay` is the generated token for exactly this: a chrome
             // surface that has to be opaque. The stronger border is the second half
             // of the requirement — an opaque pill with a subtle edge disappears

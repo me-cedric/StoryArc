@@ -45,6 +45,11 @@ public final class ReaderModel {
     /// is wanted for as long as the strip is open.
     var thumbnails: [Int: CGImage] = [:]
 
+    /// What this publication's cover brings to its own screens, or `nil` when it
+    /// brings none. Derived once, when the publication opens; the reason it is
+    /// derived from the cover's *thumbnail* is in ``deriveCoverColours()``.
+    public internal(set) var coverColours: CoverColours?
+
     var archive: (any ComicArchiveReading)?
     /// Set instead of [archive] for a PDF, whose pages are drawn rather than
     /// stored. `ebook-reader` requires a several-hundred-megabyte PDF to render
@@ -208,6 +213,7 @@ public final class ReaderModel {
                 currentIndex = index
             }
             await warm(around: currentIndex)
+            await deriveCoverColours()
         } catch {
             failure = String(describing: error)
         }
@@ -244,6 +250,7 @@ public final class ReaderModel {
                 currentIndex = index
             }
             await warm(around: currentIndex)
+            await deriveCoverColours()
         } catch {
             failure = String(describing: error)
         }

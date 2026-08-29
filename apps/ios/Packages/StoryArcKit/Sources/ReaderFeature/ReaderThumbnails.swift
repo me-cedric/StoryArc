@@ -1,6 +1,7 @@
 public import CoreGraphics
 internal import Foundation
 internal import Formats
+internal import StoryArcCore
 
 /// The thumbnail strip's supply of small page images, and the budget that bounds it.
 ///
@@ -49,5 +50,32 @@ extension ReaderModel {
         for key in ordered.prefix(thumbnails.count - Self.thumbnailBudget + 1) {
             thumbnails.removeValue(forKey: key)
         }
+    }
+}
+
+extension ReaderModel {
+    /// Derives the cover's colours, once, when the publication opens.
+    ///
+    /// `native-experience`: "accent and background tinting derive from the
+    /// publication's cover art". From the *cover* rather than from the page in front of
+    /// the reader, because a book resumed at page 57 is still that book — and from the
+    /// cover's thumbnail rather than the full page, because a colour census wants a
+    /// thousand pixels and decoding a 2000×3000 scan to find them would be paying for a
+    /// picture nobody looks at.
+    ///
+    /// Quiet about a PDF, which has no archive to take a thumbnail from, and about a
+    /// cover that is all ink and paper. Both leave this `nil`, and a screen with no
+    /// cover colour uses the brand accent — which is what `native-experience` asks for
+    /// on a surface with no publication colour of its own.
+    func deriveCoverColours() async {
+        guard coverColours == nil else { return }
+        // The designated cover when `ComicInfo` named one, page one otherwise. The same
+        // rule `open()` uses to decide which page to show first.
+        let index = publication.coverPath.flatMap { path in
+            pages.firstIndex { $0.path == path }
+        } ?? 0
+        guard let image = await thumbnail(at: index),
+              let pixels = CoverAccent.pixels(of: image) else { return }
+        coverColours = CoverAccent.derived(from: pixels)
     }
 }

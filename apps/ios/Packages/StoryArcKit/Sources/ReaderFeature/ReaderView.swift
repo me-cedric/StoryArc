@@ -130,6 +130,13 @@ public struct ReaderView: View {
     /// Set when the reader turns past the last page.
     @State private var hasReachedEnd = false
 
+    /// How many turns the publication has refused this session.
+    ///
+    /// A count rather than a flag: `native-experience` asks for the platform's haptics,
+    /// and SwiftUI plays one when a trigger *changes* — so two refusals in a row have to
+    /// be two different values or the second one is silent.
+    @State private var refusals = 0
+
     /// How the page is sized. `comic-reader` requires the choice to persist.
     @State var fit: PageFit = .screen
 
@@ -183,6 +190,7 @@ public struct ReaderView: View {
                 if hasReachedEnd {
                     EndOfPublication(
                         title: model.publication.displayTitle,
+                        colours: model.coverColours,
                         next: nextInSeries,
                         onOpenNext: onOpenNext,
                         onBack: { hasReachedEnd = false },
@@ -230,6 +238,11 @@ public struct ReaderView: View {
             }
         }
         // `comic-reader`: the mapped keys turn pages. Arrow and page keys only —
+        // `native-experience`: haptics, for the two events that have nothing else to
+        // announce them. Not for a page turn — a comic read at speed is two hundred of
+        // those, and a buzz on each is a defect.
+        .storyArcFeedback(.completion, trigger: hasReachedEnd) { $0 }
+        .storyArcFeedback(.refusal, trigger: refusals)
         // Over the page rather than in place of it: `network-share` requires pages already
         // read to stay readable while the network is away.
         .overlay(alignment: .bottom) {
@@ -336,7 +349,13 @@ public struct ReaderView: View {
             withAnimation(.easeInOut(duration: 0.2)) { hasReachedEnd = true }
             return
         }
-        guard model.pages.indices.contains(next) else { return }
+        guard model.pages.indices.contains(next) else {
+            // The one page turn that earns a haptic is the one that does not happen.
+            // Nothing on screen says the reader is already at the first page — the
+            // page simply stays put, which is indistinguishable from a missed tap.
+            refusals += 1
+            return
+        }
         withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .default) {
             displayIndex = next
         }

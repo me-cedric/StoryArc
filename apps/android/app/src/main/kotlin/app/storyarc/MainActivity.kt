@@ -78,7 +78,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.activity.compose.BackHandler
+import app.storyarc.core.designsystem.back.PredictiveBack
+import app.storyarc.core.designsystem.back.PredictiveBackHost
 import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -375,356 +376,361 @@ class MainActivity : ComponentActivity() {
                 val serverLists by libraryViewModel.serverLists.collectAsStateWithLifecycle()
                 val openShare = share
                 val serverShelf = openServerShelf
-                if (openShare != null && selection == null && !isShowingSettings) {
-                    BackHandler {
-                        if (sharePath.isEmpty()) share = null else sharePath = sharePath.dropLast(1)
-                    }
-                    SmbBrowserScreen(
-                        title = openShare.title,
-                        address = openShare.address,
-                        path = sharePath.lastOrNull() ?: openShare.address.path,
-                        onEnter = { sharePath = sharePath + it },
-                        onOpen = route,
-                        onBack = {
-                            if (sharePath.isEmpty()) {
-                                share = null
-                            } else {
-                                sharePath = sharePath.dropLast(1)
-                            }
-                        },
-                    )
-                } else if (serverShelf != null && selection == null) {
-                    BackHandler { openServerShelf = null }
-                    if (serverShelf.isList) {
-                        KavitaListScreen(
-                            server = serverShelf.server,
-                            listId = serverShelf.id,
-                            title = serverShelf.title,
+                // `native-experience`: predictive back. One host around every screen the
+                // app can be inside, because exactly one of them is composed at a time —
+                // the branch below is the whole of this app's navigation.
+                PredictiveBackHost {
+                    if (openShare != null && selection == null && !isShowingSettings) {
+                        PredictiveBack {
+                            if (sharePath.isEmpty()) share = null else sharePath = sharePath.dropLast(1)
+                        }
+                        SmbBrowserScreen(
+                            title = openShare.title,
+                            address = openShare.address,
+                            path = sharePath.lastOrNull() ?: openShare.address.path,
+                            onEnter = { sharePath = sharePath + it },
                             onOpen = route,
-                            onBack = { openServerShelf = null },
+                            onBack = {
+                                if (sharePath.isEmpty()) {
+                                    share = null
+                                } else {
+                                    sharePath = sharePath.dropLast(1)
+                                }
+                            },
+                        )
+                    } else if (serverShelf != null && selection == null) {
+                        PredictiveBack { openServerShelf = null }
+                        if (serverShelf.isList) {
+                            KavitaListScreen(
+                                server = serverShelf.server,
+                                listId = serverShelf.id,
+                                title = serverShelf.title,
+                                onOpen = route,
+                                onBack = { openServerShelf = null },
+                            )
+                        } else {
+                            KavitaCollectionScreen(
+                                server = serverShelf.server,
+                                collectionId = serverShelf.id,
+                                title = serverShelf.title,
+                                onOpenSeries = { each ->
+                                    // Into the server browser, at that series: a collection is a
+                                    // way in, not a separate place to read from.
+                                    kavita = serverShelf.server
+                                    kavitaLevel = KavitaLevel.Chapters(each)
+                                    openServerShelf = null
+                                },
+                                onBack = { openServerShelf = null },
+                            )
+                        }
+                    } else if (collectionOpen != null && selection == null) {
+                        PredictiveBack { openCollection = null }
+                        CollectionDetailScreen(
+                            viewModel = libraryViewModel,
+                            id = collectionOpen,
+                            onOpen = route,
+                            onBack = { openCollection = null },
+                        )
+                    } else if (listOpen != null && selection == null) {
+                        PredictiveBack { openList = null }
+                        ReadingListDetailScreen(
+                            viewModel = libraryViewModel,
+                            id = listOpen,
+                            onOpen = route,
+                            onBack = { openList = null },
+                        )
+                    } else if (isShowingShelves && selection == null) {
+                        PredictiveBack { isShowingShelves = false }
+                        val registry by libraryViewModel.registry.collectAsStateWithLifecycle()
+                        ShelvesScreen(
+                            viewModel = libraryViewModel,
+                            onOpenCollection = { openCollection = it },
+                            onOpenList = { openList = it },
+                            onBack = { isShowingShelves = false },
+                            servers = registry.sources.mapNotNull {
+                                KavitaPage.of(it, credentials)
+                            },
+                            onOpenServerCollection = { server, id, title ->
+                                openServerShelf = ServerShelf(server, id, title, isList = false)
+                            },
+                            onOpenServerList = { server, id, title ->
+                                openServerShelf = ServerShelf(server, id, title, isList = true)
+                            },
+                        )
+                    } else if (server != null && selection == null && !isShowingSettings) {
+                        PredictiveBack { kavita = null }
+                        KavitaBrowserScreen(
+                            title = server.title,
+                            address = server.address,
+                            sourceId = server.id,
+                            store = kavitaProgress,
+                            lists = serverLists,
+                            level = kavitaLevel,
+                            onLevel = { kavitaLevel = it },
+                            onOpen = route,
+                            onBack = { kavita = null },
+                        )
+                    } else if (page != null && selection == null && !isShowingSettings) {
+                        PredictiveBack { catalogue = catalogue.dropLast(1) }
+                        // Keyed on the address so entering a section builds a fresh browser
+                        // rather than showing the previous page's entries.
+                        val browser = remember(page.url) {
+                            CatalogueBrowser(
+                                applicationContext,
+                                page.title,
+                                page.url,
+                                page.credential,
+                                pins,
+                            )
+                        }
+                        val queue = remember(page.url) {
+                            DownloadQueue(
+                                applicationContext,
+                                pins,
+                                downloadStore,
+                                credential = { page.credential },
+                            )
+                        }
+                        CatalogueBrowserScreen(
+                            browser = browser,
+                            queue = queue,
+                            onEnter = { title, url ->
+                                catalogue = catalogue + CataloguePage(title, url, page.credential)
+                            },
+                            // The same door a local publication goes through. A book fetched
+                            // from a catalogue is a book.
+                            onOpen = route,
+                            onBack = { catalogue = catalogue.dropLast(1) },
+                        )
+                    } else if (isShowingSettings) {
+                        PredictiveBack { isShowingSettings = false }
+                        val registry by libraryViewModel.registry.collectAsStateWithLifecycle()
+                        SettingsScreen(
+                            settings = settings,
+                            readerStore = readerPreferences,
+                            // The registry belongs to the library, and a feature module never
+                            // depends on another feature module — so the app layer carries it
+                            // across and carries the removal back.
+                            sources = registry.sources,
+                            itemCount = { libraryViewModel.itemCount(it.id) },
+                            onRemoveSource = { libraryViewModel.removeSource(it) },
+                            onRenameSource = { source, name ->
+                                libraryViewModel.renameSource(source, name)
+                            },
+                            // Read from the store rather than from a browser's acquisition: the
+                            // store is the record, and Settings can be reached without ever
+                            // having opened a catalogue.
+                            downloads = downloads,
+                            bytesOnDisk = downloadStore.bytesOnDisk(),
+                            onReorderDownload = { download, later ->
+                                downloads = downloads.moving(download.id, later)
+                                downloadStore.save(downloads)
+                            },
+                            onRemoveDownload = { download ->
+                                downloadStore.location(
+                                    download.id,
+                                    PublicationFormat.ofMediaType(download.mediaType)
+                                        ?.name?.lowercase() ?: "bin",
+                                ).delete()
+                                downloads = downloads.removing(download.id)
+                                downloadStore.save(downloads)
+                            },
+                            // Written through on every change rather than on the way out.
+                            // `settings-and-about` requires an appearance to apply
+                            // immediately, and the state lives here so the theme above
+                            // recomposes with it — the screen reports, the host holds.
+                            onChange = {
+                                settings = it
+                                settingsStore.save(it)
+                            },
+                            onReset = {
+                                // Both stores, and only what each one calls a setting. The
+                                // reading *defaults* are settings; a theme chosen while
+                                // reading is not, and neither is progress.
+                                settingsStore.reset()
+                                settings = settingsStore.settings()
+                                readerPreferences.save(
+                                    readerPreferences.themes().clearingDefaults(),
+                                )
+                            },
+                            onClose = { isShowingSettings = false },
+                        )
+                    } else if (selection == null) {
+                        val publications by libraryViewModel.publications
+                            .collectAsStateWithLifecycle()
+                        // `offline-downloads`: a finished publication's download goes, and the
+                        // reader has ten seconds to say otherwise. Swept here rather than in a
+                        // reader's close path, because there are two readers and the EPUB one
+                        // is a separate activity -- the library coming back is the one moment
+                        // both of them pass through.
+                        LaunchedEffect(settings.removeDownloadsAfterFinishing, publications) {
+                            if (!settings.removeDownloadsAfterFinishing) return@LaunchedEffect
+                            val target = finishedDownload(downloadStore, downloads) { path ->
+                                progress.progress(PublicationIdentity(normalizedPath = path))
+                                    ?.isFinished == true
+                            } ?: return@LaunchedEffect
+                            removeAfterFinishing(downloadStore, downloads, target.id)
+                                ?.let { (without, taken) ->
+                                    downloads = without
+                                    removed?.settle()
+                                    removed = taken
+                                    launch {
+                                        kotlinx.coroutines.delay(UNDO_WINDOW_MILLIS)
+                                        if (removed === taken) {
+                                            taken.settle()
+                                            removed = null
+                                        }
+                                    }
+                                }
+                        }
+                        LibraryScreen(
+                            viewModel = libraryViewModel,
+                            onOpen = route,
+                            onOpenSettings = {
+                                downloads = downloadStore.library()
+                                isShowingSettings = true
+                            },
+                            onBrowse = { source ->
+                                // One tap, two destinations, decided by what the source is. The
+                                // reader picked a place to browse, not a protocol.
+                                CataloguePage.of(source, credentials)?.let { catalogue = listOf(it) }
+                                KavitaPage.of(source, credentials)?.let {
+                                    kavita = it
+                                    kavitaLevel = KavitaLevel.Libraries
+                                }
+                                SmbPage.of(source, credentials)?.let {
+                                    share = it
+                                    sharePath = emptyList()
+                                }
+                            },
+                            onAddCatalogue = { isAddingCatalogue = true },
+                            onAddKavita = { isAddingKavita = true },
+                            onAddShare = { isAddingShare = true },
+                            onProbeSources = {
+                                libraryViewModel.probeNetworkSources(credentials, pins)
+                            },
+                            onMark = { publication, isRead ->
+                                libraryViewModel.mark(
+                                    publication,
+                                    isRead,
+                                    kavitaProgress,
+                                    credentials,
+                                )
+                            },
+                            removedDownload = removed?.download?.title,
+                            onUndoRemoval = {
+                                lifecycleScope.launch {
+                                    removed?.let { downloads = it.undo(downloads) }
+                                    removed = null
+                                }
+                            },
+                            onAddToServerList = { publication, list ->
+                                libraryViewModel.addToServerList(
+                                    publication,
+                                    list,
+                                    kavitaProgress,
+                                    credentials,
+                                )
+                            },
+                            onOpenShelves = { isShowingShelves = true },
                         )
                     } else {
-                        KavitaCollectionScreen(
-                            server = serverShelf.server,
-                            collectionId = serverShelf.id,
-                            title = serverShelf.title,
-                            onOpenSeries = { each ->
-                                // Into the server browser, at that series: a collection is a
-                                // way in, not a separate place to read from.
-                                kavita = serverShelf.server
-                                kavitaLevel = KavitaLevel.Chapters(each)
-                                openServerShelf = null
-                            },
-                            onBack = { openServerShelf = null },
-                        )
-                    }
-                } else if (collectionOpen != null && selection == null) {
-                    BackHandler { openCollection = null }
-                    CollectionDetailScreen(
-                        viewModel = libraryViewModel,
-                        id = collectionOpen,
-                        onOpen = route,
-                        onBack = { openCollection = null },
-                    )
-                } else if (listOpen != null && selection == null) {
-                    BackHandler { openList = null }
-                    ReadingListDetailScreen(
-                        viewModel = libraryViewModel,
-                        id = listOpen,
-                        onOpen = route,
-                        onBack = { openList = null },
-                    )
-                } else if (isShowingShelves && selection == null) {
-                    BackHandler { isShowingShelves = false }
-                    val registry by libraryViewModel.registry.collectAsStateWithLifecycle()
-                    ShelvesScreen(
-                        viewModel = libraryViewModel,
-                        onOpenCollection = { openCollection = it },
-                        onOpenList = { openList = it },
-                        onBack = { isShowingShelves = false },
-                        servers = registry.sources.mapNotNull {
-                            KavitaPage.of(it, credentials)
-                        },
-                        onOpenServerCollection = { server, id, title ->
-                            openServerShelf = ServerShelf(server, id, title, isList = false)
-                        },
-                        onOpenServerList = { server, id, title ->
-                            openServerShelf = ServerShelf(server, id, title, isList = true)
-                        },
-                    )
-                } else if (server != null && selection == null && !isShowingSettings) {
-                    BackHandler { kavita = null }
-                    KavitaBrowserScreen(
-                        title = server.title,
-                        address = server.address,
-                        sourceId = server.id,
-                        store = kavitaProgress,
-                        lists = serverLists,
-                        level = kavitaLevel,
-                        onLevel = { kavitaLevel = it },
-                        onOpen = route,
-                        onBack = { kavita = null },
-                    )
-                } else if (page != null && selection == null && !isShowingSettings) {
-                    BackHandler { catalogue = catalogue.dropLast(1) }
-                    // Keyed on the address so entering a section builds a fresh browser
-                    // rather than showing the previous page's entries.
-                    val browser = remember(page.url) {
-                        CatalogueBrowser(
-                            applicationContext,
-                            page.title,
-                            page.url,
-                            page.credential,
-                            pins,
-                        )
-                    }
-                    val queue = remember(page.url) {
-                        DownloadQueue(
-                            applicationContext,
-                            pins,
-                            downloadStore,
-                            credential = { page.credential },
-                        )
-                    }
-                    CatalogueBrowserScreen(
-                        browser = browser,
-                        queue = queue,
-                        onEnter = { title, url ->
-                            catalogue = catalogue + CataloguePage(title, url, page.credential)
-                        },
-                        // The same door a local publication goes through. A book fetched
-                        // from a catalogue is a book.
-                        onOpen = route,
-                        onBack = { catalogue = catalogue.dropLast(1) },
-                    )
-                } else if (isShowingSettings) {
-                    BackHandler { isShowingSettings = false }
-                    val registry by libraryViewModel.registry.collectAsStateWithLifecycle()
-                    SettingsScreen(
-                        settings = settings,
-                        readerStore = readerPreferences,
-                        // The registry belongs to the library, and a feature module never
-                        // depends on another feature module — so the app layer carries it
-                        // across and carries the removal back.
-                        sources = registry.sources,
-                        itemCount = { libraryViewModel.itemCount(it.id) },
-                        onRemoveSource = { libraryViewModel.removeSource(it) },
-                        onRenameSource = { source, name ->
-                            libraryViewModel.renameSource(source, name)
-                        },
-                        // Read from the store rather than from a browser's acquisition: the
-                        // store is the record, and Settings can be reached without ever
-                        // having opened a catalogue.
-                        downloads = downloads,
-                        bytesOnDisk = downloadStore.bytesOnDisk(),
-                        onReorderDownload = { download, later ->
-                            downloads = downloads.moving(download.id, later)
-                            downloadStore.save(downloads)
-                        },
-                        onRemoveDownload = { download ->
-                            downloadStore.location(
-                                download.id,
-                                PublicationFormat.ofMediaType(download.mediaType)
-                                    ?.name?.lowercase() ?: "bin",
-                            ).delete()
-                            downloads = downloads.removing(download.id)
-                            downloadStore.save(downloads)
-                        },
-                        // Written through on every change rather than on the way out.
-                        // `settings-and-about` requires an appearance to apply
-                        // immediately, and the state lives here so the theme above
-                        // recomposes with it — the screen reports, the host holds.
-                        onChange = {
-                            settings = it
-                            settingsStore.save(it)
-                        },
-                        onReset = {
-                            // Both stores, and only what each one calls a setting. The
-                            // reading *defaults* are settings; a theme chosen while
-                            // reading is not, and neither is progress.
-                            settingsStore.reset()
-                            settings = settingsStore.settings()
-                            readerPreferences.save(
-                                readerPreferences.themes().clearingDefaults(),
+                        val blockedSince by SmbReachability.blockedSince
+                            .collectAsStateWithLifecycle()
+                        val publications by libraryViewModel.publications.collectAsStateWithLifecycle()
+                        // Keyed on the publication so opening a different one builds a
+                        // fresh model rather than showing the previous book's pages.
+                        val readerViewModel = remember(selection.first.id) {
+                            ReaderViewModel(
+                                selection.first,
+                                contentResolver,
+                                selection.second,
+                                progress,
+                                // The same store the ebook reader uses, and a different
+                                // scope inside it: `reading-themes` gives comics and
+                                // reflowable text separate defaults.
+                                shelfStore = readerPreferences,
                             )
-                        },
-                        onClose = { isShowingSettings = false },
-                    )
-                } else if (selection == null) {
-                    val publications by libraryViewModel.publications
-                        .collectAsStateWithLifecycle()
-                    // `offline-downloads`: a finished publication's download goes, and the
-                    // reader has ten seconds to say otherwise. Swept here rather than in a
-                    // reader's close path, because there are two readers and the EPUB one
-                    // is a separate activity -- the library coming back is the one moment
-                    // both of them pass through.
-                    LaunchedEffect(settings.removeDownloadsAfterFinishing, publications) {
-                        if (!settings.removeDownloadsAfterFinishing) return@LaunchedEffect
-                        val target = finishedDownload(downloadStore, downloads) { path ->
-                            progress.progress(PublicationIdentity(normalizedPath = path))
-                                ?.isFinished == true
-                        } ?: return@LaunchedEffect
-                        removeAfterFinishing(downloadStore, downloads, target.id)
-                            ?.let { (without, taken) ->
-                                downloads = without
-                                removed?.settle()
-                                removed = taken
-                                launch {
-                                    kotlinx.coroutines.delay(UNDO_WINDOW_MILLIS)
-                                    if (removed === taken) {
-                                        taken.settle()
-                                        removed = null
-                                    }
-                                }
-                            }
-                    }
-                    LibraryScreen(
-                        viewModel = libraryViewModel,
-                        onOpen = route,
-                        onOpenSettings = {
-                            downloads = downloadStore.library()
-                            isShowingSettings = true
-                        },
-                        onBrowse = { source ->
-                            // One tap, two destinations, decided by what the source is. The
-                            // reader picked a place to browse, not a protocol.
-                            CataloguePage.of(source, credentials)?.let { catalogue = listOf(it) }
-                            KavitaPage.of(source, credentials)?.let {
-                                kavita = it
-                                kavitaLevel = KavitaLevel.Libraries
-                            }
-                            SmbPage.of(source, credentials)?.let {
-                                share = it
-                                sharePath = emptyList()
-                            }
-                        },
-                        onAddCatalogue = { isAddingCatalogue = true },
-                        onAddKavita = { isAddingKavita = true },
-                        onAddShare = { isAddingShare = true },
-                        onProbeSources = {
-                            libraryViewModel.probeNetworkSources(credentials, pins)
-                        },
-                        onMark = { publication, isRead ->
-                            libraryViewModel.mark(
-                                publication,
-                                isRead,
-                                kavitaProgress,
-                                credentials,
-                            )
-                        },
-                        removedDownload = removed?.download?.title,
-                        onUndoRemoval = {
-                            lifecycleScope.launch {
-                                removed?.let { downloads = it.undo(downloads) }
-                                removed = null
-                            }
-                        },
-                        onAddToServerList = { publication, list ->
-                            libraryViewModel.addToServerList(
-                                publication,
-                                list,
-                                kavitaProgress,
-                                credentials,
-                            )
-                        },
-                        onOpenShelves = { isShowingShelves = true },
-                    )
-                } else {
-                    val blockedSince by SmbReachability.blockedSince
-                        .collectAsStateWithLifecycle()
-                    val publications by libraryViewModel.publications.collectAsStateWithLifecycle()
-                    // Keyed on the publication so opening a different one builds a
-                    // fresh model rather than showing the previous book's pages.
-                    val readerViewModel = remember(selection.first.id) {
-                        ReaderViewModel(
-                            selection.first,
-                            contentResolver,
-                            selection.second,
-                            progress,
-                            // The same store the ebook reader uses, and a different
-                            // scope inside it: `reading-themes` gives comics and
-                            // reflowable text separate defaults.
-                            shelfStore = readerPreferences,
-                        )
-                    }
-                    // Closing the reader is one moment `kavita-server` sends a position.
-                    // Leaving for the home screen is the other, and the commoner one: a
-                    // phone is usually closed by going home, and a position that only
-                    // travelled on a clean exit would be the evening's reading lost.
-                    val report: suspend () -> Unit = {
-                        val publication = selection.first
+                        }
+                        // Closing the reader is one moment `kavita-server` sends a position.
+                        // Leaving for the home screen is the other, and the commoner one: a
+                        // phone is usually closed by going home, and a position that only
+                        // travelled on a clean exit would be the evening's reading lost.
+                        val report: suspend () -> Unit = {
+                            val publication = selection.first
 
-                        val origin = kavitaProgress.origin(publication.id)
-                        val page = progress.progress(publication.identity)?.position
-                        if (origin != null && page is ReadingPosition.Page) {
-                            KavitaSync.report(
-                                kavitaProgress,
-                                libraryViewModel.registry.value.sources
-                                    .firstOrNull { it.id.toString() == origin.sourceId }
-                                    ?.let { KavitaPage.of(it, credentials)?.address },
-                                origin,
-                                page.index,
-                            )
-                        }
-                    }
-                    val close: () -> Unit = {
-                        reading = null
-                        lifecycleScope.launch { report() }
-                    }
-                    val owner = LocalLifecycleOwner.current
-                    DisposableEffect(owner) {
-                        val watcher = LifecycleEventObserver { _, event ->
-                            if (event == Lifecycle.Event.ON_STOP) {
-                                lifecycleScope.launch { report() }
+                            val origin = kavitaProgress.origin(publication.id)
+                            val page = progress.progress(publication.identity)?.position
+                            if (origin != null && page is ReadingPosition.Page) {
+                                KavitaSync.report(
+                                    kavitaProgress,
+                                    libraryViewModel.registry.value.sources
+                                        .firstOrNull { it.id.toString() == origin.sourceId }
+                                        ?.let { KavitaPage.of(it, credentials)?.address },
+                                    origin,
+                                    page.index,
+                                )
                             }
                         }
-                        owner.lifecycle.addObserver(watcher)
-                        onDispose { owner.lifecycle.removeObserver(watcher) }
-                    }
-                    BackHandler { close() }
-                    CompositionLocalProvider(LocalVolumeTurns provides volumeTurns) {
-                        ReaderScreen(
-                        viewModel = readerViewModel,
-                        onClose = close,
-                        blockedSince = blockedSince,
-                        onDismissTrouble = { SmbReachability.clear() },
-                        // Only for a publication that lives on a share. Everything else is
-                        // already on the device, and offering to download it would be
-                        // offering nothing.
-                        onDownloadForOffline = selection.second
-                            .takeIf { it.startsWith("smb://") }
-                            ?.let { remote ->
-                                {
-                                    lifecycleScope.launch {
-                                        keepForOffline(
-                                            downloadStore,
-                                            selection.first,
-                                            remote,
-                                        )?.let { local -> reading = selection.first to local }
-                                        SmbReachability.clear()
+                        val close: () -> Unit = {
+                            reading = null
+                            lifecycleScope.launch { report() }
+                        }
+                        val owner = LocalLifecycleOwner.current
+                        DisposableEffect(owner) {
+                            val watcher = LifecycleEventObserver { _, event ->
+                                if (event == Lifecycle.Event.ON_STOP) {
+                                    lifecycleScope.launch { report() }
+                                }
+                            }
+                            owner.lifecycle.addObserver(watcher)
+                            onDispose { owner.lifecycle.removeObserver(watcher) }
+                        }
+                        PredictiveBack { close() }
+                        CompositionLocalProvider(LocalVolumeTurns provides volumeTurns) {
+                            ReaderScreen(
+                            viewModel = readerViewModel,
+                            onClose = close,
+                            blockedSince = blockedSince,
+                            onDismissTrouble = { SmbReachability.clear() },
+                            // Only for a publication that lives on a share. Everything else is
+                            // already on the device, and offering to download it would be
+                            // offering nothing.
+                            onDownloadForOffline = selection.second
+                                .takeIf { it.startsWith("smb://") }
+                                ?.let { remote ->
+                                    {
+                                        lifecycleScope.launch {
+                                            keepForOffline(
+                                                downloadStore,
+                                                selection.first,
+                                                remote,
+                                            )?.let { local -> reading = selection.first to local }
+                                            SmbReachability.clear()
+                                        }
                                     }
+                                },
+                            preferences = readerPreferences,
+                            // `comic-reader`: the end of one volume offers the next.
+                            // The app layer answers this because it is the only place
+                            // that can see both the reader and the library.
+                            // Collected rather than read off the flow: a `.value` in a
+                            // composition is a snapshot nothing recomposes on, so the
+                            // end screen would offer whatever was there when the reader
+                            // opened.
+                            // The library is what knows a reading list may have a different
+                            // opinion about what comes next than the series does.
+                            nextInSeries = libraryViewModel.next(selection.first),
+                            onOpenNext = { publication ->
+                                // The selection is replaced rather than a second reader
+                                // pushed: stacking them would leave a pile behind a
+                                // long series.
+                                libraryViewModel.location(publication)?.let {
+                                    reading = publication to it
                                 }
                             },
-                        preferences = readerPreferences,
-                        // `comic-reader`: the end of one volume offers the next.
-                        // The app layer answers this because it is the only place
-                        // that can see both the reader and the library.
-                        // Collected rather than read off the flow: a `.value` in a
-                        // composition is a snapshot nothing recomposes on, so the
-                        // end screen would offer whatever was there when the reader
-                        // opened.
-                        // The library is what knows a reading list may have a different
-                        // opinion about what comes next than the series does.
-                        nextInSeries = libraryViewModel.next(selection.first),
-                        onOpenNext = { publication ->
-                            // The selection is replaced rather than a second reader
-                            // pushed: stacking them would leave a pile behind a
-                            // long series.
-                            libraryViewModel.location(publication)?.let {
-                                reading = publication to it
-                            }
-                        },
-                        )
+                            )
+                        }
                     }
                 }
             }

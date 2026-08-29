@@ -51,11 +51,17 @@ extension View {
 
 private struct ThemeResolver: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
+    /// `native-experience`: Increase Contrast strengthens borders and the weakest text
+    /// tier. Read once, here, so every screen below inherits the answer rather than
+    /// each one asking the environment and deciding for itself what to do about it.
+    @Environment(\.colorSchemeContrast) private var contrast
 
     let appearance: AppearanceMode
 
     func body(content: Content) -> some View {
-        let theme = Theme(palette: .resolved(for: colorScheme, appearance: appearance))
+        let theme = Theme(
+            palette: .resolved(for: colorScheme, appearance: appearance, contrast: contrast)
+        )
         return content
             .environment(\.theme, theme)
             .tint(theme.accent)
