@@ -162,6 +162,7 @@
     <string name="kavita_continue">Continue · %1$s</string>
     <string name="library_mark_read">Mark as read</string>
     <string name="library_mark_unread">Mark as unread</string>
+    <string name="library_cached">Showing what was here %1$s. Checking for changes.</string>
     <string name="library_restart">Start from the beginning</string>
     <string name="library_restart_title">Start “%1$s” from the beginning?</string>
     <string name="library_restart_confirm">Start from the beginning</string>

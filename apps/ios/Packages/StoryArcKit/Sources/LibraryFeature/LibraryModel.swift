@@ -54,7 +54,7 @@ public final class LibraryModel {
     /// In-progress publications, most recently read first. Empty means the row is
     /// not drawn at all, which is what `library-browsing` asks for.
     public private(set) var continueReading: [Publication] = []
-    public private(set) var scanState: LibraryScanState = .idle
+    public internal(set) var scanState: LibraryScanState = .idle
     /// Folders the user has added, in the order they added them.
     public internal(set) var folders: [URL] = []
 
@@ -63,10 +63,22 @@ public final class LibraryModel {
     /// `publication-formats` requires covers to be extracted as rows approach the
     /// viewport rather than during the scan, so this fills in as cells appear and
     /// never during `scan`.
-    private var covers: [String: CGImage] = [:]
+    var covers: [String: CGImage] = [:]
     /// Where each publication came from, so a cover can be loaded later.
-    private var locations: [String: URL] = [:]
-    private var scanTask: Task<Void, Never>?
+    var locations: [String: URL] = [:]
+
+    let libraryCache = LibraryCache()
+
+    /// When the shelf on screen was last confirmed, while it is still the cached one.
+    ///
+    /// `sources` asks for "a single unobtrusive indicator" stating that content is cached
+    /// and when it was last refreshed. `nil` once a scan has finished, because at that
+    /// point the shelf is not cached — it is current, and saying otherwise would be the
+    /// indicator lying quietly in the corner.
+    public internal(set) var cachedAt: Date?
+    /// Not `private`: the walk lives in `LibraryScanning.swift`, which is the same type
+    /// in the same module and the only other thing that touches it.
+    var scanTask: Task<Void, Never>?
     let progressStore: ProgressStore?
 
     /// The reading lists every known Kavita server holds, once they have been asked.
@@ -126,6 +138,7 @@ public final class LibraryModel {
     /// without asking again". Called once, when the library first appears.
     public func restoreFolders() {
         guard folders.isEmpty else { return }
+        restoreCachedLibrary()
         if let bookmarks {
             let restored = bookmarks.restore()
             unavailableFolders = restored.stale.map(\.name)
@@ -136,6 +149,45 @@ public final class LibraryModel {
             }
         }
         if folders.isEmpty { scan(documentsFolder) }
+    }
+
+    /// Puts last session's shelf back before anything is walked.
+    ///
+    /// `sources` asks the cached catalogue to be shown "within 500 ms of the library view
+    /// appearing", and a folder walk is not that — it is a directory tree, an archive
+    /// opened per file, and a metadata read per archive. This is a single JSON read.
+    ///
+    /// What follows is a scan, which now appends to this rather than replacing it, and
+    /// removes only what it can prove is gone. So the reader sees their library at once and
+    /// watches it correct itself, instead of watching it appear.
+    private func restoreCachedLibrary() {
+        guard publications.isEmpty, let snapshot = libraryCache.read() else { return }
+        publications = snapshot.publications
+        locations = snapshot.locations.reduce(into: [:]) { result, pair in
+            result[pair.key] = URL(fileURLWithPath: pair.value)
+        }
+        cachedAt = snapshot.refreshedAt
+        rebuild()
+    }
+
+    /// Records the shelf as it now stands, for the next launch.
+    ///
+    /// Called when a walk finishes rather than as publications arrive: a snapshot written
+    /// mid-scan is a half-library, and restoring one would show a shelf that is missing
+    /// books for no reason a reader could see.
+    func cacheLibrary() {
+        // Same reason as the reconciliation: a walk that found nothing must not replace a
+        // good snapshot with an empty one, or one unreadable folder costs the reader their
+        // whole cached shelf on the next launch too.
+        if publications.isEmpty, libraryCache.read()?.publications.isEmpty == false { return }
+        libraryCache.write(
+            LibraryCache.Snapshot(
+                refreshedAt: .now,
+                publications: publications,
+                locations: locations.reduce(into: [:]) { $0[$1.key] = $1.value.path() }
+            )
+        )
+        cachedAt = nil
     }
 
     /// The app's own Documents directory.
@@ -215,103 +267,7 @@ public final class LibraryModel {
         scanState = .idle
     }
 
-    private func scan(_ folder: URL) {
-        scanTask?.cancel()
-        scanState = .scanning(found: publications.count)
-
-        scanTask = Task { [weak self] in
-            // What this walk actually saw, so what it did not see can go afterwards.
-            var seen: Set<String> = []
-            for await event in LibraryScanner.scan(folderAt: folder) {
-                guard let self, !Task.isCancelled else { return }
-                switch event {
-                case let .found(publication):
-                    seen.insert(publication.id)
-                    self.append(publication, in: folder)
-                case .skipped:
-                    // Counted in the finished event. Not surfaced per-file: a scan
-                    // of a messy folder would otherwise be a wall of notices.
-                    break
-                case let .finished(found, skipped):
-                    self.forgetVanished(under: folder, seen: seen)
-                    self.scanState = .finished(found: found, skipped: skipped)
-                    // Progress is loaded here rather than only when the view
-                    // appears. The view appears before the scan produces anything,
-                    // so a load at that point matches recorded positions against an
-                    // empty library and the continue row never fills.
-                    await self.refreshProgress()
-                }
-            }
-        }
-    }
-
-    /// Drops what this folder no longer holds.
-    ///
-    /// `sources`: when a refresh shows a publication "is no longer present in the source",
-    /// it "is removed from the library view and its reading progress is retained". The
-    /// second half needs no code — progress lives in its own store, keyed by identity, and
-    /// nothing here touches it, so a file that comes back finds its position waiting.
-    ///
-    /// Scoped to the folder that was walked. A scan of one source must not evict another
-    /// source's titles just because it did not happen to see them, which is the mistake
-    /// that turns a refresh into a library that empties one folder at a time.
-    private func forgetVanished(under folder: URL, seen: Set<String>) {
-        let gone = publications.filter { publication in
-            guard !seen.contains(publication.id),
-                  let location = locations[publication.id]
-            else { return false }
-            return location.path().hasPrefix(folder.path())
-        }
-        guard !gone.isEmpty else { return }
-
-        let ids = Set(gone.map(\.id))
-        publications.removeAll { ids.contains($0.id) }
-        for id in ids {
-            covers[id] = nil
-            locations[id] = nil
-        }
-    }
-
-    private func append(_ publication: Publication, in folder: URL) {
-        // Attributed here rather than by the indexer: indexing decides what a publication
-        // is, and the library is the only thing that knows which source it was reached
-        // through. `sources` needs this for a source's item count, and
-        // `library-browsing` for the order two sources holding one title appear in.
-        var attributed = publication
-        attributed.sourceID = source(of: folder)
-
-        // A publication already present from another folder is not added twice.
-        // Identity is what decides, not the path, so the same file reached two ways
-        // is one row (ADR-0006).
-        if let seen = publications.firstIndex(
-            where: { $0.identity.matches(publication.identity) }
-        ) {
-            // Unless the second find knows something the first did not. The app's own
-            // Documents folder is scanned before any source is restored, so a reader whose
-            // library lives there had every publication found unattributed first — and a
-            // source that holds eleven books reported nought. Whichever scan carries a
-            // source wins; the earlier row is otherwise identical.
-            if publications[seen].sourceID == nil, attributed.sourceID != nil {
-                publications[seen].sourceID = attributed.sourceID
-            }
-            return
-        }
-
-        publications.append(attributed)
-        if let path = publication.identity.normalizedPath {
-            locations[publication.id] = URL(fileURLWithPath: path)
-        }
-        if case let .scanning(found) = scanState {
-            scanState = .scanning(found: found + 1)
-        }
-        // ponytail: re-arranged in batches during a scan, not per publication —
-        // sorting after every one of 10,000 appends is quadratic. The scan's own
-        // completion rebuilds the rest, so the only visible effect is that the
-        // last few rows arrive together.
-        if publications.count % rebuildEvery == 0 { rebuild() }
-    }
-
-    private let rebuildEvery = 24
+    let rebuildEvery = 24
 
     // Internal, not private: `private` is file-scoped, and the callers now sit
     // in the other half of this type.

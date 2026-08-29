@@ -2418,6 +2418,35 @@
         }
       }
     },
+    "library.cached %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeigt den Stand von %@. Änderungen werden gesucht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing what was here %@. Checking for changes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrando lo que había %@. Buscando cambios."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Affichage de ce qui était là %@. Vérification en cours."
+          }
+        }
+      }
+    },
     "library.cell.cannotOpen": {
       "comment": "Shown under a cover when the publication's format cannot be read at all — a solid RAR4, say. Named rather than shown as a broken cover.",
       "extractionState": "manual",

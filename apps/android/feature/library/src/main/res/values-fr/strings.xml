@@ -162,6 +162,7 @@
     <string name="kavita_continue">Continuer · %1$s</string>
     <string name="library_mark_read">Marquer comme lu</string>
     <string name="library_mark_unread">Marquer comme non lu</string>
+    <string name="library_cached">Affichage de ce qui était là %1$s. Vérification en cours.</string>
     <string name="library_restart">Reprendre au début</string>
     <string name="library_restart_title">Reprendre « %1$s » au début ?</string>
     <string name="library_restart_confirm">Reprendre au début</string>

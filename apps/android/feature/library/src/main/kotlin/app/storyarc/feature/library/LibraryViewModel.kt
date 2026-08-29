@@ -24,6 +24,7 @@ import java.util.UUID
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.persistence.CredentialStore
+import app.storyarc.core.persistence.LibraryCache
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
@@ -328,11 +329,20 @@ class LibraryViewModel(
 
     fun restoreFolders() {
         if (_folders.value.isNotEmpty()) return
+        // Before anything is walked, and before any early return below. `sources` asks for
+        // the cached catalogue "within 500 ms of the library view appearing", and the walk
+        // that follows corrects it in place.
+        restoreCachedLibrary()
+
         val restored = SafTree.persistedTrees(resolver)
         val reachable = restored.filter { SafTree.displayName(resolver, it) != null }
         _unavailableFolders.value = (restored - reachable.toSet()).map { nameOf(it) }
-        if (reachable.isEmpty()) return
         _folders.value = reachable
+        // Even with no folder to restore. `rescan` walks the managed folder when there are
+        // no trees — which is where a file shared to StoryArc lands, and what the emulator
+        // and the instrumented tests read. Returning early here meant nothing was scanned
+        // at launch at all, and a comic dropped into the app's own folder stayed invisible
+        // until someone pressed refresh.
         rescan()
     }
 
@@ -497,6 +507,7 @@ class LibraryViewModel(
      */
     fun rescan() {
         scanJob?.cancel()
+        restoreCachedLibrary()
         _scanState.value = LibraryScanState.Scanning(_publications.value.size)
 
         val trees = _folders.value
@@ -533,13 +544,25 @@ class LibraryViewModel(
                 // Anything the walk did not meet is gone from the folders it walked.
                 // Only ever a removal of rows, never a clear: a reader watching the screen
                 // sees the one book they deleted leave, not the whole shelf blink.
-                val vanished = _publications.value.filterNot { it.id in seen }.map { it.id }
+                // Only when the walk actually saw something. A walk that found nothing at
+                // all is far more likely to be a folder it could not read — a permission
+                // dropped, a share offline, a card pulled — than a reader who deleted every
+                // book they own. `sources` promises cached content "remains browsable" when
+                // a source is unreachable, and emptying the shelf on a failed walk is
+                // exactly the opposite. A library genuinely emptied is reconciled by the
+                // next walk that finds anything.
+                val vanished = if (seen.isEmpty()) {
+                    emptyList()
+                } else {
+                    _publications.value.filterNot { it.id in seen }.map { it.id }
+                }
                 if (vanished.isNotEmpty()) {
                     _publications.update { list -> list.filterNot { it.id in vanished } }
                     vanished.forEach { covers.remove(it); locations.remove(it) }
                 }
                 _scanState.value = LibraryScanState.Finished(found, skipped)
                 rebuild()
+                cacheLibrary()
             }
             // After the walk, not before it. Recorded positions are matched against
             // the publications the scan produced, so refreshing while the list is
@@ -721,6 +744,65 @@ class LibraryViewModel(
      * entry and decoded an image, per cover, to draw a grid the reader had already seen.
      */
     private val coverCache by lazy { CoverCache(File(getApplication<Application>().cacheDir, "covers")) }
+
+    /**
+     * Last session's shelf, so opening the app does not mean walking every folder before
+     * anything appears. `sources` asks for the cached catalogue "within 500 ms of the
+     * library view appearing", and a folder walk is not that.
+     */
+    private val libraryCache by lazy {
+        LibraryCache(File(getApplication<Application>().cacheDir, "library.json"))
+    }
+
+    private val _cachedAt = MutableStateFlow<Long?>(null)
+
+    /**
+     * When the shelf on screen was last confirmed, while it is still the cached one.
+     *
+     * `sources` asks for "a single unobtrusive indicator" stating that content is cached and
+     * when it was last refreshed. Null once a walk has finished, because at that point the
+     * shelf is not cached — it is current, and saying otherwise would be the indicator lying
+     * quietly in the corner.
+     */
+    val cachedAt: StateFlow<Long?> = _cachedAt.asStateFlow()
+
+    /**
+     * Puts last session's shelf back before anything is walked.
+     *
+     * What follows is a scan, which appends to this rather than replacing it and removes
+     * only what it can prove is gone — so the reader sees their library at once and watches
+     * it correct itself, instead of watching it appear.
+     */
+    private fun restoreCachedLibrary() {
+        if (_publications.value.isNotEmpty()) return
+        val snapshot = libraryCache.read() ?: return
+        _publications.value = snapshot.publications
+        locations.putAll(snapshot.locations)
+        _cachedAt.value = snapshot.refreshedAtEpochMillis
+        rebuild()
+    }
+
+    /**
+     * Records the shelf as it now stands, for the next launch.
+     *
+     * Called when a walk finishes rather than as publications arrive: a snapshot written
+     * mid-scan is a half-library, and restoring one would show a shelf missing books for no
+     * reason a reader could see.
+     */
+    private fun cacheLibrary() {
+        // Same reason as the reconciliation above: a walk that found nothing must not
+        // replace a good snapshot with an empty one, or one unreadable folder costs the
+        // reader their whole cached shelf on the next launch too.
+        if (_publications.value.isEmpty() && libraryCache.read()?.publications?.isNotEmpty() == true) return
+        libraryCache.write(
+            LibraryCache.Snapshot(
+                refreshedAtEpochMillis = System.currentTimeMillis(),
+                publications = _publications.value,
+                locations = locations.toMap(),
+            ),
+        )
+        _cachedAt.value = null
+    }
 
     suspend fun cover(publication: Publication, maxPixelSize: Int): Bitmap? {
         covers[publication.id]?.let { return it }

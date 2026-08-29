@@ -165,7 +165,10 @@ public struct LibraryView: View {
             // publications — nothing in it is on the device yet — and mixing the two would
             // make "what can I read on the train" unanswerable.
             .safeAreaInset(edge: .top, spacing: 0) {
-                if !catalogues.isEmpty { CatalogueStrip(sources: catalogues) { open($0) } }
+                VStack(spacing: 0) {
+                    if let cachedAt = model.cachedAt { CachedNotice(refreshedAt: cachedAt) }
+                    if !catalogues.isEmpty { CatalogueStrip(sources: catalogues) { open($0) } }
+                }
             }
             .navigationDestination(item: $browsing) { id in
                 if let source = model.registry[id] {

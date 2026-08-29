@@ -1,5 +1,7 @@
 package app.storyarc.core.model
 
+import kotlinx.serialization.Serializable
+
 import java.util.UUID
 
 /**
@@ -13,12 +15,17 @@ import java.util.UUID
  * that is what lets a file read from a folder and the same file read from a
  * Kavita server resolve to one progress record.
  */
+@Serializable
 data class PublicationIdentity(
     val serverIdentifier: ServerIdentifier? = null,
     val contentDigest: String? = null,
     val normalizedPath: String? = null,
 ) {
-    data class ServerIdentifier(val sourceId: UUID, val remoteId: String)
+    @Serializable
+    data class ServerIdentifier(
+        @Serializable(with = UuidSerializer::class) val sourceId: UUID,
+        val remoteId: String,
+    )
 
     /**
      * A stable key for lists, diffing and anything stored against a publication.

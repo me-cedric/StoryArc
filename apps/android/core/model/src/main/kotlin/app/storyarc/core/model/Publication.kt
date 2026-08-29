@@ -1,5 +1,7 @@
 package app.storyarc.core.model
 
+import kotlinx.serialization.Serializable
+
 import java.util.UUID
 
 /**
@@ -10,6 +12,7 @@ import java.util.UUID
  * read at all — collapsing the last two would either promise a download that
  * changes nothing, or refuse a book that would open fine once local.
  */
+@Serializable
 enum class StreamingCapability {
     /** Pages can be fetched individually from a remote source. */
     STREAMS,
@@ -35,6 +38,7 @@ enum class StreamingCapability {
  * user to resolve a conflict the app invented. The distinction only matters at the
  * moment of replacement, which is exactly when it is too late to reconstruct.
  */
+@Serializable
 enum class MetadataOrigin {
     /** Read from the publication: `ComicInfo.xml`, an EPUB package document. */
     EMBEDDED,
@@ -70,6 +74,7 @@ enum class MetadataOrigin {
  * Lives in the domain rather than the format layer because the library sorts,
  * filters and explains by format, and none of that should require the parser.
  */
+@Serializable
 enum class PublicationFormat {
     CBZ, CBR, CB7, CBT, EPUB, PDF, IMAGE_FOLDER,
     ;
@@ -145,6 +150,7 @@ enum class PublicationFormat {
  * container and its metadata, and this is what comes out the other side, with no
  * reference to how it was obtained.
  */
+@Serializable
 data class Publication(
     /**
      * Stable across sources, so the same book from a folder and from a server is
@@ -195,7 +201,7 @@ data class Publication(
      * Assigned by the library rather than by the indexer: indexing decides what a
      * publication *is*, and the indexer reads bytes and has no idea a registry exists.
      */
-    val sourceId: UUID? = null,
+    @Serializable(with = UuidSerializer::class) val sourceId: UUID? = null,
 ) {
     /** A stable key for lists and diffing. See [PublicationIdentity.stableId]. */
     val id: String get() = identity.stableId

@@ -173,6 +173,12 @@ fun LibraryScreen(
         }
     }
 
+    // `sources` asks for "a single unobtrusive indicator" saying that content is cached and
+    // when it was last refreshed. It leaves as soon as a walk finishes: at that point the
+    // shelf is not cached, it is current, and a notice still claiming otherwise would be the
+    // indicator lying quietly in the corner. iOS shows the same line above its grid.
+    val cachedAt by (viewModel?.cachedAt ?: MutableStateFlow(null)).collectAsStateWithLifecycle()
+
     LaunchedEffect(viewModel) {
         viewModel?.restoreFolders()
         onProbeSources()
@@ -326,6 +332,7 @@ fun LibraryScreen(
                 visible.isNotEmpty() && viewModel != null ->
                     Column(modifier = Modifier.fillMaxSize()) {
                         SearchField(query.search, onChange = { viewModel.setQuery(query.copy(search = it)) })
+                        cachedAt?.let { CachedNotice(it) }
                         val open: (Publication) -> Unit = { publication ->
                             viewModel.location(publication)?.let { onOpen(publication, it) }
                         }
@@ -358,6 +365,7 @@ fun LibraryScreen(
                 publications.isNotEmpty() && viewModel != null ->
                     Column(modifier = Modifier.fillMaxSize()) {
                         SearchField(query.search, onChange = { viewModel.setQuery(query.copy(search = it)) })
+                        cachedAt?.let { CachedNotice(it) }
                         NarrowedToNothing(
                             query = query,
                             onClear = {

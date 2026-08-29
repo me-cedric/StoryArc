@@ -1,5 +1,7 @@
 package app.storyarc.core.model
 
+import kotlinx.serialization.Serializable
+
 /** How pages move. See `docs/openspec/specs/comic-reader`. */
 enum class PageTransition {
     PAGE_CURL,
@@ -28,6 +30,7 @@ enum class PageTransition {
         if (reduceMotion && isAnimatedTransition) FAST_FADE else this
 }
 
+@Serializable
 enum class ReadingDirection {
     LEFT_TO_RIGHT,
     RIGHT_TO_LEFT,

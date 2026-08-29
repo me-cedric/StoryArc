@@ -55,7 +55,14 @@ public enum MetadataOrigin: String, Sendable, Codable, CaseIterable {
 /// The library's unit. Assembled by indexing a file — the format layer reads the
 /// container and its metadata, and this is what comes out the other side, with no
 /// reference to how it was obtained.
-public struct Publication: Sendable, Equatable, Identifiable {
+/// `Codable` because every field of it is durable, which is not true of every domain type
+/// here — `Source` deliberately has no conformance, because its connection state describes
+/// a network and a state read back from disk is a claim about the past. A publication has
+/// no such field: title, series, format and page count are as true tomorrow as today, so
+/// caching the whole of it is honest rather than convenient. `sources` asks for the
+/// catalogue to be cached so the library "opens instantly and stays browsable while
+/// offline", and this is what makes that a write rather than a translation layer.
+public struct Publication: Sendable, Equatable, Identifiable, Codable {
     /// Stable across sources, so the same book from a folder and from a server is
     /// one book with one reading position (ADR-0006).
     public let identity: PublicationIdentity
