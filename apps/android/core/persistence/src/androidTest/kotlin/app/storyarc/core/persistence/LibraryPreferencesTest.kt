@@ -8,6 +8,7 @@ import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadState
+import app.storyarc.core.model.RecentSearches
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -19,7 +20,7 @@ import java.util.UUID
  * library. Instrumented because `SharedPreferences` needs a real `Context`, and
  * what is being asserted is that the values actually round-trip through storage.
  *
- * iOS's `LibraryPreferencesTests` asserts the same three things.
+ * iOS's `LibraryPreferencesTests` asserts the same four things.
  */
 @RunWith(AndroidJUnit4::class)
 class LibraryPreferencesTest {
@@ -59,6 +60,14 @@ class LibraryPreferencesTest {
 
         assertTrue(preferences.query().search.isEmpty())
         assertEquals(LibrarySort.SERIES, preferences.query().sort)
+    }
+
+    @Test
+    fun recent_searches_survive_the_launch_the_term_they_came_from_does_not() {
+        val preferences = fresh()
+        assertTrue(preferences.recentSearches().isEmpty)
+        preferences.save(RecentSearches().recording("sandman").recording("bone"))
+        assertEquals(listOf("bone", "sandman"), preferences.recentSearches().terms)
     }
 
     @Test

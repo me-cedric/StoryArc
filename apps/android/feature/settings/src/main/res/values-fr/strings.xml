@@ -77,7 +77,10 @@
     <string name="privacy_clear_cache">Effacer le cache</string>
     <string name="privacy_clear_history">Effacer l’historique de lecture</string>
     <string name="privacy_clear_history_body">Chaque publication revient à sa première page. Vos fichiers, sources et réglages ne sont pas touchés.</string>
-    <string name="privacy_downloads_absent">Rien ne se télécharge encore, il n’y a donc rien de téléchargé à effacer.</string>
+    <string name="privacy_downloads">Téléchargements · %1$s</string>
+    <string name="privacy_downloads_note">Publications conservées sur cet appareil. Les effacer supprime les fichiers, pas votre progression.</string>
+    <string name="privacy_clear_downloads">Effacer les téléchargements</string>
+    <string name="privacy_clear_downloads_body">Chaque publication téléchargée est retirée de cet appareil. Vos sources, votre progression de lecture et vos collections ne sont pas touchées, et ce qui reste sur une source peut être téléchargé de nouveau.</string>
     <string name="privacy_diagnostic">Export de diagnostic</string>
     <string name="privacy_diagnostic_note">Ce que l’application sait d’elle-même. Les noms de serveurs, les chemins et les identifiants sont retirés avant l’affichage, et rien n’est envoyé.</string>
     <string name="privacy_diagnostic_show">Afficher</string>
@@ -86,6 +89,8 @@
     <string name="sources_none">Aucune source pour l’instant. Ajoutez un dossier depuis la bibliothèque pour commencer.</string>
     <string name="sources_remove">Retirer</string>
     <string name="sources_remove_action">Retirer %1$s</string>
+    <string name="sources_move_earlier">Déplacer « %1$s » vers le haut</string>
+    <string name="sources_move_later">Déplacer « %1$s » vers le bas</string>
     <string name="sources_remove_title">Retirer %1$s ?</string>
     <string name="sources_state_connected">Disponible</string>
     <string name="sources_state_connecting">Connexion</string>

@@ -35,7 +35,7 @@ import app.storyarc.core.persistence.StorageUsage
 import kotlinx.coroutines.launch
 
 /**
- * The privacy posture, stated rather than toggled, and the two things a reader can clear.
+ * The privacy posture, stated rather than toggled, and the three things a reader can clear.
  *
  * `settings-and-about` asks for the posture to be "verifiable rather than merely stated",
  * and the reason there is nothing to *switch* here is the point: the app has no account, no
@@ -46,11 +46,28 @@ import kotlinx.coroutines.launch
  * removes and how much space it frees". The size is the point — "clear cache" with no number
  * behind it asks a reader to guess whether it is worth doing.
  *
- * Downloads are named as absent rather than shown as zero, which would imply a thing that
- * happens to be empty.
+ * Downloads used to be named as absent rather than shown as zero. They are a real row now,
+ * with a real size, because `offline-downloads` landed and the sentence saying nothing
+ * downloads yet had stopped being true.
  */
 @Composable
-internal fun PrivacyGroup(modifier: Modifier = Modifier) {
+internal fun PrivacyGroup(
+    modifier: Modifier = Modifier,
+    /**
+     * What the downloads weigh, asked of the filesystem by the caller — the same number the
+     * Downloads group states, for the same reason: the system can reclaim a download, and a
+     * total that counts bytes nobody has makes a reader distrust the screen.
+     */
+    downloadedBytes: Long = 0L,
+    /**
+     * Removes every download. `settings-and-about` asks for cache, reading history *and*
+     * downloads to be "individually clearable", and the third one used to be a sentence
+     * saying nothing downloads yet. Something does now.
+     */
+    onClearDownloads: () -> Unit = {},
+    /** The row a search result pointed at, if the reader arrived through one. */
+    highlight: SettingsAnchor? = null,
+) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -60,7 +77,12 @@ internal fun PrivacyGroup(modifier: Modifier = Modifier) {
     // directory tree is not a thing to do while a list scrolls.
     var cacheBytes by remember { mutableLongStateOf(usage.cacheBytes()) }
     var historyBytes by remember { mutableLongStateOf(usage.historyBytes()) }
+    // Seeded from the caller and dropped to zero on a clear, because the caller measured
+    // before this screen opened and the row has to go to zero under the reader's finger
+    // rather than on the next visit.
+    var downloadBytes by remember { mutableLongStateOf(downloadedBytes) }
     var confirmingHistory by remember { mutableStateOf(false) }
+    var confirmingDownloads by remember { mutableStateOf(false) }
 
     if (confirmingHistory) {
         AlertDialog(
@@ -89,6 +111,34 @@ internal fun PrivacyGroup(modifier: Modifier = Modifier) {
         )
     }
 
+    // Confirmed, unlike the cache: these are files a reader chose to fetch, and some of
+    // them came over a connection they pay for. The body names what survives, for the same
+    // reason the reset dialogue does.
+    if (confirmingDownloads) {
+        AlertDialog(
+            onDismissRequest = { confirmingDownloads = false },
+            title = { Text(stringResource(R.string.privacy_clear_downloads)) },
+            text = { Text(stringResource(R.string.privacy_clear_downloads_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingDownloads = false
+                    onClearDownloads()
+                    downloadBytes = 0L
+                }) {
+                    Text(
+                        text = stringResource(R.string.privacy_clear),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingDownloads = false }) {
+                    Text(stringResource(R.string.settings_cancel))
+                }
+            },
+        )
+    }
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md)) {
         Text(
             text = stringResource(R.string.privacy_statement),
@@ -106,6 +156,7 @@ internal fun PrivacyGroup(modifier: Modifier = Modifier) {
             noteRes = R.string.privacy_cache_note,
             clearLabelRes = R.string.privacy_clear_cache,
             bytes = cacheBytes,
+            modifier = Modifier.settingsHighlight(SettingsAnchor.CLEAR_CACHE, highlight),
             // No confirmation: a cache is by definition rebuildable, and asking twice for
             // something with no consequence teaches a reader to click through dialogues.
             onClear = {
@@ -119,15 +170,21 @@ internal fun PrivacyGroup(modifier: Modifier = Modifier) {
             noteRes = R.string.privacy_history_note,
             clearLabelRes = R.string.privacy_clear_history,
             bytes = historyBytes,
+            modifier = Modifier.settingsHighlight(SettingsAnchor.CLEAR_HISTORY, highlight),
             onClear = { confirmingHistory = true },
         )
 
-        Text(
-            text = stringResource(R.string.privacy_downloads_absent),
-            style = MaterialTheme.typography.labelLarge,
-            color = palette.textTertiary,
+        ClearableRow(
+            titleRes = R.string.privacy_downloads,
+            noteRes = R.string.privacy_downloads_note,
+            clearLabelRes = R.string.privacy_clear_downloads,
+            bytes = downloadBytes,
+            modifier = Modifier.settingsHighlight(SettingsAnchor.CLEAR_DOWNLOADS, highlight),
+            size = android.text.format.Formatter.formatShortFileSize(context, downloadBytes),
+            onClear = { confirmingDownloads = true },
         )
-        DiagnosticRow()
+
+        DiagnosticRow(highlight = highlight)
     }
 }
 
@@ -139,12 +196,15 @@ internal fun PrivacyGroup(modifier: Modifier = Modifier) {
  * distance between reading it and deciding — which is the one moment that matters here.
  */
 @Composable
-private fun DiagnosticRow() {
+private fun DiagnosticRow(highlight: SettingsAnchor?) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
     var text by remember { mutableStateOf<String?>(null) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+        modifier = Modifier.settingsHighlight(SettingsAnchor.DIAGNOSTIC, highlight),
+    ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -198,17 +258,29 @@ private fun ClearableRow(
     /** What a screen reader calls the button. Two visible "Clear"s cannot be told apart by ear. */
     clearLabelRes: Int,
     bytes: Long,
+    modifier: Modifier = Modifier,
+    /**
+     * How the size reads.
+     *
+     * A parameter rather than always [formatBytes], because the downloads total is the one
+     * figure on this screen that a reader can also see somewhere else — the Downloads group
+     * and the Settings summary both show the same `bytesOnDisk` through the platform
+     * formatter, which is decimal. One number rendered two ways in one screen reads as two
+     * numbers. The cache and the history appear only here, so they keep the convention
+     * [formatBytes] documents.
+     */
+    size: String = formatBytes(bytes),
     onClear: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
     val clearLabel = stringResource(clearLabelRes)
 
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             // A clear rewrites this size in place; without a live region TalkBack says nothing
             // and the reader cannot tell that the clear worked.
             Text(
-                text = stringResource(titleRes, formatBytes(bytes)),
+                text = stringResource(titleRes, size),
                 style = MaterialTheme.typography.bodyMedium,
                 color = palette.textPrimary,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },

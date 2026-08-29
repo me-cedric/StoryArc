@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.format.LibraryScanner
+import app.storyarc.core.format.CoverCache
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.format.SafTree
 import app.storyarc.core.format.ScanEvent
@@ -17,15 +18,18 @@ import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.model.Source
 import java.util.UUID
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.persistence.CredentialStore
+import app.storyarc.core.persistence.LibraryCache
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.SourceProbe
 import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
@@ -41,6 +45,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -89,6 +95,12 @@ class LibraryViewModel(
     /** What the user is looking at. Setting it re-arranges the shelf. */
     private val _query = MutableStateFlow(preferences?.query() ?: LibraryQuery())
     val query: StateFlow<LibraryQuery> = _query.asStateFlow()
+
+    private val _recentSearches =
+        MutableStateFlow(preferences?.recentSearches() ?: RecentSearches())
+
+    /** What the reader searched for lately, offered when the field opens. */
+    val recentSearches: StateFlow<RecentSearches> = _recentSearches.asStateFlow()
 
     /**
      * Grid or list. `library-browsing` requires both, and requires the choice to
@@ -210,8 +222,67 @@ class LibraryViewModel(
         }
     }
 
-    fun probeNetworkSources(credentials: CredentialStore?, pins: CertificatePins) {
+    /**
+     * Forgets a publication's position, so the next open starts at page one.
+     *
+     * `reading-progress`: "a 'Start from the beginning' action is available ... and it
+     * clears progress only after confirmation". The confirmation is the caller's; this is
+     * what it confirms.
+     *
+     * Forgetting rather than rewinding: the record *is* the position, and a record set back
+     * to page one is indistinguishable from one that was never read except for the finished
+     * flag, which the reader has just said they do not want either.
+     */
+    fun restart(publication: Publication) {
         viewModelScope.launch {
+            progressStore?.forget(publication.identity)
+            refreshProgress()
+        }
+    }
+
+    /**
+     * Keeps asking, while any source is still away.
+     *
+     * `sources` asks for more than one probe: an unreachable source is retried "with
+     * exponential backoff starting at 5 seconds and capping at 5 minutes", and one that
+     * comes back is reconnected "without user action". A single probe on appearance
+     * satisfies neither — a reader whose Wi-Fi returns while they are looking at the
+     * library would watch it say "Connecting…" until they left the screen and came back.
+     *
+     * The schedule is [SourceProbe.delayAfter], which is tested without a network. This is
+     * only the loop, and it holds a job rather than launching a second one, so a reader
+     * leaving and returning does not end up with two.
+     *
+     * iOS runs the same loop from its `task` modifier, where cancellation is the view's.
+     */
+    private var retryJob: Job? = null
+
+    fun retryUnreachableSources(credentials: CredentialStore?, pins: CertificatePins) {
+        retryJob?.cancel()
+        retryJob = viewModelScope.launch {
+            var failures = 0
+            while (isActive) {
+                val away = _registry.value.sources.any { it.state is SourceConnectionState.Unreachable }
+                if (!away) return@launch
+                failures += 1
+                delay(SourceProbe.delayAfter(failures))
+                probeAndWait(credentials, pins)
+            }
+        }
+    }
+
+    /** Stops the retry loop. Called when the library goes away and nobody is looking. */
+    fun stopRetrying() {
+        retryJob?.cancel()
+        retryJob = null
+    }
+
+    fun probeNetworkSources(credentials: CredentialStore?, pins: CertificatePins) {
+        viewModelScope.launch { probeAndWait(credentials, pins) }
+    }
+
+    private suspend fun probeAndWait(credentials: CredentialStore?, pins: CertificatePins) {
+        run {
             val reason = getApplication<Application>()
                 .getString(R.string.source_state_unauthorized)
             for (source in _registry.value.sources.filter(SourceHealth::canProbe)) {
@@ -265,11 +336,20 @@ class LibraryViewModel(
 
     fun restoreFolders() {
         if (_folders.value.isNotEmpty()) return
+        // Before anything is walked, and before any early return below. `sources` asks for
+        // the cached catalogue "within 500 ms of the library view appearing", and the walk
+        // that follows corrects it in place.
+        restoreCachedLibrary()
+
         val restored = SafTree.persistedTrees(resolver)
         val reachable = restored.filter { SafTree.displayName(resolver, it) != null }
         _unavailableFolders.value = (restored - reachable.toSet()).map { nameOf(it) }
-        if (reachable.isEmpty()) return
         _folders.value = reachable
+        // Even with no folder to restore. `rescan` walks the managed folder when there are
+        // no trees — which is where a file shared to StoryArc lands, and what the emulator
+        // and the instrumented tests read. Returning early here meant nothing was scanned
+        // at launch at all, and a comic dropped into the app's own folder stayed invisible
+        // until someone pressed refresh.
         rescan()
     }
 
@@ -353,6 +433,23 @@ class LibraryViewModel(
     }
 
     /**
+     * Moves a source one place, which decides precedence rather than merely display order.
+     *
+     * `sources`: the order "persists across launches", and "the library's combined view
+     * lists titles from higher sources first when two sources hold the same publication".
+     * The second clause needs no code here — the scan walks the registry in order and the
+     * first find of an identity wins — but it is why this writes through immediately.
+     *
+     * One place at a time, because that is what the two buttons on the screen offer. The
+     * arithmetic that turns "one place later" into the index a drag would have reported
+     * lives in `SourceRegistry`, where a test can reach it without a screen.
+     */
+    fun reorderSource(source: Source, later: Boolean) {
+        _registry.update { it.moving(source.id, later) }
+        sourceStore?.save(_registry.value)
+    }
+
+    /**
      * Forgets a folder's source, and remembers that it was forgotten.
      *
      * The tombstone is what keeps reading progress for thirty days, per `sources`. It is
@@ -400,20 +497,33 @@ class LibraryViewModel(
      * One job over all of them rather than one job each: cancelling is then a
      * single action, and the found count is the library's rather than a folder's.
      */
+    /**
+     * Walks the folders again, without emptying the shelf first.
+     *
+     * `sources` asks a refresh to update "the view incrementally rather than clearing it
+     * and re-populating". This used to do the opposite: every pull-to-refresh blanked the
+     * library, threw away every decoded cover, and rebuilt the lot — so the reader watched
+     * their shelf disappear and come back, and the covers were decoded twice for nothing.
+     * iOS has always appended; this is Android catching up.
+     *
+     * What the walk *does* remove is a publication it no longer finds, which is the
+     * requirement's other half: "the publication is removed from the library view and its
+     * reading progress is retained". Retaining the progress needs no code — it lives in
+     * `ProgressStore`, keyed by identity, and nothing here touches it. A file that comes
+     * back finds its position waiting.
+     */
     fun rescan() {
         scanJob?.cancel()
-        _publications.value = emptyList()
-        _visible.value = emptyList()
-        _continueReading.value = emptyList()
-        covers.clear()
-        locations.clear()
-        _scanState.value = LibraryScanState.Scanning(0)
+        restoreCachedLibrary()
+        _scanState.value = LibraryScanState.Scanning(_publications.value.size)
 
         val trees = _folders.value
         scanJob = viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 var found = 0
                 var skipped = 0
+                // What this walk actually saw, so what it did not see can go afterwards.
+                val seen = mutableSetOf<String>()
                 // Each walk carries the tree it came from, so a publication can be
                 // attributed to the source it was reached through. The managed folder is
                 // not a source, so its walk carries null.
@@ -426,7 +536,10 @@ class LibraryViewModel(
                 for ((tree, walk) in walks) {
                     walk.collect { event ->
                         when (event) {
-                            is ScanEvent.Found -> append(event.publication, tree)
+                            is ScanEvent.Found -> {
+                                seen += event.publication.id
+                                append(event.publication, tree)
+                            }
                             is ScanEvent.Skipped -> Unit
                             is ScanEvent.Finished -> {
                                 found += event.found
@@ -435,8 +548,28 @@ class LibraryViewModel(
                         }
                     }
                 }
+                // Anything the walk did not meet is gone from the folders it walked.
+                // Only ever a removal of rows, never a clear: a reader watching the screen
+                // sees the one book they deleted leave, not the whole shelf blink.
+                // Only when the walk actually saw something. A walk that found nothing at
+                // all is far more likely to be a folder it could not read — a permission
+                // dropped, a share offline, a card pulled — than a reader who deleted every
+                // book they own. `sources` promises cached content "remains browsable" when
+                // a source is unreachable, and emptying the shelf on a failed walk is
+                // exactly the opposite. A library genuinely emptied is reconciled by the
+                // next walk that finds anything.
+                val vanished = if (seen.isEmpty()) {
+                    emptyList()
+                } else {
+                    _publications.value.filterNot { it.id in seen }.map { it.id }
+                }
+                if (vanished.isNotEmpty()) {
+                    _publications.update { list -> list.filterNot { it.id in vanished } }
+                    vanished.forEach { covers.remove(it); locations.remove(it) }
+                }
                 _scanState.value = LibraryScanState.Finished(found, skipped)
                 rebuild()
+                cacheLibrary()
             }
             // After the walk, not before it. Recorded positions are matched against
             // the publications the scan produced, so refreshing while the list is
@@ -544,8 +677,27 @@ class LibraryViewModel(
     fun setQuery(value: LibraryQuery) {
         if (value == _query.value) return
         _query.value = value
+        // A term is filed as it is typed. `library-browsing` has results update per
+        // keystroke with no submit action, and a reader who taps a cover never ends
+        // the search at all — so there is no later moment to hang the record on.
+        // [RecentSearches] folds the keystrokes of one word back into one entry,
+        // which is what makes recording each of them safe.
+        remember(value.search)
         preferences?.save(value)
         rebuild()
+    }
+
+    /** `library-browsing`: the offered queries "can be cleared". */
+    fun clearRecentSearches() {
+        _recentSearches.value = RecentSearches()
+        preferences?.save(_recentSearches.value)
+    }
+
+    private fun remember(term: String) {
+        val updated = _recentSearches.value.recording(term)
+        if (updated == _recentSearches.value) return
+        _recentSearches.value = updated
+        preferences?.save(updated)
     }
 
     /**
@@ -610,13 +762,87 @@ class LibraryViewModel(
             ?: tree.lastPathSegment?.substringAfterLast(':')?.substringAfterLast('/')
             ?: tree.toString()
 
+    /**
+     * Covers on disk, between the ones in memory and the archives they came from.
+     *
+     * `sources` asks for a cover to be "stored on disk at display resolution", and the
+     * reason is what it skips: without it every launch reopened an archive, inflated an
+     * entry and decoded an image, per cover, to draw a grid the reader had already seen.
+     */
+    private val coverCache by lazy { CoverCache(File(getApplication<Application>().cacheDir, "covers")) }
+
+    /**
+     * Last session's shelf, so opening the app does not mean walking every folder before
+     * anything appears. `sources` asks for the cached catalogue "within 500 ms of the
+     * library view appearing", and a folder walk is not that.
+     */
+    private val libraryCache by lazy {
+        LibraryCache(File(getApplication<Application>().cacheDir, "library.json"))
+    }
+
+    private val _cachedAt = MutableStateFlow<Long?>(null)
+
+    /**
+     * When the shelf on screen was last confirmed, while it is still the cached one.
+     *
+     * `sources` asks for "a single unobtrusive indicator" stating that content is cached and
+     * when it was last refreshed. Null once a walk has finished, because at that point the
+     * shelf is not cached — it is current, and saying otherwise would be the indicator lying
+     * quietly in the corner.
+     */
+    val cachedAt: StateFlow<Long?> = _cachedAt.asStateFlow()
+
+    /**
+     * Puts last session's shelf back before anything is walked.
+     *
+     * What follows is a scan, which appends to this rather than replacing it and removes
+     * only what it can prove is gone — so the reader sees their library at once and watches
+     * it correct itself, instead of watching it appear.
+     */
+    private fun restoreCachedLibrary() {
+        if (_publications.value.isNotEmpty()) return
+        val snapshot = libraryCache.read() ?: return
+        _publications.value = snapshot.publications
+        locations.putAll(snapshot.locations)
+        _cachedAt.value = snapshot.refreshedAtEpochMillis
+        rebuild()
+    }
+
+    /**
+     * Records the shelf as it now stands, for the next launch.
+     *
+     * Called when a walk finishes rather than as publications arrive: a snapshot written
+     * mid-scan is a half-library, and restoring one would show a shelf missing books for no
+     * reason a reader could see.
+     */
+    private fun cacheLibrary() {
+        // Same reason as the reconciliation above: a walk that found nothing must not
+        // replace a good snapshot with an empty one, or one unreadable folder costs the
+        // reader their whole cached shelf on the next launch too.
+        if (_publications.value.isEmpty() && libraryCache.read()?.publications?.isNotEmpty() == true) return
+        libraryCache.write(
+            LibraryCache.Snapshot(
+                refreshedAtEpochMillis = System.currentTimeMillis(),
+                publications = _publications.value,
+                locations = locations.toMap(),
+            ),
+        )
+        _cachedAt.value = null
+    }
+
     suspend fun cover(publication: Publication, maxPixelSize: Int): Bitmap? {
         covers[publication.id]?.let { return it }
+
+        withContext(Dispatchers.IO) { coverCache.bitmap(publication.id, maxPixelSize) }?.let {
+            covers[publication.id] = it
+            return it
+        }
+
         val path = locations[publication.id] ?: return null
         val bitmap = withContext(Dispatchers.IO) {
             runCatching {
                 PublicationAccess.anyCover(resolver, publication, path, maxPixelSize)
-            }.getOrNull()
+            }.getOrNull()?.also { coverCache.store(it, publication.id, maxPixelSize) }
         } ?: return null
         covers[publication.id] = bitmap
         return bitmap

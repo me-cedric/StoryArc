@@ -67,6 +67,49 @@ class SourceRegistryTest {
         assertEquals(listOf("B", "A"), registry.moving(a.id, 99).sources.map { it.displayName })
     }
 
+    /**
+     * The one-place helper the Android screen's two buttons use.
+     *
+     * iOS has no counterpart: its drag reports an absolute destination. The arithmetic is
+     * here because it is the half that can be wrong — a downward move has to name the index
+     * *after* the row it passes, and naming the row itself leaves the list unchanged.
+     */
+    @Test
+    fun `moving one place later passes the row below`() {
+        val a = source("A")
+        val b = source("B")
+        val c = source("C")
+        val registry = SourceRegistry().adding(a).adding(b).adding(c)
+
+        assertEquals(
+            listOf("B", "A", "C"),
+            registry.moving(a.id, later = true).sources.map { it.displayName },
+        )
+    }
+
+    @Test
+    fun `moving one place earlier passes the row above`() {
+        val a = source("A")
+        val b = source("B")
+        val c = source("C")
+        val registry = SourceRegistry().adding(a).adding(b).adding(c)
+
+        assertEquals(
+            listOf("A", "C", "B"),
+            registry.moving(c.id, later = false).sources.map { it.displayName },
+        )
+    }
+
+    @Test
+    fun `moving past either end changes nothing`() {
+        val a = source("A")
+        val b = source("B")
+        val registry = SourceRegistry().adding(a).adding(b)
+
+        assertEquals(listOf("A", "B"), registry.moving(a.id, later = false).sources.map { it.displayName })
+        assertEquals(listOf("A", "B"), registry.moving(b.id, later = true).sources.map { it.displayName })
+    }
+
     @Test
     fun `renaming keeps the source's identity so everything referring to it follows`() {
         val only = source("Comcis")

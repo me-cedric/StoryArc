@@ -111,6 +111,18 @@ extension LibraryModel {
     ///
     /// The folder on disk keeps its own name. This renames the *source*, and a reader who
     /// calls a folder "Comics" has not asked to rename the directory.
+    /// Moves a source, which is what decides precedence rather than merely display order.
+    ///
+    /// `sources`: the order "persists across launches", and "the library's combined view
+    /// lists titles from higher sources first when two sources hold the same publication".
+    /// The second clause needs no code here — the scan walks the registry in order and the
+    /// first find of an identity wins — but it is the reason this writes through
+    /// immediately rather than on the way out of the screen.
+    public func move(_ id: Source.ID, to destination: Int) {
+        registry = registry.moving(id, to: destination)
+        sourceStore?.save(registry)
+    }
+
     public func rename(_ source: Source, to name: String) {
         registry = registry.renaming(source.id, to: name)
         sourceStore?.save(registry)
@@ -237,6 +249,20 @@ extension LibraryModel {
     /// The stores are built here rather than passed in. Both are thin wrappers -- one over
     /// `UserDefaults`, one over the keychain -- and threading them through four view
     /// initialisers to reach one menu button would be four parameters carrying nothing.
+    /// Forgets a publication's position, so the next open starts at page one.
+    ///
+    /// `reading-progress`: "a 'Start from the beginning' action is available ... and it
+    /// clears progress only after confirmation". The confirmation is the caller's — a
+    /// context menu cannot present one — and this is what it confirms.
+    ///
+    /// Forgetting rather than rewinding: the record *is* the position, and a record set
+    /// back to page one is indistinguishable from one that was never read except for the
+    /// finished flag, which the reader has just said they do not want either.
+    func restart(_ publication: Publication) async {
+        try? await progressStore?.forget(publication.identity)
+        await refreshProgress()
+    }
+
     func mark(_ publication: Publication, read isRead: Bool) async {
         let kavita = KavitaProgressStore()
         let credentials = CredentialStore()
@@ -250,96 +276,4 @@ extension LibraryModel {
         await KavitaSync.mark(isRead, for: origin, to: address, in: kavita)
     }
 
-    /// Answers the question every network source asks on launch.
-    ///
-    /// `sources` requires a source's health to be shown. State is never persisted, so a
-    /// catalogue or a server loads as `connecting` and stays there unless something asks --
-    /// which nothing did, so every network source a reader added read "Connecting…" for
-    /// ever, whether it was reachable or not.
-    ///
-    /// One request each, on appearance. Cheap enough to repeat and honest enough to trust:
-    /// a state older than the last time the library was on screen is a claim about the past.
-    func probeNetworkSources(credentials: CredentialStore?, pins: CertificatePins) async {
-        for source in registry.sources
-        where source.kind == .opdsCatalog
-            || source.kind == .kavitaServer
-            || source.kind == .networkShare {
-            let state = await reach(source, credentials: credentials, pins: pins)
-            registry = registry.marking(source.id, as: state)
-        }
-        // Asked at the same moment, because it is the same question — what does this server
-        // have — and the add-to menu cannot fetch it for itself without opening a connection
-        // every time a reader long-presses a cover.
-        serverLists = await ServerShelf.all(in: registry, credentials: credentials)
-            .filter(\.isList)
-    }
-
-    /// Adds a publication to one of a server's reading lists.
-    ///
-    /// Returns false when the publication did not come from that server. `kavita-server`
-    /// requires the app to explain that "a server list can only contain that server's
-    /// publications" rather than silently doing nothing or silently doing the wrong thing.
-    @discardableResult
-    func add(_ publication: Publication, toServerList list: ServerShelf) async -> Bool {
-        let kavita = KavitaProgressStore()
-        guard let origin = kavita.origin(of: publication.id),
-              origin.sourceId == list.server.id
-        else { return false }
-
-        let credentials = CredentialStore()
-        let address = registry.sources
-            .first { $0.id.uuidString == origin.sourceId }
-            .flatMap { KavitaPage(source: $0, credentials: credentials)?.address }
-        await KavitaSync.append(list.id, for: origin, to: address, in: kavita)
-        return true
-    }
-
-    private func reach(
-        _ source: Source,
-        credentials: CredentialStore?,
-        pins: CertificatePins
-    ) async -> SourceConnectionState {
-        if let page = SmbPage(source: source, credentials: credentials) {
-            do {
-                _ = try await SmbClient(address: page.address).connect()
-                return .connected
-            } catch SmbError.authenticationRejected {
-                return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                                    bundle: .module, locale: .storyArc))
-            } catch {
-                return .unreachable(since: Date())
-            }
-        }
-
-        if let page = KavitaPage(source: source, credentials: credentials) {
-            do {
-                _ = try await KavitaClient(address: page.address, pins: pins).connect()
-                return .connected
-            } catch KavitaError.keyRejected {
-                return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                                    bundle: .module, locale: .storyArc))
-            } catch {
-                return .unreachable(since: Date())
-            }
-        }
-
-        if let page = CataloguePage(source: source, credentials: credentials) {
-            do {
-                _ = try await OpdsClient(pins: pins).feed(at: page.url, credential: page.credential)
-                return .connected
-            } catch let error as OpdsError {
-                if case .unauthorized = error {
-                    return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                                        bundle: .module, locale: .storyArc))
-                }
-                return .unreachable(since: Date())
-            } catch {
-                return .unreachable(since: Date())
-            }
-        }
-
-        // Neither page could be built, so the secret this source needs has gone.
-        return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                            bundle: .module, locale: .storyArc))
-    }
 }

@@ -15,6 +15,19 @@ struct PrivacySettings: View {
     let settings: AppSettings
     let readerStore: ReaderPreferences
 
+    /// What the downloads weigh, asked of the filesystem by the caller — the same number
+    /// the Downloads group states, for the same reason: the system can reclaim a download,
+    /// and a total that counts bytes nobody has makes a reader distrust the screen.
+    var downloadedBytes: Int64 = 0
+
+    /// Removes every download. `settings-and-about` asks for cache, reading history *and*
+    /// downloads to be "individually clearable", and the third one used to be a sentence
+    /// saying nothing downloads yet. Something does now.
+    var onClearDownloads: () -> Void = {}
+
+    /// The row a search result pointed at, if the reader arrived through one.
+    var highlight: SettingsAnchor?
+
     @Environment(\.theme) private var theme
 
     private let usage = StorageUsage()
@@ -24,10 +37,16 @@ struct PrivacySettings: View {
     @State private var cacheBytes: Int64 = 0
     @State private var historyBytes: Int64 = 0
     @State private var isConfirmingHistory = false
+    @State private var isConfirmingDownloads = false
     @State private var diagnostic: String?
 
+    /// What the downloads weigh *now*. Seeded from the caller and re-read after a clear,
+    /// because the caller measured before this screen opened and the row has to go to zero
+    /// under the reader's finger rather than on the next visit.
+    @State private var downloadBytes: Int64 = 0
+
     var body: some View {
-        List {
+        HighlightingList(highlight: highlight) {
             Section {
                 Text("privacy.statement", bundle: .module)
                 Text("privacy.sources", bundle: .module)
@@ -38,7 +57,7 @@ struct PrivacySettings: View {
                 clearable(
                     title: "privacy.cache \(formattedBytes(cacheBytes))",
                     note: "privacy.cache.note",
-                    clearLabel: "privacy.clear.cache",
+                    anchor: .clearCache,
                     isEmpty: cacheBytes <= 0
                 ) {
                     // No confirmation: a cache is by definition rebuildable, and asking
@@ -61,15 +80,16 @@ struct PrivacySettings: View {
                 clearable(
                     title: "privacy.history \(formattedBytes(historyBytes))",
                     note: "privacy.history.note",
-                    clearLabel: "privacy.clear.history",
+                    anchor: .clearHistory,
                     isEmpty: historyBytes <= 0
                 ) { isConfirmingHistory = true }
-            }
 
-            Section {
-                Text("privacy.downloads.absent", bundle: .module)
-                    .textRole(.footnote)
-                    .foregroundStyle(theme.palette.textTertiary)
+                clearable(
+                    title: "privacy.downloads \(formattedDownloads(downloadBytes))",
+                    note: "privacy.downloads.note",
+                    anchor: .clearDownloads,
+                    isEmpty: downloadBytes <= 0
+                ) { isConfirmingDownloads = true }
             }
 
             diagnosticSection
@@ -99,6 +119,30 @@ struct PrivacySettings: View {
         } message: {
             Text("privacy.clear.history.body", bundle: .module)
         }
+        // Confirmed, unlike the cache: these are files a reader chose to fetch, and some
+        // of them came over a connection they pay for. The body names what survives, for
+        // the same reason the reset dialogue does.
+        .confirmationDialog(
+            Text("privacy.clear.downloads", bundle: .module),
+            isPresented: $isConfirmingDownloads,
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive) {
+                onClearDownloads()
+                downloadBytes = 0
+                AccessibilityNotification.Announcement(
+                    String(
+                        localized: "privacy.downloads \(formattedDownloads(0))",
+                        bundle: .module,
+                        locale: .storyArc
+                    )
+                ).post()
+            } label: {
+                Text("privacy.clear", bundle: .module)
+            }
+        } message: {
+            Text("privacy.clear.downloads.body", bundle: .module)
+        }
     }
 
     /// The diagnostic export, shown before it can be shared.
@@ -115,6 +159,7 @@ struct PrivacySettings: View {
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textTertiary)
             }
+            .settingsHighlight(.diagnostic, when: highlight)
 
             Button {
                 // Built on tap rather than on appearance. It reads three stores, and a
@@ -158,15 +203,32 @@ struct PrivacySettings: View {
     private func measure() async {
         cacheBytes = usage.cacheBytes()
         historyBytes = (try? await ProgressStore().sizeOnDisk()) ?? 0
+        downloadBytes = downloadedBytes
+    }
+
+    /// The downloads total, in the units the rest of the app shows it in.
+    ///
+    /// The platform formatter rather than ``formattedBytes``: this is the one figure on this
+    /// screen a reader can also see elsewhere — the Downloads group and the Settings summary
+    /// show the same `bytesOnDisk` this way, and one number rendered two ways reads as two
+    /// numbers. `spellsOutZero` is off because an empty device should read "0 kB" beside
+    /// "129 kB", not "Zero kB".
+    private func formattedDownloads(_ bytes: Int64) -> String {
+        bytes.formatted(.byteCount(style: .file, spellsOutZero: false))
     }
 
     private func clearable(
         title: LocalizedStringKey,
         note: LocalizedStringKey,
-        /// What VoiceOver calls the button. Two visible "Clear"s cannot be told apart
-        /// by ear; the visible label stays short because the row's title is beside it,
+        /// What search points at, so "cache" lands on the cache row rather than on the
+        /// screen that happens to contain three rows that all say Clear.
+        ///
+        /// Doubles as what VoiceOver calls the button: an anchor's own label already *is*
+        /// "Clear cache", so passing it separately stated the same fact twice and left
+        /// room for the two to disagree. Three visible "Clear"s cannot be told apart by
+        /// ear, and the visible label stays short because the row's title is beside it —
         /// which is exactly what a screen reader does not get.
-        clearLabel: LocalizedStringKey,
+        anchor: SettingsAnchor,
         isEmpty: Bool,
         clear: @escaping () -> Void
     ) -> some View {
@@ -181,7 +243,8 @@ struct PrivacySettings: View {
             Button(action: clear) { Text("privacy.clear", bundle: .module) }
                 .buttonStyle(.bordered)
                 .disabled(isEmpty)
-                .accessibilityLabel(Text(clearLabel, bundle: .module))
+                .accessibilityLabel(Text(anchor.titleKey, bundle: .module))
         }
+        .settingsHighlight(anchor, when: highlight)
     }
 }

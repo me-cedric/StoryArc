@@ -3,6 +3,7 @@ package app.storyarc.feature.library
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -51,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,6 +63,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -78,6 +82,7 @@ import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadState
+import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
@@ -152,6 +157,7 @@ fun LibraryScreen(
 
     /** The publication whose add-to-shelf sheet is open, if any. */
     var shelving by remember { mutableStateOf<Publication?>(null) }
+    var restarting by remember { mutableStateOf<Publication?>(null) }
 
     // Android hands a picked folder over as a tree `Uri` and grants access to it
     // only for this process — until the app asks for the grant to be persisted,
@@ -171,9 +177,22 @@ fun LibraryScreen(
         }
     }
 
+    // `sources` asks for "a single unobtrusive indicator" saying that content is cached and
+    // when it was last refreshed. It leaves as soon as a walk finishes: at that point the
+    // shelf is not cached, it is current, and a notice still claiming otherwise would be the
+    // indicator lying quietly in the corner. iOS shows the same line above its grid.
+    val cachedAt by (viewModel?.cachedAt ?: MutableStateFlow(null)).collectAsStateWithLifecycle()
+
     LaunchedEffect(viewModel) {
         viewModel?.restoreFolders()
         onProbeSources()
+    }
+
+    // The retry loop runs in the view model's scope, which outlives this screen, so it has
+    // to be told when nobody is looking. iOS needs no equivalent: its loop runs from a
+    // `task` modifier and is cancelled with the view.
+    DisposableEffect(viewModel) {
+        onDispose { viewModel?.stopRetrying() }
     }
 
     // On resume, not on first composition. The comic reader is a composable in the
@@ -196,6 +215,8 @@ fun LibraryScreen(
     val query by (viewModel?.query ?: MutableStateFlow(LibraryQuery()))
         .collectAsStateWithLifecycle()
     val layout by (viewModel?.layout ?: MutableStateFlow(LibraryLayout.GRID))
+        .collectAsStateWithLifecycle()
+    val recentSearches by (viewModel?.recentSearches ?: MutableStateFlow(RecentSearches()))
         .collectAsStateWithLifecycle()
 
     val snackbars = remember { SnackbarHostState() }
@@ -316,7 +337,13 @@ fun LibraryScreen(
             when {
                 visible.isNotEmpty() && viewModel != null ->
                     Column(modifier = Modifier.fillMaxSize()) {
-                        SearchField(query.search, onChange = { viewModel.setQuery(query.copy(search = it)) })
+                        SearchField(
+                            value = query.search,
+                            recents = recentSearches,
+                            onChange = { viewModel.setQuery(query.copy(search = it)) },
+                            onClearRecents = viewModel::clearRecentSearches,
+                        )
+                        cachedAt?.let { CachedNotice(it) }
                         val open: (Publication) -> Unit = { publication ->
                             viewModel.location(publication)?.let { onOpen(publication, it) }
                         }
@@ -348,7 +375,13 @@ fun LibraryScreen(
                 // offer one action to undo.
                 publications.isNotEmpty() && viewModel != null ->
                     Column(modifier = Modifier.fillMaxSize()) {
-                        SearchField(query.search, onChange = { viewModel.setQuery(query.copy(search = it)) })
+                        SearchField(
+                            value = query.search,
+                            recents = recentSearches,
+                            onChange = { viewModel.setQuery(query.copy(search = it)) },
+                            onClearRecents = viewModel::clearRecentSearches,
+                        )
+                        cachedAt?.let { CachedNotice(it) }
                         NarrowedToNothing(
                             query = query,
                             onClear = {
@@ -377,7 +410,36 @@ fun LibraryScreen(
             publication = shelved,
             onDismiss = { shelving = null },
             onMark = { isRead -> onMark(shelved, isRead) },
+            onRestart = { restarting = shelved },
             onAddToServerList = onAddToServerList?.let { add -> { list -> add(shelved, list) } },
+        )
+    }
+
+    // `reading-progress` requires the clear to be confirmed. Outside the sheet because the
+    // sheet dismisses itself on the way here, and destructive because it is: the position
+    // is the only copy the app promises never to lose.
+    val restart = restarting
+    if (restart != null && viewModel != null) {
+        AlertDialog(
+            onDismissRequest = { restarting = null },
+            title = { Text(stringResource(R.string.library_restart_title, restart.displayTitle)) },
+            text = { Text(stringResource(R.string.library_restart_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.restart(restart)
+                    restarting = null
+                }) {
+                    Text(
+                        text = stringResource(R.string.library_restart_confirm),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { restarting = null }) {
+                    Text(stringResource(R.string.shelves_cancel))
+                }
+            },
         )
     }
 }
@@ -388,17 +450,86 @@ fun LibraryScreen(
  * one pass rather than a request.
  */
 @Composable
-private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        singleLine = true,
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-        placeholder = { Text(stringResource(R.string.library_search)) },
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm),
-    )
+private fun SearchField(
+    value: String,
+    recents: RecentSearches,
+    onChange: (String) -> Unit,
+    onClearRecents: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onChange,
+            singleLine = true,
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            placeholder = { Text(stringResource(R.string.library_search)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm)
+                .onFocusChanged { isFocused = it.isFocused },
+        )
+        // Offered only while nothing has been typed — once there is a term, the
+        // results below are the better answer, and a list of old searches on top of
+        // them would hide what was just found.
+        if (isFocused && value.isBlank() && !recents.isEmpty) {
+            RecentSearchList(recents.terms, onUse = onChange, onClear = onClearRecents)
+        }
+    }
+}
+
+/**
+ * What the reader searched for lately, under an open search field.
+ *
+ * `library-browsing`: "when a user opens search, recent queries are offered, and
+ * can be cleared". Choosing one puts the term in the field, which runs the search:
+ * a recent query is a shortcut to the search, not to whatever it found last time.
+ */
+@Composable
+private fun RecentSearchList(
+    terms: List<String>,
+    onUse: (String) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+
+    Column(modifier = modifier.padding(horizontal = StoryArcSpace.gutter)) {
+        Text(
+            text = stringResource(R.string.library_search_recent),
+            style = MaterialTheme.typography.labelLarge,
+            color = palette.textTertiary,
+            modifier = Modifier.padding(vertical = StoryArcSpace.xs),
+        )
+        terms.forEach { term ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onUse(term) }
+                    // Material's 48 dp touch-target floor, per `native-experience`.
+                    .heightIn(min = StoryArcSpace.xxl + StoryArcSpace.lg)
+                    .padding(vertical = StoryArcSpace.xs),
+                horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.History,
+                    contentDescription = null,
+                    tint = palette.textTertiary,
+                )
+                Text(
+                    text = term,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textPrimary,
+                )
+            }
+        }
+        TextButton(onClick = onClear) {
+            Text(stringResource(R.string.library_search_recent_clear))
+        }
+    }
 }
 
 /**
@@ -587,6 +718,8 @@ private val LibrarySort.labelRes: Int
         LibrarySort.LAST_READ -> R.string.library_sort_last_read
         LibrarySort.PROGRESS -> R.string.library_sort_progress
         LibrarySort.YEAR -> R.string.library_sort_year
+        LibrarySort.DATE_ADDED -> R.string.library_sort_date_added
+        LibrarySort.FILE_SIZE -> R.string.library_sort_file_size
     }
 
 private val ReadState.labelRes: Int

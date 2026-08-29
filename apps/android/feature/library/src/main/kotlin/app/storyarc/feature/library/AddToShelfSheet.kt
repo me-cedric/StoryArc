@@ -44,6 +44,12 @@ fun AddToShelfSheet(
     publication: Publication,
     onDismiss: () -> Unit,
     onMark: ((Boolean) -> Unit)? = null,
+    /**
+     * Asks the caller to confirm starting over. The confirmation `reading-progress`
+     * requires lives outside this sheet, because dismissing the sheet to show a dialogue is
+     * the caller's business, not the sheet's.
+     */
+    onRestart: (() -> Unit)? = null,
     onAddToServerList: (suspend (ServerList) -> Boolean)? = null,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -74,6 +80,21 @@ fun AddToShelfSheet(
                     enabled = true,
                 ) {
                     onMark(!isRead)
+                    onDismiss()
+                }
+            }
+
+            // `reading-progress`: "a 'Start from the beginning' action is available ... and
+            // it clears progress only after confirmation". Offered only where there is
+            // something to clear — on an unread publication it would start it from the
+            // beginning it is already at.
+            if (onRestart != null && (isRead || viewModel.readFraction(publication) != null)) {
+                Row(
+                    name = stringResource(R.string.library_restart),
+                    isMember = false,
+                    enabled = true,
+                ) {
+                    onRestart()
                     onDismiss()
                 }
             }

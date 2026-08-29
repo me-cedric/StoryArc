@@ -127,10 +127,26 @@ data class LibrarySummary(val sources: Int = 0, val bytesOnDisk: Long = 0L)
  * One row of a search result: a group, or a setting inside one.
  *
  * `settings-and-about` asks for matches to be listed "with their group path", which is
- * what `settingRes == null` distinguishes — a group match shows its current value, a
- * setting match shows the group it lives in.
+ * what `anchor == null` distinguishes — a group match shows its current value, a setting
+ * match shows the group it lives in and, once opened, lights the row up.
  */
-internal data class SettingMatch(val group: SettingsGroup, val settingRes: Int?)
+// Not a `data class`: the generated `copy()` would hand back the private constructor, and
+// with it the ability to build a match claiming a setting lives on a screen that does not
+// show it. Nothing destructures or compares a match, so the synthesised members are no loss.
+internal class SettingMatch private constructor(
+    val group: SettingsGroup,
+    val anchor: SettingsAnchor?,
+) {
+    /** What a list keys on, so a group and a setting inside it are never the same row. */
+    val id: String get() = anchor?.name ?: group.name
+
+    companion object {
+        fun of(group: SettingsGroup) = SettingMatch(group, null)
+
+        /** An anchor carries its own group, so a match cannot put a setting on the wrong screen. */
+        fun of(anchor: SettingsAnchor) = SettingMatch(anchor.group, anchor)
+    }
+}
 
 /**
  * Every group, and the settings inside them, that a query matches.
@@ -148,7 +164,7 @@ internal data class SettingMatch(val group: SettingsGroup, val settingRes: Int?)
  */
 internal fun SettingsGroup.Companion.search(query: String): List<SettingMatch> {
     val needle = query.trim().lowercase()
-    if (needle.isEmpty()) return SettingsGroup.entries.map { SettingMatch(it, null) }
+    if (needle.isEmpty()) return SettingsGroup.entries.map { SettingMatch.of(it) }
     return SEARCHABLE.filter { (terms, _) -> terms.any { it.contains(needle) } }.map { it.second }
 }
 
@@ -157,28 +173,38 @@ internal fun SettingsGroup.Companion.search(query: String): List<SettingMatch> {
  *
  * Terms rather than one label, so "night" finds Appearance and "licence" finds About —
  * a reader searches for the thing they want, not for what the screen calls it.
+ *
+ * Mirrored term for term with iOS's `searchable`. The two indexes are the one place a
+ * reader can tell the platforms apart without opening a screen, and they have already
+ * drifted once: "cache" pointed at Downloads there and at Privacy here.
  */
-private val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
+internal val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
     listOf("sources", "folder", "share", "opds", "kavita", "server") to
-        SettingMatch(SettingsGroup.SOURCES, null),
+        SettingMatch.of(SettingsGroup.SOURCES),
     listOf("appearance", "theme", "dark", "light", "night", "oled", "black", "colour", "color") to
-        SettingMatch(SettingsGroup.APPEARANCE, null),
-    listOf("reading", "page", "turn") to SettingMatch(SettingsGroup.READING, null),
+        SettingMatch.of(SettingsGroup.APPEARANCE),
+    listOf("link", "match", "chrome") to SettingMatch.of(SettingsAnchor.LINK_READING_THEME),
+    listOf("reading", "page", "turn") to SettingMatch.of(SettingsGroup.READING),
     listOf("volume", "buttons", "keys", "page turn") to
-        SettingMatch(SettingsGroup.READING, R.string.reading_volume_buttons),
+        SettingMatch.of(SettingsAnchor.VOLUME_BUTTONS),
     listOf("default", "defaults", "series", "preset") to
-        SettingMatch(SettingsGroup.READING, R.string.reading_defaults),
-    listOf("downloads", "offline") to SettingMatch(SettingsGroup.DOWNLOADS, null),
-    listOf("language", "locale", "translation") to SettingMatch(SettingsGroup.LANGUAGE, null),
-    // "cache", "storage" and "space" point here rather than at Downloads. Downloads is
-    // still pending, and Privacy is where the sizes are shown and cleared today — a
-    // search term that lands on an empty screen is worse than no search term.
-    listOf("privacy", "analytics", "tracking", "account", "data", "cache", "storage", "space", "clear") to
-        SettingMatch(SettingsGroup.PRIVACY, null),
+        SettingMatch.of(SettingsAnchor.READING_DEFAULTS),
+    listOf("downloads", "offline") to SettingMatch.of(SettingsGroup.DOWNLOADS),
+    listOf("wifi", "wi-fi", "metered", "mobile", "cellular") to
+        SettingMatch.of(SettingsAnchor.DOWNLOADS_WIFI_ONLY),
+    listOf("finished", "remove", "tidy") to
+        SettingMatch.of(SettingsAnchor.DOWNLOADS_REMOVE_AFTER_FINISHING),
+    listOf("limit", "quota", "disk", "space") to SettingMatch.of(SettingsAnchor.DOWNLOADS_LIMIT),
+    listOf("language", "locale", "translation") to SettingMatch.of(SettingsGroup.LANGUAGE),
+    listOf("privacy", "analytics", "tracking", "account", "data") to
+        SettingMatch.of(SettingsGroup.PRIVACY),
+    listOf("cache", "clear") to SettingMatch.of(SettingsAnchor.CLEAR_CACHE),
+    listOf("history", "progress", "position") to SettingMatch.of(SettingsAnchor.CLEAR_HISTORY),
+    listOf("storage", "delete downloads") to SettingMatch.of(SettingsAnchor.CLEAR_DOWNLOADS),
     listOf("diagnostic", "diagnostics", "bug", "report", "log") to
-        SettingMatch(SettingsGroup.PRIVACY, R.string.privacy_diagnostic),
+        SettingMatch.of(SettingsAnchor.DIAGNOSTIC),
     listOf("about", "version", "author", "licence", "license", "acknowledgements", "credits", "support") to
-        SettingMatch(SettingsGroup.ABOUT, null),
+        SettingMatch.of(SettingsGroup.ABOUT),
 )
 
 /**

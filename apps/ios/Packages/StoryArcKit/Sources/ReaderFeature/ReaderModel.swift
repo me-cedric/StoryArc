@@ -150,6 +150,11 @@ public final class ReaderModel {
         remember(settings.settingScrollAxis(axis))
     }
 
+    /// Reads this shelf the other way round, from now on.
+    public func choose(_ direction: ReadingDirection) {
+        remember(settings.settingReadingDirection(direction))
+    }
+
     private func remember(_ new: ShelfSettings) {
         settings = new
         guard let preferences else { return }
@@ -166,10 +171,14 @@ public final class ReaderModel {
 
     /// The direction the reader turns pages in.
     ///
-    /// From the publication, which took it from `ComicInfo` or the language. The
-    /// reader never guesses it separately — a manga that opens left-to-right on
-    /// one screen and right-to-left on another is worse than either.
-    public var readingDirection: ReadingDirection { publication.readingDirection }
+    /// The publication's own — from `ComicInfo` or the language — until the reader
+    /// overrules it. `comic-reader` lets them, because metadata is often wrong about
+    /// this and a manga tagged left-to-right is unreadable; the override is "remembered
+    /// for the series", so it is kept where every other per-series decision is kept
+    /// rather than against this one file.
+    public var readingDirection: ReadingDirection {
+        settings.readingDirection ?? publication.readingDirection
+    }
 
     public var currentPage: PageEntry? {
         pages.indices.contains(currentIndex) ? pages[currentIndex] : nil
@@ -202,7 +211,13 @@ public final class ReaderModel {
             // A recorded position wins over the cover. `reading-progress` is about
             // picking up where you left off, and a book you are halfway through
             // should not reopen at its cover.
+            //
+            // Unless it is finished, which the same requirement singles out: reopening a
+            // finished publication "starts at the beginning while retaining the finished
+            // record". Dropping the override is the whole of it — the record is untouched,
+            // and the beginning is where `currentIndex` already is.
             if let recorded = try? await progress?.progress(for: publication.identity),
+               !recorded.isFinished,
                case let .page(index, _) = recorded.position,
                pages.indices.contains(index) {
                 currentIndex = index
@@ -238,7 +253,9 @@ public final class ReaderModel {
             pages = (0..<reader.pageCount).map { index in
                 PageEntry(path: String(index + 1))
             }
+            // Finished reopens at page one, exactly as an archive does.
             if let recorded = try? await progress?.progress(for: publication.identity),
+               !recorded.isFinished,
                case let .page(index, _) = recorded.position,
                pages.indices.contains(index) {
                 currentIndex = index

@@ -25,6 +25,14 @@ struct SourcesSettings: View {
     let onRemove: (Source) -> Void
     let onRename: (Source, String) -> Void
 
+    /// Moves a source to the position a drag reports.
+    ///
+    /// `sources` describes reordering as a drag, and on this platform a drag is what a
+    /// `List` already does — `onMove` also gives VoiceOver its own reorder actions, which a
+    /// hand-rolled control would have to reimplement. Android has no equivalent and uses
+    /// two buttons instead; `STATUS.md` records the difference.
+    var onReorder: (Source.ID, Int) -> Void = { _, _ in }
+
     @State private var removing: Source?
     @State private var renaming: Source?
     @State private var draftName = ""
@@ -47,8 +55,26 @@ struct SourcesSettings: View {
                 ForEach(sources) { source in
                     row(source)
                 }
+                .onMove { indices, destination in
+                    // One row moves at a time, because the list is not selectable.
+                    guard let index = indices.first else { return }
+                    onReorder(sources[index].id, destination)
+                }
             }
         }
+        // A drag needs edit mode, and edit mode needs a way in. Hidden below two sources,
+        // because a list with one row has no order to change and a button that does
+        // nothing is worse than no button.
+        // `EditButton` is iOS-only, and this package also builds for macOS so the pure
+        // targets can be tested on the host. The guard is the same one `ReaderFeature`
+        // uses for its own iOS-only affordances.
+        #if os(iOS)
+        .toolbar {
+            if sources.count > 1 {
+                ToolbarItem(placement: .topBarTrailing) { EditButton() }
+            }
+        }
+        #endif
         // `sources` requires a rename to appear "everywhere the source is referenced",
         // which it does because the registry keeps the identifier and only the name moves.
         .alert(

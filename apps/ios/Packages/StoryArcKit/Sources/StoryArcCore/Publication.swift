@@ -55,7 +55,14 @@ public enum MetadataOrigin: String, Sendable, Codable, CaseIterable {
 /// The library's unit. Assembled by indexing a file — the format layer reads the
 /// container and its metadata, and this is what comes out the other side, with no
 /// reference to how it was obtained.
-public struct Publication: Sendable, Equatable, Identifiable {
+/// `Codable` because every field of it is durable, which is not true of every domain type
+/// here — `Source` deliberately has no conformance, because its connection state describes
+/// a network and a state read back from disk is a claim about the past. A publication has
+/// no such field: title, series, format and page count are as true tomorrow as today, so
+/// caching the whole of it is honest rather than convenient. `sources` asks for the
+/// catalogue to be cached so the library "opens instantly and stays browsable while
+/// offline", and this is what makes that a write rather than a translation layer.
+public struct Publication: Sendable, Equatable, Identifiable, Codable {
     /// Stable across sources, so the same book from a folder and from a server is
     /// one book with one reading position (ADR-0006).
     public let identity: PublicationIdentity
@@ -111,6 +118,36 @@ public struct Publication: Sendable, Equatable, Identifiable {
     /// reads bytes and has no idea a registry exists.
     public var sourceID: UUID?
 
+    /// How much disk the publication occupies, when the app has been told.
+    ///
+    /// `library-browsing` sorts by file size, and no container reports its own
+    /// length from the inside — the walk that found the file is what knows it, the
+    /// same way it knows when the file arrived. `nil` for a publication reached
+    /// somewhere the size was never asked for, which sorts as unknown rather than
+    /// as zero bytes.
+    public var fileSize: Int64?
+
+    /// When the file was last written, as the filesystem reports it.
+    ///
+    /// `local-library` asks a returning app to reconcile "by comparing file modification
+    /// times and sizes rather than re-reading every archive". This is the other half of
+    /// that comparison — cheap to read from a directory entry, and enough, with the size,
+    /// to say that a container has not changed since it was last indexed.
+    public var modifiedAt: Date?
+
+    /// When the file arrived where the app found it.
+    ///
+    /// `library-browsing` sorts by date added, and there is nowhere else for the
+    /// date to come from: StoryArc keeps no record of publications between
+    /// launches, so the only thing that remembers when a comic turned up is the
+    /// filesystem it turned up in.
+    ///
+    /// `var`, like `sourceID` and for the same reason: the container decides what a
+    /// publication *is*, and the two facts above are about the file rather than the
+    /// book. Threading them through every constructor would say they were the same
+    /// kind of answer.
+    public var addedAt: Date?
+
     public init(
         identity: PublicationIdentity,
         format: PublicationFormat,
@@ -130,9 +167,15 @@ public struct Publication: Sendable, Equatable, Identifiable {
         readingDirection: ReadingDirection = .leftToRight,
         isFixedLayout: Bool = false,
         streaming: StreamingCapability = .streams,
-        sourceID: UUID? = nil
+        sourceID: UUID? = nil,
+        fileSize: Int64? = nil,
+        modifiedAt: Date? = nil,
+        addedAt: Date? = nil
     ) {
         self.sourceID = sourceID
+        self.fileSize = fileSize
+        self.modifiedAt = modifiedAt
+        self.addedAt = addedAt
         self.identity = identity
         self.format = format
         self.displayTitle = displayTitle
@@ -158,6 +201,22 @@ public struct Publication: Sendable, Equatable, Identifiable {
     /// False only for `refused`. A download-only publication is openable — it just
     /// has to arrive first, which is the library's problem and not the reader's.
     public var isOpenable: Bool { streaming != .refused }
+
+    /// Whether this publication still describes the file on disk.
+    ///
+    /// `local-library`: a returning app reconciles "by comparing file modification times
+    /// and sizes rather than re-reading every archive". This is that comparison, and the
+    /// reason it is worth having is what it avoids — opening a container, reading its
+    /// central directory and its metadata, per publication, to learn nothing.
+    ///
+    /// Unknown facts mean *not* unchanged. A publication indexed before these were
+    /// recorded, or a file the walk could not stat, is re-read rather than trusted: the
+    /// cost of a needless re-index is a slow scan, and the cost of a wrong reuse is a
+    /// library that disagrees with the disk and never notices.
+    public func matchesFile(size: Int64?, modifiedAt moment: Date?) -> Bool {
+        guard let fileSize, let modifiedAt, let size, let moment else { return false }
+        return fileSize == size && modifiedAt == moment
+    }
 
     /// Whether some pages are missing from what the reader will show.
     public var isPartial: Bool { skippedPageCount > 0 }

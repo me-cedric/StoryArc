@@ -52,6 +52,8 @@ internal fun AppearanceGroup(
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
     modifier: Modifier = Modifier,
+    /** The row a search result pointed at, if the reader arrived through one. */
+    highlight: SettingsAnchor? = null,
 ) {
     val palette = LocalStoryArcPalette.current
 
@@ -97,7 +99,8 @@ internal fun AppearanceGroup(
                         onChange(settings.copy(linkReadingThemeToAppearance = it))
                     },
                 )
-                .padding(top = StoryArcSpace.md),
+                .padding(top = StoryArcSpace.md)
+                .settingsHighlight(SettingsAnchor.LINK_READING_THEME, highlight),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {

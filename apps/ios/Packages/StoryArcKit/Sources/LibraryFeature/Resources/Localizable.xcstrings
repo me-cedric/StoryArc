@@ -204,7 +204,7 @@
         }
       }
     },
-    "catalogue.acquire.other": {
+    "catalogue.acquire.other %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -2418,6 +2418,35 @@
         }
       }
     },
+    "library.cached %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeigt den Stand von %@. Änderungen werden gesucht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing what was here %@. Checking for changes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrando lo que había %@. Buscando cambios."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Affichage de ce qui était là %@. Vérification en cours."
+          }
+        }
+      }
+    },
     "library.cell.cannotOpen": {
       "comment": "Shown under a cover when the publication's format cannot be read at all — a solid RAR4, say. Named rather than shown as a broken cover.",
       "extractionState": "manual",
@@ -3157,6 +3186,122 @@
         }
       }
     },
+    "library.restart": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von vorn beginnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start from the beginning"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar desde el principio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre au début"
+          }
+        }
+      }
+    },
+    "library.restart.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Position in dieser Publikation wird vergessen; beim nächsten Öffnen beginnt sie auf Seite eins. Sonst ändert sich nichts, und die Datei selbst bleibt unberührt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your place in this publication is forgotten, and it opens at page one next time. Nothing else changes, and the file itself is untouched."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se olvida tu posición en esta publicación y la próxima vez se abrirá en la primera página. No cambia nada más y el archivo en sí no se toca."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre position dans cette publication est oubliée : la prochaine ouverture se fera à la première page. Rien d’autre ne change et le fichier lui-même n’est pas touché."
+          }
+        }
+      }
+    },
+    "library.restart.confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von vorn beginnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start from the beginning"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar desde el principio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre au début"
+          }
+        }
+      }
+    },
+    "library.restart.title %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ von vorn beginnen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start “%@” from the beginning?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Empezar «%@» desde el principio?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre « %@ » au début ?"
+          }
+        }
+      }
+    },
     "library.scanning %lld": {
       "comment": "Scan progress. `local-library` requires progress reported as a count of items found.",
       "extractionState": "manual",
@@ -3212,6 +3357,64 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rechercher"
+          }
+        }
+      }
+    },
+    "library.search.recent": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letzte Suchen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent searches"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Búsquedas recientes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recherches récentes"
+          }
+        }
+      }
+    },
+    "library.search.recent.clear": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letzte Suchen löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear recent searches"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar las búsquedas recientes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer les recherches récentes"
           }
         }
       }
@@ -3333,6 +3536,35 @@
         }
       }
     },
+    "library.sort.dateAdded": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinzugefügt am"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date added"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fecha de adición"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date d’ajout"
+          }
+        }
+      }
+    },
     "library.sort.descending": {
       "extractionState": "manual",
       "localizations": {
@@ -3387,6 +3619,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sens"
+          }
+        }
+      }
+    },
+    "library.sort.fileSize": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dateigröße"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File size"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño del archivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taille du fichier"
           }
         }
       }

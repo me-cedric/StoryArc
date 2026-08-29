@@ -101,6 +101,7 @@ let package = Package(
         .testTarget(name: "CatalogueTests", dependencies: ["Catalogue"]),
         .testTarget(name: "KavitaTests", dependencies: ["Kavita"]),
         .testTarget(name: "ReaderFeatureTests", dependencies: ["ReaderFeature"]),
+        .testTarget(name: "SettingsFeatureTests", dependencies: ["SettingsFeature"]),
     ]
 )
 

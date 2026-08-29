@@ -267,5 +267,58 @@ struct ShelfMemoryTests {
         #expect(settings.theme.preset == .calm)
         #expect(settings.transition == .slide)
         #expect(settings.scrollAxis == nil)
+        // Nothing chosen means the publication's own metadata still decides.
+        #expect(settings.readingDirection == nil)
+    }
+
+    // MARK: - Reading direction
+
+    @Test("A direction the reader chose is remembered for that series and no other")
+    func directionTravelsWithTheShelf() throws {
+        // `comic-reader`: an override "is remembered for the series". Metadata is wrong
+        // about this often enough that the reader's answer has to outlive the session.
+        let settings = ShelfSettings().settingReadingDirection(.rightToLeft)
+        let memory = ShelfMemory().remembering(settings, for: .fixedLayout, shelf: "Blame!")
+        let encoded = try JSONEncoder().encode(memory)
+        let decoded = try JSONDecoder().decode(ShelfMemory.self, from: encoded)
+        #expect(decoded.theme(for: .fixedLayout, shelf: "Blame!").readingDirection == .rightToLeft)
+        // A series nobody turned around says nothing, which leaves its own metadata in
+        // charge rather than this one's answer.
+        #expect(decoded.theme(for: .fixedLayout, shelf: "Bone").readingDirection == nil)
+    }
+
+    @Test("Turning a publication around changes nothing else about how it is read")
+    func directionLeavesTheModeAlone() {
+        let settings = ShelfSettings(transition: .verticalScroll, scrollAxis: .vertical)
+            .settingReadingDirection(.rightToLeft)
+        #expect(settings.readingDirection == .rightToLeft)
+        #expect(settings.transition == .verticalScroll)
+        #expect(settings.scrollAxis == .vertical)
+    }
+
+    @Test("A page and the position holding it agree one way and mirror the other")
+    func positionsMirror() {
+        #expect(ReadingDirection.leftToRight.position(0, of: 12) == 0)
+        #expect(ReadingDirection.leftToRight.position(11, of: 12) == 11)
+        // The first page of a manga is at the far end of the run the pager lays out.
+        #expect(ReadingDirection.rightToLeft.position(0, of: 12) == 11)
+        #expect(ReadingDirection.rightToLeft.position(11, of: 12) == 0)
+    }
+
+    @Test("Turning a publication around keeps the reader on the page they were reading")
+    func flippingKeepsThePage() {
+        // What `comic-reader`'s "applies immediately without losing the current page"
+        // rests on: the run reverses, so the page is read back out of the position it
+        // held and then asked for again the new way round.
+        let count = 12
+        let position = ReadingDirection.leftToRight.position(4, of: count)
+        let page = ReadingDirection.leftToRight.position(position, of: count)
+        #expect(page == 4)
+        #expect(ReadingDirection.rightToLeft.position(page, of: count) == 7)
+        // And the same journey back lands where it started, because reversing a run is
+        // its own inverse — which is why one function answers both questions.
+        #expect(ReadingDirection.leftToRight.position(
+            ReadingDirection.rightToLeft.position(7, of: count), of: count
+        ) == 4)
     }
 }

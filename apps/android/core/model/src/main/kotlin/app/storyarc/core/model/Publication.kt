@@ -1,5 +1,7 @@
 package app.storyarc.core.model
 
+import kotlinx.serialization.Serializable
+
 import java.util.UUID
 
 /**
@@ -10,6 +12,7 @@ import java.util.UUID
  * read at all — collapsing the last two would either promise a download that
  * changes nothing, or refuse a book that would open fine once local.
  */
+@Serializable
 enum class StreamingCapability {
     /** Pages can be fetched individually from a remote source. */
     STREAMS,
@@ -35,6 +38,7 @@ enum class StreamingCapability {
  * user to resolve a conflict the app invented. The distinction only matters at the
  * moment of replacement, which is exactly when it is too late to reconstruct.
  */
+@Serializable
 enum class MetadataOrigin {
     /** Read from the publication: `ComicInfo.xml`, an EPUB package document. */
     EMBEDDED,
@@ -70,6 +74,7 @@ enum class MetadataOrigin {
  * Lives in the domain rather than the format layer because the library sorts,
  * filters and explains by format, and none of that should require the parser.
  */
+@Serializable
 enum class PublicationFormat {
     CBZ, CBR, CB7, CBT, EPUB, PDF, IMAGE_FOLDER,
     ;
@@ -145,6 +150,7 @@ enum class PublicationFormat {
  * container and its metadata, and this is what comes out the other side, with no
  * reference to how it was obtained.
  */
+@Serializable
 data class Publication(
     /**
      * Stable across sources, so the same book from a folder and from a server is
@@ -195,8 +201,59 @@ data class Publication(
      * Assigned by the library rather than by the indexer: indexing decides what a
      * publication *is*, and the indexer reads bytes and has no idea a registry exists.
      */
-    val sourceId: UUID? = null,
+    @Serializable(with = UuidSerializer::class) val sourceId: UUID? = null,
+    /**
+     * How much disk the publication occupies, when the app has been told.
+     *
+     * `library-browsing` sorts by file size, and no container reports its own length
+     * from the inside — the walk that found the file is what knows it, the same way
+     * it knows when the file arrived. Null for a publication reached somewhere the
+     * size was never asked for, which sorts as unknown rather than as zero bytes.
+     */
+    val fileSize: Long? = null,
+    /**
+     * When the file was last written, as the filesystem reports it.
+     *
+     * `local-library` asks a returning app to reconcile "by comparing file modification
+     * times and sizes rather than re-reading every archive". This is the other half of that
+     * comparison — cheap to read from a directory entry, and enough, with the size, to say
+     * that a container has not changed since it was last indexed.
+     */
+    val modifiedAtEpochMillis: Long? = null,
+    /**
+     * When the file arrived where the app found it.
+     *
+     * `library-browsing` sorts by date added, and there is nowhere else for the date
+     * to come from: StoryArc keeps no record of publications between launches, so
+     * the only thing that remembers when a comic turned up is the filesystem it
+     * turned up in.
+     *
+     * Assigned by the walk rather than by the indexer, like [sourceId] and for a
+     * neighbouring reason: the container decides what a publication *is*, and this
+     * is a fact about the file rather than about the book.
+     */
+    val addedAtEpochMillis: Long? = null,
 ) {
+    /**
+     * Whether this publication still describes the file on disk.
+     *
+     * `local-library`: a returning app reconciles "by comparing file modification times and
+     * sizes rather than re-reading every archive". This is that comparison, and the reason
+     * it is worth having is what it avoids — opening a container, reading its central
+     * directory and its metadata, per publication, to learn nothing.
+     *
+     * Unknown facts mean *not* unchanged. A publication indexed before these were recorded,
+     * or a file the walk could not stat, is re-read rather than trusted: the cost of a
+     * needless re-index is a slow scan, and the cost of a wrong reuse is a library that
+     * disagrees with the disk and never notices.
+     */
+    fun matchesFile(size: Long?, modifiedAt: Long?): Boolean {
+        if (fileSize == null || modifiedAtEpochMillis == null || size == null || modifiedAt == null) {
+            return false
+        }
+        return fileSize == size && modifiedAtEpochMillis == modifiedAt
+    }
+
     /** A stable key for lists and diffing. See [PublicationIdentity.stableId]. */
     val id: String get() = identity.stableId
 

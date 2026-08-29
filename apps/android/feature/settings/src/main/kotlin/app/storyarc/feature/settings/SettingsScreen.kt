@@ -78,6 +78,8 @@ fun SettingsScreen(
     itemCount: (Source) -> Int = { 0 },
     onRemoveSource: (Source) -> Unit = {},
     onRenameSource: (Source, String) -> Unit = { _, _ -> },
+    /** Moves a source one place, up or down. `sources`: the order persists and decides precedence. */
+    onReorderSource: (Source, Boolean) -> Unit = { _, _ -> },
     /**
      * What is on the device, and what it weighs. Handed in for the same reason the sources
      * are: the downloads belong to the library that fetched them.
@@ -87,8 +89,18 @@ fun SettingsScreen(
     onRemoveDownload: (Download) -> Unit = {},
     /** Moves a queued download one place earlier or later. */
     onReorderDownload: (Download, Boolean) -> Unit = { _, _ -> },
+    /**
+     * Removes every download at once, which is what the Privacy screen's "clear downloads"
+     * means. A separate hand from [onRemoveDownload] because clearing is not removing each
+     * one in a loop: the host does it in one write, so a reader is never left with half a
+     * library gone.
+     */
+    onClearDownloads: () -> Unit = {},
 ) {
-    var open by remember { mutableStateOf<SettingsGroup?>(null) }
+    // The match rather than the group, because a search result that named a *setting* has
+    // to survive the navigation: the group is where to go, the anchor is what to point at
+    // once there.
+    var open by remember { mutableStateOf<SettingMatch?>(null) }
 
     // Enabled only inside a group, so the system back goes *up one level* rather than
     // out of Settings. The host's own handler closes Settings, and the innermost enabled
@@ -96,7 +108,7 @@ fun SettingsScreen(
     // about the other.
     BackHandler(enabled = open != null) { open = null }
 
-    when (val group = open) {
+    when (val match = open) {
         null -> GroupList(
             settings = settings,
             summary = LibrarySummary(sources.size, bytesOnDisk),
@@ -106,7 +118,8 @@ fun SettingsScreen(
             modifier = modifier,
         )
         else -> GroupDetail(
-            group = group,
+            group = match.group,
+            highlight = match.anchor,
             settings = settings,
             onChange = onChange,
             readerStore = readerStore,
@@ -116,10 +129,12 @@ fun SettingsScreen(
             itemCount = itemCount,
             onRemoveSource = onRemoveSource,
             onRenameSource = onRenameSource,
+            onReorderSource = onReorderSource,
             downloads = downloads,
             bytesOnDisk = bytesOnDisk,
             onRemoveDownload = onRemoveDownload,
             onReorderDownload = onReorderDownload,
+            onClearDownloads = onClearDownloads,
         )
     }
 }
@@ -128,7 +143,7 @@ fun SettingsScreen(
 private fun GroupList(
     settings: AppSettings,
     summary: LibrarySummary,
-    onOpen: (SettingsGroup) -> Unit,
+    onOpen: (SettingMatch) -> Unit,
     onReset: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -199,7 +214,7 @@ private fun GroupList(
                     // searched "volume" needs to know it lives under Reading.
                     supportingContent = {
                         Text(
-                            if (match.settingRes == null) {
+                            if (match.anchor == null) {
                                 match.group.summary(settings, summary)
                             } else {
                                 stringResource(match.group.titleRes)
@@ -211,9 +226,9 @@ private fun GroupList(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickableRow { onOpen(match.group) },
+                        .clickableRow { onOpen(match) },
                 ) {
-                    Text(stringResource(match.settingRes ?: match.group.titleRes))
+                    Text(stringResource(match.anchor?.titleRes ?: match.group.titleRes))
                 }
                 HorizontalDivider()
             }
@@ -268,6 +283,13 @@ private fun ResetDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
 @Composable
 private fun GroupDetail(
     group: SettingsGroup,
+    /**
+     * The row a search result pointed at, if the reader arrived through one.
+     *
+     * Travels all the way down rather than being resolved here, because the row is the only
+     * thing that knows where it is — a screen cannot tint what it does not lay out.
+     */
+    highlight: SettingsAnchor?,
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
     readerStore: ReaderPreferences,
@@ -277,10 +299,12 @@ private fun GroupDetail(
     itemCount: (Source) -> Int,
     onRemoveSource: (Source) -> Unit,
     onRenameSource: (Source, String) -> Unit,
+    onReorderSource: (Source, Boolean) -> Unit,
     downloads: DownloadLibrary,
     bytesOnDisk: Long,
     onRemoveDownload: (Download) -> Unit,
     onReorderDownload: (Download, Boolean) -> Unit,
+    onClearDownloads: () -> Unit,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -306,15 +330,21 @@ private fun GroupDetail(
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
         ) {
             when (group) {
-                SettingsGroup.APPEARANCE -> AppearanceGroup(settings, onChange)
+                SettingsGroup.APPEARANCE -> AppearanceGroup(settings, onChange, highlight = highlight)
                 SettingsGroup.LANGUAGE -> LanguageGroup(settings, onChange)
-                SettingsGroup.READING -> ReadingGroup(settings, onChange, readerStore)
-                SettingsGroup.PRIVACY -> PrivacyGroup()
+                SettingsGroup.READING ->
+                    ReadingGroup(settings, onChange, readerStore, highlight = highlight)
+                SettingsGroup.PRIVACY -> PrivacyGroup(
+                    downloadedBytes = bytesOnDisk,
+                    onClearDownloads = onClearDownloads,
+                    highlight = highlight,
+                )
                 SettingsGroup.ABOUT -> AboutGroup()
                 // Named rather than hidden. A group whose rows arrive with a capability
                 // that does not exist yet says so; hiding it leaves a reader hunting for
                 // where sources live.
-                SettingsGroup.SOURCES -> SourcesGroup(sources, itemCount, onRemoveSource, onRenameSource)
+                SettingsGroup.SOURCES ->
+                    SourcesGroup(sources, itemCount, onRemoveSource, onRenameSource, onReorder = onReorderSource)
                 SettingsGroup.DOWNLOADS -> DownloadsGroup(
                     library = downloads,
                     bytesOnDisk = bytesOnDisk,
@@ -323,6 +353,7 @@ private fun GroupDetail(
                     onReorder = onReorderDownload,
                     settings = settings,
                     onChange = onChange,
+                    highlight = highlight,
                 )
             }
         }

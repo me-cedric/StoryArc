@@ -118,6 +118,7 @@ struct ContinueReadingRow: View {
 struct CoverCell: View {
     /// The server whose list just refused this publication, if one did.
     @State private var refusedServer: String?
+    @State private var restarting: Publication?
 
     @Environment(\.theme) private var theme
 
@@ -177,7 +178,32 @@ struct CoverCell: View {
         // somewhere to add it to — a menu whose only content is "you have no collections"
         // is a menu that wastes a long press.
         .contextMenu {
-            AddToShelfMenu(model: model, publication: publication) { refusedServer = $0 }
+            AddToShelfMenu(
+                model: model,
+                publication: publication,
+                onRefused: { refusedServer = $0 },
+                onRestart: { restarting = publication }
+            )
+        }
+        // `reading-progress` requires the clear to be confirmed. Here rather than in the
+        // menu because a context menu cannot present one, and destructive because it is:
+        // the position is the only copy the app promises never to lose.
+        .confirmationDialog(
+            Text("library.restart.title \(publication.displayTitle)", bundle: .module),
+            isPresented: Binding(
+                get: { restarting?.id == publication.id },
+                set: { if !$0 { restarting = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive) {
+                Task { await model.restart(publication) }
+                restarting = nil
+            } label: {
+                Text("library.restart.confirm", bundle: .module)
+            }
+        } message: {
+            Text("library.restart.body", bundle: .module)
         }
         .alert(
             Text("shelves.serverOnly.title", bundle: .module),

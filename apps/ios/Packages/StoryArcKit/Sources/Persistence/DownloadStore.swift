@@ -118,6 +118,23 @@ public struct DownloadStore {
         return total
     }
 
+    /// Deletes every downloaded file, forgets every record, and leaves the directory ready
+    /// for the next download.
+    ///
+    /// `settings-and-about` asks for downloads to be clearable beside the cache and the
+    /// reading history. Not a loop over ``removing(_:from:)``: that writes the library once
+    /// per publication, so a reader whose app is killed halfway through is left with a
+    /// device that is neither cleared nor intact.
+    @discardableResult
+    public func clearing() -> DownloadLibrary {
+        reset()
+        // Re-made rather than left missing, because the exclusion from backups is a
+        // property of the directory: a directory re-created by the next download would not
+        // carry it.
+        try? prepare()
+        return DownloadLibrary()
+    }
+
     /// Forgets every download. Used by a reset, and by the tests.
     public func reset() {
         defaults.removeObject(forKey: key)

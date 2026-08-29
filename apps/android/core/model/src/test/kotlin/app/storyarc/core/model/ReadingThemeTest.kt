@@ -547,6 +547,67 @@ class ReadingThemeTest {
         assertEquals(ThemePreset.CALM, settings.theme.preset)
         assertEquals(PageTransition.SLIDE, settings.transition)
         assertNull(settings.scrollAxis)
+        // Nothing chosen means the publication's own metadata still decides.
+        assertNull(settings.readingDirection)
+    }
+
+    // Reading direction.
+
+    @Test
+    fun `A direction the reader chose is remembered for that series and no other`() {
+        // `comic-reader`: an override "is remembered for the series". Metadata is wrong
+        // about this often enough that the reader's answer has to outlive the session.
+        val settings = ShelfSettings(readingDirection = ReadingDirection.RIGHT_TO_LEFT)
+        val memory = ShelfMemory().remembering(settings, ThemeScope.FIXED_LAYOUT, "Blame!")
+        val decoded = Json.decodeFromString<ShelfMemory>(Json.encodeToString(memory))
+        assertEquals(
+            ReadingDirection.RIGHT_TO_LEFT,
+            decoded.theme(ThemeScope.FIXED_LAYOUT, "Blame!").readingDirection,
+        )
+        // A series nobody turned around says nothing, which leaves its own metadata in
+        // charge rather than this one's answer.
+        assertNull(decoded.theme(ThemeScope.FIXED_LAYOUT, "Bone").readingDirection)
+    }
+
+    @Test
+    fun `Turning a publication around changes nothing else about how it is read`() {
+        val settings = ShelfSettings(
+            transition = PageTransition.VERTICAL_SCROLL,
+            scrollAxis = ScrollAxis.VERTICAL,
+        ).copy(readingDirection = ReadingDirection.RIGHT_TO_LEFT)
+        assertEquals(ReadingDirection.RIGHT_TO_LEFT, settings.readingDirection)
+        assertEquals(PageTransition.VERTICAL_SCROLL, settings.transition)
+        assertEquals(ScrollAxis.VERTICAL, settings.scrollAxis)
+    }
+
+    @Test
+    fun `A page and the position holding it agree one way and mirror the other`() {
+        assertEquals(0, ReadingDirection.LEFT_TO_RIGHT.position(0, 12))
+        assertEquals(11, ReadingDirection.LEFT_TO_RIGHT.position(11, 12))
+        // The first page of a manga is at the far end of the run the pager lays out.
+        assertEquals(11, ReadingDirection.RIGHT_TO_LEFT.position(0, 12))
+        assertEquals(0, ReadingDirection.RIGHT_TO_LEFT.position(11, 12))
+    }
+
+    @Test
+    fun `Turning a publication around keeps the reader on the page they were reading`() {
+        // What `comic-reader`'s "applies immediately without losing the current page"
+        // rests on: the run reverses, so the page is read back out of the position it
+        // held and then asked for again the new way round.
+        val count = 12
+        val position = ReadingDirection.LEFT_TO_RIGHT.position(4, count)
+        val page = ReadingDirection.LEFT_TO_RIGHT.position(position, count)
+        assertEquals(4, page)
+        assertEquals(7, ReadingDirection.RIGHT_TO_LEFT.position(page, count))
+        // And the same journey back lands where it started, because reversing a run is
+        // its own inverse — which is why one function answers both questions.
+        assertEquals(
+            4,
+            ReadingDirection.LEFT_TO_RIGHT.position(
+                ReadingDirection.RIGHT_TO_LEFT.position(7, count),
+                count,
+            ),
+        )
     }
 
     // Axis units.

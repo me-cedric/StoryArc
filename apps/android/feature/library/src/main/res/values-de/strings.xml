@@ -23,6 +23,8 @@
     <string name="library_repick_folder">Erneut auswählen</string>
     <string name="library_skipped">%1$d übersprungen</string>
     <string name="library_search">Suchen</string>
+    <string name="library_search_recent">Letzte Suchen</string>
+    <string name="library_search_recent_clear">Letzte Suchen löschen</string>
     <string name="library_sort">Sortieren</string>
     <string name="library_sort_ascending">Aufsteigend</string>
     <string name="library_sort_descending">Absteigend</string>
@@ -31,6 +33,8 @@
     <string name="library_sort_last_read">Zuletzt gelesen</string>
     <string name="library_sort_progress">Fortschritt</string>
     <string name="library_sort_year">Jahr</string>
+    <string name="library_sort_date_added">Hinzugefügt am</string>
+    <string name="library_sort_file_size">Dateigröße</string>
     <string name="library_filter">Filtern</string>
     <string name="library_filter_read_state">Lesestatus</string>
     <string name="library_filter_format">Format</string>
@@ -162,6 +166,11 @@
     <string name="kavita_continue">Weiterlesen · %1$s</string>
     <string name="library_mark_read">Als gelesen markieren</string>
     <string name="library_mark_unread">Als ungelesen markieren</string>
+    <string name="library_cached">Zeigt den Stand von %1$s. Änderungen werden gesucht.</string>
+    <string name="library_restart">Von vorn beginnen</string>
+    <string name="library_restart_title">„%1$s“ von vorn beginnen?</string>
+    <string name="library_restart_confirm">Von vorn beginnen</string>
+    <string name="library_restart_body">Ihre Position in dieser Publikation wird vergessen; beim nächsten Öffnen beginnt sie auf Seite eins. Sonst ändert sich nichts, und die Datei selbst bleibt unberührt.</string>
     <string name="shelves_server_only_title">Nur von diesem Server</string>
     <string name="shelves_server_only_body">„%1$s“ kann nur Publikationen von diesem Server enthalten.</string>
     <string name="shelves_server_only_local">Stattdessen lokale Liste erstellen</string>

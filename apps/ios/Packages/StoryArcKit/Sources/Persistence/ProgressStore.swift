@@ -24,6 +24,10 @@ final class StoredProgress {
     /// annotations, which is what lets `StoryArcCore` stay free of SwiftData.
     var positionData: Data
     var isFinished: Bool
+    /// When the finished flag was set. Optional, which is also what makes it a lightweight
+    /// SwiftData migration: a record written before this existed reads back as `nil`, which
+    /// is the truthful answer for one nobody has finished.
+    var finishedAt: Date?
     var updatedAt: Date
     var syncedPositionData: Data?
 
@@ -33,6 +37,7 @@ final class StoredProgress {
         normalizedPath: String?,
         positionData: Data,
         isFinished: Bool,
+        finishedAt: Date?,
         updatedAt: Date,
         syncedPositionData: Data?
     ) {
@@ -41,6 +46,7 @@ final class StoredProgress {
         self.normalizedPath = normalizedPath
         self.positionData = positionData
         self.isFinished = isFinished
+        self.finishedAt = finishedAt
         self.updatedAt = updatedAt
         self.syncedPositionData = syncedPositionData
     }
@@ -114,7 +120,13 @@ public actor ProgressStore {
             // Finished is sticky. ADR-0006: unmarking a finished publication is a
             // deliberate act, and losing it to a routine save is not something a
             // user would ever want.
+            let wasFinished = record.isFinished
             record.isFinished = record.isFinished || progress.isFinished
+            // Stamped the moment the flag first turns on, and never restamped: reading a
+            // finished publication again writes a new position, not a new completion.
+            if record.isFinished, !wasFinished {
+                record.finishedAt = progress.finishedAt ?? progress.updatedAt
+            }
             record.updatedAt = progress.updatedAt
             record.syncedPositionData = synced
             // Identity components fill in as they become known, so a record
@@ -130,6 +142,7 @@ public actor ProgressStore {
                     normalizedPath: progress.identity.normalizedPath,
                     positionData: position,
                     isFinished: progress.isFinished,
+                    finishedAt: progress.isFinished ? (progress.finishedAt ?? progress.updatedAt) : nil,
                     updatedAt: progress.updatedAt,
                     syncedPositionData: synced
                 )
@@ -157,6 +170,9 @@ public actor ProgressStore {
     /// implying it.
     public func mark(_ identity: PublicationIdentity, finished: Bool, at: Date = Date()) throws {
         if let record = try existing(for: identity) {
+            // Kept while it stays on, dropped when it goes off: an unfinished publication
+            // has no completion to date.
+            record.finishedAt = finished ? (record.finishedAt ?? at) : nil
             record.isFinished = finished
             record.updatedAt = at
         } else {
@@ -171,6 +187,7 @@ public actor ProgressStore {
                     normalizedPath: identity.normalizedPath,
                     positionData: position,
                     isFinished: finished,
+                    finishedAt: finished ? at : nil,
                     updatedAt: at,
                     syncedPositionData: nil
                 )
@@ -287,6 +304,7 @@ public actor ProgressStore {
             ),
             position: position,
             isFinished: record.isFinished,
+            finishedAt: record.finishedAt,
             updatedAt: record.updatedAt,
             syncedPosition: synced
         )

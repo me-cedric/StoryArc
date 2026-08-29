@@ -32,6 +32,8 @@ internal fun ReadingGroup(
     onChange: (AppSettings) -> Unit,
     readerStore: ReaderPreferences,
     modifier: Modifier = Modifier,
+    /** The row a search result pointed at, if the reader arrived through one. */
+    highlight: SettingsAnchor? = null,
 ) {
     val palette = LocalStoryArcPalette.current
 
@@ -48,7 +50,8 @@ internal fun ReadingGroup(
                     onValueChange = {
                         onChange(settings.copy(turnPagesWithVolumeButtons = it))
                     },
-                ),
+                )
+                .settingsHighlight(SettingsAnchor.VOLUME_BUTTONS, highlight),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -72,6 +75,12 @@ internal fun ReadingGroup(
             )
         }
 
-        ReadingDefaults(store = readerStore)
+        // The whole block, not its first row: the reading defaults are one setting to a
+        // reader and several sections to the layout, and a tint that covered only the first
+        // would point at "Books" rather than at the defaults.
+        ReadingDefaults(
+            store = readerStore,
+            modifier = Modifier.settingsHighlight(SettingsAnchor.READING_DEFAULTS, highlight),
+        )
     }
 }

@@ -18,6 +18,7 @@ public struct LibraryPreferences {
     private let defaults: UserDefaults
     private let queryKey = "app.storyarc.libraryQuery"
     private let layoutKey = "app.storyarc.libraryLayout"
+    private let recentSearchesKey = "app.storyarc.librarySearches"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -41,6 +42,20 @@ public struct LibraryPreferences {
         stored.search = ""
         guard let data = try? JSONEncoder().encode(stored) else { return }
         defaults.set(data, forKey: queryKey)
+    }
+
+    /// The searches offered when the reader opens the field.
+    ///
+    /// Kept although the half-typed term above is not, and the two are not in
+    /// conflict: a finished search is something the reader did, and a library that
+    /// forgot every one of them between launches would offer an empty list to
+    /// exactly the reader `library-browsing` wrote the requirement for.
+    public func recentSearches() -> RecentSearches {
+        RecentSearches(defaults.stringArray(forKey: recentSearchesKey) ?? [])
+    }
+
+    public func save(_ searches: RecentSearches) {
+        defaults.set(searches.terms, forKey: recentSearchesKey)
     }
 
     public func layout() -> LibraryLayout {

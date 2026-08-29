@@ -28,6 +28,16 @@ data class ReadingProgress(
     val identity: PublicationIdentity,
     val position: ReadingPosition,
     val isFinished: Boolean = false,
+    /**
+     * When it was finished, which `reading-progress` asks for by name: a publication is
+     * "recorded finished with a completion timestamp".
+     *
+     * Separate from [updatedAtEpochMillis] because they answer different questions. That
+     * one moves every fifteen seconds of reading; this moves once, and only when the
+     * finished flag turns on. Reopening a finished publication writes a new position — and
+     * must not rewrite when it was finished.
+     */
+    val finishedAtEpochMillis: Long? = null,
     val updatedAtEpochMillis: Long,
     /**
      * The last position successfully exchanged with the source. Comparing
@@ -35,7 +45,21 @@ data class ReadingProgress(
      * "untouched", which is the difference between a silent adopt and a notice.
      */
     val syncedPosition: ReadingPosition? = null,
-)
+) {
+    /**
+     * The record this one becomes when the finished flag is set or cleared.
+     *
+     * The timestamp is the point: it is stamped when the flag turns on, *kept* while it
+     * stays on — so re-reading a finished publication does not restate when it was
+     * finished — and dropped when it turns off, because an unfinished publication has no
+     * completion to date. iOS's `finished(_:at:)` is the same three lines.
+     */
+    fun finished(finished: Boolean, atEpochMillis: Long): ReadingProgress = copy(
+        isFinished = finished,
+        finishedAtEpochMillis = if (finished) finishedAtEpochMillis ?: atEpochMillis else null,
+        updatedAtEpochMillis = atEpochMillis,
+    )
+}
 
 /** The outcome of merging a local record with a remote one. */
 sealed interface ProgressMergeOutcome {

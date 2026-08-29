@@ -1,0 +1,261 @@
+#!/usr/bin/env node
+/**
+ * Walks the app under an expanded pseudo-locale and reports what stops fitting.
+ *
+ * `localization` asks that "when the app runs under an expanded pseudo-locale, no screen
+ * clips, overlaps, or hides a control". German is the longest language that ships and it
+ * is not long enough to prove that: `en-XA` accents every letter and pads each string by
+ * roughly half again, which is the width a translation is allowed to reach.
+ *
+ * Two things had to be true before this could test anything. The debug build now sets
+ * `isPseudoLocalesEnabled`, without which `en-XA` is not compiled in and the device
+ * silently falls back to English — a walk that passes because nothing changed. And the
+ * navigation here is by *position*, never by label: under a pseudo-locale "Settings" reads
+ * "[Šéttîñgš one]", so a script that finds screens by their text finds nothing.
+ *
+ * Three checks, all read off the accessibility tree rather than a screenshot, because a
+ * screenshot cannot say whether a label was cut or merely short:
+ *
+ *   OVERFLOW  a node whose bounds leave its parent's. Text that has outgrown its row.
+ *   OFFSCREEN an actionable node lying wholly outside the display. A control the reader
+ *             cannot reach, which is the "hides a control" clause.
+ *   SMALL     an actionable node under the 48dp floor, measured at the device's own
+ *             density — the same floor `a11y-scan.mjs` applies, re-checked here because a
+ *             longer label can wrap a row into a shape it did not have in English.
+ *
+ * Usage:
+ *   node scripts/pseudo-locale.mjs              walk under en-XA, then restore the locale
+ *   node scripts/pseudo-locale.mjs --keep       leave the device in en-XA afterwards
+ *   node scripts/pseudo-locale.mjs --self-test  check the checks still fire
+ */
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+
+const PKG = 'app.storyarc.debug'
+const ACTIVITY = `${PKG}/app.storyarc.MainActivity`
+const PSEUDO = 'en-XA'
+const MIN_DP = 48
+const SHOTS = 'artifacts/pseudo-locale'
+
+/**
+ * The SDK's adb if it is there, otherwise whatever is on PATH.
+ *
+ * Two locations, because the SDK lands in one place when Android Studio installs it and
+ * another when Homebrew does. Preferring the bare name first looks harmless and is not:
+ * the child process does not always inherit a shell's PATH, so `adb` resolves to nothing
+ * and every swallowed ENOENT reads as "every screen is fine".
+ */
+const CANDIDATES = [
+    join(homedir(), 'Library/Android/sdk/platform-tools/adb'),
+    '/opt/homebrew/share/android-commandlinetools/platform-tools/adb',
+]
+const adb = CANDIDATES.find(existsSync) ?? 'adb'
+
+const sh = (...args) => execFileSync(adb, args, { encoding: 'utf8', maxBuffer: 1 << 26 })
+
+const settle = (ms) => execFileSync(adb, ['shell', `sleep ${ms / 1000}`], { encoding: 'utf8' })
+
+/** Every node in a uiautomator dump, with its bounds and the flags this cares about. */
+export const parse = (xml) => {
+    const nodes = []
+    const stack = []
+    // A hand-rolled scan rather than an XML parser: the dump is one long line of
+    // self-closing and nesting `<node>` elements, and the only thing needed from it is the
+    // parent of each node, which a stack gives for the cost of reading the tag's tail.
+    for (const match of xml.matchAll(/<node\b([^>]*?)(\/?)>|<\/node>/g)) {
+        if (match[0] === '</node>') {
+            stack.pop()
+            continue
+        }
+        const attributes = Object.fromEntries(
+            [...match[1].matchAll(/([\w-]+)="([^"]*)"/g)].map(([, k, v]) => [k, v]),
+        )
+        const [, l, t, r, b] = /\[(\d+),(\d+)\]\[(\d+),(\d+)\]/.exec(attributes.bounds ?? '') ?? []
+        const node = {
+            text: attributes.text ?? '',
+            description: attributes['content-desc'] ?? '',
+            clickable: attributes.clickable === 'true' || attributes.checkable === 'true',
+            bounds: { left: +l, top: +t, right: +r, bottom: +b },
+            parent: stack[stack.length - 1] ?? null,
+        }
+        nodes.push(node)
+        if (!match[2]) stack.push(node)
+    }
+    return nodes
+}
+
+const contains = (outer, inner) =>
+    inner.left >= outer.left && inner.top >= outer.top && inner.right <= outer.right && inner.bottom <= outer.bottom
+
+const overlaps = (a, b) => a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom
+
+export const inspect = (nodes, screen, density) => {
+    const problems = []
+    const dp = (px) => Math.round((px * 160) / density)
+    for (const node of nodes) {
+        const { bounds } = node
+        if (!Number.isFinite(bounds.left) || bounds.right <= bounds.left) continue
+        const named = node.text || node.description
+        const label = named ? `"${named.slice(0, 40)}"` : '(unnamed)'
+
+        // A row that has outgrown its container. The parent is the row; a child wider than
+        // it is text the layout could not absorb.
+        if (node.parent && named && !contains(node.parent.bounds, bounds)) {
+            problems.push(`OVERFLOW  ${label} leaves its container by ${dp(Math.max(bounds.right - node.parent.bounds.right, node.parent.bounds.left - bounds.left))}dp`)
+        }
+        if (node.clickable && !overlaps(bounds, screen)) {
+            problems.push(`OFFSCREEN  ${label} is a control lying wholly outside the display`)
+        }
+        if (node.clickable && overlaps(bounds, screen)) {
+            const height = dp(bounds.bottom - bounds.top)
+            const width = dp(bounds.right - bounds.left)
+            if (height < MIN_DP || width < MIN_DP) {
+                problems.push(`SMALL  ${label} is ${width}×${height}dp, below the ${MIN_DP}dp floor`)
+            }
+        }
+    }
+    return [...new Set(problems)]
+}
+
+/**
+ * Where to go, by position rather than by name.
+ *
+ * Each step is an ordinal: `row: n` taps the nth row of the settings list, `gear` taps the
+ * last action in the top bar. Nothing here matches text, because under a pseudo-locale
+ * there is no text to match.
+ */
+const ROUTES = [
+    ['Library', []],
+    ['Settings', ['gear']],
+    ['Settings > Sources', ['gear', { row: 0 }]],
+    ['Settings > Appearance', ['gear', { row: 1 }]],
+    ['Settings > Reading', ['gear', { row: 2 }]],
+    ['Settings > Downloads', ['gear', { row: 3 }]],
+    ['Settings > Language', ['gear', { row: 4 }]],
+    ['Settings > Privacy', ['gear', { row: 5 }]],
+    ['Settings > About', ['gear', { row: 6 }]],
+]
+
+const tapGear = () => {
+    const nodes = parse(sh('exec-out', 'uiautomator', 'dump', '/dev/tty'))
+    // The rightmost clickable node in the top eighth of the display. Position, not name.
+    const screenHeight = Math.max(...nodes.map((n) => n.bounds.bottom).filter(Number.isFinite))
+    const top = nodes
+        .filter((n) => n.clickable && n.bounds.top < screenHeight / 8 && Number.isFinite(n.bounds.right))
+        .sort((a, b) => b.bounds.right - a.bounds.right)
+    if (top.length === 0) throw new Error('no action found in the top bar')
+    const { bounds } = top[0]
+    sh('shell', 'input', 'tap', String((bounds.left + bounds.right) >> 1), String((bounds.top + bounds.bottom) >> 1))
+}
+
+/**
+ * Taps the nth row of a settings list.
+ *
+ * A row is identified by spanning the full width, which is the one thing that separates it
+ * from the search field and the back button — Compose merges a row's labels into
+ * descendants, so the clickable node itself carries no text at all, in any locale. That is
+ * a happy accident here: navigation that cannot read text cannot be broken by translating
+ * it.
+ */
+const tapRow = (index) => {
+    const nodes = parse(sh('exec-out', 'uiautomator', 'dump', '/dev/tty'))
+    const width = Math.max(...nodes.map((n) => n.bounds.right).filter(Number.isFinite))
+    const rows = nodes
+        .filter(
+            (n) =>
+                n.clickable &&
+                Number.isFinite(n.bounds.top) &&
+                n.bounds.left <= 8 &&
+                n.bounds.right >= width - 8,
+        )
+        .sort((a, b) => a.bounds.top - b.bounds.top)
+    const target = rows[index]
+    if (!target) throw new Error(`no row ${index} among ${rows.length} full-width rows`)
+    const { bounds } = target
+    sh('shell', 'input', 'tap', String((bounds.left + bounds.right) >> 1), String((bounds.top + bounds.bottom) >> 1))
+}
+
+const walk = () => {
+    const density = Number(/\d+/.exec(sh('shell', 'wm', 'density'))?.[0] ?? 160)
+    const [, w, h] = /(\d+)x(\d+)/.exec(sh('shell', 'wm', 'size').split('\n').at(-2) ?? '') ?? []
+    const screen = { left: 0, top: 0, right: +w || 1080, bottom: +h || 2340 }
+    mkdirSync(SHOTS, { recursive: true })
+
+    const found = []
+    for (const [name, steps] of ROUTES) {
+        sh('shell', 'am', 'force-stop', PKG)
+        sh('shell', 'am', 'start', '-n', ACTIVITY)
+        settle(2500)
+        for (const step of steps) {
+            if (step === 'gear') tapGear()
+            else tapRow(step.row)
+            settle(1200)
+        }
+        const nodes = parse(sh('exec-out', 'uiautomator', 'dump', '/dev/tty'))
+        const problems = inspect(nodes, screen, density)
+        writeFileSync(join(SHOTS, `${name.replace(/[^\w]+/g, '-')}.png`), execFileSync(adb, ['exec-out', 'screencap', '-p'], { maxBuffer: 1 << 28 }))
+        for (const problem of problems) found.push(`${name}: ${problem}`)
+        console.log(`${problems.length === 0 ? '  ok' : 'FAIL'}  ${name}`)
+    }
+    return found
+}
+
+const selfTest = () => {
+    let ok = true
+    const fail = (m) => {
+        ok = false
+        console.error('  ' + m)
+    }
+    const screen = { left: 0, top: 0, right: 1080, bottom: 2340 }
+
+    const dump =
+        '<hierarchy><node bounds="[0,0][1080,200]" text="" clickable="false">' +
+        '<node bounds="[0,0][1200,200]" text="Ovérflówîñg" clickable="false" />' +
+        '</node>' +
+        '<node bounds="[0,300][100,330]" text="Tiny" clickable="true" />' +
+        '<node bounds="[2000,400][2100,500]" text="Gone" clickable="true" />' +
+        '<node bounds="[0,600][200,800]" text="Fine" clickable="true" />' +
+        '</hierarchy>'
+    const problems = inspect(parse(dump), screen, 160)
+    if (!problems.some((p) => p.startsWith('OVERFLOW'))) fail('OVERFLOW did not fire on a child wider than its parent')
+    if (!problems.some((p) => p.startsWith('SMALL'))) fail('SMALL did not fire on a 100x30dp control')
+    if (!problems.some((p) => p.startsWith('OFFSCREEN'))) fail('OFFSCREEN did not fire on a control off the display')
+    if (problems.some((p) => p.includes('Fine'))) fail('a node that fits was reported')
+
+    if (parse(dump).filter((n) => n.parent !== null).length !== 1) fail('parent tracking is wrong')
+
+    console.log(ok ? 'self-test passed' : 'self-test FAILED')
+    process.exitCode = ok ? 0 : 1
+}
+
+if (process.argv.includes('--self-test')) {
+    selfTest()
+} else {
+    try {
+        // Per-app locale rather than the system one: `persist.sys.locale` is a protected
+        // property that a non-root shell cannot set, and rooting the device to run a
+        // layout check is a large hammer. `cmd locale` has existed since Android 13 and
+        // this app's floor is 12 — but the *check* only has to run somewhere, and the
+        // emulator it runs on is API 36.
+        sh('shell', 'cmd', 'locale', 'set-app-locales', PKG, '--locales', PSEUDO)
+        // The locale is read at process start, so the app has to go before it is honoured.
+        sh('shell', 'am', 'force-stop', PKG)
+        settle(1500)
+        const problems = walk()
+        for (const problem of problems) console.error(problem)
+        console.log(
+            problems.length === 0
+                ? `pseudo-locale (${PSEUDO}): every screen fits. Screenshots in ${SHOTS}/.`
+                : `pseudo-locale (${PSEUDO}): ${problems.length} problem(s). Screenshots in ${SHOTS}/.`,
+        )
+        process.exitCode = problems.length > 0 ? 1 : 0
+    } finally {
+        if (!process.argv.includes('--keep')) {
+            // An empty locale list is what "follow the system again" means to `cmd locale`.
+            sh('shell', 'cmd', 'locale', 'set-app-locales', PKG, '--locales', '')
+            sh('shell', 'am', 'force-stop', PKG)
+        }
+    }
+}

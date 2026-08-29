@@ -23,6 +23,8 @@
     <string name="library_repick_folder">Choose again</string>
     <string name="library_skipped">%1$d skipped</string>
     <string name="library_search">Search</string>
+    <string name="library_search_recent">Recent searches</string>
+    <string name="library_search_recent_clear">Clear recent searches</string>
     <string name="library_sort">Sort</string>
     <string name="library_sort_ascending">Ascending</string>
     <string name="library_sort_descending">Descending</string>
@@ -31,6 +33,8 @@
     <string name="library_sort_last_read">Last read</string>
     <string name="library_sort_progress">Progress</string>
     <string name="library_sort_year">Year</string>
+    <string name="library_sort_date_added">Date added</string>
+    <string name="library_sort_file_size">File size</string>
     <string name="library_filter">Filter</string>
     <string name="library_filter_read_state">Read state</string>
     <string name="library_filter_format">Format</string>
@@ -162,6 +166,11 @@
     <string name="kavita_continue">Continue · %1$s</string>
     <string name="library_mark_read">Mark as read</string>
     <string name="library_mark_unread">Mark as unread</string>
+    <string name="library_cached">Showing what was here %1$s. Checking for changes.</string>
+    <string name="library_restart">Start from the beginning</string>
+    <string name="library_restart_title">Start “%1$s” from the beginning?</string>
+    <string name="library_restart_confirm">Start from the beginning</string>
+    <string name="library_restart_body">Your place in this publication is forgotten, and it opens at page one next time. Nothing else changes, and the file itself is untouched.</string>
     <string name="shelves_server_only_title">Only from this server</string>
     <string name="shelves_server_only_body">“%1$s” can only hold publications from that server.</string>
     <string name="shelves_server_only_local">Create a local list instead</string>

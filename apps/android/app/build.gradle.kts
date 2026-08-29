@@ -33,6 +33,12 @@ android {
         }
         debug {
             applicationIdSuffix = ".debug"
+            // `localization` asks for the interface to survive "an expanded pseudo-locale".
+            // Without this the `en-XA` resources are never generated, so setting the device
+            // to en-XA falls back to English and the test passes without testing anything.
+            // Debug only: the pseudo-locales are a development aid and would be dead weight
+            // in a release APK.
+            isPseudoLocalesEnabled = true
         }
     }
 

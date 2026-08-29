@@ -165,7 +165,10 @@ public struct LibraryView: View {
             // publications — nothing in it is on the device yet — and mixing the two would
             // make "what can I read on the train" unanswerable.
             .safeAreaInset(edge: .top, spacing: 0) {
-                if !catalogues.isEmpty { CatalogueStrip(sources: catalogues) { open($0) } }
+                VStack(spacing: 0) {
+                    if let cachedAt = model.cachedAt { CachedNotice(refreshedAt: cachedAt) }
+                    if !catalogues.isEmpty { CatalogueStrip(sources: catalogues) { open($0) } }
+                }
             }
             .navigationDestination(item: $browsing) { id in
                 if let source = model.registry[id] {
@@ -212,12 +215,16 @@ public struct LibraryView: View {
                 text: searchBinding,
                 prompt: Text("library.search.prompt", bundle: .module)
             )
+            .searchSuggestions { RecentSearchSuggestions(model: model) }
             // Reloaded on every appearance, which is what makes the bar under a
             // cover reflect the page the reader just reached.
             .task {
                 model.restoreFolders()
                 await model.refreshProgress()
                 await model.probeNetworkSources(credentials: credentials, pins: pins)
+                // Keeps asking while anything is away. Cancelled with this task, so it
+                // stops the moment the library does.
+                await model.retryUnreachableSources(credentials: credentials, pins: pins)
             }
             .toolbar {
                 if !model.publications.isEmpty {

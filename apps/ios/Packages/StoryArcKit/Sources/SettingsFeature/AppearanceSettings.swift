@@ -12,9 +12,11 @@ internal import StoryArcCore
 struct AppearanceSettings: View {
     @Environment(\.theme) private var theme
     @Binding var settings: AppSettings
+    /// The row a search result pointed at, if the reader arrived through one.
+    var highlight: SettingsAnchor?
 
     var body: some View {
-        List {
+        HighlightingList(highlight: highlight) {
             Section {
                 ForEach(AppearanceMode.allCases, id: \.self) { mode in
                     Button { settings.appearance = mode } label: {
@@ -51,6 +53,7 @@ struct AppearanceSettings: View {
                             .foregroundStyle(theme.palette.textTertiary)
                     }
                 }
+                .settingsHighlight(.linkReadingTheme, when: highlight)
             }
         }
     }
@@ -67,9 +70,11 @@ struct ReadingSettings: View {
     @Binding var settings: AppSettings
     /// Where the reading *defaults* live. A different store, for the reason 2.3 gives.
     let readerStore: ReaderPreferences
+    /// The row a search result pointed at, if the reader arrived through one.
+    var highlight: SettingsAnchor?
 
     var body: some View {
-        List {
+        HighlightingList(highlight: highlight) {
             Section {
                 // Stated, not offered. `page-transitions` asks for the volume buttons
                 // "where enabled in settings", and on iOS there is no setting that can
@@ -84,9 +89,14 @@ struct ReadingSettings: View {
                 Text("reading.volumeButtons.unavailable", bundle: .module)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textTertiary)
+                    .settingsHighlight(.volumeButtons, when: highlight)
             }
 
+            // The whole group of sections, not its first row: the reading defaults are one
+            // setting to a reader and several sections to the layout, and a tint that
+            // covered only the first would point at "Comics" rather than at the defaults.
             ReadingDefaults(store: readerStore)
+                .settingsHighlight(.readingDefaults, when: highlight)
         }
     }
 }

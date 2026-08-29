@@ -283,6 +283,16 @@ object PublicationIndexer {
             coverPath = archive.coverPage?.path,
             readingDirection = info?.readingDirection ?: ReadingDirection.LEFT_TO_RIGHT,
             streaming = streamingOf(archive),
+            // An unpacked folder is not one file, so nothing outside can weigh it.
+            // What it occupies is what its pages add up to, which is the same
+            // question a packed archive's own length answers — and the pages have
+            // just been walked, so asking costs nothing. Every other format is
+            // weighed by the scan that found it.
+            fileSize = if (format == PublicationFormat.IMAGE_FOLDER) {
+                archive.pages.sumOf { it.byteCount ?: 0L }
+            } else {
+                null
+            },
         )
     }
 

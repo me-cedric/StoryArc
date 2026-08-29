@@ -45,11 +45,24 @@ public enum LibraryScanner {
     /// Depth-first and alphabetical, so the order a user sees matches the order
     /// they would see in a file browser — a scan that returns rows in filesystem
     /// order looks broken even when it is complete.
-    public static func scan(folderAt folder: URL) -> AsyncStream<ScanEvent> {
+    /// - Parameter known: what the library already holds for a path, if anything.
+    ///
+    ///   `local-library` asks a returning app to reconcile "by comparing file modification
+    ///   times and sizes rather than re-reading every archive". A publication handed back
+    ///   here whose size and modification date still match the file is emitted as it is,
+    ///   and the container is never opened. Default is "nothing is known", which is a full
+    ///   re-index and what a first scan wants.
+    ///
+    ///   A closure rather than a store: this module reads containers and knows nothing
+    ///   about caches or registries, and handing it a question keeps it that way.
+    public static func scan(
+        folderAt folder: URL,
+        known: (@Sendable (URL) -> Publication?)? = nil
+    ) -> AsyncStream<ScanEvent> {
         AsyncStream<ScanEvent> { continuation in
             let task = Task {
                 // The picked folder's own name is not a series: it is the library.
-                let tally = await walk(folder, seriesHint: nil) { continuation.yield($0) }
+                let tally = await walk(folder, seriesHint: nil, known: known) { continuation.yield($0) }
                 if !Task.isCancelled {
                     continuation.yield(.finished(found: tally.found, skipped: tally.skipped))
                 }
@@ -96,6 +109,7 @@ public enum LibraryScanner {
     private static func walk(
         _ directory: URL,
         seriesHint: String?,
+        known: (@Sendable (URL) -> Publication?)? = nil,
         emit: @Sendable (ScanEvent) -> Void
     ) async -> Tally {
         var tally = Tally()
@@ -129,16 +143,16 @@ public enum LibraryScanner {
 
         if publicationFiles.isEmpty, !imageFiles.isEmpty {
             // Its subdirectories are chapters of it, not separate publications.
-            return tally + (await index(directory, seriesHint: seriesHint, emit: emit))
+            return tally + (await index(directory, seriesHint: seriesHint, known: known, emit: emit))
         }
 
         for file in publicationFiles {
             guard !Task.isCancelled else { return tally }
-            tally += await index(file, seriesHint: seriesHint, emit: emit)
+            tally += await index(file, seriesHint: seriesHint, known: known, emit: emit)
         }
         for child in directories {
             guard !Task.isCancelled else { return tally }
-            tally += await walk(child, seriesHint: child.lastPathComponent, emit: emit)
+            tally += await walk(child, seriesHint: child.lastPathComponent, known: known, emit: emit)
         }
         return tally
     }
@@ -146,10 +160,24 @@ public enum LibraryScanner {
     private static func index(
         _ url: URL,
         seriesHint: String?,
+        known: (@Sendable (URL) -> Publication?)? = nil,
         emit: @Sendable (ScanEvent) -> Void
     ) async -> Tally {
+        // The reconcile `local-library` asks for. One `stat` decides whether the container
+        // has to be opened at all, and for a library that has not changed since the last
+        // launch — which is most launches — the answer is no, for every publication in it.
+        if let cached = known?(url) {
+            let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
+            let size = values?.fileSize.map(Int64.init)
+            if cached.matchesFile(size: size, modifiedAt: values?.contentModificationDate) {
+                emit(.found(cached))
+                return Tally(found: 1, skipped: 0)
+            }
+        }
+
         do {
-            let publication = try await PublicationIndexer.index(fileAt: url, seriesHint: seriesHint)
+            var publication = try await PublicationIndexer.index(fileAt: url, seriesHint: seriesHint)
+            stampFileFacts(on: &publication, at: url)
             emit(.found(publication))
             return Tally(found: 1, skipped: 0)
         } catch let error as PublicationIndexer.IndexError {
@@ -158,6 +186,30 @@ public enum LibraryScanner {
             emit(.skipped(path: url.lastPathComponent, reason: "it could not be read"))
         }
         return Tally(found: 0, skipped: 1)
+    }
+
+    /// The two things about a publication that only the filesystem knows.
+    ///
+    /// `library-browsing` sorts by date added and by file size, and neither is
+    /// written anywhere inside a comic. The walk is where they come from because
+    /// the walk is the part that touches the filesystem — the indexer below it
+    /// reads containers and is handed bytes, not directory entries.
+    ///
+    /// "Date added" is the date the Finder shows under that name: when this file
+    /// arrived in this folder, which is what a reader means by recently added. Not
+    /// every filesystem records it, so creation and then modification stand in —
+    /// each is a worse answer to the same question rather than a different one.
+    private static func stampFileFacts(on publication: inout Publication, at url: URL) {
+        let values = try? url.resourceValues(forKeys: [
+            .fileSizeKey, .addedToDirectoryDateKey, .creationDateKey, .contentModificationDateKey,
+        ])
+        publication.addedAt = values?.addedToDirectoryDate
+            ?? values?.creationDate
+            ?? values?.contentModificationDate
+        publication.modifiedAt = values?.contentModificationDate
+        // Nil for a directory, and left alone there: an unpacked folder was already
+        // weighed by the pages the indexer found inside it.
+        if let size = values?.fileSize { publication.fileSize = Int64(size) }
     }
 
     /// A reason in words a person can act on.
