@@ -29,7 +29,7 @@ public struct ReaderView: View {
     @State var model: ReaderModel
     /// `comic-reader`: nothing is on screen while the user is reading. The chrome
     /// starts visible so the way out is discoverable, and a tap hides it.
-    @State private var wantsChrome = true
+    @State var wantsChrome = true
 
     /// Whether the chrome is on screen.
     ///
@@ -128,7 +128,14 @@ public struct ReaderView: View {
     }
 
     /// Set when the reader turns past the last page.
-    @State private var hasReachedEnd = false
+    @State var hasReachedEnd = false
+
+    /// How many turns the publication has refused this session.
+    ///
+    /// A count rather than a flag: `native-experience` asks for the platform's haptics,
+    /// and SwiftUI plays one when a trigger *changes* — so two refusals in a row have to
+    /// be two different values or the second one is silent.
+    @State var refusals = 0
 
     /// How the page is sized. `comic-reader` requires the choice to persist.
     @State var fit: PageFit = .screen
@@ -191,6 +198,7 @@ public struct ReaderView: View {
                 if hasReachedEnd {
                     EndOfPublication(
                         title: model.publication.displayTitle,
+                        colours: model.coverColours,
                         next: nextInSeries,
                         onOpenNext: onOpenNext,
                         onBack: { hasReachedEnd = false },
@@ -238,6 +246,11 @@ public struct ReaderView: View {
             }
         }
         // `comic-reader`: the mapped keys turn pages. Arrow and page keys only —
+        // `native-experience`: haptics, for the two events that have nothing else to
+        // announce them. Not for a page turn — a comic read at speed is two hundred of
+        // those, and a buzz on each is a defect.
+        .storyArcFeedback(.completion, trigger: hasReachedEnd) { $0 }
+        .storyArcFeedback(.refusal, trigger: refusals)
         // Over the page rather than in place of it: `network-share` requires pages already
         // read to stay readable while the network is away.
         .overlay(alignment: .bottom) {
@@ -336,49 +349,4 @@ public struct ReaderView: View {
                 isRightToLeft ? Text("reader.rightToLeft", bundle: .module) : Text(verbatim: "")
             )
     }
-
-    /// What a tap means, by where it landed.
-    ///
-    /// `comic-reader`: the edges turn pages and do not reveal the chrome, the
-    /// centre toggles it. The zones are "mirrored in right-to-left mode" for free
-    /// here — the pager's *data* is reversed for RTL, so moving one step to the
-    /// right on screen is always one step to the right on screen, whichever way
-    /// the story runs.
-    func handleTap(at location: CGPoint, in size: CGSize) {
-        let edge = size.width * edgeZoneFraction
-        if location.x < edge {
-            turn(by: -1)
-        } else if location.x > size.width - edge {
-            turn(by: 1)
-        } else {
-            withAnimation(.easeInOut(duration: 0.2)) { wantsChrome.toggle() }
-        }
-    }
-
-    /// The same zones the page's own recognisers use to route a tap.
-    private var edgeZoneFraction: CGFloat { ZoomablePage.edgeZoneFraction }
-
-    func turn(by step: Int) {
-        let next = displayIndex + step
-        // `comic-reader`: turning past the last page reaches an end screen rather
-        // than nothing. In right-to-left the last *page* is the first display
-        // position, which is why this asks the model rather than the pager.
-        if !model.pages.indices.contains(next), model.currentIndex == model.pages.count - 1 {
-            withAnimation(.easeInOut(duration: 0.2)) { hasReachedEnd = true }
-            return
-        }
-        guard model.pages.indices.contains(next) else { return }
-        withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .default) {
-            displayIndex = next
-        }
-    }
-
-    /// Restarts the auto-hide countdown whenever either of these changes.
-    private var chromeTimerKey: String {
-        // The strip counts as interaction: reading a row of thumbnails takes longer
-        // than four seconds, and the chrome vanishing underneath would take the
-        // strip with it.
-        "\(isChromeVisible)-\(displayIndex)-\(isBrowsingThumbnails)-\(isAdjusting)"
-    }
-
 }

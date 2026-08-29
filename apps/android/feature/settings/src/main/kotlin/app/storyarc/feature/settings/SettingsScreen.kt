@@ -1,6 +1,6 @@
 package app.storyarc.feature.settings
 
-import androidx.activity.compose.BackHandler
+import app.storyarc.core.designsystem.back.PredictiveBack
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -106,7 +106,7 @@ fun SettingsScreen(
     // out of Settings. The host's own handler closes Settings, and the innermost enabled
     // handler wins — which is how one gesture means two things without either knowing
     // about the other.
-    BackHandler(enabled = open != null) { open = null }
+    PredictiveBack(enabled = open != null) { open = null }
 
     when (val match = open) {
         null -> GroupList(

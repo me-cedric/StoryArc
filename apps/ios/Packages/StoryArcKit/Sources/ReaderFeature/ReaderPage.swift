@@ -112,14 +112,42 @@ struct EndOfPublication: View {
     @Environment(\.theme) private var theme
 
     let title: String
+    /// What the cover brings, or `nil` for a cover with no colour of its own.
+    ///
+    /// `native-experience` puts a cover-derived accent and background tint "on a
+    /// publication detail screen or the reader". This screen is where the reader can
+    /// honour that: everywhere else in it the artwork is *on* screen, and the
+    /// non-negotiable is that chrome over a page never tints. Here the page is behind a
+    /// near-opaque sheet, so the colour has somewhere to go.
+    let colours: CoverColours?
     let next: Publication?
     let onOpenNext: (Publication) -> Void
     let onBack: () -> Void
     let onClose: () -> Void
 
+    /// The cover's accent, or the brand's. Never the raw extracted colour — what
+    /// ``CoverColours`` carries has already been adjusted to clear the floor.
+    private var accent: Color {
+        colours.flatMap { Color(readerHex: $0.accent) } ?? theme.palette.accent
+    }
+
+    /// What is written on that accent, chosen for it rather than assumed to be white.
+    private var onAccent: Color {
+        colours.flatMap { Color(readerHex: $0.onAccent) } ?? .white
+    }
+
     var body: some View {
         ZStack {
-            Color.black.opacity(0.92).ignoresSafeArea()
+            // The wash, fading to black. Still near-opaque: the last page stays faintly
+            // visible behind it, which is what says this screen is over the book rather
+            // than after it.
+            LinearGradient(
+                colors: [colours.flatMap { Color(readerHex: $0.wash) } ?? .black, .black],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .opacity(0.92)
+            .ignoresSafeArea()
 
             VStack(spacing: StoryArcSpace.lg) {
                 VStack(spacing: StoryArcSpace.xs) {
@@ -141,6 +169,8 @@ struct EndOfPublication: View {
                             .padding(.vertical, StoryArcSpace.xs)
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(accent)
+                    .foregroundStyle(onAccent)
                 }
 
                 HStack(spacing: StoryArcSpace.md) {

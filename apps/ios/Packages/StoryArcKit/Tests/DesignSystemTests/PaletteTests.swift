@@ -22,6 +22,35 @@ struct PaletteTests {
         #expect(Palette.dark.accent == StoryArcColor.Brand.ember)
     }
 
+    @Test("Increase Contrast strengthens the border and the weakest text tier")
+    func increasedContrastStrengthens() {
+        // `native-experience`: with the setting on, "borders are strengthened". The
+        // strengthening happens in the tokens, so a view that draws `borderSubtle`
+        // gets it without knowing the setting exists.
+        let standard = Palette.resolved(for: .dark)
+        let increased = Palette.resolved(for: .dark, contrast: .increased)
+
+        #expect(standard.borderSubtle != standard.borderStrong)
+        #expect(increased.borderSubtle == standard.borderStrong)
+        #expect(increased.textTertiary == standard.textSecondary)
+    }
+
+    @Test("Increase Contrast keeps a hierarchy to strengthen")
+    func increasedContrastKeepsTiers() {
+        // Promoting every tier would leave one tier. Primary still reads as primary.
+        let increased = Palette.resolved(for: .light, contrast: .increased)
+
+        #expect(increased.textPrimary != increased.textSecondary)
+        #expect(increased.accent == Palette.light.accent)
+    }
+
+    @Test("Increase Contrast follows the appearance rather than replacing it")
+    func increasedContrastKeepsAppearance() {
+        let increased = Palette.resolved(for: .dark, appearance: .oledDark, contrast: .increased)
+
+        #expect(increased.surfaceCanvas == Palette.oledDark.surfaceCanvas)
+    }
+
     @Test("The reader surface is not the canvas surface")
     func readerSurfaceIsDistinct() {
         // Deliberate: the reader goes deeper than the app background so the page

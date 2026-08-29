@@ -82,12 +82,43 @@ public struct Palette: Sendable, Equatable {
     ///
     /// The appearance is a parameter rather than read from the environment because a
     /// palette is a value: the same scheme yields a different palette under OLED Dark,
-    /// and nothing about that is the environment's business.
+    /// and nothing about that is the environment's business. Contrast is a parameter
+    /// for the same reason, and because it is the one thing about a palette a *test*
+    /// has to be able to set.
     public static func resolved(
         for scheme: ColorScheme,
-        appearance: AppearanceMode = .system
+        appearance: AppearanceMode = .system,
+        contrast: ColorSchemeContrast = .standard
     ) -> Palette {
-        if appearance.isTrueBlack { return .oledDark }
-        return scheme == .dark ? .dark : .light
+        let base: Palette = appearance.isTrueBlack ? .oledDark : (scheme == .dark ? .dark : .light)
+        return contrast == .increased ? base.strengthened : base
+    }
+
+    /// The same palette with the roles Increase Contrast asks to strengthen.
+    ///
+    /// `native-experience`: with Increase Contrast on, "borders are strengthened". This
+    /// is where that happens — once, in the tokens, rather than in each view deciding
+    /// for itself what "stronger" means and half of them forgetting.
+    ///
+    /// Two roles move, and no colour is invented: the subtle border becomes the strong
+    /// one, and the tertiary text tier steps up to secondary. Secondary deliberately
+    /// does *not* step up to primary — with three tiers, promoting both would leave one
+    /// tier, and a hierarchy flattened to nothing is not more legible.
+    public var strengthened: Palette {
+        Palette(
+            surfaceCanvas: surfaceCanvas,
+            surfaceRaised: surfaceRaised,
+            surfaceOverlay: surfaceOverlay,
+            surfaceReader: surfaceReader,
+            surfaceSunken: surfaceSunken,
+            borderSubtle: borderStrong,
+            borderStrong: borderStrong,
+            textPrimary: textPrimary,
+            textSecondary: textSecondary,
+            textTertiary: textSecondary,
+            scrim: scrim,
+            accent: accent,
+            accentMuted: accentMuted
+        )
     }
 }

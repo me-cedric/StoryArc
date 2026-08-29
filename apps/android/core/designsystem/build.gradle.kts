@@ -28,6 +28,12 @@ dependencies {
     // theming the app has to name one.
     api(project(":core:model"))
 
+    // `PredictiveBackHandler` lives here. `native-experience` asks for predictive back,
+    // and the design system is where the gesture's transform belongs — every screen that
+    // can be left uses the same one.
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.kotlinx.coroutines.core)
+
     api(platform(libs.androidx.compose.bom))
     api(libs.androidx.compose.ui)
     api(libs.androidx.compose.ui.graphics)

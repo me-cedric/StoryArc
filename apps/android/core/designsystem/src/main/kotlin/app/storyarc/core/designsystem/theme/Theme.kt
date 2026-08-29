@@ -39,6 +39,23 @@ data class StoryArcPalette(
     val accent: Color,
     val accentMuted: Color,
 ) {
+    /**
+     * The same palette with the roles Increase Contrast asks to strengthen.
+     *
+     * `native-experience`: with the setting on, "borders are strengthened". This is
+     * where that happens — once, in the tokens, rather than in each view deciding for
+     * itself what "stronger" means and half of them forgetting.
+     *
+     * Two roles move, and no colour is invented: the subtle border becomes the strong
+     * one, and the tertiary text tier steps up to secondary. Secondary deliberately does
+     * *not* step up to primary — with three tiers, promoting both would leave one tier,
+     * and a hierarchy flattened to nothing is not more legible.
+     */
+    fun strengthened(): StoryArcPalette = copy(
+        borderSubtle = borderStrong,
+        textTertiary = textSecondary,
+    )
+
     companion object {
         val Dark = StoryArcPalette(
             surfaceCanvas = StoryArcColor.Dark.surfaceCanvas,
@@ -177,15 +194,27 @@ fun StoryArcTheme(
         else -> brandLightScheme()
     }
 
-    val palette = when {
+    val base = when {
         appearance.isTrueBlack -> StoryArcPalette.OledDark
         darkTheme -> StoryArcPalette.Dark
         else -> StoryArcPalette.Light
     }
 
+    // `native-experience`: Increase Contrast strengthens borders. Read once, here, so
+    // every screen below inherits the answer rather than each one asking the system and
+    // deciding for itself what to do about it.
+    val isHighContrast = rememberHighContrast()
+    val palette = if (isHighContrast) base.strengthened() else base
+
     CompositionLocalProvider(LocalStoryArcPalette provides palette) {
         MaterialExpressiveTheme(
-            colorScheme = colorScheme,
+            // Material's own subtle outline goes the same way as StoryArc's, so a
+            // divider drawn by a Material component is strengthened too.
+            colorScheme = if (isHighContrast) {
+                colorScheme.copy(outlineVariant = colorScheme.outline)
+            } else {
+                colorScheme
+            },
             // The Expressive scheme is the recommended default and is what makes
             // the app feel like Android 16 rather than a themed Material 2 app.
             motionScheme = MotionScheme.expressive(),

@@ -13,6 +13,8 @@ import app.storyarc.core.format.PageDecoder
 import app.storyarc.core.format.PageEntry
 import app.storyarc.core.format.PdfDocumentReader
 import app.storyarc.core.format.PublicationAccess
+import app.storyarc.core.model.CoverAccent
+import app.storyarc.core.model.CoverColours
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ImageAdjustments
@@ -196,6 +198,11 @@ class ReaderViewModel(
     private val _failure = MutableStateFlow<String?>(null)
     val failure: StateFlow<String?> = _failure.asStateFlow()
 
+    private val _coverColours = MutableStateFlow<CoverColours?>(null)
+
+    /** What this publication's cover brings to its own screens, or null when it brings none. */
+    val coverColours: StateFlow<CoverColours?> = _coverColours.asStateFlow()
+
     private val _isOpened = MutableStateFlow(false)
 
     /**
@@ -305,10 +312,39 @@ class ReaderViewModel(
             if (recorded is ReadingPosition.Page && recorded.index in opened.pages.indices) {
                 initialIndex = recorded.index
             }
+            deriveCoverColours()
         } catch (cause: Exception) {
             _failure.value = cause.message ?: "could not be opened"
         }
         _isOpened.value = true
+    }
+
+    /**
+     * Derives the cover's colours, once, when the publication opens.
+     *
+     * `native-experience`: "accent and background tinting derive from the publication's
+     * cover art". From the *cover* rather than from the page in front of the reader,
+     * because a book resumed at page 57 is still that book — and from the cover's
+     * thumbnail rather than the full page, because a colour census wants a thousand
+     * pixels and decoding a 2000×3000 scan to find them would be paying for a picture
+     * nobody looks at.
+     *
+     * Quiet about a PDF, which never reaches here, and about a cover that is all ink and
+     * paper. Both leave this null, and a screen with no cover colour uses the brand
+     * accent — which is what `native-experience` asks for on a surface with no
+     * publication colour of its own.
+     */
+    private suspend fun deriveCoverColours() {
+        val cover = thumbnail(coverIndex()) ?: return
+        _coverColours.value = withContext(Dispatchers.Default) {
+            CoverAccent.derived(CoverAccent.pixels(cover))
+        }
+    }
+
+    /** The designated cover when `ComicInfo` named one, page one otherwise. */
+    private fun coverIndex(): Int {
+        val named = publication.coverPath ?: return 0
+        return _pages.value.indexOfFirst { it.path == named }.takeIf { it >= 0 } ?: 0
     }
 
     /**

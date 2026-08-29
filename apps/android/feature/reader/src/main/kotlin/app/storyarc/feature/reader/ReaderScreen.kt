@@ -73,6 +73,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -97,10 +98,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.designsystem.feedback.StoryArcFeedback
+import app.storyarc.core.designsystem.feedback.rememberHaptics
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.LocalVolumeTurns
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PageEntry
+import app.storyarc.core.model.CoverColours
 import app.storyarc.core.model.ImageAdjustments
 import app.storyarc.core.model.PageFit
 import app.storyarc.core.model.PageTransition
@@ -289,6 +293,10 @@ private fun Pager(
     // change seeds the new container from where the reader already is.
     var position by remember { mutableIntStateOf(displayIndex(viewModel.initialIndex)) }
 
+    // `native-experience`: what the cover brings to this publication's own screens.
+    // Null until the cover has been read, and for a cover that carries no colour.
+    val coverColours by viewModel.coverColours.collectAsStateWithLifecycle()
+
     /** Whether the adjustment controls are open. */
     var isAdjusting by rememberSaveable { mutableStateOf(false) }
 
@@ -367,6 +375,11 @@ private fun Pager(
     /** Set when the reader turns past the last page. */
     var hasReachedEnd by remember { mutableStateOf(false) }
 
+    // `native-experience`: haptics, for the two events that have nothing else to
+    // announce them. Not for a page turn — a comic read at speed is two hundred of
+    // those, and a buzz on each is a defect.
+    val haptics = rememberHaptics()
+
     /** Whether the thumbnail strip is open. */
     var isBrowsingThumbnails by remember { mutableStateOf(false) }
     // The strip and an open menu both count as interaction: reading either takes
@@ -406,7 +419,15 @@ private fun Pager(
         // `comic-reader`: turning past the last page reaches an end screen rather
         // than nothing. In right-to-left the last *page* is the first display
         // position, which is why this asks the model index rather than the pager.
-        if (modelIndex(paging.current) == total - 1) hasReachedEnd = true
+        if (modelIndex(paging.current) == total - 1) {
+            if (!hasReachedEnd) haptics.play(StoryArcFeedback.COMPLETION)
+            hasReachedEnd = true
+        } else {
+            // The one page turn that earns a haptic is the one that does not happen.
+            // Nothing on screen says the reader is already at the first page — the page
+            // simply stays put, which is indistinguishable from a missed tap.
+            haptics.play(StoryArcFeedback.REFUSAL)
+        }
     }
 
     fun handleTap(point: Offset, size: IntSize) {
@@ -574,6 +595,7 @@ private fun Pager(
     if (hasReachedEnd) {
         EndOfPublication(
             title = viewModel.publication.displayTitle,
+            colours = coverColours,
             next = nextInSeries,
             onOpenNext = onOpenNext,
             onBack = { hasReachedEnd = false },
@@ -1145,6 +1167,12 @@ private val PageFit.labelRes: Int
 /**
  * What the reader shows after the last page.
  *
+ * `native-experience` puts a cover-derived accent and background tint "on a publication
+ * detail screen or the reader". This screen is where the reader can honour that:
+ * everywhere else in it the artwork is *on* screen, and the non-negotiable is that chrome
+ * over a page never tints. Here the page is behind a near-opaque sheet, so the colour has
+ * somewhere to go.
+ *
  * `comic-reader`: "an end screen offers the next publication in the series or
  * reading list, marks this one finished". Marking is already done — the last page
  * records `isFinished` as it is turned to, because a reader who closes the app on
@@ -1156,6 +1184,7 @@ private val PageFit.labelRes: Int
 @Composable
 private fun EndOfPublication(
     title: String,
+    colours: CoverColours?,
     next: Publication?,
     onOpenNext: (Publication) -> Unit,
     onBack: () -> Unit,
@@ -1165,7 +1194,15 @@ private fun EndOfPublication(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.92f))
+            // The wash, fading to black, and still near-opaque: the last page stays
+            // faintly visible behind it, which is what says this screen is over the book
+            // rather than after it.
+            .background(
+                brush = Brush.verticalGradient(
+                    listOf(matteColour(colours?.wash), Color.Black),
+                ),
+                alpha = 0.92f,
+            )
             .padding(StoryArcSpace.gutter),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg, Alignment.CenterVertically),
@@ -1188,7 +1225,17 @@ private fun EndOfPublication(
         }
 
         if (next != null) {
-            Button(onClick = { onOpenNext(next) }) {
+            // The cover's accent, or the brand's. Never the raw extracted colour — what
+            // `CoverColours` carries has already been adjusted to clear the floor, and
+            // what is written on it was chosen for it rather than assumed to be white.
+            Button(
+                onClick = { onOpenNext(next) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colours?.accent?.let { matteColour(it) }
+                        ?: LocalStoryArcPalette.current.accent,
+                    contentColor = colours?.onAccent?.let { matteColour(it) } ?: Color.White,
+                ),
+            ) {
                 Text(stringResource(R.string.reader_end_next, next.displayTitle))
             }
         }
