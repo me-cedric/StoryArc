@@ -220,16 +220,20 @@ public final class LibraryModel {
         scanState = .scanning(found: publications.count)
 
         scanTask = Task { [weak self] in
+            // What this walk actually saw, so what it did not see can go afterwards.
+            var seen: Set<String> = []
             for await event in LibraryScanner.scan(folderAt: folder) {
                 guard let self, !Task.isCancelled else { return }
                 switch event {
                 case let .found(publication):
+                    seen.insert(publication.id)
                     self.append(publication, in: folder)
                 case .skipped:
                     // Counted in the finished event. Not surfaced per-file: a scan
                     // of a messy folder would otherwise be a wall of notices.
                     break
                 case let .finished(found, skipped):
+                    self.forgetVanished(under: folder, seen: seen)
                     self.scanState = .finished(found: found, skipped: skipped)
                     // Progress is loaded here rather than only when the view
                     // appears. The view appears before the scan produces anything,
@@ -238,6 +242,33 @@ public final class LibraryModel {
                     await self.refreshProgress()
                 }
             }
+        }
+    }
+
+    /// Drops what this folder no longer holds.
+    ///
+    /// `sources`: when a refresh shows a publication "is no longer present in the source",
+    /// it "is removed from the library view and its reading progress is retained". The
+    /// second half needs no code — progress lives in its own store, keyed by identity, and
+    /// nothing here touches it, so a file that comes back finds its position waiting.
+    ///
+    /// Scoped to the folder that was walked. A scan of one source must not evict another
+    /// source's titles just because it did not happen to see them, which is the mistake
+    /// that turns a refresh into a library that empties one folder at a time.
+    private func forgetVanished(under folder: URL, seen: Set<String>) {
+        let gone = publications.filter { publication in
+            guard !seen.contains(publication.id),
+                  let location = locations[publication.id]
+            else { return false }
+            return location.path().hasPrefix(folder.path())
+        }
+        guard !gone.isEmpty else { return }
+
+        let ids = Set(gone.map(\.id))
+        publications.removeAll { ids.contains($0.id) }
+        for id in ids {
+            covers[id] = nil
+            locations[id] = nil
         }
     }
 

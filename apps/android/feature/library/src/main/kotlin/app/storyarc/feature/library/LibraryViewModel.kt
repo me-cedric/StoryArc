@@ -480,20 +480,32 @@ class LibraryViewModel(
      * One job over all of them rather than one job each: cancelling is then a
      * single action, and the found count is the library's rather than a folder's.
      */
+    /**
+     * Walks the folders again, without emptying the shelf first.
+     *
+     * `sources` asks a refresh to update "the view incrementally rather than clearing it
+     * and re-populating". This used to do the opposite: every pull-to-refresh blanked the
+     * library, threw away every decoded cover, and rebuilt the lot — so the reader watched
+     * their shelf disappear and come back, and the covers were decoded twice for nothing.
+     * iOS has always appended; this is Android catching up.
+     *
+     * What the walk *does* remove is a publication it no longer finds, which is the
+     * requirement's other half: "the publication is removed from the library view and its
+     * reading progress is retained". Retaining the progress needs no code — it lives in
+     * `ProgressStore`, keyed by identity, and nothing here touches it. A file that comes
+     * back finds its position waiting.
+     */
     fun rescan() {
         scanJob?.cancel()
-        _publications.value = emptyList()
-        _visible.value = emptyList()
-        _continueReading.value = emptyList()
-        covers.clear()
-        locations.clear()
-        _scanState.value = LibraryScanState.Scanning(0)
+        _scanState.value = LibraryScanState.Scanning(_publications.value.size)
 
         val trees = _folders.value
         scanJob = viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 var found = 0
                 var skipped = 0
+                // What this walk actually saw, so what it did not see can go afterwards.
+                val seen = mutableSetOf<String>()
                 // Each walk carries the tree it came from, so a publication can be
                 // attributed to the source it was reached through. The managed folder is
                 // not a source, so its walk carries null.
@@ -506,7 +518,10 @@ class LibraryViewModel(
                 for ((tree, walk) in walks) {
                     walk.collect { event ->
                         when (event) {
-                            is ScanEvent.Found -> append(event.publication, tree)
+                            is ScanEvent.Found -> {
+                                seen += event.publication.id
+                                append(event.publication, tree)
+                            }
                             is ScanEvent.Skipped -> Unit
                             is ScanEvent.Finished -> {
                                 found += event.found
@@ -514,6 +529,14 @@ class LibraryViewModel(
                             }
                         }
                     }
+                }
+                // Anything the walk did not meet is gone from the folders it walked.
+                // Only ever a removal of rows, never a clear: a reader watching the screen
+                // sees the one book they deleted leave, not the whole shelf blink.
+                val vanished = _publications.value.filterNot { it.id in seen }.map { it.id }
+                if (vanished.isNotEmpty()) {
+                    _publications.update { list -> list.filterNot { it.id in vanished } }
+                    vanished.forEach { covers.remove(it); locations.remove(it) }
                 }
                 _scanState.value = LibraryScanState.Finished(found, skipped)
                 rebuild()
