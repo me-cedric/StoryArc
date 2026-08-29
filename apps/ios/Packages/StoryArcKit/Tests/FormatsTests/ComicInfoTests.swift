@@ -46,6 +46,50 @@ struct ComicInfoTests {
         #expect(info.summary == "A summary with an & in it, to prove entities are decoded.")
     }
 
+    // MARK: - Genre and tags
+    //
+    // Asserted against XML written here rather than against the corpus: the shared
+    // fixtures carry no `<Genre>` or `<Tags>`, and `library-browsing` needs both
+    // filters covered without regenerating a corpus both platforms' format tests
+    // are pinned to. Android's `ComicInfoTest` asserts the same four cases.
+
+    @Test("Genre and Tags are separate lists, comma-split like every other list field")
+    func genresAndTags() {
+        let info = ComicInfo(
+            data: Data(
+                """
+                <ComicInfo>\
+                <Genre>Superhero, Mystery</Genre>\
+                <Tags>reprint,annual</Tags>\
+                </ComicInfo>
+                """.utf8
+            )
+        )
+        #expect(info?.genres == ["Superhero", "Mystery"])
+        #expect(info?.tags == ["reprint", "annual"])
+    }
+
+    @Test("A file that names neither yields empty lists rather than nothing")
+    func genresAbsent() {
+        // "Present but empty" and "absent" are the same to a filter, and an
+        // optional list would offer a distinction nothing can act on.
+        let info = ComicInfo(data: Data("<ComicInfo><Series>Bone</Series></ComicInfo>".utf8))
+        #expect(info?.genres.isEmpty == true)
+        #expect(info?.tags.isEmpty == true)
+    }
+
+    @Test("An empty element is not a genre called nothing")
+    func emptyGenreElement() {
+        let info = ComicInfo(data: Data("<ComicInfo><Genre></Genre></ComicInfo>".utf8))
+        #expect(info?.genres.isEmpty == true)
+    }
+
+    @Test("An entity inside a genre is decoded, as it is everywhere else")
+    func genreEntities() {
+        let info = ComicInfo(data: Data("<ComicInfo><Genre>Sword &amp; Sorcery</Genre></ComicInfo>".utf8))
+        #expect(info?.genres == ["Sword & Sorcery"])
+    }
+
     @Test("The issue number stays a string")
     func numberIsAString() {
         // "3.5" and "Annual 1" are both real issue numbers, and rounding either

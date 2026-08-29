@@ -1,5 +1,5 @@
 {
-  "originHash" : "dbe84157ca913ee4108bf25ed5f5ab44c234a6deaf31cc1da89091edfe683474",
+  "originHash" : "4f65ba41d97da5ec560b66634d70c8fd3e4a2803c79b3bab73bcfb6291430f43",
   "pins" : [
     {
       "identity" : "cryptoswift",
@@ -35,6 +35,15 @@
       "state" : {
         "revision" : "584db89a4c3c3be27206cce6afde037b2b6e38d8",
         "version" : "4.0.1"
+      }
+    },
+    {
+      "identity" : "smbclient",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kishikawakatsumi/SMBClient.git",
+      "state" : {
+        "revision" : "e636c2b2458930770932a36d311ec9d478575b90",
+        "version" : "0.3.1"
       }
     },
     {

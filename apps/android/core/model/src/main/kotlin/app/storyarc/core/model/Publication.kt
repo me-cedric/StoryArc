@@ -172,6 +172,21 @@ data class Publication(
     val year: Int? = null,
     val language: String? = null,
     val summary: String? = null,
+    /**
+     * What kind of thing this is: "Superhero", "Manga", "Science Fiction".
+     *
+     * `library-browsing` filters by genre and by tag, and keeps them apart because
+     * the files do: `ComicInfo.xml` writes `<Genre>` for the shelf a publication
+     * belongs on and `<Tags>` for whatever else the cataloguer wanted to record.
+     * Merging them would make one filter out of two the reader can tell apart.
+     *
+     * Empty rather than null: a publication with no genre and a publication whose
+     * genre list is empty are the same thing, and a nullable list would offer a
+     * distinction nothing can act on.
+     */
+    val genres: List<String> = emptyList(),
+    /** Free-form labels the cataloguer added. See [genres]. */
+    val tags: List<String> = emptyList(),
     /** Where the metadata above came from, and therefore what may replace it. */
     val origin: MetadataOrigin,
     /**

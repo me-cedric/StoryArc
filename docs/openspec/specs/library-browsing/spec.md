@@ -117,3 +117,22 @@ The app SHALL surface in-progress publications first.
 #### Scenario: Next in series
 - **WHEN** a user finishes a volume that has a successor in the same series
 - **THEN** the next volume is offered immediately, both at the end of the reader and in the continue row
+
+## Open Questions
+
+- **Publication status has no source.** Neither `ComicInfo.xml` nor an EPUB
+  package document states whether a series is ongoing, on hiatus, completed or
+  cancelled; a Kavita series does. The filter is therefore unbuildable over a
+  local library, and would narrow to nothing for every publication a folder or a
+  share supplies. To be resolved when a server's publications join the unified
+  library: either the filter is scoped to the sources that report a status and
+  says so, or the app records a status a reader sets by hand. It will not be
+  inferred from a file that does not carry one.
+- **Download state waits on the library knowing what is downloaded.** The record
+  of downloaded files belongs to `offline-downloads`, and the library is
+  assembled from a scan that never consults it. To be resolved with the
+  "Filtering offline" scenario above, which is what it is for.
+- **Source is the scope selector, not a filter group.** "Scoping to one source"
+  in *Unified library* already describes it, and it behaves differently from a
+  filter: it narrows search as well, and it persists on its own. Building it
+  twice would give a reader two controls that disagree.

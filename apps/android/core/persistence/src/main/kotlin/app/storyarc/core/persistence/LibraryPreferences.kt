@@ -8,6 +8,7 @@ import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.RecentSearches
+import app.storyarc.core.model.YearRange
 
 /**
  * How the library was left, remembered across launches.
@@ -37,6 +38,11 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
         private const val READ_STATES = "readStates"
         private const val FORMATS = "formats"
         private const val LANGUAGES = "languages"
+        private const val PUBLISHERS = "publishers"
+        private const val GENRES = "genres"
+        private const val TAGS = "tags"
+        private const val YEAR_FROM = "yearFrom"
+        private const val YEAR_TO = "yearTo"
         private const val LAYOUT = "layout"
         private const val RECENT_SEARCHES = "recentSearches"
 
@@ -61,19 +67,31 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
     fun query(): LibraryQuery = LibraryQuery(
         readStates = readStates(),
         formats = formats(),
-        languages = preferences.getStringSet(LANGUAGES, emptySet()).orEmpty(),
+        languages = strings(LANGUAGES),
+        publishers = strings(PUBLISHERS),
+        genres = strings(GENRES),
+        tags = strings(TAGS),
+        years = YearRange(from = year(YEAR_FROM), to = year(YEAR_TO)),
         sort = enumOrNull<LibrarySort>(preferences.getString(SORT, null)) ?: LibrarySort.TITLE,
         ascending = preferences.getBoolean(ASCENDING, true),
     )
 
     fun save(query: LibraryQuery) {
-        preferences.edit()
+        val editor = preferences.edit()
             .putString(SORT, query.sort.name)
             .putBoolean(ASCENDING, query.ascending)
             .putStringSet(READ_STATES, query.readStates.map { it.name }.toSet())
             .putStringSet(FORMATS, query.formats.map { it.name }.toSet())
             .putStringSet(LANGUAGES, query.languages)
-            .apply()
+            .putStringSet(PUBLISHERS, query.publishers)
+            .putStringSet(GENRES, query.genres)
+            .putStringSet(TAGS, query.tags)
+        // Removed rather than written as a sentinel. An absent bound is one of the
+        // three states a range has, and a stored -1 would come back as a filter the
+        // reader never set.
+        putYear(editor, YEAR_FROM, query.years.from)
+        putYear(editor, YEAR_TO, query.years.to)
+        editor.apply()
     }
 
     /**
@@ -102,6 +120,17 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
 
     fun save(layout: LibraryLayout) {
         preferences.edit().putString(LAYOUT, layout.name).apply()
+    }
+
+    /** One stored facet, or an empty set when nothing was ever written for it. */
+    private fun strings(key: String): Set<String> =
+        preferences.getStringSet(key, emptySet()).orEmpty()
+
+    private fun year(key: String): Int? =
+        if (preferences.contains(key)) preferences.getInt(key, 0) else null
+
+    private fun putYear(editor: SharedPreferences.Editor, key: String, value: Int?) {
+        if (value == null) editor.remove(key) else editor.putInt(key, value)
     }
 
     private fun readStates(): Set<ReadState> =

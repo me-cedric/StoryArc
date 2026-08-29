@@ -88,6 +88,20 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
     public let language: String?
     public let summary: String?
 
+    /// What kind of thing this is: "Superhero", "Manga", "Science Fiction".
+    ///
+    /// `library-browsing` filters by genre and by tag, and keeps them apart because
+    /// the files do: `ComicInfo.xml` writes `<Genre>` for the shelf a publication
+    /// belongs on and `<Tags>` for whatever else the cataloguer wanted to record.
+    /// Merging them would make one filter out of two the reader can tell apart.
+    ///
+    /// Empty rather than `nil`: a publication with no genre and a publication whose
+    /// genre list is empty are the same thing, and an optional array would offer a
+    /// distinction nothing can act on.
+    public let genres: [String]
+    /// Free-form labels the cataloguer added. See ``genres``.
+    public let tags: [String]
+
     /// Where the metadata above came from, and therefore what may replace it.
     public let origin: MetadataOrigin
 
@@ -160,6 +174,8 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
         year: Int? = nil,
         language: String? = nil,
         summary: String? = nil,
+        genres: [String] = [],
+        tags: [String] = [],
         origin: MetadataOrigin,
         pageCount: Int? = nil,
         skippedPageCount: Int = 0,
@@ -187,6 +203,8 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
         self.year = year
         self.language = language
         self.summary = summary
+        self.genres = genres
+        self.tags = tags
         self.origin = origin
         self.pageCount = pageCount
         self.skippedPageCount = skippedPageCount

@@ -304,22 +304,6 @@ public final class LibraryModel {
         .of(progress[publication.id])
     }
 
-    /// Clears every filter, keeping the search and the sort.
-    ///
-    /// `library-browsing`: an empty-looking library must say filters are active
-    /// and offer one action to clear them. This is that action.
-    public func clearFilters() {
-        query.readStates = []
-        query.formats = []
-        query.languages = []
-    }
-
-    /// Formats actually present, so the filter never offers one that would empty
-    /// the library.
-    public var availableFormats: [PublicationFormat] {
-        Array(Set(publications.map(\.format))).sorted { $0.displayName < $1.displayName }
-    }
-
     /// Where a publication's file is, so the app layer can hand it to a reader.
     public func location(of publication: Publication) -> URL? {
         locations[publication.id]

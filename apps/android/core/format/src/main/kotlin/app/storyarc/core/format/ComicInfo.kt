@@ -38,6 +38,21 @@ data class ComicInfo(
     val pageCount: Int?,
     val language: String?,
     /**
+     * `<Genre>` — the shelf the publication belongs on, comma-separated.
+     *
+     * The schema has always defined it and this parser did not read it, which is why
+     * `library-browsing`'s genre filter had nothing to filter on. Comma-split like
+     * every other list field in ComicRack's format.
+     */
+    val genres: List<String>,
+    /**
+     * `<Tags>` — whatever else the cataloguer recorded, comma-separated.
+     *
+     * Kept apart from [genres] because the file keeps them apart and the reader
+     * filters on them separately.
+     */
+    val tags: List<String>,
+    /**
      * The direction the publication declares, or `null` when it declares none.
      *
      * `Manga=YesAndRightToLeft` is a declaration. `Manga=Yes` is **not**: it says
@@ -113,6 +128,8 @@ data class ComicInfo(
                 day = value("Day")?.toIntOrNull(),
                 pageCount = value("PageCount")?.toIntOrNull(),
                 language = value("LanguageISO") ?: value("Language"),
+                genres = list("Genre"),
+                tags = list("Tags"),
                 declaredDirection = when (value("Manga")?.lowercase()) {
                     "yesandrighttoleft" -> ReadingDirection.RIGHT_TO_LEFT
                     "no" -> ReadingDirection.LEFT_TO_RIGHT

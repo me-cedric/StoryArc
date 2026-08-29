@@ -704,16 +704,12 @@ class LibraryViewModel(
      * Clears every filter, keeping the search and the sort.
      *
      * `library-browsing`: an empty-looking library must say filters are active and
-     * offer one action to clear them. This is that action.
+     * offer one action to clear them. This is that action. Which groups it clears
+     * lives on the query itself, so a facet added to the query cannot be forgotten
+     * here.
      */
     fun clearFilters() {
-        setQuery(
-            _query.value.copy(
-                readStates = emptySet(),
-                formats = emptySet(),
-                languages = emptySet(),
-            ),
-        )
+        setQuery(_query.value.withoutFilters())
     }
 
     /**
@@ -722,6 +718,35 @@ class LibraryViewModel(
      */
     fun availableFormats(): List<PublicationFormat> =
         _publications.value.map { it.format }.distinct().sortedBy { it.displayName }
+
+    /** Languages actually present, as codes. The screen names them for the reader. */
+    fun availableLanguages(): List<String> =
+        _publications.value.mapNotNull { it.language }.distinct().sorted()
+
+    /** Publishers actually present, as the files spell them. */
+    fun availablePublishers(): List<String> =
+        _publications.value.mapNotNull { it.publisher }.distinct().sorted()
+
+    /** Genres actually present, gathered from every publication's list. */
+    fun availableGenres(): List<String> =
+        _publications.value.flatMap { it.genres }.distinct().sorted()
+
+    /** Tags actually present. Kept apart from [availableGenres] because the files do. */
+    fun availableTags(): List<String> =
+        _publications.value.flatMap { it.tags }.distinct().sorted()
+
+    /**
+     * The decades the library spans, newest first.
+     *
+     * `library-browsing` asks for a year *range*, and [LibraryQuery.years] carries
+     * an arbitrary one — which is what the tests assert and what a future control
+     * will set. What the menu offers is decades, because a menu cannot ask for two
+     * numbers without becoming a form, and a decade is a range a reader picks in one
+     * tap. Derived from the years actually present, so the filter never offers a
+     * decade the library has nothing in.
+     */
+    fun availableDecades(): List<Int> =
+        _publications.value.mapNotNull { it.year }.map { it - it % 10 }.distinct().sortedDescending()
 
     /** Recomputes what is on screen from the library and the query. */
     private fun rebuild() {
