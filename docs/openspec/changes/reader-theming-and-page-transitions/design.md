@@ -36,8 +36,13 @@ whose EPUB axes map one-to-one onto what the user asked for.
 | Reading direction | `readingProgression` | no |
 | Spread (fixed-layout) | `spread` | no |
 
-Also available and worth exposing later, not in this change: `hyphens`,
-`ligatures`, `typeScale`, `textNormalization`, `paragraphIndent`, `imageFilter`.
+Also available and worth exposing later, not in this change: `ligatures`,
+`typeScale`, `textNormalization`, `paragraphIndent`, `imageFilter`.
+
+`hyphens` was on that list and has since been built, as the tenth axis. It is
+mapped nil rather than false when the reader has not asked for it, so a
+publication that hyphenates itself goes on doing so; and it sits with the axes
+`publisherStyles` overrides, which the table above already had it doing.
 
 **The `publisherStyles` coupling is the design constraint here, not a footnote.**
 Seven of the eleven axes are inert while publisher styles are on. That is exactly
