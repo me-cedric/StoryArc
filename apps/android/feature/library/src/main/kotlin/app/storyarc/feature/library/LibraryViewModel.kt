@@ -1478,4 +1478,21 @@ class LibraryViewModel(
         }
         return LibraryIndex.next(after, known)
     }
+
+    /**
+     * What the reader came from, for `comic-reader`'s previous-chapter action.
+     *
+     * The mirror of [next] and resolved the same way, list before series: a reader who
+     * arranged a crossover expects to walk back through their own order, not through the
+     * issue numbers it cuts across.
+     */
+    fun previous(before: Publication): Publication? {
+        val known = _publications.value
+        for (list in _shelves.value.lists) {
+            if (before.id !in list.entries) continue
+            val previousId = list.previous(before.id) ?: continue
+            known.firstOrNull { it.id == previousId }?.let { return it }
+        }
+        return LibraryIndex.previous(before, known)
+    }
 }

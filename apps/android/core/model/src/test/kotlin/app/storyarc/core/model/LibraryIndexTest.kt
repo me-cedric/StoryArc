@@ -367,6 +367,33 @@ class LibraryIndexTest {
         assertNull(LibraryIndex.next(alone, listOf(alone, publication("Akira"))))
     }
 
+    // Previous in series.
+
+    @Test
+    fun `the previous issue is the one before this number, not the row above`() {
+        val tenth = publication("Bone #10", series = "Bone", number = "10")
+        val library = listOf(
+            tenth,
+            publication("Bone #2", series = "Bone", number = "2"),
+            publication("Bone #9", series = "Bone", number = "9"),
+            publication("Akira", series = "Akira", number = "1"),
+        )
+        assertEquals("Bone #9", LibraryIndex.previous(tenth, library)?.displayTitle)
+    }
+
+    @Test
+    fun `the first issue in a series has no previous`() {
+        val first = publication("Bone #1", series = "Bone", number = "1")
+        val library = listOf(first, publication("Bone #2", series = "Bone", number = "2"))
+        assertNull(LibraryIndex.previous(first, library))
+    }
+
+    @Test
+    fun `a publication with no series has no previous either`() {
+        val alone = publication("Watchmen")
+        assertNull(LibraryIndex.previous(alone, listOf(alone, publication("Akira"))))
+    }
+
     // Continue reading.
 
     @Test

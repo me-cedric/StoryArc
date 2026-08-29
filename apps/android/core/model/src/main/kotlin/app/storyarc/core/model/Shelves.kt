@@ -71,6 +71,19 @@ data class ReadingList(
     }
 
     /**
+     * What comes before a publication in this list.
+     *
+     * `comic-reader`'s chapter actions run both ways, and a reading list orders its
+     * entries for exactly this -- going back through a crossover in the order the reader
+     * arranged it, rather than in whatever order the series numbers fell.
+     */
+    fun previous(before: String): String? {
+        val position = entries.indexOf(before)
+        if (position <= 0) return null
+        return entries[position - 1]
+    }
+
+    /**
      * How far through the list a reader is.
      *
      * Counted as "everything before the first unfinished entry", not "how many are

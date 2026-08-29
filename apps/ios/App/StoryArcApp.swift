@@ -369,12 +369,12 @@ struct StoryArcApp: App {
                         url: selection.url,
                         progress: progress,
                         preferences: ReaderPreferences(),
-                        // `comic-reader`: the end of one volume offers the next. The app
-                        // layer answers this because it is the only place that can see both
-                        // the reader and the library — and the library is what knows a
-                        // reading list may have a different opinion about what comes next.
+                        // `comic-reader`'s chapter actions and its end screen both ask what
+                        // surrounds this issue, and only the app layer sees both the reader
+                        // and the library — including a list, whose order beats the series.
+                        previousInSeries: library.previous(before: selection.publication),
                         nextInSeries: library.next(after: selection.publication),
-                        onOpenNext: openNext,
+                        onOpen: openNext,
                         blockedSince: { SmbReachability.blockedSince },
                         onDismissTrouble: { SmbReachability.clear() },
                         // Only for a publication that lives on a share. Everything else is

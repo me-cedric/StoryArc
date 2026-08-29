@@ -117,6 +117,29 @@ public enum LibraryIndex {
             .min { issueNumber(of: $0) < issueNumber(of: $1) }
     }
 
+    /// The publication before this one in the same series.
+    ///
+    /// `comic-reader`: "the reader offers previous and next chapter actions without
+    /// returning to the library". The mirror of ``next(after:in:)`` and deliberately
+    /// written the same way — a series is ordered by issue number, so going back is
+    /// the same query with the comparison and the tie-break reversed.
+    ///
+    /// `nil` when the publication names no series, when nothing precedes it, or when
+    /// what precedes it cannot be opened.
+    public static func previous(before publication: Publication, in library: [Publication]) -> Publication? {
+        guard let series = publication.series else { return nil }
+        let current = issueNumber(of: publication)
+
+        return library
+            .filter { candidate in
+                candidate.id != publication.id
+                    && candidate.series == series
+                    && candidate.isOpenable
+                    && issueNumber(of: candidate) < current
+            }
+            .max { issueNumber(of: $0) < issueNumber(of: $1) }
+    }
+
     /// An issue number as a number, so #10 follows #9.
     ///
     /// A publication with no number sorts last, which keeps a one-off out of the

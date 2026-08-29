@@ -47,4 +47,10 @@
     <string name="reader_adjust_crop">Recortar bordes</string>
     <string name="reader_adjust_crop_note">Elimina un margen blanco o negro liso, página a página. Una página sin ese margen se deja intacta.</string>
     <string name="reader_adjust_crop_this_page">Recortar esta página</string>
+    <string name="reader_chapter_previous">Capítulo anterior</string>
+    <string name="reader_chapter_next">Capítulo siguiente</string>
+    <string name="reader_return">Volver a la página %1$d</string>
+    <string name="reader_spreads">Dos páginas lado a lado</string>
+    <string name="reader_spreads_offset">Desplazar el emparejamiento una página</string>
+    <string name="reader_separator">Mostrar separador de páginas</string>
 </resources>

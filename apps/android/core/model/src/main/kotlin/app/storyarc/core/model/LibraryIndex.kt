@@ -129,6 +129,32 @@ object LibraryIndex {
             .minByOrNull { issueNumber(it) }
     }
 
+
+    /**
+     * The publication before this one in the same series.
+     *
+     * `comic-reader`: "the reader offers previous and next chapter actions without
+     * returning to the library". The mirror of [next] and deliberately written the same
+     * way — a series is ordered by issue number, so going back is the same query with
+     * the comparison and the tie-break reversed.
+     *
+     * `null` when the publication names no series, when nothing precedes it, or when
+     * what precedes it cannot be opened.
+     */
+    fun previous(before: Publication, library: List<Publication>): Publication? {
+        val series = before.series ?: return null
+        val current = issueNumber(before)
+
+        return library
+            .filter {
+                it.id != before.id &&
+                    it.series == series &&
+                    it.isOpenable &&
+                    issueNumber(it) < current
+            }
+            .maxByOrNull { issueNumber(it) }
+    }
+
     /**
      * An issue number as a number, so #10 follows #9.
      *

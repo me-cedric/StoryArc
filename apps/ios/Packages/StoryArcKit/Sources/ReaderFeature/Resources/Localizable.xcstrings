@@ -349,6 +349,66 @@
         }
       }
     },
+    "reader.chapter.next": {
+      "comment": "Moves to the publication after this one in the series, from inside the reader.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächstes Kapitel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next chapter"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capítulo siguiente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapitre suivant"
+          }
+        }
+      }
+    },
+    "reader.chapter.previous": {
+      "comment": "Moves to the publication before this one in the series, from inside the reader.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorheriges Kapitel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous chapter"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capítulo anterior"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chapitre précédent"
+          }
+        }
+      }
+    },
     "reader.close": {
       "comment": "Leaves the reader and returns to the library.",
       "extractionState": "manual",
@@ -1049,6 +1109,36 @@
         }
       }
     },
+    "reader.return %lld": {
+      "comment": "Goes back to the page the reader was on before a slider jump.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück zu Seite %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to page %lld"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a la página %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retour à la page %lld"
+          }
+        }
+      }
+    },
     "reader.rightToLeft": {
       "comment": "Spoken by VoiceOver so the reading direction is not something a user has to infer from the gesture, and shown as the right-to-left row of the direction picker.",
       "extractionState": "manual",
@@ -1075,6 +1165,96 @@
           "stringUnit": {
             "state": "translated",
             "value": "De droite à gauche"
+          }
+        }
+      }
+    },
+    "reader.separator": {
+      "comment": "Draws a line between pages in a continuous scroll.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seitentrenner anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show page separator"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar separador de páginas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher le séparateur de pages"
+          }
+        }
+      }
+    },
+    "reader.spreads": {
+      "comment": "Turns on showing two facing pages together in landscape.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zwei Seiten nebeneinander"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Two pages side by side"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dos páginas lado a lado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deux pages côte à côte"
+          }
+        }
+      }
+    },
+    "reader.spreads.offset": {
+      "comment": "Shifts which pages are paired, for a publication whose cover throws the pairing off.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paarung um eine Seite verschieben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shift the pairing by one"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desplazar el emparejamiento una página"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Décaler l’appariement d’une page"
           }
         }
       }

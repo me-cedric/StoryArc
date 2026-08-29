@@ -851,8 +851,9 @@ class MainActivity : ComponentActivity() {
                             // opened.
                             // The library is what knows a reading list may have a different
                             // opinion about what comes next than the series does.
+                            previousInSeries = libraryViewModel.previous(selection.first),
                             nextInSeries = libraryViewModel.next(selection.first),
-                            onOpenNext = { publication ->
+                            onOpen = { publication ->
                                 // The selection is replaced rather than a second reader
                                 // pushed: stacking them would leave a pile behind a
                                 // long series.

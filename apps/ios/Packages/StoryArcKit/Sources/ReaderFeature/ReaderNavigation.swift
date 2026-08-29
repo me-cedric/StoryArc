@@ -29,14 +29,4 @@ extension ReaderView {
         model.readingDirection.position(index, of: model.pages.count)
     }
 
-    var pageSlider: Binding<Double> {
-        Binding(
-            get: { Double(model.currentIndex) },
-            set: { new in
-                let index = Int(new.rounded())
-                guard model.pages.indices.contains(index) else { return }
-                displayIndex = displayIndex(forModel: index)
-            }
-        )
-    }
 }

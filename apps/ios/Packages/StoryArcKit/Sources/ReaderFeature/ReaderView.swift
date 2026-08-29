@@ -29,6 +29,9 @@ public struct ReaderView: View {
     @State var model: ReaderModel
     /// `comic-reader`: nothing is on screen while the user is reading. The chrome
     /// starts visible so the way out is discoverable, and a tap hides it.
+    ///
+    /// Internal rather than private because the tap routing lives in
+    /// `ReaderNavigation.swift`, and a `private` member cannot cross a file.
     @State var wantsChrome = true
 
     /// Whether the chrome is on screen.
@@ -50,12 +53,17 @@ public struct ReaderView: View {
     /// `ReaderContainers.swift` and a `private` member cannot cross a file.
     @State var displayIndex = 0
 
-    /// What follows this publication, and how to open it.
+    /// What surrounds this publication in its series, and how to open one of them.
     ///
     /// Supplied by the app layer: the reader does not know what a library is, and a
     /// feature module never depends on another feature module.
-    private let nextInSeries: Publication?
-    private let onOpenNext: (Publication) -> Void
+    ///
+    /// `comic-reader` asks for previous and next chapter actions "without returning to
+    /// the library", and one publication of a series is what a chapter is here — so the
+    /// same two neighbours answer both the chapter buttons and the end screen.
+    let previousInSeries: Publication?
+    let nextInSeries: Publication?
+    let onOpen: (Publication) -> Void
 
     /// Supplied by the app layer for the same reason as the above: the reader does not know
     /// what a network share is, and `network-share`'s two thresholds are the only part of
@@ -69,8 +77,9 @@ public struct ReaderView: View {
         url: URL,
         progress: ProgressStore? = nil,
         preferences: ReaderPreferences? = nil,
+        previousInSeries: Publication? = nil,
         nextInSeries: Publication? = nil,
-        onOpenNext: @escaping (Publication) -> Void = { _ in },
+        onOpen: @escaping (Publication) -> Void = { _ in },
         blockedSince: @escaping () -> Date? = { nil },
         onDismissTrouble: @escaping () -> Void = {},
         onDownloadForOffline: (() -> Void)? = nil
@@ -87,8 +96,9 @@ public struct ReaderView: View {
         self.blockedSince = blockedSince
         self.onDismissTrouble = onDismissTrouble
         self.onDownloadForOffline = onDownloadForOffline
+        self.previousInSeries = previousInSeries
         self.nextInSeries = nextInSeries
-        self.onOpenNext = onOpenNext
+        self.onOpen = onOpen
         _fit = State(initialValue: preferences?.pageFit() ?? .screen)
         let shelf = publication.series ?? publication.displayTitle
         self.shelf = shelf
@@ -142,6 +152,25 @@ public struct ReaderView: View {
 
     /// Whether the thumbnail strip is open.
     @State var isBrowsingThumbnails = false
+
+    /// Where a jump came from, so `comic-reader`'s "control to return to the previous
+    /// position" has somewhere to return to.
+    @State var pageReturn = PageReturn()
+
+    /// The page the slider is scrubbing towards, while the drag is in progress.
+    ///
+    /// `comic-reader`: "a thumbnail of the target page follows the drag ... releasing
+    /// jumps there". So the drag moves this and nothing else, and only the release moves
+    /// the reader — a slider that turned every page it passed over would decode a
+    /// hundred pages on the way across a comic.
+    @State var scrubbing: Int?
+
+    /// Whether the finger is on the slider.
+    ///
+    /// The two ways a slider is moved need different answers: a drag scrubs and only the
+    /// release moves the reader, while VoiceOver's increment is a whole gesture with no
+    /// drag around it and has to move the reader at once.
+    @State var isScrubbing = false
 
     /// What to do to a page before it is shown, for this series.
     @State var adjustments = ImageAdjustments()
@@ -200,7 +229,7 @@ public struct ReaderView: View {
                         title: model.publication.displayTitle,
                         colours: model.coverColours,
                         next: nextInSeries,
-                        onOpenNext: onOpenNext,
+                        onOpenNext: onOpen,
                         onBack: { hasReachedEnd = false },
                         onClose: { dismiss() }
                     )
@@ -324,6 +353,8 @@ public struct ReaderView: View {
             .onChange(of: displayIndex) { _, new in
                 let index = modelIndex(forDisplay: new)
                 guard model.pages.indices.contains(index) else { return }
+                // Reading back to where a jump started retires the offer to go there.
+                pageReturn = pageReturn.moved(to: index)
                 Task { await model.go(to: index) }
             }
             // And once, the other way, when the publication opens on a page that is
@@ -349,4 +380,5 @@ public struct ReaderView: View {
                 isRightToLeft ? Text("reader.rightToLeft", bundle: .module) : Text(verbatim: "")
             )
     }
+
 }

@@ -47,4 +47,10 @@
     <string name="reader_adjust_crop">Ränder beschneiden</string>
     <string name="reader_adjust_crop_note">Entfernt einen einfarbig weißen oder schwarzen Rand, Seite für Seite. Eine Seite ohne solchen Rand bleibt unverändert.</string>
     <string name="reader_adjust_crop_this_page">Diese Seite beschneiden</string>
+    <string name="reader_chapter_previous">Vorheriges Kapitel</string>
+    <string name="reader_chapter_next">Nächstes Kapitel</string>
+    <string name="reader_return">Zurück zu Seite %1$d</string>
+    <string name="reader_spreads">Zwei Seiten nebeneinander</string>
+    <string name="reader_spreads_offset">Paarung um eine Seite verschieben</string>
+    <string name="reader_separator">Seitentrenner anzeigen</string>
 </resources>

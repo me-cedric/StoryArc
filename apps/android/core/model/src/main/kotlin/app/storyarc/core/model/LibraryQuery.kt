@@ -145,4 +145,3 @@ enum class LibraryLayout {
     GRID,
     LIST,
 }
-

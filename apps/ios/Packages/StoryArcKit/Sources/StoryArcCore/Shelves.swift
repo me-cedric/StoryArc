@@ -89,6 +89,16 @@ public struct ReadingList: Sendable, Identifiable, Equatable {
         return entries[position + 1]
     }
 
+    /// What comes before a publication in this list.
+    ///
+    /// `comic-reader`'s chapter actions run both ways, and a reading list orders its
+    /// entries for exactly this — going back through a crossover in the order the reader
+    /// arranged it, rather than in whatever order the series numbers fell.
+    public func previous(before id: String) -> String? {
+        guard let position = entries.firstIndex(of: id), position > 0 else { return nil }
+        return entries[position - 1]
+    }
+
     /// How far through the list a reader is.
     ///
     /// Counted as "everything before the first unfinished entry", not "how many are

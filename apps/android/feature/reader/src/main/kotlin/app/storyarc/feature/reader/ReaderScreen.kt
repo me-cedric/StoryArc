@@ -35,11 +35,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.ScreenLockRotation
 import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -107,6 +110,7 @@ import app.storyarc.core.format.PageEntry
 import app.storyarc.core.model.CoverColours
 import app.storyarc.core.model.ImageAdjustments
 import app.storyarc.core.model.PageFit
+import app.storyarc.core.model.PageReturn
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingDirection
@@ -143,12 +147,17 @@ fun ReaderScreen(
     /** Where the fit choice is remembered. Absent in previews. */
     preferences: ReaderPreferences? = null,
     /**
-     * What follows this publication, and how to open it. Supplied by the app layer:
-     * the reader does not know what a library is, and a feature module never
-     * depends on another feature module.
+     * What surrounds this publication in its series, and how to open one of them.
+     * Supplied by the app layer: the reader does not know what a library is, and a
+     * feature module never depends on another feature module.
+     *
+     * `comic-reader` asks for previous and next chapter actions "without returning to
+     * the library", and one publication of a series is what a chapter is here — so the
+     * same two neighbours answer both the chapter buttons and the end screen.
      */
+    previousInSeries: Publication? = null,
     nextInSeries: Publication? = null,
-    onOpenNext: (Publication) -> Unit = {},
+    onOpen: (Publication) -> Unit = {},
     /**
      * When reads from the source started failing, if they have.
      *
@@ -219,8 +228,9 @@ fun ReaderScreen(
                 viewModel = viewModel,
                 pages = pages,
                 onClose = onClose,
+                previousInSeries = previousInSeries,
                 nextInSeries = nextInSeries,
-                onOpenNext = onOpenNext,
+                onOpen = onOpen,
                 fit = fit,
                 onFitChange = { fit = it },
                 matte = matte,
@@ -263,8 +273,9 @@ private fun Pager(
     viewModel: ReaderViewModel,
     pages: List<PageEntry>,
     onClose: () -> Unit,
+    previousInSeries: Publication?,
     nextInSeries: Publication?,
-    onOpenNext: (Publication) -> Unit,
+    onOpen: (Publication) -> Unit,
     fit: PageFit,
     onFitChange: (PageFit) -> Unit,
     /** What shows behind and beside the page. See [matteColour]. */
@@ -382,21 +393,51 @@ private fun Pager(
 
     /** Whether the thumbnail strip is open. */
     var isBrowsingThumbnails by remember { mutableStateOf(false) }
+
+    /**
+     * Where a jump came from, so `comic-reader`'s "control to return to the previous
+     * position" has somewhere to return to.
+     */
+    var pageReturn by remember { mutableStateOf(PageReturn()) }
+
+    /**
+     * The page the slider is scrubbing towards, while the drag is in progress.
+     *
+     * `comic-reader`: "a thumbnail of the target page follows the drag ... releasing
+     * jumps there". So the drag moves this and nothing else, and only the release moves
+     * the reader — a slider that turned every page it passed over would decode a hundred
+     * pages on the way across a comic. In the publication's own numbering, like the
+     * slider it drives.
+     */
+    var scrubbing by remember { mutableStateOf<Int?>(null) }
     // The strip and an open menu both count as interaction: reading either takes
     // longer than four seconds, and the chrome vanishing underneath would take them
     // with it.
-    LaunchedEffect(isChromeVisible, position, isMenuOpen, isBrowsingThumbnails, isAdjusting) {
-        // Not while the adjustment controls are open: a reader dragging a slider has not
-        // stopped interacting because they have not touched the page.
+    LaunchedEffect(
+        isChromeVisible,
+        position,
+        isMenuOpen,
+        isBrowsingThumbnails,
+        isAdjusting,
+        scrubbing,
+    ) {
+        // Not while the adjustment controls are open, and not mid-scrub: a reader dragging
+        // a slider has not stopped interacting because they have not touched the page, and
+        // a drag no longer moves `position` for the countdown to notice.
         if (!isChromeVisible || isMenuOpen || isBrowsingThumbnails || isAdjusting) {
             return@LaunchedEffect
         }
+        if (scrubbing != null) return@LaunchedEffect
         delay(CHROME_TIMEOUT_MILLIS)
         isChromeVisible = false
     }
 
     // The pager owns its position and the model follows, in one direction only.
-    LaunchedEffect(position) { viewModel.warm(modelIndex(position)) }
+    LaunchedEffect(position) {
+        // Reading back to where a jump started retires the offer to go there.
+        pageReturn = pageReturn.moved(modelIndex(position))
+        viewModel.warm(modelIndex(position))
+    }
 
     /**
      * What a tap means, by where it landed.
@@ -428,6 +469,27 @@ private fun Pager(
             // simply stays put, which is indistinguishable from a missed tap.
             haptics.play(StoryArcFeedback.REFUSAL)
         }
+    }
+
+    /**
+     * Moves the reader to a page it did not reach by turning.
+     *
+     * Separate from [turn] because a jump is the thing `comic-reader` offers a way back
+     * from: "releasing jumps there, with a control to return to the previous position".
+     * Turning a page is not. In the publication's own numbering, because that is what
+     * the slider and the strip both count in.
+     */
+    fun jump(page: Int) {
+        if (page !in pages.indices) return
+        pageReturn = pageReturn.jumped(modelIndex(position), page)
+        scope.launch { paging.goTo(displayIndex(page), animate = false) }
+    }
+
+    /** Goes back to where the reader was before the last jump. */
+    fun returnFromJump() {
+        val mark = pageReturn.mark ?: return
+        pageReturn = pageReturn.taken()
+        scope.launch { paging.goTo(displayIndex(mark), animate = false) }
     }
 
     fun handleTap(point: Offset, size: IntSize) {
@@ -597,7 +659,7 @@ private fun Pager(
             title = viewModel.publication.displayTitle,
             colours = coverColours,
             next = nextInSeries,
-            onOpenNext = onOpenNext,
+            onOpenNext = onOpen,
             onBack = { hasReachedEnd = false },
             onClose = onClose,
         )
@@ -671,7 +733,10 @@ private fun Pager(
                         currentIndex = modelIndex(paging.current),
                         onSelect = { index ->
                             isBrowsingThumbnails = false
-                            scope.launch { paging.goTo(displayIndex(index), animate = false) }
+                            // A jump, like the slider's: it leaves the same mark, so the
+                            // way back from a mis-tap in a three-hundred-page strip is
+                            // one control.
+                            jump(index)
                         },
                         modifier = Modifier.padding(bottom = StoryArcSpace.sm),
                     )
@@ -691,16 +756,32 @@ private fun Pager(
                     )
                 }
 
+                ChapterRow(
+                    previous = previousInSeries,
+                    next = nextInSeries,
+                    onOpen = onOpen,
+                )
+
+                // The scrub target while a drag is in progress, and where the reader
+                // actually is otherwise. `comic-reader` asks for "the page number and
+                // total" beside the thumbnail, and during a drag the number a reader
+                // wants is the one they are heading for.
+                val sliderIndex = scrubbing ?: modelIndex(paging.current)
+
+                scrubbing?.let { target ->
+                    ScrubThumbnail(
+                        viewModel = viewModel,
+                        index = target,
+                        modifier = Modifier.padding(bottom = StoryArcSpace.xs),
+                    )
+                }
+
                 Surface(
                     color = Color.White.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(percent = 50),
                 ) {
                     Text(
-                        text = stringResource(
-                            R.string.reader_page,
-                            modelIndex(paging.current) + 1,
-                            count,
-                        ),
+                        text = stringResource(R.string.reader_page, sliderIndex + 1, count),
                         style = MaterialTheme.typography.labelLarge,
                         color = Color.White,
                         modifier = Modifier.padding(
@@ -712,22 +793,23 @@ private fun Pager(
 
                 if (count > 1) {
                     val sliderName = stringResource(R.string.reader_page_slider)
-                    val pageLabel = stringResource(
-                        R.string.reader_page,
-                        modelIndex(paging.current) + 1,
-                        count,
-                    )
+                    val pageLabel = stringResource(R.string.reader_page, sliderIndex + 1, count)
                     // Bound to the *publication's* page number, not the pager's
                     // position. In right-to-left the two run opposite ways, and a
                     // slider whose left end is the last page would be a puzzle.
-                    // Thumbnails on the slider are the rest of what `comic-reader`
-                    // asks for and are not here yet.
+                    //
+                    // The drag writes to `scrubbing` and the release moves the reader,
+                    // which is what `comic-reader` asks for and also what stops a scrub
+                    // across a long comic asking the archive for every page on the way.
+                    // TalkBack's own adjustment lands here too: Compose calls the
+                    // finished callback after an accessibility action, so a stepped
+                    // slider still turns the page.
                     Slider(
-                        value = modelIndex(paging.current).toFloat(),
-                        onValueChange = { value ->
-                            scope.launch {
-                                paging.goTo(displayIndex(value.roundToInt()), animate = false)
-                            }
+                        value = sliderIndex.toFloat(),
+                        onValueChange = { value -> scrubbing = value.roundToInt() },
+                        onValueChangeFinished = {
+                            scrubbing?.let(::jump)
+                            scrubbing = null
                         },
                         valueRange = 0f..(count - 1).toFloat(),
                         steps = (count - 2).coerceAtLeast(0),
@@ -743,6 +825,23 @@ private fun Pager(
                             stateDescription = pageLabel
                         },
                     )
+                }
+
+                // The way back from a jump. It names the page rather than saying "Back",
+                // because by the time a reader notices they have lost their place they no
+                // longer remember what it was.
+                pageReturn.mark?.let { mark ->
+                    TextButton(
+                        onClick = ::returnFromJump,
+                        colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Undo,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = StoryArcSpace.xs),
+                        )
+                        Text(stringResource(R.string.reader_return, mark + 1))
+                    }
                 }
             }
         }
@@ -902,6 +1001,69 @@ private fun Modifier.tappable(
 private fun PointerInputScope.isEdgeTap(point: Offset, area: IntSize): Boolean {
     val edge = area.width * EDGE_ZONE_FRACTION
     return point.x < edge || point.x > area.width - edge
+}
+
+/**
+ * Moving between the publications of a series, from inside the reader.
+ *
+ * `comic-reader`: "WHEN a publication has internal chapter markers, or is one chapter of
+ * a series THEN the reader offers previous and next chapter actions without returning to
+ * the library". A local library knows the second of those two — a series and its order —
+ * so a chapter here is a publication, and the row is absent entirely for a book that
+ * belongs to no series.
+ *
+ * iOS's `chapterRow` is the same row.
+ */
+@Composable
+private fun ChapterRow(
+    previous: Publication?,
+    next: Publication?,
+    onOpen: (Publication) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (previous == null && next == null) return
+    Row(
+        modifier = modifier.padding(bottom = StoryArcSpace.xs),
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+    ) {
+        ChapterButton(previous, Icons.Filled.SkipPrevious, R.string.reader_chapter_previous, onOpen)
+        ChapterButton(next, Icons.Filled.SkipNext, R.string.reader_chapter_next, onOpen)
+    }
+}
+
+/**
+ * One chapter button, disabled at the end of the run rather than absent.
+ *
+ * The first and the last issue of a series each have one neighbour, and a row that
+ * changed shape between them would move the other button under the finger. A disabled
+ * control also says there is nothing that way, which a missing one does not.
+ *
+ * Skip-previous and skip-next rather than a chevron: this is the track-skip idiom, and it
+ * does not mirror for a right-to-left publication — the series still runs from its first
+ * issue to its last whichever way its pages do.
+ */
+@Composable
+private fun ChapterButton(
+    destination: Publication?,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    labelRes: Int,
+    onOpen: (Publication) -> Unit,
+) {
+    IconButton(
+        onClick = { destination?.let(onOpen) },
+        enabled = destination != null,
+    ) {
+        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
+            Icon(
+                imageVector = icon,
+                contentDescription = stringResource(labelRes),
+                // Dimmed rather than gone: an end of the run reads as "nothing that way",
+                // which a control that vanished would not say at all.
+                tint = if (destination != null) Color.White else Color.White.copy(alpha = 0.35f),
+                modifier = Modifier.padding(StoryArcSpace.sm),
+            )
+        }
+    }
 }
 
 /** Opens and closes the page strip. */

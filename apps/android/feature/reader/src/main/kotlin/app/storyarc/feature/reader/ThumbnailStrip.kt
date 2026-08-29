@@ -88,6 +88,51 @@ internal fun ThumbnailStrip(
     }
 }
 
+/**
+ * The page the slider is heading for, while the finger is still down.
+ *
+ * `comic-reader`: "a thumbnail of the target page follows the drag". The thumbnail the
+ * strip already has, at the size the strip already decodes: a scrub across a comic asks
+ * for a page every few frames, and a full-size decode per frame is how a slider ends up
+ * dropping them.
+ *
+ * iOS's `ScrubThumbnail` is the same preview.
+ */
+@Composable
+internal fun ScrubThumbnail(
+    viewModel: ReaderViewModel,
+    index: Int,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+    var bitmap by remember(index) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(index) { bitmap = viewModel.thumbnail(index) }
+
+    Box(
+        modifier = modifier
+            .width(72.dp)
+            .aspectRatio(2f / 3f)
+            .clip(RoundedCornerShape(StoryArcRadius.sm))
+            .border(1.dp, palette.borderSubtle, RoundedCornerShape(StoryArcRadius.sm)),
+    ) {
+        val ready = bitmap
+        if (ready != null) {
+            Image(
+                bitmap = ready.asImageBitmap(),
+                // The page number beside it is this row's label, and a second
+                // announcement of the same page would get in the way of the drag.
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            // No spinner: the thumbnail arrives in a frame or two from the cache the
+            // strip fills, and a spinner under a moving finger is a flicker.
+            Box(Modifier.fillMaxSize().background(palette.surfaceRaised))
+        }
+    }
+}
+
 @Composable
 private fun ThumbnailCell(
     viewModel: ReaderViewModel,

@@ -70,7 +70,9 @@ extension ReaderView {
 
             if isBrowsingThumbnails {
                 ThumbnailStrip(model: model, currentIndex: model.currentIndex) { index in
-                    displayIndex = displayIndex(forModel: index)
+                    // A jump, like the slider's: it leaves the same mark, so the way
+                    // back from a mis-tap in a three-hundred-page strip is one control.
+                    jump(to: index)
                     withAnimation(.easeInOut(duration: 0.2)) { isBrowsingThumbnails = false }
                 }
                 // The cross-fade alone says the strip arrived. `native-experience`
@@ -106,6 +108,8 @@ extension ReaderView {
                         .pickerStyle(.segmented)
                         .labelsHidden()
                 }
+
+                chapterRow
 
                 if model.pages.count > 1 {
                     pageSliderRow
@@ -272,37 +276,4 @@ extension ReaderView {
         )
     }
 
-    var pageCount: some View {
-        pageCountLabel
-            .padding(.horizontal, StoryArcSpace.md)
-            .padding(.vertical, StoryArcSpace.xs)
-            .storyArcGlass()
-    }
-
-    var pageCountLabel: some View {
-        Text("reader.page \(model.currentIndex + 1) \(model.pages.count)", bundle: .module)
-            .textRole(.footnote)
-            .monospacedDigit()
-            .foregroundStyle(.white)
-    }
-
-    var pageSliderRow: some View {
-        VStack(spacing: StoryArcSpace.xs) {
-            pageCountLabel
-
-            // Bound to the *publication's* page number, not the pager's position.
-            // In right-to-left the two run opposite ways, and a slider whose left
-            // end is the last page would be a puzzle. Thumbnails on the slider are
-            // the rest of what `comic-reader` asks for and are not here yet.
-            Slider(value: pageSlider, in: 0...Double(max(1, model.pages.count - 1)), step: 1)
-                .tint(.white)
-                // The visible count is a sibling element, so the slider owns no name
-                // and no unit of its own. VoiceOver otherwise says "12, adjustable".
-                .accessibilityLabel(Text("reader.page.slider", bundle: .module))
-                .accessibilityValue(Text("reader.page \(model.currentIndex + 1) \(model.pages.count)", bundle: .module))
-        }
-        .padding(.horizontal, StoryArcSpace.gutter)
-        .padding(.vertical, StoryArcSpace.sm)
-        .storyArcGlass(in: RoundedRectangle(cornerRadius: StoryArcRadius.lg))
-    }
 }

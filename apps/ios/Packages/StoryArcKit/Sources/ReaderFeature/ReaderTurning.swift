@@ -50,6 +50,26 @@ extension ReaderView {
         }
     }
 
+    /// Moves the reader to a page it did not reach by turning.
+    ///
+    /// Separate from ``turn(by:)`` because a jump is the thing `comic-reader` offers a
+    /// way back from: "releasing jumps there, with a control to return to the previous
+    /// position". Turning a page is not.
+    func jump(to index: Int) {
+        guard model.pages.indices.contains(index) else { return }
+        pageReturn = pageReturn.jumped(from: model.currentIndex, to: index)
+        displayIndex = displayIndex(forModel: index)
+    }
+
+    /// Goes back to where the reader was before the last jump.
+    func returnFromJump() {
+        guard let mark = pageReturn.mark, model.pages.indices.contains(mark) else { return }
+        pageReturn = pageReturn.taken()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            displayIndex = displayIndex(forModel: mark)
+        }
+    }
+
     /// Restarts the auto-hide countdown whenever either of these changes.
     /// Not `private`: `ReaderView.swift` reads this, and Swift's `private` is file-scoped,
     /// so the split that keeps that file under the line cap is what widens it.
@@ -57,6 +77,9 @@ extension ReaderView {
         // The strip counts as interaction: reading a row of thumbnails takes longer
         // than four seconds, and the chrome vanishing underneath would take the
         // strip with it.
+        // A scrub counts too, and now moves nothing until it is released — without this
+        // a slow drag hides the slider under the finger.
         "\(isChromeVisible)-\(displayIndex)-\(isBrowsingThumbnails)-\(isAdjusting)"
+            + "-\(scrubbing ?? -1)"
     }
 }

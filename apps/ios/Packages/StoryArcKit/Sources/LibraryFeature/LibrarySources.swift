@@ -239,6 +239,19 @@ extension LibraryModel {
         }
         return LibraryIndex.next(after: publication, in: publications)
     }
+
+    /// What the reader came from, for `comic-reader`'s previous-chapter action.
+    ///
+    /// The mirror of ``next(after:)`` and resolved the same way, list before series: a
+    /// reader who arranged a crossover expects to walk back through their own order, not
+    /// through the issue numbers it cuts across.
+    public func previous(before publication: Publication) -> Publication? {
+        for list in shelves.lists where list.entries.contains(publication.id) {
+            guard let previousID = list.previous(before: publication.id) else { continue }
+            if let found = publications.first(where: { $0.id == previousID }) { return found }
+        }
+        return LibraryIndex.previous(before: publication, in: publications)
+    }
 }
 
 extension LibraryModel {
