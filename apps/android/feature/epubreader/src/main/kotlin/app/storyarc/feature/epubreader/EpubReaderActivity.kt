@@ -11,6 +11,7 @@ import android.widget.FrameLayout
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -28,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import app.storyarc.core.model.AppearanceMode
 import app.storyarc.core.model.Bookmark
+import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.PublicationIdentity
@@ -176,6 +178,8 @@ class EpubReaderActivity : FragmentActivity() {
                     val resource by model.currentResource.collectAsStateWithLifecycle()
                     val bookmarks by model.bookmarks.collectAsStateWithLifecycle()
                     val isPageBookmarked by model.isPageBookmarked.collectAsStateWithLifecycle()
+                    val matches by model.matches.collectAsStateWithLifecycle()
+                    val isSearching by model.isSearching.collectAsStateWithLifecycle()
                     var isShowingTheme by remember { mutableStateOf(false) }
                     var isShowingContents by remember { mutableStateOf(false) }
 
@@ -207,6 +211,13 @@ class EpubReaderActivity : FragmentActivity() {
                             entries = contents.orEmpty(),
                             currentResource = resource,
                             bookmarks = bookmarks,
+                            matches = matches,
+                            isSearching = isSearching,
+                            onSearch = { model.search(it) },
+                            onGoToMatch = { match ->
+                                go(match)
+                                isShowingContents = false
+                            },
                             onGo = { link ->
                                 go(link)
                                 isShowingContents = false
@@ -353,12 +364,18 @@ class EpubReaderActivity : FragmentActivity() {
      * same words after a type size has moved every page break.
      */
     @OptIn(ExperimentalReadiumApi::class)
-    private fun go(bookmark: Bookmark) {
+    private fun go(bookmark: Bookmark) = goToLocator(bookmark.locator)
+
+    /** Goes to a search hit. The same journey a bookmark takes, from the same kind of record. */
+    @OptIn(ExperimentalReadiumApi::class)
+    private fun go(match: SearchMatch) = goToLocator(match.locator)
+
+    @OptIn(ExperimentalReadiumApi::class)
+    private fun goToLocator(json: String) {
         val navigator =
             supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
                 ?: return
-        val locator = runCatching { Locator.fromJSON(JSONObject(bookmark.locator)) }.getOrNull()
-            ?: return
+        val locator = runCatching { Locator.fromJSON(JSONObject(json)) }.getOrNull() ?: return
         navigator.go(locator, animated = false)
     }
 
@@ -421,44 +438,46 @@ private fun ContentsBottomSheet(
     entries: List<Link>,
     currentResource: Url?,
     bookmarks: List<Bookmark>,
+    matches: List<SearchMatch>,
+    isSearching: Boolean,
     onGo: (Link) -> Unit,
     onGoToBookmark: (Bookmark) -> Unit,
     onRemoveBookmark: (Bookmark) -> Unit,
+    onSearch: (String) -> Unit,
+    onGoToMatch: (SearchMatch) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    // `ebook-reader` puts bookmarks "alongside the table of contents". Two tabs in the one
-    // sheet rather than two sheets: they answer the same question — where in this book can
-    // I go — and a reader who opened the wrong one would have to close it to ask again.
-    var isShowingBookmarks by remember { mutableStateOf(false) }
+    // `ebook-reader` puts bookmarks "alongside the table of contents", and searching inside
+    // the book is the third way of asking the same question — where in this book do I go.
+    // One sheet rather than three, because a reader who opened the wrong one would have to
+    // close it to ask again.
+    var tab by remember { mutableIntStateOf(0) }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        PrimaryTabRow(
-            selectedTabIndex = if (isShowingBookmarks) 1 else 0,
-        ) {
-            Tab(
-                selected = !isShowingBookmarks,
-                onClick = { isShowingBookmarks = false },
-                text = {
-                    Text(stringResource(R.string.epub_contents))
-                },
-            )
-            Tab(
-                selected = isShowingBookmarks,
-                onClick = { isShowingBookmarks = true },
-                text = {
-                    Text(stringResource(R.string.epub_bookmarks))
-                },
-            )
+        PrimaryTabRow(selectedTabIndex = tab) {
+            listOf(R.string.epub_contents, R.string.epub_bookmarks, R.string.epub_search)
+                .forEachIndexed { index, label ->
+                    Tab(
+                        selected = tab == index,
+                        onClick = { tab = index },
+                        text = { Text(stringResource(label)) },
+                    )
+                }
         }
 
-        if (isShowingBookmarks) {
-            Bookmarks(
+        when (tab) {
+            1 -> Bookmarks(
                 bookmarks = bookmarks,
                 onGo = onGoToBookmark,
                 onRemove = onRemoveBookmark,
             )
-        } else {
-            TableOfContents(
+            2 -> SearchInBook(
+                matches = matches,
+                isSearching = isSearching,
+                onSearch = onSearch,
+                onGo = onGoToMatch,
+            )
+            else -> TableOfContents(
                 entries = entries,
                 currentResource = currentResource,
                 onGo = onGo,

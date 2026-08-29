@@ -80,4 +80,7 @@
     <string name="epub_bookmark_add">Bookmark this page</string>
     <string name="epub_bookmark_remove">Remove bookmark</string>
     <string name="epub_bookmark_unnamed">Unnamed chapter</string>
+    <string name="epub_search">Search in this book</string>
+    <string name="epub_search_running">Searching…</string>
+    <string name="epub_search_none">Nothing found for “%1$s”.</string>
 </resources>

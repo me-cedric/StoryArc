@@ -80,4 +80,7 @@
     <string name="epub_bookmark_add">Diese Seite mit einem Lesezeichen versehen</string>
     <string name="epub_bookmark_remove">Lesezeichen entfernen</string>
     <string name="epub_bookmark_unnamed">Kapitel ohne Titel</string>
+    <string name="epub_search">In diesem Buch suchen</string>
+    <string name="epub_search_running">Wird gesucht…</string>
+    <string name="epub_search_none">Nichts gefunden für „%1$s“.</string>
 </resources>

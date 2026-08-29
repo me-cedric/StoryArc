@@ -69,6 +69,19 @@ public final class EpubReaderModel {
     /// The reading order's hrefs, for the progress fallback below.
     var readingOrder: [String] = []
 
+    /// What the last search found, in the order the publication holds them.
+    public internal(set) var matches: [SearchMatch] = []
+
+    /// Whether a search is still running, so the list can say so rather than look empty.
+    public internal(set) var isSearching = false
+
+    /// Which search the results on screen belong to.
+    ///
+    /// A counter rather than a cancelled task: the walk is a sequence of `await`s inside one
+    /// call, and the cheapest way to make an overtaken query stop publishing is to have it
+    /// notice it has been overtaken.
+    var searchGeneration = 0
+
     /// Every mark in this publication, in book order.
     public internal(set) var bookmarks: [Bookmark] = []
 

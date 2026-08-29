@@ -109,41 +109,61 @@ struct TableOfContentsSheet: View {
 
     let model: EpubReaderModel
 
-    /// Which half of the sheet is showing.
+    /// Which third of the sheet is showing.
     ///
-    /// `ebook-reader` puts bookmarks "alongside the table of contents". One sheet with a
-    /// picker rather than two sheets: they answer the same question — where in this book
-    /// can I go — and a reader who opened the wrong one would have to close it to ask again.
-    @State private var isShowingBookmarks = false
+    /// `ebook-reader` puts bookmarks "alongside the table of contents", and searching inside
+    /// the book is the third way of asking the same question — where in this book do I go.
+    /// One sheet with a picker rather than three sheets, because a reader who opened the
+    /// wrong one would have to close it to ask again.
+    @State private var tab = Tab.contents
+
+    fileprivate enum Tab: Hashable {
+        case contents, bookmarks, search
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .contents: "contents.title"
+            case .bookmarks: "bookmarks.title"
+            case .search: "search.title"
+            }
+        }
+    }
 
     var body: some View {
         let entries = model.contents
         let current = model.currentEntry(in: entries)
         return NavigationStack {
             VStack(spacing: 0) {
-                Picker("", selection: $isShowingBookmarks) {
-                    Text("contents.title", bundle: .module).tag(false)
-                    Text("bookmarks.title", bundle: .module).tag(true)
+                Picker("", selection: $tab) {
+                    ForEach([Tab.contents, .bookmarks, .search], id: \.self) { choice in
+                        Text(choice.title, bundle: .module).tag(choice)
+                    }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .padding(.horizontal, StoryArcSpace.gutter)
                 .padding(.bottom, StoryArcSpace.sm)
 
-                if isShowingBookmarks {
+                switch tab {
+                case .bookmarks:
                     BookmarkList(model: model) { bookmark in
                         Task {
                             await model.go(to: bookmark)
                             dismiss()
                         }
                     }
-                } else {
+                case .search:
+                    SearchInBook(model: model) { match in
+                        Task {
+                            await model.go(to: match)
+                            dismiss()
+                        }
+                    }
+                case .contents:
                     rows(entries, current: current)
                 }
             }
-            .navigationTitle(Text(isShowingBookmarks
-                ? "bookmarks.title"
-                : "contents.title", bundle: .module))
+            .navigationTitle(Text(tab.title, bundle: .module))
             // Inline, matching the theme sheet. See the note there.
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

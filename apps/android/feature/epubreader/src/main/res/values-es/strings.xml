@@ -80,4 +80,7 @@
     <string name="epub_bookmark_add">Marcar esta página</string>
     <string name="epub_bookmark_remove">Quitar el marcador</string>
     <string name="epub_bookmark_unnamed">Capítulo sin título</string>
+    <string name="epub_search">Buscar en este libro</string>
+    <string name="epub_search_running">Buscando…</string>
+    <string name="epub_search_none">No se ha encontrado nada para «%1$s».</string>
 </resources>

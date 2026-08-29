@@ -4,6 +4,8 @@ import android.app.Application
 import android.net.Uri
 import app.storyarc.core.model.Bookmark
 import app.storyarc.core.model.Excerpt
+import app.storyarc.core.model.SearchMatch
+import app.storyarc.core.model.SearchSnippet
 import app.storyarc.core.model.PublicationIdentity
 import android.provider.Settings
 import app.storyarc.core.model.PageTransition
@@ -28,6 +30,7 @@ import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ReaderPreferences
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,9 +41,11 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.publication.services.search.search
 import org.readium.r2.shared.util.AbsoluteUrl
 import org.readium.r2.shared.util.Url
 import org.readium.r2.shared.util.asset.AssetRetriever
@@ -525,6 +530,72 @@ class EpubReaderViewModel(
             fraction = locator.locations.progression ?: 0.0,
         )
     }
+
+    private val _matches = MutableStateFlow<List<SearchMatch>>(emptyList())
+
+    /** What the last search found, in the order the publication holds them. */
+    val matches: StateFlow<List<SearchMatch>> = _matches.asStateFlow()
+
+    private val _isSearching = MutableStateFlow(false)
+
+    /** Whether a search is still running, so the list can say so rather than look empty. */
+    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+
+    private var search: Job? = null
+
+    /**
+     * Searches the whole publication.
+     *
+     * `ebook-reader`: "matches are listed with surrounding context and tapping one jumps to
+     * it". Readium walks the resources and reports a page of locators at a time, so results
+     * are published as they arrive rather than at the end -- a reader looking for a word
+     * they know is in chapter two should not wait for chapter forty.
+     *
+     * A new search cancels the one before it. The field is searched as it is typed, and a
+     * previous query still filling the list would put its results under the new one's.
+     */
+    // Readium marks its search service experimental. Opted into here rather than
+    // module-wide, so the day it changes the compiler points at the one call site — the
+    // same reason the activity opts in where it touches the navigator.
+    @OptIn(ExperimentalReadiumApi::class)
+    fun search(query: String) {
+        search?.cancel()
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            _matches.value = emptyList()
+            _isSearching.value = false
+            return
+        }
+        val publication = opened ?: return
+
+        _matches.value = emptyList()
+        _isSearching.value = true
+        search = scope.launch {
+            try {
+                // Null when the publication has no search service — a PDF, or an EPUB
+                // whose resources could not be indexed. The list then says nothing was
+                // found, which is true, rather than reporting a failure a reader cannot act on.
+                val iterator = publication.search(trimmed) ?: return@launch
+                while (true) {
+                    val page = iterator.next().getOrNull() ?: break
+                    if (page.locators.isEmpty()) break
+                    _matches.value += page.locators.map(::matchOf)
+                }
+            } finally {
+                _isSearching.value = false
+            }
+        }
+    }
+
+    private fun matchOf(locator: Locator) = SearchMatch(
+        locator = locator.toJSON().toString(),
+        chapter = locator.title.orEmpty(),
+        snippet = SearchSnippet.of(
+            before = locator.text.before.orEmpty(),
+            match = locator.text.highlight.orEmpty(),
+            after = locator.text.after.orEmpty(),
+        ),
+    )
 
     /** Forgets one mark, which is what its row in the list offers. */
     fun removeBookmark(id: String) {
