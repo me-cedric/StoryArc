@@ -18,9 +18,9 @@
 ```json
 {
   "schema": 1,
-  "packageManager": "pnpm",
-  "install": "pnpm install",
-  "check": "pnpm check",
+  "packageManager": "<PM>",
+  "install": "<PM> install",
+  "check": "<PM> check",
   "agentConformance": "node docs/agent-compass/scripts/agent-conformance.mjs --root . --write",
   "agentEvals": "node docs/agent-compass/scripts/agent-evals.mjs --root docs/agent-compass",
   "context": null,
@@ -30,6 +30,7 @@
   "applyRecommendations": "node docs/agent-compass/scripts/apply-recommendations.mjs .",
   "globalSetupDry": "node docs/agent-compass/scripts/global-setup.mjs $HOME --dry",
   "providerVerify": "node docs/agent-compass/scripts/provider-verify.mjs . --write",
+  "specKitBridge": "node docs/agent-compass/scripts/spec-kit-bridge.mjs .",
   "skillsSyncCopy": "node docs/agent-compass/scripts/skills-sync.mjs . --copy",
   "skillsSyncSymlink": "node docs/agent-compass/scripts/skills-sync.mjs . --symlink",
   "skillsListPacks": "node docs/agent-compass/scripts/cli.mjs skills-sync --list-packs",
@@ -56,11 +57,11 @@
   "specValidationMap": "node docs/agent-compass/scripts/spec-validation-map.mjs . --write",
   "designImporter": "node docs/agent-compass/scripts/design-importer.mjs . --write",
   "validateChanged": null,
-  "lint": "pnpm lint",
+  "lint": null,
   "lintActions": null,
   "typecheck": null,
-  "test": "pnpm test:ios && pnpm test:android",
-  "build": "pnpm build:ios && pnpm build:android",
+  "test": null,
+  "build": null,
   "projectMemory": {
     "setup": "uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python projectmem && .venv/bin/pjm init",
     "brief": "test -x .venv/bin/pjm && .venv/bin/pjm brief || pjm brief",
@@ -71,45 +72,11 @@
   },
   "runbook": null,
   "notes": [
+    "Replace nulls with real package.json commands.",
     "Agents must use this file before inventing validation commands.",
-    "Run the smallest set that covers the change — see AGENTS.md §5.",
-    "typecheck is null on purpose: Swift and Kotlin type-check as part of their build.",
-    "A change to packages/design-tokens must be followed by `pnpm tokens:sync`, and the regenerated app copies committed in the same change.",
-    "A change a user can see also owes a simulator or emulator screenshot — see AGENTS.md §6."
-  ],
-  "platforms": {
-    "ios": {
-      "lint": "swiftlint lint --strict",
-      "test": "cd apps/ios/Packages/StoryArcKit && swift test",
-      "build": "cd apps/ios && xcodegen generate && xcodebuild build -project StoryArc.xcodeproj -scheme StoryArc -destination 'generic/platform=iOS Simulator' -quiet",
-      "generateProject": "cd apps/ios && xcodegen generate",
-      "screenshot": "xcrun simctl io booted screenshot shot.png",
-      "notes": [
-        "swift test runs the pure-Swift targets on the host — no simulator needed.",
-        "StoryArc.xcodeproj is generated from project.yml and gitignored. Never hand-edit it.",
-        "swiftlint runs from the repository root on purpose. `cd apps/ios` first and it stops finding .swiftlint.yml, falls back to the default rule set, and reports hundreds of violations for rules this project disables on purpose."
-      ]
-    },
-    "android": {
-      "lint": "cd apps/android && ./gradlew lint",
-      "test": "cd apps/android && ./gradlew test",
-      "build": "cd apps/android && ./gradlew assembleDebug",
-      "install": "cd apps/android && ./gradlew installDebug",
-      "moduleCheck": "cd apps/android && ./gradlew :<module>:lint :<module>:testDebugUnitTest",
-      "screenshot": "adb exec-out screencap -p > shot.png",
-      "notes": [
-        "local.properties must set sdk.dir. It is gitignored.",
-        "Scope to :<module> rather than running the whole build for a single-module change."
-      ]
-    },
-    "contract": {
-      "specValidate": "pnpm spec:validate",
-      "tokensCheck": "pnpm tokens:check",
-      "tokensSync": "pnpm tokens:sync",
-      "tokensVerify": "pnpm tokens:verify",
-      "fixturesCheck": "pnpm fixtures:check"
-    }
-  }
+    "For code changes, fill and run lint + typecheck + relevant tests; add build when config, public exports, routing, or deployment output changed.",
+    "After installing projectmem, verify projectMemory commands with pjm --help."
+  ]
 }
 ```
 

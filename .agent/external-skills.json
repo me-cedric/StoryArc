@@ -13,7 +13,7 @@
         ".agents/skills",
         ".claude/skills"
       ],
-      "installedAt": "2026-08-29T19:40:34.660Z"
+      "installedAt": "2026-08-24T11:00:07.691Z"
     },
     "asd-ste100": {
       "repository": "https://github.com/danyuchn/asd-ste100-skill",
@@ -70,5 +70,5 @@
       "installedAt": "2026-08-24T11:00:05.829Z"
     }
   },
-  "updatedAt": "2026-08-29T19:40:34.660Z"
+  "updatedAt": "2026-08-24T11:00:07.691Z"
 }
