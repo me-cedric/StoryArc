@@ -188,24 +188,6 @@ class LibraryViewModel(
      * own UI agrees. Both halves happen here, because a mark that only landed locally would
      * disagree with the shelf the reader is looking at on another device.
      */
-    /**
-     * Forgets a publication's position, so the next open starts at page one.
-     *
-     * `reading-progress`: "a 'Start from the beginning' action is available ... and it
-     * clears progress only after confirmation". The confirmation is the caller's; this is
-     * what it confirms.
-     *
-     * Forgetting rather than rewinding: the record *is* the position, and a record set back
-     * to page one is indistinguishable from one that was never read except for the finished
-     * flag, which the reader has just said they do not want either.
-     */
-    fun restart(publication: Publication) {
-        viewModelScope.launch {
-            progressStore?.forget(publication.identity)
-            refreshProgress()
-        }
-    }
-
     fun mark(
         publication: Publication,
         isRead: Boolean,
@@ -225,6 +207,24 @@ class LibraryViewModel(
                 origin,
                 isRead,
             )
+        }
+    }
+
+    /**
+     * Forgets a publication's position, so the next open starts at page one.
+     *
+     * `reading-progress`: "a 'Start from the beginning' action is available ... and it
+     * clears progress only after confirmation". The confirmation is the caller's; this is
+     * what it confirms.
+     *
+     * Forgetting rather than rewinding: the record *is* the position, and a record set back
+     * to page one is indistinguishable from one that was never read except for the finished
+     * flag, which the reader has just said they do not want either.
+     */
+    fun restart(publication: Publication) {
+        viewModelScope.launch {
+            progressStore?.forget(publication.identity)
+            refreshProgress()
         }
     }
 
