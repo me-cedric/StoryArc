@@ -152,6 +152,7 @@ fun LibraryScreen(
 
     /** The publication whose add-to-shelf sheet is open, if any. */
     var shelving by remember { mutableStateOf<Publication?>(null) }
+    var restarting by remember { mutableStateOf<Publication?>(null) }
 
     // Android hands a picked folder over as a tree `Uri` and grants access to it
     // only for this process — until the app asks for the grant to be persisted,
@@ -377,7 +378,36 @@ fun LibraryScreen(
             publication = shelved,
             onDismiss = { shelving = null },
             onMark = { isRead -> onMark(shelved, isRead) },
+            onRestart = { restarting = shelved },
             onAddToServerList = onAddToServerList?.let { add -> { list -> add(shelved, list) } },
+        )
+    }
+
+    // `reading-progress` requires the clear to be confirmed. Outside the sheet because the
+    // sheet dismisses itself on the way here, and destructive because it is: the position
+    // is the only copy the app promises never to lose.
+    val restart = restarting
+    if (restart != null && viewModel != null) {
+        AlertDialog(
+            onDismissRequest = { restarting = null },
+            title = { Text(stringResource(R.string.library_restart_title, restart.displayTitle)) },
+            text = { Text(stringResource(R.string.library_restart_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.restart(restart)
+                    restarting = null
+                }) {
+                    Text(
+                        text = stringResource(R.string.library_restart_confirm),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { restarting = null }) {
+                    Text(stringResource(R.string.shelves_cancel))
+                }
+            },
         )
     }
 }

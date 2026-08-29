@@ -162,6 +162,10 @@
     <string name="kavita_continue">Continuer · %1$s</string>
     <string name="library_mark_read">Marquer comme lu</string>
     <string name="library_mark_unread">Marquer comme non lu</string>
+    <string name="library_restart">Reprendre au début</string>
+    <string name="library_restart_title">Reprendre « %1$s » au début ?</string>
+    <string name="library_restart_confirm">Reprendre au début</string>
+    <string name="library_restart_body">Votre position dans cette publication est oubliée : la prochaine ouverture se fera à la première page. Rien d’autre ne change et le fichier lui-même n’est pas touché.</string>
     <string name="shelves_server_only_title">Seulement depuis ce serveur</string>
     <string name="shelves_server_only_body">« %1$s » ne peut contenir que des publications de ce serveur.</string>
     <string name="shelves_server_only_local">Créer une liste locale à la place</string>

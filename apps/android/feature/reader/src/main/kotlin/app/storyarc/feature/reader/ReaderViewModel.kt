@@ -282,7 +282,13 @@ class ReaderViewModel(
             // A recorded position wins over the cover. `reading-progress` is about
             // picking up where you left off, and a book you are halfway through
             // should not reopen at its cover.
-            val recorded = progress?.progress(publication.identity)?.position
+            //
+            // Unless it is finished, which the same requirement singles out: reopening a
+            // finished publication "starts at the beginning while retaining the finished
+            // record". Dropping the override is the whole of it — the record is untouched,
+            // and the beginning is where `initialIndex` already is.
+            val record = progress?.progress(publication.identity)
+            val recorded = record?.position?.takeUnless { record.isFinished }
             if (recorded is ReadingPosition.Page && recorded.index in opened.pages.indices) {
                 initialIndex = recorded.index
             }
@@ -306,7 +312,9 @@ class ReaderViewModel(
             }
             pdf = reader
             _pages.value = (0 until reader.pageCount).map { PageEntry("${'$'}{it + 1}", 0L) }
-            val recorded = progress?.progress(publication.identity)?.position
+            // Finished reopens at page one, exactly as an archive does.
+            val record = progress?.progress(publication.identity)
+            val recorded = record?.position?.takeUnless { record.isFinished }
             if (recorded is ReadingPosition.Page && recorded.index in _pages.value.indices) {
                 initialIndex = recorded.index
             }

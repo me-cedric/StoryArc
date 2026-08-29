@@ -204,7 +204,7 @@
         }
       }
     },
-    "catalogue.acquire.other": {
+    "catalogue.acquire.other %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -3153,6 +3153,122 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choisir à nouveau"
+          }
+        }
+      }
+    },
+    "library.restart": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von vorn beginnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start from the beginning"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar desde el principio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre au début"
+          }
+        }
+      }
+    },
+    "library.restart.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Position in dieser Publikation wird vergessen; beim nächsten Öffnen beginnt sie auf Seite eins. Sonst ändert sich nichts, und die Datei selbst bleibt unberührt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your place in this publication is forgotten, and it opens at page one next time. Nothing else changes, and the file itself is untouched."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se olvida tu posición en esta publicación y la próxima vez se abrirá en la primera página. No cambia nada más y el archivo en sí no se toca."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre position dans cette publication est oubliée : la prochaine ouverture se fera à la première page. Rien d’autre ne change et le fichier lui-même n’est pas touché."
+          }
+        }
+      }
+    },
+    "library.restart.confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von vorn beginnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start from the beginning"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar desde el principio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre au début"
+          }
+        }
+      }
+    },
+    "library.restart.title %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ von vorn beginnen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start “%@” from the beginning?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Empezar «%@» desde el principio?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre « %@ » au début ?"
           }
         }
       }

@@ -111,6 +111,18 @@ extension LibraryModel {
     ///
     /// The folder on disk keeps its own name. This renames the *source*, and a reader who
     /// calls a folder "Comics" has not asked to rename the directory.
+    /// Moves a source, which is what decides precedence rather than merely display order.
+    ///
+    /// `sources`: the order "persists across launches", and "the library's combined view
+    /// lists titles from higher sources first when two sources hold the same publication".
+    /// The second clause needs no code here — the scan walks the registry in order and the
+    /// first find of an identity wins — but it is the reason this writes through
+    /// immediately rather than on the way out of the screen.
+    public func move(_ id: Source.ID, to destination: Int) {
+        registry = registry.moving(id, to: destination)
+        sourceStore?.save(registry)
+    }
+
     public func rename(_ source: Source, to name: String) {
         registry = registry.renaming(source.id, to: name)
         sourceStore?.save(registry)
@@ -237,6 +249,20 @@ extension LibraryModel {
     /// The stores are built here rather than passed in. Both are thin wrappers -- one over
     /// `UserDefaults`, one over the keychain -- and threading them through four view
     /// initialisers to reach one menu button would be four parameters carrying nothing.
+    /// Forgets a publication's position, so the next open starts at page one.
+    ///
+    /// `reading-progress`: "a 'Start from the beginning' action is available ... and it
+    /// clears progress only after confirmation". The confirmation is the caller's — a
+    /// context menu cannot present one — and this is what it confirms.
+    ///
+    /// Forgetting rather than rewinding: the record *is* the position, and a record set
+    /// back to page one is indistinguishable from one that was never read except for the
+    /// finished flag, which the reader has just said they do not want either.
+    func restart(_ publication: Publication) async {
+        try? await progressStore?.forget(publication.identity)
+        await refreshProgress()
+    }
+
     func mark(_ publication: Publication, read isRead: Bool) async {
         let kavita = KavitaProgressStore()
         let credentials = CredentialStore()

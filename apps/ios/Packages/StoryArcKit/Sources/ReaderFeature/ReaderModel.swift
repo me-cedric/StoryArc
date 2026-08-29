@@ -202,7 +202,13 @@ public final class ReaderModel {
             // A recorded position wins over the cover. `reading-progress` is about
             // picking up where you left off, and a book you are halfway through
             // should not reopen at its cover.
+            //
+            // Unless it is finished, which the same requirement singles out: reopening a
+            // finished publication "starts at the beginning while retaining the finished
+            // record". Dropping the override is the whole of it — the record is untouched,
+            // and the beginning is where `currentIndex` already is.
             if let recorded = try? await progress?.progress(for: publication.identity),
+               !recorded.isFinished,
                case let .page(index, _) = recorded.position,
                pages.indices.contains(index) {
                 currentIndex = index
@@ -238,7 +244,9 @@ public final class ReaderModel {
             pages = (0..<reader.pageCount).map { index in
                 PageEntry(path: String(index + 1))
             }
+            // Finished reopens at page one, exactly as an archive does.
             if let recorded = try? await progress?.progress(for: publication.identity),
+               !recorded.isFinished,
                case let .page(index, _) = recorded.position,
                pages.indices.contains(index) {
                 currentIndex = index

@@ -26,6 +26,16 @@ public struct ReadingProgress: Sendable, Equatable, Codable {
     public let identity: PublicationIdentity
     public var position: ReadingPosition
     public var isFinished: Bool
+
+    /// When it was finished, which `reading-progress` asks for by name: a publication is
+    /// "recorded finished with a completion timestamp".
+    ///
+    /// Separate from ``updatedAt`` because they answer different questions. `updatedAt`
+    /// moves every fifteen seconds of reading; this moves once, and only when the finished
+    /// flag turns on. Reopening a finished publication writes a new position — and must not
+    /// rewrite when it was finished.
+    public var finishedAt: Date?
+
     public var updatedAt: Date
 
     /// The last position successfully exchanged with the source. Comparing
@@ -37,14 +47,30 @@ public struct ReadingProgress: Sendable, Equatable, Codable {
         identity: PublicationIdentity,
         position: ReadingPosition,
         isFinished: Bool = false,
+        finishedAt: Date? = nil,
         updatedAt: Date,
         syncedPosition: ReadingPosition? = nil
     ) {
         self.identity = identity
         self.position = position
         self.isFinished = isFinished
+        self.finishedAt = finishedAt
         self.updatedAt = updatedAt
         self.syncedPosition = syncedPosition
+    }
+
+    /// The record this one becomes when the finished flag is set or cleared.
+    ///
+    /// The timestamp is the point: it is stamped when the flag turns on, *kept* while it
+    /// stays on — so re-reading a finished publication does not restate when it was
+    /// finished — and dropped when it turns off, because an unfinished publication has no
+    /// completion to date.
+    public func finished(_ finished: Bool, at moment: Date) -> ReadingProgress {
+        var changed = self
+        changed.isFinished = finished
+        changed.finishedAt = finished ? (finishedAt ?? moment) : nil
+        changed.updatedAt = moment
+        return changed
     }
 }
 

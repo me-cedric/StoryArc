@@ -15,6 +15,10 @@ struct AddToShelfMenu: View {
     /// lives in the parent: a context menu cannot present one.
     let onRefused: (String) -> Void
 
+    /// Asks the parent to confirm starting over. Same reason as `onRefused`: the
+    /// confirmation `reading-progress` requires cannot be presented from inside a menu.
+    var onRestart: () -> Void = {}
+
     var body: some View {
         let shelves = model.shelves
         let already = Set(shelves.collections(containing: publication.id).map(\.id))
@@ -31,6 +35,21 @@ struct AddToShelfMenu: View {
                     : String(localized: "library.mark.read", bundle: .module, locale: .storyArc),
                 systemImage: isRead ? "circle" : "checkmark.circle"
             )
+        }
+
+        // `reading-progress`: "a 'Start from the beginning' action is available ... and it
+        // clears progress only after confirmation". Offered only where there is something
+        // to clear — on an unread publication it would start it from the beginning it is
+        // already at.
+        if isRead || model.readFraction(of: publication) != nil {
+            Button {
+                onRestart()
+            } label: {
+                Label(
+                    String(localized: "library.restart", bundle: .module, locale: .storyArc),
+                    systemImage: "arrow.counterclockwise"
+                )
+            }
         }
 
         // A server's own lists, offered like any other. Whether this publication can go in

@@ -12,6 +12,9 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Update
+import androidx.room.migration.Migration
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.execSQL
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
@@ -48,6 +51,8 @@ internal data class ProgressRow(
     @ColumnInfo(name = "progression") val progression: Double,
     @ColumnInfo(name = "locator") val locator: String?,
     @ColumnInfo(name = "is_finished") val isFinished: Boolean,
+    /** When the finished flag was set. Null for a publication nobody has finished. */
+    @ColumnInfo(name = "finished_at") val finishedAt: Long? = null,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "synced_progression") val syncedProgression: Double?,
 )
@@ -87,9 +92,25 @@ internal interface ProgressDao {
     suspend fun clear()
 }
 
-@Database(entities = [ProgressRow::class], version = 1, exportSchema = false)
+@Database(entities = [ProgressRow::class], version = 2, exportSchema = false)
 internal abstract class ProgressDatabase : RoomDatabase() {
     abstract fun progress(): ProgressDao
+}
+
+/**
+ * Adds the completion timestamp `reading-progress` asks for.
+ *
+ * A written migration rather than `fallbackToDestructiveMigration`, because the fallback
+ * drops the table — and ADR-0006 puts losing a reading position at the top of the list of
+ * things this app must never do. A nullable column needs no default: every row that
+ * predates this reads back `null`, which is the truthful answer for a publication whose
+ * completion was never recorded, including one already marked finished before the column
+ * existed.
+ */
+internal val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE progress ADD COLUMN finished_at INTEGER")
+    }
 }
 
 /**
@@ -113,13 +134,14 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
                     context.applicationContext,
                     ProgressDatabase::class.java,
                     name,
-                ).build(),
+                ).addMigrations(MIGRATION_1_2).build(),
             )
 
         /** An in-memory store, for tests. */
         fun inMemory(context: Context): ProgressStore =
             ProgressStore(
-                Room.inMemoryDatabaseBuilder(context, ProgressDatabase::class.java).build(),
+                Room.inMemoryDatabaseBuilder(context, ProgressDatabase::class.java)
+                    .addMigrations(MIGRATION_1_2).build(),
             )
     }
 
@@ -159,6 +181,11 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
             // deliberate act, and losing it to a routine save is not something a
             // user would ever want.
             isFinished = (existing?.isFinished ?: false) || progress.isFinished,
+            // Stamped the moment the flag first turns on, and never restamped: reading a
+            // finished publication again writes a new position, not a new completion.
+            finishedAt = existing?.finishedAt
+                ?: progress.finishedAtEpochMillis.takeIf { progress.isFinished }
+                ?: progress.updatedAtEpochMillis.takeIf { progress.isFinished },
             updatedAt = progress.updatedAtEpochMillis,
             syncedProgression = progress.syncedPosition?.fraction,
         )
@@ -199,6 +226,7 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
                     progression = if (isFinished) 1.0 else 0.0,
                     locator = null,
                     isFinished = isFinished,
+                    finishedAt = at.takeIf { isFinished },
                     updatedAt = at,
                     syncedProgression = null,
                 ),
@@ -207,6 +235,9 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
             dao.update(
                 row.copy(
                     isFinished = isFinished,
+                    // Kept while it stays on, dropped when it goes off: an unfinished
+                    // publication has no completion to date.
+                    finishedAt = if (isFinished) row.finishedAt ?: at else null,
                     progression = if (isFinished) 1.0 else row.progression,
                     updatedAt = at,
                 ),
@@ -266,6 +297,7 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
             ReadingPosition.Reflowable(row.progression, row.locator.orEmpty())
         },
         isFinished = row.isFinished,
+        finishedAtEpochMillis = row.finishedAt,
         updatedAtEpochMillis = row.updatedAt,
         syncedPosition = row.syncedProgression?.let { ReadingPosition.Reflowable(it, "") },
     )
