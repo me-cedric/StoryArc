@@ -119,13 +119,14 @@ struct TableOfContentsSheet: View {
     @State private var tab = Tab.contents
 
     fileprivate enum Tab: Hashable {
-        case contents, bookmarks, search
+        case contents, bookmarks, search, annotations
 
         var title: LocalizedStringKey {
             switch self {
             case .contents: "contents.title"
             case .bookmarks: "bookmarks.title"
             case .search: "search.title"
+            case .annotations: "annotations.title"
             }
         }
     }
@@ -136,7 +137,7 @@ struct TableOfContentsSheet: View {
         return NavigationStack {
             VStack(spacing: 0) {
                 Picker("", selection: $tab) {
-                    ForEach([Tab.contents, .bookmarks, .search], id: \.self) { choice in
+                    ForEach([Tab.contents, .bookmarks, .search, .annotations], id: \.self) { choice in
                         Text(choice.title, bundle: .module).tag(choice)
                     }
                 }
@@ -157,6 +158,13 @@ struct TableOfContentsSheet: View {
                     SearchInBook(model: model) { match in
                         Task {
                             await model.go(to: match)
+                            dismiss()
+                        }
+                    }
+                case .annotations:
+                    AnnotationList(model: model) { annotation in
+                        Task {
+                            await model.go(to: annotation)
                             dismiss()
                         }
                     }

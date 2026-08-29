@@ -69,6 +69,19 @@ public final class EpubReaderModel {
     /// The reading order's hrefs, for the progress fallback below.
     var readingOrder: [String] = []
 
+    /// Every mark in this publication, in book order.
+    public internal(set) var annotations: [Annotation] = []
+
+    /// Where the marks a reader makes live between sessions. Nil in a test.
+    let annotationStore: AnnotationStore?
+
+    /// What is selected, and where it is on screen, or nil when nothing is.
+    ///
+    /// `ebook-reader` wants a menu offering colours, a note, copy and search-in-publication.
+    /// The system's own edit menu can hold none of that, so Readium is told not to show it
+    /// and this is what the app's own menu is anchored to.
+    var selection: Selection?
+
     /// A footnote the reader tapped, as text, or nil when none is open.
     ///
     /// `ebook-reader`: "a footnote opens in place as a popover". Readium fetches the note's
@@ -132,6 +145,7 @@ public final class EpubReaderModel {
         progress: ProgressStore? = nil,
         preferences: ReaderPreferences? = nil,
         bookmarkStore: BookmarkStore? = nil,
+        annotationStore: AnnotationStore? = nil,
         /// A preset the *app appearance* dictates, when the reader opted into that.
         ///
         /// `settings-and-about` keeps appearance and reading theme apart by default and
@@ -152,6 +166,8 @@ public final class EpubReaderModel {
         self.progress = progress
         self.preferences = preferences
         self.bookmarkStore = bookmarkStore
+        self.annotationStore = annotationStore
+        annotations = annotationStore?.annotations(for: publication.id) ?? []
         bookmarks = bookmarkStore?.bookmarks(for: publication.id) ?? []
         // Its series, or itself where it has none. `reading-themes` scopes a theme to
         // the series, and a standalone book is a series of one.

@@ -352,6 +352,7 @@ struct StoryArcApp: App {
                         progress: progress,
                         preferences: ReaderPreferences(),
                         bookmarks: BookmarkStore(),
+                        annotations: AnnotationStore(),
                         linkedPreset: linkedPreset(for: settings, in: colorScheme)
                     )
                     // Identity, so opening the next issue from the end screen

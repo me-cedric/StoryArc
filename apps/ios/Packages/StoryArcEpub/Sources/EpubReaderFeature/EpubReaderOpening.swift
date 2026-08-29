@@ -77,6 +77,10 @@ extension EpubReaderModel {
             readingOrder = opened.readingOrder.map(\.href)
             self.opened = opened
             progression = resumed.map(totalProgression(of:)) ?? 0
+            // Painted once the navigator exists, not when the marks were loaded: a
+            // decoration applied to a navigator that is not on screen yet is a decoration
+            // Readium has nowhere to put.
+            await drawAnnotations()
         } catch {
             failure = String(localized: "epub.failure.unreadable", bundle: .module)
         }
@@ -262,6 +266,33 @@ final class NavigatorObserver: EPUBNavigatorDelegate {
     /// the page with an error because one resource misbehaved would lose the
     /// reader's place over something they may never notice.
     func navigator(_ navigator: any Navigator, presentError error: NavigatorError) {}
+
+    /// Whether the system's own edit menu should be shown for a selection.
+    ///
+    /// No, always. `ebook-reader` asks for "highlight in several colours, add a note, copy,
+    /// and search-in-publication" on a selection, and the system menu is a row of verbs — it
+    /// has nowhere to put five colours. Answering `false` and keeping the selection is what
+    /// lets the app anchor its own menu where the words are.
+    func navigator(
+        _ navigator: SelectableNavigator,
+        shouldShowMenuForSelection selection: Selection
+    ) -> Bool {
+        Task { @MainActor in model?.selection = selection }
+        return false
+    }
+
+    /// Whether one of the system's actions belongs in a menu that is not being shown.
+    ///
+    /// Moot while the menu above is refused, and answered anyway: the day a selection is
+    /// made by a keyboard or an assistive technology rather than a finger, this is what
+    /// decides, and copy is the one action that is always reasonable.
+    func navigator(
+        _ navigator: SelectableNavigator,
+        canPerformAction action: EditingAction,
+        for selection: Selection
+    ) -> Bool {
+        action == .copy
+    }
 
     /// What a link inside the book does.
     ///

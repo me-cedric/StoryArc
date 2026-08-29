@@ -26,6 +26,8 @@ public struct EpubReaderView: View {
     @State private var isChromeVisible = true
     @State private var isShowingTheme = false
     @State private var isShowingContents = false
+    @State private var editingNote: Annotation?
+    @State private var noteText = ""
     /// What the device's brightness was before the reader touched it.
     @State private var deviceBrightness: CGFloat?
 
@@ -36,6 +38,8 @@ public struct EpubReaderView: View {
         preferences: ReaderPreferences? = nil,
         /// Where the marks a reader makes live between sessions.
         bookmarks: BookmarkStore? = nil,
+        /// Where the highlights and notes a reader makes live between sessions.
+        annotations: AnnotationStore? = nil,
         /// See ``EpubReaderModel/init(publication:url:progress:preferences:linkedPreset:)``.
         linkedPreset: ThemePreset? = nil
     ) {
@@ -46,6 +50,7 @@ public struct EpubReaderView: View {
                 progress: progress,
                 preferences: preferences,
                 bookmarkStore: bookmarks,
+                annotationStore: annotations,
                 linkedPreset: linkedPreset
             )
         )
@@ -101,6 +106,55 @@ public struct EpubReaderView: View {
                 // does not: wide enough for the preset grid, narrow enough that the
                 // page stays readable beside it.
                 .frame(idealWidth: 380, idealHeight: 620)
+        }
+        // Writing on the mark the selection menu just made. Presented from here rather than
+        // from the list, because that is where the reader asked for it.
+        .sheet(item: $editingNote) { annotation in
+            NoteEditor(text: $noteText) {
+                Task { await model.annotate(annotation, with: noteText) }
+                editingNote = nil
+            } cancel: {
+                editingNote = nil
+            }
+        }
+        // Anchored to the words, which is what makes it a selection menu rather than a
+        // sheet about the selection. `ebook-reader` asks for the colours, a note, copy and
+        // search-in-publication; the system's own edit menu is refused in the delegate
+        // because it has nowhere to put five colours.
+        .popover(
+            isPresented: Binding(
+                get: { model.selection != nil },
+                set: { if !$0 { model.selection = nil } }
+            ),
+            attachmentAnchor: .rect(.rect(model.selection?.frame ?? .zero)),
+            arrowEdge: .top
+        ) {
+            SelectionMenu(
+                onHighlight: { colour in Task { await model.highlight(colour) } },
+                onNote: {
+                    Task {
+                        await model.highlight(.yellow)
+                        // Straight into writing on the mark just made: a reader who chose
+                        // "Note" wants to write, not to be handed a highlight and left to
+                        // find the list.
+                        if let latest = model.annotations.max(by: { $0.createdAt < $1.createdAt }) {
+                            noteText = latest.note
+                            editingNote = latest
+                        }
+                    }
+                },
+                onCopy: {
+                    UIPasteboard.general.string = model.selection?.locator.text.highlight
+                    model.selection = nil
+                },
+                onSearch: {
+                    let words = model.selection?.locator.text.highlight
+                    model.selection = nil
+                    isShowingContents = true
+                    Task { if let words { await model.search(words) } }
+                }
+            )
+            .presentationCompactAdaptation(.popover)
         }
         // `ebook-reader` asks for a footnote to open "in place as a popover", which is
         // the word this file already uses for the other two: a popover on a tablet, and
