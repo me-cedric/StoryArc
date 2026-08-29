@@ -512,6 +512,9 @@ class MainActivity : ComponentActivity() {
                         onRenameSource = { source, name ->
                             libraryViewModel.renameSource(source, name)
                         },
+                        onReorderSource = { source, later ->
+                            libraryViewModel.reorderSource(source, later)
+                        },
                         // Read from the store rather than from a browser's acquisition: the
                         // store is the record, and Settings can be reached without ever
                         // having opened a catalogue.
@@ -529,6 +532,17 @@ class MainActivity : ComponentActivity() {
                             ).delete()
                             downloads = downloads.removing(download.id)
                             downloadStore.save(downloads)
+                        },
+                        onClearDownloads = {
+                            // The bytes behind the ten-second undo are staged *inside* the
+                            // downloads directory, so clearing already takes them with it.
+                            // Dropping the pending removal is what stops the snackbar going
+                            // on offering to restore a file that no longer exists — an undo
+                            // that would put a record back for bytes nobody has, which is
+                            // the "list that outlives its files" `DownloadStore` exists to
+                            // prevent. No `settle()`: there is nothing left to delete.
+                            removed = null
+                            downloads = downloadStore.clearing()
                         },
                         // Written through on every change rather than on the way out.
                         // `settings-and-about` requires an appearance to apply

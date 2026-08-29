@@ -63,6 +63,26 @@ data class SourceRegistry(
     }
 
     /**
+     * Moves a source one place, up or down.
+     *
+     * The arithmetic that [moving] leaves to its caller, in the model where it can be
+     * tested without a screen. `DownloadLibrary.moving(id, later)` is the same helper for
+     * the same reason: a destination expressed as "one place later" has to become the index
+     * a *drag* would have reported, which for a downward move is the one after the row it
+     * passes.
+     *
+     * iOS has no counterpart because it does not need one — `List.onMove` hands it an
+     * absolute destination already. `STATUS.md` records why the two screens differ.
+     */
+    fun moving(id: UUID, later: Boolean): SourceRegistry {
+        val from = sources.indexOfFirst { it.id == id }
+        if (from < 0) return this
+        val destination = if (later) from + 2 else from - 1
+        if (destination < 0 || destination > sources.size) return this
+        return moving(id, destination)
+    }
+
+    /**
      * Records what a source's connection looks like right now.
      *
      * State is deliberately not persisted — it describes a network, and a state read back

@@ -10,6 +10,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.RssFeed
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
@@ -59,6 +61,16 @@ internal fun SourcesGroup(
     onRemove: (Source) -> Unit,
     onRename: (Source, String) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Moves a source one place, up or down.
+     *
+     * `sources` describes reordering as a drag. Compose has no drag-to-reorder, and a
+     * hand-rolled one is a long-press gesture, an auto-scroll and a set of semantics
+     * actions that a screen reader would still need spelled out — so this mirrors the
+     * download queue in the same app, which chose two buttons for the same reason. iOS gets
+     * the drag free from `List.onMove`; `STATUS.md` records the difference.
+     */
+    onReorder: (Source, Boolean) -> Unit = { _, _ -> },
 ) {
     val palette = LocalStoryArcPalette.current
     var removing by remember { mutableStateOf<Source?>(null) }
@@ -143,7 +155,7 @@ internal fun SourcesGroup(
             return@Column
         }
 
-        sources.forEach { source ->
+        sources.forEachIndexed { index, source ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -168,22 +180,54 @@ internal fun SourcesGroup(
                     // The state and the count, which is what `sources` asks a source's own
                     // screen to show. Downloads are absent because nothing downloads yet,
                     // and the count is what exists in their place.
+                    //
+                    // One line, joined by a separator, rather than the state in a column of
+                    // its own. Two data fields and a separator is what `AboutGroup` does
+                    // with a licence and its reason, for the same reason: a fixed-width
+                    // column beside four icon buttons left the name a single character
+                    // wide, which an emulator showed and a preview did not.
                     Text(
-                        text = pluralStringResource(
-                            R.plurals.sources_detail,
-                            itemCount(source),
-                            itemCount(source),
-                        ),
+                        text = stringResource(status(source.state)) + " · " +
+                            pluralStringResource(
+                                R.plurals.sources_detail,
+                                itemCount(source),
+                                itemCount(source),
+                            ),
                         style = MaterialTheme.typography.labelLarge,
                         color = palette.textTertiary,
                     )
                 }
 
-                Text(
-                    text = stringResource(status(source.state)),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.textTertiary,
-                )
+                // Only where there is an order to change. One source cannot be reordered,
+                // and the ends of the list cannot go further — a disabled arrow on every
+                // first and last row is two permanently dead controls.
+                if (sources.size > 1) {
+                    // The tint follows `enabled`. An explicit tint overrides the one
+                    // `IconButton` would have dimmed, so the first row's up arrow and the
+                    // last row's down arrow looked live while doing nothing.
+                    val canMoveEarlier = index > 0
+                    val canMoveLater = index < sources.lastIndex
+                    IconButton(onClick = { onReorder(source, false) }, enabled = canMoveEarlier) {
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardArrowUp,
+                            contentDescription = stringResource(
+                                R.string.sources_move_earlier,
+                                source.displayName,
+                            ),
+                            tint = if (canMoveEarlier) palette.textSecondary else palette.textTertiary,
+                        )
+                    }
+                    IconButton(onClick = { onReorder(source, true) }, enabled = canMoveLater) {
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardArrowDown,
+                            contentDescription = stringResource(
+                                R.string.sources_move_later,
+                                source.displayName,
+                            ),
+                            tint = if (canMoveLater) palette.textSecondary else palette.textTertiary,
+                        )
+                    }
+                }
 
                 IconButton(onClick = {
                     // Seeded with the current name rather than blank: a rename is usually a

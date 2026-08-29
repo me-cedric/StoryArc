@@ -77,7 +77,10 @@
     <string name="privacy_clear_cache">Borrar la caché</string>
     <string name="privacy_clear_history">Borrar el historial de lectura</string>
     <string name="privacy_clear_history_body">Cada publicación vuelve a su primera página. Sus archivos, fuentes y ajustes no se ven afectados.</string>
-    <string name="privacy_downloads_absent">Todavía no se descarga nada, así que no hay descargas que borrar.</string>
+    <string name="privacy_downloads">Descargas · %1$s</string>
+    <string name="privacy_downloads_note">Publicaciones guardadas en este dispositivo. Borrarlas elimina los archivos, no lo que has leído.</string>
+    <string name="privacy_clear_downloads">Borrar descargas</string>
+    <string name="privacy_clear_downloads_body">Se elimina de este dispositivo cada publicación descargada. Tus fuentes, tu progreso de lectura y tus colecciones no se ven afectados, y lo que siga en una fuente se puede volver a descargar.</string>
     <string name="privacy_diagnostic">Exportación de diagnóstico</string>
     <string name="privacy_diagnostic_note">Lo que la app sabe de sí misma. Los nombres de servidor, las rutas y las credenciales se quitan antes de mostrarlo, y no se envía nada.</string>
     <string name="privacy_diagnostic_show">Mostrar</string>
@@ -86,6 +89,8 @@
     <string name="sources_none">Aún no hay fuentes. Añada una carpeta desde la biblioteca para empezar.</string>
     <string name="sources_remove">Quitar</string>
     <string name="sources_remove_action">Quitar %1$s</string>
+    <string name="sources_move_earlier">Subir «%1$s»</string>
+    <string name="sources_move_later">Bajar «%1$s»</string>
     <string name="sources_remove_title">¿Quitar %1$s?</string>
     <string name="sources_state_connected">Disponible</string>
     <string name="sources_state_connecting">Conectando</string>

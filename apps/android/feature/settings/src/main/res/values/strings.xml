@@ -82,7 +82,10 @@
     <string name="privacy_clear_cache">Clear cache</string>
     <string name="privacy_clear_history">Clear reading history</string>
     <string name="privacy_clear_history_body">Every publication goes back to its first page. Your files, sources and settings are not affected.</string>
-    <string name="privacy_downloads_absent">Nothing downloads yet, so there is nothing downloaded to clear.</string>
+    <string name="privacy_downloads">Downloads · %1$s</string>
+    <string name="privacy_downloads_note">Publications kept on this device. Clearing removes the files, not what you have read.</string>
+    <string name="privacy_clear_downloads">Clear downloads</string>
+    <string name="privacy_clear_downloads_body">Every downloaded publication is removed from this device. Your sources, your reading progress and your collections are not affected, and anything still on a source can be downloaded again.</string>
     <string name="privacy_diagnostic">Diagnostic export</string>
     <string name="privacy_diagnostic_note">What the app knows about itself. Server names, paths and credentials are removed before it is shown, and nothing is sent anywhere.</string>
     <string name="privacy_diagnostic_show">Show</string>
@@ -91,6 +94,8 @@
     <string name="sources_none">No sources yet. Add a folder from the library to get started.</string>
     <string name="sources_remove">Remove</string>
     <string name="sources_remove_action">Remove %1$s</string>
+    <string name="sources_move_earlier">Move “%1$s” earlier</string>
+    <string name="sources_move_later">Move “%1$s” later</string>
     <string name="sources_remove_title">Remove %1$s?</string>
     <string name="sources_state_connected">Available</string>
     <string name="sources_state_connecting">Connecting</string>

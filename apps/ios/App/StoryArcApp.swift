@@ -175,19 +175,6 @@ struct StoryArcApp: App {
         dismissed = selection
     }
 
-    /// The reading preset the appearance dictates, when the reader opted into that.
-    ///
-    /// `nil` when they have not, which leaves each shelf's own theme in force. Resolved
-    /// here because "System" is a question about the device and this is where the answer
-    /// is: `colorScheme` follows it whatever the setting says.
-    private var linkedPreset: ThemePreset? {
-        guard settings.linkReadingThemeToAppearance else { return nil }
-        let resolved: AppearanceMode = settings.appearance == .system
-            ? (colorScheme == .dark ? .dark : .light)
-            : settings.appearance
-        return .matching(resolved)
-    }
-
     /// Copies a publication off a share and onto the device.
     ///
     /// `network-share`: when reconnection has failed for a minute "the app offers to
@@ -293,6 +280,7 @@ struct StoryArcApp: App {
                     itemCount: { library.itemCount(of: $0) },
                     onRemoveSource: { library.remove($0) },
                     onRenameSource: { library.rename($0, to: $1) },
+                    onReorderSource: { library.move($0, to: $1) },
                     // Read from the store rather than from a browser's acquisition: the
                     // store is the record, and Settings can be reached without ever having
                     // opened a catalogue.
@@ -302,6 +290,14 @@ struct StoryArcApp: App {
                     onReorderDownload: { download, later in
                         downloads = downloads.moving(download.id, later: later)
                         downloadStore.save(downloads)
+                    },
+                    onClearDownloads: {
+                        // The bytes behind the undo are staged *inside* the downloads
+                        // directory, so clearing already takes them with it. Dropping the
+                        // pending removal is what stops a later undo putting a record back
+                        // for bytes nobody has. Android has the same two lines.
+                        removedDownload = nil
+                        downloads = downloadStore.clearing()
                     }
                 )
                     .storyArcTheme(appearance: settings.appearance)
@@ -353,7 +349,7 @@ struct StoryArcApp: App {
                         url: selection.url,
                         progress: progress,
                         preferences: ReaderPreferences(),
-                        linkedPreset: linkedPreset
+                        linkedPreset: linkedPreset(for: settings, in: colorScheme)
                     )
                     // Identity, so opening the next issue from the end screen
                     // builds a fresh reader rather than reusing the previous one's
@@ -389,12 +385,4 @@ struct StoryArcApp: App {
         }
         .continuingDownloadsInBackground()
     }
-}
-
-/// One publication, chosen for reading.
-private struct ReadingSelection: Identifiable {
-    let publication: Publication
-    let url: URL
-
-    var id: String { publication.id }
 }
