@@ -29,6 +29,7 @@ import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.SettingsStore
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsCredential
+import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
@@ -42,6 +43,7 @@ import app.storyarc.core.persistence.SourceStore
 import app.storyarc.feature.library.CatalogueBrowser
 import app.storyarc.feature.library.DownloadQueue
 import app.storyarc.feature.library.CatalogueBrowserScreen
+import app.storyarc.feature.library.CatalogueDetailScreen
 import app.storyarc.feature.library.CatalogueConnection
 import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.CatalogueSheet
@@ -287,6 +289,10 @@ class MainActivity : ComponentActivity() {
                 // one value, because entering a section is another page and the back
                 // gesture has to unwind them one at a time.
                 var catalogue by remember { mutableStateOf<List<CataloguePage>>(emptyList()) }
+                // The publication whose own screen is open, on top of the page it was chosen
+                // from. Held here rather than in the browser so the back gesture unwinds the
+                // detail first and the page behind it keeps its scroll and its entries.
+                var chosen by remember { mutableStateOf<OpdsEntry?>(null) }
                 var isAddingCatalogue by remember { mutableStateOf(false) }
                 var isAddingKavita by remember { mutableStateOf(false) }
                 var isAddingShare by remember { mutableStateOf(false) }
@@ -472,7 +478,6 @@ class MainActivity : ComponentActivity() {
                         onBack = { kavita = null },
                     )
                 } else if (page != null && selection == null && !isShowingSettings) {
-                    BackHandler { catalogue = catalogue.dropLast(1) }
                     // Keyed on the address so entering a section builds a fresh browser
                     // rather than showing the previous page's entries.
                     val browser = remember(page.url) {
@@ -492,17 +497,31 @@ class MainActivity : ComponentActivity() {
                             credential = { page.credential },
                         )
                     }
-                    CatalogueBrowserScreen(
-                        browser = browser,
-                        queue = queue,
-                        onEnter = { title, url ->
-                            catalogue = catalogue + CataloguePage(title, url, page.credential)
-                        },
-                        // The same door a local publication goes through. A book fetched
-                        // from a catalogue is a book.
-                        onOpen = route,
-                        onBack = { catalogue = catalogue.dropLast(1) },
-                    )
+                    val entry = chosen
+                    if (entry != null) {
+                        BackHandler { chosen = null }
+                        CatalogueDetailScreen(
+                            entry = entry,
+                            credential = page.credential,
+                            client = browser.client,
+                            queue = queue,
+                            // The same door a local publication goes through. A book
+                            // fetched from a catalogue is a book.
+                            onOpen = route,
+                            onBack = { chosen = null },
+                        )
+                    } else {
+                        BackHandler { catalogue = catalogue.dropLast(1) }
+                        CatalogueBrowserScreen(
+                            browser = browser,
+                            queue = queue,
+                            onEnter = { title, url ->
+                                catalogue = catalogue + CataloguePage(title, url, page.credential)
+                            },
+                            onSelect = { chosen = it },
+                            onBack = { catalogue = catalogue.dropLast(1) },
+                        )
+                    }
                 } else if (isShowingSettings) {
                     BackHandler { isShowingSettings = false }
                     val registry by libraryViewModel.registry.collectAsStateWithLifecycle()
@@ -608,7 +627,10 @@ class MainActivity : ComponentActivity() {
                         onBrowse = { source ->
                             // One tap, two destinations, decided by what the source is. The
                             // reader picked a place to browse, not a protocol.
-                            CataloguePage.of(source, credentials)?.let { catalogue = listOf(it) }
+                            CataloguePage.of(source, credentials)?.let {
+                                chosen = null
+                                catalogue = listOf(it)
+                            }
                             KavitaPage.of(source, credentials)?.let {
                                 kavita = it
                                 kavitaLevel = KavitaLevel.Libraries

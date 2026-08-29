@@ -20,18 +20,20 @@ enum OpdsJson {
 
         let resolve = { (href: String) in OpdsDocument.resolve(href, relativeTo: baseURL) }
 
-        // Groups hold the same three things a feed does, so they are flattened into it.
-        // OPDS 2.0 uses groups where OPDS 1.2 used separate feeds.
-        let groups = wire.groups ?? []
+        // Groups hold the same three things a feed does. A named one becomes a section of
+        // its own; an unnamed one is poured into the feed, because a section with no title
+        // is a heading nobody can read. OPDS 2.0 uses groups where OPDS 1.2 used separate
+        // feeds.
+        let wireGroups = wire.groups ?? []
+        let unnamed = wireGroups.filter { $0.metadata?.title == nil }
 
-        let navigation = ((wire.navigation ?? []) + groups.flatMap { $0.navigation ?? [] })
-            .compactMap { link -> OpdsSection? in
-                guard let href = resolve(link.href), let title = link.title else { return nil }
-                return OpdsSection(title: title, href: href, count: link.properties?.numberOfItems)
-            }
+        let navigation = ((wire.navigation ?? []) + unnamed.flatMap { $0.navigation ?? [] })
+            .compactMap { section($0, resolve: resolve) }
 
-        let publications = ((wire.publications ?? []) + groups.flatMap { $0.publications ?? [] })
+        let publications = ((wire.publications ?? []) + unnamed.flatMap { $0.publications ?? [] })
             .compactMap { entry($0, resolve: resolve) }
+
+        let groups = wireGroups.compactMap { group($0, resolve: resolve) }
 
         let facets = (wire.facets ?? []).flatMap { facet in
             facet.links.compactMap { link -> OpdsFacet? in
@@ -53,6 +55,7 @@ enum OpdsJson {
             title: metadata.title,
             navigation: navigation,
             publications: publications,
+            groups: groups,
             facets: facets,
             next: links.first { $0.rel?.contains("next") == true }.flatMap { resolve($0.href) },
             // A templated link says so, and its href holds the braces. One that does not is
@@ -62,6 +65,38 @@ enum OpdsJson {
                 : nil,
             searchDescription: isTemplated ? nil : search.flatMap { resolve($0.href) }
         )
+    }
+
+    /// A named group, which the browser shows as a section of its own.
+    ///
+    /// Nil for a group with no title: there is nothing to head it with, and its contents
+    /// have already been poured into the feed by the caller.
+    private static func group(
+        _ wire: OpdsWireGroup,
+        resolve: (String) -> URL?
+    ) -> OpdsGroup? {
+        guard let title = wire.metadata?.title else { return nil }
+        return OpdsGroup(
+            title: title,
+            navigation: (wire.navigation ?? []).compactMap { section($0, resolve: resolve) },
+            publications: (wire.publications ?? []).compactMap { entry($0, resolve: resolve) },
+            // `self` is where the standard puts "the rest of this group", and a group that
+            // points at itself is the one case where following a self link is not a loop:
+            // the group is an excerpt of the page it names.
+            more: wire.links?
+                .first { $0.rel?.contains("self") == true }
+                .flatMap { resolve($0.href) }
+        )
+    }
+
+    /// A navigation link, which is a section when it has somewhere to go and a name to
+    /// show. Shared by the feed's own navigation and by every group's.
+    private static func section(
+        _ link: OpdsWireLink,
+        resolve: (String) -> URL?
+    ) -> OpdsSection? {
+        guard let href = resolve(link.href), let title = link.title else { return nil }
+        return OpdsSection(title: title, href: href, count: link.properties?.numberOfItems)
     }
 
     private static func entry(

@@ -33,6 +33,15 @@ public final class CatalogueBrowser {
     /// Whether another page exists. Read by the grid as it nears the end.
     public var hasMore: Bool { next != nil }
 
+    /// Everything on this page a local search can look through.
+    ///
+    /// The grid *and* every group: an OPDS 2.0 feed can put its whole catalogue in named
+    /// groups and leave the top level empty, and a search that only looked at ``entries``
+    /// would answer "nothing" for a page full of publications.
+    public var searchable: [OpdsEntry] {
+        entries + (feed?.groups.flatMap(\.publications) ?? [])
+    }
+
     public let title: String
     public let credential: OpdsCredential?
 
@@ -112,7 +121,7 @@ public final class CatalogueBrowser {
         let trimmed = term.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return .cleared }
         guard let url = searchURL(for: trimmed) else {
-            return .local(entries.filter { $0.matches(trimmed) })
+            return .local(searchable.filter { $0.matches(trimmed) })
         }
         return .server(url)
     }

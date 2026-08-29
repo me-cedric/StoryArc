@@ -12,7 +12,7 @@
 //   /opds            navigation feed, Atom (OPDS 1.2)
 //   /opds/all        acquisition feed, paginated, with a language facet
 //   /opds/series     navigation feed of series
-//   /opds2           the same catalogue as OPDS 2.0 JSON
+//   /opds2           the same catalogue as OPDS 2.0 JSON, in two named groups
 //   /private         401 until Basic ada:lovelace, then the acquisition feed
 //   /bearer          401 until Bearer storyarc-token
 //   /page            an HTML page, so the "that is not a feed" path is reachable
@@ -219,6 +219,33 @@ ${page === 0 && !query && title === 'All publications' ? `  <entry>
 `
 }
 
+/** One publication in the OPDS 2.0 shape, shared by the feed and by its groups. */
+function jsonPublication(entry) {
+  return {
+    metadata: {
+      identifier: entry.id,
+      title: entry.title,
+      author: 'Ada Lovelace',
+      modified: entry.updated,
+      description: `A test publication, ${entry.type}.`,
+      ...(entry.series
+        ? { belongsTo: { series: { name: entry.series, position: entry.index } } }
+        : {}),
+    },
+    images: [
+      { href: `/covers/${encodeURIComponent(entry.file)}`, type: 'image/png', width: 600 },
+      { href: `/covers/${encodeURIComponent(entry.file)}`, type: 'image/png', width: 120 },
+    ],
+    links: [
+      {
+        rel: 'http://opds-spec.org/acquisition',
+        href: `/files/${encodeURIComponent(entry.file)}`,
+        type: entry.type,
+      },
+    ],
+  }
+}
+
 /** The same catalogue as OPDS 2.0, so the other dialect is reachable from one server. */
 function jsonFeed(base) {
   return JSON.stringify({
@@ -226,6 +253,23 @@ function jsonFeed(base) {
     links: [
       { rel: 'self', href: '/opds2', type: 'application/opds+json' },
       { rel: 'search', href: '/opds2?query={query}', templated: true },
+    ],
+    // Named groups, which is the thing OPDS 2.0 has and OPDS 1.2 does not. The first
+    // carries a `self` link, so the browser has a "see all" to honour; the second does
+    // not, so it is a group that is all there is.
+    groups: [
+      {
+        metadata: { title: 'Recently added' },
+        links: [{ rel: 'self', href: '/opds2/all', type: 'application/opds+json' }],
+        publications: entries.slice(0, 4).map(jsonPublication),
+      },
+      {
+        metadata: { title: 'Comics' },
+        publications: entries
+          .filter((entry) => entry.type.startsWith('application/vnd.comicbook'))
+          .slice(0, 4)
+          .map(jsonPublication),
+      },
     ],
     navigation: [
       {
@@ -243,29 +287,7 @@ function jsonFeed(base) {
         ],
       },
     ],
-    publications: entries.map((entry) => ({
-      metadata: {
-        identifier: entry.id,
-        title: entry.title,
-        author: 'Ada Lovelace',
-        modified: entry.updated,
-        description: `A test publication, ${entry.type}.`,
-        ...(entry.series
-          ? { belongsTo: { series: { name: entry.series, position: entry.index } } }
-          : {}),
-      },
-      images: [
-        { href: `/covers/${encodeURIComponent(entry.file)}`, type: 'image/png', width: 600 },
-        { href: `/covers/${encodeURIComponent(entry.file)}`, type: 'image/png', width: 120 },
-      ],
-      links: [
-        {
-          rel: 'http://opds-spec.org/acquisition',
-          href: `/files/${encodeURIComponent(entry.file)}`,
-          type: entry.type,
-        },
-      ],
-    })),
+    publications: entries.map(jsonPublication),
   }, null, 2)
 }
 

@@ -296,31 +296,3 @@ class DownloadQueue(
     }
 
 }
-
-/**
- * Which acquisition to take, and which the reader could choose instead.
- *
- * Its own object because the question is about a *catalogue entry*, not about the queue: the
- * grid asks it to decide whether a cell is tappable, long before anything is downloaded.
- */
-object CatalogueAcquisition {
-    /**
-     * `opds-catalog`: "the app selects EPUB for reflowable reading and lets the user choose
-     * another format". EPUB first, then the comic containers, then PDF -- a comic offered as
-     * both CBZ and PDF is a comic, and the PDF is a worse copy of it.
-     */
-    fun best(entry: OpdsEntry): OpdsAcquisition? = readable(entry).minByOrNull(::rank)
-
-    /** Every acquisition this app could act on, in the order the feed listed them. */
-    fun readable(entry: OpdsEntry): List<OpdsAcquisition> = entry.acquisitions.filter {
-        it.kind.isFetchable && PublicationFormat.ofMediaType(it.mediaType)?.isOpenable == true
-    }
-
-    private fun rank(acquisition: OpdsAcquisition): Int =
-        when (PublicationFormat.ofMediaType(acquisition.mediaType)) {
-            PublicationFormat.EPUB -> 0
-            PublicationFormat.CBZ, PublicationFormat.CBT, PublicationFormat.CBR -> 1
-            PublicationFormat.PDF -> 2
-            else -> 3
-        }
-}

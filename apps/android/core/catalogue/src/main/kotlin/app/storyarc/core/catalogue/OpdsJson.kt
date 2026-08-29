@@ -35,22 +35,21 @@ internal object OpdsJson {
 
         fun resolve(href: String) = OpdsDocument.resolve(href, baseUrl)
 
-        // Groups hold the same things a feed does, so they are flattened into it. OPDS 2.0
-        // uses groups where OPDS 1.2 used separate feeds.
-        val groups = root["groups"]?.asArray().orEmpty().mapNotNull { it.asObject() }
+        // Groups hold the same things a feed does. A named one becomes a section of its own;
+        // an unnamed one is poured into the feed, because a section with no title is a
+        // heading nobody can read. OPDS 2.0 uses groups where OPDS 1.2 used separate feeds.
+        val wireGroups = root["groups"]?.asArray().orEmpty().mapNotNull { it.asObject() }
+        val unnamed = wireGroups.filter { it.groupTitle() == null }
 
         val navigation = (root["navigation"]?.asArray().orEmpty() +
-            groups.flatMap { it["navigation"]?.asArray().orEmpty() })
-            .mapNotNull { link ->
-                val object_ = link.asObject() ?: return@mapNotNull null
-                val href = object_["href"].asString()?.let(::resolve) ?: return@mapNotNull null
-                val name = object_["title"].asString() ?: return@mapNotNull null
-                OpdsSection(name, href, object_.numberOfItems())
-            }
+            unnamed.flatMap { it["navigation"]?.asArray().orEmpty() })
+            .mapNotNull { section(it.asObject(), ::resolve) }
 
         val publications = (root["publications"]?.asArray().orEmpty() +
-            groups.flatMap { it["publications"]?.asArray().orEmpty() })
+            unnamed.flatMap { it["publications"]?.asArray().orEmpty() })
             .mapNotNull { entry(it.asObject(), ::resolve) }
+
+        val groups = wireGroups.mapNotNull { group(it, ::resolve) }
 
         val facets = root["facets"]?.asArray().orEmpty().flatMap { facet ->
             val object_ = facet.asObject() ?: return@flatMap emptyList()
@@ -71,6 +70,7 @@ internal object OpdsJson {
             title = title,
             navigation = navigation,
             publications = publications,
+            groups = groups,
             facets = facets,
             next = links.firstOrNull { "next" in it.relations() }
                 ?.get("href").asString()?.let(::resolve),
@@ -80,6 +80,45 @@ internal object OpdsJson {
             searchTemplate = if (isTemplated) search.get("href").asString()?.let(::resolve) else null,
             searchDescription = if (isTemplated) null else search?.get("href").asString()?.let(::resolve),
         )
+    }
+
+    /**
+     * A named group, which the browser shows as a section of its own.
+     *
+     * Null for a group with no title: there is nothing to head it with, and its contents have
+     * already been poured into the feed by the caller.
+     */
+    private fun group(wire: JsonObject, resolve: (String) -> String?): OpdsGroup? {
+        val title = wire.groupTitle() ?: return null
+        return OpdsGroup(
+            title = title,
+            navigation = wire["navigation"]?.asArray().orEmpty()
+                .mapNotNull { section(it.asObject(), resolve) },
+            publications = wire["publications"]?.asArray().orEmpty()
+                .mapNotNull { entry(it.asObject(), resolve) },
+            // `self` is where the standard puts "the rest of this group", and a group that
+            // points at itself is the one case where following a self link is not a loop: the
+            // group is an excerpt of the page it names.
+            more = wire["links"]?.asArray().orEmpty()
+                .mapNotNull { it.asObject() }
+                .firstOrNull { "self" in it.relations() }
+                ?.get("href").asString()?.let(resolve),
+        )
+    }
+
+    /** What a group calls itself, when it calls itself anything. */
+    private fun JsonObject.groupTitle(): String? =
+        this["metadata"]?.asObject()?.get("title").asString()
+
+    /**
+     * A navigation link, which is a section when it has somewhere to go and a name to show.
+     * Shared by the feed's own navigation and by every group's.
+     */
+    private fun section(wire: JsonObject?, resolve: (String) -> String?): OpdsSection? {
+        if (wire == null) return null
+        val href = wire["href"].asString()?.let(resolve) ?: return null
+        val name = wire["title"].asString() ?: return null
+        return OpdsSection(name, href, wire.numberOfItems())
     }
 
     private fun entry(wire: JsonObject?, resolve: (String) -> String?): OpdsEntry? {

@@ -89,9 +89,14 @@ struct CatalogueEntryCell: View {
         guard !offered.isEmpty else {
             return String(localized: "catalogue.entry.noDownload", bundle: .module, locale: .storyArc)
         }
+        // Interpolated rather than handed to `String(format:)`: the two spellings look up
+        // two different keys, and a catalogue holding both fails the build — Xcode
+        // generates one symbol for them. One key, asked for the same way from both places.
+        let formats = ListFormatter.localizedString(byJoining: Array(Set(offered)).sorted())
         return String(
-            format: String(localized: "catalogue.entry.unreadable", bundle: .module, locale: .storyArc),
-            ListFormatter.localizedString(byJoining: Array(Set(offered)).sorted())
+            localized: "catalogue.entry.unreadable \(formats)",
+            bundle: .module,
+            locale: .storyArc
         )
     }
 

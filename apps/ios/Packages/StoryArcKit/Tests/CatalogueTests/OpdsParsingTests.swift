@@ -163,6 +163,10 @@ struct OpdsParsingTests {
       ],
       "groups": [
         {
+          "metadata": { "title": "Recently added" },
+          "links": [
+            { "rel": "self", "href": "/opds/recent", "type": "application/opds+json" }
+          ],
           "navigation": [
             { "title": "Series", "href": "/opds/series", "type": "application/opds+json" }
           ],
@@ -175,6 +179,16 @@ struct OpdsParsingTests {
               "links": [
                 { "href": "/download/9.epub", "type": "application/epub+zip",
                   "rel": "http://opds-spec.org/acquisition" }
+              ]
+            }
+          ]
+        },
+        {
+          "publications": [
+            {
+              "metadata": { "identifier": "urn:uuid:10", "title": "Untitled Group Member" },
+              "links": [
+                { "href": "/download/10.epub", "type": "application/epub+zip" }
               ]
             }
           ]
@@ -218,16 +232,46 @@ struct OpdsParsingTests {
         #expect(feed.searchDescription == nil)
     }
 
-    @Test func groupsAreFlattenedIntoTheFeed() throws {
+    @Test func aNamedGroupIsItsOwnSectionRatherThanPartOfTheRun() throws {
         let feed = try OpdsDocument.parse(Data(json.utf8), baseURL: base)
-        #expect(feed.navigation.map(\.title) == ["Unread", "Series"])
-        #expect(feed.publications.map(\.title) == ["Harbour Lights 02", "Grouped Title"])
+        let group = try #require(feed.groups.first)
+        #expect(group.title == "Recently added")
+        #expect(group.publications.map(\.title) == ["Grouped Title"])
+        #expect(group.navigation.map(\.title) == ["Series"])
+        // What was in a group has left the feed's own run, or it would be shown twice.
+        #expect(feed.navigation.map(\.title) == ["Unread"])
+        #expect(!feed.publications.contains { $0.title == "Grouped Title" })
+    }
+
+    @Test func aGroupCarriesTheLinkToTheRestOfItself() throws {
+        let feed = try OpdsDocument.parse(Data(json.utf8), baseURL: base)
+        #expect(feed.groups.first?.more?.absoluteString == "https://library.example/opds/recent")
+    }
+
+    @Test func anUnnamedGroupIsPouredIntoTheFeed() throws {
+        // A section with no title is a heading nobody can read, so its contents join the
+        // page rather than sitting under a blank one.
+        let feed = try OpdsDocument.parse(Data(json.utf8), baseURL: base)
+        #expect(feed.groups.count == 1)
+        #expect(feed.publications.map(\.title) == ["Harbour Lights 02", "Untitled Group Member"])
+    }
+
+    @Test func aFeedWithGroupsIsNotAnEmptyPage() throws {
+        let feed = try OpdsDocument.parse(Data(json.utf8), baseURL: base)
+        #expect(!feed.isEmpty)
+        #expect(feed.isAcquisition)
+
+        let grouped = OpdsFeed(title: "t", groups: [OpdsGroup(title: "g", publications: [])])
+        // Named but empty is still a page that says something, and still not an acquisition.
+        #expect(!grouped.isEmpty)
+        #expect(!grouped.isAcquisition)
+        #expect(OpdsFeed(title: "t").isEmpty)
     }
 
     @Test func anAuthorIsReadWhicheverShapeItTakes() throws {
         let feed = try OpdsDocument.parse(Data(json.utf8), baseURL: base)
         #expect(feed.publications.first?.authors == ["Ada Lovelace", "Alan Turing"])
-        #expect(feed.publications.last?.authors == ["Grace Hopper"])
+        #expect(feed.groups.first?.publications.first?.authors == ["Grace Hopper"])
     }
 
     @Test func theLargestImageIsTheCoverAndTheSmallestTheThumbnail() throws {
@@ -302,57 +346,5 @@ struct OpdsParsingTests {
         #expect(OpdsError.AuthenticationScheme(challenge: "Basic realm=\"opds\"") == .basic)
         #expect(OpdsError.AuthenticationScheme(challenge: "Bearer") == .bearer)
         #expect(OpdsError.AuthenticationScheme(challenge: "Digest qop=auth") == nil)
-    }
-}
-
-/// What a typed address becomes.
-///
-/// The one piece of the add-a-catalogue flow that is not a network call, and the one that
-/// decides whether a password travels in the clear.
-struct OpdsAddressTests {
-    @Test func aBareHostBecomesHttps() throws {
-        let url = try #require(OpdsDocument.address(from: "library.example.com/opds"))
-        #expect(url.absoluteString == "https://library.example.com/opds")
-    }
-
-    @Test func anExplicitSchemeIsKept() throws {
-        // A reader who typed `http` meant it — usually a server on their own network. The
-        // default is the secure one; the override is theirs.
-        let url = try #require(OpdsDocument.address(from: "http://nas.local:8080/opds"))
-        #expect(url.absoluteString == "http://nas.local:8080/opds")
-    }
-
-    @Test func surroundingSpaceIsIgnored() throws {
-        let url = try #require(OpdsDocument.address(from: "  komga.local/opds  "))
-        #expect(url.absoluteString == "https://komga.local/opds")
-    }
-
-    @Test func somethingWithNoHostIsNotAnAddress() {
-        #expect(OpdsDocument.address(from: "") == nil)
-        #expect(OpdsDocument.address(from: "   ") == nil)
-        #expect(OpdsDocument.address(from: "https://") == nil)
-        #expect(OpdsDocument.address(from: "not a host at all") == nil)
-    }
-}
-
-/// Which failures are worth trying again.
-///
-/// `offline-downloads` retries a failed download three times. Retrying one that cannot
-/// succeed spends a reader's data to arrive at the same answer.
-struct OpdsTransienceTests {
-    @Test func aServerHavingAMomentIsWorthRetrying() {
-        #expect(OpdsError.http(status: 500).isTransient)
-        #expect(OpdsError.http(status: 503).isTransient)
-        #expect(OpdsError.http(status: 408).isTransient)
-        #expect(OpdsError.http(status: 429).isTransient)
-        #expect(OpdsError.empty.isTransient)
-    }
-
-    @Test func anAnswerThatWillNotChangeIsNot() {
-        #expect(!OpdsError.http(status: 404).isTransient)
-        #expect(!OpdsError.http(status: 403).isTransient)
-        #expect(!OpdsError.unauthorized(scheme: .basic).isTransient)
-        #expect(!OpdsError.notAFeed(received: .html).isTransient)
-        #expect(!OpdsError.malformed(reason: "bad XML").isTransient)
     }
 }

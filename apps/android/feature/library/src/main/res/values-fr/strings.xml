@@ -107,7 +107,6 @@
     <string name="catalogue_entry_unreadable">Proposé en %1$s, que StoryArc ne peut pas ouvrir</string>
     <string name="catalogue_entry_no_download">Aucun téléchargement proposé</string>
     <string name="catalogue_acquire_fetching">Récupération de %1$s…</string>
-    <string name="catalogue_acquire_other">Ouvrir en %1$s</string>
     <string name="catalogue_acquire_unsupported">Le serveur a envoyé %1$s, que StoryArc ne peut pas ouvrir.</string>
     <string name="catalogue_acquire_unreadable">Ce que le serveur a envoyé n’a pas pu être lu comme une publication.</string>
     <string name="catalogue_strip_hint">Parcourt ce catalogue</string>
@@ -119,6 +118,16 @@
     <string name="catalogue_back">Retour</string>
     <string name="catalogue_entry_downloaded">Sur cet appareil</string>
     <string name="catalogue_acquire_download">Télécharger</string>
+    <string name="catalogue_group_more">Tout voir</string>
+    <string name="catalogue_detail_read">Lire</string>
+    <string name="catalogue_detail_formats">Formats proposés</string>
+    <string name="catalogue_detail_default">Ouvert par défaut</string>
+    <string name="catalogue_detail_updated">Mis à jour le %1$s</string>
+    <string name="catalogue_detail_unsupported">Proposé sous forme de %1$s, ce que StoryArc ne peut pas suivre.</string>
+    <string name="catalogue_acquire_kind_borrow">prêt</string>
+    <string name="catalogue_acquire_kind_buy">achat</string>
+    <string name="catalogue_acquire_kind_subscribe">abonnement</string>
+    <string name="catalogue_acquire_kind_indirect">étape d’acquisition supplémentaire</string>
     <string name="downloads_remove">Supprimer le téléchargement</string>
     <string name="downloads_paused_title">%1$s est en pause</string>
     <string name="downloads_retry">Réessayer</string>

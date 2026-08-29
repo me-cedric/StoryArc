@@ -16,6 +16,10 @@ public struct OpdsFeed: Sendable, Equatable {
     /// Publications on this page. Empty for a pure navigation feed.
     public let publications: [OpdsEntry]
 
+    /// The named runs an OPDS 2.0 feed divides itself into. Empty for OPDS 1.2, which has
+    /// no such thing, and for a 2.0 feed that declares none.
+    public let groups: [OpdsGroup]
+
     /// Filters the server offers, surfaced through `library-browsing`'s controls.
     public let facets: [OpdsFacet]
 
@@ -39,6 +43,7 @@ public struct OpdsFeed: Sendable, Equatable {
         title: String,
         navigation: [OpdsSection] = [],
         publications: [OpdsEntry] = [],
+        groups: [OpdsGroup] = [],
         facets: [OpdsFacet] = [],
         next: URL? = nil,
         searchTemplate: String? = nil,
@@ -47,6 +52,7 @@ public struct OpdsFeed: Sendable, Equatable {
         self.title = title
         self.navigation = navigation
         self.publications = publications
+        self.groups = groups
         self.facets = facets
         self.next = next
         self.searchTemplate = searchTemplate
@@ -57,7 +63,57 @@ public struct OpdsFeed: Sendable, Equatable {
     ///
     /// A feed can hold both, and several real servers do — Calibre-Web puts "Recently
     /// added" beside its sections. So this asks what to *show first*, not what the feed is.
-    public var isAcquisition: Bool { !publications.isEmpty }
+    public var isAcquisition: Bool {
+        !publications.isEmpty || groups.contains { !$0.publications.isEmpty }
+    }
+
+    /// Whether there is nothing on this page at all.
+    ///
+    /// Asked by the browser before it says a section is empty, and it has to count the
+    /// groups: a 2.0 feed that puts everything in groups has no top-level anything, and
+    /// calling that empty told readers their catalogue was.
+    public var isEmpty: Bool { navigation.isEmpty && publications.isEmpty && groups.isEmpty }
+}
+
+/// A named run of a catalogue, as an OPDS 2.0 feed declares it.
+///
+/// `opds-catalog` browses what the feed says, and a 2.0 feed says "New this week" and
+/// "Continue reading" are two things rather than one. They used to be poured into a single
+/// list, which lost both names — the reader saw one undivided run of covers, and a server
+/// that had carefully arranged its front page might as well not have bothered.
+///
+/// A group holds the same three things a feed does, because in the standard it is a feed:
+/// the shape recurses, and the browser renders the group with the same views it renders the
+/// page with.
+public struct OpdsGroup: Sendable, Equatable {
+    /// What the group is called. A group without one is not a group anybody can label, so
+    /// the parser folds its contents into the feed instead of showing an unnamed section.
+    public let title: String
+
+    /// Sections inside the group.
+    public let navigation: [OpdsSection]
+
+    /// Publications inside the group.
+    public let publications: [OpdsEntry]
+
+    /// The whole of this group, as its own page.
+    ///
+    /// A group is a *sample* — a server sends the first handful of "Recently added" and a
+    /// `self` link to the rest. Nil where the feed offers no such link, and then the group
+    /// is all there is and there is nothing to open.
+    public let more: URL?
+
+    public init(
+        title: String,
+        navigation: [OpdsSection] = [],
+        publications: [OpdsEntry] = [],
+        more: URL? = nil
+    ) {
+        self.title = title
+        self.navigation = navigation
+        self.publications = publications
+        self.more = more
+    }
 }
 
 /// A section of a catalogue, which is a link to another feed.
