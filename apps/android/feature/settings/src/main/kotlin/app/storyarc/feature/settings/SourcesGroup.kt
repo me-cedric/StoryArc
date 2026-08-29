@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Source
+import app.storyarc.core.persistence.ImportedCopies
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 
@@ -202,15 +203,21 @@ internal fun SourcesGroup(
                     )
                 }
 
-                IconButton(onClick = { removing = source }) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = stringResource(
-                            R.string.sources_remove_action,
-                            source.displayName,
-                        ),
-                        tint = palette.textSecondary,
-                    )
+                // "On this device" is not a source the reader added, so it is not one they
+                // can remove. `local-library` deletes an imported copy one at a time, naming
+                // the title and the space each frees; a remove here would delete every copy
+                // at once behind a sentence that could name none of them.
+                if (source.id != ImportedCopies.SOURCE_ID) {
+                    IconButton(onClick = { removing = source }) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = stringResource(
+                                R.string.sources_remove_action,
+                                source.displayName,
+                            ),
+                            tint = palette.textSecondary,
+                        )
+                    }
                 }
             }
         }

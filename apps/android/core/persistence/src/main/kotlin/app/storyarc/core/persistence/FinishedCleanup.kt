@@ -39,13 +39,18 @@ data class RemovedDownload(
  * whatever the catalogue called it; the progress record is written by the reader against
  * the local file it opened, and the download store is what knows those two are the same
  * thing.
+ *
+ * An imported copy is never one of them. `offline-downloads` sweeps a download away because
+ * "the catalogue can be asked for it again", and nothing can be asked for an import --
+ * `local-library` promises the copy outlives the original, so deleting it on the last page
+ * would be the app breaking its own promise.
  */
 suspend fun finishedDownload(
     store: DownloadStore,
     library: DownloadLibrary,
     isFinished: suspend (String) -> Boolean,
 ): Download? = withContext(Dispatchers.IO) {
-    library.finished.firstOrNull { download ->
+    library.finished.filterNot(ImportedCopies::isImported).firstOrNull { download ->
         val path = store.location(download.id, extensionOf(download.mediaType), download.title).absolutePath
         isFinished(path)
     }

@@ -208,6 +208,26 @@ public enum PublicationFormat: String, Sendable, Codable, CaseIterable {
         }
     }
 
+    /// The media type that names this format — the inverse of ``init(mediaType:)``.
+    ///
+    /// `nil` for a folder of images, which is not a file and has no type of its own.
+    ///
+    /// Needed by `local-library`'s imported copies: the record of a copy on the device
+    /// stores a media type, and the store works the file's extension back out of it. A
+    /// format whose type did not round-trip would be written as `Bone.cbz` and looked for
+    /// as `Bone.bin`, which is a copy the app can no longer find.
+    public var mediaType: String? {
+        switch self {
+        case .cbz: "application/vnd.comicbook+zip"
+        case .cbr: "application/vnd.comicbook-rar"
+        case .cb7: "application/vnd.comicbook+7z"
+        case .cbt: "application/vnd.comicbook+tar"
+        case .epub: "application/epub+zip"
+        case .pdf: "application/pdf"
+        case .imageFolder: nil
+        }
+    }
+
     /// Whether StoryArc can open a publication in this format today.
     ///
     /// CB7 is the one that parses as a format and does not open: `publication-formats`

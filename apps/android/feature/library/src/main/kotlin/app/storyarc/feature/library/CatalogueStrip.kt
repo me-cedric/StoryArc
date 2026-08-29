@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.RssFeed
@@ -108,6 +109,13 @@ fun AddSourceMenu(
     onAddCatalogue: () -> Unit,
     onAddKavita: () -> Unit = {},
     onAddShare: () -> Unit = {},
+    /**
+     * Copies one publication into the app's own storage.
+     *
+     * Beside the source kinds rather than among them: `local-library` gives imported copies
+     * a requirement of their own, and "On this device" is not a place a reader configures.
+     */
+    onImport: () -> Unit = {},
 ) {
     val palette = LocalStoryArcPalette.current
     var open by remember { mutableStateOf(false) }
@@ -126,6 +134,14 @@ fun AddSourceMenu(
             onClick = {
                 open = false
                 onAddFolder()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.library_import)) },
+            leadingIcon = { Icon(Icons.Filled.FileDownload, contentDescription = null) },
+            onClick = {
+                open = false
+                onImport()
             },
         )
         DropdownMenuItem(

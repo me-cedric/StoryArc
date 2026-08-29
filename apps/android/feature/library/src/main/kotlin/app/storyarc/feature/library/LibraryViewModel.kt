@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.format.LibraryScanner
 import app.storyarc.core.format.PublicationAccess
+import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.format.SafTree
 import app.storyarc.core.format.ScanEvent
 import app.storyarc.core.model.LibraryIndex
@@ -17,6 +18,13 @@ import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.ImportedCopies
+import app.storyarc.core.persistence.ImportedCopy
+import app.storyarc.core.persistence.documentNameOf
+import app.storyarc.core.persistence.importing
+import app.storyarc.core.persistence.imports
+import app.storyarc.core.persistence.locationOf
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.model.Source
 import java.util.UUID
@@ -58,6 +66,12 @@ class LibraryViewModel(
     private val preferences: LibraryPreferences? = null,
     private val sourceStore: SourceStore? = null,
     private val shelvesStore: ShelvesStore? = null,
+    /**
+     * Where copies the reader imported live. `local-library` asks for them to be kept in
+     * "app-managed storage", and this store already owns exactly that -- see
+     * [ImportedCopies].
+     */
+    private val downloadStore: DownloadStore? = null,
 ) : AndroidViewModel(application) {
 
     /**
@@ -507,8 +521,25 @@ class LibraryViewModel(
         // Attributed here rather than by the indexer, which reads bytes and has no idea a
         // registry exists. `sources` needs this for a source's item count, and
         // `library-browsing` for the order two sources holding one title appear in.
-        val sourceId = sourceOf(tree)
+        if (!adopt(publication, sourceOf(tree))) return
+        (_scanState.value as? LibraryScanState.Scanning)?.let {
+            _scanState.value = LibraryScanState.Scanning(it.found + 1)
+        }
+        // ponytail: re-arranged in batches during a scan, not per publication --
+        // sorting after every one of 10,000 appends is quadratic. The scan's own
+        // completion rebuilds the rest, so the only visible effect is that the
+        // last few rows arrive together.
+        if (_publications.value.size % REBUILD_EVERY == 0) rebuild()
+    }
 
+    /**
+     * Puts a publication in the library under the source it was reached through, and says
+     * whether it was new.
+     *
+     * Shared by the folder scan and by the imported copies, which find publications two
+     * entirely different ways and have to agree about what one row means.
+     */
+    private fun adopt(publication: Publication, sourceId: UUID?): Boolean {
         val seen = _publications.value.indexOfFirst { it.identity.matches(publication.identity) }
         if (seen >= 0) {
             // Unless the second find knows something the first did not. The app's own files
@@ -522,23 +553,161 @@ class LibraryViewModel(
                     }
                 }
             }
-            return
+            return false
         }
 
         publication.identity.normalizedPath?.let { locations[publication.id] = it }
         _publications.update { it + publication.copy(sourceId = sourceId) }
-        (_scanState.value as? LibraryScanState.Scanning)?.let {
-            _scanState.value = LibraryScanState.Scanning(it.found + 1)
+        return true
+    }
+
+    // Imported copies
+
+    /**
+     * The last import that did not happen, named so the reader can be told which file.
+     *
+     * `local-library` forbids a generic failure elsewhere and there is no reason an import
+     * should be the exception: a reader who picked the wrong file needs to know it was the
+     * file rather than the app.
+     */
+    private val _importFailure = MutableStateFlow<String?>(null)
+    val importFailure: StateFlow<String?> = _importFailure.asStateFlow()
+
+    fun dismissImportFailure() {
+        _importFailure.value = null
+    }
+
+    /**
+     * Copies a publication into app storage and puts it in the library.
+     *
+     * The copy is indexed the same way a scanned file is, through [PublicationIndexer], so
+     * an imported comic carries the same title, series and cover a found one does. Indexing
+     * the *copy* rather than the original is what makes the promise true: from here on the
+     * library reads only bytes the app owns.
+     */
+    fun importFile(uri: Uri) {
+        val store = downloadStore ?: return
+        viewModelScope.launch {
+            val copy: ImportedCopy? = withContext(Dispatchers.IO) {
+                runCatching { store.importing(resolver, uri, store.library()) }.getOrNull()
+            }
+            if (copy == null) {
+                // Named, not silent. A reader who picked a file StoryArc cannot read has no
+                // way to tell that from a broken app unless the app says which it is.
+                _importFailure.value = withContext(Dispatchers.IO) {
+                    documentNameOf(resolver, uri)
+                }
+                return@launch
+            }
+            registerImportedSource()
+            indexImport(copy.file)
+            rebuild()
         }
-        // ponytail: re-arranged in batches during a scan, not per publication --
-        // sorting after every one of 10,000 appends is quadratic. The scan's own
-        // completion rebuilds the rest, so the only visible effect is that the
-        // last few rows arrive together.
-        if (_publications.value.size % REBUILD_EVERY == 0) rebuild()
+    }
+
+    /**
+     * Reconciles the library with what has actually been imported.
+     *
+     * Called on every resume rather than once on launch, because the copies can change while
+     * the library is off screen: Settings is where one is deleted, and a library that only
+     * read the store at startup would keep offering a book whose bytes are gone.
+     */
+    fun refreshImports() {
+        val store = downloadStore ?: return
+        viewModelScope.launch {
+            val imports = withContext(Dispatchers.IO) { store.imports(store.library()) }
+            val files = imports.map { store.locationOf(it).absolutePath }.toSet()
+
+            // Rows whose copy has been deleted go. The record is the authority here, not a
+            // filesystem walk: this store is the app's own, so an empty list means the
+            // reader deleted their last import rather than that a folder could not be read.
+            _publications.update { current ->
+                current.filterNot { publication ->
+                    publication.sourceId == ImportedCopies.SOURCE_ID &&
+                        locations[publication.id].orEmpty() !in files
+                }
+            }
+
+            if (imports.isEmpty()) {
+                forgetImportedSource()
+                rebuild()
+                return@launch
+            }
+
+            registerImportedSource()
+            for (download in imports) {
+                val file = store.locationOf(download)
+                if (!file.exists() || file.absolutePath in locations.values) continue
+                indexImport(file)
+            }
+            rebuild()
+        }
+    }
+
+    /** What all the imported copies weigh, for a screen that reports the space used. */
+    suspend fun importedBytes(): Long {
+        val store = downloadStore ?: return 0
+        return withContext(Dispatchers.IO) {
+            store.imports(store.library()).sumOf { it.downloadedBytes }
+        }
+    }
+
+    private suspend fun indexImport(file: File) {
+        val publication = withContext(Dispatchers.IO) {
+            runCatching { PublicationIndexer.index(file) }.getOrNull()
+        } ?: return
+        adopt(publication, ImportedCopies.SOURCE_ID)
+        // Set again rather than left to `adopt`: the identity of a PDF or an EPUB can carry
+        // a content digest instead of a path, and the reader still has to be handed the file.
+        locations[publication.id] = file.absolutePath
+    }
+
+    /**
+     * Puts "On this device" in the registry, if it is not there already.
+     *
+     * Added the moment there is something in it rather than at launch: `sources` requires
+     * the empty state to name the four source types, and a fifth row for a source holding
+     * nothing would be a source the reader never added.
+     */
+    private fun registerImportedSource() {
+        if (_registry.value[ImportedCopies.SOURCE_ID] != null) return
+        _registry.update {
+            it.adding(
+                Source(
+                    id = ImportedCopies.SOURCE_ID,
+                    displayName = getApplication<Application>()
+                        .getString(R.string.source_on_this_device),
+                    kind = SourceKind.LOCAL_FOLDER,
+                    state = SourceConnectionState.Connected,
+                    // Not a tree `Uri`, and deliberately something no picked folder can be:
+                    // a folder's locator is the `Uri` the picker returned, which always
+                    // carries a scheme. Without that, a matching folder would be adopted as
+                    // the reader's imports.
+                    locator = IMPORTED_LOCATOR,
+                ),
+            )
+        }
+        sourceStore?.save(_registry.value)
+    }
+
+    /**
+     * Takes "On this device" out again when the last copy has been deleted.
+     *
+     * Discarded rather than tombstoned. A tombstone says the reader removed a source and
+     * their progress should outlive it; this source was never added by hand, and holding
+     * thirty days of retention open for it would be retention for nothing.
+     */
+    private fun forgetImportedSource() {
+        if (_registry.value[ImportedCopies.SOURCE_ID] == null) return
+        _registry.update { it.discarding(ImportedCopies.SOURCE_ID) }
+        sourceStore?.save(_registry.value)
     }
 
     private companion object {
         const val REBUILD_EVERY = 24
+
+        /** What "On this device" points at, which is not a folder anyone picked. */
+        const val IMPORTED_LOCATOR = "storyarc/imported"
     }
 
     fun setQuery(value: LibraryQuery) {

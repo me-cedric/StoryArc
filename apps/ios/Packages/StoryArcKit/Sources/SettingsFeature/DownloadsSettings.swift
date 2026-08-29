@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import Persistence
 internal import StoryArcCore
 
 /// What is on the device, what it weighs, and how to get rid of it.
@@ -100,7 +101,20 @@ struct DownloadsSettings: View {
                 Text("downloads.remove", bundle: .module)
             }
         } message: { download in
-            Text("downloads.remove.body \(download.title)", bundle: .module)
+            if ImportedCopies.isImported(download) {
+                // `local-library` asks for more of this sentence than a download needs.
+                // Deleting an imported copy "confirms, naming the title and the space to be
+                // freed, and states that the original file elsewhere is untouched" — the
+                // last clause because an import is the one row on this screen that has an
+                // original somewhere, and a reader must not have to guess whether the app
+                // is about to reach outside itself.
+                Text(
+                    "downloads.remove.body.imported \(download.title) \(Self.size(download))",
+                    bundle: .module
+                )
+            } else {
+                Text("downloads.remove.body \(download.title)", bundle: .module)
+            }
         }
         .navigationTitle(Text("settings.downloads", bundle: .module))
     }
@@ -129,9 +143,14 @@ struct DownloadsSettings: View {
         }
     }
 
+    /// What one row weighs, in the reader's own locale.
+    private static func size(_ download: Download) -> String {
+        download.downloadedBytes.formatted(.byteCount(style: .file))
+    }
+
     /// Size, and which source it came from when it came from one.
     private func subtitle(_ download: Download) -> String {
-        let size = download.downloadedBytes.formatted(.byteCount(style: .file))
+        let size = Self.size(download)
         guard let sourceID = download.sourceID, let name = sourceName(sourceID) else {
             return size
         }

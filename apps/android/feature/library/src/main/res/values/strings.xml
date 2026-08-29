@@ -198,4 +198,9 @@
         <item quantity="one">Downloading one publication</item>
         <item quantity="other">Downloading %1$d publications</item>
     </plurals>
+    <string name="library_import">Import a file</string>
+    <string name="library_import_failed_title">Cannot import this file</string>
+    <string name="library_import_failed">%1$s could not be copied into StoryArc. It reads CBZ, CBR, CBT, EPUB and PDF.</string>
+    <string name="library_import_dismiss">OK</string>
+    <string name="source_on_this_device">On this device</string>
 </resources>

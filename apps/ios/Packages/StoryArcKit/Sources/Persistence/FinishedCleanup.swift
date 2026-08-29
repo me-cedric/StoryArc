@@ -51,11 +51,18 @@ extension DownloadStore {
     /// whatever the catalogue called it; the progress record is written by the reader
     /// against the local file it opened, and this store is what knows those two are the
     /// same thing.
+    ///
+    /// An imported copy is never one of them. `offline-downloads` sweeps a download away
+    /// because "the catalogue can be asked for it again", and nothing can be asked for an
+    /// import — `local-library` promises the copy outlives the original, so deleting it on
+    /// the last page would be the app breaking its own promise.
     public func finishedDownload(
         in library: DownloadLibrary,
         isFinished: (String) -> Bool
     ) -> Download? {
-        library.finished.first { isFinished(location(of: $0).path) }
+        library.finished.first {
+            !ImportedCopies.isImported($0) && isFinished(location(of: $0).path)
+        }
     }
 
     /// Takes a finished publication's download off the device, reversibly.

@@ -64,8 +64,9 @@ public final class LibraryModel {
     /// viewport rather than during the scan, so this fills in as cells appear and
     /// never during `scan`.
     private var covers: [String: CGImage] = [:]
+    // Internal, not private: the imported copies half of this type lives in another file.
     /// Where each publication came from, so a cover can be loaded later.
-    private var locations: [String: URL] = [:]
+    var locations: [String: URL] = [:]
     private var scanTask: Task<Void, Never>?
     let progressStore: ProgressStore?
 
@@ -98,13 +99,27 @@ public final class LibraryModel {
     let sourceStore: SourceStore?
     let shelvesStore: ShelvesStore?
 
+    /// Where copies the reader imported live. `local-library` asks for them to be kept in
+    /// "app-managed storage", and this store already owns exactly that — see
+    /// ``ImportedCopies``.
+    let downloadStore: DownloadStore?
+
+    /// The last import that did not happen, named so the reader can be told which file.
+    ///
+    /// `local-library` forbids a generic failure elsewhere and there is no reason an import
+    /// should be the exception: a reader who picked the wrong file needs to know it was the
+    /// file rather than the app.
+    public var importFailure: String?
+
     public init(
         progress: ProgressStore? = nil,
         bookmarks: FolderBookmarks? = nil,
         preferences: LibraryPreferences? = nil,
         sourceStore: SourceStore? = nil,
-        shelvesStore: ShelvesStore? = nil
+        shelvesStore: ShelvesStore? = nil,
+        downloadStore: DownloadStore? = nil
     ) {
+        self.downloadStore = downloadStore
         self.sourceStore = sourceStore
         self.shelvesStore = shelvesStore
         shelves = shelvesStore?.shelves() ?? Shelves()
@@ -246,8 +261,28 @@ public final class LibraryModel {
         // is, and the library is the only thing that knows which source it was reached
         // through. `sources` needs this for a source's item count, and
         // `library-browsing` for the order two sources holding one title appear in.
+        guard adopt(publication, from: source(of: folder)) else { return }
+        if case let .scanning(found) = scanState {
+            scanState = .scanning(found: found + 1)
+        }
+        // ponytail: re-arranged in batches during a scan, not per publication —
+        // sorting after every one of 10,000 appends is quadratic. The scan's own
+        // completion rebuilds the rest, so the only visible effect is that the
+        // last few rows arrive together.
+        if publications.count % rebuildEvery == 0 { rebuild() }
+    }
+
+    // Internal, not private: `private` is file-scoped, and the imported copies sit in
+    // another file.
+    /// Puts a publication in the library under the source it was reached through, and
+    /// says whether it was new.
+    ///
+    /// Shared by the folder scan and by the imported copies, which find publications two
+    /// entirely different ways and have to agree about what one row means.
+    @discardableResult
+    func adopt(_ publication: Publication, from sourceID: UUID?) -> Bool {
         var attributed = publication
-        attributed.sourceID = source(of: folder)
+        attributed.sourceID = sourceID
 
         // A publication already present from another folder is not added twice.
         // Identity is what decides, not the path, so the same file reached two ways
@@ -263,21 +298,14 @@ public final class LibraryModel {
             if publications[seen].sourceID == nil, attributed.sourceID != nil {
                 publications[seen].sourceID = attributed.sourceID
             }
-            return
+            return false
         }
 
         publications.append(attributed)
         if let path = publication.identity.normalizedPath {
             locations[publication.id] = URL(fileURLWithPath: path)
         }
-        if case let .scanning(found) = scanState {
-            scanState = .scanning(found: found + 1)
-        }
-        // ponytail: re-arranged in batches during a scan, not per publication —
-        // sorting after every one of 10,000 appends is quadratic. The scan's own
-        // completion rebuilds the rest, so the only visible effect is that the
-        // last few rows arrive together.
-        if publications.count % rebuildEvery == 0 { rebuild() }
+        return true
     }
 
     private let rebuildEvery = 24

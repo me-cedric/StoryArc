@@ -91,8 +91,13 @@ class FinishedCleanupTest {
     }
 }
 
-/** The store only reads and writes one string; a map is the whole of what it needs. */
-private class FakePreferences : android.content.SharedPreferences {
+/**
+ * The store only reads and writes one string; a map is the whole of what it needs.
+ *
+ * Internal rather than private because the imported copies are tested against the same
+ * store, and a second copy of this would be a second thing to keep in step.
+ */
+internal class FakePreferences : android.content.SharedPreferences {
     private val values = mutableMapOf<String, String?>()
 
     override fun getString(key: String?, defValue: String?): String? = values[key] ?: defValue

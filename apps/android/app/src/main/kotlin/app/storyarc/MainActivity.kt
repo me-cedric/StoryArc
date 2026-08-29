@@ -33,6 +33,7 @@ import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.locationOf
 import app.storyarc.core.persistence.RemovedDownload
 import app.storyarc.core.persistence.finishedDownload
 import app.storyarc.core.persistence.removeAfterFinishing
@@ -278,7 +279,17 @@ class MainActivity : ComponentActivity() {
                 val libraryViewModel = viewModel<LibraryViewModel>(
                     factory = viewModelFactory {
                         initializer {
-                            LibraryViewModel(application, progress, preferences, sourceStore, shelvesStore)
+                            LibraryViewModel(
+                                application,
+                                progress,
+                                preferences,
+                                sourceStore,
+                                shelvesStore,
+                                // The same store the downloads use. `local-library`'s
+                                // imported copies live beside them on purpose -- see
+                                // `ImportedCopies`.
+                                downloadStore,
+                            )
                         }
                     },
                 )
@@ -522,13 +533,17 @@ class MainActivity : ComponentActivity() {
                             downloadStore.save(downloads)
                         },
                         onRemoveDownload = { download ->
-                            downloadStore.location(
-                                download.id,
-                                PublicationFormat.ofMediaType(download.mediaType)
-                                    ?.name?.lowercase() ?: "bin",
-                            ).delete()
+                            // Asked of the store rather than composed here. The file is named
+                            // after the publication and filed under its identifier, and this
+                            // deleted `<id>/<id>.cbz` -- a path nothing has been written to
+                            // since downloads started carrying the reader's own title.
+                            downloadStore.delete(downloadStore.locationOf(download))
                             downloads = downloads.removing(download.id)
                             downloadStore.save(downloads)
+                            // The library holds a row for every imported copy, and a row
+                            // whose file has just been deleted is a book that opens onto
+                            // nothing.
+                            libraryViewModel.refreshImports()
                         },
                         // Written through on every change rather than on the way out.
                         // `settings-and-about` requires an appearance to apply

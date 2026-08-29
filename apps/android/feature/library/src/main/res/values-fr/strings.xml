@@ -198,4 +198,9 @@
         <item quantity="one">Téléchargement de %1$d publication</item>
         <item quantity="other">Téléchargement de %1$d publications</item>
     </plurals>
+    <string name="library_import">Importer un fichier</string>
+    <string name="library_import_failed_title">Impossible d’importer ce fichier</string>
+    <string name="library_import_failed">%1$s n’a pas pu être copié dans StoryArc. L’app lit les formats CBZ, CBR, CBT, EPUB et PDF.</string>
+    <string name="library_import_dismiss">OK</string>
+    <string name="source_on_this_device">Sur cet appareil</string>
 </resources>

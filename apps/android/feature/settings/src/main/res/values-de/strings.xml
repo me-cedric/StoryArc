@@ -131,4 +131,5 @@
     <string name="downloads_limit_none">Kein Limit</string>
     <string name="downloads_move_earlier">„%1$s“ nach vorn</string>
     <string name="downloads_move_later">„%1$s“ nach hinten</string>
+    <string name="downloads_remove_body_imported">Dies löscht die von StoryArc aufbewahrte Kopie von %1$s und gibt %2$s frei. Die Originaldatei anderswo auf Ihrem Gerät bleibt unberührt.</string>
 </resources>

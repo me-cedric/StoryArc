@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import Persistence
 internal import StoryArcCore
 
 /// Every configured source, and what can be done to one.
@@ -139,8 +140,14 @@ struct SourcesSettings: View {
         .frame(minHeight: 44)
         .accessibilityElement(children: .combine)
         .swipeActions(edge: .trailing) {
-            Button(role: .destructive) { removing = source } label: {
-                Text("sources.remove", bundle: .module)
+            // "On this device" is not a source the reader added, so it is not one they can
+            // remove. `local-library` deletes an imported copy one at a time, naming the
+            // title and the space each frees; a remove here would delete every copy at once
+            // behind a sentence that could name none of them.
+            if source.id != ImportedCopies.sourceID {
+                Button(role: .destructive) { removing = source } label: {
+                    Text("sources.remove", bundle: .module)
+                }
             }
             Button {
                 // Seeded with the current name rather than blank: a rename is usually a

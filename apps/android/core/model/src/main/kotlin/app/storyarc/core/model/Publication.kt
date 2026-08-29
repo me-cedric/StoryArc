@@ -85,6 +85,27 @@ enum class PublicationFormat {
         }
 
     /**
+     * The media type that names this format — the inverse of [ofMediaType].
+     *
+     * Null for a folder of images, which is not a file and has no type of its own.
+     *
+     * Needed by `local-library`'s imported copies: the record of a copy on the device
+     * stores a media type, and the store works the file's extension back out of it. A
+     * format whose type did not round-trip would be written as `Bone.cbz` and looked for as
+     * `Bone.bin`, which is a copy the app can no longer find.
+     */
+    val mediaType: String?
+        get() = when (this) {
+            CBZ -> "application/vnd.comicbook+zip"
+            CBR -> "application/vnd.comicbook-rar"
+            CB7 -> "application/vnd.comicbook+7z"
+            CBT -> "application/vnd.comicbook+tar"
+            EPUB -> "application/epub+zip"
+            PDF -> "application/pdf"
+            IMAGE_FOLDER -> null
+        }
+
+    /**
      * Whether StoryArc can open a publication in this format today.
      *
      * CB7 is the one that parses as a format and does not open: `publication-formats`

@@ -14,6 +14,7 @@ public import StoryArcCore
 public struct LibraryView: View {
     @Environment(\.theme) private var theme
     @State private var isPickingFolder = false
+    @State private var isImportingFile = false
     @State private var isAddingCatalogue = false
     @State private var isAddingKavita = false
     @State private var isAddingShare = false
@@ -216,6 +217,7 @@ public struct LibraryView: View {
             // cover reflect the page the reader just reached.
             .task {
                 model.restoreFolders()
+                await model.refreshImports()
                 await model.refreshProgress()
                 await model.probeNetworkSources(credentials: credentials, pins: pins)
             }
@@ -245,6 +247,7 @@ public struct LibraryView: View {
                                 Image(systemName: "folder.badge.plus")
                             }
                         }
+                        ImportPublicationButton { isImportingFile = true }
                         Button {
                             isAddingCatalogue = true
                         } label: {
@@ -327,6 +330,7 @@ public struct LibraryView: View {
                 model.addFolder(folder)
             }
         }
+        .importingPublications(into: model, isPresented: $isImportingFile)
         .sheet(isPresented: $isAddingCatalogue) {
             CatalogueSheet(connection: catalogue) { model.add($0) }
         }

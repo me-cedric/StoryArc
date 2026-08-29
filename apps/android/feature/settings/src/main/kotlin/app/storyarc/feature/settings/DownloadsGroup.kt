@@ -34,6 +34,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
+import app.storyarc.core.persistence.ImportedCopies
 import java.util.UUID
 
 /**
@@ -136,7 +137,28 @@ fun DownloadsGroup(
         AlertDialog(
             onDismissRequest = { removing = null },
             title = { Text(stringResource(R.string.downloads_remove_title)) },
-            text = { Text(stringResource(R.string.downloads_remove_body, download.title)) },
+            text = {
+                // `local-library` asks for more of this sentence than a download needs.
+                // Deleting an imported copy "confirms, naming the title and the space to be
+                // freed, and states that the original file elsewhere is untouched" -- the
+                // last clause because an import is the one row on this screen that has an
+                // original somewhere, and a reader must not have to guess whether the app is
+                // about to reach outside itself.
+                Text(
+                    if (ImportedCopies.isImported(download)) {
+                        stringResource(
+                            R.string.downloads_remove_body_imported,
+                            download.title,
+                            android.text.format.Formatter.formatShortFileSize(
+                                androidx.compose.ui.platform.LocalContext.current,
+                                download.downloadedBytes,
+                            ),
+                        )
+                    } else {
+                        stringResource(R.string.downloads_remove_body, download.title)
+                    },
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     onRemove(download)

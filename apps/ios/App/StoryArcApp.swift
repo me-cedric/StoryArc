@@ -103,7 +103,9 @@ struct StoryArcApp: App {
                 progress: store,
                 bookmarks: FolderBookmarks(),
                 preferences: LibraryPreferences(),
-                sourceStore: SourceStore()
+                sourceStore: SourceStore(),
+                // The same store the downloads use — see `ImportedCopies` for why.
+                downloadStore: DownloadStore()
             )
         )
     }
@@ -188,22 +190,12 @@ struct StoryArcApp: App {
         return .matching(resolved)
     }
 
-    /// Copies a publication off a share and onto the device.
+    /// Reopens the publication from a copy the network cannot take away.
     ///
-    /// `network-share`: when reconnection has failed for a minute "the app offers to
-    /// download the current publication for offline reading". This is that offer carried
-    /// out — the bytes are fetched once and the reader reopens from the copy, so the rest
-    /// of the session no longer depends on the network.
+    /// The copying lives in `KeepForOffline.swift`, beside Android's own file of that
+    /// name; what belongs here is only which publication the reader is then looking at.
     private func keepForOffline(_ selection: ReadingSelection) async {
-        guard let source = try? await ComicArchiveOpener.source(for: selection.url),
-              let bytes = try? await source.read(offset: 0, count: Int(source.length))
-        else { return }
-
-        let directory = downloadStore.directory
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let file = directory.appending(path: selection.url.lastPathComponent)
-        guard (try? bytes.write(to: file, options: .atomic)) != nil else { return }
-
+        guard let file = await keptForOffline(selection.url, into: downloadStore.directory) else { return }
         SmbReachability.clear()
         reading = ReadingSelection(publication: selection.publication, url: file)
         dismissed = reading
@@ -298,7 +290,12 @@ struct StoryArcApp: App {
                     // opened a catalogue.
                     downloads: downloads,
                     bytesOnDisk: downloadStore.bytesOnDisk(),
-                    onRemoveDownload: { downloads = downloadStore.removing($0.id, from: downloads) },
+                    onRemoveDownload: { download in
+                        downloads = downloadStore.removing(download.id, from: downloads)
+                        // The library holds a row for every imported copy, and a row whose
+                        // file has just been deleted is a book that opens onto nothing.
+                        Task { await library.refreshImports() }
+                    },
                     onReorderDownload: { download, later in
                         downloads = downloads.moving(download.id, later: later)
                         downloadStore.save(downloads)
