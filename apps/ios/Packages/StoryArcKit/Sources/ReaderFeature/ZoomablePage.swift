@@ -37,10 +37,11 @@ struct ZoomablePage: View {
 
     var body: some View {
         #if os(iOS)
-        // The size comes from SwiftUI rather than from the scroll view's bounds:
-        // `updateUIViewController` runs before the first layout, so a fit computed
-        // from `bounds` would divide by zero on the way in and then never be
-        // recomputed.
+        // The size the fit is computed from comes from SwiftUI rather than from the
+        // scroll view's bounds: `updateUIView` runs before the first layout, so
+        // `bounds` is still zero on the way in. The scroll view's own bounds are
+        // consulted for one thing only — whether there has been a layout at all —
+        // because a fit cannot be applied to a view that has not had one.
         GeometryReader { geometry in
             ScrollingPage(
                 image: image,
@@ -77,8 +78,14 @@ private struct ScrollingPage: UIViewRepresentable {
         imageView.contentMode = .scaleAspectFit
         imageView.isUserInteractionEnabled = true
 
-        let scrollView = UIScrollView()
+        let scrollView = PageScrollView()
         scrollView.delegate = context.coordinator
+        // The one thing a `UIScrollViewDelegate` cannot tell the coordinator is when
+        // the view was laid out, and that is exactly when a page which arrived before
+        // its layout becomes fittable. See ``PageScrollView``.
+        scrollView.onLayout = { [weak coordinator = context.coordinator] view in
+            coordinator?.applyFit(to: view)
+        }
         scrollView.minimumZoomScale = 1
         scrollView.maximumZoomScale = 6
         scrollView.showsHorizontalScrollIndicator = false
@@ -138,34 +145,17 @@ private struct ScrollingPage: UIViewRepresentable {
         }
         context.coordinator.layout(scrollView)
 
-        // The fit is re-applied when the page, the mode or the size changes, and at
-        // no other time — otherwise every redraw would undo the reader's pinch.
-        let key = "\(pageID)|\(fit.rawValue)|\(Int(viewport.width))x\(Int(viewport.height))"
-        guard context.coordinator.appliedFit != key, viewport.width > 0 else { return }
-        context.coordinator.appliedFit = key
-
-        let fitted = Self.fitted(
+        // What the page is owed. The fit is applied when the page, the mode or the
+        // size changes, and at no other time — otherwise every redraw would undo the
+        // reader's pinch. Whether *now* is the time is ``Coordinator/applyFit(to:)``'s
+        // to decide, because on the way in there is not yet a laid-out view to fit to.
+        context.coordinator.owed = OwedFit(
+            pageID: pageID,
+            mode: fit,
             imageSize: CGSize(width: image.width, height: image.height),
-            in: viewport
+            viewport: viewport
         )
-        let scale = min(
-            fit.scale(fitted: fitted, viewport: viewport, pixelWidth: CGFloat(image.width)),
-            scrollView.maximumZoomScale
-        )
-        scrollView.setZoomScale(scale, animated: false)
-        context.coordinator.layout(scrollView)
-        // Fit-to-width opens at the *top* of the page, which is where reading
-        // starts. `comic-reader` asks for exactly this when a turn keeps the zoom.
-        if fit == .width || fit == .original {
-            scrollView.contentOffset = CGPoint(x: 0, y: -scrollView.contentInset.top)
-        }
-    }
-
-    /// The page's size on screen at fit-to-screen, which every mode is a multiple of.
-    private static func fitted(imageSize: CGSize, in viewport: CGSize) -> CGSize {
-        guard imageSize.width > 0, imageSize.height > 0 else { return .zero }
-        let scale = min(viewport.width / imageSize.width, viewport.height / imageSize.height)
-        return CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+        context.coordinator.applyFit(to: scrollView)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(pageID: pageID) }
@@ -173,8 +163,10 @@ private struct ScrollingPage: UIViewRepresentable {
     final class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
         weak var edgeTap: UITapGestureRecognizer?
         weak var centreTap: UITapGestureRecognizer?
-        /// The page, mode and size the current zoom was set from.
-        var appliedFit: String?
+        /// The fit SwiftUI last asked for, which is not always one that could be applied.
+        var owed: OwedFit?
+        /// Which fit the zoom was actually set from.
+        var applied = AppliedFit()
         var imageView: UIImageView?
         var pageID: String
         var zoomedScale: CGFloat = 2.5
@@ -182,6 +174,22 @@ private struct ScrollingPage: UIViewRepresentable {
 
         init(pageID: String) {
             self.pageID = pageID
+        }
+
+        /// Opens the page at the fit it is owed, if there is now a view that can hold one.
+        ///
+        /// Called both from `updateUIView` and from the scroll view's own layout, because
+        /// on a cold launch the two happen in that order: SwiftUI asks for the fit while
+        /// the scroll view is still zero-sized, and the layout that makes it possible
+        /// arrives afterwards with nothing to prompt another update.
+        func applyFit(to scrollView: UIScrollView) {
+            guard let owed, applied.claim(owed.key, layout: scrollView.bounds.size) else { return }
+
+            scrollView.setZoomScale(owed.scale(upTo: scrollView.maximumZoomScale), animated: false)
+            layout(scrollView)
+            if owed.opensAtTheTop {
+                scrollView.contentOffset = CGPoint(x: 0, y: -scrollView.contentInset.top)
+            }
         }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
@@ -250,6 +258,26 @@ private struct ScrollingPage: UIViewRepresentable {
                 animated: true
             )
         }
+    }
+}
+
+/// A scroll view that says when it has been given a size.
+///
+/// `UIScrollViewDelegate` reports scrolling and zooming, never layout, and layout is
+/// what a page opened before its first one is waiting for: a fit set against zero
+/// bounds does nothing, and no scroll and no zoom follows to prompt another try.
+///
+/// Only a change of size is reported. Applying a fit sets the content size and the
+/// insets, which lays the view out again — a report on every pass would be a loop.
+private final class PageScrollView: UIScrollView {
+    var onLayout: ((UIScrollView) -> Void)?
+    private var lastSize: CGSize = .zero
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard bounds.size != lastSize else { return }
+        lastSize = bounds.size
+        onLayout?(self)
     }
 }
 #endif

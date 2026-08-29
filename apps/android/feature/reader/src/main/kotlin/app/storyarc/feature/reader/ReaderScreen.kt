@@ -718,6 +718,14 @@ private fun ZoomablePage(
     // the *zoom* carried across a turn in fit-to-width mode, and that is what
     // carrying the mode does — the next page opens at its own top, magnified the
     // same way, rather than at whatever corner of the last page was on screen.
+    //
+    // `size` belongs in that key for a second reason, and dropping it to keep a pinch
+    // across a rotation would cost more than it bought: the first composition happens
+    // before the layout has measured anything, so the fit taken there is against a
+    // viewport of zero. Keying on the measured size is what makes that one thrown away
+    // and re-taken the moment `onSizeChanged` reports a real one. iOS had to be told
+    // this explicitly — see `AppliedFit` there — because UIKit is asked once and does
+    // not ask again.
     var zoom by remember(bitmap, fit, size) { mutableStateOf(PageZoom.fitting(fit, page)) }
 
     val transform = rememberTransformableState { centroid, zoomChange, panChange, _ ->
