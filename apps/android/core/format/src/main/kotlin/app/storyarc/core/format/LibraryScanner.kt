@@ -2,6 +2,7 @@ package app.storyarc.core.format
 
 import android.content.ContentResolver
 import android.net.Uri
+import app.storyarc.core.model.FolderSnapshot
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationIdentity
 import kotlinx.coroutines.CancellationException
@@ -101,6 +102,148 @@ object LibraryScanner {
             emit(it)
         }
         emit(ScanEvent.Finished(tally.found, tally.skipped))
+    }
+
+    /**
+     * What a folder holds, without opening anything in it.
+     *
+     * The cheap half of `local-library`'s watched changes: the app "reconciles by comparing
+     * file modification times and sizes rather than re-reading every archive". A directory
+     * listing is one call per folder; opening an archive is hundreds of reads, and a
+     * reconcile that opened them all would be the full rescan the requirement forbids.
+     *
+     * The same decisions as [scan] -- the same extensions, and the same
+     * a-folder-of-images-is-one-publication rule -- because the two lists are compared
+     * against each other. A disagreement would make the same publication appear and
+     * disappear on every pass.
+     */
+    fun entries(folder: File): List<FolderSnapshot.Entry> =
+        buildList { list(folder, this) }
+
+    /**
+     * The same listing over a picked folder, which has no path behind it.
+     *
+     * Carries more than the snapshot needs. A reconcile opens only the documents that
+     * changed, and it has to produce the publication a scan would have produced -- same name,
+     * same series -- so the walk hands on what it knew about where each document sat. Android
+     * has to be told; iOS reads the same two facts back off the path.
+     */
+    fun listing(resolver: ContentResolver, tree: Uri): List<Listed> =
+        buildList { listTree(resolver, tree, SafTree.rootDocumentId(tree), seriesHint = null, this) }
+
+    /** Just the snapshot's half of [listing]. */
+    fun entries(resolver: ContentResolver, tree: Uri): List<FolderSnapshot.Entry> =
+        listing(resolver, tree).map { it.entry }
+
+    /**
+     * One listed document, and what the walk knew about where it sits.
+     *
+     * @param isFolder whether the document is a folder of images, which is one publication
+     *   rather than a shelf -- the same decision [scan] makes, carried so a reconcile does
+     *   not have to make it again and risk making it differently.
+     */
+    data class Listed(
+        val entry: FolderSnapshot.Entry,
+        val documentId: String,
+        val name: String,
+        val seriesHint: String?,
+        val isFolder: Boolean,
+    )
+
+    /**
+     * One document, indexed exactly as a scan would index it.
+     *
+     * The expensive half, called only for what [FolderSnapshot.change] said had moved.
+     */
+    suspend fun index(
+        resolver: ContentResolver,
+        tree: Uri,
+        listed: Listed,
+    ): Publication {
+        val uri = SafTree.documentUri(tree, listed.documentId)
+        if (listed.isFolder) {
+            return PublicationIndexer.index(
+                DocumentFolderArchive.open(resolver, tree, listed.documentId),
+                identityOf(uri),
+                listed.name,
+                listed.seriesHint,
+            )
+        }
+        // Closed as soon as the archive is catalogued, for the reason [indexDocument] gives.
+        return UriSource(resolver, uri).use { source ->
+            PublicationIndexer.index(
+                source = source,
+                name = listed.name,
+                identity = identityOf(uri),
+                seriesHint = listed.seriesHint,
+            )
+        }
+    }
+
+    private fun list(directory: File, found: MutableList<FolderSnapshot.Entry>) {
+        val children = (directory.listFiles() ?: emptyArray()).filterNot { it.name.startsWith(".") }
+        val files = children.filter { it.isFile }
+        val publications = files.filter { it.extension.lowercase() in CANDIDATE_EXTENSIONS }
+        val images = files.filter { it.extension.lowercase() in IMAGE_EXTENSIONS }
+
+        if (publications.isEmpty() && images.isNotEmpty()) {
+            // A folder of images has no size of its own, so it is compared on its
+            // modification time alone -- which is what changes when a page is added to it.
+            found += FolderSnapshot.Entry(directory.absolutePath, directory.lastModified(), 0)
+            return
+        }
+        for (file in publications) {
+            found += FolderSnapshot.Entry(file.absolutePath, file.lastModified(), file.length())
+        }
+        for (child in children.filter { it.isDirectory }) list(child, found)
+    }
+
+    private fun listTree(
+        resolver: ContentResolver,
+        tree: Uri,
+        documentId: String,
+        seriesHint: String?,
+        found: MutableList<Listed>,
+    ) {
+        val children = SafTree.children(resolver, tree, documentId)
+            .filterNot { it.name.startsWith(".") }
+        val files = children.filterNot { it.isDirectory }
+        val publications = files.filter { extensionOf(it.name) in CANDIDATE_EXTENSIONS }
+        val images = files.filter { extensionOf(it.name) in IMAGE_EXTENSIONS }
+
+        if (publications.isEmpty() && images.isNotEmpty()) {
+            val uri = SafTree.documentUri(tree, documentId)
+            val name = uri.lastPathSegment?.substringAfterLast('/') ?: documentId
+            // A folder of images has no size or time of its own that a provider will state,
+            // so it is compared on nothing and re-read whenever the folder is walked. Honest
+            // rather than clever: a provider that reports neither leaves nothing to compare.
+            found += Listed(
+                FolderSnapshot.Entry(uri.toString(), 0, 0),
+                documentId,
+                name,
+                seriesHint,
+                isFolder = true,
+            )
+            return
+        }
+        for (entry in publications) {
+            found += Listed(
+                FolderSnapshot.Entry(
+                    // The document `Uri`, because that is what the identity of a scanned
+                    // document carries and what the library keys a location on.
+                    SafTree.documentUri(tree, entry.documentId).toString(),
+                    entry.modifiedAtEpochMillis,
+                    entry.size,
+                ),
+                entry.documentId,
+                entry.name,
+                seriesHint,
+                isFolder = false,
+            )
+        }
+        for (child in children.filter { it.isDirectory }) {
+            listTree(resolver, tree, child.documentId, child.name, found)
+        }
     }
 
     /**

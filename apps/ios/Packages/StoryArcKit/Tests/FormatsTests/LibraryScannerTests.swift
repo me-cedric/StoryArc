@@ -192,6 +192,49 @@ struct LibraryScannerTests {
         #expect(events == [.finished(found: 0, skipped: 0)])
     }
 
+    // MARK: - Listing
+
+    @Test("The listing holds everything the scan found")
+    func listingCoversTheScan() async throws {
+        // The two walks are compared against each other by every reconcile, so a file the
+        // scan finds and the listing misses would be removed from the library the first time
+        // it was reconciled, and found again by the next full scan.
+        let scanned = await LibraryScanner.scanAll(folderAt: corpus)
+            .compactMap(\.identity.normalizedPath)
+        let listed = Set(LibraryScanner.entries(in: corpus).map(\.path))
+        #expect(Set(scanned).isSubset(of: listed))
+    }
+
+    @Test("The listing also holds what the scan refused")
+    func listingCoversTheRefused() {
+        // Deliberately wider than the scan. A file StoryArc will not open is still a file
+        // that was there, and a listing that left it out would report it as newly arrived on
+        // every single pass — which is the opposite of noticing a change.
+        let listed = LibraryScanner.entries(in: corpus).map(\.path)
+        #expect(listed.contains { $0.hasSuffix("refused.cb7") })
+    }
+
+    @Test("A listing carries a size and a date for every entry")
+    func listingCarriesWhatTheComparisonNeeds() async throws {
+        // Either alone misses a real case: a file replaced with one of the same length keeps
+        // its size, and one restored from a backup keeps its date.
+        let root = try shelf(series: "Bone", files: ["single-page.cbz"])
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let listed = LibraryScanner.entries(in: root)
+        #expect(listed.count == 1)
+        let entry = try #require(listed.first)
+        #expect(entry.size > 0)
+        #expect(entry.modified > Date(timeIntervalSince1970: 0))
+    }
+
+    @Test("A folder that cannot be read lists nothing rather than throwing")
+    func missingFolderLists() {
+        // Which is what makes the snapshot's refusal reachable: the empty list is the signal
+        // that the folder could not be walked, and it must arrive rather than crash.
+        #expect(LibraryScanner.entries(in: URL(fileURLWithPath: "/nowhere/at/all")).isEmpty)
+    }
+
     // MARK: - Helpers
 
     private static let png: [UInt8] = [

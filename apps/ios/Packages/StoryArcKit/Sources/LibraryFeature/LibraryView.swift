@@ -331,6 +331,7 @@ public struct LibraryView: View {
             }
         }
         .importingPublications(into: model, isPresented: $isImportingFile)
+        .watchingFolders(of: model)
         .sheet(isPresented: $isAddingCatalogue) {
             CatalogueSheet(connection: catalogue) { model.add($0) }
         }

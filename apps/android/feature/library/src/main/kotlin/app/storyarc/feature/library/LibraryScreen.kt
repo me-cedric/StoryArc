@@ -193,6 +193,10 @@ fun LibraryScreen(
         // Settings is where an imported copy is deleted, and a library that only read the
         // store at startup would keep offering a book whose bytes are gone.
         viewModel?.refreshImports()
+        // `local-library`: on returning to the foreground the app "reconciles by comparing
+        // file modification times and sizes rather than re-reading every archive". The
+        // watcher covers the app being on screen; a provider notifies nobody while it is not.
+        viewModel?.reconcileWatchedFolders()
     }
     val publications by (viewModel?.publications ?: MutableStateFlow(emptyList()))
         .collectAsStateWithLifecycle()

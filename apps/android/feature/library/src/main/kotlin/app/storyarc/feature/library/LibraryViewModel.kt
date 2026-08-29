@@ -12,6 +12,7 @@ import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.format.SafTree
 import app.storyarc.core.format.ScanEvent
+import app.storyarc.core.model.FolderSnapshot
 import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
@@ -285,6 +286,7 @@ class LibraryViewModel(
         if (reachable.isEmpty()) return
         _folders.value = reachable
         rescan()
+        startWatching()
     }
 
     /**
@@ -299,6 +301,7 @@ class LibraryViewModel(
         _unavailableFolders.value = emptyList()
         register(tree)
         rescan()
+        startWatching()
     }
 
     /**
@@ -405,7 +408,9 @@ class LibraryViewModel(
                 Intent.FLAG_GRANT_READ_URI_PERMISSION,
             )
         }
+        snapshots.remove(tree.toString())
         rescan()
+        startWatching()
     }
 
     /**
@@ -450,6 +455,13 @@ class LibraryViewModel(
                     }
                 }
                 _scanState.value = LibraryScanState.Finished(found, skipped)
+                // What each folder held at the moment the scan agreed with it. Without this
+                // the first reconcile would see every file as new and re-read the whole
+                // library to learn nothing.
+                for (tree in trees) {
+                    snapshots[tree.toString()] =
+                        FolderSnapshot.of(LibraryScanner.entries(resolver, tree))
+                }
                 rebuild()
             }
             // After the walk, not before it. Recorded positions are matched against
@@ -559,6 +571,103 @@ class LibraryViewModel(
         publication.identity.normalizedPath?.let { locations[publication.id] = it }
         _publications.update { it + publication.copy(sourceId = sourceId) }
         return true
+    }
+
+    // Watched changes
+
+    /**
+     * What each watched folder held when it was last looked at, keyed by the tree it came
+     * from.
+     *
+     * In memory rather than on disk. `local-library` asks for a change made while the app was
+     * away to be reconciled cheaply, and a launch has nothing to reconcile *against* -- the
+     * publications themselves are not cached either, so a snapshot read from disk would
+     * describe a library this process has not built yet.
+     */
+    private val snapshots = mutableMapOf<String, FolderSnapshot>()
+
+    private val watcher = FolderWatcher(resolver)
+
+    /**
+     * Watches every folder the reader added.
+     *
+     * Called whenever the set of folders changes, which is the only thing that invalidates
+     * what is being watched.
+     */
+    private fun startWatching() {
+        if (_folders.value.isEmpty()) {
+            watcher.stop()
+            return
+        }
+        watcher.watch(_folders.value) { reconcileWatchedFolders() }
+    }
+
+    /** Stops watching. The library stays; only the registrations go. */
+    fun stopWatching() {
+        watcher.stop()
+    }
+
+    override fun onCleared() {
+        watcher.stop()
+        super.onCleared()
+    }
+
+    /** Brings every watched folder up to date. */
+    fun reconcileWatchedFolders() {
+        val trees = _folders.value
+        if (trees.isEmpty()) return
+        viewModelScope.launch {
+            for (tree in trees) reconcile(tree)
+        }
+    }
+
+    /**
+     * Notices what changed in one folder, and re-reads only that.
+     *
+     * Nothing happens at all when the folder is unchanged, which is the common case: the
+     * listing is compared, it matches, and not one archive is opened.
+     */
+    private suspend fun reconcile(tree: Uri) {
+        val listing = withContext(Dispatchers.IO) { LibraryScanner.listing(resolver, tree) }
+        val walked = listing.map { it.entry }
+        val snapshot = snapshots[tree.toString()] ?: FolderSnapshot()
+        // Null means the walk found nothing where something used to be -- an unreadable
+        // folder far more often than a reader who deleted every book. Nothing is removed and
+        // the snapshot is left alone; see `FolderSnapshot.change`.
+        val change = snapshot.change(walked) ?: return
+        if (change.isEmpty) return
+
+        val sourceId = sourceOf(tree)
+        // A changed file is re-read from scratch rather than patched: its series, its page
+        // count and its cover can all have moved, and there is no cheaper honest answer.
+        for (path in change.removed + change.changed.map { it.path }) forget(path)
+
+        val byPath = listing.associateBy { it.entry.path }
+        for (entry in change.toIndex) {
+            val listed = byPath[entry.path] ?: continue
+            val publication = withContext(Dispatchers.IO) {
+                runCatching { LibraryScanner.index(resolver, tree, listed) }.getOrNull()
+            } ?: continue
+            adopt(publication, sourceId)
+            locations[publication.id] = entry.path
+        }
+
+        snapshots[tree.toString()] = snapshot.updated(walked)
+        rebuild()
+        refreshProgress()
+    }
+
+    /**
+     * Drops the row for a file that has gone or has been replaced.
+     *
+     * By path rather than by identity, because the path is the only thing a directory
+     * listing knows -- and it is what [locations] is keyed on for exactly this.
+     */
+    private fun forget(path: String) {
+        val gone = locations.filterValues { it == path }.keys.toSet()
+        if (gone.isEmpty()) return
+        _publications.update { current -> current.filterNot { it.id in gone } }
+        locations.keys.removeAll(gone)
     }
 
     // Imported copies

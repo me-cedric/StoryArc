@@ -28,6 +28,14 @@ object SafTree {
         val name: String,
         val isDirectory: Boolean,
         val size: Long,
+        /**
+         * When the provider says it last changed, or 0 when it does not say.
+         *
+         * Asked for in the same cursor as the rest, because `local-library` reconciles a
+         * watched folder "by comparing file modification times and sizes" and a second query
+         * per file would cost more than the archive read it is there to avoid.
+         */
+        val modifiedAtEpochMillis: Long = 0,
     )
 
     private val PROJECTION = arrayOf(
@@ -35,6 +43,7 @@ object SafTree {
         DocumentsContract.Document.COLUMN_DISPLAY_NAME,
         DocumentsContract.Document.COLUMN_MIME_TYPE,
         DocumentsContract.Document.COLUMN_SIZE,
+        DocumentsContract.Document.COLUMN_LAST_MODIFIED,
     )
 
     /**
@@ -124,6 +133,8 @@ object SafTree {
             val nameColumn = it.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
             val mimeColumn = it.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
             val sizeColumn = it.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
+            val modifiedColumn =
+                it.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
             if (idColumn < 0 || nameColumn < 0) return@use emptyList()
 
             buildList {
@@ -143,6 +154,14 @@ object SafTree {
                             } else {
                                 it.getLong(sizeColumn)
                             },
+                            // 0 rather than -1: a provider that does not say gets compared
+                            // on its size alone, which is the honest half of the answer.
+                            modifiedAtEpochMillis =
+                                if (modifiedColumn < 0 || it.isNull(modifiedColumn)) {
+                                    0L
+                                } else {
+                                    it.getLong(modifiedColumn)
+                                },
                         ),
                     )
                 }

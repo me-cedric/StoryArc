@@ -71,6 +71,63 @@ public enum LibraryScanner {
         return publications
     }
 
+    // MARK: - Listing
+
+    /// What a folder holds, without opening anything in it.
+    ///
+    /// The cheap half of `local-library`'s watched changes: the app "reconciles by comparing
+    /// file modification times and sizes rather than re-reading every archive". A directory
+    /// listing is one call per folder; opening an archive is hundreds of reads, and a
+    /// reconcile that opened them all would be the full rescan the requirement forbids.
+    ///
+    /// The same decisions as ``scan(folderAt:)`` — the same extensions, and the same
+    /// a-folder-of-images-is-one-publication rule — because the two lists are compared
+    /// against each other. A disagreement would make the same publication appear and
+    /// disappear on every pass.
+    public static func entries(in folder: URL) -> [FolderSnapshot.Entry] {
+        var found: [FolderSnapshot.Entry] = []
+        list(folder, into: &found)
+        return found
+    }
+
+    private static func list(_ directory: URL, into found: inout [FolderSnapshot.Entry]) {
+        let children = (try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey, .contentModificationDateKey, .fileSizeKey],
+            options: [.skipsHiddenFiles]
+        )) ?? []
+
+        var files: [URL] = []
+        var directories: [URL] = []
+        for child in children {
+            let isDirectory = (try? child.resourceValues(forKeys: [.isDirectoryKey]))?
+                .isDirectory ?? false
+            if isDirectory { directories.append(child) } else { files.append(child) }
+        }
+
+        let publications = files.filter {
+            candidateExtensions.contains($0.pathExtension.lowercased())
+        }
+        let images = files.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
+        if publications.isEmpty, !images.isEmpty {
+            found.append(entry(for: directory))
+            return
+        }
+        for file in publications { found.append(entry(for: file)) }
+        for child in directories { list(child, into: &found) }
+    }
+
+    /// One listing row. A folder of images has no size of its own, so it is compared on its
+    /// modification date alone — which is what changes when a page is added to it.
+    private static func entry(for url: URL) -> FolderSnapshot.Entry {
+        let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+        return FolderSnapshot.Entry(
+            path: url.path,
+            modified: values?.contentModificationDate ?? .distantPast,
+            size: Int64(values?.fileSize ?? 0)
+        )
+    }
+
     // MARK: - Walking
 
     /// How much a walk found, so counts add up across recursion without shared

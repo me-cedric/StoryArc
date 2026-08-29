@@ -68,6 +68,17 @@ public final class LibraryModel {
     /// Where each publication came from, so a cover can be loaded later.
     var locations: [String: URL] = [:]
     private var scanTask: Task<Void, Never>?
+
+    // Internal, not private: the watching half of this type lives in another file.
+    /// What each watched folder held when it was last looked at, keyed by the folder's path.
+    ///
+    /// In memory rather than on disk. `local-library` asks for a change made while the app
+    /// was away to be reconciled cheaply, and a launch has nothing to reconcile *against* —
+    /// the publications themselves are not cached either, so a snapshot read from disk would
+    /// describe a library this process has not built yet.
+    var snapshots: [String: FolderSnapshot] = [:]
+    let watcher = FolderWatcher()
+
     let progressStore: ProgressStore?
 
     /// The reading lists every known Kavita server holds, once they have been asked.
@@ -149,6 +160,7 @@ public final class LibraryModel {
                 register(folder)
                 scan(folder)
             }
+            startWatching()
         }
         if folders.isEmpty { scan(documentsFolder) }
     }
@@ -207,6 +219,7 @@ public final class LibraryModel {
         try? bookmarks?.add(url)
         register(url)
         scan(url)
+        startWatching()
     }
 
     /// Stops a running scan. `local-library` requires the scan to be cancellable.
@@ -246,6 +259,12 @@ public final class LibraryModel {
                     break
                 case let .finished(found, skipped):
                     self.scanState = .finished(found: found, skipped: skipped)
+                    // What the folder held at the moment the scan agreed with it. Without
+                    // this the first reconcile would see every file as new and re-read the
+                    // whole library to learn nothing.
+                    self.snapshots[folder.path] = FolderSnapshot(
+                        LibraryScanner.entries(in: folder)
+                    )
                     // Progress is loaded here rather than only when the view
                     // appears. The view appears before the scan produces anything,
                     // so a load at that point matches recorded positions against an
