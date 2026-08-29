@@ -41,6 +41,23 @@ public enum TotalProgression {
         return min(max(reported, 0), 1)
     }
 
+    /// Where one resource sits in the reading order, or `-1` when it is not in it.
+    ///
+    /// Here rather than at the call site, and comparing on more than equality, because a
+    /// locator's href is not always spelled the way the reading order spells it. A locator
+    /// that came from a link carries the fragment the link pointed at, and one that came
+    /// from a search can carry a query; neither is part of the resource's identity, and
+    /// neither matched, so the resource could not be placed and the reader watched one
+    /// percentage for a whole chapter.
+    public static func index(of href: String, in readingOrder: [String]) -> Int {
+        let wanted = withoutFragment(href)
+        return readingOrder.firstIndex { withoutFragment($0) == wanted } ?? -1
+    }
+
+    private static func withoutFragment(_ href: String) -> String {
+        String(href.prefix { $0 != "#" && $0 != "?" })
+    }
+
     /// Where the reader is, from the reading order alone. `nil` when it cannot be told.
     private static func estimated(
         within: Double,

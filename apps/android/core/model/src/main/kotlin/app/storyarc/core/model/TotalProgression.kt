@@ -43,6 +43,24 @@ object TotalProgression {
         return reported.coerceIn(0.0, 1.0)
     }
 
+    /**
+     * Where one resource sits in the reading order, or -1 when it is not in it.
+     *
+     * Here rather than at the call site, and comparing on more than equality, because a
+     * locator's href is not always spelled the way the reading order spells it. A locator
+     * that came from a link carries the fragment the link pointed at, and one that came
+     * from a search can carry a query; neither is part of the resource's identity, and
+     * neither matched, so the resource could not be placed and the reader watched one
+     * percentage for a whole chapter.
+     */
+    fun indexOf(href: String, readingOrder: List<String>): Int {
+        val wanted = withoutFragment(href)
+        return readingOrder.indexOfFirst { withoutFragment(it) == wanted }
+    }
+
+    private fun withoutFragment(href: String): String =
+        href.substringBefore('#').substringBefore('?')
+
     /** Where the reader is, from the reading order alone. Null when it cannot be told. */
     private fun estimated(within: Double, resourceIndex: Int, resourceCount: Int): Double? {
         if (resourceCount <= 0 || resourceIndex < 0) return null

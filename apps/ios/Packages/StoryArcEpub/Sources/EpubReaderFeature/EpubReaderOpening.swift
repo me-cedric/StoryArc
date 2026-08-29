@@ -111,7 +111,7 @@ extension EpubReaderModel {
         TotalProgression.resolve(
             reported: locator.locations.totalProgression,
             within: locator.locations.progression ?? 0,
-            resourceIndex: readingOrder.firstIndex(of: locator.href.string) ?? -1,
+            resourceIndex: TotalProgression.index(of: locator.href.string, in: readingOrder),
             resourceCount: readingOrder.count
         )
     }

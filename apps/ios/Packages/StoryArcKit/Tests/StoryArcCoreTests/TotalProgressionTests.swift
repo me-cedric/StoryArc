@@ -74,4 +74,52 @@ struct TotalProgressionTests {
             ) == 1
         )
     }
+
+    // The defect these pin: on the last page of a two-chapter book the badge read "50%
+    // read", and every page of chapter two read the same. Two ways that happens, and both
+    // are covered — the resource could not be placed, or it was placed and the fraction
+    // through it never arrived.
+
+    @Test("The last page of the last resource is the end of the book")
+    func lastPageIsTheEnd() {
+        #expect(TotalProgression.resolve(
+            reported: nil, within: 1, resourceIndex: 1, resourceCount: 2
+        ) == 1)
+    }
+
+    @Test("The start of the last resource is half way through a book of two")
+    func startOfTheLastResource() {
+        #expect(TotalProgression.resolve(
+            reported: nil, within: 0, resourceIndex: 1, resourceCount: 2
+        ) == 0.5)
+    }
+
+    @Test("A locator carrying a fragment still finds its resource")
+    func fragmentsDoNotHideAResource() {
+        let order = ["OEBPS/ch1.xhtml", "OEBPS/ch2.xhtml"]
+
+        #expect(TotalProgression.index(of: "OEBPS/ch2.xhtml#fn1", in: order) == 1)
+        #expect(TotalProgression.index(of: "OEBPS/ch1.xhtml?highlight=whale", in: order) == 0)
+    }
+
+    @Test("A reading order spelled with fragments still matches a plain locator")
+    func fragmentsInTheOrderToo() {
+        #expect(TotalProgression.index(
+            of: "OEBPS/ch2.xhtml", in: ["a.xhtml", "OEBPS/ch2.xhtml#top"]
+        ) == 1)
+    }
+
+    @Test("A resource that is genuinely not in the reading order is not placed")
+    func absentResource() {
+        #expect(TotalProgression.index(of: "OEBPS/nav.xhtml", in: ["OEBPS/ch1.xhtml"]) == -1)
+    }
+
+    @Test("An unplaceable resource falls back to what the renderer said")
+    func fallsBackToTheReport() {
+        // Not to zero: the renderer's own answer is the only one left, and a book that
+        // jumped to 0% because one href was spelled oddly is worse than an approximation.
+        #expect(TotalProgression.resolve(
+            reported: 0.42, within: 0.9, resourceIndex: -1, resourceCount: 2
+        ) == 0.42)
+    }
 }

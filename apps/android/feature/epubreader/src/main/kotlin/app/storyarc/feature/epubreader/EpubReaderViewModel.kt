@@ -400,7 +400,7 @@ class EpubReaderViewModel(
     private fun totalProgressionOf(locator: Locator): Double = TotalProgression.resolve(
         reported = locator.locations.totalProgression,
         within = locator.locations.progression ?: 0.0,
-        resourceIndex = readingOrder.indexOf(locator.href.toString()),
+        resourceIndex = TotalProgression.indexOf(locator.href.toString(), readingOrder),
         resourceCount = readingOrder.size,
     )
 
