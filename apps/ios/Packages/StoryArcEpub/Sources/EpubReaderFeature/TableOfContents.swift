@@ -109,19 +109,48 @@ struct TableOfContentsSheet: View {
 
     let model: EpubReaderModel
 
+    /// Which half of the sheet is showing.
+    ///
+    /// `ebook-reader` puts bookmarks "alongside the table of contents". One sheet with a
+    /// picker rather than two sheets: they answer the same question — where in this book
+    /// can I go — and a reader who opened the wrong one would have to close it to ask again.
+    @State private var isShowingBookmarks = false
+
     var body: some View {
         let entries = model.contents
         let current = model.currentEntry(in: entries)
         return NavigationStack {
-            rows(entries, current: current)
-                .navigationTitle(Text("contents.title", bundle: .module))
-                // Inline, matching the theme sheet. See the note there.
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button { dismiss() } label: { Text("contents.done", bundle: .module) }
-                    }
+            VStack(spacing: 0) {
+                Picker("", selection: $isShowingBookmarks) {
+                    Text("contents.title", bundle: .module).tag(false)
+                    Text("bookmarks.title", bundle: .module).tag(true)
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .padding(.horizontal, StoryArcSpace.gutter)
+                .padding(.bottom, StoryArcSpace.sm)
+
+                if isShowingBookmarks {
+                    BookmarkList(model: model) { bookmark in
+                        Task {
+                            await model.go(to: bookmark)
+                            dismiss()
+                        }
+                    }
+                } else {
+                    rows(entries, current: current)
+                }
+            }
+            .navigationTitle(Text(isShowingBookmarks
+                ? "bookmarks.title"
+                : "contents.title", bundle: .module))
+            // Inline, matching the theme sheet. See the note there.
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button { dismiss() } label: { Text("contents.done", bundle: .module) }
+                }
+            }
         }
     }
 

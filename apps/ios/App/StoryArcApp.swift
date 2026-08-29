@@ -353,6 +353,7 @@ struct StoryArcApp: App {
                         url: selection.url,
                         progress: progress,
                         preferences: ReaderPreferences(),
+                        bookmarks: BookmarkStore(),
                         linkedPreset: linkedPreset(for: settings, in: colorScheme)
                     )
                     // Identity, so opening the next issue from the end screen

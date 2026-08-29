@@ -34,6 +34,8 @@ public struct EpubReaderView: View {
         url: URL,
         progress: ProgressStore? = nil,
         preferences: ReaderPreferences? = nil,
+        /// Where the marks a reader makes live between sessions.
+        bookmarks: BookmarkStore? = nil,
         /// See ``EpubReaderModel/init(publication:url:progress:preferences:linkedPreset:)``.
         linkedPreset: ThemePreset? = nil
     ) {
@@ -43,6 +45,7 @@ public struct EpubReaderView: View {
                 url: url,
                 progress: progress,
                 preferences: preferences,
+                bookmarkStore: bookmarks,
                 linkedPreset: linkedPreset
             )
         )
@@ -153,6 +156,23 @@ public struct EpubReaderView: View {
                 .tint(theme.palette.textPrimary)
 
                 Spacer()
+
+                // One control, filled or not, rather than an add beside a remove:
+                // `ebook-reader` marks a *position*, and a position is either marked or it
+                // is not. The icon carries that state and the label says which way pressing
+                // it goes, so VoiceOver is not left to infer it from a picture.
+                Button { Task { await model.toggleBookmark() } } label: {
+                    Label {
+                        Text(model.isPageBookmarked
+                            ? "bookmarks.remove"
+                            : "bookmarks.add", bundle: .module)
+                    } icon: {
+                        Image(systemName: model.isPageBookmarked ? "bookmark.fill" : "bookmark")
+                    }
+                    .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.glass)
+                .tint(model.isPageBookmarked ? theme.accent : theme.palette.textPrimary)
 
                 Button { isShowingContents = true } label: {
                     Label {

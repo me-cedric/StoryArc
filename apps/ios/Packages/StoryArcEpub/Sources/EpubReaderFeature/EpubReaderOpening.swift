@@ -75,6 +75,7 @@ extension EpubReaderModel {
             navigator.submitPreferences(theme.preferences(values: values, transition: transition))
             locator = resumed
             readingOrder = opened.readingOrder.map(\.href)
+            self.opened = opened
             progression = resumed.map(totalProgression(of:)) ?? 0
         } catch {
             failure = String(localized: "epub.failure.unreadable", bundle: .module)
@@ -106,7 +107,7 @@ extension EpubReaderModel {
     /// `ebook-reader` allows an approximation: what it forbids is presenting a
     /// reflowable *page number* as a stable identity. A percentage is the unit it asks
     /// for.
-    private func totalProgression(of locator: Locator) -> Double {
+    func totalProgression(of locator: Locator) -> Double {
         TotalProgression.resolve(
             reported: locator.locations.totalProgression,
             within: locator.locations.progression ?? 0,

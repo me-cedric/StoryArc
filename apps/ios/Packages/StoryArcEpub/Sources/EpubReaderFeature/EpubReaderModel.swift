@@ -69,6 +69,24 @@ public final class EpubReaderModel {
     /// The reading order's hrefs, for the progress fallback below.
     var readingOrder: [String] = []
 
+    /// Every mark in this publication, in book order.
+    public internal(set) var bookmarks: [Bookmark] = []
+
+    /// Where the marks a reader makes live between sessions. Nil in a test.
+    let bookmarkStore: BookmarkStore?
+
+    /// The open publication, kept so a bookmark's excerpt can be read out of its resource.
+    ///
+    /// Held rather than reopened: opening parses the container, and this is wanted on a
+    /// button press.
+    ///
+    /// `nonisolated(unsafe)` for the reason `SmbClient`'s client is: Readium's publication
+    /// and the resources it hands out are plain classes from a library written before strict
+    /// concurrency, and reading one is an `async` call that leaves this actor. Swift cannot
+    /// see that only `excerpt(at:)` ever touches it, one call at a time, from a button a
+    /// reader can only press once at a time.
+    nonisolated(unsafe) var opened: ReadiumShared.Publication?
+
     /// The navigator's delegate, held separately.
     ///
     /// Readium's delegate protocols come from a module this package imports
@@ -85,6 +103,7 @@ public final class EpubReaderModel {
         url: URL,
         progress: ProgressStore? = nil,
         preferences: ReaderPreferences? = nil,
+        bookmarkStore: BookmarkStore? = nil,
         /// A preset the *app appearance* dictates, when the reader opted into that.
         ///
         /// `settings-and-about` keeps appearance and reading theme apart by default and
@@ -104,6 +123,8 @@ public final class EpubReaderModel {
         self.url = url
         self.progress = progress
         self.preferences = preferences
+        self.bookmarkStore = bookmarkStore
+        bookmarks = bookmarkStore?.bookmarks(for: publication.id) ?? []
         // Its series, or itself where it has none. `reading-themes` scopes a theme to
         // the series, and a standalone book is a series of one.
         self.shelf = ShelfMemory.shelf(series: publication.series, identity: publication.id)

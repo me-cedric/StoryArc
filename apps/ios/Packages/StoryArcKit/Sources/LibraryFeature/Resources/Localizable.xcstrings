@@ -204,35 +204,6 @@
         }
       }
     },
-    "catalogue.acquire.other": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Als %@ öffnen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open as %@"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abrir como %@"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ouvrir en %@"
-          }
-        }
-      }
-    },
     "catalogue.acquire.other %@": {
       "extractionState": "manual",
       "localizations": {
