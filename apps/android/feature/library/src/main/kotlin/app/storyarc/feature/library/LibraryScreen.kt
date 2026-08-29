@@ -51,6 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -175,6 +176,13 @@ fun LibraryScreen(
     LaunchedEffect(viewModel) {
         viewModel?.restoreFolders()
         onProbeSources()
+    }
+
+    // The retry loop runs in the view model's scope, which outlives this screen, so it has
+    // to be told when nobody is looking. iOS needs no equivalent: its loop runs from a
+    // `task` modifier and is cancelled with the view.
+    DisposableEffect(viewModel) {
+        onDispose { viewModel?.stopRetrying() }
     }
 
     // On resume, not on first composition. The comic reader is a composable in the

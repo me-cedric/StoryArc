@@ -1,25 +1,16 @@
 {
   "version": "0.9.1",
-  "syncedAt": "2026-08-23T23:21:35.462Z",
+  "syncedAt": "2026-08-29T19:42:16.139Z",
   "managed": {
     "docs/handoff-template.md": "8f23754c57990a81",
     "docs/work-intake-template.md": "a5d238b89d9ac7ef",
     ".agent/trace/README.md": "b2989882b7761261",
     ".agent/hooks/check-agent-compass-updates.sh": "485de04755e16377",
     ".github/ISSUE_TEMPLATE/agent-ready-task.yml": "b2b27569a076360c",
-    ".github/instructions/agent-compass.instructions.md": "a3624ff175285590",
-    ".github/instructions/pr-workflow.instructions.md": "98ef8e699fc66bcf",
     ".github/prompts/explain-project.prompt.md": "39bd9b910fea8f84",
     ".github/prompts/prompt-upgrade.prompt.md": "edd563492d63cd51",
     ".github/prompts/choose-architecture.prompt.md": "44d388bccf11bb4a",
-    ".github/agents/agent-compass-teacher.agent.md": "5eed4df1e00fa653",
-    ".github/agents/architecture-advisor.agent.md": "13ec5ac1dff00935",
-    ".codex/config.toml": "4f26f40df45baf4f",
     ".codex/hooks.json": "703ef3e07d638ec7",
-    ".claude/agents/reviewer.md": "c8a2c5cb5123a97e",
-    ".claude/agents/security.md": "a4fab1bd4278f457",
-    ".claude/agents/docs-teacher.md": "a6ba527ef0c35350",
-    ".claude/agents/architecture-advisor.md": "3cb06701af897b36",
     ".claude/hooks/protect-agent-files.sh": "b8d61ec950c480ce",
     ".claude/hooks/remind-completion-gate.sh": "e90e577c672e25c4",
     ".claude/settings.example.json": "c504ecc27b691296",
@@ -36,7 +27,6 @@
     ".mcp/angular-cli.example.json": "aa89aed87b4853a0",
     ".mcp/gemini.example.json": "1fe617693600043c",
     ".gemini/settings.example.json": "93554eb8c4362160",
-    ".mcp/headroom.example.json": "34557baf49170fa0",
     ".mcp/recommended.example.json": "93554eb8c4362160"
   }
 }

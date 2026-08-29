@@ -218,6 +218,9 @@ public struct LibraryView: View {
                 model.restoreFolders()
                 await model.refreshProgress()
                 await model.probeNetworkSources(credentials: credentials, pins: pins)
+                // Keeps asking while anything is away. Cancelled with this task, so it
+                // stops the moment the library does.
+                await model.retryUnreachableSources(credentials: credentials, pins: pins)
             }
             .toolbar {
                 if !model.publications.isEmpty {

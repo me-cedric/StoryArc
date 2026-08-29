@@ -9,7 +9,7 @@ Mode: `project`
 {
   "name": "storyarc",
   "scope": "@scope",
-  "packageManager": "npm",
+  "packageManager": "pnpm",
   "stacks": [
     "swift-ios"
   ],

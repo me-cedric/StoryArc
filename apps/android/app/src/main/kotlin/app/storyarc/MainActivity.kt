@@ -617,6 +617,10 @@ class MainActivity : ComponentActivity() {
                         onAddShare = { isAddingShare = true },
                         onProbeSources = {
                             libraryViewModel.probeNetworkSources(credentials, pins)
+                            // And keeps asking while anything is away, per `sources`'
+                            // backoff. Stopped when the library leaves the screen, which is
+                            // when nobody is looking at the answer.
+                            libraryViewModel.retryUnreachableSources(credentials, pins)
                         },
                         onMark = { publication, isRead ->
                             libraryViewModel.mark(

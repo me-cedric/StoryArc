@@ -26,6 +26,7 @@ import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.SourceProbe
 import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
@@ -41,6 +42,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -228,8 +231,49 @@ class LibraryViewModel(
         }
     }
 
+    /**
+     * Keeps asking, while any source is still away.
+     *
+     * `sources` asks for more than one probe: an unreachable source is retried "with
+     * exponential backoff starting at 5 seconds and capping at 5 minutes", and one that
+     * comes back is reconnected "without user action". A single probe on appearance
+     * satisfies neither — a reader whose Wi-Fi returns while they are looking at the
+     * library would watch it say "Connecting…" until they left the screen and came back.
+     *
+     * The schedule is [SourceProbe.delayAfter], which is tested without a network. This is
+     * only the loop, and it holds a job rather than launching a second one, so a reader
+     * leaving and returning does not end up with two.
+     *
+     * iOS runs the same loop from its `task` modifier, where cancellation is the view's.
+     */
+    private var retryJob: Job? = null
+
+    fun retryUnreachableSources(credentials: CredentialStore?, pins: CertificatePins) {
+        retryJob?.cancel()
+        retryJob = viewModelScope.launch {
+            var failures = 0
+            while (isActive) {
+                val away = _registry.value.sources.any { it.state is SourceConnectionState.Unreachable }
+                if (!away) return@launch
+                failures += 1
+                delay(SourceProbe.delayAfter(failures))
+                probeAndWait(credentials, pins)
+            }
+        }
+    }
+
+    /** Stops the retry loop. Called when the library goes away and nobody is looking. */
+    fun stopRetrying() {
+        retryJob?.cancel()
+        retryJob = null
+    }
+
     fun probeNetworkSources(credentials: CredentialStore?, pins: CertificatePins) {
-        viewModelScope.launch {
+        viewModelScope.launch { probeAndWait(credentials, pins) }
+    }
+
+    private suspend fun probeAndWait(credentials: CredentialStore?, pins: CertificatePins) {
+        run {
             val reason = getApplication<Application>()
                 .getString(R.string.source_state_unauthorized)
             for (source in _registry.value.sources.filter(SourceHealth::canProbe)) {
