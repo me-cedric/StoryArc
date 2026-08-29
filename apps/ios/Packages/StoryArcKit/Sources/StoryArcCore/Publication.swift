@@ -111,6 +111,28 @@ public struct Publication: Sendable, Equatable, Identifiable {
     /// reads bytes and has no idea a registry exists.
     public var sourceID: UUID?
 
+    /// How much disk the publication occupies, when the app has been told.
+    ///
+    /// `library-browsing` sorts by file size, and no container reports its own
+    /// length from the inside — the walk that found the file is what knows it, the
+    /// same way it knows when the file arrived. `nil` for a publication reached
+    /// somewhere the size was never asked for, which sorts as unknown rather than
+    /// as zero bytes.
+    public var fileSize: Int64?
+
+    /// When the file arrived where the app found it.
+    ///
+    /// `library-browsing` sorts by date added, and there is nowhere else for the
+    /// date to come from: StoryArc keeps no record of publications between
+    /// launches, so the only thing that remembers when a comic turned up is the
+    /// filesystem it turned up in.
+    ///
+    /// `var`, like `sourceID` and for the same reason: the container decides what a
+    /// publication *is*, and the two facts above are about the file rather than the
+    /// book. Threading them through every constructor would say they were the same
+    /// kind of answer.
+    public var addedAt: Date?
+
     public init(
         identity: PublicationIdentity,
         format: PublicationFormat,
@@ -130,9 +152,13 @@ public struct Publication: Sendable, Equatable, Identifiable {
         readingDirection: ReadingDirection = .leftToRight,
         isFixedLayout: Bool = false,
         streaming: StreamingCapability = .streams,
-        sourceID: UUID? = nil
+        sourceID: UUID? = nil,
+        fileSize: Int64? = nil,
+        addedAt: Date? = nil
     ) {
         self.sourceID = sourceID
+        self.fileSize = fileSize
+        self.addedAt = addedAt
         self.identity = identity
         self.format = format
         self.displayTitle = displayTitle

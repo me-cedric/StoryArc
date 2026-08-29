@@ -23,6 +23,8 @@
     <string name="library_repick_folder">Elegir de nuevo</string>
     <string name="library_skipped">%1$d omitidos</string>
     <string name="library_search">Buscar</string>
+    <string name="library_search_recent">Búsquedas recientes</string>
+    <string name="library_search_recent_clear">Borrar las búsquedas recientes</string>
     <string name="library_sort">Ordenar</string>
     <string name="library_sort_ascending">Ascendente</string>
     <string name="library_sort_descending">Descendente</string>
@@ -31,6 +33,8 @@
     <string name="library_sort_last_read">Última lectura</string>
     <string name="library_sort_progress">Progreso</string>
     <string name="library_sort_year">Año</string>
+    <string name="library_sort_date_added">Fecha de adición</string>
+    <string name="library_sort_file_size">Tamaño del archivo</string>
     <string name="library_filter">Filtrar</string>
     <string name="library_filter_read_state">Estado de lectura</string>
     <string name="library_filter_format">Formato</string>

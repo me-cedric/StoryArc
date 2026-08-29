@@ -73,6 +73,8 @@ extension LibrarySort {
         case .lastRead: "library.sort.lastRead"
         case .progress: "library.sort.progress"
         case .year: "library.sort.year"
+        case .dateAdded: "library.sort.dateAdded"
+        case .fileSize: "library.sort.fileSize"
         }
     }
 }

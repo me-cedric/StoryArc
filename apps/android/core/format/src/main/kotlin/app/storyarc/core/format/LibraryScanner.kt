@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
 
 /**
  * What a scan reports as it goes.
@@ -97,9 +99,15 @@ object LibraryScanner {
      * internal storage to an SD card should see the same library.
      */
     fun scan(resolver: ContentResolver, tree: Uri): Flow<ScanEvent> = flow {
-        val tally = walkTree(resolver, tree, SafTree.rootDocumentId(tree), seriesHint = null) {
-            emit(it)
-        }
+        // The library's own folder is never a publication, so it needs no date of
+        // its own — the zero here is read as "not stated" and never reaches a row.
+        val tally = walkTree(
+            resolver,
+            tree,
+            SafTree.rootDocumentId(tree),
+            seriesHint = null,
+            modifiedAt = 0L,
+        ) { emit(it) }
         emit(ScanEvent.Finished(tally.found, tally.skipped))
     }
 
@@ -155,11 +163,19 @@ object LibraryScanner {
         return tally
     }
 
+    /**
+     * @param modifiedAt when the provider last saw this directory change, carried
+     *   down from the listing that named it. A folder of images is a publication,
+     *   and the Storage Access Framework only states a document's timestamp when it
+     *   lists that document's parent — so the date has to travel with the recursion
+     *   or be fetched a second time.
+     */
     private suspend fun walkTree(
         resolver: ContentResolver,
         tree: Uri,
         documentId: String,
         seriesHint: String?,
+        modifiedAt: Long,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         currentCoroutineContext().ensureActive()
@@ -173,7 +189,7 @@ object LibraryScanner {
         val images = files.filter { extensionOf(it.name) in IMAGE_EXTENSIONS }
 
         if (publications.isEmpty() && images.isNotEmpty()) {
-            return indexDocumentFolder(resolver, tree, documentId, seriesHint, emit)
+            return indexDocumentFolder(resolver, tree, documentId, seriesHint, modifiedAt, emit)
         }
 
         var tally = Tally()
@@ -183,7 +199,7 @@ object LibraryScanner {
         }
         for (child in directories) {
             currentCoroutineContext().ensureActive()
-            tally += walkTree(resolver, tree, child.documentId, child.name, emit)
+            tally += walkTree(resolver, tree, child.documentId, child.name, child.lastModified, emit)
         }
         return tally
     }
@@ -220,7 +236,7 @@ object LibraryScanner {
                         name = entry.name,
                         identity = identityOf(uri),
                         seriesHint = seriesHint,
-                    ),
+                    ).withFileFacts(entry.size, entry.lastModified),
                 )
             }
         } catch (cause: IndexException) {
@@ -239,6 +255,7 @@ object LibraryScanner {
         tree: Uri,
         documentId: String,
         seriesHint: String?,
+        modifiedAt: Long,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         val uri = SafTree.documentUri(tree, documentId)
@@ -250,7 +267,9 @@ object LibraryScanner {
                     identityOf(uri),
                     name,
                     seriesHint,
-                ),
+                    // The folder was weighed by its own pages; only the date is
+                    // outside knowledge here.
+                ).withFileFacts(size = -1L, addedAt = modifiedAt),
             )
         } catch (cause: IndexException) {
             ScanEvent.Skipped(name, reasonFor(cause))
@@ -278,7 +297,10 @@ object LibraryScanner {
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         val event = try {
-            ScanEvent.Found(PublicationIndexer.index(file, seriesHint))
+            ScanEvent.Found(
+                PublicationIndexer.index(file, seriesHint)
+                    .withFileFacts(if (file.isFile) file.length() else -1L, createdAt(file)),
+            )
         } catch (cause: IndexException) {
             ScanEvent.Skipped(file.name, reasonFor(cause))
         } catch (cause: CancellationException) {
@@ -288,6 +310,42 @@ object LibraryScanner {
         }
         emit(event)
         return if (event is ScanEvent.Found) Tally(found = 1) else Tally(skipped = 1)
+    }
+
+    /**
+     * The two things about a publication that only the filesystem knows.
+     *
+     * `library-browsing` sorts by date added and by file size, and neither is
+     * written anywhere inside a comic. The walk is where they come from because the
+     * walk is the part that touches the filesystem — the indexer below it reads
+     * containers and is handed bytes, not directory entries. iOS's `LibraryScanner`
+     * stamps the same two facts in the same place.
+     *
+     * A negative size and a zero date both mean "not stated", and are dropped
+     * rather than stored: an unpacked folder has already been weighed by the pages
+     * the indexer found inside it, and a row with no date sorts as undated rather
+     * than as the oldest thing in the library.
+     */
+    private fun Publication.withFileFacts(size: Long, addedAt: Long): Publication = copy(
+        fileSize = if (size >= 0L) size else fileSize,
+        addedAtEpochMillis = addedAt.takeIf { it > 0L },
+    )
+
+    /**
+     * When a file arrived, as well as the platform will say.
+     *
+     * "Date added" is a question no Java filesystem API asks. Creation time is the
+     * closest, and not every filesystem records one — so the modification time
+     * stands in, which is a worse answer to the same question rather than a
+     * different one.
+     */
+    private fun createdAt(file: File): Long {
+        val created = runCatching {
+            Files.readAttributes(file.toPath(), BasicFileAttributes::class.java)
+                .creationTime()
+                .toMillis()
+        }.getOrNull()
+        return created?.takeIf { it > 0L } ?: file.lastModified()
     }
 
     /**

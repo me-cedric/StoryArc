@@ -254,7 +254,15 @@ public enum PublicationIndexer {
             skippedPageCount: archive.skippedPageCount,
             coverPath: archive.coverPage?.path,
             readingDirection: info?.readingDirection ?? .leftToRight,
-            streaming: streaming(of: archive)
+            streaming: streaming(of: archive),
+            // An unpacked folder is not one file, so nothing outside can weigh it.
+            // What it occupies is what its pages add up to, which is the same
+            // question a packed archive's own length answers — and the pages have
+            // just been walked, so asking costs nothing. Every other format is
+            // weighed by the scan that found it.
+            fileSize: format == .imageFolder
+                ? archive.pages.reduce(0) { $0 + Int64($1.byteCount ?? 0) }
+                : nil
         )
     }
 

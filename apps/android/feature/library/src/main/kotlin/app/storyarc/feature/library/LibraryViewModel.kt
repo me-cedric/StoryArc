@@ -17,6 +17,7 @@ import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.model.Source
 import java.util.UUID
@@ -89,6 +90,12 @@ class LibraryViewModel(
     /** What the user is looking at. Setting it re-arranges the shelf. */
     private val _query = MutableStateFlow(preferences?.query() ?: LibraryQuery())
     val query: StateFlow<LibraryQuery> = _query.asStateFlow()
+
+    private val _recentSearches =
+        MutableStateFlow(preferences?.recentSearches() ?: RecentSearches())
+
+    /** What the reader searched for lately, offered when the field opens. */
+    val recentSearches: StateFlow<RecentSearches> = _recentSearches.asStateFlow()
 
     /**
      * Grid or list. `library-browsing` requires both, and requires the choice to
@@ -544,8 +551,27 @@ class LibraryViewModel(
     fun setQuery(value: LibraryQuery) {
         if (value == _query.value) return
         _query.value = value
+        // A term is filed as it is typed. `library-browsing` has results update per
+        // keystroke with no submit action, and a reader who taps a cover never ends
+        // the search at all — so there is no later moment to hang the record on.
+        // [RecentSearches] folds the keystrokes of one word back into one entry,
+        // which is what makes recording each of them safe.
+        remember(value.search)
         preferences?.save(value)
         rebuild()
+    }
+
+    /** `library-browsing`: the offered queries "can be cleared". */
+    fun clearRecentSearches() {
+        _recentSearches.value = RecentSearches()
+        preferences?.save(_recentSearches.value)
+    }
+
+    private fun remember(term: String) {
+        val updated = _recentSearches.value.recording(term)
+        if (updated == _recentSearches.value) return
+        _recentSearches.value = updated
+        preferences?.save(updated)
     }
 
     /**

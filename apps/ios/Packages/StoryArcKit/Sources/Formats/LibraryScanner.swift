@@ -149,7 +149,8 @@ public enum LibraryScanner {
         emit: @Sendable (ScanEvent) -> Void
     ) async -> Tally {
         do {
-            let publication = try await PublicationIndexer.index(fileAt: url, seriesHint: seriesHint)
+            var publication = try await PublicationIndexer.index(fileAt: url, seriesHint: seriesHint)
+            stampFileFacts(on: &publication, at: url)
             emit(.found(publication))
             return Tally(found: 1, skipped: 0)
         } catch let error as PublicationIndexer.IndexError {
@@ -158,6 +159,29 @@ public enum LibraryScanner {
             emit(.skipped(path: url.lastPathComponent, reason: "it could not be read"))
         }
         return Tally(found: 0, skipped: 1)
+    }
+
+    /// The two things about a publication that only the filesystem knows.
+    ///
+    /// `library-browsing` sorts by date added and by file size, and neither is
+    /// written anywhere inside a comic. The walk is where they come from because
+    /// the walk is the part that touches the filesystem — the indexer below it
+    /// reads containers and is handed bytes, not directory entries.
+    ///
+    /// "Date added" is the date the Finder shows under that name: when this file
+    /// arrived in this folder, which is what a reader means by recently added. Not
+    /// every filesystem records it, so creation and then modification stand in —
+    /// each is a worse answer to the same question rather than a different one.
+    private static func stampFileFacts(on publication: inout Publication, at url: URL) {
+        let values = try? url.resourceValues(forKeys: [
+            .fileSizeKey, .addedToDirectoryDateKey, .creationDateKey, .contentModificationDateKey,
+        ])
+        publication.addedAt = values?.addedToDirectoryDate
+            ?? values?.creationDate
+            ?? values?.contentModificationDate
+        // Nil for a directory, and left alone there: an unpacked folder was already
+        // weighed by the pages the indexer found inside it.
+        if let size = values?.fileSize { publication.fileSize = Int64(size) }
     }
 
     /// A reason in words a person can act on.
