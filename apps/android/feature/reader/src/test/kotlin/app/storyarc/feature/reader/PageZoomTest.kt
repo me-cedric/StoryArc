@@ -115,6 +115,34 @@ class PageZoomTest {
     }
 
     @Test
+    fun `a fit taken before the page was measured carries nothing forward`() {
+        // The iOS reader had a defect here worth pinning on this side too. There, a fit
+        // computed against a viewport of zero was *recorded as applied*, so nothing ever
+        // retried it and the page stayed at its own pixel size in a corner. Compose has no
+        // such record — the zoom is keyed on the size `onSizeChanged` reports, which is
+        // only ever a size the layout really has — but that only helps if the fit taken
+        // before the first measurement is harmless. This is what makes it harmless.
+        val unmeasured = PageBounds.of(image = IntSize(500, 2000), area = IntSize.Zero)
+        val early = PageZoom.fitting(PageFit.WIDTH, unmeasured)
+
+        assertEquals(PageZoom.FIT, early.scale, 0.001f)
+        assertEquals(Offset.Zero, early.offset)
+        assertFalse(early.isMagnified)
+
+        // And the fit taken once there is a size is the real one, unaffected by it.
+        assertEquals(2f, PageZoom.fitting(PageFit.WIDTH, letterboxed).scale, 0.001f)
+    }
+
+    @Test
+    fun `a page with no pixels is fitted to nothing rather than to a division by zero`() {
+        val undecoded = PageBounds.of(image = IntSize.Zero, area = screen)
+
+        assertEquals(0f, undecoded.fittedWidth, 0.001f)
+        assertEquals(Offset.Zero, undecoded.slack(PageZoom.MAXIMUM))
+        assertEquals(PageZoom.FIT, PageZoom.fitting(PageFit.ORIGINAL, undecoded).scale, 0.001f)
+    }
+
+    @Test
     fun `a double tap magnifies about the tapped point`() {
         val point = Offset(250f, 500f)
         val zoom = PageZoom().doubleTapped(point, page)
