@@ -29,6 +29,9 @@ dependencies {
     implementation(project(":core:persistence"))
     implementation(project(":core:format"))
 
+    // `LocalActivity`, to hold the screen at one orientation. `comic-reader`'s lock is
+    // an activity-level request and there is nowhere else in Compose to make it.
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)

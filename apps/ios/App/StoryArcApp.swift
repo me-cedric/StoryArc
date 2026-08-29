@@ -27,6 +27,10 @@ struct StoryArcApp: App {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
 
+    /// `comic-reader` locks the reader's orientation, and an application delegate is the
+    /// only place UIKit will take that answer from. See `OrientationDelegate`.
+    @UIApplicationDelegateAdaptor(OrientationDelegate.self) private var orientation
+
     @State private var settings = SettingsStore().settings()
     private let settingsStore = SettingsStore()
 

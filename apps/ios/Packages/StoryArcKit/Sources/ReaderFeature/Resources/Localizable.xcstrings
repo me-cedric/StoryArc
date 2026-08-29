@@ -379,6 +379,35 @@
         }
       }
     },
+    "reader.direction": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leserichtung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading direction"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dirección de lectura"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sens de lecture"
+          }
+        }
+      }
+    },
     "reader.empty": {
       "extractionState": "manual",
       "localizations": {
@@ -669,6 +698,35 @@
         }
       }
     },
+    "reader.leftToRight": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von links nach rechts"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left to right"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De izquierda a derecha"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De gauche à droite"
+          }
+        }
+      }
+    },
     "reader.offline.brief": {
       "extractionState": "manual",
       "localizations": {
@@ -814,6 +872,64 @@
         }
       }
     },
+    "reader.orientation.lock": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drehung sperren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lock rotation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear la rotación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verrouiller la rotation"
+          }
+        }
+      }
+    },
+    "reader.orientation.unlock": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drehung entsperren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock rotation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquear la rotación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déverrouiller la rotation"
+          }
+        }
+      }
+    },
     "reader.page %lld %lld": {
       "comment": "The page indicator. First number is the current page, second is the total.",
       "extractionState": "manual",
@@ -934,7 +1050,7 @@
       }
     },
     "reader.rightToLeft": {
-      "comment": "Spoken by VoiceOver so the reading direction is not something a user has to infer from the gesture.",
+      "comment": "Spoken by VoiceOver so the reading direction is not something a user has to infer from the gesture, and shown as the right-to-left row of the direction picker.",
       "extractionState": "manual",
       "localizations": {
         "de": {

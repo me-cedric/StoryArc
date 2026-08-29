@@ -31,6 +31,11 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
     /// `nil` means "whatever the publication implies", which is the default and the
     /// only value that can follow a webtoon into vertical without being told.
     public var scrollAxis: ScrollAxis?
+    /// `nil` means "whatever the publication's metadata declares", for the same reason
+    /// the axis above defaults to nothing: it is the only value that can follow a manga
+    /// into right-to-left unprompted. `comic-reader` remembers an override "for the
+    /// series", and per series is exactly what this store is.
+    public var readingDirection: ReadingDirection?
     /// What to do to a page before it is shown. `comic-reader` requires an adjustment to
     /// apply "to the series and [not be] applied globally", which is what this store is.
     public var adjustments: ImageAdjustments
@@ -42,12 +47,14 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
         values: ThemeValues? = nil,
         transition: PageTransition = .slide,
         scrollAxis: ScrollAxis? = nil,
+        readingDirection: ReadingDirection? = nil,
         adjustments: ImageAdjustments = ImageAdjustments()
     ) {
         self.theme = theme
         self.values = values ?? theme.preset.values
         self.transition = transition
         self.scrollAxis = scrollAxis
+        self.readingDirection = readingDirection
         self.adjustments = adjustments
     }
 
@@ -66,6 +73,9 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
             values: try container.decodeIfPresent(ThemeValues.self, forKey: .values),
             transition: try container.decodeIfPresent(PageTransition.self, forKey: .transition) ?? .slide,
             scrollAxis: try container.decodeIfPresent(ScrollAxis.self, forKey: .scrollAxis),
+            readingDirection: try container.decodeIfPresent(
+                ReadingDirection.self, forKey: .readingDirection
+            ),
             adjustments: try container.decodeIfPresent(ImageAdjustments.self, forKey: .adjustments)
                 ?? ImageAdjustments()
         )
@@ -84,6 +94,17 @@ extension ShelfSettings {
     public func settingAdjustments(_ adjustments: ImageAdjustments) -> ShelfSettings {
         var copy = self
         copy.adjustments = adjustments
+        return copy
+    }
+
+    /// The same settings read the other way round.
+    ///
+    /// Unlike the axis below this changes nothing else: the direction is not a mode, and
+    /// a reader who turned a wrongly tagged manga around has not asked for a different
+    /// page transition as well.
+    public func settingReadingDirection(_ direction: ReadingDirection) -> ShelfSettings {
+        var copy = self
+        copy.readingDirection = direction
         return copy
     }
 

@@ -1,5 +1,7 @@
 package app.storyarc.feature.reader
 
+import android.content.pm.ActivityInfo
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -36,6 +38,9 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.ScreenLockRotation
+import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -262,7 +267,10 @@ private fun Pager(
     matte: Color,
 ) {
     val count = pages.size
-    val isRightToLeft = viewModel.readingDirection == ReadingDirection.RIGHT_TO_LEFT
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val adjustments = settings.adjustments
+    val direction = viewModel.readingDirection(settings)
+    val isRightToLeft = direction == ReadingDirection.RIGHT_TO_LEFT
 
     /**
      * A display position turned back into the publication's own page number.
@@ -273,15 +281,13 @@ private fun Pager(
      * with a transform instead would fight the paging gesture — iOS learned that
      * the hard way, and the note is in ReaderView.swift.
      */
-    fun modelIndex(display: Int) = if (isRightToLeft) count - 1 - display else display
-    fun displayIndex(model: Int) = if (isRightToLeft) count - 1 - model else model
+    fun modelIndex(display: Int) = direction.position(display, count)
+    fun displayIndex(model: Int) = direction.position(model, count)
 
     // `page-transitions`: the mode "applies to the current publication immediately
     // without losing the reading position". Hoisted above the coordinator so a mode
     // change seeds the new container from where the reader already is.
     var position by remember { mutableIntStateOf(displayIndex(viewModel.initialIndex)) }
-    val settings by viewModel.settings.collectAsStateWithLifecycle()
-    val adjustments = settings.adjustments
 
     /** Whether the adjustment controls are open. */
     var isAdjusting by rememberSaveable { mutableStateOf(false) }
@@ -291,6 +297,25 @@ private fun Pager(
     // rather than stored: an exemption is about one page of one book in front of the reader
     // now, and a store of page numbers outlives the pages it describes.
     val uncropped = remember { mutableStateSetOf<Int>() }
+
+    // Held for the session too, and for the same kind of reason: `comic-reader` scopes
+    // the lock to "the reader only" and asks nothing about it surviving the book being
+    // closed, and a reader who put the phone down flat is answering about now.
+    var isOrientationLocked by rememberSaveable { mutableStateOf(false) }
+
+    // `comic-reader`: a locked orientation "stays locked for the reader only, and the
+    // rest of the app follows the device". `SCREEN_ORIENTATION_LOCKED` pins the activity
+    // to the way up it is already showing, whichever that is, and the effect hands it
+    // back on the way out — which is what makes it the reader's lock and not the app's.
+    val activity = LocalActivity.current
+    DisposableEffect(activity, isOrientationLocked) {
+        activity?.requestedOrientation = if (isOrientationLocked) {
+            ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+        onDispose { activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
+    }
 
     val choices = viewModel.transitions(settings)
     val paging = rememberPaging(choices.effective, count, position)
@@ -309,6 +334,20 @@ private fun Pager(
         if (hasOpened || count == 0) return@LaunchedEffect
         hasOpened = true
         paging.goTo(displayIndex(viewModel.initialIndex), animate = false)
+    }
+
+    // `comic-reader`: a direction change "applies immediately without losing the current
+    // page". The run the container lays out reverses under the reader, so the position
+    // holding the page they are on moves to the other end of it. The page is read back
+    // through the *previous* direction, because the position still means what it meant
+    // before the choice — without that, turning a manga around would leave the reader
+    // the same distance from the other cover.
+    var previousDirection by remember { mutableStateOf(direction) }
+    LaunchedEffect(direction) {
+        if (direction == previousDirection) return@LaunchedEffect
+        val page = previousDirection.position(paging.current, count)
+        previousDirection = direction
+        paging.goTo(direction.position(page, count), animate = false)
     }
     val scope = rememberCoroutineScope()
 
@@ -615,6 +654,21 @@ private fun Pager(
                         modifier = Modifier.padding(bottom = StoryArcSpace.sm),
                     )
                 }
+
+                // Down here with the page count rather than in the top row, which on a
+                // phone is already the way out of the reader and three controls wide.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    DirectionMenu(
+                        direction = direction,
+                        onChoose = viewModel::choose,
+                        onOpenChange = { isMenuOpen = it },
+                    )
+                    OrientationToggle(
+                        isLocked = isOrientationLocked,
+                        onToggle = { isOrientationLocked = !isOrientationLocked },
+                    )
+                }
+
                 Surface(
                     color = Color.White.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(percent = 50),
@@ -879,6 +933,81 @@ private fun FitMenu(
 }
 
 /**
+ * Which way the pages run.
+ *
+ * `comic-reader` opens a publication in the direction its metadata declares and lets the
+ * reader overrule that, for the series. Two rows and a radio, the same shape as [FitMenu]
+ * rather than a bare toggle: metadata gets this wrong often enough that a reader who
+ * suspects it needs to see which way the comic is running, not only be able to flip it.
+ */
+@Composable
+private fun DirectionMenu(
+    direction: ReadingDirection,
+    onChoose: (ReadingDirection) -> Unit,
+    onOpenChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var open by remember { mutableStateOf(false) }
+    LaunchedEffect(open) { onOpenChange(open) }
+
+    Box(modifier) {
+        IconButton(onClick = { open = true }, modifier = Modifier.padding(StoryArcSpace.md)) {
+            Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
+                Icon(
+                    imageVector = Icons.Filled.SwapHoriz,
+                    contentDescription = stringResource(R.string.reader_direction),
+                    tint = Color.White,
+                    modifier = Modifier.padding(StoryArcSpace.sm),
+                )
+            }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            ReadingDirection.entries.forEach { candidate ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(candidate.labelRes)) },
+                    leadingIcon = { RadioButton(selected = direction == candidate, onClick = null) },
+                    onClick = {
+                        onChoose(candidate)
+                        open = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Holds the screen at the way up it is now.
+ *
+ * `comic-reader` scopes the lock to the reader, so it is a button here rather than a row
+ * in Settings. Its name says what pressing it would do rather than what the state is:
+ * with no label on screen beside the icon, that sentence is all TalkBack has to go on.
+ */
+@Composable
+private fun OrientationToggle(
+    isLocked: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(onClick = onToggle, modifier = modifier.padding(StoryArcSpace.md)) {
+        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
+            Icon(
+                imageVector = if (isLocked) {
+                    Icons.Filled.ScreenLockRotation
+                } else {
+                    Icons.Filled.ScreenRotation
+                },
+                contentDescription = stringResource(
+                    if (isLocked) R.string.reader_orientation_unlock else R.string.reader_orientation_lock,
+                ),
+                tint = if (isLocked) LocalStoryArcPalette.current.accent else Color.White,
+                modifier = Modifier.padding(StoryArcSpace.sm),
+            )
+        }
+    }
+}
+
+/**
  * The page-transition picker.
  *
  * Four rows, and `page-transitions` is specific about what a row that cannot run
@@ -976,6 +1105,19 @@ private val TransitionUnavailability.labelRes: Int
         // named rather than swallowed by an `else`, so that adding a third reason still
         // breaks this file rather than silently showing the wrong sentence.
         TransitionUnavailability.REFLOWABLE_TEXT -> R.string.reader_transition_reflowable
+    }
+
+/**
+ * Which way the pages run, named the way a reader would say it.
+ *
+ * Right-to-left reuses the sentence TalkBack already reads out on entering a manga,
+ * because it is the same fact and a second wording of it would be one to keep in step
+ * for nothing.
+ */
+private val ReadingDirection.labelRes: Int
+    get() = when (this) {
+        ReadingDirection.LEFT_TO_RIGHT -> R.string.reader_left_to_right
+        ReadingDirection.RIGHT_TO_LEFT -> R.string.reader_right_to_left
     }
 
 /**

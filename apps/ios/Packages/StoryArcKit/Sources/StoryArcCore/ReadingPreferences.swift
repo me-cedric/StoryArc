@@ -38,6 +38,17 @@ public enum ReadingDirection: String, Sendable, Codable, CaseIterable {
         if let declared { return declared }
         return languageCode?.lowercased().hasPrefix("ja") == true ? .rightToLeft : .leftToRight
     }
+
+    /// Where a page sits in the run the reader swipes through.
+    ///
+    /// The page's own number left-to-right, and the mirror of it right-to-left, where
+    /// the first page is at the far end. Its own inverse, so the one function answers
+    /// both "which page is at this position" and "which position holds this page" —
+    /// which is what makes `comic-reader`'s "applies immediately without losing the
+    /// current page" a single expression when the direction changes under the reader.
+    public func position(_ index: Int, of count: Int) -> Int {
+        self == .rightToLeft ? count - 1 - index : index
+    }
 }
 
 /// How a page is sized against the screen.
