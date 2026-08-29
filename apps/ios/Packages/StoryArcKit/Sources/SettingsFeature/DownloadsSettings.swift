@@ -34,6 +34,9 @@ struct DownloadsSettings: View {
     /// queue's own controls, and one place at a time is reachable without a drag gesture.
     var onReorder: (Download, Bool) -> Void = { _, _ in }
 
+    /// The row a search result pointed at, if the reader arrived through one.
+    var highlight: SettingsAnchor?
+
     @State private var removing: Download?
 
     private var isRemoving: Binding<Bool> {
@@ -46,7 +49,7 @@ struct DownloadsSettings: View {
     }
 
     var body: some View {
-        List {
+        HighlightingList(highlight: highlight) {
             policy
 
             if finished.isEmpty && library.pending.isEmpty {
@@ -223,6 +226,7 @@ extension DownloadsSettings {
                         .foregroundStyle(theme.palette.textTertiary)
                 }
             }
+            .settingsHighlight(.downloadsWiFiOnly, when: highlight)
 
             Toggle(isOn: $settings.removeDownloadsAfterFinishing) {
                 VStack(alignment: .leading) {
@@ -232,6 +236,7 @@ extension DownloadsSettings {
                         .foregroundStyle(theme.palette.textTertiary)
                 }
             }
+            .settingsHighlight(.downloadsRemoveAfterFinishing, when: highlight)
 
             // A short ladder rather than a free number: a reader knows "about five
             // gigabytes", not 5_000_000_000, and a field for a byte count is a way to
@@ -244,6 +249,7 @@ extension DownloadsSettings {
             } label: {
                 Text("downloads.limit", bundle: .module)
             }
+            .settingsHighlight(.downloadsLimit, when: highlight)
         }
     }
 

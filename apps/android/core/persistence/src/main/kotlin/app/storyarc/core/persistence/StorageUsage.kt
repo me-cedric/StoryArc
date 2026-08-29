@@ -11,9 +11,9 @@ import java.io.File
  * point: "clear cache" with no size behind it asks a reader to guess whether it is worth
  * doing.
  *
- * Downloads are absent because `offline-downloads` is not built. That is said on the screen
- * rather than shown as a zero, which would imply there is a thing here that happens to be
- * empty.
+ * Downloads are not measured here. They are, but by whoever owns them: `DownloadStore`
+ * walks its own directory and the size is handed to the Privacy screen, because this type
+ * knows about the cache and the history and has no business knowing where a download lands.
  */
 class StorageUsage(private val context: Context) {
 

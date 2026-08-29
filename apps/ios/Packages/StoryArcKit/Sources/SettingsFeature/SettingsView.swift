@@ -41,6 +41,9 @@ public struct SettingsView: View {
     private let itemCount: (Source.ID) -> Int
     private let onRemoveSource: (Source) -> Void
     private let onRenameSource: (Source, String) -> Void
+    /// Moves a source to the position a drag reports. `sources`: the order persists, and
+    /// decides which of two sources holding one title the library shows.
+    private let onReorderSource: (Source.ID, Int) -> Void
 
     /// What is on the device, and what it weighs. Handed in for the same reason the sources
     /// are: the downloads belong to the library that fetched them.
@@ -48,6 +51,12 @@ public struct SettingsView: View {
     private let bytesOnDisk: Int64
     private let onRemoveDownload: (Download) -> Void
     private let onReorderDownload: (Download, Bool) -> Void
+
+    /// Removes every download at once, which is what the Privacy screen's "clear
+    /// downloads" means. A separate hand from ``onRemoveDownload`` because clearing is not
+    /// removing each one in a loop: the host does it in one write, so a reader is never
+    /// left with half a library gone.
+    private let onClearDownloads: () -> Void
 
     /// What the summary rows state, so Sources and Downloads describe themselves.
     private var summary: LibrarySummary {
@@ -65,10 +74,12 @@ public struct SettingsView: View {
         itemCount: @escaping (Source.ID) -> Int = { _ in 0 },
         onRemoveSource: @escaping (Source) -> Void = { _ in },
         onRenameSource: @escaping (Source, String) -> Void = { _, _ in },
+        onReorderSource: @escaping (Source.ID, Int) -> Void = { _, _ in },
         downloads: DownloadLibrary = DownloadLibrary(),
         bytesOnDisk: Int64 = 0,
         onRemoveDownload: @escaping (Download) -> Void = { _ in },
-        onReorderDownload: @escaping (Download, Bool) -> Void = { _, _ in }
+        onReorderDownload: @escaping (Download, Bool) -> Void = { _, _ in },
+        onClearDownloads: @escaping () -> Void = {}
     ) {
         _settings = settings
         self.readerStore = readerStore
@@ -77,10 +88,12 @@ public struct SettingsView: View {
         self.itemCount = itemCount
         self.onRemoveSource = onRemoveSource
         self.onRenameSource = onRenameSource
+        self.onReorderSource = onReorderSource
         self.downloads = downloads
         self.bytesOnDisk = bytesOnDisk
         self.onRemoveDownload = onRemoveDownload
         self.onReorderDownload = onReorderDownload
+        self.onClearDownloads = onClearDownloads
     }
 
     public var body: some View {
@@ -94,17 +107,17 @@ public struct SettingsView: View {
 
                 ForEach(matches) { match in
                     NavigationLink {
-                        detail(for: match.group)
+                        detail(for: match.group, highlight: match.anchor)
                             .navigationTitle(Text(match.group.titleKey, bundle: .module))
                     } label: {
                         Label {
                             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                                Text(match.setting ?? match.group.titleKey, bundle: .module)
+                                Text(match.anchor?.titleKey ?? match.group.titleKey, bundle: .module)
                                 // The group path, which is what makes a match
                                 // actionable: a reader who searched "volume" needs to
                                 // know it lives under Reading.
                                 Text(
-                                    match.setting == nil
+                                    match.anchor == nil
                                         ? match.group.summaryKey(for: settings, summary)
                                         : match.group.titleKey,
                                     bundle: .module
@@ -151,19 +164,33 @@ public struct SettingsView: View {
         }
     }
 
+    /// The screen behind a match, told which row the reader was pointed at.
+    ///
+    /// `highlight` travels all the way down rather than being resolved here, because the
+    /// row is the only thing that knows where it is — a screen cannot tint what it does
+    /// not lay out.
     @ViewBuilder
-    private func detail(for group: SettingsGroup) -> some View {
+    private func detail(for group: SettingsGroup, highlight: SettingsAnchor? = nil) -> some View {
         switch group {
-        case .appearance: AppearanceSettings(settings: $settings)
-        case .reading: ReadingSettings(settings: $settings, readerStore: readerStore)
-        case .privacy: PrivacySettings(settings: settings, readerStore: readerStore)
+        case .appearance: AppearanceSettings(settings: $settings, highlight: highlight)
+        case .reading:
+            ReadingSettings(settings: $settings, readerStore: readerStore, highlight: highlight)
+        case .privacy:
+            PrivacySettings(
+                settings: settings,
+                readerStore: readerStore,
+                downloadedBytes: bytesOnDisk,
+                onClearDownloads: onClearDownloads,
+                highlight: highlight
+            )
         case .about: AboutSettings()
         case .sources:
             SourcesSettings(
                 sources: sources,
                 itemCount: itemCount,
                 onRemove: onRemoveSource,
-                onRename: onRenameSource
+                onRename: onRenameSource,
+                onReorder: onReorderSource
             )
         case .downloads:
             DownloadsSettings(
@@ -172,7 +199,8 @@ public struct SettingsView: View {
                 settings: $settings,
                 sourceName: { id in sources.first { $0.id == id }?.displayName },
                 onRemove: onRemoveDownload,
-                onReorder: onReorderDownload
+                onReorder: onReorderDownload,
+                highlight: highlight
             )
         case .language:
             LanguageSettings(settings: $settings)

@@ -291,7 +291,7 @@
         }
       }
     },
-    "about.version %1$@ %2$@": {
+    "about.version %@ %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
@@ -1422,6 +1422,64 @@
         }
       }
     },
+    "privacy.clear.downloads": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear downloads"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar descargas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer les téléchargements"
+          }
+        }
+      }
+    },
+    "privacy.clear.downloads.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede heruntergeladene Publikation wird von diesem Gerät entfernt. Ihre Quellen, Ihr Lesefortschritt und Ihre Sammlungen bleiben unberührt; was noch auf einer Quelle liegt, lässt sich erneut herunterladen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every downloaded publication is removed from this device. Your sources, your reading progress and your collections are not affected, and anything still on a source can be downloaded again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se elimina de este dispositivo cada publicación descargada. Tus fuentes, tu progreso de lectura y tus colecciones no se ven afectados, y lo que siga en una fuente se puede volver a descargar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque publication téléchargée est retirée de cet appareil. Vos sources, votre progression de lecture et vos collections ne sont pas touchées, et ce qui reste sur une source peut être téléchargé de nouveau."
+          }
+        }
+      }
+    },
     "privacy.clear.history": {
       "extractionState": "manual",
       "localizations": {
@@ -1625,31 +1683,60 @@
         }
       }
     },
-    "privacy.downloads.absent": {
+    "privacy.downloads %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Es wird noch nichts heruntergeladen, also gibt es nichts Heruntergeladenes zu löschen."
+            "value": "Downloads · %@"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing downloads yet, so there is nothing downloaded to clear."
+            "value": "Downloads · %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todavía no se descarga nada, así que no hay descargas que borrar."
+            "value": "Descargas · %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien ne se télécharge encore, il n’y a donc rien de téléchargé à effacer."
+            "value": "Téléchargements · %@"
+          }
+        }
+      }
+    },
+    "privacy.downloads.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publikationen, die auf diesem Gerät liegen. Löschen entfernt die Dateien, nicht den Lesefortschritt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publications kept on this device. Clearing removes the files, not what you have read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicaciones guardadas en este dispositivo. Borrarlas elimina los archivos, no lo que has leído."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publications conservées sur cet appareil. Les effacer supprime les fichiers, pas votre progression."
           }
         }
       }

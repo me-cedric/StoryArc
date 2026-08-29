@@ -99,6 +99,21 @@ class DownloadStore internal constructor(
     // holds no files at all and a listing of it would total zero.
     fun bytesOnDisk(): Long = directory.walkTopDown().filter { it.isFile }.sumOf { it.length() }
 
+    /**
+     * Deletes every downloaded file, forgets every record, and leaves the directory ready
+     * for the next download.
+     *
+     * `settings-and-about` asks for downloads to be clearable beside the cache and the
+     * reading history. Not a loop over the library: that writes the record once per
+     * publication, so a reader whose app is killed halfway through is left with a device
+     * that is neither cleared nor intact.
+     */
+    fun clearing(): DownloadLibrary {
+        reset()
+        prepare()
+        return DownloadLibrary()
+    }
+
     /** Forgets every download. Used by a reset, and by the tests. */
     fun reset() {
         preferences.edit().clear().apply()

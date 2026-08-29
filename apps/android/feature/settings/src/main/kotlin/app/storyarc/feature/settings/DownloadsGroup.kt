@@ -45,7 +45,9 @@ import java.util.UUID
  * is the same screen.
  */
 @Composable
-fun DownloadsGroup(
+// Internal like every other group on this screen, and like iOS's `DownloadsSettings`. It
+// was the one public composable here, which nothing outside the module ever called.
+internal fun DownloadsGroup(
     library: DownloadLibrary,
     /**
      * What the files actually weigh. Asked of the filesystem by the caller, because the
@@ -64,6 +66,8 @@ fun DownloadsGroup(
     /** The reader's own policy for the queue, and how to change it. */
     settings: AppSettings = AppSettings.Defaults,
     onChange: (AppSettings) -> Unit = {},
+    /** The row a search result pointed at, if the reader arrived through one. */
+    highlight: SettingsAnchor? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     var removing by remember { mutableStateOf<Download?>(null) }
@@ -71,7 +75,7 @@ fun DownloadsGroup(
     // Largest first, which is the order the question "what can I delete" is asked in.
     val finished = library.finished.sortedByDescending { it.downloadedBytes }
 
-    Policy(settings, onChange)
+    Policy(settings, onChange, highlight)
 
     if (finished.isEmpty() && library.pending.isEmpty()) {
         Text(
@@ -288,7 +292,11 @@ private val Download.Pause.explanationRes: Int
  * than inside it.
  */
 @Composable
-private fun Policy(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+private fun Policy(
+    settings: AppSettings,
+    onChange: (AppSettings) -> Unit,
+    highlight: SettingsAnchor?,
+) {
     val palette = LocalStoryArcPalette.current
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -296,35 +304,46 @@ private fun Policy(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         title = stringResource(R.string.downloads_wifi_only),
         note = stringResource(R.string.downloads_wifi_only_note),
         checked = settings.downloadOverWifiOnly,
+        modifier = Modifier.settingsHighlight(SettingsAnchor.DOWNLOADS_WIFI_ONLY, highlight),
     ) { onChange(settings.copy(downloadOverWifiOnly = it)) }
 
     SwitchRow(
         title = stringResource(R.string.downloads_remove_after),
         note = stringResource(R.string.downloads_remove_after_note),
         checked = settings.removeDownloadsAfterFinishing,
+        modifier = Modifier.settingsHighlight(
+            SettingsAnchor.DOWNLOADS_REMOVE_AFTER_FINISHING,
+            highlight,
+        ),
     ) { onChange(settings.copy(removeDownloadsAfterFinishing = it)) }
 
     // A short ladder rather than a free number: a reader knows "about two gigabytes", not
     // 2_147_483_648, and a text field for a byte count is a way to mistype one.
-    Text(
-        text = stringResource(R.string.downloads_limit),
-        style = MaterialTheme.typography.bodyMedium,
-        color = palette.textPrimary,
-        modifier = Modifier.padding(top = StoryArcSpace.sm),
-    )
-    Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.xs)) {
-        LIMITS.forEach { limit ->
-            FilterChip(
-                selected = settings.maximumDownloadBytes == limit,
-                onClick = { onChange(settings.copy(maximumDownloadBytes = limit)) },
-                label = {
-                    Text(
-                        text = limit?.let {
-                            android.text.format.Formatter.formatShortFileSize(context, it)
-                        } ?: stringResource(R.string.downloads_limit_none),
-                    )
-                },
-            )
+    Column(
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        modifier = Modifier
+            .padding(top = StoryArcSpace.sm)
+            .settingsHighlight(SettingsAnchor.DOWNLOADS_LIMIT, highlight),
+    ) {
+        Text(
+            text = stringResource(R.string.downloads_limit),
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.textPrimary,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.xs)) {
+            LIMITS.forEach { limit ->
+                FilterChip(
+                    selected = settings.maximumDownloadBytes == limit,
+                    onClick = { onChange(settings.copy(maximumDownloadBytes = limit)) },
+                    label = {
+                        Text(
+                            text = limit?.let {
+                                android.text.format.Formatter.formatShortFileSize(context, it)
+                            } ?: stringResource(R.string.downloads_limit_none),
+                        )
+                    },
+                )
+            }
         }
     }
 }
@@ -334,11 +353,12 @@ private fun SwitchRow(
     title: String,
     note: String,
     checked: Boolean,
+    modifier: Modifier = Modifier,
     onChange: (Boolean) -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
         verticalAlignment = Alignment.CenterVertically,
