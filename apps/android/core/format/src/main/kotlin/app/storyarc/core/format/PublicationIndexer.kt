@@ -274,6 +274,8 @@ object PublicationIndexer {
             year = info?.year ?: fallback.year,
             language = info?.language,
             summary = info?.summary,
+            genres = info?.genres.orEmpty(),
+            tags = info?.tags.orEmpty(),
             // Inferred unless *something* came out of the file itself. The flag
             // describes the record, and one embedded field makes the record
             // embedded — a later authoritative source replaces the whole thing.

@@ -21,15 +21,63 @@ public enum LibrarySort: String, Sendable, CaseIterable, Codable {
     case year
 }
 
+/// The years a publication may have been released in.
+///
+/// `library-browsing` asks for a year *range* rather than a set of years, so this
+/// is a pair of bounds and not another `Set`. Either end may be absent: "since
+/// 1986" and "up to 1999" are both things a reader means, and requiring both would
+/// make the filter harder to set than to ignore.
+public struct YearRange: Sendable, Equatable, Codable {
+    public var from: Int?
+    public var to: Int?
+
+    public init(from: Int? = nil, to: Int? = nil) {
+        self.from = from
+        self.to = to
+    }
+
+    /// Whether the range narrows anything. One bound is enough.
+    public var isActive: Bool { from != nil || to != nil }
+
+    /// Whether a publication's year falls inside.
+    ///
+    /// A publication with no year is **outside** an active range. It is not
+    /// "before everything" — the library simply does not know when it came out,
+    /// and answering a question about years with a book that has none would put
+    /// noise in every result the filter is meant to remove.
+    public func contains(_ year: Int?) -> Bool {
+        guard isActive else { return true }
+        guard let year else { return false }
+        if let from, year < from { return false }
+        if let to, year > to { return false }
+        return true
+    }
+}
+
 /// What the user is looking at, and in what order.
 ///
-/// One value rather than five pieces of view state, so "return to the library and
-/// the filters are still applied" is one thing to keep and one thing to restore.
+/// One value rather than a dozen pieces of view state, so "return to the library
+/// and the filters are still applied" is one thing to keep and one thing to
+/// restore.
+///
+/// Seven of the ten facets `library-browsing` names are here: read state, format,
+/// language, publisher, genre, tag and year range. The other three are absent
+/// rather than half-built, and the spec's own Open Questions say why — download
+/// state needs the library to know what has been downloaded, source belongs to
+/// the scope selector the same spec asks for, and no format this app reads states
+/// a publication status at all.
 public struct LibraryQuery: Sendable, Equatable, Codable {
     public var search: String
     public var readStates: Set<ReadState>
     public var formats: Set<PublicationFormat>
     public var languages: Set<String>
+    /// Publishers, as the publication spells them. Not normalised: "DC" and "DC
+    /// Comics" are two publishers to a file and pretending otherwise would drop
+    /// books out of a filter the reader set.
+    public var publishers: Set<String>
+    public var genres: Set<String>
+    public var tags: Set<String>
+    public var years: YearRange
     public var sort: LibrarySort
     public var ascending: Bool
 
@@ -38,6 +86,10 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         readStates: Set<ReadState> = [],
         formats: Set<PublicationFormat> = [],
         languages: Set<String> = [],
+        publishers: Set<String> = [],
+        genres: Set<String> = [],
+        tags: Set<String> = [],
+        years: YearRange = YearRange(),
         sort: LibrarySort = .title,
         ascending: Bool = true
     ) {
@@ -45,6 +97,10 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         self.readStates = readStates
         self.formats = formats
         self.languages = languages
+        self.publishers = publishers
+        self.genres = genres
+        self.tags = tags
+        self.years = years
         self.sort = sort
         self.ascending = ascending
     }
@@ -53,9 +109,18 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
     ///
     /// A group counts once however many values it holds: three formats is one
     /// decision the user made, and a badge reading "5" for it would misdescribe
-    /// how much has to be undone.
+    /// how much has to be undone. The year range is one group whichever of its two
+    /// ends the reader set, for the same reason.
     public var activeFilterCount: Int {
-        [!readStates.isEmpty, !formats.isEmpty, !languages.isEmpty].count { $0 }
+        [
+            !readStates.isEmpty,
+            !formats.isEmpty,
+            !languages.isEmpty,
+            !publishers.isEmpty,
+            !genres.isEmpty,
+            !tags.isEmpty,
+            years.isActive,
+        ].count { $0 }
     }
 
     public var hasFilters: Bool { activeFilterCount > 0 }
@@ -63,6 +128,46 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
     /// Whether anything at all is narrowing the view, search included.
     public var isNarrowed: Bool {
         hasFilters || !search.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// Every filter off, the search and the sort untouched.
+    ///
+    /// `library-browsing`: an empty-looking library must say filters are active and
+    /// offer one action to clear them. Here rather than in the view model so the
+    /// two platforms clear the same set — a facet added to one and forgotten in the
+    /// other's clear-all is exactly the drift ADR-0001 makes us watch for.
+    public var withoutFilters: LibraryQuery {
+        var cleared = self
+        cleared.readStates = []
+        cleared.formats = []
+        cleared.languages = []
+        cleared.publishers = []
+        cleared.genres = []
+        cleared.tags = []
+        cleared.years = YearRange()
+        return cleared
+    }
+
+    /// Decoded field by field, every one of them optional.
+    ///
+    /// The synthesized decoder requires every key to be present, and a query
+    /// written by an earlier build has none of the facets added since. That
+    /// decoder throws, `LibraryPreferences` falls back to a fresh query, and the
+    /// reader's filters silently disappear on the launch after an update — which
+    /// is the one thing "active filters are still applied" forbids. So each field
+    /// falls back to its default instead.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        search = try container.decodeIfPresent(String.self, forKey: .search) ?? ""
+        readStates = try container.decodeIfPresent(Set<ReadState>.self, forKey: .readStates) ?? []
+        formats = try container.decodeIfPresent(Set<PublicationFormat>.self, forKey: .formats) ?? []
+        languages = try container.decodeIfPresent(Set<String>.self, forKey: .languages) ?? []
+        publishers = try container.decodeIfPresent(Set<String>.self, forKey: .publishers) ?? []
+        genres = try container.decodeIfPresent(Set<String>.self, forKey: .genres) ?? []
+        tags = try container.decodeIfPresent(Set<String>.self, forKey: .tags) ?? []
+        years = try container.decodeIfPresent(YearRange.self, forKey: .years) ?? YearRange()
+        sort = try container.decodeIfPresent(LibrarySort.self, forKey: .sort) ?? .title
+        ascending = try container.decodeIfPresent(Bool.self, forKey: .ascending) ?? true
     }
 }
 
@@ -73,229 +178,4 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
 public enum LibraryLayout: String, Sendable, CaseIterable, Codable {
     case grid
     case list
-}
-
-/// Turns the whole library into the list on screen.
-///
-/// Pure, and deliberately so: this is the part of `library-browsing` that has to
-/// behave identically on both platforms, and it is the part worth asserting
-/// against the same table in both test suites (ADR-0001). Android's
-/// `LibraryIndex` mirrors it line for line.
-///
-/// Not here yet, and named rather than silently missing: grouping results by
-/// match kind, merging a server's own search with local results, and the curated
-/// order of a reading list. All three need a second source or a collection to
-/// exist.
-public enum LibraryIndex {
-
-    /// What the library knows about a publication's progress.
-    public struct Progress: Sendable, Equatable {
-        public let state: ReadState
-        public let fraction: Double
-        public let lastReadAt: Date?
-
-        public init(state: ReadState, fraction: Double, lastReadAt: Date?) {
-            self.state = state
-            self.fraction = fraction
-            self.lastReadAt = lastReadAt
-        }
-
-        public static let unread = Progress(state: .unread, fraction: 0, lastReadAt: nil)
-
-        public static func of(_ record: ReadingProgress?) -> Progress {
-            guard let record else { return .unread }
-            let fraction = record.isFinished ? 1 : record.position.fraction
-            let state: ReadState =
-                if record.isFinished { .finished } else if fraction > 0 { .inProgress } else { .unread }
-            return Progress(state: state, fraction: fraction, lastReadAt: record.updatedAt)
-        }
-    }
-
-    /// The filtered, ranked and sorted list.
-    ///
-    /// Ranking only applies while a search is running: with a query, how well a
-    /// publication matches is more useful than the sort field, and the sort
-    /// breaks ties within each rank.
-    public static func arrange(
-        _ publications: [Publication],
-        query: LibraryQuery,
-        locale: Locale = .current,
-        progress: (Publication) -> Progress = { _ in .unread }
-    ) -> [Publication] {
-        let term = query.search.trimmingCharacters(in: .whitespaces).lowercased()
-
-        let kept = publications.filter { publication in
-            let record = progress(publication)
-            return (query.readStates.isEmpty || query.readStates.contains(record.state))
-                && (query.formats.isEmpty || query.formats.contains(publication.format))
-                && (query.languages.isEmpty || publication.language.map(query.languages.contains) == true)
-                && (term.isEmpty || rank(publication, matching: term) != nil)
-        }
-
-        return kept.sorted { left, right in
-            if !term.isEmpty {
-                let leftRank = rank(left, matching: term) ?? .max
-                let rightRank = rank(right, matching: term) ?? .max
-                if leftRank != rightRank { return leftRank < rightRank }
-            }
-            let byField = compare(left, right, by: query.sort, locale: locale, progress: progress)
-            if byField != .orderedSame {
-                return query.ascending ? byField == .orderedAscending : byField == .orderedDescending
-            }
-            // A stable tiebreak, always ascending: a list that reshuffles equal
-            // rows when the direction flips looks broken.
-            return collate(left.displayTitle, right.displayTitle, locale) == .orderedAscending
-        }
-    }
-
-    /// In-progress publications, most recently read first.
-    ///
-    /// `library-browsing`: the continue row "is absent, rather than shown empty,
-    /// when nothing is in progress" — so this returns an empty array and the
-    /// caller draws nothing, rather than a header over a gap.
-    public static func continueReading(
-        _ publications: [Publication],
-        limit: Int = 12,
-        progress: (Publication) -> Progress
-    ) -> [Publication] {
-        publications
-            .compactMap { publication -> (Publication, Progress)? in
-                let record = progress(publication)
-                return record.state == .inProgress ? (publication, record) : nil
-            }
-            .sorted { ($0.1.lastReadAt ?? .distantPast) > ($1.1.lastReadAt ?? .distantPast) }
-            .prefix(limit)
-            .map(\.0)
-    }
-
-    /// The next publication in the same series.
-    ///
-    /// `comic-reader`: reaching the end of one volume offers the next. Matching is
-    /// on the series name and the issue number, which is all a local library knows
-    /// — a reading list carries its own order and will answer this differently when
-    /// there are reading lists.
-    ///
-    /// `nil` when the publication names no series, when nothing follows it, or when
-    /// the next thing cannot be opened. Offering a publication that refuses to open
-    /// would be worse than offering nothing.
-    public static func next(after publication: Publication, in library: [Publication]) -> Publication? {
-        guard let series = publication.series else { return nil }
-        let current = issueNumber(of: publication)
-
-        return library
-            .filter { candidate in
-                candidate.id != publication.id
-                    && candidate.series == series
-                    && candidate.isOpenable
-                    && issueNumber(of: candidate) > current
-            }
-            .min { issueNumber(of: $0) < issueNumber(of: $1) }
-    }
-
-    /// An issue number as a number, so #10 follows #9.
-    ///
-    /// A publication with no number sorts last, which keeps a one-off out of the
-    /// middle of a numbered run.
-    private static func issueNumber(of publication: Publication) -> Double {
-        guard let raw = publication.number else { return .greatestFiniteMagnitude }
-        return Double(raw.filter { $0.isNumber || $0 == "." }) ?? .greatestFiniteMagnitude
-    }
-
-    /// How well a publication answers the query, lower being better, or `nil` for
-    /// no match at all.
-    ///
-    /// A title that starts with what was typed is what the user meant far more
-    /// often than an author whose name contains it somewhere.
-    private static func rank(_ publication: Publication, matching term: String) -> Int? {
-        func has(_ value: String?) -> Bool { value?.lowercased().contains(term) == true }
-        let title = publication.displayTitle.lowercased()
-        if title.hasPrefix(term) { return 0 }
-        if title.contains(term) { return 1 }
-        if has(publication.series) { return 2 }
-        if publication.authors.contains(where: { has($0) }) { return 3 }
-        if has(publication.publisher) { return 4 }
-        return nil
-    }
-
-    private static func compare(
-        _ left: Publication,
-        _ right: Publication,
-        by sort: LibrarySort,
-        locale: Locale,
-        progress: (Publication) -> Progress
-    ) -> ComparisonResult {
-        switch sort {
-        case .title:
-            return collate(left.displayTitle, right.displayTitle, locale)
-
-        case .series:
-            let bySeries = collate(left.series ?? left.displayTitle, right.series ?? right.displayTitle, locale)
-            if bySeries != .orderedSame { return bySeries }
-            // Within a series, the issue number decides — and numerically, so #10
-            // follows #9 rather than #1.
-            return order(number(of: left), number(of: right))
-
-        // Never read sorts last whichever way the list runs: a row with no date is
-        // not "the oldest", it is absent from the ordering the user asked for.
-        case .lastRead:
-            let leftDate = progress(left).lastReadAt ?? .distantPast
-            let rightDate = progress(right).lastReadAt ?? .distantPast
-            return order(rightDate, leftDate)
-
-        case .progress:
-            return order(progress(right).fraction, progress(left).fraction)
-
-        case .year:
-            return order(right.year ?? 0, left.year ?? 0)
-        }
-    }
-
-    private static func order<T: Comparable>(_ left: T, _ right: T) -> ComparisonResult {
-        if left < right { return .orderedAscending }
-        if left > right { return .orderedDescending }
-        return .orderedSame
-    }
-
-    private static func number(of publication: Publication) -> Double {
-        guard let raw = publication.number else { return .greatestFiniteMagnitude }
-        let digits = raw.filter { $0.isNumber || $0 == "." }
-        return Double(digits) ?? .greatestFiniteMagnitude
-    }
-
-    private static func collate(_ left: String, _ right: String, _ locale: Locale) -> ComparisonResult {
-        sortKey(left, locale: locale).compare(
-            sortKey(right, locale: locale),
-            options: [.caseInsensitive],
-            range: nil,
-            locale: locale
-        )
-    }
-
-    /// A title as it should be alphabetised.
-    ///
-    /// `library-browsing` requires leading articles in the interface language to
-    /// be ignored, so "The Sandman" files under S. The list is per language
-    /// because "la" is an article in French and Spanish and a syllable in English,
-    /// and stripping it from an English title would file "La Brea" under B.
-    public static func sortKey(_ title: String, locale: Locale = .current) -> String {
-        let trimmed = title.trimmingCharacters(in: .whitespaces)
-        let articles = Self.articles[locale.language.languageCode?.identifier ?? ""] ?? []
-        for article in articles {
-            // The apostrophe forms — French "l'" — carry no space after them.
-            let prefix = article.hasSuffix("'") ? article : article + " "
-            if trimmed.count > prefix.count,
-               trimmed.lowercased().hasPrefix(prefix) {
-                return String(trimmed.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
-            }
-        }
-        return trimmed
-    }
-
-    /// The four interface languages StoryArc ships.
-    private static let articles: [String: [String]] = [
-        "en": ["the", "a", "an"],
-        "fr": ["le", "la", "les", "un", "une", "des", "l'"],
-        "de": ["der", "die", "das", "ein", "eine"],
-        "es": ["el", "la", "los", "las", "un", "una"],
-    ]
 }

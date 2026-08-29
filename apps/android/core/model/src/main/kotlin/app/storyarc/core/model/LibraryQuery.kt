@@ -1,8 +1,5 @@
 package app.storyarc.core.model
 
-import java.text.Collator
-import java.util.Locale
-
 /** How far through a publication the reader got, as the library thinks of it. */
 enum class ReadState {
     UNREAD,
@@ -27,16 +24,61 @@ enum class LibrarySort {
 }
 
 /**
+ * The years a publication may have been released in.
+ *
+ * `library-browsing` asks for a year *range* rather than a set of years, so this is
+ * a pair of bounds and not another `Set`. Either end may be absent: "since 1986"
+ * and "up to 1999" are both things a reader means, and requiring both would make
+ * the filter harder to set than to ignore.
+ */
+data class YearRange(val from: Int? = null, val to: Int? = null) {
+    /** Whether the range narrows anything. One bound is enough. */
+    val isActive: Boolean get() = from != null || to != null
+
+    /**
+     * Whether a publication's year falls inside.
+     *
+     * A publication with no year is **outside** an active range. It is not "before
+     * everything" — the library simply does not know when it came out, and
+     * answering a question about years with a book that has none would put noise in
+     * every result the filter is meant to remove.
+     */
+    fun contains(year: Int?): Boolean {
+        if (!isActive) return true
+        if (year == null) return false
+        if (from != null && year < from) return false
+        if (to != null && year > to) return false
+        return true
+    }
+}
+
+/**
  * What the user is looking at, and in what order.
  *
- * One value rather than five pieces of view state, so "return to the library and
+ * One value rather than a dozen pieces of view state, so "return to the library and
  * the filters are still applied" is one thing to keep and one thing to restore.
+ *
+ * Seven of the ten facets `library-browsing` names are here: read state, format,
+ * language, publisher, genre, tag and year range. The other three are absent rather
+ * than half-built, and the spec's own Open Questions say why — download state needs
+ * the library to know what has been downloaded, source belongs to the scope
+ * selector the same spec asks for, and no format this app reads states a
+ * publication status at all.
  */
 data class LibraryQuery(
     val search: String = "",
     val readStates: Set<ReadState> = emptySet(),
     val formats: Set<PublicationFormat> = emptySet(),
     val languages: Set<String> = emptySet(),
+    /**
+     * Publishers, as the publication spells them. Not normalised: "DC" and "DC
+     * Comics" are two publishers to a file, and pretending otherwise would drop
+     * books out of a filter the reader set.
+     */
+    val publishers: Set<String> = emptySet(),
+    val genres: Set<String> = emptySet(),
+    val tags: Set<String> = emptySet(),
+    val years: YearRange = YearRange(),
     val sort: LibrarySort = LibrarySort.TITLE,
     val ascending: Boolean = true,
 ) {
@@ -45,15 +87,35 @@ data class LibraryQuery(
      *
      * A group counts once however many values it holds: three formats is one
      * decision the user made, and a badge reading "5" for it would misdescribe
-     * how much has to be undone.
+     * how much has to be undone. The year range is one group whichever of its two
+     * ends the reader set, for the same reason.
      */
     val activeFilterCount: Int
-        get() = listOf(readStates, formats, languages).count { it.isNotEmpty() }
+        get() = listOf(readStates, formats, languages, publishers, genres, tags)
+            .count { it.isNotEmpty() } + if (years.isActive) 1 else 0
 
     val hasFilters: Boolean get() = activeFilterCount > 0
 
     /** Whether anything at all is narrowing the view, search included. */
     val isNarrowed: Boolean get() = hasFilters || search.isNotBlank()
+
+    /**
+     * Every filter off, the search and the sort untouched.
+     *
+     * `library-browsing`: an empty-looking library must say filters are active and
+     * offer one action to clear them. Here rather than in the view model so the two
+     * platforms clear the same set — a facet added to one and forgotten in the
+     * other's clear-all is exactly the drift ADR-0001 makes us watch for.
+     */
+    fun withoutFilters(): LibraryQuery = copy(
+        readStates = emptySet(),
+        formats = emptySet(),
+        languages = emptySet(),
+        publishers = emptySet(),
+        genres = emptySet(),
+        tags = emptySet(),
+        years = YearRange(),
+    )
 }
 
 /**
@@ -65,230 +127,4 @@ data class LibraryQuery(
 enum class LibraryLayout {
     GRID,
     LIST,
-}
-
-/**
- * Turns the whole library into the list on screen.
- *
- * Pure, and deliberately so: this is the part of `library-browsing` that has to
- * behave identically on both platforms, and it is the part worth asserting
- * against the same table in both test suites (ADR-0001). iOS's `LibraryQuery`
- * mirrors it line for line.
- *
- * Not here yet, and named rather than silently missing: grouping results by match
- * kind, merging a server's own search with local results, and the curated order
- * of a reading list. All three need a second source or a collection to exist.
- */
-object LibraryIndex {
-
-    /** What the library knows about a publication's progress. */
-    data class Progress(
-        val state: ReadState,
-        val fraction: Double,
-        val lastReadEpochMillis: Long?,
-    ) {
-        companion object {
-            val unread = Progress(ReadState.UNREAD, 0.0, null)
-
-            fun of(record: ReadingProgress?): Progress {
-                if (record == null) return unread
-                val fraction = if (record.isFinished) 1.0 else record.position.fraction
-                val state = when {
-                    record.isFinished -> ReadState.FINISHED
-                    fraction > 0.0 -> ReadState.IN_PROGRESS
-                    else -> ReadState.UNREAD
-                }
-                return Progress(state, fraction, record.updatedAtEpochMillis)
-            }
-        }
-    }
-
-    /**
-     * The filtered, ranked and sorted list.
-     *
-     * Ranking only applies while a search is running: with a query, how well a
-     * publication matches is more useful than the sort field, and the sort breaks
-     * ties within each rank.
-     */
-    fun arrange(
-        publications: List<Publication>,
-        query: LibraryQuery,
-        locale: Locale = Locale.getDefault(),
-        progress: (Publication) -> Progress = { Progress.unread },
-    ): List<Publication> {
-        val term = query.search.trim().lowercase(locale)
-        val collator = Collator.getInstance(locale).apply { strength = Collator.SECONDARY }
-
-        val kept = publications.filter { publication ->
-            val record = progress(publication)
-            (query.readStates.isEmpty() || record.state in query.readStates) &&
-                (query.formats.isEmpty() || publication.format in query.formats) &&
-                (query.languages.isEmpty() || publication.language in query.languages) &&
-                (term.isEmpty() || rank(publication, term, locale) != null)
-        }
-
-        val ordered = kept.sortedWith { left, right ->
-            if (term.isNotEmpty()) {
-                val byRank = (rank(left, term, locale) ?: Int.MAX_VALUE)
-                    .compareTo(rank(right, term, locale) ?: Int.MAX_VALUE)
-                if (byRank != 0) return@sortedWith byRank
-            }
-            val byField = compare(left, right, query.sort, collator, locale, progress)
-            if (byField != 0) {
-                if (query.ascending) byField else -byField
-            } else {
-                // A stable tiebreak, always ascending: a list that reshuffles
-                // equal rows when the direction flips looks broken.
-                collator.compare(sortKey(left.displayTitle, locale), sortKey(right.displayTitle, locale))
-            }
-        }
-        return ordered
-    }
-
-    /**
-     * In-progress publications, most recently read first.
-     *
-     * `library-browsing`: the continue row "is absent, rather than shown empty,
-     * when nothing is in progress" — so this returns an empty list and the caller
-     * draws nothing, rather than a header over a gap.
-     */
-    fun continueReading(
-        publications: List<Publication>,
-        limit: Int = 12,
-        progress: (Publication) -> Progress,
-    ): List<Publication> =
-        publications
-            .mapNotNull { publication ->
-                val record = progress(publication)
-                if (record.state == ReadState.IN_PROGRESS) publication to record else null
-            }
-            .sortedByDescending { it.second.lastReadEpochMillis ?: 0L }
-            .take(limit)
-            .map { it.first }
-
-
-    /**
-     * The next publication in the same series.
-     *
-     * `comic-reader`: reaching the end of one volume offers the next. Matching is on
-     * the series name and the issue number, which is all a local library knows — a
-     * reading list carries its own order and will answer this differently when there
-     * are reading lists.
-     *
-     * `null` when the publication names no series, when nothing follows it, or when
-     * the next thing cannot be opened. Offering a publication that refuses to open
-     * would be worse than offering nothing.
-     */
-    fun next(after: Publication, library: List<Publication>): Publication? {
-        val series = after.series ?: return null
-        val current = issueNumber(after)
-
-        return library
-            .filter {
-                it.id != after.id &&
-                    it.series == series &&
-                    it.isOpenable &&
-                    issueNumber(it) > current
-            }
-            .minByOrNull { issueNumber(it) }
-    }
-
-    /**
-     * An issue number as a number, so #10 follows #9.
-     *
-     * A publication with no number sorts last, which keeps a one-off out of the
-     * middle of a numbered run.
-     */
-    private fun issueNumber(publication: Publication): Double =
-        publication.number?.filter { it.isDigit() || it == '.' }?.toDoubleOrNull()
-            ?: Double.MAX_VALUE
-
-    /**
-     * How well a publication answers the query, lower being better, or `null` for
-     * no match at all.
-     *
-     * A title that starts with what was typed is what the user meant far more
-     * often than an author whose name contains it somewhere.
-     */
-    private fun rank(publication: Publication, term: String, locale: Locale): Int? {
-        fun has(value: String?) = value?.lowercase(locale)?.contains(term) == true
-        val title = publication.displayTitle.lowercase(locale)
-        return when {
-            title.startsWith(term) -> 0
-            title.contains(term) -> 1
-            has(publication.series) -> 2
-            publication.authors.any { has(it) } -> 3
-            has(publication.publisher) -> 4
-            else -> null
-        }
-    }
-
-    private fun compare(
-        left: Publication,
-        right: Publication,
-        sort: LibrarySort,
-        collator: Collator,
-        locale: Locale,
-        progress: (Publication) -> Progress,
-    ): Int = when (sort) {
-        LibrarySort.TITLE ->
-            collator.compare(sortKey(left.displayTitle, locale), sortKey(right.displayTitle, locale))
-
-        LibrarySort.SERIES -> {
-            val bySeries = collator.compare(
-                sortKey(left.series ?: left.displayTitle, locale),
-                sortKey(right.series ?: right.displayTitle, locale),
-            )
-            // Within a series, the issue number decides — and numerically, so #10
-            // follows #9 rather than #1.
-            if (bySeries != 0) bySeries else numberOf(left).compareTo(numberOf(right))
-        }
-
-        // Never read sorts last whichever way the list runs: a row with no date is
-        // not "the oldest", it is absent from the ordering the user asked for.
-        LibrarySort.LAST_READ ->
-            -(progress(left).lastReadEpochMillis ?: 0L).compareTo(progress(right).lastReadEpochMillis ?: 0L)
-
-        LibrarySort.PROGRESS -> -progress(left).fraction.compareTo(progress(right).fraction)
-
-        LibrarySort.YEAR -> -(left.year ?: 0).compareTo(right.year ?: 0)
-    }
-
-    private fun numberOf(publication: Publication): Double =
-        publication.number?.filter { it.isDigit() || it == '.' }?.toDoubleOrNull() ?: Double.MAX_VALUE
-
-    /**
-     * A title as it should be alphabetised.
-     *
-     * `library-browsing` requires leading articles in the interface language to be
-     * ignored, so "The Sandman" files under S. The list is per language because
-     * "la" is an article in French and Spanish and a syllable in English, and
-     * stripping it from an English title would file "La Brea" under B.
-     */
-    fun sortKey(title: String, locale: Locale = Locale.getDefault()): String {
-        val trimmed = title.trim()
-        val articles = ARTICLES[locale.language] ?: emptySet()
-        for (article in articles) {
-            // The apostrophe forms — French "l'" — carry no space after them.
-            if (article.endsWith("'")) {
-                if (trimmed.length > article.length && trimmed.startsWith(article, ignoreCase = true)) {
-                    return trimmed.substring(article.length).trim()
-                }
-                continue
-            }
-            val prefix = "$article "
-            if (trimmed.length > prefix.length && trimmed.startsWith(prefix, ignoreCase = true)) {
-                return trimmed.substring(prefix.length).trim()
-            }
-        }
-        return trimmed
-    }
-
-    /** The four interface languages StoryArc ships. */
-    private val ARTICLES = mapOf(
-        "en" to setOf("the", "a", "an"),
-        "fr" to setOf("le", "la", "les", "un", "une", "des", "l'"),
-        "de" to setOf("der", "die", "das", "ein", "eine"),
-        "es" to setOf("el", "la", "los", "las", "un", "una"),
-    )
 }

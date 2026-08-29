@@ -34,6 +34,14 @@
     <string name="library_filter">Filtrar</string>
     <string name="library_filter_read_state">Estado de lectura</string>
     <string name="library_filter_format">Formato</string>
+    <string name="library_filter_language">Idioma</string>
+    <string name="library_filter_publisher">Editorial</string>
+    <string name="library_filter_genre">Género</string>
+    <string name="library_filter_tag">Etiqueta</string>
+    <string name="library_filter_decade">Década</string>
+    <string name="library_filter_decade_any">Cualquier año</string>
+    <string name="library_filter_decade_label">Años %1$d</string>
+    <string name="library_filter_back">Volver a todos los filtros</string>
     <string name="library_filter_clear">Borrar filtros</string>
     <plurals name="library_filter_active">
         <item quantity="one">%1$d filtro activo</item>

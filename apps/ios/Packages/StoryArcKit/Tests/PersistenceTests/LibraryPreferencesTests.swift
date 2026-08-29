@@ -62,6 +62,59 @@ struct LibraryPreferencesTests {
         #expect(preferences.query().sort == .series)
     }
 
+    @Test("Every filter group comes back, not only the three that were there first")
+    func everyGroupRoundTrips() throws {
+        let suite = try fresh()
+        let preferences = suite.preferences
+        defer { suite.discard() }
+
+        preferences.save(
+            LibraryQuery(
+                readStates: [.finished],
+                formats: [.epub],
+                languages: ["ja"],
+                publishers: ["Fixture Press"],
+                genres: ["Superhero"],
+                tags: ["reprint"],
+                years: YearRange(from: 1986, to: 1999)
+            )
+        )
+
+        let restored = preferences.query()
+        #expect(restored.languages == ["ja"])
+        #expect(restored.publishers == ["Fixture Press"])
+        #expect(restored.genres == ["Superhero"])
+        #expect(restored.tags == ["reprint"])
+        #expect(restored.years == YearRange(from: 1986, to: 1999))
+        #expect(restored.activeFilterCount == 7)
+    }
+
+    @Test("A query stored before the new facets existed still restores its filters")
+    func olderStoredQueryStillDecodes() throws {
+        let suite = try fresh()
+        defer { suite.discard() }
+
+        // Exactly what the build before this one wrote. The synthesized decoder
+        // requires every key, so without a decoder that tolerates an absent one this
+        // comes back as a fresh query and the reader's filters vanish on the launch
+        // after an update — which is what "active filters are still applied" forbids.
+        let stored = """
+        {"search":"","readStates":["finished"],"formats":["epub"],\
+        "languages":["ja"],"sort":"series","ascending":false}
+        """
+        suite.defaults.set(Data(stored.utf8), forKey: "app.storyarc.libraryQuery")
+
+        let restored = suite.preferences.query()
+        #expect(restored.readStates == [.finished])
+        #expect(restored.formats == [.epub])
+        #expect(restored.languages == ["ja"])
+        #expect(restored.sort == .series)
+        #expect(restored.ascending == false)
+        // And the facets it could not know about are simply off.
+        #expect(restored.publishers.isEmpty)
+        #expect(restored.years.isActive == false)
+    }
+
     @Test("The layout defaults to the grid and survives a change")
     func layout() throws {
         let suite = try fresh()

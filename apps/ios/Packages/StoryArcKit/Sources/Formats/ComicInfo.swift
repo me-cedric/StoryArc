@@ -32,6 +32,18 @@ public struct ComicInfo: Sendable, Equatable {
     public let pageCount: Int?
     public let language: String?
 
+    /// `<Genre>` — the shelf the publication belongs on, comma-separated.
+    ///
+    /// The schema has always defined it and this parser did not read it, which is
+    /// why `library-browsing`'s genre filter had nothing to filter on. Comma-split
+    /// like every other list field in ComicRack's format.
+    public let genres: [String]
+    /// `<Tags>` — whatever else the cataloguer recorded, comma-separated.
+    ///
+    /// Kept apart from ``genres`` because the file keeps them apart and the reader
+    /// filters on them separately.
+    public let tags: [String]
+
     /// The direction the publication declares, or `nil` when it declares none.
     ///
     /// `Manga=YesAndRightToLeft` is a declaration. `Manga=Yes` is **not**: it says
@@ -96,6 +108,8 @@ public struct ComicInfo: Sendable, Equatable {
         self.day = value("Day").flatMap(Int.init)
         self.pageCount = value("PageCount").flatMap(Int.init)
         self.language = value("LanguageISO") ?? value("Language")
+        self.genres = list("Genre")
+        self.tags = list("Tags")
 
         switch value("Manga")?.lowercased() {
         case "yesandrighttoleft": self.declaredDirection = .rightToLeft

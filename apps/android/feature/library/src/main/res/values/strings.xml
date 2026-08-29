@@ -34,6 +34,14 @@
     <string name="library_filter">Filter</string>
     <string name="library_filter_read_state">Read state</string>
     <string name="library_filter_format">Format</string>
+    <string name="library_filter_language">Language</string>
+    <string name="library_filter_publisher">Publisher</string>
+    <string name="library_filter_genre">Genre</string>
+    <string name="library_filter_tag">Tag</string>
+    <string name="library_filter_decade">Decade</string>
+    <string name="library_filter_decade_any">Any year</string>
+    <string name="library_filter_decade_label">%1$ds</string>
+    <string name="library_filter_back">Back to all filters</string>
     <string name="library_filter_clear">Clear filters</string>
     <plurals name="library_filter_active">
         <item quantity="one">%1$d filter active</item>

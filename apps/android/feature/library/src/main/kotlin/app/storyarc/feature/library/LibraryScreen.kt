@@ -22,7 +22,6 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Refresh
@@ -30,7 +29,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -77,7 +75,6 @@ import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
-import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
@@ -459,88 +456,6 @@ private fun SortMenu(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
     }
 }
 
-/**
- * What the library is narrowed to.
- *
- * `library-browsing`: filters combine with AND, the active count is visible on the
- * control, and one action clears them all.
- */
-@Composable
-private fun FilterMenu(query: LibraryQuery, viewModel: LibraryViewModel) {
-    val palette = LocalStoryArcPalette.current
-    var open by remember { mutableStateOf(false) }
-
-    IconButton(onClick = { open = true }) {
-        Icon(
-            imageVector = Icons.Filled.FilterList,
-            contentDescription = if (query.hasFilters) {
-                // A plural, not a format. "1 filters active" is wrong in every
-                // language, and the count reaches 1 whenever a reader sets one filter.
-                pluralStringResource(
-                    R.plurals.library_filter_active,
-                    query.activeFilterCount,
-                    query.activeFilterCount,
-                )
-            } else {
-                stringResource(R.string.library_filter)
-            },
-            // Colour is never the only signal: the count is in the description.
-            tint = if (query.hasFilters) palette.accent else palette.textSecondary,
-        )
-    }
-    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-        MenuHeading(stringResource(R.string.library_filter_read_state))
-        ReadState.entries.forEach { state ->
-            CheckedItem(stringResource(state.labelRes), state in query.readStates) {
-                onChangeSet(query.readStates, state).let {
-                    viewModel.setQuery(query.copy(readStates = it))
-                }
-            }
-        }
-        MenuHeading(stringResource(R.string.library_filter_format))
-        viewModel.availableFormats().forEach { format ->
-            CheckedItem(format.displayName, format in query.formats) {
-                onChangeSet(query.formats, format).let {
-                    viewModel.setQuery(query.copy(formats = it))
-                }
-            }
-        }
-        if (query.hasFilters) {
-            HorizontalDivider()
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.library_filter_clear)) },
-                onClick = {
-                    viewModel.clearFilters()
-                    open = false
-                },
-            )
-        }
-    }
-}
-
-private fun <T> onChangeSet(current: Set<T>, value: T): Set<T> =
-    if (value in current) current - value else current + value
-
-@Composable
-private fun MenuHeading(text: String) {
-    val palette = LocalStoryArcPalette.current
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = palette.textTertiary,
-        modifier = Modifier.padding(horizontal = StoryArcSpace.md, vertical = StoryArcSpace.xs),
-    )
-}
-
-@Composable
-private fun CheckedItem(label: String, checked: Boolean, onToggle: () -> Unit) {
-    DropdownMenuItem(
-        text = { Text(label) },
-        leadingIcon = { Checkbox(checked = checked, onCheckedChange = null) },
-        onClick = onToggle,
-    )
-}
-
 /** A library that has publications and is showing none of them. */
 @Composable
 private fun NarrowedToNothing(
@@ -587,13 +502,6 @@ private val LibrarySort.labelRes: Int
         LibrarySort.LAST_READ -> R.string.library_sort_last_read
         LibrarySort.PROGRESS -> R.string.library_sort_progress
         LibrarySort.YEAR -> R.string.library_sort_year
-    }
-
-private val ReadState.labelRes: Int
-    get() = when (this) {
-        ReadState.UNREAD -> R.string.library_read_state_unread
-        ReadState.IN_PROGRESS -> R.string.library_read_state_in_progress
-        ReadState.FINISHED -> R.string.library_read_state_finished
     }
 
 /**

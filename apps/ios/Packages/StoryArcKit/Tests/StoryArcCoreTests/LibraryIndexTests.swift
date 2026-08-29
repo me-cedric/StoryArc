@@ -18,7 +18,11 @@ struct LibraryIndexTests {
         number: String? = nil,
         authors: [String] = [],
         format: PublicationFormat = .cbz,
-        year: Int? = nil
+        publisher: String? = nil,
+        year: Int? = nil,
+        language: String? = nil,
+        genres: [String] = [],
+        tags: [String] = []
     ) -> Publication {
         Publication(
             identity: PublicationIdentity(normalizedPath: "/library/\(title)"),
@@ -27,7 +31,11 @@ struct LibraryIndexTests {
             series: series,
             number: number,
             authors: authors,
+            publisher: publisher,
             year: year,
+            language: language,
+            genres: genres,
+            tags: tags,
             origin: .inferred
         )
     }
@@ -125,6 +133,166 @@ struct LibraryIndexTests {
     func filterBadge() {
         let query = LibraryQuery(readStates: [.unread], formats: [.cbz, .cbr, .pdf])
         #expect(query.activeFilterCount == 2)
+    }
+
+    @Test("Every group counts, and the year range counts once for both its ends")
+    func everyGroupCounts() {
+        let query = LibraryQuery(
+            readStates: [.unread],
+            formats: [.cbz],
+            languages: ["en"],
+            publishers: ["DC"],
+            genres: ["Superhero"],
+            tags: ["Reprint"],
+            years: YearRange(from: 1986, to: 1999)
+        )
+        #expect(query.activeFilterCount == 7)
+    }
+
+    @Test("Clearing keeps the search and the sort and drops every group")
+    func clearingKeepsSearchAndSort() {
+        let query = LibraryQuery(
+            search: "bone",
+            readStates: [.unread],
+            formats: [.cbz],
+            languages: ["en"],
+            publishers: ["DC"],
+            genres: ["Superhero"],
+            tags: ["Reprint"],
+            years: YearRange(from: 1986),
+            sort: .lastRead,
+            ascending: false
+        )
+        let cleared = query.withoutFilters
+        #expect(cleared.activeFilterCount == 0)
+        #expect(cleared.search == "bone")
+        #expect(cleared.sort == .lastRead)
+        #expect(cleared.ascending == false)
+    }
+
+    @Test("A publisher filter keeps only what that publisher put out")
+    func publisherFilter() {
+        let library = [
+            publication("Watchmen", publisher: "DC"),
+            publication("Akira", publisher: "Kodansha"),
+        ]
+        let sorted = LibraryIndex.arrange(
+            library, query: LibraryQuery(publishers: ["DC"]), locale: english
+        )
+        #expect(titles(sorted) == ["Watchmen"])
+    }
+
+    @Test("Two publishers ticked means either, not both")
+    func publishersAreAlternatives() {
+        let library = [
+            publication("Watchmen", publisher: "DC"),
+            publication("Akira", publisher: "Kodansha"),
+            publication("Bone", publisher: "Cartoon Books"),
+        ]
+        let sorted = LibraryIndex.arrange(
+            library, query: LibraryQuery(publishers: ["DC", "Kodansha"]), locale: english
+        )
+        #expect(titles(sorted) == ["Akira", "Watchmen"])
+    }
+
+    @Test("A language filter keeps only that language")
+    func languageFilter() {
+        let library = [
+            publication("Akira", language: "ja"),
+            publication("Bone", language: "en"),
+        ]
+        let sorted = LibraryIndex.arrange(
+            library, query: LibraryQuery(languages: ["ja"]), locale: english
+        )
+        #expect(titles(sorted) == ["Akira"])
+    }
+
+    @Test("A genre filter keeps a publication that carries the genre among others")
+    func genreFilter() {
+        let library = [
+            publication("Watchmen", genres: ["Superhero", "Mystery"]),
+            publication("Maus", genres: ["Biography"]),
+        ]
+        let sorted = LibraryIndex.arrange(
+            library, query: LibraryQuery(genres: ["Mystery"]), locale: english
+        )
+        #expect(titles(sorted) == ["Watchmen"])
+    }
+
+    @Test("Genre and tag are separate groups, so they combine with AND")
+    func genreAndTagCombine() {
+        let both = publication("Watchmen", genres: ["Superhero"], tags: ["Reprint"])
+        let genreOnly = publication("Batman", genres: ["Superhero"], tags: ["Annual"])
+        let query = LibraryQuery(genres: ["Superhero"], tags: ["Reprint"])
+        let sorted = LibraryIndex.arrange([both, genreOnly], query: query, locale: english)
+        #expect(titles(sorted) == ["Watchmen"])
+    }
+
+    @Test("A year range keeps what came out inside it, both ends included")
+    func yearRangeFilter() {
+        let library = [
+            publication("Watchmen", year: 1986),
+            publication("Bone", year: 1991),
+            publication("Persepolis", year: 2000),
+        ]
+        let query = LibraryQuery(years: YearRange(from: 1986, to: 1991))
+        let sorted = LibraryIndex.arrange(library, query: query, locale: english)
+        #expect(titles(sorted) == ["Bone", "Watchmen"])
+    }
+
+    @Test("One end of a range is enough")
+    func openEndedYearRange() {
+        let library = [publication("Watchmen", year: 1986), publication("Persepolis", year: 2000)]
+        let from = LibraryIndex.arrange(
+            library, query: LibraryQuery(years: YearRange(from: 1990)), locale: english
+        )
+        #expect(titles(from) == ["Persepolis"])
+        let upTo = LibraryIndex.arrange(
+            library, query: LibraryQuery(years: YearRange(to: 1990)), locale: english
+        )
+        #expect(titles(upTo) == ["Watchmen"])
+    }
+
+    @Test("A publication with no year is outside an active range, not before it")
+    func unknownYearIsOutsideARange() {
+        let library = [publication("Undated"), publication("Watchmen", year: 1986)]
+        let query = LibraryQuery(years: YearRange(to: 2000))
+        #expect(titles(LibraryIndex.arrange(library, query: query, locale: english)) == ["Watchmen"])
+        // And still there when no range is set, which is what "no opinion" means.
+        #expect(LibraryIndex.arrange(library, query: LibraryQuery(), locale: english).count == 2)
+    }
+
+    @Test("Every group narrows the same list at once")
+    func everyGroupCombines() {
+        let match = publication(
+            "Watchmen",
+            format: .cbz,
+            publisher: "DC",
+            year: 1986,
+            language: "en",
+            genres: ["Superhero"],
+            tags: ["Reprint"]
+        )
+        // Identical but for the publisher, which is enough to drop it.
+        let miss = publication(
+            "Watchmen Companion",
+            format: .cbz,
+            publisher: "Marvel",
+            year: 1986,
+            language: "en",
+            genres: ["Superhero"],
+            tags: ["Reprint"]
+        )
+        let query = LibraryQuery(
+            formats: [.cbz],
+            languages: ["en"],
+            publishers: ["DC"],
+            genres: ["Superhero"],
+            tags: ["Reprint"],
+            years: YearRange(from: 1980, to: 1989)
+        )
+        let sorted = LibraryIndex.arrange([match, miss], query: query, locale: english)
+        #expect(titles(sorted) == ["Watchmen"])
     }
 
     @Test("Read state filters on what the progress store says")

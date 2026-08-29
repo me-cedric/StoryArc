@@ -53,6 +53,45 @@ class ComicInfoTest {
         )
     }
 
+    // Genre and tags.
+    //
+    // Asserted against XML written here rather than against the corpus: the shared
+    // fixtures carry no `<Genre>` or `<Tags>`, and `library-browsing` needs both
+    // filters covered without regenerating a corpus both platforms' format tests are
+    // pinned to. iOS's `ComicInfoTests` asserts the same four cases.
+
+    @Test
+    fun `genre and tags are separate lists, comma-split like every other list field`() {
+        val info = parse(
+            "<ComicInfo>" +
+                "<Genre>Superhero, Mystery</Genre>" +
+                "<Tags>reprint,annual</Tags>" +
+                "</ComicInfo>",
+        )
+        assertEquals(listOf("Superhero", "Mystery"), info?.genres)
+        assertEquals(listOf("reprint", "annual"), info?.tags)
+    }
+
+    @Test
+    fun `a file that names neither yields empty lists rather than nothing`() {
+        // "Present but empty" and "absent" are the same to a filter, and a nullable
+        // list would offer a distinction nothing can act on.
+        val info = parse("<ComicInfo><Series>Bone</Series></ComicInfo>")
+        assertEquals(emptyList<String>(), info?.genres)
+        assertEquals(emptyList<String>(), info?.tags)
+    }
+
+    @Test
+    fun `an empty element is not a genre called nothing`() {
+        assertEquals(emptyList<String>(), parse("<ComicInfo><Genre></Genre></ComicInfo>")?.genres)
+    }
+
+    @Test
+    fun `an entity inside a genre is decoded, as it is everywhere else`() {
+        val info = parse("<ComicInfo><Genre>Sword &amp; Sorcery</Genre></ComicInfo>")
+        assertEquals(listOf("Sword & Sorcery"), info?.genres)
+    }
+
     @Test
     fun `the issue number stays a string`() {
         // "3.5" and "Annual 1" are both real issue numbers, and rounding either
