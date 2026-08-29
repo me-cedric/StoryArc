@@ -151,14 +151,16 @@ class DownloadQueue(
      */
     fun downloaded(entry: OpdsEntry): File? {
         val download = _library.value[entry.id]?.takeIf { it.state.isFinished } ?: return null
-        val file = store?.location(entry.id, extensionOf(download.mediaType), download.title) ?: return null
+        val file = store?.location(download) ?: return null
         return file.takeIf { it.exists() }
     }
 
     /** Forgets a download and deletes its file. */
     fun remove(id: String) {
         _library.value[id]?.let { download ->
-            store?.let { it.delete(it.location(id, extensionOf(download.mediaType), download.title)) }
+            // The whole directory, not the one file: a stem this build did not choose is
+            // still this download's bytes, and leaving them is what made the storage total lie.
+            store?.remove(download)
         }
         _library.value = _library.value.removing(id)
         store?.save(_library.value)
@@ -255,7 +257,7 @@ class DownloadQueue(
         val bytes = client.bytes(download.remote, credential(download.id))
         val store = store ?: throw IOException("no download store")
         val file = withContext(Dispatchers.IO) {
-            val target = store.location(download.id, extensionOf(download.mediaType), download.title)
+            val target = store.location(download)
             store.prepare(target)
             target.apply { writeBytes(bytes) }
         }
@@ -285,7 +287,7 @@ class DownloadQueue(
             _library.value.marking(id, Download.State.Failed(reason, DownloadLibrary.ATTEMPT_LIMIT))
         }
         _library.value[id]?.let { download ->
-            store?.let { it.delete(it.location(id, extensionOf(download.mediaType), download.title)) }
+            store?.remove(download)
         }
         store?.save(_library.value)
     }

@@ -58,7 +58,7 @@ struct FinishedCleanupTests {
     func undoable() throws {
         let store = store("undo")
         let library = libraryWith(store, id: "one")
-        let home = store.location(for: "one", extension: "cbz", named: "one")
+        let home = store.location(for: "one", mediaType: "application/vnd.comicbook+zip", title: "one")
 
         let outcome = store.removeAfterFinishing("one", from: library)
         let removed = try #require(outcome)
@@ -85,7 +85,9 @@ struct FinishedCleanupTests {
     func missingFile() {
         let store = store("missing")
         let library = libraryWith(store, id: "one")
-        try? FileManager.default.removeItem(at: store.location(for: "one", extension: "cbz"))
+        try? FileManager.default.removeItem(
+            at: store.location(for: "one", mediaType: "application/vnd.comicbook+zip", title: "one")
+        )
         #expect(store.removeAfterFinishing("one", from: library) == nil)
     }
 }

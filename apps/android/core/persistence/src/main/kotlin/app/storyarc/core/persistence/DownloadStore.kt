@@ -3,6 +3,7 @@ package app.storyarc.core.persistence
 import android.content.Context
 import android.content.SharedPreferences
 import app.storyarc.core.model.Download
+import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.DownloadLibrary
 import java.io.File
 import java.util.Date
@@ -53,25 +54,48 @@ class DownloadStore internal constructor(
     }
 
     /**
-     * Where one publication's file goes.
-     *
-     * Named by identity rather than title: two catalogues can offer the same title, and a
-     * filename collision would hand the reader the wrong book.
-     */
-    /**
      * Where one download's file lives.
      *
-     * The id is the directory and [named] is the file's own name. It used to be the other
+     * The id is the directory and the title is the file's own name. It used to be the other
      * way round, and an OPDS download landed as `urn-storyarc-6.cbz`: the indexer reads a
      * title and a series out of a filename, so a downloaded comic was called after its
      * identifier everywhere, and `comic-reader`'s per-series settings keyed on one issue.
      * The id still makes the path unique; it no longer has to be the name as well.
+     *
+     * Takes the whole record, and is the *only* way to ask. Two callers used to compose the
+     * path themselves and composed different ones -- one with the title, one without -- so
+     * removing a download from Settings dropped the record and left the bytes, and the
+     * storage total on that same screen never went down. A path a caller cannot spell
+     * differently is a path that cannot disagree with itself.
      */
-    fun location(id: String, extension: String, named: String? = null): File {
-        val folder = File(directory, safe(id))
-        val stem = named?.let(::safe)?.takeIf { it.isNotBlank() } ?: safe(id)
-        return File(folder, "$stem.$extension")
+    fun location(download: Download): File =
+        location(download.id, download.mediaType, download.title)
+
+    /**
+     * The same path, for a caller that knows these three before it has a record to hold them.
+     *
+     * All three are required. The optional `named` this replaced is the whole bug: a caller
+     * that left it out got `<id>/<id>.cbz` while a caller that passed it got
+     * `<id>/<title>.cbz`, and the two never met until a reader deleted a download and the
+     * bytes stayed.
+     */
+    fun location(id: String, mediaType: String, title: String): File {
+        val extension = PublicationFormat.ofMediaType(mediaType)?.name?.lowercase() ?: "bin"
+        val stem = safe(title).takeIf { it.isNotBlank() } ?: safe(id)
+        return File(File(directory, safe(id)), "$stem.$extension")
     }
+
+    /**
+     * Everything one download owns on disk.
+     *
+     * The directory, not the file. Each download has a directory to itself, keyed by its id
+     * alone, so removing that removes the bytes whatever the file inside happens to be
+     * called -- including a file written by a build that named it differently. The bug this
+     * closes was one stem disagreeing with another; a delete that does not depend on the
+     * stem at all cannot have it again.
+     */
+    fun remove(download: Download): Boolean =
+        File(directory, safe(download.id)).deleteRecursively()
 
     /** A name a filesystem will take: no separators, nothing that reads as a path. */
     private fun safe(text: String): String = text.replace(Regex("[^A-Za-z0-9._ -]"), "-")

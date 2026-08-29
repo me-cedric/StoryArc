@@ -45,10 +45,35 @@ public struct DownloadStore {
     /// title and a series out of a filename, so a downloaded comic was called after its
     /// identifier everywhere, and `comic-reader`'s per-series settings keyed on one issue.
     /// The id still makes the path unique; it no longer has to be the name as well.
-    public func location(for id: String, extension ext: String, named: String? = nil) -> URL {
+    /// The same path, for a caller that knows these three before it has a record to hold them.
+    ///
+    /// All three are required. The optional `named` this replaced is the whole bug: a caller
+    /// that left it out got `<id>/<id>.cbz` while a caller that passed it got
+    /// `<id>/<title>.cbz`, and the two never met until a reader removed a download from
+    /// Settings and the bytes stayed — so the storage total on that same screen never moved.
+    public func location(for id: String, mediaType: String, title: String) -> URL {
         let folder = directory.appending(path: Self.safe(id), directoryHint: .isDirectory)
-        let stem = named.map(Self.safe).flatMap { $0.isEmpty ? nil : $0 } ?? Self.safe(id)
-        return folder.appending(path: stem).appendingPathExtension(ext)
+        // Blank, not merely empty. A space survives `safe` — it is a character a filesystem
+        // takes — so a publication with a whitespace title would be written as `  .cbz`,
+        // which is a file a reader cannot see the name of and a shell cannot easily reach.
+        // Android's half already treated blank as absent; this is iOS catching up.
+        let named = Self.safe(title).trimmingCharacters(in: .whitespacesAndNewlines)
+        let stem = named.isEmpty ? Self.safe(id) : named
+        return folder
+            .appending(path: stem)
+            .appendingPathExtension(Self.extension(for: mediaType))
+    }
+
+    /// Everything one download owns on disk.
+    ///
+    /// The directory, not the file. Each download has a directory to itself, keyed by its id
+    /// alone, so removing that removes the bytes whatever the file inside happens to be
+    /// called — including one written by a build that named it differently. A delete that
+    /// does not depend on the stem cannot disagree with the write about it.
+    public func remove(_ download: Download) {
+        try? FileManager.default.removeItem(
+            at: directory.appending(path: Self.safe(download.id), directoryHint: .isDirectory)
+        )
     }
 
     /// A name a filesystem will take: no separators, nothing that reads as a path.
@@ -76,7 +101,7 @@ public struct DownloadStore {
     @discardableResult
     public func removing(_ id: Download.ID, from library: DownloadLibrary) -> DownloadLibrary {
         if let download = library[id] {
-            delete(location(for: id, extension: Self.extension(for: download.mediaType)))
+            remove(download)
         }
         let without = library.removing(id)
         save(without)

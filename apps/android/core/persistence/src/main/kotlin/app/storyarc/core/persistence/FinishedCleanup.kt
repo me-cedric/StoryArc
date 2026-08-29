@@ -23,7 +23,7 @@ data class RemovedDownload(
 ) {
     /** Puts the download back, bytes and record together. */
     suspend fun undo(library: DownloadLibrary): DownloadLibrary = withContext(Dispatchers.IO) {
-        val home = store.location(download.id, extensionOf(download.mediaType), download.title)
+        val home = store.location(download)
         aside.renameTo(home)
         library.queueing(download).also(store::save)
     }
@@ -51,7 +51,7 @@ suspend fun finishedDownload(
     isFinished: suspend (String) -> Boolean,
 ): Download? = withContext(Dispatchers.IO) {
     library.finished.filterNot(ImportedCopies::isImported).firstOrNull { download ->
-        val path = store.location(download.id, extensionOf(download.mediaType), download.title).absolutePath
+        val path = store.location(download).absolutePath
         isFinished(path)
     }
 }
@@ -68,7 +68,7 @@ suspend fun removeAfterFinishing(
     publicationId: String,
 ): Pair<DownloadLibrary, RemovedDownload>? = withContext(Dispatchers.IO) {
     val download = library[publicationId] ?: return@withContext null
-    val home = store.location(download.id, extensionOf(download.mediaType), download.title)
+    val home = store.location(download)
     if (!home.exists()) return@withContext null
 
     // Moved, not deleted. The record goes now so the library stops calling it downloaded;

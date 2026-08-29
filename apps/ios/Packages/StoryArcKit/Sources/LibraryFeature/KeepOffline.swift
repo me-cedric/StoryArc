@@ -74,15 +74,17 @@ extension LibraryModel {
         at url: URL,
         into store: DownloadStore
     ) async -> Int64? {
-        // Named by identity, deliberately, and not by the title: ``DownloadStore/removing``
-        // looks for the file under the identity, so a copy filed under its title is a copy
-        // Settings › Downloads and storage can forget but not delete.
         // A folder of images has no media type and is not one file, so there is nothing
         // here to copy. It is also already on the device, which is what this exists for.
         guard let mediaType = publication.format.mediaType else { return nil }
+        // The same three inputs the record below carries, so the copy is written where a
+        // later removal will look for it. This used to name the file by identity alone,
+        // deliberately, to work around Settings deleting a path the queue never wrote —
+        // the store decides now, so the workaround is gone with the disagreement.
         let destination = store.location(
             for: publication.id,
-            extension: DownloadStore.extension(for: mediaType)
+            mediaType: mediaType,
+            title: publication.displayTitle
         )
         return await Task.detached(priority: .utility) { () -> Int64? in
             let manager = FileManager.default

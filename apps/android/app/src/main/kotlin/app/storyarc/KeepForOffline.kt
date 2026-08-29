@@ -2,6 +2,7 @@ package app.storyarc
 
 import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.Download
+import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.Publication
 import app.storyarc.core.persistence.DownloadStore
 import kotlinx.coroutines.Dispatchers
@@ -25,8 +26,16 @@ suspend fun keepForOffline(
 ): String? = withContext(Dispatchers.IO) {
     runCatching {
         val source = PublicationAccess.remoteSource(remote) ?: return@runCatching null
-        val extension = remote.substringAfterLast('.', "bin")
-        val file = downloads.location(publication.id, extension)
+        // The format's own media type, not `application/octet-stream`. The record and the
+        // path are derived from the same value now, and a record that called every copy an
+        // octet stream while the file on disk was named `.cbz` is exactly the disagreement
+        // that let a removal miss the bytes.
+        val extension = remote.substringAfterLast('.', "").lowercase()
+        val mediaType = PublicationFormat.entries
+            .firstOrNull { it.name.lowercase() == extension }
+            ?.mediaType
+            ?: "application/octet-stream"
+        val file = downloads.location(publication.id, mediaType, publication.displayTitle)
         file.parentFile?.mkdirs()
         file.writeBytes(source.read(0, source.length.toInt()))
 
@@ -36,7 +45,7 @@ suspend fun keepForOffline(
                     id = publication.id,
                     title = publication.displayTitle,
                     remote = remote,
-                    mediaType = "application/octet-stream",
+                    mediaType = mediaType,
                     state = Download.State.Finished,
                     downloadedBytes = file.length(),
                     expectedBytes = file.length(),

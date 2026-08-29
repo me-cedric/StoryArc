@@ -137,8 +137,22 @@ fun DownloadStore.importing(
     }
 
     val id = ImportedCopies.identity(name, bytes)
-    val stem = name.substringBeforeLast('.')
-    val file = location(id, extension, stem)
+    // The record before the path, not after. The store derives the path from the record, so
+    // a title and a filename cannot drift apart the way a separately-composed stem could --
+    // which is exactly how a download came to be written under one name and looked for under
+    // another.
+    val record = Download(
+        id = id,
+        sourceId = ImportedCopies.SOURCE_ID,
+        title = name.substringBeforeLast('.'),
+        // Where it came from, so a record can say what was imported. Never read back to
+        // fetch anything: an import has nothing to retry.
+        remote = origin,
+        mediaType = mediaType,
+        expectedBytes = bytes,
+        downloadedBytes = bytes,
+    )
+    val file = location(record)
 
     val existing = library[id]
     if (existing != null && file.exists()) {
@@ -154,17 +168,6 @@ fun DownloadStore.importing(
         throw ImportedCopies.ImportException.Unreadable("the copy could not be put in place")
     }
 
-    val record = Download(
-        id = id,
-        sourceId = ImportedCopies.SOURCE_ID,
-        title = stem,
-        // Where it came from, so a record can say what was imported. Never read back to
-        // fetch anything: an import has nothing to retry.
-        remote = origin,
-        mediaType = mediaType,
-        expectedBytes = bytes,
-        downloadedBytes = bytes,
-    )
     // Finished through the library's own vocabulary rather than by constructing the state
     // here, so the copy carries a completion date like every other row does.
     val saved = library.queueing(record).marking(id, Download.State.Finished)
@@ -190,11 +193,7 @@ fun DownloadStore.imports(library: DownloadLibrary): List<Download> =
  * again, which is why [PublicationFormat.mediaType] has to be the inverse of the lookup that
  * put it there.
  */
-fun DownloadStore.locationOf(download: Download): File = location(
-    download.id,
-    PublicationFormat.ofMediaType(download.mediaType)?.name?.lowercase() ?: "bin",
-    download.title,
-)
+fun DownloadStore.locationOf(download: Download): File = location(download)
 
 /**
  * The provider's own name for the file, which is the only name a reader recognises.

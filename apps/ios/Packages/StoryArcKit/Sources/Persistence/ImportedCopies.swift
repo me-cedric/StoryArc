@@ -101,8 +101,22 @@ extension DownloadStore {
         }
 
         let id = ImportedCopies.identity(name: name, bytes: bytes)
-        let stem = original.deletingPathExtension().lastPathComponent
-        let file = location(for: id, extension: ext, named: stem)
+        // The record before the path, not after. The store derives the path from the
+        // record's own title, so a title and a filename cannot drift apart the way a
+        // separately-composed stem could — which is how a download came to be written under
+        // one name and looked for under another.
+        let record = Download(
+            id: id,
+            sourceID: ImportedCopies.sourceID,
+            title: original.deletingPathExtension().lastPathComponent,
+            // Where it came from, so a record can say what was imported. Never read back to
+            // fetch anything: an import has nothing to retry.
+            remote: original,
+            mediaType: mediaType,
+            expectedBytes: bytes,
+            downloadedBytes: bytes
+        )
+        let file = location(of: record)
 
         // Already here, so the copy is the one the reader already has. Checked before the
         // filesystem work rather than after it: a second `copyItem` onto an existing path
@@ -125,17 +139,6 @@ extension DownloadStore {
             throw ImportedCopies.ImportError.unreadable
         }
 
-        let record = Download(
-            id: id,
-            sourceID: ImportedCopies.sourceID,
-            title: stem,
-            // Where it came from, so a record can say what was imported. Never read back to
-            // fetch anything: an import has nothing to retry.
-            remote: original,
-            mediaType: mediaType,
-            expectedBytes: bytes,
-            downloadedBytes: bytes
-        )
         // Finished through the library's own vocabulary rather than by constructing the
         // state here, so the copy carries a completion date like every other row does.
         let saved = library.queueing(record).marking(id, as: .finished)

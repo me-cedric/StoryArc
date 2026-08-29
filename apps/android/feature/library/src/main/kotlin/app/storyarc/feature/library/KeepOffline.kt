@@ -80,7 +80,8 @@ internal object KeepOffline {
         var library = store.library()
         for (id in ids) {
             val download = library[id] ?: continue
-            store.delete(store.location(id, extensionOf(download.mediaType)))
+            // The directory, so bytes written under any earlier naming go too.
+            store.remove(download)
             library = library.removing(id)
         }
         store.save(library)
@@ -102,7 +103,9 @@ internal object KeepOffline {
         // A folder of images has no media type and is not one file, so there is nothing
         // here to copy. It is also already on the device, which is what this exists for.
         val mediaType = publication.format.mediaType ?: return@withContext null
-        val target = store.location(publication.id, extensionOf(mediaType))
+        // The same three inputs the record below carries, so the copy is written where
+        // a later removal will look for it.
+        val target = store.location(publication.id, mediaType, publication.displayTitle)
         store.prepare(target)
         runCatching {
             // Replaced rather than refused: a copy left behind by a removal that only got

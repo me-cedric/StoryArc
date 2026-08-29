@@ -90,8 +90,8 @@ struct DownloadStoreTests {
         // *directory* now, so the file can carry the publication's own name -- which is
         // what the indexer reads a title and a series out of -- and still not collide.
         let store = try fixture().store
-        let one = store.location(for: "urn:uuid:1", extension: "cbz", named: "Bone")
-        let other = store.location(for: "urn:uuid:2", extension: "cbz", named: "Bone")
+        let one = store.location(for: "urn:uuid:1", mediaType: "application/vnd.comicbook+zip", title: "Bone")
+        let other = store.location(for: "urn:uuid:2", mediaType: "application/vnd.comicbook+zip", title: "Bone")
         #expect(one != other)
         #expect(one.lastPathComponent == "Bone.cbz")
         #expect(one.deletingLastPathComponent().lastPathComponent == "urn-uuid-1")
@@ -101,7 +101,7 @@ struct DownloadStoreTests {
     func namesAreMadeSafe() throws {
         // A server's title is a server's, and a slash in one would make a directory.
         let store = try fixture().store
-        let location = store.location(for: "urn:uuid:1/2 3", extension: "epub")
+        let location = store.location(for: "urn:uuid:1/2 3", mediaType: "application/epub+zip", title: "")
         #expect(location.lastPathComponent == "urn-uuid-1-2 3.epub")
         #expect(!location.deletingLastPathComponent().lastPathComponent.contains("/"))
     }
@@ -113,7 +113,7 @@ struct DownloadStoreTests {
         let store = try fixture().store
         defer { store.reset() }
         try store.prepare()
-        let file = store.location(for: "a", extension: "cbz")
+        let file = store.location(for: "a", mediaType: "application/vnd.comicbook+zip", title: "")
         // The id is a directory now, so the fixture makes it like the queue does.
         try FileManager.default.createDirectory(
             at: file.deletingLastPathComponent(),

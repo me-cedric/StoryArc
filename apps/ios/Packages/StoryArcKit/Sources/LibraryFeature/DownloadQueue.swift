@@ -197,11 +197,7 @@ public final class DownloadQueue {
         guard let download = library[entry.id], download.state.isFinished, let store else {
             return nil
         }
-        let file = store.location(
-            for: entry.id,
-            extension: DownloadStore.extension(for: download.mediaType),
-            named: download.title
-        )
+        let file = store.location(of: download)
         return FileManager.default.fileExists(atPath: file.path()) ? file : nil
     }
 
@@ -303,11 +299,7 @@ public final class DownloadQueue {
     ) async throws -> URL {
         guard let store else { throw CocoaError(.fileNoSuchFile) }
         try store.prepare()
-        let file = store.location(
-            for: download.id,
-            extension: DownloadStore.extension(for: download.mediaType),
-            named: download.title
-        )
+        let file = store.location(of: download)
         // The download's own folder, not just the store's: the id is a directory now.
         try FileManager.default.createDirectory(
             at: file.deletingLastPathComponent(),
@@ -340,13 +332,9 @@ public final class DownloadQueue {
                 as: .failed(reason: reason, attempts: DownloadLibrary.attemptLimit)
             )
         if let store, let download = library[id] {
-            store.delete(
-                store.location(
-                    for: id,
-                    extension: DownloadStore.extension(for: download.mediaType),
-                    named: download.title
-                )
-            )
+            // The whole directory, not the one file: a stem this build did not choose is
+            // still this download's bytes, and leaving them is what made the storage total lie.
+            store.remove(download)
         }
         store?.save(library)
         lastFailure = reason
