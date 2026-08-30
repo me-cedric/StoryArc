@@ -72,9 +72,15 @@ object CoverLoader {
             PublicationFormat.PDF -> throw CoverException.NoCover()
 
             PublicationFormat.EPUB -> {
-                val path = publication.coverPath ?: throw CoverException.NoCover()
                 val reader = runCatching { EpubReader.open(source()) }.getOrNull()
                     ?: throw CoverException.Unreadable()
+                // The recorded path when there is one, and the first spine item's own
+                // image when there is not. Resolved here as well as in the indexer so a
+                // library catalogued before [EpubSpineCover] existed heals on the next
+                // cover it draws, rather than on the next full rescan.
+                val path = publication.coverPath
+                    ?: reader.coverOrSpineHref()
+                    ?: throw CoverException.NoCover()
                 runCatching { reader.data(path) }.getOrNull() ?: throw CoverException.Unreadable()
             }
 

@@ -60,7 +60,7 @@ public struct EpubReader: Sendable {
     public let isFixedLayout: Bool
 
     private let reader: ZipReader
-    private let pathToEntry: [String: ZipEntry]
+    let pathToEntry: [String: ZipEntry]  // internal: see EpubSpineCover.swift
 
     public init(source: any RandomAccessSource) async throws {
         do {

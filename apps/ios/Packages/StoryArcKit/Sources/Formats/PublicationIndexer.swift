@@ -77,7 +77,7 @@ public enum PublicationIndexer {
         case .zip:
             // An EPUB is a ZIP too, and only its contents tell the two apart.
             if let epub = try? await EpubReader(source: source) {
-                return book(epub, at: url, filename: filename, fallback: fallback)
+                return await book(epub, at: url, filename: filename, fallback: fallback)
             }
             return try await comicArchive(url: url, format: .cbz, filename: filename, fallback: fallback)
         case .tar:
@@ -123,7 +123,7 @@ public enum PublicationIndexer {
                 // The EPUB reader wants a file of its own, so a remote one is a record
                 // until it has been fetched. Its metadata is still read from the share.
                 guard let decoderPath else { return record(.epub, identity, name, fallback) }
-                return book(epub, at: decoderPath, filename: name, fallback: fallback)
+                return await book(epub, at: decoderPath, filename: name, fallback: fallback)
             }
             return comic(
                 try await ComicArchiveOpener.open(source: source),
@@ -268,9 +268,12 @@ public enum PublicationIndexer {
         )
     }
 
+    /// `async` for one reason: a publication that declares no cover has one resolved
+    /// from its first spine item, which means reading that item out of the container.
+    /// See ``EpubSpineCover``.
     private static func book(
         _ epub: EpubReader, at url: URL, filename: String, fallback: FilenameMetadata
-    ) -> Publication {
+    ) async -> Publication {
         let metadata = epub.metadata
         return Publication(
             identity: identity(forPath: url.path),
@@ -293,7 +296,9 @@ public enum PublicationIndexer {
             // The spine, not a page count: an EPUB's pages depend on the type size
             // the reader is set to, so there is no number to record here.
             pageCount: epub.spine.count,
-            coverPath: epub.coverHref,
+            // `publication-formats`: the declared cover, "otherwise the first page of
+            // the spine is rendered as the cover".
+            coverPath: await epub.coverOrSpineHref(),
             readingDirection: ReadingDirection.inferred(
                 declared: nil, languageCode: metadata.language
             ),

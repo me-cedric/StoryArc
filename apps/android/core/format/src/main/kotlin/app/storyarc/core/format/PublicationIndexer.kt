@@ -298,7 +298,12 @@ object PublicationIndexer {
         )
     }
 
-    private fun book(
+    /**
+     * `suspend` for one reason: a publication that declares no cover has one resolved
+     * from its first spine item, which means reading that item out of the container.
+     * See [EpubSpineCover].
+     */
+    private suspend fun book(
         epub: EpubReader,
         identity: PublicationIdentity,
         filename: String,
@@ -324,7 +329,9 @@ object PublicationIndexer {
         // The spine, not a page count: an EPUB's pages depend on the type size the
         // reader is set to, so there is no number to record here.
         pageCount = epub.spine.size,
-        coverPath = epub.coverHref,
+        // `publication-formats`: the declared cover, "otherwise the first page of the
+        // spine is rendered as the cover".
+        coverPath = epub.coverOrSpineHref(),
         readingDirection = ReadingDirection.inferred(null, epub.metadata.language),
         isFixedLayout = epub.isFixedLayout,
     )

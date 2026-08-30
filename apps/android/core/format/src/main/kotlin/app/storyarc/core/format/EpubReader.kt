@@ -69,7 +69,8 @@ sealed class EpubException(message: String) : Exception(message) {
  */
 class EpubReader private constructor(
     private val reader: ZipReader,
-    private val pathToEntry: Map<String, ZipEntry>,
+    /** Internal rather than private for one read in `EpubSpineCover.kt`. */
+    internal val pathToEntry: Map<String, ZipEntry>,
     /** The package document's path, which every other href resolves against. */
     val packagePath: String,
     val version: Int,

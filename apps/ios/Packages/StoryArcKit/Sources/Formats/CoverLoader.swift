@@ -55,11 +55,7 @@ public enum CoverLoader {
             throw CoverError.noCover
 
         case .epub:
-            guard let path = publication.coverPath else { throw CoverError.noCover }
-            guard let reader = try? await EpubReader(source: try FileSource(url: url)),
-                  let data = try? await reader.data(at: path)
-            else { throw CoverError.unreadable }
-            return data
+            return try await bookCover(for: publication, at: url)
 
         case .cbz, .cbr, .cbt, .cb7, .imageFolder:
             guard let path = publication.coverPath else { throw CoverError.noCover }
@@ -74,6 +70,24 @@ public enum CoverLoader {
             }
             return data
         }
+    }
+
+    /// An EPUB's cover bytes.
+    ///
+    /// Its own function because the EPUB path has two ways to find a cover where every
+    /// other format has one: the path the indexer recorded, and — for a publication that
+    /// declares none — the image its first spine item shows. Resolved here as well as in
+    /// the indexer so a library catalogued before ``EpubSpineCover`` existed heals on the
+    /// next cover it draws, rather than on the next full rescan.
+    private static func bookCover(for publication: Publication, at url: URL) async throws -> Data {
+        guard let reader = try? await EpubReader(source: try FileSource(url: url)) else {
+            throw CoverError.unreadable
+        }
+        var resolved = publication.coverPath
+        if resolved == nil { resolved = await reader.coverOrSpineHref() }
+        guard let path = resolved else { throw CoverError.noCover }
+        guard let data = try? await reader.data(at: path) else { throw CoverError.unreadable }
+        return data
     }
 
     /// A cover for a format whose pages are drawn rather than stored.
