@@ -45,6 +45,13 @@ public final class CatalogueBrowser {
     public let title: String
     public let credential: OpdsCredential?
 
+    /// Where the source the reader configured lives.
+    ///
+    /// Carried down every section, facet and search rather than re-derived from the page in
+    /// hand: a section's address is chosen by the server, and an origin taken from it would
+    /// be the attacker's answer to the question it was asked to settle.
+    public let origin: OpdsOrigin?
+
     /// Shared with the cells, which fetch covers through the same credential.
     let client: OpdsClient
 
@@ -60,13 +67,17 @@ public final class CatalogueBrowser {
         title: String,
         url: URL,
         credential: OpdsCredential?,
-        pins: CertificatePins = CertificatePins()
+        pins: CertificatePins = CertificatePins(),
+        /// Nil at the top of a catalogue, where the address is the one the reader saved and
+        /// is therefore its own origin. Passed explicitly from there down.
+        origin: OpdsOrigin? = nil
     ) {
         self.title = title
         root = url
         self.credential = credential
         self.pins = pins
-        client = OpdsClient(pins: pins)
+        self.origin = origin ?? OpdsOrigin(url: url)
+        client = OpdsClient(pins: pins, origin: self.origin)
     }
 
     /// Fetches the first page. Safe to call again; it does nothing once loaded.
@@ -206,6 +217,9 @@ public struct CataloguePage: Sendable {
     public let url: URL
     public let credential: OpdsCredential?
 
+    /// The origin the credential belongs to: this address, and nowhere the feed names.
+    public let origin: OpdsOrigin?
+
     /// Nil when the source is not a catalogue or has no address, which is what stops a
     /// folder from being opened as one.
     public init?(source: Source, credentials: CredentialStore?) {
@@ -216,6 +230,7 @@ public struct CataloguePage: Sendable {
 
         title = source.displayName
         self.url = url
+        origin = OpdsOrigin(url: url)
         credential = source.credentialReference
             .flatMap { credentials?.secret(for: $0) }
             .flatMap(OpdsCredential.init(stored:))

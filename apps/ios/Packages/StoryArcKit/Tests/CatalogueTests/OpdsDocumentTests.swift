@@ -52,5 +52,45 @@ struct OpdsTransienceTests {
         #expect(!OpdsError.unauthorized(scheme: .basic).isTransient)
         #expect(!OpdsError.notAFeed(received: .html).isTransient)
         #expect(!OpdsError.malformed(reason: "bad XML").isTransient)
+        // An address this app refuses is not one it will change its mind about.
+        #expect(!OpdsError.refusedAddress.isTransient)
+    }
+}
+
+/// What a feed's own hrefs are allowed to become.
+///
+/// The scheme is judged where the href is *resolved*, not where it is fetched: an absolute
+/// `file:` or `ftp:` href replaces the base entirely, and everything downstream — the cover
+/// load, the download, the next page — then works from an address nothing checked.
+///
+/// Android's `OpdsResolutionTest` asserts the same cases in the same order.
+struct OpdsResolutionTests {
+    private func base() throws -> URL {
+        try #require(URL(string: "https://library.example/opds/"))
+    }
+
+    @Test func aRelativeHrefResolvesAgainstTheFeed() throws {
+        let resolved = try #require(OpdsDocument.resolve("unread", relativeTo: base()))
+        #expect(resolved.absoluteString == "https://library.example/opds/unread")
+    }
+
+    @Test func anAbsoluteHttpHrefIsKept() throws {
+        let base = try base()
+        let resolved = try #require(OpdsDocument.resolve("http://nas.local/1.jpg", relativeTo: base))
+        #expect(resolved.absoluteString == "http://nas.local/1.jpg")
+    }
+
+    @Test func anHrefWithAnyOtherSchemeResolvesToNothing() throws {
+        let base = try base()
+        #expect(OpdsDocument.resolve("file:///etc/hosts", relativeTo: base) == nil)
+        #expect(OpdsDocument.resolve("ftp://library.example/x", relativeTo: base) == nil)
+        #expect(OpdsDocument.resolve("javascript:alert(1)", relativeTo: base) == nil)
+    }
+
+    @Test func aSearchTemplateIsHeldToTheSameSchemes() throws {
+        let base = try base()
+        #expect(OpdsDocument.resolveTemplate("file:///x?q={searchTerms}", relativeTo: base) == nil)
+        let kept = try #require(OpdsDocument.resolveTemplate("search?q={searchTerms}", relativeTo: base))
+        #expect(kept == "https://library.example/opds/search?q={searchTerms}")
     }
 }

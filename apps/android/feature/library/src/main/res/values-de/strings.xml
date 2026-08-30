@@ -90,6 +90,7 @@
     <string name="catalogue_retry">Erneut versuchen</string>
     <string name="catalogue_error_not_a_url">Das ist keine Adresse, die StoryArc erreichen kann.</string>
     <string name="catalogue_error_empty">Der Server hat gar nichts zurückgegeben.</string>
+    <string name="catalogue_error_refused_address">Dieser Katalog verweist auf eine Adresse, der StoryArc nicht folgt – entweder keine Web-Adresse oder eine unverschlüsselte HTTP-Adresse von einem Server, den du sicher erreichst.</string>
     <string name="catalogue_error_html">Diese Adresse hat eine Webseite zurückgegeben, keinen Katalog. Meist liegt das an einer Anmeldeseite oder einem falschen Pfad.</string>
     <string name="catalogue_error_not_a_feed">Diese Adresse hat %1$s zurückgegeben, was kein Katalog ist.</string>
     <string name="catalogue_error_unknown_type">etwas mit unbekanntem Typ</string>

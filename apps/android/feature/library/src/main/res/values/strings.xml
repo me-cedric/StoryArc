@@ -90,6 +90,7 @@
     <string name="catalogue_retry">Try again</string>
     <string name="catalogue_error_not_a_url">That is not an address StoryArc can reach.</string>
     <string name="catalogue_error_empty">The server answered with nothing at all.</string>
+    <string name="catalogue_error_refused_address">This catalogue pointed somewhere StoryArc will not follow — an address that is not a web address, or a plain-HTTP one from a server you reach securely.</string>
     <string name="catalogue_error_html">That address returned a web page, not a catalogue. A sign-in page or a wrong path usually does this.</string>
     <string name="catalogue_error_not_a_feed">That address returned %1$s, which is not a catalogue.</string>
     <string name="catalogue_error_unknown_type">something of an unknown type</string>

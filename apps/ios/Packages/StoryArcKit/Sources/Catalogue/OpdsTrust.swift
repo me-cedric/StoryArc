@@ -66,7 +66,7 @@ public struct UntrustedCertificate: Sendable, Equatable {
 ///
 /// Split from the client so the rule can be read on its own. The rule is: the system
 /// decides, and the reader can overrule it only for one certificate they have seen.
-public final class OpdsTrustDelegate: NSObject, URLSessionDelegate, Sendable {
+public final class OpdsTrustDelegate: NSObject, URLSessionDelegate, URLSessionTaskDelegate, Sendable {
     private let pins: CertificatePins
 
     /// The last certificate refused, so the caller can offer to pin it.
@@ -123,6 +123,22 @@ public final class OpdsTrustDelegate: NSObject, URLSessionDelegate, Sendable {
             )
         }
         return (.cancelAuthenticationChallenge, nil)
+    }
+
+    /// Where a redirect is allowed to take the `Authorization` header.
+    ///
+    /// `URLSession` follows a 302 by itself and carries every header across, so a catalogue
+    /// that answers with one has the same reach as a catalogue that puts an absolute href in
+    /// its feed — and nothing in the feed to see. The header is dropped the moment the
+    /// origin changes; the redirect itself is still followed, because a server moving its
+    /// own paths around is ordinary.
+    public func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        OpdsRedirect.following(request, from: task.originalRequest)
     }
 
     private static func leaf(of trust: SecTrust) -> SecCertificate? {

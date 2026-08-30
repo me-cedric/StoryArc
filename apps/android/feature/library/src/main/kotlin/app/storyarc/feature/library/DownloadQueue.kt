@@ -9,6 +9,7 @@ import app.storyarc.core.catalogue.OpdsClient
 import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.catalogue.OpdsError
+import app.storyarc.core.catalogue.OpdsOrigin
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
@@ -46,6 +47,14 @@ class DownloadQueue(
     private val store: DownloadStore?,
     private val credential: (String) -> OpdsCredential? = { null },
     /**
+     * The origin of the catalogue this queue is downloading from.
+     *
+     * An acquisition href is a URL the *server* chose, and this queue is the one place in
+     * the app that carries a credential to one with nobody watching. Null only where there
+     * is no catalogue behind the queue.
+     */
+    origin: OpdsOrigin? = null,
+    /**
      * What the reader has asked of the queue.
      *
      * A function rather than a value: `offline-downloads` requires a paused queue to
@@ -64,7 +73,7 @@ class DownloadQueue(
     /** What has been downloaded and what is on its way. */
     val library: StateFlow<DownloadLibrary> = _library.asStateFlow()
 
-    private val client = OpdsClient(pins)
+    private val client = OpdsClient(pins, origin)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     /** The transfer for each running download, so it can be cancelled. */

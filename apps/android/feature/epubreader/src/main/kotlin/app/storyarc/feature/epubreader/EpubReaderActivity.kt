@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.toArgb
 import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.HighlightColour
 import app.storyarc.core.model.AnnotationExport
+import app.storyarc.core.model.ExternalLink
 import app.storyarc.core.model.Bookmark
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.PageTransition
@@ -116,12 +117,37 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * Handed to the system rather than opened in the reader: a book is not a browser, and a
      * page loaded over the text would be the reader losing their place to something the
      * publication does not own. `privacy` is why nothing is prefetched -- this happens on a
-     * tap and only on a tap. A device with nothing able to open it does nothing, which is
-     * better than a crash on a link the reader was merely curious about.
+     * tap and only on a tap.
+     *
+     * iOS's `EpubReaderOpening.navigator(_:presentExternalURL:)` makes the same two
+     * decisions: which schemes survive, and that the host is named before the reader leaves.
      */
     @OptIn(ExperimentalReadiumApi::class)
     override fun onExternalLinkActivated(url: AbsoluteUrl) {
-        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url.toString()))) }
+        // Asked rather than obeyed. The string is the publication's, and `ACTION_VIEW` on it
+        // launches whichever installed app registered that scheme with the parameters the
+        // book chose. `ExternalLink` keeps `http` and `https` and drops the rest; the dialog
+        // then names the host, so the destination is visible before the tap takes effect.
+        leaving.value = ExternalLink.of(url.toString())
+    }
+
+    /** Where the book is asking to send the reader, or null when it is not asking. */
+    private val leaving = MutableStateFlow<ExternalLink?>(null)
+
+    /**
+     * The reader said yes. Browsable, so the address goes to a browser rather than to
+     * whatever else claimed `http` -- and still inside `runCatching`, because a device with
+     * nothing able to open it doing nothing is better than a crash on a link the reader was
+     * merely curious about.
+     */
+    private fun leaveTheBook(going: ExternalLink) {
+        leaving.value = null
+        runCatching {
+            startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse(going.url))
+                    .addCategory(Intent.CATEGORY_BROWSABLE),
+            )
+        }
     }
 
     companion object {
@@ -285,6 +311,16 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                                 ),
                             )
                         }
+                    }
+
+                    // A link out of the book names where it goes before it goes there.
+                    val going by leaving.collectAsStateWithLifecycle()
+                    going?.let { destination ->
+                        LeaveTheBookDialog(
+                            leaving = destination,
+                            onOpen = { leaveTheBook(destination) },
+                            onDismiss = { leaving.value = null },
+                        )
                     }
 
                     writtenOn?.let { mark ->

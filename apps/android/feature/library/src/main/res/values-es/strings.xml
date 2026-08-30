@@ -90,6 +90,7 @@
     <string name="catalogue_retry">Volver a intentar</string>
     <string name="catalogue_error_not_a_url">Esa no es una dirección a la que StoryArc pueda llegar.</string>
     <string name="catalogue_error_empty">El servidor no devolvió nada.</string>
+    <string name="catalogue_error_refused_address">Este catálogo apuntó a una dirección que StoryArc no seguirá: una dirección que no es web, o una de HTTP sin cifrar desde un servidor al que llegas de forma segura.</string>
     <string name="catalogue_error_html">Esa dirección devolvió una página web, no un catálogo. Suele deberse a una página de inicio de sesión o a una ruta incorrecta.</string>
     <string name="catalogue_error_not_a_feed">Esa dirección devolvió %1$s, que no es un catálogo.</string>
     <string name="catalogue_error_unknown_type">algo de tipo desconocido</string>

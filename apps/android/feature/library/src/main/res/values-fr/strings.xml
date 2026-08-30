@@ -90,6 +90,7 @@
     <string name="catalogue_retry">Réessayer</string>
     <string name="catalogue_error_not_a_url">StoryArc ne peut pas atteindre cette adresse.</string>
     <string name="catalogue_error_empty">Le serveur n’a rien renvoyé.</string>
+    <string name="catalogue_error_refused_address">Ce catalogue a désigné une adresse que StoryArc ne suivra pas : une adresse qui n’est pas une adresse web, ou une adresse en HTTP simple alors que ce serveur est joint de façon sécurisée.</string>
     <string name="catalogue_error_html">Cette adresse a renvoyé une page web, pas un catalogue. Une page d’identification ou un mauvais chemin en est souvent la cause.</string>
     <string name="catalogue_error_not_a_feed">Cette adresse a renvoyé %1$s, qui n’est pas un catalogue.</string>
     <string name="catalogue_error_unknown_type">un contenu de type inconnu</string>

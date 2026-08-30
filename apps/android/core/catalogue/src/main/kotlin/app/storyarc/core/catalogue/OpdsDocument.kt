@@ -74,9 +74,19 @@ object OpdsDocument {
      * Braces are swapped out and back. A search template carries `{searchTerms}`, braces
      * are not legal in a URI, and `URI.resolve` throws on one — which silently dropped
      * every templated search link.
+     *
+     * The scheme is judged here rather than where the address is fetched, because here is
+     * the only place that sees it once. An absolute `file:`, `ftp:` or `jar:` href replaces
+     * the base entirely; `URL.openConnection()` then accepts it and returns a connection
+     * that is not an `HttpURLConnection`, and the cast throws where nothing catches it.
+     * Null, so a feed that names one has named nothing.
      */
     internal fun resolve(href: String, baseUrl: String): String? = runCatching {
         val guarded = href.replace("{", "%7B").replace("}", "%7D")
-        URI(baseUrl).resolve(guarded).toString().replace("%7B", "{").replace("%7D", "}")
+        val resolved = URI(baseUrl).resolve(guarded).toString()
+        if (!OpdsOrigin.isFetchable(resolved)) {
+            return@runCatching null
+        }
+        resolved.replace("%7B", "{").replace("%7D", "}")
     }.getOrNull()
 }

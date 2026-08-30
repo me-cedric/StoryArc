@@ -12,8 +12,17 @@
   config can name a host or an IP literal, but not a range — so the exception here is wider
   than the one on iOS, and that asymmetry is deliberate rather than an oversight.
 
-  What keeps it honest is the app: the address field completes a missing scheme to `https`,
-  never `http`, so reaching a catalogue over cleartext takes a reader typing `http://`.
+  What keeps it honest is the app, in two places rather than one.
+
+  The address field completes a missing scheme to `https`, never `http`, so reaching a
+  catalogue over cleartext takes a reader typing `http://`. That covers what a reader types
+  and nothing else — and a catalogue chooses every address fetched after the first one.
+
+  So `OpdsOrigin` covers the rest: a resolved feed href that steps down from the source's own
+  `https` to `http` is refused outright, and one that leaves the source's origin at all is
+  fetched without the credential. The permission below stays wide because Android cannot
+  express "every private range"; what may actually be reached over cleartext is decided in
+  code, against the origin the reader configured.
 -->
 <network-security-config xmlns:tools="http://schemas.android.com/tools">
     <!--

@@ -37,21 +37,28 @@ public struct CatalogueBrowserView: View {
         url: URL,
         credential: OpdsCredential?,
         pins: CertificatePins,
+        /// The configured source's origin. Nil at the top of a catalogue, where this
+        /// screen's own address is it; carried down explicitly from every screen below,
+        /// because their addresses come out of a feed.
+        origin: OpdsOrigin? = nil,
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
     ) {
+        let home = origin ?? OpdsOrigin(url: url)
         _browser = State(
             initialValue: CatalogueBrowser(
                 title: title,
                 url: url,
                 credential: credential,
-                pins: pins
+                pins: pins,
+                origin: home
             )
         )
         _queue = State(
             initialValue: DownloadQueue(
                 pins: pins,
                 store: DownloadStore(),
-                credential: { _ in credential }
+                credential: { _ in credential },
+                origin: home
             )
         )
         self.onOpen = onOpen
@@ -128,6 +135,7 @@ public struct CatalogueBrowserView: View {
                     url: url,
                     credential: browser.credential,
                     pins: browser.pins,
+                    origin: browser.origin,
                     onOpen: onOpen
                 )
             }
@@ -253,6 +261,7 @@ public struct CatalogueBrowserView: View {
                                 url: facet.href,
                                 credential: browser.credential,
                                 pins: browser.pins,
+                                origin: browser.origin,
                                 onOpen: onOpen
                             )
                         } label: {

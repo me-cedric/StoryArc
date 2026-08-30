@@ -153,6 +153,20 @@ extension BackgroundTransfers: URLSessionDownloadDelegate {
         await trust.urlSession(session, didReceive: challenge)
     }
 
+    /// The same redirect rule the ordinary client follows.
+    ///
+    /// A download is the one request in the app that carries a credential to a URL the
+    /// catalogue chose, and it runs unattended. A 302 out of the source's origin drops the
+    /// header here exactly as it does there.
+    public func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        OpdsRedirect.following(request, from: task.originalRequest)
+    }
+
     private func resume(_ task: URLSessionTask, with outcome: Result<URL, any Error>) {
         guard let name = task.taskDescription else { return }
         let continuation = waiting.withLock { $0.removeValue(forKey: name) }

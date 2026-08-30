@@ -724,6 +724,7 @@ class MainActivity : ComponentActivity() {
                                 page.url,
                                 page.credential,
                                 pins,
+                                page.origin,
                             )
                         }
                         val queue = remember(page.url) {
@@ -732,6 +733,7 @@ class MainActivity : ComponentActivity() {
                                 pins,
                                 downloadStore,
                                 credential = { page.credential },
+                                origin = page.origin,
                             )
                         }
                         val entry = chosen
@@ -753,7 +755,10 @@ class MainActivity : ComponentActivity() {
                                 browser = browser,
                                 queue = queue,
                                 onEnter = { title, url ->
-                                    catalogue = catalogue + CataloguePage(title, url, page.credential)
+                                    // The origin travels down, not the section's own address: a
+                                    // section URL is one the server chose.
+                                    catalogue = catalogue +
+                                        CataloguePage(title, url, page.credential, page.origin)
                                 },
                                 onSelect = { chosen = it },
                                 onBack = { catalogue = catalogue.dropLast(1) },

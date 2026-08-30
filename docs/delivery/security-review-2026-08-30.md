@@ -126,7 +126,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - No mitigation exists: grep for canonicalPath / .standardized / resolvingSymlinks across apps/android/core, apps/android/feature and both iOS Sources trees hits only ImageFolderArchive, an unrelated subsystem.
 
 
-### 2. The OPDS credential is attached to whatever URL the feed names, with no origin check, so a compromised catalogue collects the reader's Basic password — and the cover path fires with no tap
+### 2. FIXED — The OPDS credential is attached to whatever URL the feed names, with no origin check, so a compromised catalogue collects the reader's Basic password — and the cover path fires with no tap
 
 **🟠 high** · both · our-code · effort: medium · **CONFIRMED**
 
@@ -268,7 +268,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - A second, latent defect in the same area: apps/ios/.../KavitaConnection.swift:84-101 files the credential under `CredentialStore.reference(for: id)` but returns `Source(...)` without `id:`, so `Source.init`'s `id: UUID = UUID()` default (StoryArcCore/Source.swift:70) mints a different UUID. Deleting by `reference(for: source.id)` would therefore still miss every iOS Kavita secret. CatalogueConnection.swift:139 and SmbConnection pass `id: id` correctly.
 
 
-### 9. Android: a feed href with a non-HTTP scheme throws ClassCastException outside every catch clause and kills the process
+### 9. FIXED — Android: a feed href with a non-HTTP scheme throws ClassCastException outside every catch clause and kills the process
 
 **🟡 medium** · android · our-code · effort: small · **CONFIRMED**
 
@@ -286,7 +286,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - iOS degrades instead of crashing: apps/ios/Packages/StoryArcKit/Sources/Catalogue/OpdsClient.swift:155 `guard let http = response as? HTTPURLResponse else { throw OpdsError.empty }`.
 
 
-### 10. Android permits cleartext to every host app-wide, and the config's own stated mitigation only covers URLs the reader typed
+### 10. FIXED — Android permits cleartext to every host app-wide, and the config's own stated mitigation only covers URLs the reader typed
 
 **🟡 medium** · android · configuration · effort: small · **CONFIRMED**
 
@@ -356,7 +356,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - Contrast: the Android graph is pinned by exact version literals in apps/android/gradle/libs.versions.toml, with a comment forbidding version literals in build scripts.
 
 
-### 14. A publication's external link URL is handed to the OS with no scheme allow-list and no visible destination
+### 14. FIXED — A publication's external link URL is handed to the OS with no scheme allow-list and no visible destination
 
 **⚪ low** · both · our-code · effort: small · **CONFIRMED**
 

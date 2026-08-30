@@ -1132,6 +1132,35 @@
         }
       }
     },
+    "catalogue.error.refusedAddress": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Katalog verweist auf eine Adresse, der StoryArc nicht folgt – entweder keine Web-Adresse oder eine unverschlüsselte HTTP-Adresse von einem Server, den du sicher erreichst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This catalogue pointed somewhere StoryArc will not follow — an address that is not a web address, or a plain-HTTP one from a server you reach securely."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este catálogo apuntó a una dirección que StoryArc no seguirá: una dirección que no es web, o una de HTTP sin cifrar desde un servidor al que llegas de forma segura."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce catalogue a désigné une adresse que StoryArc ne suivra pas : une adresse qui n’est pas une adresse web, ou une adresse en HTTP simple alors que ce serveur est joint de façon sécurisée."
+          }
+        }
+      }
+    },
     "catalogue.error.secretNotStored": {
       "extractionState": "manual",
       "localizations": {

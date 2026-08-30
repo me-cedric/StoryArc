@@ -21,11 +21,14 @@ struct OpdsClientTests {
     </feed>
     """
 
-    private func client(_ stub: @escaping @Sendable (URLRequest) -> StubProtocol.Answer) -> OpdsClient {
+    private func client(
+        origin: OpdsOrigin? = nil,
+        _ stub: @escaping @Sendable (URLRequest) -> StubProtocol.Answer
+    ) -> OpdsClient {
         StubProtocol.answer = stub
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubProtocol.self]
-        return OpdsClient(configuration: configuration)
+        return OpdsClient(origin: origin, configuration: configuration)
     }
 
     @Test func aFeedIsFetchedAndParsed() async throws {
@@ -121,6 +124,79 @@ struct OpdsClientTests {
         #expect(data == Data([1, 2, 3]))
     }
 
+    // MARK: - Where the credential is allowed to go
+
+    @Test func aCredentialDoesNotFollowTheFeedToAnotherHost() async throws {
+        // The rank-2 case. A compromised catalogue puts an absolute href on its own host
+        // into the feed; without an origin the closure hands it the reader's password.
+        let seen = Captured()
+        let home = try #require(URL(string: "https://books.example/opds/"))
+        let books = try #require(OpdsOrigin(url: home))
+        let client = client(origin: books) { request in
+            seen.value = request.value(forHTTPHeaderField: "Authorization")
+            return .response(status: 200, headers: [:], body: Data([1, 2, 3]))
+        }
+        _ = try await client.data(
+            at: try #require(URL(string: "https://collect.attacker.example/x.jpg")),
+            credential: .basic(user: "ada", password: "lovelace")
+        )
+        #expect(seen.value == nil)
+    }
+
+    @Test func aCredentialStillTravelsToTheSourceItBelongsTo() async throws {
+        let seen = Captured()
+        let home = try #require(URL(string: "https://books.example/opds/"))
+        let books = try #require(OpdsOrigin(url: home))
+        let client = client(origin: books) { request in
+            seen.value = request.value(forHTTPHeaderField: "Authorization")
+            return .response(status: 200, headers: [:], body: Data(Self.atom.utf8))
+        }
+        _ = try await client.feed(
+            at: try #require(URL(string: "https://books.example/opds/page/2")),
+            credential: .basic(user: "ada", password: "lovelace")
+        )
+        #expect(seen.value == "Basic YWRhOmxvdmVsYWNl")
+    }
+
+    @Test func aCredentialIsDroppedWhenARedirectChangesTheHost() async throws {
+        let seen = Captured()
+        let elsewhere = try #require(URL(string: "https://collect.attacker.example/opds/"))
+        let home = try #require(URL(string: "https://books.example/opds/"))
+        let books = try #require(OpdsOrigin(url: home))
+        let client = client(origin: books) { request in
+            guard request.url?.host() == "books.example" else {
+                seen.value = request.value(forHTTPHeaderField: "Authorization")
+                return .response(status: 200, headers: [:], body: Data(Self.atom.utf8))
+            }
+            return .redirect(to: elsewhere)
+        }
+        _ = try await client.feed(
+            at: try #require(URL(string: "https://books.example/opds/")),
+            credential: .basic(user: "ada", password: "lovelace")
+        )
+        #expect(seen.value == nil)
+    }
+
+    @Test func aFeedThatDowngradesToCleartextIsNotFollowed() async throws {
+        // Rank 10: a misconfigured or hostile proxy answers `https` with `http` hrefs, and
+        // Android's base config permits every one of them.
+        let home = try #require(URL(string: "https://books.example/opds/"))
+        let books = try #require(OpdsOrigin(url: home))
+        let client = client(origin: books) { _ in
+            .response(status: 200, headers: [:], body: Data(Self.atom.utf8))
+        }
+        await #expect(throws: OpdsError.refusedAddress) {
+            try await client.feed(at: try #require(URL(string: "http://books.example/opds/")))
+        }
+    }
+
+    @Test func anAddressThatIsNotHttpIsNotFetched() async throws {
+        let client = client { _ in .response(status: 200, headers: [:], body: Data([1])) }
+        await #expect(throws: OpdsError.refusedAddress) {
+            try await client.data(at: try #require(URL(string: "file:///etc/hosts")))
+        }
+    }
+
     /// A box, because the stub runs on the session's queue and the test reads afterwards.
     private final class Captured: @unchecked Sendable {
         var value: String?
@@ -131,6 +207,9 @@ struct OpdsClientTests {
 final class StubProtocol: URLProtocol {
     enum Answer {
         case response(status: Int, headers: [String: String], body: Data, url: URL? = nil)
+
+        /// A 302 the session is asked to follow, so the delegate's redirection hook runs.
+        case redirect(to: URL)
     }
 
     /// Set by whichever test is running, which is why the suite above is serialised.
@@ -142,7 +221,27 @@ final class StubProtocol: URLProtocol {
     override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
-        guard let answer = Self.answer?(request),
+        let answered = Self.answer?(request)
+        if case let .redirect(to) = answered {
+            guard let from = request.url,
+                  let response = HTTPURLResponse(
+                      url: from,
+                      statusCode: 302,
+                      httpVersion: "HTTP/1.1",
+                      headerFields: ["Location": to.absoluteString]
+                  )
+            else {
+                client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+                return
+            }
+            // The headers come across, which is what `URLSession` itself does when it
+            // follows a redirect and is the whole reason the hook has to exist.
+            var next = request
+            next.url = to
+            client?.urlProtocol(self, wasRedirectedTo: next, redirectResponse: response)
+            return
+        }
+        guard let answer = answered,
               case let .response(status, headers, body, url) = answer,
               let from = url ?? request.url,
               let response = HTTPURLResponse(

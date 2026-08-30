@@ -156,6 +156,26 @@ public struct EpubReaderView: View {
             )
             .presentationCompactAdaptation(.popover)
         }
+        // A link out of the book names where it goes before it goes there.
+        //
+        // The destination is the publication's choice and the link text is too, so the one
+        // thing the reader cannot get from the page is the host. A confirmation is the only
+        // place it fits, and the default button is the one that stays.
+        .confirmationDialog(
+            Text("epub.leave.ask \(model.leaving?.host ?? "")", bundle: .module),
+            isPresented: Binding(
+                get: { model.leaving != nil },
+                set: { if !$0 { model.stayInTheBook() } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button { model.leaveTheBook() } label: {
+                Text("epub.leave.open", bundle: .module)
+            }
+            Button(role: .cancel) { model.stayInTheBook() } label: {
+                Text("epub.leave.cancel", bundle: .module)
+            }
+        }
         // `ebook-reader` asks for a footnote to open "in place as a popover", which is
         // the word this file already uses for the other two: a popover on a tablet, and
         // the same declaration adapted to a detented sheet on a phone. The page stays

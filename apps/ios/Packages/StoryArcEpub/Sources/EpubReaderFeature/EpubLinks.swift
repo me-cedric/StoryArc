@@ -2,6 +2,7 @@ public import Foundation
 
 internal import ReadiumNavigator
 internal import ReadiumShared
+internal import UIKit
 
 public import StoryArcCore
 
@@ -23,6 +24,30 @@ public extension EpubReaderModel {
 
     func dismissNote() {
         note = nil
+    }
+
+    /// Asks before the book sends the reader out of it.
+    ///
+    /// Two things happen here, and both matter. Anything that is not `http` or `https` is
+    /// dropped: handed a `someapp://` URL the system launches whichever installed app claimed
+    /// that scheme, with the parameters the publication chose, on one tap under link text the
+    /// publication also chose. And what survives is *named* — a link is only honest if the
+    /// reader can see where it goes before they go there.
+    func askToLeave(for url: URL) {
+        leaving = ExternalLink(url: url)
+    }
+
+    /// The reader said no, or dismissed the question.
+    func stayInTheBook() {
+        leaving = nil
+    }
+
+    /// The reader said yes. The address goes to the system exactly as the book wrote it.
+    func leaveTheBook() {
+        let going = leaving
+        leaving = nil
+        guard let going else { return }
+        UIApplication.shared.open(going.url)
     }
 
     /// Remembers where the reader is, because they are about to not be there.

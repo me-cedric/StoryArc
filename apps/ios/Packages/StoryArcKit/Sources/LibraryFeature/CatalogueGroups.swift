@@ -62,6 +62,7 @@ struct CatalogueGroupSection: View {
                         url: more,
                         credential: browser.credential,
                         pins: browser.pins,
+                        origin: browser.origin,
                         onOpen: onOpen
                     )
                 } label: {
@@ -119,6 +120,7 @@ struct CatalogueSectionLink: View {
                 url: section.href,
                 credential: browser.credential,
                 pins: browser.pins,
+                origin: browser.origin,
                 onOpen: onOpen
             )
         } label: {

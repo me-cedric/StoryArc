@@ -27,6 +27,14 @@ public final class DownloadQueue {
     private let store: DownloadStore?
     private let credential: (Download.ID) -> OpdsCredential?
 
+    /// The origin of the catalogue this queue is downloading from.
+    ///
+    /// The bytes come through the background session rather than ``OpdsClient``, so the
+    /// origin rule has to be applied here too: an acquisition href is a URL the *server*
+    /// chose, and this queue is the one place in the app that carries a credential to one
+    /// with nobody watching.
+    private let origin: OpdsOrigin?
+
     /// The transfer for each running download, so it can be cancelled.
     private var running: [Download.ID: Task<Void, Never>] = [:]
 
@@ -40,6 +48,7 @@ public final class DownloadQueue {
         pins: CertificatePins = CertificatePins(),
         store: DownloadStore? = nil,
         credential: @escaping (Download.ID) -> OpdsCredential? = { _ in nil },
+        origin: OpdsOrigin? = nil,
         /// What the reader has asked of the queue.
         ///
         /// A closure rather than a value: `offline-downloads` requires a paused queue to
@@ -48,7 +57,8 @@ public final class DownloadQueue {
         settings: @escaping () -> AppSettings = { .defaults }
     ) {
         self.settings = settings
-        client = OpdsClient(pins: pins)
+        self.origin = origin
+        client = OpdsClient(pins: pins, origin: origin)
         transfers = BackgroundTransfers.shared(pins: pins)
         self.store = store
         self.credential = credential
@@ -263,8 +273,16 @@ public final class DownloadQueue {
             // Through the background session rather than an ordinary request:
             // `offline-downloads` wants a backgrounded transfer to continue "as far as the
             // platform allows", and on iOS that is what allows it.
+            // The same rule ``OpdsClient`` applies, because this is the same kind of
+            // address: one the catalogue chose. An acquisition href off the source's own
+            // origin is fetched without the credential, and one that steps down to
+            // cleartext is not fetched at all.
+            guard OpdsOrigin.isFetchable(download.remote) else { throw OpdsError.refusedAddress }
+            let home = origin ?? OpdsOrigin(url: download.remote)
+            if home?.downgrades(download.remote) == true { throw OpdsError.refusedAddress }
+
             var request = URLRequest(url: download.remote)
-            if let credential = credential(download.id) {
+            if let credential = credential(download.id), home?.admits(download.remote) == true {
                 request.setValue(credential.header, forHTTPHeaderField: "Authorization")
             }
             let temporary = try await transfers.download(request, named: download.id)

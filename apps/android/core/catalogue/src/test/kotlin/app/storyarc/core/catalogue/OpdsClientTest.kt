@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -127,6 +128,75 @@ class OpdsClientTest {
         headers = emptyMap()
         body = "abc"
         assertTrue("abc".toByteArray().contentEquals(OpdsClient().bytes("${base}1.epub")))
+    }
+
+    // Where the credential is allowed to go. iOS's `OpdsClientTests` mirrors these.
+
+    @Test
+    fun aCredentialDoesNotFollowTheFeedToAnotherHost() = runBlocking {
+        // The rank-2 case. A compromised catalogue puts an absolute href on another host
+        // into the feed; without an origin the closure hands it the reader's password.
+        // The origin here is a port the loopback server is not on, which is the cheapest
+        // way to be a different origin while still being reachable.
+        val elsewhere = OpdsOrigin.of("http://localhost:1/opds/")
+        OpdsClient(origin = elsewhere).bytes("${base}cover.jpg", OpdsCredential.Basic("ada", "lovelace"))
+        assertNull(seenAuthorization)
+    }
+
+    @Test
+    fun aCredentialStillTravelsToTheSourceItBelongsTo() = runBlocking {
+        val home = OpdsOrigin.of(base)
+        OpdsClient(origin = home).feed("${base}page/2", OpdsCredential.Basic("ada", "lovelace"))
+        assertEquals("Basic YWRhOmxvdmVsYWNl", seenAuthorization)
+    }
+
+    @Test
+    fun aCredentialIsDroppedWhenARedirectLeavesTheOrigin() = runBlocking {
+        // `HttpURLConnection` follows a redirect itself. It happens to drop the header when
+        // the *host* changes and it does not when only the port does -- and a different port
+        // is a different server. The rule this app applies is the whole origin.
+        var elsewhere: String? = null
+        val second = HttpServer.create(InetSocketAddress("localhost", 0), 0)
+        second.createContext("/landed") { exchange ->
+            elsewhere = exchange.requestHeaders.getFirst("Authorization")
+            val bytes = ATOM.toByteArray()
+            exchange.responseHeaders.add("Content-Type", "application/atom+xml")
+            exchange.sendResponseHeaders(200, bytes.size.toLong())
+            exchange.responseBody.use { it.write(bytes) }
+        }
+        second.start()
+        try {
+            server.createContext("/away") { exchange ->
+                exchange.responseHeaders.add("Location", "http://localhost:${second.address.port}/landed")
+                exchange.sendResponseHeaders(302, -1)
+                exchange.close()
+            }
+            val home = OpdsOrigin.of(base)
+            OpdsClient(origin = home).feed(
+                "http://localhost:${server.address.port}/away",
+                OpdsCredential.Basic("ada", "lovelace"),
+            )
+            assertNull(elsewhere)
+        } finally {
+            second.stop(0)
+        }
+    }
+
+    @Test
+    fun aFeedThatDowngradesToCleartextIsNotFollowed() = runBlocking {
+        // Rank 10. The base config permits cleartext to every host, so nothing below this
+        // app refuses an `http://` address a feed chose for a source reached over `https`.
+        val secure = OpdsOrigin.of("https://books.example/opds/")
+        val error = runCatching { OpdsClient(origin = secure).feed(base) }.exceptionOrNull()
+        assertEquals(OpdsError.RefusedAddress, error)
+    }
+
+    @Test
+    fun anAddressThatIsNotHttpIsNotFetched() = runBlocking {
+        // Rank 9. `URL("file:...").openConnection()` returns a `FileURLConnection`, the cast
+        // to `HttpURLConnection` throws, and no catch clause in the app matches it.
+        val error = runCatching { OpdsClient().bytes("file:///etc/hosts") }.exceptionOrNull()
+        assertEquals(OpdsError.RefusedAddress, error)
     }
 
     private companion object {

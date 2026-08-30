@@ -88,6 +88,9 @@
     <string name="annotations_title">Notes</string>
     <string name="annotations_empty">Nothing marked yet. Select a word or a passage and a menu offers a colour.</string>
     <string name="annotations_note">Note</string>
+    <string name="epub_leave_ask">Leave the book and open %1$s?</string>
+    <string name="epub_leave_open">Open</string>
+    <string name="epub_leave_cancel">Stay here</string>
     <string name="annotations_copy">Copy</string>
     <string name="annotations_remove">Remove</string>
     <string name="annotations_save">Save</string>

@@ -315,7 +315,12 @@ final class NavigatorObserver: EPUBNavigatorDelegate {
     /// a page loaded over the text would be the reader losing their place to something the
     /// publication does not own. `privacy` is why nothing is prefetched — this happens on a
     /// tap and only on a tap.
+    ///
+    /// Asked rather than obeyed, though. The URL is the publication's, and handing it
+    /// straight to `UIApplication.open` lets a book pick which installed app runs and with
+    /// what parameters. ``EpubReaderModel/askToLeave(for:)`` keeps `http` and `https` and
+    /// drops the rest, then names the host so the reader sees where they are going.
     func navigator(_ navigator: Navigator, presentExternalURL url: URL) {
-        Task { @MainActor in UIApplication.shared.open(url) }
+        Task { @MainActor in model?.askToLeave(for: url) }
     }
 }

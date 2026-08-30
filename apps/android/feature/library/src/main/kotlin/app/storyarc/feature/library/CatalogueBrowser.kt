@@ -9,6 +9,7 @@ import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.catalogue.OpdsError
 import app.storyarc.core.catalogue.OpdsFeed
+import app.storyarc.core.catalogue.OpdsOrigin
 import app.storyarc.core.catalogue.OpdsRefusal
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
@@ -32,7 +33,18 @@ class CatalogueBrowser(
     private val root: String,
     val credential: OpdsCredential?,
     val pins: CertificatePins,
+    /**
+     * Where the source the reader configured lives.
+     *
+     * Carried down every section, facet and search rather than re-derived from the page in
+     * hand: a section's address is chosen by the server, and an origin taken from it would be
+     * the attacker's answer to the question it was asked to settle. Null only at the top,
+     * where this screen's own address is the configured one.
+     */
+    explicitOrigin: OpdsOrigin? = null,
 ) : ViewModel() {
+
+    val origin: OpdsOrigin? = explicitOrigin ?: OpdsOrigin.of(root)
 
     /** What the page is doing. */
     sealed interface State {
@@ -69,7 +81,7 @@ class CatalogueBrowser(
         get() = _entries.value + _feed.value?.groups.orEmpty().flatMap { it.publications }
 
     /** Shared with the cells, which fetch covers through the same credential. */
-    val client = OpdsClient(pins)
+    val client = OpdsClient(pins, origin)
     private var next: String? = null
 
     /** A page already being fetched, so a fast scroll asks once. */
@@ -209,6 +221,8 @@ data class CataloguePage(
     val title: String,
     val url: String,
     val credential: OpdsCredential?,
+    /** The origin the credential belongs to: this address, and nowhere the feed names. */
+    val origin: OpdsOrigin? = OpdsOrigin.of(url),
 ) {
     companion object {
         /**

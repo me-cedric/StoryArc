@@ -50,8 +50,17 @@ public enum OpdsDocument {
     }
 
     /// A possibly relative href, made absolute against the feed it came from.
+    ///
+    /// The scheme is judged here rather than where the address is fetched, because here is
+    /// the only place that sees it once. An absolute `file:`, `ftp:` or `jar:` href replaces
+    /// the base entirely, and every later step — the cover load, the download, the next
+    /// page — would then be working from an address nothing had looked at. Nil, so a feed
+    /// that names one has named nothing.
     static func resolve(_ href: String, relativeTo base: URL) -> URL? {
-        URL(string: href, relativeTo: base)?.absoluteURL
+        guard let url = URL(string: href, relativeTo: base)?.absoluteURL,
+              OpdsOrigin.isFetchable(url)
+        else { return nil }
+        return url
     }
 
     /// The same, for a search template, which is not a URL and must not become one.
@@ -101,6 +110,12 @@ public enum OpdsError: Error, Equatable, Sendable {
     /// The server asked who is calling.
     case unauthorized(scheme: AuthenticationScheme?)
 
+    /// The address is one this app will not follow.
+    ///
+    /// Not an HTTP outcome — nothing was sent. A feed named something that is not a web
+    /// address, or named cleartext from a source the reader reaches over `https`.
+    case refusedAddress
+
     /// What arrived instead of a feed.
     public enum Received: Equatable, Sendable {
         case html
@@ -116,7 +131,7 @@ public enum OpdsError: Error, Equatable, Sendable {
         switch self {
         case let .http(status): status >= 500 || status == 408 || status == 429
         case .empty: true
-        case .notAFeed, .malformed, .unauthorized: false
+        case .notAFeed, .malformed, .unauthorized, .refusedAddress: false
         }
     }
 

@@ -229,6 +229,14 @@ sealed class OpdsError(message: String) : Exception(message) {
     /** The server asked who is calling. */
     data class Unauthorized(val scheme: AuthenticationScheme?) : OpdsError("unauthorized")
 
+    /**
+     * The address is one this app will not follow.
+     *
+     * Not an HTTP outcome -- nothing was sent. A feed named something that is not a web
+     * address, or named cleartext from a source the reader reaches over `https`.
+     */
+    data object RefusedAddress : OpdsError("refused address")
+
     /** What arrived instead of a feed. */
     sealed class Received {
         data object Html : Received()
@@ -246,7 +254,8 @@ sealed class OpdsError(message: String) : Exception(message) {
         get() = when (this) {
             is Http -> status >= 500 || status == 408 || status == 429
             is Empty -> true
-            is NotAFeed, is Malformed, is Unauthorized -> false
+            // An address this app refuses is not one it will change its mind about.
+            is NotAFeed, is Malformed, is Unauthorized, is RefusedAddress -> false
         }
 
     /**

@@ -66,7 +66,16 @@ public actor OpdsClient {
     private let session: URLSession
     private let trust: OpdsTrustDelegate
 
-    public init(pins: CertificatePins = CertificatePins(), configuration: URLSessionConfiguration? = nil) {
+    /// The origin of the source this client was made for, or nil when the caller is asking
+    /// about an address the reader typed and there is nothing else to compare it against.
+    private let home: OpdsOrigin?
+
+    public init(
+        pins: CertificatePins = CertificatePins(),
+        origin: OpdsOrigin? = nil,
+        configuration: URLSessionConfiguration? = nil
+    ) {
+        home = origin
         let delegate = OpdsTrustDelegate(pins: pins)
         let configured = configuration ?? {
             let configuration = URLSessionConfiguration.ephemeral
@@ -136,8 +145,17 @@ public actor OpdsClient {
         _ url: URL,
         credential: OpdsCredential?
     ) async throws -> (data: Data, response: HTTPURLResponse) {
+        // The origin decides, and it is the configured source's — not the address in hand.
+        // A feed that names `http://collect.attacker.example/x` names it in the same field
+        // a legitimate cover comes in, and the cover field is fetched with no tap at all.
+        guard OpdsOrigin.isFetchable(url) else { throw OpdsError.refusedAddress }
+        let origin = home ?? OpdsOrigin(url: url)
+        if origin?.downgrades(url) == true { throw OpdsError.refusedAddress }
+
         var request = URLRequest(url: url)
-        if let credential { request.setValue(credential.header, forHTTPHeaderField: "Authorization") }
+        if let credential, origin?.admits(url) == true {
+            request.setValue(credential.header, forHTTPHeaderField: "Authorization")
+        }
 
         let data: Data
         let response: URLResponse
@@ -157,6 +175,11 @@ public actor OpdsClient {
         switch http.statusCode {
         case 200...299:
             return (data, http)
+        case 300...399:
+            // A redirect only reaches here when the delegate declined to follow it, and it
+            // declines for one reason: the address it named is not one this app follows.
+            // Android's manual redirect loop reports the same thing for the same case.
+            throw OpdsError.refusedAddress
         case 401:
             // Which scheme, so the prompt can ask for the right thing. A server that wants
             // a token and is handed a username fails in a way that looks like a wrong

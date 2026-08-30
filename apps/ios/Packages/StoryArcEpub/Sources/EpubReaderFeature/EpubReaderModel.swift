@@ -89,6 +89,14 @@ public final class EpubReaderModel {
     /// means — the reader keeps their page and their place in the sentence.
     public internal(set) var note: String?
 
+    /// Where the book is asking to send the reader, or nil when it is not asking.
+    ///
+    /// A publication is untrusted input, and `ebook-reader` hands an external link to the
+    /// system rather than opening it over the text. Handed straight over, that is the book
+    /// choosing which installed app runs. So it becomes a question with the host in it, and
+    /// nothing that is not a web address ever gets this far — see ``askToLeave(for:)``.
+    public internal(set) var leaving: ExternalLink?
+
     /// Where the reader was before a jump, or nil when they have not jumped.
     ///
     /// `ebook-reader`: "a longer jump navigates with a control to return to where they

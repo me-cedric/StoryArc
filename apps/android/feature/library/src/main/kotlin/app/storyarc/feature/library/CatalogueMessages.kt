@@ -21,6 +21,7 @@ internal object CatalogueMessages {
     fun describe(context: Context, error: OpdsError): String = when (error) {
         is OpdsError.Unauthorized -> context.getString(R.string.catalogue_error_unauthorized)
         is OpdsError.Empty -> context.getString(R.string.catalogue_error_empty)
+        is OpdsError.RefusedAddress -> context.getString(R.string.catalogue_error_refused_address)
         is OpdsError.NotAFeed -> when (val received = error.received) {
             is OpdsError.Received.Html -> context.getString(R.string.catalogue_error_html)
             is OpdsError.Received.Unrecognised -> context.getString(
