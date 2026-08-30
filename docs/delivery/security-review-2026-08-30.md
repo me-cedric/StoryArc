@@ -466,7 +466,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - docs/openspec/specs/settings-and-about/spec.md:56-58 — 'cache, reading history, and downloads are individually clearable, each stating what it removes'.
 
 
-### 20. marmelroy/Zip 2.1.2 is linked into the iOS binary carrying an unfixable path-traversal CVE, and nothing calls it
+### 20. NEEDS A DECISION — marmelroy/Zip 2.1.2 is linked into the iOS binary carrying an unfixable path-traversal CVE, and nothing calls it
 
 **· informational** · ios · dependency · effort: small · CVE-2023-39135 · **CONFIRMED**
 

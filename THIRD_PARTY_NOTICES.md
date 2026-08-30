@@ -48,3 +48,18 @@ digest over every copied source are in
 `pnpm libarchive:pin` fails when any of the places that state a version disagree. Nothing
 else would notice: copied sources have no package manifest, so this table said 3.7.7
 while the tree was at 3.8.1.
+
+## marmelroy/Zip, if a scanner reports it
+
+A composition analysis of an iOS release build will flag **CVE-2023-39135** against
+`marmelroy/Zip` 2.1.2, a path traversal with **no fixed release in existence**. It is
+worth a sentence here so nobody re-investigates it: StoryArc does not declare Zip,
+`readium/swift-toolkit` names it as a target dependency of `ReadiumShared` and then never
+calls it, and neither does anything in this repository. The shipped binary defines its
+symbols and has no undefined reference to any of them. The ZIP reading that actually
+happens goes through StoryArc's own reader
+([ADR-0008](docs/decisions/0008-ranged-reads-and-own-zip-reader.md)) and, for EPUB,
+through `readium/ZIPFoundation`, which carries the containment fix.
+
+The full assessment, the options and the guard that keeps it true are in
+[ADR-0014](docs/decisions/0014-unpatchable-zip-in-the-readium-graph.md).

@@ -25,6 +25,7 @@ ADR that supersedes it rather than quietly doing something else.
 | [0011](0011-home-screen-widgets.md) | Home-screen widgets wait for a shared snapshot, and for a signing team | Accepted — deferral |
 | [0012](0012-pdf-text-on-android.md) | PDF text on Android comes from the platform's own PDF module | Accepted |
 | [0013](0013-cb7-support.md) | CB7: what a 7-Zip decoder would cost, and three ways to answer it | **Proposed** — open, awaiting a decision |
+| [0014](0014-unpatchable-zip-in-the-readium-graph.md) | An unpatchable ZIP library ships in the iOS binary, and nothing calls it | **Proposed** — open, awaiting a decision |
 
 ## Considered options
 

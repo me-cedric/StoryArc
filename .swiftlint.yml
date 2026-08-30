@@ -44,3 +44,16 @@ file_length:
 function_body_length:
   warning: 50
   error: 100
+
+custom_rules:
+  # marmelroy/Zip 2.1.2 is linked into the app because ReadiumShared names it as a
+  # target dependency, and it carries CVE-2023-39135 — a path traversal on crafted
+  # entry names, with no fixed release in existence. Nothing calls it today, in
+  # Readium or here, which is the only reason it is tolerable. This rule is what
+  # keeps that true: the day someone reaches for the already-linked module, the
+  # build stops instead of quietly inheriting the traversal. ADR-0014.
+  no_marmelroy_zip:
+    name: "marmelroy/Zip is unpatched"
+    regex: '^\s*(public |internal |private |fileprivate |package )?import Zip\s*$'
+    message: "Zip 2.1.2 carries an unfixed path traversal (CVE-2023-39135). Use StoryArc's own ZipReader — ADR-0008, ADR-0014."
+    severity: error
