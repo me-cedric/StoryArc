@@ -38,6 +38,11 @@ dependencies {
     api(libs.androidx.compose.ui)
     api(libs.androidx.compose.ui.graphics)
     api(libs.androidx.compose.material3)
+    // The navigation shell and the window measurement it adapts on. `api`, because
+    // `NavigationSuiteType` appears in this module's own surface: a caller asking for
+    // the adaptive shell names one.
+    api(libs.androidx.compose.material3.adaptive.navigation.suite)
+    api(libs.androidx.compose.material3.adaptive)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

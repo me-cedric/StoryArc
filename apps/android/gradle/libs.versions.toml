@@ -36,6 +36,21 @@ composeBom = "2026.08.00"
 # to use them. Pinned explicitly rather than taken from the BOM. Known risk,
 # recorded in apps/android/README.md — move to 1.5.0 stable when it ships.
 material3 = "1.5.0-alpha26"
+# The navigation shell. `NavigationSuiteScaffold` places the three destinations as a
+# short navigation bar on a phone and a wide rail on a tablet. It is published on the
+# material3 line and declares a strict dependency on material3 at the identical
+# version, so it takes that version ref rather than one of its own — the two can only
+# move together. Nothing this app uses from it is experimental at alpha26: the
+# scaffold, its item scope, `NavigationSuiteType` and
+# `NavigationSuiteScaffoldDefaults.navigationSuiteType` are all stable API there,
+# which is why adding the shell did **not** require the alpha pin above to move.
+#
+# The adaptive libraries are a different line and a stable one: 1.3.0 shipped on
+# 12 Aug 2026 and carries none of the material3 alpha risk. `adaptive` supplies
+# `currentWindowAdaptiveInfo()`, which is what tells the scaffold how much room the
+# window has. `adaptive-layout` and `adaptive-navigation` are declared here for the
+# pane scaffolds the tablet slice needs, and are not applied to a module yet.
+material3Adaptive = "1.3.0"
 kotlinxCoroutines = "1.11.0"
 junit = "4.13.2"
 androidxJunit = "1.3.0"
@@ -68,7 +83,11 @@ androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "u
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
-androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
+androidx-compose-material3-adaptive-navigation-suite = { group = "androidx.compose.material3", name = "material3-adaptive-navigation-suite", version.ref = "material3" }
+androidx-compose-material3-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive", version.ref = "material3Adaptive" }
+androidx-compose-material3-adaptive-layout = { group = "androidx.compose.material3.adaptive", name = "adaptive-layout", version.ref = "material3Adaptive" }
+androidx-compose-material3-adaptive-navigation = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation", version.ref = "material3Adaptive" }
+androidx-compose-material-icons-extended ={ group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
 
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
