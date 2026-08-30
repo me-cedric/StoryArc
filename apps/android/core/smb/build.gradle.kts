@@ -29,6 +29,17 @@ android {
 }
 
 dependencies {
+    // jcifs-ng was built against BouncyCastle 1.76 and parses the SPNEGO tokens the
+    // server chooses with it. 1.76 is inside CVE-2025-8885, so it is raised here rather
+    // than added as a dependency: no source in this module imports BouncyCastle, and
+    // declaring it would say otherwise. jcifs-ng touches only long-stable ASN.1, HMAC
+    // and KDF APIs, so the newer artifact is a drop-in.
+    constraints {
+        implementation(libs.bouncycastle.bcprov) {
+            because("CVE-2025-8885: unbounded allocation parsing a server's SPNEGO ASN.1 object identifier")
+        }
+    }
+
     api(project(":core:format"))
     implementation(libs.jcifs.ng)
     implementation(libs.kotlinx.coroutines.core)

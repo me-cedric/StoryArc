@@ -413,7 +413,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - Android does verify what it signs: jcifs-ng ships `jcifs/internal/smb2/Smb2SigningDigest.class` with a `verify` method — the gap here is only that signing is not requested.
 
 
-### 17. BouncyCastle 1.76 ships transitively via jcifs-ng and parses server-controlled SPNEGO ASN.1, inside the CVE-2025-8885 affected range
+### 17. FIXED — BouncyCastle 1.76 ships transitively via jcifs-ng and parses server-controlled SPNEGO ASN.1, inside the CVE-2025-8885 affected range
 
 **⚪ low** · android · dependency · effort: small · CVE-2025-8885 · **UNPROVEN**
 
@@ -483,7 +483,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - The ZIP reading that actually happens goes elsewhere: swift-toolkit's ZIPFoundationArchiveFactory/ZIPFoundationContainer use readium/ZIPFoundation 3.0.1, whose checkout carries the CVE-2023-39138 containment fix (FileManager+ZIP.swift:111 `guard entryURL.isContained(in: destinationURL)`, Archive+Reading.swift:64-65 `allowUncontainedSymlinks` / `ArchiveError.uncontainedSymlink`) — that advisory is cleared for this pin. And apps/ios/Packages/StoryArcKit/Package.swift:47-51 records that ADR-0008 replaced ZIPFoundation with StoryArc's own ranged-read ZIP reader for CBZ.
 
 
-### 21. jsoup 1.22.2 falls inside the CVE-2026-71497 range, but the advisory exempts built-in Safelists and Readium uses only those
+### 21. NOT A DEFECT — jsoup 1.22.2 falls inside the CVE-2026-71497 range, but the advisory exempts built-in Safelists and Readium uses only those
 
 **· informational** · android · dependency · effort: small · CVE-2026-71497 · **CONFIRMED**
 

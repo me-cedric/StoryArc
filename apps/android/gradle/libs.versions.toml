@@ -14,6 +14,14 @@ coreKtx = "1.19.0"
 # extension level is a real guard rather than a boolean. ADR-0011.
 androidxAnnotation = "1.10.0"
 jcifsNg = "2.1.10"
+# Not a library this app calls. jcifs-ng declares 1.76 and hands it the SPNEGO
+# tokens an SMB server sends during session setup, and 1.76 is inside the
+# CVE-2025-8885 range: an object identifier with an oversized arc makes
+# ASN1ObjectIdentifier allocate without bound, so a hostile or spoofed NAS can
+# have the app killed for memory pressure whenever the reader opens that share.
+# Fixed in 1.78; 1.84 is current. Applied as a constraint in :core:smb rather
+# than as a dependency, because nothing here imports BouncyCastle.
+bouncycastle = "1.84"
 lifecycle = "2.11.0"
 activityCompose = "1.13.0"
 # ADR-0005: Readium renders reflowable EPUB. iOS pins the same 3.x line.
@@ -73,6 +81,9 @@ androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espres
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 # `network-share` needs SMB 2/3, which Android has no API for. ADR-0010.
 jcifs-ng = { group = "eu.agno3.jcifs", name = "jcifs-ng", version.ref = "jcifsNg" }
+# Declared only so :core:smb can constrain what jcifs-ng drags in. See the
+# version note above — this is never added as a dependency.
+bouncycastle-bcprov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
