@@ -1,0 +1,139 @@
+views {
+
+  // ---------------------------------------------------------------------
+  // C4 level 1 — system context
+  // ---------------------------------------------------------------------
+  view index {
+    title 'Context — two apps, one contract, no server'
+    description '''
+      The thing a newcomer gets wrong first: StoryArc is **two products**, not
+      one product with two front ends. `apps/ios` and `apps/android` share no
+      code and no runtime. There is no edge between them on purpose — what
+      keeps them the same app is the declarative artefacts they both read, and
+      nothing else. ADR-0001.
+
+      Note what is missing. There is no StoryArc service anywhere on this
+      diagram, because there is none in the product: no backend, no accounts,
+      no analytics, no crash reporting. Every arrow leaving an app lands on
+      something the reader owns or chose.
+    '''
+
+    include reader
+    include ios
+    include android
+    include shared
+    include deviceStorage
+    include smbShare
+    include opdsCatalogue
+    include kavitaServer
+    include noBackend
+
+    autoLayout TopBottom 110 100
+  }
+
+  // ---------------------------------------------------------------------
+  // C4 level 2 — containers
+  // ---------------------------------------------------------------------
+  view iosContainers of ios {
+    title 'iOS containers — StoryArcKit, StoryArcEpub and the app target'
+    description '''
+      One app target and two local SPM packages. `StoryArcEpub` exists only
+      because the Readium Swift toolkit declares iOS support alone while
+      `StoryArcKit` also builds for macOS, so its pure-Swift targets can be
+      tested on the host without a simulator.
+
+      No feature target depends on another: the library opens the reader
+      through the app layer.
+    '''
+
+    include ios
+    include ios.*
+    include ios.kit.*
+    include ios.epubPackage.*
+    include shared.libarchive
+    include shared.fonts
+    include shared.licences
+    include deviceStorage, smbShare, opdsCatalogue, kavitaServer
+
+    autoLayout TopBottom 100 90
+  }
+
+  view androidContainers of android {
+    title 'Android containers — flat Gradle modules'
+    description '''
+      The same shape reached a different way: flat Gradle modules under one
+      `settings.gradle.kts`, with EPUB rendering as an ordinary feature module
+      because no platform floor forces it out. Compare the module names against
+      `:core:*` and `:feature:*` in the settings file.
+    '''
+
+    include android
+    include android.*
+    include shared.libarchive
+    include deviceStorage, smbShare, opdsCatalogue, kavitaServer
+
+    autoLayout TopBottom 100 90
+  }
+
+  view sharedArtefacts of shared {
+    title 'What the two apps actually share'
+    description '''
+      Five declarative artefacts and one C library. Nothing here is a runtime
+      either app links against, except the vendored libarchive sources, which
+      are compiled twice from a single copy — by SwiftPM on iOS and by CMake
+      and the NDK on Android, against one hand-authored `config.h`.
+    '''
+
+    include shared
+    include shared.*
+    include ios
+    include android
+    include ios.kit.formats
+    include android.coreFormat
+
+    autoLayout LeftRight 110 90
+  }
+
+  // ---------------------------------------------------------------------
+  // C4 level 3 — components, in the layer that most needs one
+  // ---------------------------------------------------------------------
+  view iosFormatComponents of ios.kit.formats {
+    title 'Components — the iOS format layer'
+    description '''
+      The drift hotspot. Everything here reads through `RandomAccessSource`,
+      so indexing a CBR on a network share never downloads it (ADR-0008), and
+      every field read is bounds-checked because the input is untrusted.
+
+      `libarchive` has exactly one caller and exactly one job: decompressing a
+      RAR entry. Headers need no decoder, which is why 26 of libarchive 132
+      sources are vendored rather than all of them (ADR-0005).
+    '''
+
+    include ios.kit.formats
+    include ios.kit.formats.*
+    include shared.libarchive
+
+    autoLayout TopBottom 90 80
+  }
+
+  view androidFormatComponents of android.coreFormat {
+    title 'Components — the Android format layer'
+    description '''
+      Hold this beside the iOS view. The spine is mirrored deliberately, type
+      for type and test case for test case, because this layer already produced
+      one silent cross-platform divergence.
+
+      The three components with no iOS counterpart are `SafTree`, `UriSource`
+      and `DocumentFolderArchive`, and they exist for one reason: Android does
+      not hand an app a path for a user-picked folder. Rather than change the
+      contract, the platform difference is absorbed by one adapter behind
+      `RandomAccessSource`, so every reader above it is unchanged.
+    '''
+
+    include android.coreFormat
+    include android.coreFormat.*
+    include shared.libarchive
+
+    autoLayout TopBottom 90 80
+  }
+}

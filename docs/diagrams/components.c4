@@ -1,0 +1,178 @@
+// The format layer, at the C4 component level, on both platforms.
+//
+// This is the one layer the project deliberately mirrors rather than merely
+// specifies, because it has already produced a silent cross-platform
+// divergence. Each component below is a type that exists in the named module;
+// each edge is a use in code, not in a doc comment.
+model {
+
+  extend ios.kit.formats {
+    #mirrored
+
+    iosSource = component 'RandomAccessSource' {
+      description 'The seam. A protocol yielding bytes at an offset, so a reader never learns whether it is on disk, on a share, or behind a provider. ADR-0008.'
+    }
+    iosBytes = component 'ByteReader' 'Bounds-checked little-endian field reads over a buffer. No length out of a file is ever used to allocate.'
+
+    iosZip = component 'ZipReader' 'The central directory is the only authority; local headers carry zeros when a data descriptor is used. Inflate comes from Compression.'
+    iosTar = component 'TarReader' '512-byte headers, no compression. GNU long names and pax path= handled by hand.'
+    iosRar = component 'RarReader' 'RAR4 and RAR5 headers. Indexing needs no decoder, so a remote CBR is indexed without downloading it.'
+    iosRarDecoder = component 'RarDecoder' 'The only caller of libarchive, and only to decompress one entry.'
+    iosImageFolder = component 'ImageFolderArchive' 'An unpacked comic in a directory.'
+
+    iosComicArchive = component 'ComicArchive' 'Sniffs the container and routes to one of the four readers above.'
+
+    iosOrdering = component 'PageOrdering' 'Natural sort over entry names. The mirrored algorithm; the digit-run overflow bug lived here.'
+    iosCodec = component 'PageCodec' 'Which entry names count as a page.'
+    iosDecoder = component 'PageDecoder' {
+      description 'Decodes and downsamples one page.'
+      technology 'ImageIO / CGImageSource'
+    }
+
+    iosFormat = component 'PublicationFormat' 'CBZ, CBR, CBT, EPUB, PDF or folder, decided by content rather than by extension.'
+    iosComicInfo = component 'ComicInfo' 'ComicInfo.xml metadata.'
+    iosFilenameMetadata = component 'FilenameMetadata' 'Series, volume and issue recovered from a filename when nothing better exists.'
+
+    iosEpub = component 'EpubReader' 'EPUB container, OPF and spine parsing for the library. Not the renderer.'
+    iosEpubCover = component 'EpubSpineCover' 'The cover of a fixed-layout EPUB, which is a page of the spine rather than a manifest item.'
+
+    iosPdf = component 'PdfDocumentReader' {
+      description 'Page count, page rendering and the text layer.'
+      technology 'PDFKit'
+    }
+
+    iosIndexer = component 'PublicationIndexer' 'Opens one publication and produces the row the library stores.'
+    iosScanner = component 'LibraryScanner' 'Walks a source and indexes what it finds.'
+    iosCoverLoader = component 'CoverLoader' 'Produces a cover for any publication, whatever its format.'
+    iosCoverCache = component 'CoverCache' 'On-disk cover cache. Read by LibraryFeature, not from inside this module.'
+  }
+
+  extend android.coreFormat {
+    #mirrored
+
+    androidSource = component 'RandomAccessSource' {
+      description 'The same seam, same contract. ADR-0008.'
+    }
+    androidBytes = component 'ByteReader' 'Bounds-checked little-endian field reads over a buffer.'
+
+    androidZip = component 'ZipReader' 'The central directory is the only authority. Mirrors the iOS reader case for case.'
+    androidTar = component 'TarReader' '512-byte headers, no compression.'
+    androidRar = component 'RarReader' 'RAR4 and RAR5 headers, without a decoder.'
+    androidRarDecoder = component 'RarDecoder' {
+      description 'The JNI bridge. Loads libstoryarc_rar, which CMake builds from the vendored libarchive sources.'
+      technology 'JNI'
+    }
+    androidImageFolder = component 'ImageFolderArchive' 'An unpacked comic in a directory reachable by path.'
+
+    androidComicArchive = component 'ComicArchive' 'Sniffs the container and routes to a reader.'
+
+    androidOrdering = component 'PageOrdering' 'Natural sort over entry names. Asserted case for case against the iOS enum.'
+    androidCodec = component 'PageCodec' 'Which entry names count as a page.'
+    androidDecoder = component 'PageDecoder' {
+      description 'Decodes and downsamples one page.'
+      technology 'BitmapFactory'
+    }
+
+    androidFormat = component 'PublicationFormat' 'Decided by content rather than by extension.'
+    androidComicInfo = component 'ComicInfo' 'ComicInfo.xml metadata.'
+    androidFilenameMetadata = component 'FilenameMetadata' 'Series, volume and issue recovered from a filename.'
+
+    androidEpub = component 'EpubReader' 'Container, OPF and spine parsing for the library. Not the renderer.'
+    androidEpubCover = component 'EpubSpineCover' 'The cover of a fixed-layout EPUB.'
+
+    androidPdf = component 'PdfDocumentReader' {
+      description 'Page count, page rendering and the text layer.'
+      technology 'android.graphics.pdf.PdfRenderer'
+    }
+
+    androidIndexer = component 'PublicationIndexer' 'Opens one publication and produces the row the library stores.'
+    androidScanner = component 'LibraryScanner' 'Walks a source and indexes what it finds.'
+    androidCoverLoader = component 'CoverLoader' 'Produces a cover for any publication, whatever its format.'
+    androidCoverCache = component 'CoverCache' 'On-disk cover cache. Read by feature:library, not from inside this module.'
+
+    // The three components with no iOS counterpart. Android does not hand an
+    // app a path for a user-picked folder, so the whole layer had to grow an
+    // adapter for content Uris rather than change its contract.
+    androidSafTree = component 'SafTree' 'A folder picked through the Storage Access Framework, listed through a ContentProvider.'
+    androidUriSource = component 'UriSource' 'A RandomAccessSource over a content Uri, so a CBZ on a cloud provider indexes with the same ranged reads as one on internal storage.'
+    androidDocumentFolder = component 'DocumentFolderArchive' 'The SAF counterpart of ImageFolderArchive. Pages are documents enumerated at open time, so no path can be constructed and none can escape.'
+  }
+
+  // --- iOS format edges -------------------------------------------------
+
+  ios.kit.formats.iosZip -> ios.kit.formats.iosBytes
+  ios.kit.formats.iosZip -> ios.kit.formats.iosSource
+  ios.kit.formats.iosTar -> ios.kit.formats.iosSource
+  ios.kit.formats.iosRar -> ios.kit.formats.iosSource
+
+  ios.kit.formats.iosComicArchive -> ios.kit.formats.iosZip
+  ios.kit.formats.iosComicArchive -> ios.kit.formats.iosTar
+  ios.kit.formats.iosComicArchive -> ios.kit.formats.iosRar
+  ios.kit.formats.iosComicArchive -> ios.kit.formats.iosRarDecoder
+  ios.kit.formats.iosComicArchive -> ios.kit.formats.iosImageFolder
+  ios.kit.formats.iosComicArchive -> ios.kit.formats.iosOrdering
+  ios.kit.formats.iosComicArchive -> ios.kit.formats.iosSource
+
+  ios.kit.formats.iosOrdering -> ios.kit.formats.iosCodec
+  ios.kit.formats.iosRarDecoder -> shared.libarchive 'links'
+
+  ios.kit.formats.iosIndexer -> ios.kit.formats.iosComicArchive
+  ios.kit.formats.iosIndexer -> ios.kit.formats.iosEpub
+  ios.kit.formats.iosIndexer -> ios.kit.formats.iosEpubCover
+  ios.kit.formats.iosIndexer -> ios.kit.formats.iosPdf
+  ios.kit.formats.iosIndexer -> ios.kit.formats.iosComicInfo
+  ios.kit.formats.iosIndexer -> ios.kit.formats.iosFilenameMetadata
+  ios.kit.formats.iosIndexer -> ios.kit.formats.iosFormat
+
+  ios.kit.formats.iosScanner -> ios.kit.formats.iosIndexer
+
+  ios.kit.formats.iosCoverLoader -> ios.kit.formats.iosIndexer
+  ios.kit.formats.iosCoverLoader -> ios.kit.formats.iosComicArchive
+  ios.kit.formats.iosCoverLoader -> ios.kit.formats.iosEpub
+  ios.kit.formats.iosCoverLoader -> ios.kit.formats.iosEpubCover
+  ios.kit.formats.iosCoverLoader -> ios.kit.formats.iosPdf
+  ios.kit.formats.iosCoverLoader -> ios.kit.formats.iosDecoder
+
+  // --- Android format edges ---------------------------------------------
+
+  android.coreFormat.androidZip -> android.coreFormat.androidBytes
+  android.coreFormat.androidZip -> android.coreFormat.androidSource
+  android.coreFormat.androidTar -> android.coreFormat.androidSource
+  android.coreFormat.androidRar -> android.coreFormat.androidSource
+  android.coreFormat.androidUriSource -> android.coreFormat.androidSource 'implements'
+
+  android.coreFormat.androidComicArchive -> android.coreFormat.androidZip
+  android.coreFormat.androidComicArchive -> android.coreFormat.androidTar
+  android.coreFormat.androidComicArchive -> android.coreFormat.androidRar
+  android.coreFormat.androidComicArchive -> android.coreFormat.androidRarDecoder
+  android.coreFormat.androidComicArchive -> android.coreFormat.androidImageFolder
+  android.coreFormat.androidComicArchive -> android.coreFormat.androidOrdering
+  android.coreFormat.androidComicArchive -> android.coreFormat.androidSource
+  android.coreFormat.androidComicArchive -> android.coreFormat.androidSafTree
+  android.coreFormat.androidComicArchive -> android.coreFormat.androidUriSource
+
+  android.coreFormat.androidOrdering -> android.coreFormat.androidCodec
+  android.coreFormat.androidRarDecoder -> shared.libarchive 'loads, as libstoryarc_rar'
+
+  android.coreFormat.androidIndexer -> android.coreFormat.androidComicArchive
+  android.coreFormat.androidIndexer -> android.coreFormat.androidEpub
+  android.coreFormat.androidIndexer -> android.coreFormat.androidEpubCover
+  android.coreFormat.androidIndexer -> android.coreFormat.androidPdf
+  android.coreFormat.androidIndexer -> android.coreFormat.androidComicInfo
+  android.coreFormat.androidIndexer -> android.coreFormat.androidFilenameMetadata
+  android.coreFormat.androidIndexer -> android.coreFormat.androidFormat
+  android.coreFormat.androidIndexer -> android.coreFormat.androidImageFolder
+  android.coreFormat.androidIndexer -> android.coreFormat.androidUriSource
+
+  android.coreFormat.androidScanner -> android.coreFormat.androidIndexer
+  android.coreFormat.androidScanner -> android.coreFormat.androidSafTree
+  android.coreFormat.androidScanner -> android.coreFormat.androidUriSource
+
+  android.coreFormat.androidCoverLoader -> android.coreFormat.androidIndexer
+  android.coreFormat.androidCoverLoader -> android.coreFormat.androidComicArchive
+  android.coreFormat.androidCoverLoader -> android.coreFormat.androidEpub
+  android.coreFormat.androidCoverLoader -> android.coreFormat.androidEpubCover
+  android.coreFormat.androidCoverLoader -> android.coreFormat.androidPdf
+  android.coreFormat.androidCoverLoader -> android.coreFormat.androidDecoder
+  android.coreFormat.androidCoverLoader -> android.coreFormat.androidUriSource
+}
