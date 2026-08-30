@@ -1,0 +1,49 @@
+flowchart TD
+    file["A file arrives: picked, scanned, downloaded, or on a share"]
+    source["Wrap it in a RandomAccessSource, never a path"]
+    dir{"Is it a directory?"}
+    folder["ImageFolderArchive, or DocumentFolderArchive over a content URI"]
+    probe["Read 265 bytes: TAR announces itself at offset 257"]
+    sniff{"FormatSniffer.container"}
+
+    isepub{"Do the ZIP's contents hold an EPUB package document?"}
+    epub["EpubReader: structure, metadata, spine, cover. No dependency"]
+    readium["Reflowable rendering needs Readium, and is not built yet"]
+
+    zip["ZipComicArchive, ours"]
+    tar["TarComicArchive, ours"]
+    rar["RarComicArchive, ours, plus libarchive for decompression only"]
+    pdf["PdfDocumentReader: a page is rendered, not extracted"]
+
+    refuse7z["Named refusal: 7-Zip"]
+    refuseNone["Named refusal: the format was not recognised"]
+
+    reading["ComicArchiveReading: pages, skippedPageCount, data for one page"]
+    skipped["Unreadable entries are counted and reported, never fatal"]
+    decode["PageDecoder: ImageIO on Apple, ImageDecoder on Android"]
+    codec["PageCodec names the codec, so the placeholder can say what it was"]
+    window["The page window the reader draws"]
+
+    file --> source
+    source --> dir
+    dir -->|Yes| folder
+    dir -->|No| probe
+    probe --> sniff
+    sniff -->|zip| isepub
+    isepub -->|Yes| epub
+    epub --> readium
+    isepub -->|No| zip
+    sniff -->|tar| tar
+    sniff -->|rar| rar
+    sniff -->|pdf| pdf
+    sniff -->|sevenZip| refuse7z
+    sniff -->|no match| refuseNone
+    folder --> reading
+    zip --> reading
+    tar --> reading
+    rar --> reading
+    reading --> skipped
+    reading --> decode
+    decode -->|the platform refuses the bytes| codec
+    decode --> window
+    pdf --> window

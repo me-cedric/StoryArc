@@ -1,0 +1,39 @@
+flowchart TD
+    read["The reader turns a page, or leaves the reader"]
+    local["Write locally first, always. Local is authoritative; sync is a projection"]
+
+    identity{"Which identity does this publication get?"}
+    server["1. The server's own identifier, when the source has one"]
+    digest["2. Content digest: size, plus the first and last 64 KB"]
+    path["3. A normalised path, the last resort"]
+
+    store["ProgressStore: the three components are separate columns, filled in as they become known"]
+
+    sync["A Kavita sync compares the remote position against the local one"]
+
+    rule1["Remote ahead, local unchanged since last sync: adopt remote, silently"]
+    rule2["Remote behind local: keep local, and push it"]
+    rule3["Both changed since last sync: adopt the further position, tell the reader once"]
+    rule4["One finished, one partial: finished wins"]
+
+    gap1["NOT REACHABLE: syncedPosition is never written, so local always looks moved. Falls through to rule 3"]
+    gap2["REACHED, PUSHES NOTHING: the toPush pile is discarded by both callers"]
+    report["Positions reach the server by KavitaSync.report, on leaving the reader"]
+
+    read --> local
+    local --> identity
+    identity -->|the source has one| server
+    identity -->|a digest was computed| digest
+    identity -->|every library scan lands here| path
+    server --> store
+    digest --> store
+    path --> store
+    store --> sync
+    sync --> rule1
+    sync --> rule2
+    sync --> rule3
+    sync --> rule4
+    rule1 --> gap1
+    gap1 --> rule3
+    rule2 --> gap2
+    gap2 --> report

@@ -1,0 +1,22 @@
+stateDiagram-v2
+    [*] --> Queued: the reader asks for a download
+
+    Queued --> Running: a transfer slot is free
+    Running --> Queued: the app restarted and the transfer was not carried over
+
+    Running --> PausedByReader: the reader paused it
+    Running --> WaitingForWiFi: metered connection, Wi-Fi-only is on
+    Running --> OutOfSpace: the device is out of room
+
+    PausedByReader --> Queued: the reader resumed it
+    WaitingForWiFi --> Queued: an unmetered connection is back
+    OutOfSpace --> Queued: the reader freed space, never the app silently
+
+    Running --> Failed: three attempts, still failing
+    Failed --> Queued: the reader retries
+
+    Running --> Finished: the file is complete and verified
+
+    Finished --> Swept: the reader finished reading the publication
+    Swept --> Finished: undo, within ten seconds
+    Swept --> [*]: ten seconds elapse and the bytes are settled

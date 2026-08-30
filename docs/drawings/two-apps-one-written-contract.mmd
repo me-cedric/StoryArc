@@ -1,0 +1,44 @@
+flowchart TD
+    contract["The shared contract: three artefacts, all of them declarative"]
+
+    spec["docs/openspec/specs: 17 capabilities, 315 scenarios"]
+    tokens["packages/design-tokens: one OKLCH source"]
+    fixtures["packages/test-fixtures: one corpus and its manifest.json"]
+
+    validate["pnpm spec:validate, in CI"]
+    swifttok["Generated Swift tokens"]
+    kotlintok["Generated Kotlin tokens"]
+
+    ios["apps/ios: Swift, SwiftUI, one SPM package"]
+    android["apps/android: Kotlin, Compose, four Gradle modules"]
+
+    iossuite["iOS suite asserts the recorded expectations"]
+    androidsuite["Android suite asserts the same recorded expectations"]
+    honest["The only thing stopping two implementations from privately disagreeing"]
+
+    crossing{"May code cross between the two apps?"}
+    never["Never. No shared core, no shared runtime, no cross-platform toolkit"]
+    exception["One exception: reflowable EPUB content, which is HTML by definition"]
+
+    contract --> spec
+    contract --> tokens
+    contract --> fixtures
+
+    spec --> validate
+    validate --> ios
+    validate --> android
+
+    tokens --> swifttok
+    tokens --> kotlintok
+    swifttok --> ios
+    kotlintok --> android
+
+    fixtures --> iossuite
+    fixtures --> androidsuite
+    iossuite --> honest
+    androidsuite --> honest
+
+    ios --> crossing
+    android --> crossing
+    crossing -->|No| never
+    crossing -->|the single exception| exception
