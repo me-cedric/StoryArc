@@ -108,6 +108,51 @@ struct LibraryIndexTests {
         #expect(titles(sorted) == ["Bone #2", "Bone #9", "Bone #10"])
     }
 
+    @Test("A publication with no series sorts after every publication that has one")
+    func seriesSortPutsStandalonesLast() {
+        // "Zephyr" used to sort by its title *among* the series names, landing between
+        // "Ashfall" and "Blackwater" — which splits the standalone pile in two and stops a
+        // sectioned shelf from dividing at all.
+        let library = [
+            publication("Blackwater #1", series: "Blackwater", number: "1"),
+            publication("Zephyr"),
+            publication("Ashfall #2", series: "Ashfall", number: "2"),
+            publication("Ashfall #1", series: "Ashfall", number: "1"),
+            publication("Almanac")
+        ]
+        let sorted = LibraryIndex.arrange(library, query: LibraryQuery(sort: .series), locale: english)
+        #expect(titles(sorted) == ["Ashfall #1", "Ashfall #2", "Blackwater #1", "Almanac", "Zephyr"])
+    }
+
+    @Test("An empty series and a whitespace series are both no series")
+    func blankSeriesSortsWithTheStandalones() {
+        // A real `ComicInfo.xml` writes all three for a book that belongs to no series.
+        let library = [
+            publication("Blank", series: ""),
+            publication("Ashfall #1", series: "Ashfall", number: "1"),
+            publication("Spaces", series: "   "),
+            publication("Absent")
+        ]
+        let sorted = LibraryIndex.arrange(library, query: LibraryQuery(sort: .series), locale: english)
+        #expect(titles(sorted) == ["Ashfall #1", "Absent", "Blank", "Spaces"])
+    }
+
+    @Test("Descending keeps the standalones together, at the other end")
+    func seriesSortDescendingKeepsStandalonesContiguous() {
+        // The pile has to stay one contiguous run whichever way the shelf runs, because
+        // that is what lets it be drawn under a single heading.
+        let library = [
+            publication("Ashfall #1", series: "Ashfall", number: "1"),
+            publication("Zephyr"),
+            publication("Blackwater #1", series: "Blackwater", number: "1"),
+            publication("Almanac")
+        ]
+        let sorted = LibraryIndex.arrange(
+            library, query: LibraryQuery(sort: .series, ascending: false), locale: english
+        )
+        #expect(titles(sorted) == ["Zephyr", "Almanac", "Blackwater #1", "Ashfall #1"])
+    }
+
     @Test("Date added puts the newest first, and never-dated last")
     func dateAddedSort() {
         let library = [

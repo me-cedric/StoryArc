@@ -75,14 +75,47 @@ struct LibrarySectionTests {
 
     @Test("A shelf whose standalones fall either side of a series is not divided")
     func repeatedHeadingsRefuseTheDivision() {
-        // Sorted by series, this draws *Other*, then *Ashfall*, then *Other* again, and a
-        // reader reads the second one as a different pile. Seen on a booted simulator: one
-        // stray file sorting before the first series was enough to produce it.
+        // This shelf draws *Other*, then *Ashfall*, then *Other* again, and a reader reads
+        // the second one as a different pile. Seen on a booted simulator: one stray file
+        // sorting before the first series was enough to produce it.
+        //
+        // `LibraryIndex.compare(by: .series)` no longer *hands* the shelf over in this order
+        // — a publication with no series now sorts after every publication that has one, and
+        // `mixedLibraryDividesOnceStandalonesSortLast` below is the same books arranged by
+        // that rule. The order is written out by hand here because the refusal is the
+        // backstop: `divide` is given a list, and a list that would repeat a heading has to
+        // be refused whatever produced it.
         let shelf = [publication("archive-comment")]
             + series("Ashfall", 6)
             + [publication("truncated"), publication("zip64"), publication("tar-store")]
 
         #expect(LibrarySections.divide(shelf, by: .series).isEmpty)
+    }
+
+    @Test("A library of series and standalones, arranged by series, divides into two runs")
+    func mixedLibraryDividesOnceStandalonesSortLast() {
+        // The point of sorting a publication with no series after every publication that has
+        // one. These are the exact books the refusal above is written over; arranged rather
+        // than hand-ordered, the standalones form one contiguous pile at the end and the
+        // shelf divides cleanly instead of declining to divide at all.
+        let shelf = LibraryIndex.arrange(
+            [publication("archive-comment")]
+                + series("Ashfall", 6)
+                + [publication("truncated"), publication("zip64"), publication("tar-store")],
+            query: LibraryQuery(sort: .series),
+            locale: Locale(identifier: "en_US")
+        )
+
+        let sections = LibrarySections.divide(shelf, by: .series)
+
+        #expect(sections.count == 2)
+        #expect(sections[0].title == "Ashfall")
+        #expect(sections[0].publications.count == 6)
+        // The standalone pile, whole and in one place. Its heading is a localized word
+        // rather than data off a file, so what is asserted is that it holds all four and
+        // that no heading is drawn twice.
+        #expect(titles(sections)[1] == ["archive-comment", "tar-store", "truncated", "zip64"])
+        #expect(Set(sections.map(\.title)).count == sections.count)
     }
 
     @Test("Sections are contiguous runs, so the sort survives them")

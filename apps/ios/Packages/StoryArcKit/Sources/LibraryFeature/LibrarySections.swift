@@ -132,7 +132,7 @@ enum LibrarySections {
     private static func sharedSeries(in publications: [Publication]) -> Set<String> {
         var counts: [String: Int] = [:]
         for publication in publications {
-            guard let series = named(publication.series) else { continue }
+            guard let series = LibraryIndex.seriesName(of: publication) else { continue }
             counts[series, default: 0] += 1
         }
         return Set(counts.filter { $0.value > 1 }.keys)
@@ -163,7 +163,7 @@ enum LibrarySections {
         // Series first, as the requirement words it. It is checked before the sort's own
         // division rather than after because a reader scanning a shelf recognises *Saga*
         // long before they recognise *S*.
-        if let series = named(publication.series), sharedSeries.contains(series) {
+        if let series = LibraryIndex.seriesName(of: publication), sharedSeries.contains(series) {
             return series
         }
         switch sort {
@@ -198,14 +198,6 @@ enum LibrarySections {
         }
         guard first.isLetter else { return "#" }
         return String(first).uppercased(with: .current)
-    }
-
-    /// A series name worth using: present, and not merely whitespace.
-    private static func named(_ series: String?) -> String? {
-        guard let trimmed = series?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !trimmed.isEmpty
-        else { return nil }
-        return trimmed
     }
 
     /// The heading for everything the library cannot place.

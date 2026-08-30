@@ -206,11 +206,7 @@ public enum LibraryIndex {
             return collate(left.displayTitle, right.displayTitle, locale)
 
         case .series:
-            let bySeries = collate(left.series ?? left.displayTitle, right.series ?? right.displayTitle, locale)
-            if bySeries != .orderedSame { return bySeries }
-            // Within a series, the issue number decides — and numerically, so #10
-            // follows #9 rather than #1.
-            return order(number(of: left), number(of: right))
+            return compareBySeries(left, right, locale)
 
         // Never read sorts last whichever way the list runs: a row with no date is
         // not "the oldest", it is absent from the ordering the user asked for.
@@ -240,10 +236,58 @@ public enum LibraryIndex {
         }
     }
 
+    /// The series shelf: every series first in name order, then everything that names none.
+    ///
+    /// A publication that names no series belongs *after* every publication that names one,
+    /// not among the series names its own title happens to fall between. Ordering it among
+    /// them is what cut the standalone pile in two — "Zephyr" landing between "Ashfall" and
+    /// "Blackwater" makes *Other* two piles rather than one, and a sectioned shelf that
+    /// refuses to draw one heading twice then declines to divide the shelf at all.
+    ///
+    /// Its own function rather than a branch inside ``compare(_:_:by:locale:progress:)``:
+    /// it is the only sort key with an absent case that is a pile of its own, and Android's
+    /// `LibraryIndex` has the same block to be read against (ADR-0001).
+    private static func compareBySeries(
+        _ left: Publication,
+        _ right: Publication,
+        _ locale: Locale
+    ) -> ComparisonResult {
+        let leftSeries = seriesName(of: left)
+        let rightSeries = seriesName(of: right)
+        // One pile, alphabetical inside it, and reversing with the sort direction like every
+        // other key so the pile stays a single contiguous run either way the shelf runs.
+        if leftSeries == nil && rightSeries == nil {
+            return collate(left.displayTitle, right.displayTitle, locale)
+        }
+        guard let leftSeries else { return .orderedDescending }
+        guard let rightSeries else { return .orderedAscending }
+        let bySeries = collate(leftSeries, rightSeries, locale)
+        if bySeries != .orderedSame { return bySeries }
+        // Within a series, the issue number decides — and numerically, so #10 follows #9
+        // rather than #1.
+        return order(number(of: left), number(of: right))
+    }
+
     private static func order<T: Comparable>(_ left: T, _ right: T) -> ComparisonResult {
         if left < right { return .orderedAscending }
         if left > right { return .orderedDescending }
         return .orderedSame
+    }
+
+    /// The series a publication actually names, or `nil` when it names none.
+    ///
+    /// `nil`, `""` and `"   "` are one answer, not three. A real `ComicInfo.xml` writes all
+    /// three for a book that belongs to no series, and a rule that told them apart would
+    /// file identical shelves in different places.
+    ///
+    /// Public because the sectioned shelf has to divide on the same answer this sorts on:
+    /// were the two to disagree about a blank name, a heading would open where the order
+    /// never changed.
+    public static func seriesName(of publication: Publication) -> String? {
+        guard let trimmed = publication.series?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty
+        else { return nil }
+        return trimmed
     }
 
     private static func number(of publication: Publication) -> Double {
