@@ -3,19 +3,24 @@
 A read-only audit of both apps, run while the round-4 feature agents were building.
 This is the backlog, worked through in rank order.
 
-**Fourteen of the twenty-one are fixed**: ranks 1, 2, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18
-and 19, each with a regression test confirmed failing against the old code first. Their
-headings below are marked `FIXED`. Rank 5 is marked fixed for iOS and `NOT A DEFECT` for
-Android, where the same overflow wraps silently and is caught downstream — established from
-source rather than assumed by symmetry.
+**Every finding is resolved.** Seventeen are fixed, three need a decision a person has to
+make and now carry an ADR each, and one was refuted.
 
-**Two need a human decision and have an ADR rather than a patch**: rank 3
-([ADR-0015](../decisions/0015-epub-webview-network-egress.md), what a publication may fetch)
-and rank 11 ([ADR-0016](../decisions/0016-ios-smb-response-signing.md), unverified SMB
-responses on iOS). Both ADRs establish what each platform's dependencies actually offer and
-recommend; neither decides.
+- **Fixed (17)** — ranks 1, 2, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19. Each
+  has a regression test confirmed failing against the old code first.
+- **Needs a decision (3)** — rank 3
+  ([ADR-0015](../decisions/0015-epub-webview-network-egress.md), what a publication may
+  fetch), rank 11 ([ADR-0016](../decisions/0016-ios-smb-response-signing.md), unverified
+  SMB responses on iOS), and rank 20
+  ([ADR-0014](../decisions/0014-unpatchable-zip-in-the-readium-graph.md), an unpatchable
+  ZIP library that ships in the iOS binary and that nothing calls). Each ADR prices the
+  options and recommends one; none of them decides.
+- **Not a defect (1)** — rank 21. The jsoup advisory exempts the built-in Safelists, and
+  Readium passes an untouched `Safelist.relaxed()` at both of its two call sites.
 
-The five still open are ranks 4, 13, 17, 20 and 21.
+Rank 5 is split by platform and says so: a real defect on iOS, genuinely not one on
+Android, where the same overflow wraps silently and is caught downstream — established
+from source rather than assumed by symmetry.
 
 ## How this was produced, and how much to trust it
 
