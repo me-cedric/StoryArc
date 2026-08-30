@@ -79,6 +79,7 @@ internal class PdfTextState(
     val isCapped: StateFlow<Boolean> = _isCapped.asStateFlow()
 
     private var searchGeneration = 0
+    private var selectionGeneration = 0
 
     /** Reads what is stored. Called once, when the reader opens. */
     fun load() {
@@ -111,14 +112,26 @@ internal class PdfTextState(
 
     // Selecting
 
-    /** Selects what lies between two points, both normalised to the page. */
+    /**
+     * Selects what lies between two points, both normalised to the page.
+     *
+     * A drag asks for one of these per movement and each waits on the reader, so the answers
+     * can arrive in a different order from the questions. The generation is what stops an older
+     * answer landing on top of a newer one and leaving the mark a few words behind the finger.
+     */
     suspend fun select(page: Int, from: PdfTextPoint, to: PdfTextPoint) {
-        _selection.value = withContext(Dispatchers.IO) {
+        selectionGeneration += 1
+        val generation = selectionGeneration
+        val found = withContext(Dispatchers.IO) {
             lock.withLock { reader.selection(page, from, to) }
         }
+        if (generation != selectionGeneration) return
+        _selection.value = found
     }
 
     fun clearSelection() {
+        // Bumped, so a selection still in flight does not arrive after the reader dropped it.
+        selectionGeneration += 1
         _selection.value = null
     }
 

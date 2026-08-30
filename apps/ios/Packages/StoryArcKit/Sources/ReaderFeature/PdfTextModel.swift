@@ -76,6 +76,7 @@ public final class PdfTextModel {
     public private(set) var outline: [PdfOutlineItem] = []
 
     private var searchGeneration = 0
+    private var selectionGeneration = 0
 
     init(
         renderer: PdfPageRenderer,
@@ -129,11 +130,24 @@ public final class PdfTextModel {
     // MARK: - Selecting
 
     /// Selects what lies between two points, both normalised to the page.
+    ///
+    /// A drag asks for one of these per movement and each waits on the renderer, so the
+    /// answers can arrive in a different order from the questions — an actor makes no promise
+    /// about that. The generation is what stops an older answer landing on top of a newer one
+    /// and leaving the mark a few words behind the finger.
     public func select(onPage index: Int, from: CGPoint, to: CGPoint) async {
-        selection = await renderer.selection(onPage: index, from: from, to: to)
+        selectionGeneration += 1
+        let generation = selectionGeneration
+        let found = await renderer.selection(onPage: index, from: from, to: to)
+        guard generation == selectionGeneration else { return }
+        selection = found
     }
 
-    public func clearSelection() { selection = nil }
+    public func clearSelection() {
+        // Bumped, so a selection still in flight does not arrive after the reader dropped it.
+        selectionGeneration += 1
+        selection = nil
+    }
 
     /// Puts the selected words on the pasteboard. One of the four the spec names.
     public func copySelection() {
