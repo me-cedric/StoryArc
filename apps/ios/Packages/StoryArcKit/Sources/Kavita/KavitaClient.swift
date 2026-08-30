@@ -1,5 +1,4 @@
 public import Foundation
-public import Catalogue
 
 /// A Kavita server, and what StoryArc asks it.
 ///
@@ -16,7 +15,6 @@ public actor KavitaClient {
     public let address: KavitaAddress
 
     private let session: URLSession
-    private let pins: CertificatePins
 
     /// The session token, held only in memory.
     ///
@@ -29,13 +27,19 @@ public actor KavitaClient {
     /// What the server said about itself, once it has been asked.
     public private(set) var identity: KavitaIdentity?
 
+    /// No `pins`, and no trust delegate.
+    ///
+    /// It used to take a `CertificatePins` and store it, and nothing ever read it: the
+    /// session below is built with no delegate, so there was no `urlSession(_:didReceive:)`
+    /// hook for a pin to reach. Rank 15 of the 30 August security review — a parameter that
+    /// claims a defence it does not provide is worse than an absent one, because the next
+    /// change weakens the delegate rather than wiring it. Kavita therefore needs a
+    /// certificate the system already trusts, and the sources screen says so plainly.
     public init(
         address: KavitaAddress,
-        pins: CertificatePins = CertificatePins(),
         configuration: URLSessionConfiguration? = nil
     ) {
         self.address = address
-        self.pins = pins
         let configured = configuration ?? {
             let configuration = URLSessionConfiguration.ephemeral
             // Nothing cached to disk, for the reason the catalogue client gives: a response

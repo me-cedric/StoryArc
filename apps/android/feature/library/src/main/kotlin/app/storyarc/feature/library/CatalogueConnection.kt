@@ -10,6 +10,10 @@ import app.storyarc.core.catalogue.OpdsDocument
 import app.storyarc.core.catalogue.OpdsError
 import app.storyarc.core.catalogue.OpdsRefusal
 import app.storyarc.core.catalogue.UntrustedCertificate
+import app.storyarc.core.kavita.KavitaAddress
+import app.storyarc.core.kavita.KavitaClient
+import app.storyarc.core.kavita.KavitaError
+import app.storyarc.core.kavita.KavitaIdentity
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
@@ -82,14 +86,55 @@ class CatalogueConnection(
     /** The credential that worked, held only until the source is saved. */
     private var accepted: OpdsCredential? = null
 
-    /** Fetches the root feed and reports what came back. */
+    /**
+     * The Kavita server recognised in what the reader pasted, and what it answered with.
+     *
+     * Set only by [connect], and only for an address that carries a Kavita API key. Non-null
+     * is what makes [source] produce a Kavita source instead of a catalogue.
+     */
+    private var kavita: Pair<KavitaAddress, KavitaIdentity>? = null
+
+    /**
+     * Fetches the root feed and reports what came back.
+     *
+     * A Kavita OPDS URL never gets that far. Its path *is* the reader's full-privilege API
+     * key, so a fetch would succeed with no 401, no prompt and no secret to file — and the
+     * key-bearing URL would be written into the registry, which is `SharedPreferences` and
+     * rides along in cloud backup in the clear. `kavita-server` asks for such a paste to
+     * configure "a native Kavita source rather than a generic OPDS source", and nothing in
+     * that sentence says which sheet it was pasted into.
+     */
     fun connect() {
-        val url = OpdsDocument.address(address.value)
-        if (url == null) {
-            _step.value = Step.Failed(context.getString(R.string.catalogue_error_not_a_url))
-            return
+        // Forgotten before anything is asked. A reader who pasted a Kavita URL, then edited
+        // the field into an ordinary catalogue and connected again would otherwise save the
+        // server they had moved away from.
+        kavita = null
+        when (val target = CatalogueTarget.of(address.value)) {
+            is CatalogueTarget.Kavita -> viewModelScope.launch { connectKavita(target.address) }
+            is CatalogueTarget.Feed -> viewModelScope.launch { attempt(target.url, accepted) }
+            CatalogueTarget.Unusable ->
+                _step.value = Step.Failed(context.getString(R.string.catalogue_error_not_a_url))
         }
-        viewModelScope.launch { attempt(url, accepted) }
+    }
+
+    /**
+     * Adds the Kavita server that was pasted into the catalogue sheet.
+     *
+     * The same request the Kavita sheet makes, reported the same way, because it is the same
+     * server answering. What the reader sees is the account name they would have seen there,
+     * and what gets saved is a Kavita source.
+     */
+    private suspend fun connectKavita(target: KavitaAddress) {
+        _step.value = Step.Connecting
+        try {
+            val identity = KavitaClient(target).connect()
+            kavita = target to identity
+            _step.value = Step.Confirmed("${identity.username} · ${hostOf(target.base)}")
+        } catch (error: KavitaError) {
+            _step.value = Step.Failed(describeKavita(context, error))
+        } catch (error: java.io.IOException) {
+            _step.value = Step.Failed(CatalogueMessages.reachability(context, error))
+        }
     }
 
     /** Tries again with what the reader just typed into the credential prompt. */
@@ -136,11 +181,29 @@ class CatalogueConnection(
      */
     fun source(): Source? {
         val confirmed = _step.value as? Step.Confirmed ?: return null
+
+        // What was pasted was a Kavita server, so a Kavita source is what gets saved: the
+        // key goes to the secure store and the registry gets the base URL without it.
+        kavita?.let { (address, identity) ->
+            return kavitaSource(address, identity, credentials) ?: run {
+                _step.value = Step.Failed(
+                    context.getString(R.string.catalogue_error_secret_not_stored),
+                )
+                null
+            }
+        }
+
         val url = resolved ?: return null
 
         val id = UUID.randomUUID()
         var reference: String? = null
-        val secret = accepted
+        // A URL written as `https://user:password@host/feed` is a credential in the shape of
+        // an address, and `HttpURLConnection` authenticates from it — so the fetch succeeded
+        // with `accepted` still null and the password went to the registry as part of the
+        // locator. It is a working secret, so it moves to the secure store and the locator
+        // loses it.
+        val secret = accepted ?: CatalogueTarget.embeddedCredential(url)
+            ?.let { (user, password) -> OpdsCredential.Basic(user, password) }
         if (secret != null) {
             // Null when the secret cannot be stored, and the step says so. A catalogue whose
             // sign-in was accepted and then dropped is a row that fails on the next launch
@@ -161,7 +224,7 @@ class CatalogueConnection(
             kind = SourceKind.OPDS_CATALOG,
             state = SourceConnectionState.Connected,
             credentialReference = reference,
-            locator = url,
+            locator = CatalogueTarget.storableLocator(url),
         )
     }
 

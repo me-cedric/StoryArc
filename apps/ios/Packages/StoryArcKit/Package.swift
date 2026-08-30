@@ -104,7 +104,12 @@ let package = Package(
         .testTarget(name: "SettingsFeatureTests", dependencies: ["SettingsFeature"]),
         // The adaptive layout decides what a sidebar holds, and there is no simulator in
         // this repository's loop. What can be asserted without one is asserted here.
-        .testTarget(name: "LibraryFeatureTests", dependencies: ["LibraryFeature"]),
+        // `Catalogue` and `Kavita` are here because what the library does with an address
+        // — which of the two a pasted URL is — is asserted against both parsers.
+        .testTarget(
+            name: "LibraryFeatureTests",
+            dependencies: ["LibraryFeature", "Catalogue", "Kavita", "Persistence", "StoryArcCore"]
+        ),
     ]
 )
 

@@ -157,6 +157,12 @@ fun LibraryScreen(
      */
     removedDownload: String? = null,
     onUndoRemoval: () -> Unit = {},
+    /**
+     * Removes a source, secret and all. The app layer owns the secrets, for the reason
+     * [onProbeSources] gives, and a removal that cannot reach the secure store is the
+     * removal that left a disconnected server's password on the device.
+     */
+    onRemoveSource: ((Source) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -528,7 +534,7 @@ fun LibraryScreen(
                 else -> SourceList(
                     sources = registry.sources,
                     itemCount = { viewModel?.itemCount(it.id) ?: 0 },
-                    onRemove = viewModel?.let { model -> { model.removeSource(it) } },
+                    onRemove = onRemoveSource,
                 )
             }
         }

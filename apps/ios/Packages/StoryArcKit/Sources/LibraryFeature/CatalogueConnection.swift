@@ -1,5 +1,6 @@
 public import Foundation
 public import Catalogue
+internal import Kavita
 public import Persistence
 public import StoryArcCore
 
@@ -64,6 +65,12 @@ public final class CatalogueConnection {
     /// The credential that worked, held only until the source is saved.
     private var accepted: OpdsCredential?
 
+    /// The Kavita server recognised in what the reader pasted, and what it answered with.
+    ///
+    /// Set only by ``connect()``, and only for an address that carries a Kavita API key.
+    /// Non-nil is what makes ``source()`` produce a Kavita source instead of a catalogue.
+    private var kavita: (address: KavitaAddress, identity: KavitaIdentity)?
+
     private let pinStore: CertificatePinStore?
 
     public init(
@@ -78,12 +85,26 @@ public final class CatalogueConnection {
     }
 
     /// Fetches the root feed and reports what came back.
+    ///
+    /// A Kavita OPDS URL never gets that far. Its path *is* the reader's full-privilege API
+    /// key, so a fetch would succeed with no 401, no prompt and no secret to file — and the
+    /// key-bearing URL would be written into the registry, which is preferences and is
+    /// backed up in the clear. `kavita-server` asks for such a paste to configure "a native
+    /// Kavita source rather than a generic OPDS source", and nothing in that sentence says
+    /// which sheet it was pasted into.
     public func connect() async {
-        guard let url = OpdsDocument.address(from: address) else {
+        // Forgotten before anything is asked. A reader who pasted a Kavita URL, then edited
+        // the field into an ordinary catalogue and connected again would otherwise save the
+        // server they had moved away from.
+        kavita = nil
+        switch CatalogueTarget.of(address) {
+        case let .kavita(address):
+            await connectKavita(address)
+        case let .feed(url):
+            await attempt(url, credential: accepted)
+        case .unusable:
             step = .failed(String(localized: "catalogue.error.notAURL", bundle: .module, locale: .storyArc))
-            return
         }
-        await attempt(url, credential: accepted)
     }
 
     /// Tries again with what the reader just typed into the credential prompt.
@@ -125,16 +146,43 @@ public final class CatalogueConnection {
     /// The secret goes to the platform secure store and its reference to the registry —
     /// `sources` forbids the secret itself reaching the registry.
     public func source() -> Source? {
-        guard case let .confirmed(title) = step, let url = resolved else { return nil }
+        guard case let .confirmed(title) = step else { return nil }
+
+        // What was pasted was a Kavita server, so a Kavita source is what gets saved: the
+        // key goes to the secure store and the registry gets the base URL without it.
+        if let kavita {
+            guard let source = KavitaSource.make(
+                address: kavita.address,
+                identity: kavita.identity,
+                credentials: credentials
+            ) else {
+                step = .failed(
+                    String(localized: "catalogue.error.secretNotStored", bundle: .module, locale: .storyArc)
+                )
+                return nil
+            }
+            return source
+        }
+
+        guard let url = resolved else { return nil }
+
+        // A URL written as `https://user:password@host/feed` is a credential in the shape of
+        // an address, and `URLSession` authenticates from it — so the fetch succeeded with
+        // `accepted` still nil and the password went to the registry as part of the locator.
+        // It is a working secret, so it moves to the secure store and the locator loses it.
+        var credential = accepted
+        if credential == nil, let user = url.user, !user.isEmpty {
+            credential = .basic(user: user, password: url.password ?? "")
+        }
 
         let id = UUID()
         var reference: String?
-        if let accepted {
+        if let credential {
             // Nil when the secret cannot be stored, and the step says so. A catalogue
             // whose sign-in was accepted and then dropped is a row that fails on the next
             // launch with nothing to explain why.
             let stored = CredentialStore.reference(for: id)
-            guard let credentials, credentials.save(accepted.stored, for: stored) else {
+            guard let credentials, credentials.save(credential.stored, for: stored) else {
                 step = .failed(
                     String(localized: "catalogue.error.secretNotStored", bundle: .module, locale: .storyArc)
                 )
@@ -150,8 +198,26 @@ public final class CatalogueConnection {
             state: .connected,
             lastSuccessfulSync: Date(),
             credentialReference: reference,
-            locator: url.absoluteString
+            locator: CatalogueTarget.storableLocator(for: url)
         )
+    }
+
+    /// Adds the Kavita server that was pasted into the catalogue sheet.
+    ///
+    /// The same request the Kavita sheet makes, reported the same way, because it is the
+    /// same server answering. What the reader sees is the account name they would have seen
+    /// there, and what gets saved is a Kavita source.
+    private func connectKavita(_ address: KavitaAddress) async {
+        step = .connecting
+        do {
+            let identity = try await KavitaClient(address: address).connect()
+            kavita = (address, identity)
+            step = .confirmed(title: "\(identity.username) · \(address.base.host() ?? "Kavita")")
+        } catch let error as KavitaError {
+            step = .failed(KavitaConnection.describe(error))
+        } catch {
+            step = .failed(CatalogueMessages.reachability(error))
+        }
     }
 
     private func attempt(_ url: URL, credential: OpdsCredential?) async {

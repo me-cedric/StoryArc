@@ -42,12 +42,17 @@ public final class KavitaConnection {
     /// reader has already given is how a form makes someone feel they typed it wrong.
     public var addressCarriesKey: Bool { KavitaAddress.fromOpds(address) != nil }
 
-    private let pins: CertificatePins
     private let credentials: CredentialStore?
     private var resolved: KavitaAddress?
 
-    public init(pins: CertificatePins = CertificatePins(), credentials: CredentialStore? = nil) {
-        self.pins = pins
+    /// No `pins`. It used to take a set and forward it to ``KavitaClient``, which stored it
+    /// and never read it — so the call chain read as though the reader's own certificate
+    /// decisions were in force here when nothing consulted them. Rank 15 of the 30 August
+    /// security review: a parameter that claims a defence it does not provide is worse than
+    /// an absent one, because the next change "fixes" the delegate rather than wiring it.
+    /// A Kavita server needs a certificate the system already trusts, and the sources
+    /// screen says so.
+    public init(credentials: CredentialStore? = nil) {
         self.credentials = credentials
     }
 
@@ -63,7 +68,7 @@ public final class KavitaConnection {
 
         step = .connecting
         do {
-            let identity = try await KavitaClient(address: address, pins: pins).connect()
+            let identity = try await KavitaClient(address: address).connect()
             resolved = address
             step = .confirmed(identity)
         } catch let error as KavitaError {
@@ -81,31 +86,24 @@ public final class KavitaConnection {
     public func source() -> Source? {
         guard case let .confirmed(identity) = step, let address = resolved else { return nil }
 
-        let id = UUID()
-        let stored = CredentialStore.reference(for: id)
-        guard let credentials, credentials.save(address.apiKey, for: stored) else {
+        guard let source = KavitaSource.make(
+            address: address,
+            identity: identity,
+            credentials: credentials
+        ) else {
             step = .failed(String(localized: "kavita.error.keyNotStored", bundle: .module, locale: .storyArc))
             return nil
         }
-        let reference = stored
-
-        return Source(
-            // The account name, not the host. A reader with two accounts on one server
-            // needs to tell them apart, and the host is the same for both.
-            displayName: "\(identity.username) · \(address.base.host() ?? "Kavita")",
-            kind: .kavitaServer,
-            state: .connected,
-            lastSuccessfulSync: Date(),
-            credentialReference: reference,
-            locator: address.base.absoluteString
-        )
+        return source
     }
 
     public func reset() {
         step = .entering
     }
 
-    private static func describe(_ error: KavitaError) -> String {
+    /// Internal rather than private: the catalogue sheet reports the same errors, because a
+    /// Kavita OPDS URL pasted there is answered by Kavita.
+    static func describe(_ error: KavitaError) -> String {
         switch error {
         case let .serverTooOld(found, required):
             String(
@@ -126,6 +124,45 @@ public final class KavitaConnection {
                 HTTPURLResponse.localizedString(forStatusCode: status)
             )
         }
+    }
+}
+
+/// A confirmed Kavita server, written down as a source.
+///
+/// Shared by the Kavita sheet and by the catalogue sheet — which diverts a pasted Kavita
+/// OPDS URL here rather than letting the key that URL carries become an OPDS locator. One
+/// function rather than two, because the two would drift and only one of them would be the
+/// one that keeps the key out of preferences.
+///
+/// The key is filed under the source's *own* identifier. It was not: the reference was
+/// minted from one UUID and the source returned with another, so every iOS Kavita secret
+/// was stored under a name nothing would ever look up again — including its own removal.
+enum KavitaSource {
+    /// Nil when the key cannot be stored. A Kavita source without its key is a row that
+    /// fails on the next launch with nothing to explain why, so the caller says so instead
+    /// of saving one.
+    static func make(
+        address: KavitaAddress,
+        identity: KavitaIdentity,
+        credentials: CredentialStore?
+    ) -> Source? {
+        let id = UUID()
+        let reference = CredentialStore.reference(for: id)
+        guard let credentials, credentials.save(address.apiKey, for: reference) else { return nil }
+
+        return Source(
+            id: id,
+            // The account name, not the host. A reader with two accounts on one server
+            // needs to tell them apart, and the host is the same for both.
+            displayName: "\(identity.username) · \(address.base.host() ?? "Kavita")",
+            kind: .kavitaServer,
+            state: .connected,
+            lastSuccessfulSync: Date(),
+            credentialReference: reference,
+            // The base, which is the address with the key taken out of it. `sources`
+            // forbids a secret reaching preferences, and the registry is preferences.
+            locator: address.base.absoluteString
+        )
     }
 }
 

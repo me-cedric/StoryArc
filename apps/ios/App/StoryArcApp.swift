@@ -160,7 +160,7 @@ struct StoryArcApp: App {
                     opensAtDownloads: isShowingDownloads,
                     sources: library.registry.sources,
                     itemCount: { library.itemCount(of: $0) },
-                    onRemoveSource: { library.remove($0) },
+                    onRemoveSource: { library.remove($0, credentials: credentials) },
                     onRenameSource: { library.rename($0, to: $1) },
                     onReorderSource: { library.move($0, to: $1) },
                     // Read from the store rather than from a browser's acquisition: the

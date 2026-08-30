@@ -527,18 +527,48 @@ class LibraryViewModel(
     }
 
     /**
-     * Removes a source and the folder behind it.
-     *
-     * Nothing could do this before: `sources` requires removal and no UI reached
-     * [removeFolder], so a reader who picked the wrong folder was stuck with it.
+     * Removes a source, its secret, and the folder behind it when it has one.
      *
      * The permission goes back, the registry keeps a tombstone so reading progress survives
      * the thirty days the requirement promises, and files on disk are never touched — this
      * removes a *library*, not a reader's comics.
+     *
+     * The secret goes first and unconditionally. `sources` requires removal to take "its
+     * stored credentials" with it, and until this nothing in the app had ever called
+     * [CredentialStore.remove]: the folder lookup below used to be the first statement, with
+     * a `?: return` on the end, so removing a Kavita server or an SMB share did nothing at
+     * all and its password stayed on the device for a server the reader believed was gone.
+     *
+     * `credentials` is a parameter rather than something the view model holds, matching
+     * [probeNetworkSources]: the store is a handle to the Keystore and this class has no
+     * other use for one.
      */
-    fun removeSource(source: Source) {
-        val tree = _folders.value.firstOrNull { it.toString() == source.locator } ?: return
-        removeFolder(tree)
+    fun removeSource(source: Source, credentials: CredentialStore?) {
+        val removal = SourceRemoval.of(source, _folders.value.map { it.toString() })
+        removal.credentialReference?.let { credentials?.remove(it) }
+
+        val tree = removal.folder?.let { named ->
+            _folders.value.firstOrNull { it.toString() == named }
+        }
+        if (tree != null) {
+            removeFolder(tree)
+            return
+        }
+        forget(source)
+    }
+
+    /**
+     * Drops a source that has no folder behind it — a catalogue, a Kavita server, a share.
+     *
+     * The tombstone rather than a discard, for the reason [unregister] gives: `sources`
+     * keeps reading progress for thirty days so re-adding the same server restores where the
+     * reader stopped. The publications it contributed go with it and the rest of the shelf
+     * stays.
+     */
+    private fun forget(source: Source) {
+        _registry.update { it.removing(source.id, System.currentTimeMillis()) }
+        sourceStore?.save(_registry.value)
+        _publications.update { list -> list.filterNot { it.sourceId == source.id } }
     }
 
     /** Removes a folder and gives its permission back. */

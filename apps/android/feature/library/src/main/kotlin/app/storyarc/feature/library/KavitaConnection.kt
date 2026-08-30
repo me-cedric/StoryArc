@@ -91,43 +91,72 @@ class KavitaConnection(
         val confirmed = _step.value as? Step.Confirmed ?: return null
         val target = resolved ?: return null
 
-        val id = UUID.randomUUID()
-        val reference = CredentialStore.reference(id)
-        if (credentials == null || !credentials.save(target.apiKey, reference)) {
+        return kavitaSource(target, confirmed.identity, credentials) ?: run {
             _step.value = Step.Failed(context.getString(R.string.kavita_error_key_not_stored))
-            return null
+            null
         }
-
-        return Source(
-            id = id,
-            // The account name, not the host. A reader with two accounts on one server needs
-            // to tell them apart, and the host is the same for both.
-            displayName = "${confirmed.identity.username} · ${hostOf(target.base)}",
-            kind = SourceKind.KAVITA_SERVER,
-            state = SourceConnectionState.Connected,
-            credentialReference = reference,
-            locator = target.base,
-        )
     }
 
     fun reset() {
         _step.value = Step.Entering
     }
 
-    private fun hostOf(base: String): String =
-        runCatching { java.net.URI(base).host }.getOrNull() ?: "Kavita"
+    private fun describe(error: KavitaError): String = describeKavita(context, error)
+}
 
-    private fun describe(error: KavitaError): String = when (error) {
-        is KavitaError.ServerTooOld -> context.getString(
-            R.string.kavita_error_too_old,
-            error.found.toString(),
-            error.required.toString(),
-        )
-        is KavitaError.KeyRejected -> context.getString(R.string.kavita_error_key_rejected)
-        is KavitaError.BadAddress -> context.getString(R.string.kavita_error_not_an_address)
-        is KavitaError.UnexpectedResponse -> context.getString(R.string.kavita_error_not_kavita)
-        is KavitaError.Http -> context.getString(R.string.catalogue_error_http, error.status)
-    }
+/**
+ * A confirmed Kavita server, written down as a source.
+ *
+ * Shared by the Kavita sheet and by the catalogue sheet — which diverts a pasted Kavita OPDS
+ * URL here rather than letting the key that URL carries become an OPDS locator. One function
+ * rather than two, because the two would drift and only one of them would be the one that
+ * keeps the key out of preferences.
+ *
+ * Null when the key cannot be stored. A Kavita source without its key is a row that fails on
+ * the next launch with nothing to explain why, so the caller says so instead of saving one.
+ */
+internal fun kavitaSource(
+    address: KavitaAddress,
+    identity: KavitaIdentity,
+    credentials: CredentialStore?,
+): Source? {
+    val id = UUID.randomUUID()
+    val reference = CredentialStore.reference(id)
+    if (credentials == null || !credentials.save(address.apiKey, reference)) return null
+
+    return Source(
+        id = id,
+        // The account name, not the host. A reader with two accounts on one server needs to
+        // tell them apart, and the host is the same for both.
+        displayName = "${identity.username} · ${hostOf(address.base)}",
+        kind = SourceKind.KAVITA_SERVER,
+        state = SourceConnectionState.Connected,
+        credentialReference = reference,
+        // The base, which is the address with the key taken out of it. `sources` forbids a
+        // secret reaching preferences, and the registry is preferences.
+        locator = address.base,
+    )
+}
+
+internal fun hostOf(base: String): String =
+    runCatching { java.net.URI(base).host }.getOrNull() ?: "Kavita"
+
+/**
+ * What went wrong, said plainly.
+ *
+ * Top-level rather than a method, because the catalogue sheet reports the same errors: a
+ * Kavita OPDS URL pasted there is answered by Kavita.
+ */
+internal fun describeKavita(context: Context, error: KavitaError): String = when (error) {
+    is KavitaError.ServerTooOld -> context.getString(
+        R.string.kavita_error_too_old,
+        error.found.toString(),
+        error.required.toString(),
+    )
+    is KavitaError.KeyRejected -> context.getString(R.string.kavita_error_key_rejected)
+    is KavitaError.BadAddress -> context.getString(R.string.kavita_error_not_an_address)
+    is KavitaError.UnexpectedResponse -> context.getString(R.string.kavita_error_not_kavita)
+    is KavitaError.Http -> context.getString(R.string.catalogue_error_http, error.status)
 }
 
 /** What is needed to open a saved Kavita source. */

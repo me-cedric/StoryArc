@@ -93,6 +93,7 @@
     <string name="sources_move_later">Bajar «%1$s»</string>
     <string name="sources_remove_title">¿Quitar %1$s?</string>
     <string name="sources_state_connected">Disponible</string>
+    <string name="sources_kavita_system_trust">Necesita un certificado en el que su dispositivo ya confíe.</string>
     <string name="sources_state_connecting">Conectando</string>
     <string name="sources_state_unreachable">No disponible</string>
     <string name="sources_state_unauthorized">Requiere acceso</string>

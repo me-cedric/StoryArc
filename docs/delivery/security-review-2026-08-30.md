@@ -230,7 +230,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - The project's own stated rule, applied elsewhere: apps/ios/Packages/StoryArcKit/Sources/Formats/CoverCache.swift:44-45 'a file name is not a place to find that out'.
 
 
-### 7. A Kavita OPDS URL pasted into the generic catalogue sheet writes the full-privilege API key into plaintext preferences and, on Android, into cloud backup
+### 7. FIXED — A Kavita OPDS URL pasted into the generic catalogue sheet writes the full-privilege API key into plaintext preferences and, on Android, into cloud backup
 
 **🟡 medium** · both · our-code · effort: small · **CONFIRMED**
 
@@ -250,7 +250,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - The spec forbids exactly this: docs/openspec/specs/sources/spec.md:45-47 'SHALL NOT write a secret to preferences, logs, crash reports, backups'. And the field's own comment asserts the opposite of what happens: apps/ios/Packages/StoryArcKit/Sources/StoryArcCore/Source.swift:55-57 'Opaque handle into the platform secure store. Never the secret itself.'
 
 
-### 8. "Remove source" is a no-op for every server source and never deletes the stored secret — CredentialStore.remove() has no production caller on either platform
+### 8. FIXED — "Remove source" is a no-op for every server source and never deletes the stored secret — CredentialStore.remove() has no production caller on either platform
 
 **🟡 medium** · both · our-code · effort: small · **CONFIRMED**
 
@@ -374,7 +374,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - docs/openspec/specs/ebook-reader/spec.md:93-95 asks only that the link 'is handed to the system rather than opened over the text' — the current code satisfies the letter of the spec while leaving the sink open.
 
 
-### 15. Kavita connections sit outside the certificate-pinning story on both platforms, and the iOS `pins` parameter is dead code that reads as though pinning were wired
+### 15. FIXED — Kavita connections sit outside the certificate-pinning story on both platforms, and the iOS `pins` parameter is dead code that reads as though pinning were wired
 
 **⚪ low** · both · our-code · effort: small · **CONFIRMED**
 

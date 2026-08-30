@@ -98,6 +98,7 @@
     <string name="sources_move_later">Move “%1$s” later</string>
     <string name="sources_remove_title">Remove %1$s?</string>
     <string name="sources_state_connected">Available</string>
+    <string name="sources_kavita_system_trust">Needs a certificate your device already trusts.</string>
     <string name="sources_state_connecting">Connecting</string>
     <string name="sources_state_unreachable">Unreachable</string>
     <string name="sources_state_unauthorized">Needs sign-in</string>

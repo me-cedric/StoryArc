@@ -93,6 +93,7 @@
     <string name="sources_move_later">„%1$s“ nach unten verschieben</string>
     <string name="sources_remove_title">%1$s entfernen?</string>
     <string name="sources_state_connected">Verfügbar</string>
+    <string name="sources_kavita_system_trust">Benötigt ein Zertifikat, dem Ihr Gerät bereits vertraut.</string>
     <string name="sources_state_connecting">Verbinden</string>
     <string name="sources_state_unreachable">Nicht erreichbar</string>
     <string name="sources_state_unauthorized">Anmeldung nötig</string>

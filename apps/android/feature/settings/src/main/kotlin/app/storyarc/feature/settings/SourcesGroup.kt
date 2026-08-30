@@ -197,6 +197,19 @@ internal fun SourcesGroup(
                         style = MaterialTheme.typography.labelLarge,
                         color = palette.textTertiary,
                     )
+
+                    // Said rather than left to be discovered. A catalogue can offer to pin a
+                    // certificate the system refuses; Kavita cannot, and a reader whose
+                    // self-signed NAS certificate was accepted for the OPDS endpoint on the
+                    // same box would otherwise read the Kavita refusal as an unreachable
+                    // server. Rank 15 of the 30 August security review.
+                    if (source.kind == SourceKind.KAVITA_SERVER) {
+                        Text(
+                            text = stringResource(R.string.sources_kavita_system_trust),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = palette.textTertiary,
+                        )
+                    }
                 }
 
                 // Only where there is an order to change. One source cannot be reordered,

@@ -133,25 +133,42 @@ extension LibraryModel {
     /// Nothing could do this before: `sources` requires removal and there was no way to
     /// reach it, so a reader who picked the wrong folder was stuck with it.
     ///
-    /// The bookmark goes, the folder goes, and the registry keeps a tombstone — so reading
-    /// progress survives the thirty days the requirement promises rather than being
-    /// cascaded away. Files on disk are never touched: this removes a *library*, not a
-    /// reader's comics.
-    public func remove(_ source: Source) {
-        guard let folder = folders.first(where: { $0.lastPathComponent == source.locator })
-        else { return }
+    /// The bookmark goes, the folder goes, the secret goes, and the registry keeps a
+    /// tombstone — so reading progress survives the thirty days the requirement promises
+    /// rather than being cascaded away. Files on disk are never touched: this removes a
+    /// *library*, not a reader's comics.
+    ///
+    /// `credentials` is a parameter rather than something the model holds, matching
+    /// ``probeNetworkSources(credentials:pins:)``: the store is a handle to the Keychain and
+    /// the model has no other use for one.
+    public func remove(_ source: Source, credentials: CredentialStore?) {
+        // The secret first, and unconditionally. `sources` requires removal to take "its
+        // stored credentials" with it, and until this line nothing in the app had ever
+        // called `CredentialStore.remove`: a reader who disconnected a Kavita server or an
+        // SMB share left a working credential on the device for a server they believed was
+        // gone. Deleted by the reference the *registry* holds rather than one re-derived
+        // from `source.id`, because a source whose id and credential reference disagreed —
+        // which every iOS Kavita source's did — would otherwise keep its key for ever.
+        let removal = SourceRemoval.of(source, folders: folders)
+        if let reference = removal.credentialReference { credentials?.remove(reference) }
 
-        folder.stopAccessingSecurityScopedResource()
-        // The bookmark is keyed by the folder's own name, which a rename never changes.
-        bookmarks?.remove(named: folder.lastPathComponent)
-        folders.removeAll { $0 == folder }
+        // The folder, if this is one. Below the deletion rather than above it: this lookup
+        // used to gate the whole method, so removing anything that was not a folder did
+        // nothing at all — not the secret, not the registry entry, not the shelf.
+        if let folder = removal.folder {
+            folder.stopAccessingSecurityScopedResource()
+            // The bookmark is keyed by the folder's own name, which a rename never changes.
+            bookmarks?.remove(named: folder.lastPathComponent)
+            folders.removeAll { $0 == folder }
+            snapshots.removeValue(forKey: folder.path)
+            startWatching()
+        }
+
         registry = registry.removing(source.id, at: Date())
         sourceStore?.save(registry)
 
         // The publications it contributed go with it, and the rest of the shelf stays.
         publications.removeAll { $0.sourceID == source.id }
-        snapshots.removeValue(forKey: folder.path)
-        startWatching()
         rebuild()
     }
 }

@@ -154,6 +154,17 @@ struct SourcesSettings: View {
                 Text("sources.detail \(itemCount(source.id))", bundle: .module)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textTertiary)
+
+                // Said rather than left to be discovered. A catalogue can offer to pin a
+                // certificate the system refuses; Kavita cannot, and a reader whose
+                // self-signed NAS certificate was accepted for the OPDS endpoint on the
+                // same box would otherwise read the Kavita refusal as an unreachable
+                // server. Rank 15 of the 30 August security review.
+                if source.kind == .kavitaServer {
+                    Text("sources.kavita.systemTrust", bundle: .module)
+                        .textRole(.footnote)
+                        .foregroundStyle(theme.palette.textTertiary)
+                }
             }
 
             Spacer(minLength: 0)

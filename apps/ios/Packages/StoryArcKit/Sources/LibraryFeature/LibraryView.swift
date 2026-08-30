@@ -106,7 +106,7 @@ public struct LibraryView: View {
             )
         )
         _kavita = State(
-            initialValue: KavitaConnection(pins: loaded, credentials: CredentialStore())
+            initialValue: KavitaConnection(credentials: CredentialStore())
         )
     }
 
@@ -339,7 +339,7 @@ public struct LibraryView: View {
                 SourceList(
                     sources: model.registry.sources,
                     itemCount: { model.itemCount(of: $0) },
-                    onRemove: { model.remove($0) }
+                    onRemove: { model.remove($0, credentials: credentials) }
                 )
             }
         }

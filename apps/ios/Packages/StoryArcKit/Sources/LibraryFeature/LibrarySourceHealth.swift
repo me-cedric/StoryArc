@@ -115,7 +115,7 @@ extension LibraryModel {
 
         if let page = KavitaPage(source: source, credentials: credentials) {
             do {
-                _ = try await KavitaClient(address: page.address, pins: pins).connect()
+                _ = try await KavitaClient(address: page.address).connect()
                 return .connected
             } catch KavitaError.keyRejected {
                 return .unauthorized(reason: String(localized: "source.state.unauthorized",

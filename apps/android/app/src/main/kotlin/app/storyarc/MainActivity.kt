@@ -776,7 +776,7 @@ class MainActivity : ComponentActivity() {
                             // across and carries the removal back.
                             sources = registry.sources,
                             itemCount = { libraryViewModel.itemCount(it.id) },
-                            onRemoveSource = { libraryViewModel.removeSource(it) },
+                            onRemoveSource = { libraryViewModel.removeSource(it, credentials) },
                             onRenameSource = { source, name ->
                                 libraryViewModel.renameSource(source, name)
                             },
@@ -894,6 +894,7 @@ class MainActivity : ComponentActivity() {
                                     credentials,
                                 )
                             },
+                            onRemoveSource = { libraryViewModel.removeSource(it, credentials) },
                             removedDownload = removed?.download?.title,
                             onUndoRemoval = {
                                 lifecycleScope.launch {
