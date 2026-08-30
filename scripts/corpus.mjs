@@ -15,7 +15,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-import { png } from './png.mjs'
+import { png, ruledPng } from './png.mjs'
 
 const PALETTE = [
   [214, 90, 44], [58, 96, 158], [72, 138, 96],
@@ -118,6 +118,77 @@ ${Array.from({ length: 14 }, (_, p) => `<p>${'Sentence '.repeat(24)}${i + 1}.${p
   })
 }
 
+/**
+ * A publication that declares no cover and opens on one anyway.
+ *
+ * `publication-formats` says the first page of the spine becomes the cover when nothing
+ * is declared, and this is the shape that is actually true of: an XHTML wrapper around a
+ * single image, which is what a fixed-layout page is by construction. Without a file like
+ * this the rule can only be asserted in a test — the library grid has nothing to draw.
+ */
+function spineCoverEpub(out, { title, plates }) {
+  const spine = Array.from({ length: plates }, (_, i) => `p${i + 1}`)
+  const files = [
+    { name: 'mimetype', body: Buffer.from('application/epub+zip') },
+    {
+      name: 'META-INF/container.xml',
+      body: Buffer.from(`<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles><rootfile full-path="OEBPS/content.opf"
+    media-type="application/oebps-package+xml"/></rootfiles>
+</container>`),
+    },
+    {
+      name: 'OEBPS/content.opf',
+      // No `cover-image` property anywhere, and none of EPUB 2's `<meta name="cover">`
+      // either. The cover has to be found rather than read off.
+      body: Buffer.from(`<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"
+  prefix="rendition: http://www.idpf.org/vocab/rendition/#">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="id">urn:storyarc:spine-cover</dc:identifier>
+    <dc:title>${title}</dc:title>
+    <dc:creator>Ada Lovelace</dc:creator>
+    <dc:language>en</dc:language>
+    <meta property="rendition:layout">pre-paginated</meta>
+  </metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    ${spine.map((id) => `<item id="${id}" href="${id}.xhtml"
+      media-type="application/xhtml+xml"/>`).join('\n    ')}
+    ${spine.map((id) => `<item id="img-${id}" href="${id}.png"
+      media-type="image/png"/>`).join('\n    ')}
+  </manifest>
+  <spine>${spine.map((id) => `<itemref idref="${id}"/>`).join('')}</spine>
+</package>`),
+    },
+    {
+      name: 'OEBPS/nav.xhtml',
+      body: Buffer.from(`<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Contents</title></head><body><nav epub:type="toc"><ol>
+${spine.map((id, i) => `<li><a href="${id}.xhtml">Plate ${i + 1}</a></li>`).join('\n')}
+</ol></nav></body></html>`),
+    },
+    ...spine.map((id, i) => ({
+      name: `OEBPS/${id}.xhtml`,
+      body: Buffer.from(`<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Plate ${i + 1}</title>
+<meta name="viewport" content="width=240, height=360"/></head>
+<body><img src="${id}.png" width="240" height="360"/></body></html>`),
+    })),
+    ...spine.map((id, i) => ({
+      name: `OEBPS/${id}.png`,
+      body: png(240, 360, PALETTE[i % PALETTE.length]),
+    })),
+  ]
+  archive(files, (scratch, names) => {
+    execFileSync('zip', ['-q', '-X', '-0', out, 'mimetype'], { cwd: scratch })
+    execFileSync('zip', ['-q', '-X', '-r', out, ...names.filter((n) => n !== 'mimetype')],
+      { cwd: scratch })
+  })
+}
+
 /** A PDF with real pages, written by hand — no dependency renders text this simply. */
 function pdf(out, { title, pages: count }) {
   const objects = []
@@ -179,6 +250,44 @@ function build(root) {
 
   pdf(at('Field Notes.pdf'), { title: 'Field Notes', pages: 5 })
 
+  // A book that names no cover. Before the spine fallback existed, every EPUB above
+  // drew a placeholder in the grid and there was no file that could show otherwise.
+  spineCoverEpub(at('Glasshouse.epub'), { title: 'Glasshouse', plates: 4 })
+
+  // Pages worth zooming into. At 2400x3600 the reader decodes them to a fraction of
+  // their size, and the ruling averages to flat colour until a held zoom re-decodes
+  // them — which is the only way `publication-formats`' re-decode is visible in a
+  // screenshot rather than only in an assertion.
+  zip(at('Fine Print.cbz'), Array.from({ length: 3 }, (_, i) => ({
+    name: `page-${String(i + 1).padStart(3, '0')}.png`,
+    body: ruledPng(2400, 3600, PALETTE[i % PALETTE.length]),
+  })))
+
+  // A comic converted in bulk to a codec this device has no decoder for. Every page
+  // is refused, which is the case `publication-formats` means by "a page in an
+  // unsupported codec displays a placeholder naming the codec" -- and the case a
+  // reader has to be able to tell from the half-copied file below, which is why both
+  // are here and why the placeholder says which codec it was.
+  zip(at('Foreign Codec.cbz'), Array.from({ length: 3 }, (_, i) => ({
+    name: `page-${String(i + 1).padStart(3, '0')}.jxl`,
+    body: Buffer.concat([Buffer.from([0xff, 0x0a]), Buffer.alloc(30 + i)]),
+  })), ['-0'])
+
+  // A comic that arrived half-copied: one page the decoder will not have, and one
+  // entry with nothing in it. `publication-formats` asks for both to be *said* — the
+  // codec named in the placeholder, and the skipped entry counted — and neither
+  // sentence is reachable without a file like this.
+  // Stored rather than deflated, so the JXL signature is in the archive's own bytes
+  // and the self-test below can see it. PNG is already compressed; storing costs nothing.
+  zip(at('Broken Transfer.cbz'), [
+    ...pages(2, 3),
+    // A real JPEG XL codestream signature and nothing behind it. Neither platform
+    // ships a decoder, so what is behind the signature is never reached; what matters
+    // is that the placeholder names it.
+    { name: 'page-003.jxl', body: Buffer.concat([Buffer.from([0xff, 0x0a]), Buffer.alloc(30)]) },
+    { name: 'page-004.png', body: Buffer.alloc(0) },
+  ], ['-0'])
+
   // Deliberately unreadable, so the refusal path has something to refuse. `local-library`
   // requires the app to name the format it found rather than fail generically, and that
   // sentence is only ever exercised by a file like this one.
@@ -225,6 +334,18 @@ if (target === '--self-test') {
       ['Salt and Iron', () => readdirSync(join(scratch, 'Salt and Iron')).length === 5],
       ['page pixels', () => head(join('Salt and Iron', 'page-001.png'), 8)
         .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))],
+      ['Glasshouse.epub', () => {
+        const bytes = readFileSync(join(scratch, 'Glasshouse.epub'))
+        // No declared cover: the point of the file is that one has to be found.
+        return !bytes.includes(Buffer.from('cover-image')) &&
+          bytes.includes(Buffer.from('p1.png'))
+      }],
+      ['Broken Transfer.cbz', () => {
+        const bytes = readFileSync(join(scratch, 'Broken Transfer.cbz'))
+        // The JXL signature has to survive the zip, or the placeholder names nothing.
+        return bytes.includes(Buffer.from('page-003.jxl')) &&
+          bytes.includes(Buffer.from([0xff, 0x0a]))
+      }],
     ]
     const failed = checks.filter(([, holds]) => !holds()).map(([name]) => name)
     if (failed.length) {

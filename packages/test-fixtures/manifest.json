@@ -167,6 +167,18 @@
       "expectedPageOrder": []
     },
     {
+      "file": "comics/unsupported-codec.cbz",
+      "pins": "a page in a codec nothing decodes is listed and named, and an empty entry is counted as skipped",
+      "expectedPageCount": 2,
+      "expectedPageOrder": [
+        "page1.png",
+        "page2.jxl"
+      ],
+      "expectedSkippedPageCount": 1,
+      "expectedUndecodableCodec": "JPEG XL",
+      "note": "Excluding the JXL entry from the page list would be the easy fix and the wrong one: a page nobody can be told about is a page the reader silently loses."
+    },
+    {
       "file": "comics/rar4-store.cbr",
       "pins": "a RAR4 container opens and its entries keep archive order",
       "expectedPageCount": 3,
@@ -353,6 +365,7 @@
         "Chapter Two"
       ],
       "expectedCoverHref": "OEBPS/cover.png",
+      "expectedSpineCoverHref": "OEBPS/cover.png",
       "hasNavDocument": true,
       "hasCoverImage": true,
       "isFixedLayout": false
@@ -375,6 +388,7 @@
         "Second chapitre"
       ],
       "expectedCoverHref": "OEBPS/cover.png",
+      "expectedSpineCoverHref": "OEBPS/cover.png",
       "hasNavDocument": false,
       "hasCoverImage": true,
       "isFixedLayout": false,
@@ -400,6 +414,8 @@
         "Chapter One",
         "Chapter Two"
       ],
+      "expectedCoverHref": null,
+      "expectedSpineCoverHref": null,
       "hasNavDocument": true,
       "hasCoverImage": false,
       "isFixedLayout": false,
@@ -422,10 +438,34 @@
         "Page 1"
       ],
       "expectedCoverHref": "OEBPS/page1.png",
+      "expectedSpineCoverHref": "OEBPS/page1.png",
       "hasNavDocument": true,
       "hasCoverImage": true,
       "isFixedLayout": true,
       "note": "Getting this wrong means offering typography controls for a comic, which `ebook-reader` forbids."
+    },
+    {
+      "file": "ebooks/spine-cover.epub",
+      "pins": "a publication that declares no cover takes one from the image its first spine item shows",
+      "epubVersion": 3,
+      "expectedSpineCount": 2,
+      "expectedTitle": "No Declared Cover",
+      "expectedAuthor": "StoryArc Fixtures",
+      "expectedLanguage": "en",
+      "expectedIdentifier": "urn:uuid:storyarc-fixture-spine-cover",
+      "expectedSpineHrefs": [
+        "OEBPS/p1.xhtml",
+        "OEBPS/p2.xhtml"
+      ],
+      "expectedTocTitles": [
+        "Page 1"
+      ],
+      "expectedCoverHref": null,
+      "expectedSpineCoverHref": "OEBPS/page1.png",
+      "hasNavDocument": true,
+      "hasCoverImage": false,
+      "isFixedLayout": false,
+      "note": "The declared cover is what a well-made EPUB carries and what most files do not. A shelf of converted books whose covers are all placeholders is the failure this pins against."
     },
     {
       "file": "ebooks/no-package.epub",
@@ -439,6 +479,7 @@
       "expectedSpineHrefs": null,
       "expectedTocTitles": null,
       "expectedCoverHref": null,
+      "expectedSpineCoverHref": null,
       "hasNavDocument": false,
       "hasCoverImage": false,
       "isFixedLayout": false,

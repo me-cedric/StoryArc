@@ -14,13 +14,13 @@ expectation drift loudly.
 packages/test-fixtures/
 ├── scripts/generate.py    the generator — fixtures are generated, not hand-authored
 ├── manifest.json          every fixture and what a correct parse yields
-├── comics/                20 archives and 2 PDFs, 36 kB total
-└── ebooks/                4 EPUBs, 9 kB total
+├── comics/                23 archives and 2 PDFs, 38 kB total
+└── ebooks/                6 EPUBs, 11 kB total
 ```
 
 ## Status
 
-**20 comic archives, two PDFs and four EPUBs**, covering ZIP, RAR4, RAR5, TAR,
+**23 comic archives, two PDFs and six EPUBs**, covering ZIP, RAR4, RAR5, TAR,
 PDF, EPUB 2, EPUB 3, fixed-layout EPUB, and the 7-Zip refusal.
 
 ### ZIP
@@ -40,6 +40,7 @@ PDF, EPUB 2, EPUB 3, fixed-layout EPUB, and the 7-Zip refusal.
 | `large-page.cbz` | a 2000×3000 page, for downsampling and bounded decode |
 | `truncated.cbz` | a damaged archive fails cleanly rather than crashing |
 | `no-pages.cbz` | an archive with no images reports zero pages, not an error |
+| `unsupported-codec.cbz` | a page in a codec nothing decodes stays in the page list and is named; an empty entry is counted as skipped |
 
 ### RAR, TAR and 7-Zip
 
@@ -79,6 +80,8 @@ itself not solid, a reader that delegates straight to libarchive lists page 1 an
 | `fixture.epub` | a valid EPUB 3: `mimetype` first and STORED, a nav document, a cover property |
 | `epub2.epub` | an EPUB 2: no nav document, an NCX reached through the spine, a cover named by a metadata `meta` |
 | `fixed-layout.epub` | `rendition:layout` is `pre-paginated`, so the image reader opens it |
+| `series.epub` | publisher, description and series, stated both the way EPUB 3 defines and the way Calibre made conventional — disagreeing on purpose |
+| `spine-cover.epub` | a publication that declares no cover takes one from the image its first spine item shows |
 | `no-package.epub` | the right `mimetype` and no container document — refused by name, not opened empty |
 
 Three fixtures cover the four combinations `publication-formats` promises. There

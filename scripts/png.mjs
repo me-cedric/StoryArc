@@ -20,6 +20,11 @@ export function png(width, height, [r, g, b]) {
       raw.writeUInt8(Math.round(b * shade), row + 3 + x * 3)
     }
   }
+  return encode(width, height, raw)
+}
+
+/** Wraps raw truecolour scanlines as a PNG. Shared by both writers above. */
+function encode(width, height, raw) {
   const chunk = (type, body) => {
     const head = Buffer.alloc(8)
     head.writeUInt32BE(body.length, 0)
@@ -39,6 +44,32 @@ export function png(width, height, [r, g, b]) {
     chunk('IDAT', deflateSync(raw)),
     chunk('IEND', Buffer.alloc(0)),
   ])
+}
+
+/**
+ * A finely ruled PNG, for proving that resolution survived a decode.
+ *
+ * One-pixel lines. Downsampled to a phone screen they average to flat colour; at their
+ * own resolution they are stripes. That difference is the whole point: it is what makes
+ * `publication-formats`' "re-decoded at higher resolution when the user zooms" something
+ * a screenshot can show rather than something only a test can assert. A gradient page
+ * cannot -- it looks the same at every scale, which is why the corpus needed a second
+ * kind of page rather than a bigger one.
+ */
+export function ruledPng(width, height, [r, g, b]) {
+  const raw = Buffer.alloc((width * 3 + 1) * height)
+  for (let y = 0; y < height; y += 1) {
+    const row = y * (width * 3 + 1)
+    raw[row] = 0 // filter: none
+    for (let x = 0; x < width; x += 1) {
+      // Diagonal, so neither axis of a resampler can hide the pattern by luck.
+      const ink = (x + y) % 2 === 0
+      raw.writeUInt8(ink ? r : 255 - Math.round((255 - r) / 4), row + 1 + x * 3)
+      raw.writeUInt8(ink ? g : 255 - Math.round((255 - g) / 4), row + 2 + x * 3)
+      raw.writeUInt8(ink ? b : 255 - Math.round((255 - b) / 4), row + 3 + x * 3)
+    }
+  }
+  return encode(width, height, raw)
 }
 
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {

@@ -56,6 +56,13 @@ object FixtureCorpus {
         val expectedEntryNames: List<String>?,
         val pageDimensions: List<Int>?,
         val expectedPagePixel: List<Int>?,
+        /**
+         * Entries that looked like pages and could not be read, which
+         * `publication-formats` requires an archive to count rather than hide.
+         */
+        val expectedSkippedPageCount: Int?,
+        /** What the archive's undecodable page should be named as. */
+        val expectedUndecodableCodec: String?,
     )
 
     val comics: List<Fixture> by lazy {
@@ -88,6 +95,8 @@ object FixtureCorpus {
                 expectedEntryNames = strings("expectedEntryNames"),
                 pageDimensions = ints("pageDimensions"),
                 expectedPagePixel = ints("expectedPagePixel"),
+                expectedSkippedPageCount = int("expectedSkippedPageCount"),
+                expectedUndecodableCodec = str("expectedUndecodableCodec"),
             )
         }
     }
@@ -109,6 +118,11 @@ object FixtureCorpus {
         val expectedSpineHrefs: List<String>?,
         val expectedTocTitles: List<String>?,
         val expectedCoverHref: String?,
+        /**
+         * The cover once the first spine item has been consulted, which is what
+         * `publication-formats` falls back to when a publication declares none.
+         */
+        val expectedSpineCoverHref: String?,
         val hasNavDocument: Boolean,
         val hasCoverImage: Boolean,
         val isFixedLayout: Boolean,
@@ -138,6 +152,7 @@ object FixtureCorpus {
                 expectedSpineHrefs = strings("expectedSpineHrefs"),
                 expectedTocTitles = strings("expectedTocTitles"),
                 expectedCoverHref = str("expectedCoverHref"),
+                expectedSpineCoverHref = str("expectedSpineCoverHref"),
                 hasNavDocument = obj.getValue("hasNavDocument").jsonPrimitive.boolean,
                 hasCoverImage = obj.getValue("hasCoverImage").jsonPrimitive.boolean,
                 isFixedLayout = obj.getValue("isFixedLayout").jsonPrimitive.boolean,

@@ -571,6 +571,48 @@ epub(
     ],
 )
 
+# An EPUB that names no cover at all. `publication-formats` says the first page of
+# the spine is rendered as the cover when a publication declares none, and the
+# overwhelmingly common shape of that first page — the one a converter emits and the
+# one a fixed-layout publication has by construction — is an XHTML wrapper around a
+# single image. So this file has a spine, an image its first page shows, and no
+# `cover-image` property anywhere: the cover has to be found rather than read off.
+SPINE_COVER_PACKAGE = b"""<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="pub-id">urn:uuid:storyarc-fixture-spine-cover</dc:identifier>
+    <dc:title>No Declared Cover</dc:title>
+    <dc:language>en</dc:language>
+    <dc:creator>StoryArc Fixtures</dc:creator>
+    <meta property="dcterms:modified">2026-01-01T00:00:00Z</meta>
+  </metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="p1" href="p1.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p2" href="p2.xhtml" media-type="application/xhtml+xml"/>
+    <item id="img1" href="page1.png" media-type="image/png"/>
+    <item id="img2" href="page2.png" media-type="image/png"/>
+  </manifest>
+  <spine>
+    <itemref idref="p1"/>
+    <itemref idref="p2"/>
+  </spine>
+</package>
+"""
+
+epub(
+    "spine-cover.epub",
+    [
+        ("META-INF/container.xml", EPUB_CONTAINER),
+        ("OEBPS/package.opf", SPINE_COVER_PACKAGE),
+        ("OEBPS/nav.xhtml", FIXED_NAV),
+        ("OEBPS/p1.xhtml", fixed_page(1)),
+        ("OEBPS/p2.xhtml", fixed_page(2)),
+        ("OEBPS/page1.png", page(1)),
+        ("OEBPS/page2.png", page(2)),
+    ],
+)
+
 # An EPUB with the right mimetype and no container document. Returning an empty
 # publication for this would put a book in the library that cannot be opened, so
 # the reader has to name the problem instead.
@@ -589,6 +631,7 @@ ebooks: list[dict] = [
         "expectedSpineHrefs": ["OEBPS/ch1.xhtml", "OEBPS/ch2.xhtml"],
         "expectedTocTitles": ["Chapter One", "Chapter Two"],
         "expectedCoverHref": "OEBPS/cover.png",
+        "expectedSpineCoverHref": "OEBPS/cover.png",
         "hasNavDocument": True,
         "hasCoverImage": True,
         "isFixedLayout": False,
@@ -605,6 +648,7 @@ ebooks: list[dict] = [
         "expectedSpineHrefs": ["OEBPS/ch1.xhtml", "OEBPS/ch2.xhtml"],
         "expectedTocTitles": ["Premier chapitre", "Second chapitre"],
         "expectedCoverHref": "OEBPS/cover.png",
+        "expectedSpineCoverHref": "OEBPS/cover.png",
         "hasNavDocument": False,
         "hasCoverImage": True,
         "isFixedLayout": False,
@@ -625,6 +669,8 @@ ebooks: list[dict] = [
         "expectedSeriesIndex": "2",
         "expectedSpineHrefs": ["OEBPS/ch1.xhtml"],
         "expectedTocTitles": ["Chapter One", "Chapter Two"],
+        "expectedCoverHref": None,
+        "expectedSpineCoverHref": None,
         "hasNavDocument": True,
         "hasCoverImage": False,
         "isFixedLayout": False,
@@ -642,10 +688,29 @@ ebooks: list[dict] = [
         "expectedSpineHrefs": ["OEBPS/p1.xhtml", "OEBPS/p2.xhtml"],
         "expectedTocTitles": ["Page 1"],
         "expectedCoverHref": "OEBPS/page1.png",
+        "expectedSpineCoverHref": "OEBPS/page1.png",
         "hasNavDocument": True,
         "hasCoverImage": True,
         "isFixedLayout": True,
         "note": "Getting this wrong means offering typography controls for a comic, which `ebook-reader` forbids.",
+    },
+    {
+        "file": "ebooks/spine-cover.epub",
+        "pins": "a publication that declares no cover takes one from the image its first spine item shows",
+        "epubVersion": 3,
+        "expectedSpineCount": 2,
+        "expectedTitle": "No Declared Cover",
+        "expectedAuthor": "StoryArc Fixtures",
+        "expectedLanguage": "en",
+        "expectedIdentifier": "urn:uuid:storyarc-fixture-spine-cover",
+        "expectedSpineHrefs": ["OEBPS/p1.xhtml", "OEBPS/p2.xhtml"],
+        "expectedTocTitles": ["Page 1"],
+        "expectedCoverHref": None,
+        "expectedSpineCoverHref": "OEBPS/page1.png",
+        "hasNavDocument": True,
+        "hasCoverImage": False,
+        "isFixedLayout": False,
+        "note": "The declared cover is what a well-made EPUB carries and what most files do not. A shelf of converted books whose covers are all placeholders is the failure this pins against.",
     },
     {
         "file": "ebooks/no-package.epub",
@@ -659,6 +724,7 @@ ebooks: list[dict] = [
         "expectedSpineHrefs": None,
         "expectedTocTitles": None,
         "expectedCoverHref": None,
+        "expectedSpineCoverHref": None,
         "hasNavDocument": False,
         "hasCoverImage": False,
         "isFixedLayout": False,
@@ -687,6 +753,41 @@ fixtures.append(
 # ── 8. Empty archive ─────────────────────────────────────────────────────────
 write_archive("no-pages.cbz", [("readme.txt", b"no images here")])
 register("no-pages.cbz", "an archive with no images reports zero pages, not an error", [])
+
+# ── 8b. A codec nothing decodes, and an entry with nothing in it ─────────────
+# `publication-formats` promises two things about a page that will not come out:
+# an unsupported codec "displays a placeholder naming the codec, and does not break
+# pagination", and a damaged archive "states how many were skipped". Both need an
+# archive that is otherwise perfectly well-formed, so that a failure here is about
+# the page rather than about the container.
+#
+# The JPEG XL entry carries a real codestream signature (`FF 0A`) and nothing
+# behind it: neither platform ships a JXL decoder, so what is behind the signature
+# has never been reached. What matters is that both platforms *name* it, and the
+# signature is what they name it from.
+#
+# The zero-length entry is the skipped page. It is a real thing to find in a comic
+# that was copied while it was being written, and it is the cheapest way to pin a
+# count that would otherwise depend on how a particular zlib truncates.
+JXL_SIGNATURE = b"\xff\x0a" + b"\x00" * 30
+
+write_archive(
+    "unsupported-codec.cbz",
+    [
+        ("page1.png", page(1)),
+        ("page2.jxl", JXL_SIGNATURE),
+        ("page3.png", b""),
+    ],
+)
+register(
+    "unsupported-codec.cbz",
+    "a page in a codec nothing decodes is listed and named, and an empty entry is counted as skipped",
+    ["page1.png", "page2.jxl"],
+    expectedSkippedPageCount=1,
+    expectedUndecodableCodec="JPEG XL",
+    note="Excluding the JXL entry from the page list would be the easy fix and the wrong one: a page nobody can be told about is a page the reader silently loses.",
+)
+
 
 # ── 14. RAR and TAR containers ───────────────────────────────────────────────
 # Everything above is a ZIP. CBR and CBT are the other two containers the

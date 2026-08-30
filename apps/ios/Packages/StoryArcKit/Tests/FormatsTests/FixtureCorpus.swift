@@ -43,6 +43,11 @@ enum FixtureCorpus {
         let expectedEntryNames: [String]?
         let pageDimensions: [Int]?
         let expectedPagePixel: [Int]?
+        /// Entries that looked like pages and could not be read, which
+        /// `publication-formats` requires an archive to count rather than hide.
+        let expectedSkippedPageCount: Int?
+        /// What the archive's undecodable page should be named as.
+        let expectedUndecodableCodec: String?
     }
 
     /// One entry from the manifest's `pdfs` list. PDF is not an archive, so its
@@ -75,6 +80,9 @@ enum FixtureCorpus {
         let expectedSpineHrefs: [String]?
         let expectedTocTitles: [String]?
         let expectedCoverHref: String?
+        /// The cover once the first spine item has been consulted, which is what
+        /// `publication-formats` falls back to when a publication declares none.
+        let expectedSpineCoverHref: String?
         let hasNavDocument: Bool
         let hasCoverImage: Bool
         let isFixedLayout: Bool
