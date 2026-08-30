@@ -41,7 +41,9 @@ The app SHALL make returning to where the user stopped the shortest path in the 
 
 #### Scenario: Restart deliberately
 - **WHEN** a user wants to start over
-- **THEN** a "Start from the beginning" action is available on the publication detail screen, and it clears progress only after confirmation
+- **THEN** a "Start from the beginning" action is available from the publication's own cover in the library — the same long press that offers to file it in a collection — and it clears progress only after confirmation
+- **AND** it is offered only on a publication that has progress to clear, and only on one at a time, because a set of publications has no single beginning to return to
+- **AND** it is on that menu rather than on a publication detail screen, because the library opens a publication when its cover is tapped and offers everything else on the long press
 
 ### Requirement: Synchronisation
 
