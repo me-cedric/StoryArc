@@ -4,7 +4,7 @@ internal import Catalogue
 internal import Kavita
 internal import Persistence
 internal import Smb
-internal import StoryArcCore
+public import StoryArcCore
 
 /// Whether a source is actually there, and when to ask again.
 ///
@@ -143,5 +143,95 @@ extension LibraryModel {
         // Neither page could be built, so the secret this source needs has gone.
         return .unauthorized(reason: String(localized: "source.state.unauthorized",
                                             bundle: .module, locale: .storyArc))
+    }
+}
+
+/// The five things a source's detail screen can do to a source.
+///
+/// `sources`: the screen "offers actions to test the connection, refresh, clear the cache,
+/// remove downloads, and remove the source". Removal already existed; the other four did
+/// not, on either platform. ``SourceDiagnosis`` decides which of them a given source is
+/// offered; this is what happens when one is taken. Android's `LibraryViewModel` carries
+/// the same four.
+///
+/// The stores are built here rather than passed in, the way ``mark(_:read:)`` builds its
+/// own: both are thin wrappers over `UserDefaults` and the Keychain, and threading them
+/// through Settings to reach one button would be two parameters carrying nothing.
+extension LibraryModel {
+    /// Asks one source, now, and says so while it is asking.
+    ///
+    /// Marked `connecting` first. A test whose only visible effect arrives a network
+    /// timeout later is a button a reader presses twice.
+    ///
+    /// A folder is asked of the filesystem rather than of a network: it is either readable
+    /// or it is not, which is the distinction ``SourceProbe/isRemote(_:)`` draws.
+    public func test(_ source: Source) async {
+        guard SourceProbe.isRemote(source.kind) else {
+            registry = registry.marking(source.id, as: folderState(of: source))
+            return
+        }
+        registry = registry.marking(source.id, as: .connecting)
+        let state = await reach(
+            source,
+            credentials: CredentialStore(),
+            pins: CertificatePins(CertificatePinStore().pins())
+        )
+        registry = registry.marking(source.id, as: state)
+    }
+
+    /// Re-fetches what one source holds.
+    ///
+    /// The test first, because a refresh of a source that is not answering is a walk that
+    /// finds nothing — and a walk that finds nothing is deliberately not allowed to empty
+    /// the shelf. For a folder the walk is the refresh; for a server the probe is, since a
+    /// server's contents are browsed rather than folded into the shelf.
+    public func refresh(_ source: Source) async {
+        await test(source)
+        guard source.kind == .localFolder, let folder = folder(of: source) else { return }
+        scan(folder)
+    }
+
+    /// Drops what is cached for one source, and nothing else.
+    ///
+    /// The rows go, the on-disk snapshot is rewritten without them, and the next refresh
+    /// puts back whatever is still there. Downloads are untouched: `sources` lists clearing
+    /// the cache and removing downloads as two actions, and a reader on a train who meant
+    /// the first must not get the second.
+    ///
+    /// Cover *files* are not swept one by one. They live in the caches directory keyed by
+    /// publication, are evicted under storage pressure, and Privacy's "Clear cache" takes
+    /// the lot — so those bytes are already reachable by something the reader can press.
+    public func clearCache(of source: Source) {
+        let gone = Set(publications.filter { $0.sourceID == source.id }.map(\.id))
+        guard !gone.isEmpty else { return }
+        publications.removeAll { gone.contains($0.id) }
+        for id in gone {
+            covers[id] = nil
+            locations[id] = nil
+        }
+        // Written through rather than left for the next scan. ``cacheLibrary()`` refuses to
+        // replace a good snapshot with an empty one — that guard is there for a walk that
+        // failed, and this is not one, so an emptied library clears the file outright.
+        if publications.isEmpty { libraryCache.clear() } else { cacheLibrary() }
+        cachedAt = nil
+        rebuild()
+    }
+
+    /// The folder behind a source, when the source is one.
+    func folder(of source: Source) -> URL? {
+        folders.first { $0.lastPathComponent == source.locator }
+    }
+
+    /// Whether a folder source can still be read.
+    ///
+    /// A folder whose bookmark did not restore has no URL here at all, which is the same
+    /// answer as one that is no longer readable: unreachable, and grey — `local-library`
+    /// names an unavailable folder separately, and a red badge on a share that is simply
+    /// not mounted would contradict "offline is a normal state".
+    private func folderState(of source: Source) -> SourceConnectionState {
+        guard let folder = folder(of: source),
+              FileManager.default.fileExists(atPath: folder.path())
+        else { return .unreachable(since: Date()) }
+        return .connected
     }
 }

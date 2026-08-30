@@ -138,3 +138,43 @@ extension StoryArcApp {
         )
     }
 }
+
+/// The five things a source's detail screen offers, resolved against the app's own stores.
+///
+/// `sources` names them all: test the connection, refresh, clear the cache, remove
+/// downloads, remove the source. The first three are the library's; the last two also touch
+/// the download store, which the scene owns rather than the library — so this is where the
+/// two halves meet. Android's `MainActivity` carries the same switch.
+extension StoryArcApp {
+    func perform(_ action: SourceAction, on source: Source) async {
+        switch action {
+        case .testConnection: await library.test(source)
+        case .refresh: await library.refresh(source)
+        case .clearCache: library.clearCache(of: source)
+        case .removeDownloads: removeDownloads(of: source)
+        case .remove: removeSource(source)
+        }
+    }
+
+    /// Removes a source, and everything `sources` says goes with it.
+    ///
+    /// The downloads first. The registry entry is what attributes a download to a source, so
+    /// deleting the source before its files leaves bytes on disk that nothing in the app can
+    /// name, let alone offer to remove.
+    func removeSource(_ source: Source) {
+        removeDownloads(of: source)
+        library.remove(source, credentials: credentials)
+    }
+
+    /// Deletes the files one source produced, and the records of them.
+    ///
+    /// The source itself stays. `sources` lists this as its own action beside removal, and a
+    /// reader freeing space before a flight has not asked to disconnect their server.
+    func removeDownloads(of source: Source) {
+        let (kept, removed) = downloads.removingAll(from: source.id)
+        guard !removed.isEmpty else { return }
+        for download in removed { downloadStore.remove(download) }
+        downloads = kept
+        downloadStore.save(kept)
+    }
+}

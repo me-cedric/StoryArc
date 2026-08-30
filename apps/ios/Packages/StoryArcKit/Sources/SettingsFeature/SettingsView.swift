@@ -45,6 +45,10 @@ public struct SettingsView: View {
     /// decides which of two sources holding one title the library shows.
     private let onReorderSource: (Source.ID, Int) -> Void
 
+    /// Runs one of the five actions a source's detail screen offers. `sources` names all
+    /// five; four of them had nowhere to be pressed.
+    private let onSourceAction: (Source, SourceAction) async -> Void
+
     /// What is on the device, and what it weighs. Handed in for the same reason the sources
     /// are: the downloads belong to the library that fetched them.
     private let downloads: DownloadLibrary
@@ -84,6 +88,7 @@ public struct SettingsView: View {
         onRemoveSource: @escaping (Source) -> Void = { _ in },
         onRenameSource: @escaping (Source, String) -> Void = { _, _ in },
         onReorderSource: @escaping (Source.ID, Int) -> Void = { _, _ in },
+        onSourceAction: @escaping (Source, SourceAction) async -> Void = { _, _ in },
         downloads: DownloadLibrary = DownloadLibrary(),
         bytesOnDisk: Int64 = 0,
         onRemoveDownload: @escaping (Download) -> Void = { _ in },
@@ -99,6 +104,7 @@ public struct SettingsView: View {
         self.onRemoveSource = onRemoveSource
         self.onRenameSource = onRenameSource
         self.onReorderSource = onReorderSource
+        self.onSourceAction = onSourceAction
         self.downloads = downloads
         self.bytesOnDisk = bytesOnDisk
         self.onRemoveDownload = onRemoveDownload
@@ -201,6 +207,8 @@ public struct SettingsView: View {
                 itemCount: itemCount,
                 onRemove: onRemoveSource,
                 onRename: onRenameSource,
+                downloads: downloads,
+                perform: onSourceAction,
                 onReorder: onReorderSource
             )
         case .downloads:

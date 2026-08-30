@@ -26,6 +26,17 @@ struct SourcesSettings: View {
     let onRemove: (Source) -> Void
     let onRename: (Source, String) -> Void
 
+    /// What is on disk, so a source's own screen can say what its downloads weigh and
+    /// whether there is anything there to offer to delete.
+    var downloads: DownloadLibrary = DownloadLibrary()
+
+    /// Runs one of the five actions a source's detail screen offers.
+    ///
+    /// One hand rather than five. The actions are a closed set — ``SourceAction`` — so a
+    /// sixth would arrive as a case the compiler makes the host answer, rather than as a
+    /// parameter every caller has to remember to pass.
+    var perform: (Source, SourceAction) async -> Void = { _, _ in }
+
     /// Moves a source to the position a drag reports.
     ///
     /// `sources` describes reordering as a drag, and on this platform a drag is what a
@@ -54,7 +65,18 @@ struct SourcesSettings: View {
                     .foregroundStyle(theme.palette.textSecondary)
             } else {
                 ForEach(sources) { source in
-                    row(source)
+                    NavigationLink {
+                        SourceDetail(
+                            source: source,
+                            diagnosis: diagnosis(of: source),
+                            perform: { await perform(source, $0) }
+                        )
+                    } label: {
+                        row(source)
+                    }
+                    // Swipe stays. The detail screen is where a source is diagnosed; a
+                    // rename is one word and should not cost a push and a pop.
+                    .swipeActions(edge: .trailing) { actions(for: source) }
                 }
                 .onMove { indices, destination in
                     // One row moves at a time, because the list is not selectable.
@@ -176,24 +198,39 @@ struct SourcesSettings: View {
         // One control per row, announced once, and at least 44pt tall.
         .frame(minHeight: 44)
         .accessibilityElement(children: .combine)
-        .swipeActions(edge: .trailing) {
-            // "On this device" is not a source the reader added, so it is not one they can
-            // remove. `local-library` deletes an imported copy one at a time, naming the
-            // title and the space each frees; a remove here would delete every copy at once
-            // behind a sentence that could name none of them.
-            if source.id != ImportedCopies.sourceID {
-                Button(role: .destructive) { removing = source } label: {
-                    Text("sources.remove", bundle: .module)
-                }
-            }
-            Button {
-                // Seeded with the current name rather than blank: a rename is usually a
-                // correction, and retyping a folder's whole name to fix one letter is not.
-                draftName = source.displayName
-                renaming = source
-            } label: {
-                Text("sources.rename", bundle: .module)
+    }
+
+    @ViewBuilder
+    private func actions(for source: Source) -> some View {
+        // "On this device" is not a source the reader added, so it is not one they can
+        // remove. `local-library` deletes an imported copy one at a time, naming the
+        // title and the space each frees; a remove here would delete every copy at once
+        // behind a sentence that could name none of them.
+        if source.id != ImportedCopies.sourceID {
+            Button(role: .destructive) { removing = source } label: {
+                Text("sources.remove", bundle: .module)
             }
         }
+        Button {
+            // Seeded with the current name rather than blank: a rename is usually a
+            // correction, and retyping a folder's whole name to fix one letter is not.
+            draftName = source.displayName
+            renaming = source
+        } label: {
+            Text("sources.rename", bundle: .module)
+        }
+    }
+
+    /// Everything the detail screen says about one source.
+    ///
+    /// "On this device" is the only source the reader cannot remove, which is the same
+    /// exception the swipe makes — asked once, here, so the two cannot disagree.
+    private func diagnosis(of source: Source) -> SourceDiagnosis {
+        SourceDiagnosis.of(
+            source,
+            itemCount: itemCount(source.id),
+            downloads: downloads.downloads,
+            isRemovable: source.id != ImportedCopies.sourceID
+        )
     }
 }

@@ -160,9 +160,10 @@ struct StoryArcApp: App {
                     opensAtDownloads: isShowingDownloads,
                     sources: library.registry.sources,
                     itemCount: { library.itemCount(of: $0) },
-                    onRemoveSource: { library.remove($0, credentials: credentials) },
+                    onRemoveSource: removeSource,
                     onRenameSource: { library.rename($0, to: $1) },
                     onReorderSource: { library.move($0, to: $1) },
+                    onSourceAction: { await perform($1, on: $0) },
                     // Read from the store rather than from a browser's acquisition: the
                     // store is the record, and Settings can be reached without ever having
                     // opened a catalogue.
