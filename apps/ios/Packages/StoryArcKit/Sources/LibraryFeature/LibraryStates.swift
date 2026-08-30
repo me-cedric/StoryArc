@@ -3,9 +3,14 @@ public import SwiftUI
 internal import DesignSystem
 public import StoryArcCore
 
-// What the library shows before it shows publications: a scan in progress, a
-// summary of what it skipped, the empty state, and the source list. Split out of
-// `LibraryView` for the same reason as the controls.
+// What the library shows before it shows publications: a walk in progress, a summary of
+// what it skipped, and the two empty states — nothing added, and something added that has
+// nothing on it. Split out of `LibraryView` for the same reason as the controls.
+//
+// It used to end with a list of configured sources and their connection dots. That is
+// configuration, and §6.2 of the design direction puts configuration in Settings and
+// nowhere else on the browse path; Settings › Your libraries has held the same list, with
+// the same removal confirmation, the whole time.
 
 /// While a scan runs.
 ///
@@ -202,79 +207,6 @@ struct LibraryAway: View {
         }
         .frame(maxWidth: StoryArcSpace.huge * 8)
         .reachableAtEveryTextSize()
-    }
-}
-
-struct SourceList: View {
-    @Environment(\.theme) private var theme
-
-    let sources: [Source]
-    /// How many publications each source holds, for the removal statement.
-    var itemCount: (Source.ID) -> Int = { _ in 0 }
-    var onRemove: ((Source) -> Void)?
-
-    /// Which source a confirmation is open for.
-    @State private var removing: Source?
-
-    var body: some View {
-        List {
-            ForEach(sources) { source in
-                HStack(spacing: StoryArcSpace.md) {
-                    Image(systemName: source.kind.symbolName)
-                        .foregroundStyle(theme.accent)
-
-                    VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                        Text(source.displayName)
-                            .textRole(.body)
-                            .foregroundStyle(theme.palette.textPrimary)
-                        Text(source.state.statusKey, bundle: .module)
-                            .textRole(.footnote)
-                            .foregroundStyle(theme.palette.textTertiary)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    // Colour is never the only signal: the state is spelled out
-                    // in the row above as well as carried by this dot.
-                    Circle()
-                        .fill(source.state.indicatorColor(theme.palette))
-                        .frame(width: StoryArcSpace.sm, height: StoryArcSpace.sm)
-                }
-                // An offline source is dimmed, never reddened — offline is normal.
-                .opacity(source.state.canFetch ? 1 : 0.55)
-                .listRowBackground(theme.palette.surfaceRaised)
-                .swipeActions(edge: .trailing) {
-                    if onRemove != nil {
-                        Button(role: .destructive) { removing = source } label: {
-                            Text("source.remove", bundle: .module)
-                        }
-                    }
-                }
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .confirmationDialog(
-            Text("source.remove.title \(removing?.displayName ?? "")", bundle: .module),
-            isPresented: Binding(
-                get: { removing != nil },
-                set: { if !$0 { removing = nil } }
-            ),
-            titleVisibility: .visible,
-            presenting: removing
-        ) { source in
-            Button(role: .destructive) {
-                onRemove?(source)
-                removing = nil
-            } label: {
-                Text("source.remove", bundle: .module)
-            }
-        } message: { source in
-            // `sources` asks the app to state "how many downloaded files and how much disk
-            // space will be freed before asking for confirmation". For a folder the honest
-            // answer is none and nothing, and saying so is the whole point: a reader must
-            // not have to guess whether this deletes their comics.
-            Text("source.remove.body \(itemCount(source.id))", bundle: .module)
-        }
     }
 }
 
