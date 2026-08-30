@@ -271,6 +271,50 @@ struct LibraryScannerTests {
         #expect(entry.modified > Date(timeIntervalSince1970: 0))
     }
 
+    // MARK: - A single file
+
+    @Test("A file the system handed over is indexed, not walked")
+    func singleFile() async throws {
+        // `local-library`'s open-in scenario remembers the file the reader opened, and a
+        // remembered file is one publication rather than a library. Handed to the folder
+        // walk it produced `found: 0` — `contentsOfDirectory` on a regular file lists
+        // nothing — so the reader got an empty shelf named after their book.
+        var collected: [ScanEvent] = []
+        for await event in LibraryScanner.scan(fileAt: FixtureCorpus.url("comics/single-page.cbz")) {
+            collected.append(event)
+        }
+
+        #expect(collected.compactMap(\.publication).count == 1)
+        #expect(collected.last == .finished(found: 1, skipped: 0))
+    }
+
+    @Test("A single file carries the facts only the filesystem knows")
+    func singleFileIsStamped() async throws {
+        // `library-browsing` sorts by date added and by size, and neither is written inside
+        // a comic. A file that arrived through the walk carries them; one that arrived
+        // through a hand-over has to carry them too, or it sorts to the end of every shelf.
+        let publications = await LibraryScanner.scan(fileAt: FixtureCorpus.url("comics/natural-sort.cbz"))
+            .compactMap(\.publication)
+            .reduce(into: [Publication]()) { $0.append($1) }
+
+        let publication = try #require(publications.first)
+        #expect(publication.fileSize ?? 0 > 0)
+        #expect(publication.addedAt != nil)
+    }
+
+    @Test("A file that is nothing StoryArc reads is skipped, not found")
+    func singleFileRefused() async throws {
+        // The same refusal the walk makes, because the reader needs the same answer either
+        // way: `publication-formats` forbids a silent failure.
+        var collected: [ScanEvent] = []
+        for await event in LibraryScanner.scan(fileAt: FixtureCorpus.url("comics/refused.cb7")) {
+            collected.append(event)
+        }
+
+        #expect(collected.compactMap(\.publication).isEmpty)
+        #expect(collected.last == .finished(found: 0, skipped: 1))
+    }
+
     @Test("A folder that cannot be read lists nothing rather than throwing")
     func missingFolderLists() {
         // Which is what makes the snapshot's refusal reachable: the empty list is the signal

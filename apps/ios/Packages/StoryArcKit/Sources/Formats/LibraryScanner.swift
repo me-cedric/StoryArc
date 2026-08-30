@@ -83,6 +83,41 @@ public enum LibraryScanner {
         }
     }
 
+    /// One publication, emitted the same way a walk emits one of many.
+    ///
+    /// `local-library` remembers a file another app handed over, and a remembered file is a
+    /// publication rather than a library. Handed to ``scan(folderAt:known:skipping:)`` it
+    /// produced nothing at all — `contentsOfDirectory` on a regular file lists nothing and
+    /// the walk finished `found: 0` — which is how a reader ended up with an empty shelf
+    /// named after their own book.
+    ///
+    /// The same stream, so a caller feeds a remembered file and a picked folder through one
+    /// path and gets the same events, the same reconcile against `known`, and the same
+    /// filesystem facts stamped on what comes out. A second, quieter way of indexing would
+    /// be a second place for the two to disagree.
+    ///
+    /// No `skipping`: there is one thing here, and a caller that already has it does not
+    /// call this at all.
+    public static func scan(
+        fileAt file: URL,
+        known: (@Sendable (URL) -> Publication?)? = nil
+    ) -> AsyncStream<ScanEvent> {
+        AsyncStream<ScanEvent> { continuation in
+            let task = Task {
+                // No series hint. A file reached on its own has no folder above it that the
+                // app is entitled to read, so its own name is all there is to go on.
+                let tally = await index(file, seriesHint: nil, known: known) {
+                    continuation.yield($0)
+                }
+                if !Task.isCancelled {
+                    continuation.yield(.finished(found: tally.found, skipped: tally.skipped))
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
     /// Everything in a folder, for a caller that genuinely wants the whole list.
     ///
     /// The indexer for a small folder, or a test. A library UI should consume the
