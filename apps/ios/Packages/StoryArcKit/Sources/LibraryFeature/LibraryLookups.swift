@@ -15,9 +15,18 @@ extension LibraryModel {
 
     /// What a publication's source is called, or `nil` when saying so would add nothing.
     ///
-    /// `library-browsing`: a publication "shows its source only when more than one source
-    /// is configured", and a scoped view has already answered the question in its own
-    /// selector — repeating it on every row would be a column of the same word.
+    /// **The cover grid no longer asks.** `library-browsing` now requires that "nothing on
+    /// the shelf states which source a publication came from": origin stopped being how a
+    /// reader narrows the library, so a grey line naming a server under every cover was the
+    /// management surface leaking into the discovery one — and with source demoted from a
+    /// scope to a filter, the gate below opens *more* often, not less. Nothing is lost. The
+    /// publication's own page carries exactly one provenance line, drawn by
+    /// ``DetailProvenanceLine``, and that is the only place on the browse path where origin
+    /// is named.
+    ///
+    /// What survives of the old rule — a name only when more than one source is configured,
+    /// and never in a view whose own selector has already answered the question — still
+    /// governs the callers that remain.
     public func sourceName(of publication: Publication) -> String? {
         guard registry.attributesPublications, query.scope == .allSources else { return nil }
         return registry.name(of: publication.sourceID)

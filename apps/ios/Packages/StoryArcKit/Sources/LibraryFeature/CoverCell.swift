@@ -60,9 +60,22 @@ struct CoverCell: View {
                 // `design.md` asks for "downloaded state as a small filled mark in one
                 // corner", and the palette calls `status/downloaded` "the one badge
                 // permitted to compete with cover art". Neither platform drew it.
-                // Opposite corner from the pick mark, so selection mode does not bury it.
+                //
+                // Not while picking. `library-browsing` lets a cover carry "at most two
+                // marks: how far the reader has got, and whether it can be read with no
+                // network", and "no third mark is added to a cover for any reason" — so
+                // the pick mark is not an addition to that pair, it is a substitution
+                // into it. This one is what gives, because availability answers a
+                // browsing question and the reader has stopped browsing: the only
+                // question selection mode asks is which covers are picked. The progress
+                // rail stays, because it is the rail along the artwork's foot rather
+                // than a second glyph in the trailing corners, and because how far in a
+                // cover is remains how a reader finds the ones they meant to pick.
+                //
+                // Spoken either way — see ``accessibilityLabel``. A mark withheld to keep
+                // the artwork legible is not a fact withheld.
                 .overlay(alignment: .bottomTrailing) {
-                    if model.isOnDevice(publication) { OnDeviceMark() }
+                    if showsOnDeviceMark { OnDeviceMark() }
                 }
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
@@ -74,16 +87,6 @@ struct CoverCell: View {
 
                 if let subtitle {
                     Text(subtitle)
-                        .textRole(.caption)
-                        .foregroundStyle(theme.palette.textTertiary)
-                        .lineLimit(1)
-                }
-
-                // `library-browsing`: a publication "shows its source only when more than
-                // one source is configured". A line only some readers ever see, which is
-                // the point — with one source it would be the same word under every cover.
-                if let source = model.sourceName(of: publication) {
-                    Text("library.cell.source \(source)", bundle: .module)
                         .textRole(.caption)
                         .foregroundStyle(theme.palette.textTertiary)
                         .lineLimit(1)
@@ -197,6 +200,15 @@ struct CoverCell: View {
         }
     }
 
+    /// Whether this cover carries the downloaded mark.
+    ///
+    /// A named rule rather than a condition inline in the body, because it *is* a rule:
+    /// `library-browsing` caps a cover at two marks, and a view body is not somewhere a
+    /// cap can be asserted. This is the assertable half of it.
+    var showsOnDeviceMark: Bool {
+        isPicked == nil && model.isOnDevice(publication)
+    }
+
     /// The second line: what distinguishes this row from its neighbours.
     private var subtitle: String? {
         if !publication.isOpenable {
@@ -236,11 +248,10 @@ struct CoverCell: View {
         if let pageCount = publication.pageCount {
             parts.append(String(localized: "library.cell.pages \(pageCount)", bundle: .module, locale: .storyArc))
         }
-        if let source = model.sourceName(of: publication) {
-            parts.append(
-                String(localized: "library.cell.source \(source)", bundle: .module, locale: .storyArc)
-            )
-        }
+        // No source. `library-browsing`: "nothing on the shelf states which source a
+        // publication came from" — and a fact removed from the artwork but left in the
+        // spoken label is the same leak, read aloud. The publication's own page carries
+        // the one provenance line, for every reader alike.
         return parts.joined(separator: ", ")
     }
 }

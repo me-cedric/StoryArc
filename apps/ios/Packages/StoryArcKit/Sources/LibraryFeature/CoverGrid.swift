@@ -222,6 +222,10 @@ struct PickMark: View {
 ///
 /// Filled, and the only status colour in the grid. A glyph on its own ground reads over any
 /// artwork; an unfilled one is a shape lost in whatever the cover happens to be.
+///
+/// It stands down while the reader is picking. `library-browsing` caps a cover at two marks
+/// and forbids a third "for any reason", so ``PickMark`` takes this one's place rather than
+/// joining it — see ``CoverCell/showsOnDeviceMark``.
 struct OnDeviceMark: View {
     @Environment(\.theme) private var theme
 
