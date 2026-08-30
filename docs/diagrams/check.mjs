@@ -27,21 +27,32 @@
 // known-good file too, which is how an earlier probe passed a broken model.
 // The real counts are `[...view.nodes()].length` and `[...view.edges()].length`.
 //
-// Run:  node docs/diagrams/check.mjs
-// Needs likec4 on disk; see ../README.md.
+// Run:  npx --yes --package likec4@1.59.2 -- node docs/diagrams/check.mjs
+// See ./README.md.
 
 import { createRequire } from 'node:module'
 import { readFileSync, readdirSync } from 'node:fs'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
 // `likec4` is deliberately not a project dependency — nothing in the build
-// reads these diagrams. Resolve it from wherever the caller installed it:
-// next to this script, or in the current working directory.
+// reads these diagrams. So resolve it from wherever the caller happens to have
+// it: next to this script, in the working directory, or in the throwaway
+// package `npx --package` puts on PATH as `<somewhere>/node_modules/.bin`.
+function resolutionRoots() {
+  const roots = [join(here, 'noop.js'), join(process.cwd(), 'noop.js')]
+  for (const entry of (process.env.PATH ?? '').split(':')) {
+    if (entry.endsWith(`node_modules${sep}.bin`)) {
+      roots.push(join(entry, '..', '..', 'noop.js'))
+    }
+  }
+  return roots
+}
+
 async function loadLikeC4() {
-  for (const from of [join(here, 'noop.js'), join(process.cwd(), 'noop.js')]) {
+  for (const from of resolutionRoots()) {
     try {
       const entry = createRequire(from).resolve('likec4')
       return (await import(pathToFileURL(entry).href)).LikeC4
@@ -49,8 +60,8 @@ async function loadLikeC4() {
       /* try the next root */
     }
   }
-  console.error('Cannot resolve the `likec4` package. Install it first, e.g.:')
-  console.error('  cd docs/diagrams && npm install --no-save likec4@1.59.2 && node check.mjs')
+  console.error('Cannot resolve the `likec4` package. Run this script as:')
+  console.error('  npx --yes --package likec4@1.59.2 -- node docs/diagrams/check.mjs')
   process.exit(1)
 }
 
