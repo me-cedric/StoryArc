@@ -216,7 +216,7 @@ struct ShelfPullTests {
 
     @Test("A queue written before notices existed still reads")
     func partialQueueDecodes() throws {
-        let data = try #require(#"{"edits":[],"baselines":[]}"#.data(using: .utf8))
+        let data = Data(#"{"edits":[],"baselines":[]}"#.utf8)
         let read = try JSONDecoder().decode(ShelfEditQueue.self, from: data)
 
         #expect(read == ShelfEditQueue())

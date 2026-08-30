@@ -129,25 +129,54 @@ struct KavitaListView: View {
     let server: KavitaPage
     let listID: Int
     let title: String
+    /// Edits this device has made that the server has not taken yet.
+    ///
+    /// `collections-and-reading-lists` requires an edit made while the server was
+    /// unreachable to be "applied locally" and its pending state to be "visible on the
+    /// list". Passed in rather than read here, so the rows and the badge on the shelf above
+    /// them come from one reading of the queue.
+    var pending: [ShelfEdit] = []
     let onOpen: (Publication, URL) -> Void
 
     @State private var items: [KavitaReadingListItem] = []
     @State private var fetching: Int?
 
+    /// The server's entries, with the outstanding ones after them. ``ShelfMerge`` decides
+    /// the order, so a test can assert it without a server.
+    private var rows: [ShelfEntry] {
+        ShelfMerge.projecting(
+            remote: items.map {
+                ShelfEntry(id: String($0.chapterId), title: $0.displayName, isPending: false)
+            },
+            pending: pending
+        )
+    }
+
     var body: some View {
-        List(items) { entry in
+        List(Array(rows.enumerated()), id: \.element.id) { index, row in
             Button {
+                guard let entry = items.first(where: { String($0.chapterId) == row.id }) else {
+                    return
+                }
                 Task { await open(entry) }
             } label: {
                 HStack(spacing: StoryArcSpace.sm) {
-                    Text(verbatim: "\(entry.order + 1)")
+                    Text(verbatim: "\(index + 1)")
                         .textRole(.caption)
                         .foregroundStyle(theme.palette.textTertiary)
 
                     VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                        Text(entry.displayName)
+                        Text(row.title)
                             .foregroundStyle(theme.palette.textPrimary)
-                        if let series = entry.seriesName, series != entry.displayName {
+                        if row.isPending {
+                            // Grey rather than red: an unsent edit is offline, and
+                            // `sources` makes offline a normal state.
+                            Text("shelves.pending.entry", bundle: .module)
+                                .textRole(.footnote)
+                                .foregroundStyle(StoryArcColor.Status.offline)
+                        } else if let entry = items.first(where: { String($0.chapterId) == row.id }),
+                                  let series = entry.seriesName,
+                                  series != entry.displayName {
                             Text(series)
                                 .textRole(.footnote)
                                 .foregroundStyle(theme.palette.textSecondary)
@@ -156,14 +185,16 @@ struct KavitaListView: View {
 
                     Spacer(minLength: 0)
 
-                    if fetching == entry.chapterId { ProgressView() }
+                    if fetching.map({ String($0) == row.id }) == true { ProgressView() }
                 }
                 // Without this the row is only tappable where its text is, and the empty
                 // half of a wide row does nothing.
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .disabled(fetching != nil)
+            // A pending entry cannot be opened from here: the server is what would hand the
+            // file over, and it has not heard of this entry yet.
+            .disabled(fetching != nil || row.isPending)
         }
         .navigationTitle(title)
         #if os(iOS)

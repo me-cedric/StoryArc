@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import Persistence
 internal import StoryArcCore
 
 /// Where a publication can be put.
@@ -135,10 +136,29 @@ struct AddToShelfMenu: View {
     ///
     /// Refused once rather than once per publication: a selection of forty from a folder
     /// would otherwise raise forty identical alerts about the same server.
+    ///
+    /// Every accepted publication is written down as a pending edit before anything is sent,
+    /// because `collections-and-reading-lists` requires an edit made while the server is
+    /// unreachable to survive and be visible. The reconciliation that follows settles the
+    /// ones that landed, so a server that was there marks nothing pending for longer than
+    /// the round trip.
     private func offer(_ list: ServerShelf) async {
+        let progress = KavitaProgressStore()
+        let edits = ShelfEditStore()
         var accepted = 0
         for publication in publications {
-            accepted += await model.add(publication, toServerList: list) ? 1 : 0
+            guard await model.add(publication, toServerList: list) else { continue }
+            accepted += 1
+            guard let origin = progress.origin(of: publication.id) else { continue }
+            ShelfSync.note(
+                entry: origin.chapterId,
+                titled: publication.displayTitle,
+                on: list,
+                in: edits
+            )
+        }
+        if accepted > 0 {
+            await ShelfSync.reconcile(lists: [list], store: edits, progress: progress)
         }
         if accepted < publications.count { onRefused(list.server.title) }
     }

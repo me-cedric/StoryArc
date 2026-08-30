@@ -25,6 +25,13 @@ public struct ShelvesView: View {
     /// from rows that each fetch their own.
     @State private var serverShelves: [ServerShelf] = []
 
+    /// Edits owed to a server, so a row can say so and a conflict can be said once.
+    ///
+    /// Read into the view rather than asked for per row: the badge and the notice come out
+    /// of the same reconciliation, and a row that fetched its own would disagree with the
+    /// alert above it.
+    @State private var edits = ShelfEditQueue()
+
     /// Which kind the "new" sheet is making.
     private enum Kind: String, Identifiable {
         case collection
@@ -118,10 +125,11 @@ public struct ShelvesView: View {
                             server: shelf.server,
                             listID: shelf.id,
                             title: shelf.title,
+                            pending: edits.pending(for: ShelfSync.key(shelf)),
                             onOpen: onOpen
                         )
                     } label: {
-                        serverRow(shelf)
+                        serverRow(shelf, pending: edits.pending(for: ShelfSync.key(shelf)).count)
                     }
                 }
             } header: {
@@ -131,6 +139,7 @@ public struct ShelvesView: View {
         .task {
             guard serverShelves.isEmpty else { return }
             serverShelves = await ServerShelf.all(in: model.registry, credentials: CredentialStore())
+            await reconcile()
         }
         .navigationTitle(Text("shelves.title", bundle: .module))
         .toolbar {
@@ -178,16 +187,59 @@ public struct ShelvesView: View {
             // makes the sentence true rather than merely unfalsified.
             Text("shelves.new.storedLocally", bundle: .module)
         }
+        // `collections-and-reading-lists`: on a conflict "the user is told once what
+        // changed". Dismissing it is what makes it once — the notice is deleted, not
+        // hidden, so the next refresh has nothing left to raise.
+        .alert(
+            Text("shelves.conflict.title", bundle: .module),
+            isPresented: Binding(get: { edits.nextNotice != nil }, set: { _ in }),
+            presenting: edits.nextNotice
+        ) { notice in
+            Button {
+                let store = ShelfEditStore()
+                store.update { $0.acknowledging(notice.id) }
+                edits = store.queue()
+            } label: {
+                Text("shelves.conflict.understood", bundle: .module)
+            }
+        } message: { notice in
+            Text(
+                "shelves.conflict.body \(notice.shelfName) \(notice.discarded.joined(separator: ", "))",
+                bundle: .module
+            )
+        }
+    }
+
+    /// Asks every server list what it holds, settles what has landed, and pushes what has
+    /// not — the "on reconnection" half of the offline rule, driven by the one moment this
+    /// screen already knows a server answered.
+    private func reconcile() async {
+        let store = ShelfEditStore()
+        await ShelfSync.reconcile(
+            lists: serverShelves.filter(\.isList),
+            store: store,
+            progress: KavitaProgressStore()
+        )
+        edits = store.queue()
     }
 
     @ViewBuilder
-    private func serverRow(_ shelf: ServerShelf) -> some View {
+    private func serverRow(_ shelf: ServerShelf, pending: Int = 0) -> some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
             Text(shelf.title)
                 .foregroundStyle(theme.palette.textPrimary)
             Text(shelf.server.title)
                 .textRole(.footnote)
                 .foregroundStyle(theme.palette.textSecondary)
+
+            // `collections-and-reading-lists`: "the pending state is visible on the list".
+            // On the row as well as inside it, because a reader looking for what has not
+            // gone out yet should not have to open every list to find it.
+            if pending > 0 {
+                Text("shelves.pending \(pending)", bundle: .module)
+                    .textRole(.footnote)
+                    .foregroundStyle(StoryArcColor.Status.offline)
+            }
         }
     }
 
