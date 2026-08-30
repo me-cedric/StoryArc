@@ -3,8 +3,13 @@
 A read-only audit of both apps, run while the round-4 feature agents were building.
 This is the backlog, worked through in rank order.
 
-**Rank 1 is fixed** — see the commit that follows this document. Every other finding
-below is still open.
+**Ten of the twenty-one are fixed**: ranks 1, 2, 5, 6, 7, 8, 9, 10, 14 and 15, each with a
+regression test confirmed failing against the old code first. Their headings below are
+marked `FIXED`. Rank 5 is marked fixed for iOS and `NOT A DEFECT` for Android, where the
+same overflow wraps silently and is caught downstream — established from source rather
+than assumed by symmetry.
+
+The eleven still open are ranks 3, 4, 11, 12, 13, 16, 17, 18, 19, 20 and 21.
 
 ## How this was produced, and how much to trust it
 

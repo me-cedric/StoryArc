@@ -93,6 +93,8 @@ The app SHALL let a user move around a publication and mark places in it.
 #### Scenario: Following a link out of the publication
 - **WHEN** a user follows a link to somewhere outside the publication
 - **THEN** it is handed to the system rather than opened over the text, and nothing is fetched until the link is followed
+- **AND** the destination host is shown and confirmed first, because the reader is leaving the book on a publication's say-so
+- **AND** only `http` and `https` are followed; a link naming any other scheme is dropped rather than handed on
 
 ### Requirement: PDF rendering
 

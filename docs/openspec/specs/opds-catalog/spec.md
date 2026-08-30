@@ -25,6 +25,8 @@ from the response rather than requiring the user to declare it.
 - **WHEN** a catalogue responds with a 401
 - **THEN** the app prompts for credentials, supporting HTTP Basic and Bearer tokens
 - **AND** stores the secret per the credential rules in [`sources`](../sources/spec.md)
+- **AND** sends that credential only to the origin the reader configured — scheme, host and port — so a feed naming a link on any other origin is fetched anonymously, on every redirect hop as well as the first request
+- **AND** a link that steps down from `https` to `http` relative to the source's own origin is not followed at all
 
 #### Scenario: Self-signed certificate
 - **WHEN** a catalogue presents a certificate the system does not trust
