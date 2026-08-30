@@ -57,4 +57,30 @@
         <item quantity="one">%1$d page ignorée</item>
         <item quantity="other">%1$d pages ignorées</item>
     </plurals>
+    <string name="reader_pdf_page">Page %1$d</string>
+    <string name="reader_pdf_find">Rechercher dans le PDF</string>
+    <string name="reader_pdf_tab_search">Recherche</string>
+    <string name="reader_pdf_tab_marks">Marques</string>
+    <string name="reader_pdf_search">Rechercher dans ce PDF</string>
+    <string name="reader_pdf_search_running">Recherche sur chaque page…</string>
+    <string name="reader_pdf_search_none">Rien trouvé dans cette publication.</string>
+    <string name="reader_pdf_search_capped">Les 200 premières occurrences. Affinez la recherche pour en voir moins.</string>
+    <string name="reader_pdf_marks_empty">Appuyez longuement sur un mot pour le surligner ou y ajouter une note.</string>
+    <string name="reader_pdf_marks_remove">Supprimer</string>
+    <string name="reader_pdf_note">Note</string>
+    <string name="reader_pdf_note_save">Enregistrer</string>
+    <string name="reader_pdf_note_cancel">Annuler</string>
+    <string name="reader_pdf_copy">Copier</string>
+    <string name="reader_pdf_search_selection">Rechercher ceci</string>
+    <string name="reader_pdf_deselect">Désélectionner</string>
+    <string name="reader_pdf_export_text">Partager en texte</string>
+    <string name="reader_pdf_export_markdown">Partager en Markdown</string>
+    <string name="reader_pdf_no_text_title">Aucun texte sur cette page</string>
+    <string name="reader_pdf_no_text_message">Ce PDF contient des images de pages et non du texte : il n’y a donc rien à sélectionner ni à rechercher.</string>
+    <string name="reader_pdf_no_text_done">OK</string>
+    <string name="reader_pdf_colour_yellow">Jaune</string>
+    <string name="reader_pdf_colour_green">Vert</string>
+    <string name="reader_pdf_colour_blue">Bleu</string>
+    <string name="reader_pdf_colour_pink">Rose</string>
+    <string name="reader_pdf_colour_purple">Violet</string>
 </resources>

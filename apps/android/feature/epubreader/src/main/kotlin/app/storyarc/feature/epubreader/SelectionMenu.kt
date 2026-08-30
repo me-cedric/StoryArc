@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.designsystem.theme.swatch
 import app.storyarc.core.model.HighlightColour
 
 /**
@@ -106,22 +107,6 @@ internal fun SelectionMenu(
         }
     }
 }
-
-/**
- * What the colour looks like on a page.
- *
- * Fixed hues rather than palette tokens: a highlight is ink a reader chose, and one that
- * changed colour when they changed theme would stop meaning what they meant by it. iOS's
- * `swatch` is the same five.
- */
-internal val HighlightColour.swatch: Color
-    get() = when (this) {
-        HighlightColour.YELLOW -> Color(0xFFFFD940)
-        HighlightColour.GREEN -> Color(0xFF73D973)
-        HighlightColour.BLUE -> Color(0xFF66B8FF)
-        HighlightColour.PINK -> Color(0xFFFF8CBF)
-        HighlightColour.PURPLE -> Color(0xFFB88CFF)
-    }
 
 /** Named, not described: a reader picking a colour needs "yellow", not "the first swatch". */
 internal val HighlightColour.labelRes: Int

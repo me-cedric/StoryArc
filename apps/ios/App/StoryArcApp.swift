@@ -11,6 +11,16 @@ import SwiftUI
 
 @main
 struct StoryArcApp: App {
+    // The state below is internal rather than private because the actions that read it
+    // live in `StoryArcAppActions.swift`, and `private` does not reach across a file.
+    // Internal, not public: this is the app target, so nothing outside it can see them.
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
+
+    /// `comic-reader` locks the reader's orientation, and an application delegate is the
+    /// only place UIKit will take that answer from. See `OrientationDelegate`.
+    @UIApplicationDelegateAdaptor(OrientationDelegate.self) private var orientation
+
     /// `settings-and-about`: System by default, applied without a restart.
     /// Stored here rather than in a store so the shell has no dependency on a
     /// persistence layer that does not exist yet.
@@ -24,36 +34,29 @@ struct StoryArcApp: App {
     ///
     /// It replaces an `@AppStorage("appearanceMode")` that predated the settings store —
     /// two homes for one value, and only one of them was ever written.
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.scenePhase) private var scenePhase
+    @State var settings = SettingsStore().settings()
+    let settingsStore = SettingsStore()
 
-    /// `comic-reader` locks the reader's orientation, and an application delegate is the
-    /// only place UIKit will take that answer from. See `OrientationDelegate`.
-    @UIApplicationDelegateAdaptor(OrientationDelegate.self) private var orientation
-
-    @State private var settings = SettingsStore().settings()
-    private let settingsStore = SettingsStore()
-
-    @State private var isShowingSettings = false
+    @State var isShowingSettings = false
 
     /// Whether Settings should open straight at Downloads, because a quick action asked
     /// for it rather than the reader tapping their way in.
-    @State private var isShowingDownloads = false
+    @State var isShowingDownloads = false
 
     /// How many times the reader has asked to be taken back to the shelf. See
     /// ``show(_:)``.
-    @State private var libraryRequests = 0
+    @State var libraryRequests = 0
 
     /// What the reader is currently showing, if anything.
     ///
     /// The app layer owns this because a feature module never depends on another
     /// feature module (docs/architecture) — the library reports a choice and the
     /// reader accepts one, and neither knows the other exists.
-    @State private var reading: ReadingSelection?
+    @State var reading: ReadingSelection?
 
     /// What was open a moment ago. `onDismiss` runs after the item is cleared, and the
     /// position has to be sent for the publication that was being read, not for nothing.
-    @State private var dismissed: ReadingSelection?
+    @State var dismissed: ReadingSelection?
 
     /// One store for the whole app. ADR-0006 makes the local record authoritative,
     /// so the reader writing and the library reading have to be the same store —
@@ -64,21 +67,21 @@ struct StoryArcApp: App {
     let progress: ProgressStore?
 
     /// Held here so the app can refresh it when the reader closes.
-    @State private var library: LibraryModel
+    @State var library: LibraryModel
 
     /// A file the system handed over that StoryArc cannot read, if any.
     ///
     /// Held rather than discarded: `local-library` requires the app to name the format it
     /// detected instead of failing silently, and a reader who picked the wrong file needs
     /// to know it was the file rather than the app.
-    @State private var refusedFile: RefusedFile?
+    @State var refusedFile: RefusedFile?
 
-    private let bookmarks = FolderBookmarks()
+    let bookmarks = FolderBookmarks()
 
     /// The link between a publication the reader just closed and the Kavita chapter it came
     /// from. Held here because this is where the reader closes.
-    private let kavitaProgress = KavitaProgressStore()
-    private let credentials = CredentialStore()
+    let kavitaProgress = KavitaProgressStore()
+    let credentials = CredentialStore()
 
     /// What is on the device. Held here because Settings can be reached without ever
     /// opening a catalogue, and re-read on each appearance so a download made while
@@ -125,130 +128,6 @@ struct StoryArcApp: App {
                 downloadStore: DownloadStore(),
                 journal: ScanJournal()
             )
-        )
-    }
-
-    /// Opens a publication the system handed over, or says why it cannot.
-    ///
-    /// Straight into the reader, per `local-library`: "the publication opens directly in
-    /// the reader". No intermediate screen, because the reader already chose this file in
-    /// another app and asking again would be asking twice.
-    ///
-    /// Remembered at the same time. The spec asks for the offer to be "once and
-    /// unobtrusively", and a bookmark to the file the reader just chose to open is the
-    /// least obtrusive form of it: nothing to dismiss, and the file is where they left it.
-    private func openHandedOver(_ url: URL) async {
-        switch await OpenedFile.index(url) {
-        case let .opened(publication):
-            let selection = ReadingSelection(publication: publication, url: url)
-            reading = selection
-            dismissed = selection
-            _ = OpenedFile.remember(url, in: bookmarks)
-        case let .unsupported(detected):
-            refusedFile = RefusedFile(name: url.lastPathComponent, detected: detected)
-        case .unreadable:
-            refusedFile = RefusedFile(name: url.lastPathComponent, detected: nil)
-        }
-    }
-
-    /// The one moment progress is known to have changed. Called when the reader
-    /// closes rather than on a timer or on every appearance, because this is the
-    /// event — polling for it would be guessing.
-    ///
-    /// The same moment `kavita-server` sends a position: the reader has stopped, and the
-    /// page they stopped on is the answer.
-    /// Named rather than inline, because `onDismiss` and the content closure together
-    /// are two trailing closures, which SwiftLint rejects.
-    private func dismissedReader() {
-        refreshProgress(dismissed)
-    }
-
-    private func refreshProgress(_ closed: ReadingSelection?) {
-        Task {
-            await library.refreshProgress()
-            await reportToKavita(closed?.publication)
-        }
-    }
-
-    /// Tells the server where the reader got to, when the publication came from one.
-    private func reportToKavita(_ publication: Publication?) async {
-        guard let publication,
-              let origin = kavitaProgress.origin(of: publication.id),
-              let recorded = try? await progress?.progress(for: publication.identity),
-              case let .page(index, _) = recorded.position
-        else { return }
-
-        let address = library.registry.sources
-            .first { $0.id.uuidString == origin.sourceId }
-            .flatMap { KavitaPage(source: $0, credentials: credentials)?.address }
-        await KavitaSync.report(index, for: origin, to: address, in: kavitaProgress)
-    }
-
-    /// Swaps the reader's contents for the next publication.
-    ///
-    /// The selection is replaced rather than a second cover presented: stacking
-    /// readers would leave a pile of them behind a long series.
-    private func openNext(_ publication: Publication) {
-        guard let url = library.location(of: publication) else { return }
-        let selection = ReadingSelection(publication: publication, url: url)
-        reading = selection
-        dismissed = selection
-    }
-
-    /// Puts the reader where a quick action asked to be, from wherever it found them.
-    ///
-    /// The library entry promises the *shelf*, so it undoes everything covering it: the
-    /// reader, Settings, and the library's own navigation into a catalogue. The last of
-    /// those is `@State` inside `LibraryView`, which nothing out here can reach — hence
-    /// the counter, which the view watches and answers by unwinding itself. Android's
-    /// `MainActivity` holds that stack directly and clears it in place; same landing,
-    /// each platform's own way of getting there.
-    private func show(_ place: QuickActionRequest) {
-        reading = nil
-        isShowingSettings = false
-        switch place {
-        // A named publication never arrives here — `ReadingContinuity` waits for the
-        // library to place it rather than handing it back. The shelf is the honest
-        // landing if that ever changes.
-        case .library, .continueReading:
-            libraryRequests += 1
-        case .downloads:
-            downloads = downloadStore.library()
-            isShowingDownloads = true
-            isShowingSettings = true
-        }
-    }
-
-    /// Copies a publication off a share and onto the device.
-    ///
-    /// The copying lives in `KeepForOffline.swift`, beside Android's own file of that
-    /// name; what belongs here is only which publication the reader is then looking at.
-    private func keepForOffline(_ selection: ReadingSelection) async {
-        guard let file = await keptForOffline(selection.url, into: downloadStore.directory) else { return }
-        SmbReachability.clear()
-        reading = ReadingSelection(publication: selection.publication, url: file)
-        dismissed = reading
-    }
-
-    /// Returns both stores to what a fresh install has, and nothing more.
-    ///
-    /// Two stores, and only what each one calls a setting. The reading *defaults* are
-    /// settings; a theme chosen while reading is not, and neither is progress.
-    private func resetSettings() {
-        settingsStore.reset()
-        settings = settingsStore.settings()
-        let reader = ReaderPreferences()
-        reader.save(reader.themes().clearingDefaults())
-    }
-
-    /// Writes through on every change, so the theme above recomposes with it.
-    private var settingsBinding: Binding<AppSettings> {
-        Binding(
-            get: { settings },
-            set: { new in
-                settings = new
-                settingsStore.save(new)
-            }
         )
     }
 
@@ -373,6 +252,10 @@ struct StoryArcApp: App {
                         url: selection.url,
                         progress: progress,
                         preferences: ReaderPreferences(),
+                        // The same store the reflowable reader writes to. A PDF that carries
+                        // text is marked the same way a novel is, and `ebook-reader` lists
+                        // both in one place.
+                        annotations: AnnotationStore(),
                         // `comic-reader`'s chapter actions and its end screen both ask what
                         // surrounds this issue, and only the app layer sees both the reader
                         // and the library — including a list, whose order beats the series.

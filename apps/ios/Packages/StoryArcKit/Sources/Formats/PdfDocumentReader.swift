@@ -19,17 +19,19 @@ public enum PdfError: Error, Equatable {
 
 /// Reads a PDF as a paged publication.
 ///
-/// PDF is the one format where the two platforms are deliberately not symmetric.
-/// `ebook-reader` makes text-layer features iOS-only in 1.0, because Android
-/// offers no PDF text API that is also a renderer — `PdfRenderer` draws pages and
-/// nothing else. So this type carries `text`, `search` and `outline`, and its
-/// Kotlin counterpart does not: not an oversight, a specified difference, and the
-/// reason Android hides those controls rather than showing them disabled.
+/// The page: count, size in points, and rendering on demand. `ebook-reader`
+/// requires a several-hundred-megabyte PDF opened from a remote source to render
+/// pages as they are needed, which is why nothing here rasterises up front.
 ///
-/// What *is* symmetric is the page: count, size in points, and rendering on
-/// demand. `ebook-reader` requires a several-hundred-megabyte PDF opened from a
-/// remote source to render pages as they are needed, which is why nothing here
-/// rasterises up front.
+/// What is written on the page is next door, in `PdfTextLayer`. The split is not
+/// tidiness: on Android the text half is a separate reader that a device may not
+/// have at all (ADR-0011), and keeping the same seam here is what makes the two
+/// codebases answer the same question in the same place.
+///
+/// The document outline stays here, and stays iOS-only. PDFKit reads it;
+/// Android's PDF API exposes links and text but no outline, so `ebook-reader`'s
+/// "the document outline works" is honoured on one platform and the control is
+/// absent rather than empty on the other. ADR-0011 records that.
 ///
 /// Deliberately **not** `Sendable`. `PDFDocument` is a mutable reference type
 /// with no thread-safety guarantee, and claiming otherwise would be a lie the
@@ -37,12 +39,20 @@ public enum PdfError: Error, Equatable {
 /// should own it from a single actor, the way the reader UI does.
 public struct PdfDocumentReader {
     public let pageCount: Int
-    /// Whether any page carries extractable text.
+    /// Whether any of the pages this probes carries extractable text.
     ///
     /// Drives whether the reader offers selection and search at all. A scanned
     /// comic has no text layer, and `ebook-reader` forbids offering a capability
     /// that is absent — so this is checked rather than assumed from the extension.
+    ///
+    /// Bounded by ``textProbePages`` rather than reading the whole document: a
+    /// publication whose first two dozen pages carry not one word is a scan, and
+    /// Android — where opening a page is the expensive part — probes the same
+    /// number for the same reason.
     public let hasTextLayer: Bool
+
+    /// How many pages ``hasTextLayer`` reads before it concludes there is no text.
+    public static let textProbePages = 24
 
     private let document: PDFDocument
 
@@ -59,9 +69,10 @@ public struct PdfDocumentReader {
     private init(document: PDFDocument) {
         self.document = document
         self.pageCount = document.pageCount
-        // Stops at the first page with text. A scanned publication pays for a
-        // full scan, but only once, and only of the text layer that is not there.
-        self.hasTextLayer = (0..<document.pageCount).contains { index in
+        // Stops at the first page with text. A scan pays for the whole probe, but
+        // only once, and only for the two dozen pages the bound allows.
+        let probed = min(document.pageCount, PdfDocumentReader.textProbePages)
+        self.hasTextLayer = (0..<probed).contains { index in
             guard let text = document.page(at: index)?.string else { return false }
             return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
@@ -116,26 +127,13 @@ public struct PdfDocumentReader {
         return image
     }
 
-    // MARK: - Text layer, iOS only
+    // MARK: - Text layer
 
     /// A page's text, or `nil` when the page has none.
     public func text(at index: Int) throws -> String? {
         let raw = try page(at: index).string?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return (raw?.isEmpty ?? true) ? nil : raw
-    }
-
-    /// Page indices containing `query`, in document order. In-publication search.
-    public func search(_ query: String) -> [Int] {
-        guard !query.isEmpty else { return [] }
-        var found: [Int] = []
-        for selection in document.findString(query, withOptions: [.caseInsensitive]) {
-            guard let page = selection.pages.first,
-                  case let index = document.index(for: page), index != NSNotFound
-            else { continue }
-            if !found.contains(index) { found.append(index) }
-        }
-        return found.sorted()
     }
 
     /// The document outline, empty when the PDF carries none.
@@ -156,7 +154,9 @@ public struct PdfDocumentReader {
         }
     }
 
-    private func page(at index: Int) throws -> PDFPage {
+    /// Internal rather than private: the text layer is an extension in another file, and a
+    /// `private` member cannot be reached from one.
+    func page(at index: Int) throws -> PDFPage {
         guard index >= 0, index < document.pageCount, let page = document.page(at: index) else {
             throw PdfError.pageOutOfRange(index)
         }

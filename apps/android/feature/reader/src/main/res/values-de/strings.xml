@@ -57,4 +57,30 @@
         <item quantity="one">%1$d Seite übersprungen</item>
         <item quantity="other">%1$d Seiten übersprungen</item>
     </plurals>
+    <string name="reader_pdf_page">Seite %1$d</string>
+    <string name="reader_pdf_find">Im PDF suchen</string>
+    <string name="reader_pdf_tab_search">Suche</string>
+    <string name="reader_pdf_tab_marks">Markierungen</string>
+    <string name="reader_pdf_search">Dieses PDF durchsuchen</string>
+    <string name="reader_pdf_search_running">Jede Seite wird durchsucht…</string>
+    <string name="reader_pdf_search_none">In dieser Publikation nichts gefunden.</string>
+    <string name="reader_pdf_search_capped">Die ersten 200 Treffer. Grenzen Sie die Suche ein, um weniger zu sehen.</string>
+    <string name="reader_pdf_marks_empty">Tippen und halten Sie ein Wort, um es zu markieren oder zu kommentieren.</string>
+    <string name="reader_pdf_marks_remove">Löschen</string>
+    <string name="reader_pdf_note">Notiz</string>
+    <string name="reader_pdf_note_save">Sichern</string>
+    <string name="reader_pdf_note_cancel">Abbrechen</string>
+    <string name="reader_pdf_copy">Kopieren</string>
+    <string name="reader_pdf_search_selection">Danach suchen</string>
+    <string name="reader_pdf_deselect">Auswahl aufheben</string>
+    <string name="reader_pdf_export_text">Als Text teilen</string>
+    <string name="reader_pdf_export_markdown">Als Markdown teilen</string>
+    <string name="reader_pdf_no_text_title">Kein Text auf dieser Seite</string>
+    <string name="reader_pdf_no_text_message">Dieses PDF besteht aus Seitenbildern und nicht aus Text. Es gibt also nichts auszuwählen oder zu durchsuchen.</string>
+    <string name="reader_pdf_no_text_done">OK</string>
+    <string name="reader_pdf_colour_yellow">Gelb</string>
+    <string name="reader_pdf_colour_green">Grün</string>
+    <string name="reader_pdf_colour_blue">Blau</string>
+    <string name="reader_pdf_colour_pink">Rosa</string>
+    <string name="reader_pdf_colour_purple">Violett</string>
 </resources>

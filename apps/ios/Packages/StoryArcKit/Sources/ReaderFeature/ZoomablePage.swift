@@ -43,6 +43,19 @@ struct ZoomablePage: View {
     /// making the page feel sharp.
     let onZoom: (Double) -> Void
 
+    /// The marks and the live selection to paint over the page, normalised to it.
+    ///
+    /// Empty for a comic and for a PDF with no text layer, which is what makes the whole
+    /// selection apparatus cost a scanned publication nothing.
+    var decoration: PdfPageDecoration = .none
+
+    /// A press and drag over the text, reported in normalised page coordinates, with `true`
+    /// once the finger has lifted.
+    ///
+    /// `nil` where there is no text to select, which is also what stops the recogniser being
+    /// installed at all — a gesture that could only ever fail is a gesture that eats presses.
+    var onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
+
     var body: some View {
         #if os(iOS)
         // The size the fit is computed from comes from SwiftUI rather than from the
@@ -57,7 +70,9 @@ struct ZoomablePage: View {
                 fit: fit,
                 viewport: geometry.size,
                 onTap: onTap,
-                onZoom: onZoom
+                onZoom: onZoom,
+                decoration: decoration,
+                onSelect: onSelect
             )
         }
         #else
@@ -79,6 +94,8 @@ private struct ScrollingPage: UIViewRepresentable {
     let viewport: CGSize
     let onTap: (CGPoint, CGSize) -> Void
     let onZoom: (Double) -> Void
+    let decoration: PdfPageDecoration
+    let onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
 
     /// How far a double-tap zooms in. Enough to read the lettering on a dense
     /// page, not so far that the reader loses the panel they tapped.
@@ -108,50 +125,78 @@ private struct ScrollingPage: UIViewRepresentable {
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.addSubview(imageView)
 
+        let overlay = PdfPageOverlayView(frame: imageView.bounds)
+        overlay.imageSize = CGSize(width: image.width, height: image.height)
+        imageView.addSubview(overlay)
+
         context.coordinator.imageView = imageView
         context.coordinator.shownImage = image
+        context.coordinator.overlay = overlay
         context.coordinator.zoomedScale = zoomedScale
         context.coordinator.onTap = onTap
         context.coordinator.onZoom = onZoom
 
+        addSelection(to: scrollView, coordinator: context.coordinator)
+        addTaps(to: scrollView, coordinator: context.coordinator)
+
+        return scrollView
+    }
+
+    /// The press that starts a selection, installed only where there is text under the finger.
+    ///
+    /// `ebook-reader` requires a text-dependent control to be absent rather than present and
+    /// inert, and a recogniser is a control: one that could never resolve would still swallow
+    /// a long press the page has other plans for.
+    private func addSelection(to scrollView: UIScrollView, coordinator: Coordinator) {
+        guard onSelect != nil else { return }
+        let press = UILongPressGestureRecognizer(
+            target: coordinator,
+            action: #selector(Coordinator.handleSelection(_:))
+        )
+        // Long enough not to fire on a tap that is on its way to being a double tap, short
+        // enough that a reader who means to select does not wonder whether it worked.
+        press.minimumPressDuration = 0.35
+        scrollView.addGestureRecognizer(press)
+    }
+
+    /// The three tap recognisers, and the split between the last two is deliberate.
+    ///
+    /// Requiring a single tap to wait for the double tap to fail delays *every* tap by the
+    /// double-tap interval. On the centre that costs nothing a reader notices; on an edge it
+    /// means a page turn arriving a third of a second after the finger lifts, which feels
+    /// broken — and `comic-reader` treats the edge tap as a turn, not as a menu. An edge tap
+    /// also cannot be the first half of a zoom, so it has nothing to wait for.
+    private func addTaps(to scrollView: UIScrollView, coordinator: Coordinator) {
         let doubleTap = UITapGestureRecognizer(
-            target: context.coordinator,
+            target: coordinator,
             action: #selector(Coordinator.handleDoubleTap(_:))
         )
         doubleTap.numberOfTapsRequired = 2
         scrollView.addGestureRecognizer(doubleTap)
 
-        // Two single-tap recognisers, and the split is deliberate.
-        //
-        // Requiring a single tap to wait for the double tap to fail delays *every*
-        // tap by the double-tap interval. On the centre that costs nothing a reader
-        // notices; on an edge it means a page turn arriving a third of a second
-        // after the finger lifts, which feels broken — and `comic-reader` treats
-        // the edge tap as a turn, not as a menu. An edge tap also cannot be the
-        // first half of a zoom, so it has nothing to wait for.
         let edgeTap = UITapGestureRecognizer(
-            target: context.coordinator,
+            target: coordinator,
             action: #selector(Coordinator.handleSingleTap(_:))
         )
-        edgeTap.delegate = context.coordinator
+        edgeTap.delegate = coordinator
         scrollView.addGestureRecognizer(edgeTap)
-        context.coordinator.edgeTap = edgeTap
+        coordinator.edgeTap = edgeTap
 
         let centreTap = UITapGestureRecognizer(
-            target: context.coordinator,
+            target: coordinator,
             action: #selector(Coordinator.handleSingleTap(_:))
         )
         centreTap.require(toFail: doubleTap)
-        centreTap.delegate = context.coordinator
+        centreTap.delegate = coordinator
         scrollView.addGestureRecognizer(centreTap)
-        context.coordinator.centreTap = centreTap
-
-        return scrollView
+        coordinator.centreTap = centreTap
     }
 
     func updateUIView(_ scrollView: UIScrollView, context: Context) {
         context.coordinator.onTap = onTap
         context.coordinator.onZoom = onZoom
+        context.coordinator.onSelect = onSelect
+        context.coordinator.overlay?.decoration = decoration
 
         if context.coordinator.pageID != pageID {
             context.coordinator.pageID = pageID
@@ -167,6 +212,8 @@ private struct ScrollingPage: UIViewRepresentable {
             // still describe the same page and nothing has to be recomputed.
             context.coordinator.shownImage = image
             context.coordinator.imageView?.image = UIImage(cgImage: image)
+            context.coordinator.overlay?.imageSize =
+                CGSize(width: image.width, height: image.height)
         }
         context.coordinator.layout(scrollView)
 
@@ -188,6 +235,10 @@ private struct ScrollingPage: UIViewRepresentable {
     final class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
         weak var edgeTap: UITapGestureRecognizer?
         weak var centreTap: UITapGestureRecognizer?
+        weak var overlay: PdfPageOverlayView?
+        var onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
+        /// Where the press started, normalised to the page. The drag extends from it.
+        private var selectionOrigin: CGPoint?
         /// The fit SwiftUI last asked for, which is not always one that could be applied.
         var owed: OwedFit?
         /// Which fit the zoom was actually set from.
@@ -249,6 +300,10 @@ private struct ScrollingPage: UIViewRepresentable {
             imageView.frame = CGRect(origin: .zero, size: scaled)
             scrollView.contentSize = scaled
 
+            // The overlay is the whole content, so the normalised rectangles it draws land
+            // on the same words at every zoom.
+            overlay?.frame = imageView.bounds
+
             let horizontal = max(0, (scrollView.bounds.width - scaled.width) / 2)
             let vertical = max(0, (scrollView.bounds.height - scaled.height) / 2)
             scrollView.contentInset = UIEdgeInsets(
@@ -275,6 +330,40 @@ private struct ScrollingPage: UIViewRepresentable {
             onTap(recogniser.location(in: view), view.bounds.size)
         }
 
+        /// A press that becomes a drag: the selection starts at the word pressed and runs to
+        /// wherever the finger is now.
+        ///
+        /// The scroll is turned off for the length of it. Without that a zoomed page pans
+        /// under the drag, and the reader selects one word while the page slides away.
+        @objc func handleSelection(_ recogniser: UILongPressGestureRecognizer) {
+            guard let imageView, let onSelect else { return }
+            let point = normalisedPoint(
+                recogniser.location(in: imageView),
+                imageSize: imageView.image?.size ?? .zero,
+                in: imageView.bounds.size
+            )
+
+            switch recogniser.state {
+            case .began:
+                (recogniser.view as? UIScrollView)?.isScrollEnabled = false
+                selectionOrigin = point
+                // The platform's own selection feedback, which is what a reader's thumb
+                // already expects from a press that selects.
+                UISelectionFeedbackGenerator().selectionChanged()
+                onSelect(point, point, false)
+            case .changed:
+                guard let origin = selectionOrigin else { return }
+                onSelect(origin, point, false)
+            case .ended, .cancelled, .failed:
+                (recogniser.view as? UIScrollView)?.isScrollEnabled = true
+                guard let origin = selectionOrigin else { return }
+                selectionOrigin = nil
+                onSelect(origin, point, true)
+            default:
+                break
+            }
+        }
+
         @objc func handleDoubleTap(_ recogniser: UITapGestureRecognizer) {
             guard let scrollView = recogniser.view as? UIScrollView else { return }
             if scrollView.zoomScale > scrollView.minimumZoomScale {
@@ -298,26 +387,6 @@ private struct ScrollingPage: UIViewRepresentable {
                 animated: true
             )
         }
-    }
-}
-
-/// A scroll view that says when it has been given a size.
-///
-/// `UIScrollViewDelegate` reports scrolling and zooming, never layout, and layout is
-/// what a page opened before its first one is waiting for: a fit set against zero
-/// bounds does nothing, and no scroll and no zoom follows to prompt another try.
-///
-/// Only a change of size is reported. Applying a fit sets the content size and the
-/// insets, which lays the view out again — a report on every pass would be a loop.
-private final class PageScrollView: UIScrollView {
-    var onLayout: ((UIScrollView) -> Void)?
-    private var lastSize: CGSize = .zero
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        guard bounds.size != lastSize else { return }
-        lastSize = bounds.size
-        onLayout?(self)
     }
 }
 #endif

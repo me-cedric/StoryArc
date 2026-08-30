@@ -1,5 +1,6 @@
 package app.storyarc.feature.reader
 
+import android.content.ClipData
 import android.content.ComponentCallbacks2
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -15,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -25,12 +27,12 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -43,6 +45,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.automirrored.filled.ManageSearch
 import androidx.compose.material.icons.filled.ScreenLockRotation
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SkipNext
@@ -57,9 +60,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -80,6 +85,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -97,6 +103,8 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -116,9 +124,14 @@ import app.storyarc.core.designsystem.feedback.StoryArcFeedback
 import app.storyarc.core.designsystem.feedback.rememberHaptics
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.LocalVolumeTurns
+import app.storyarc.core.designsystem.theme.swatch
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PageEntry
+import app.storyarc.core.format.PdfTextPoint
+import app.storyarc.core.model.Annotation
+import app.storyarc.core.model.AnnotationExport
 import app.storyarc.core.model.CoverColours
+import app.storyarc.core.model.HighlightColour
 import app.storyarc.core.model.ImageAdjustments
 import app.storyarc.core.model.MemoryPressure
 import app.storyarc.core.model.PageFit
@@ -127,6 +140,7 @@ import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.ScrollAxis
+import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.SpreadLayout
 import app.storyarc.core.model.TransitionChoices
 import app.storyarc.core.model.TransitionUnavailability
@@ -134,6 +148,7 @@ import app.storyarc.core.model.scrollAxis
 import app.storyarc.core.persistence.ReaderPreferences
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -281,6 +296,7 @@ private fun androidx.compose.foundation.layout.BoxScope.CloseButton(onClose: () 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Pager(
     viewModel: ReaderViewModel,
@@ -369,6 +385,53 @@ private fun Pager(
 
     /** Whether the adjustment controls are open. */
     var isAdjusting by rememberSaveable { mutableStateOf(false) }
+
+    // The text layer of a PDF that has one, and nothing at all otherwise. Null is the whole of
+    // the degradation `ebook-reader` asks for: every control below is written against it being
+    // present, so a comic and a scan get no control rather than a disabled one.
+    val pdfText by viewModel.pdfText.collectAsStateWithLifecycle()
+    val pdfSelection by
+        (pdfText?.selection ?: remember { MutableStateFlow(null) }).collectAsStateWithLifecycle()
+    val pdfMarks by
+        (pdfText?.marks ?: remember { MutableStateFlow(emptyMap<Int, List<PdfPageMark>>()) })
+            .collectAsStateWithLifecycle()
+    val pdfMatches by
+        (pdfText?.matches ?: remember { MutableStateFlow(emptyList<SearchMatch>()) })
+            .collectAsStateWithLifecycle()
+    val pdfAnnotations by
+        (pdfText?.annotations ?: remember { MutableStateFlow(emptyList<Annotation>()) })
+            .collectAsStateWithLifecycle()
+    val isPdfSearching by
+        (pdfText?.isSearching ?: remember { MutableStateFlow(false) }).collectAsStateWithLifecycle()
+    val isPdfCapped by
+        (pdfText?.isCapped ?: remember { MutableStateFlow(false) }).collectAsStateWithLifecycle()
+
+    /** Whether the find sheet -- search and marks -- is open. */
+    var isFindingText by rememberSaveable { mutableStateOf(false) }
+
+    /** The mark a note is being written on, or nothing. */
+    var noting by remember { mutableStateOf<Annotation?>(null) }
+
+    /**
+     * Whether the reader has been told, in one sentence, that this PDF has no text.
+     *
+     * Said only when they try. `ebook-reader` forbids a control that promises what it cannot do,
+     * so there is no search box to explain; what is left is the press that would have selected a
+     * word, and an answer to it.
+     */
+    var saysThereIsNoText by remember { mutableStateOf(false) }
+
+    val clipboard = LocalClipboard.current
+
+    /**
+     * What a mark's chapter is called for a PDF.
+     *
+     * A PDF's outline is a list of destinations, not a division of the text, so there is no
+     * chapter a locator falls "inside". The page is what a reader would name, and it is what the
+     * export groups under. iOS names it the same way.
+     */
+    val resources = LocalContext.current.resources
+    val pageLabel: (Int) -> String = { resources.getString(R.string.reader_pdf_page, it + 1) }
 
     // `comic-reader`: "the user can disable it for a page that crops wrongly". Detection on
     // a scan is a guess, and a guess needs a way to be overruled. Held for the session
@@ -579,6 +642,32 @@ private fun Pager(
         scope.launch { paging.goTo(displayIndex(page), animate = false) }
     }
 
+    /** The marks and the live selection on one page, or nothing to draw. */
+    fun pdfDecoration(index: Int): PdfPageDecoration {
+        val text = pdfText ?: return PdfPageDecoration()
+        val selection = pdfSelection
+        return PdfPageDecoration(
+            marks = pdfMarks[index].orEmpty(),
+            selection = if (selection?.locator?.page == index) selection.rects else emptyList(),
+        )
+    }
+
+    /**
+     * How a press-and-drag on one page is answered, or null where there is nothing to select.
+     *
+     * A PDF with no text still answers, once: the press is what a reader does when they expect
+     * to select, and silence there reads as a broken gesture rather than as a scan. A comic
+     * answers nothing at all, because a comic never promised words.
+     */
+    fun pdfSelectionHandler(index: Int): ((PdfTextPoint, PdfTextPoint, Boolean) -> Unit)? {
+        val text = pdfText
+        if (text != null) {
+            return { from, to, _ -> scope.launch { text.select(index, from, to) } }
+        }
+        if (!viewModel.isPdf) return null
+        return { _, _, isFinished -> if (isFinished) saysThereIsNoText = true }
+    }
+
     /** Goes back to where the reader was before the last jump. */
     fun returnFromJump() {
         val mark = pageReturn.mark ?: return
@@ -662,6 +751,8 @@ private fun Pager(
                 // "stitched with no gap" `comic-reader` asks for.
                 stitch = stitch,
                 onZoom = { scale -> viewModel.holdZoom(scale, index) },
+                decoration = pdfDecoration(index),
+                onSelect = pdfSelectionHandler(index),
             )
             // A page that is not drawn still has to accept a tap: a reader who lands
             // on a skipped page must be able to turn away from it.
@@ -884,6 +975,13 @@ private fun Pager(
                     )
                 }
                 AdjustButton(isNeutral = adjustments.isNeutral) { isAdjusting = true }
+                // Only for a PDF that carries text. `ebook-reader` requires a text-dependent
+                // control to be hidden rather than disabled when there is none, and a button
+                // that opened a search box over a scan would be exactly the promise the spec
+                // forbids.
+                if (pdfText != null) {
+                    FindTextButton { isFindingText = true }
+                }
             }
 
             Column(
@@ -1018,6 +1116,131 @@ private fun Pager(
             }
         }
     }
+
+    // The selection menu, the find sheet, the note editor, and the one sentence a PDF with no
+    // text gets. Absent for everything else, which is most of what this reader opens.
+    val text = pdfText
+    val selected = pdfSelection
+    if (text != null && selected != null && selected.text.isNotBlank()) {
+        val chapter = pageLabel(selected.locator.page)
+        Box(
+            modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            PdfSelectionBar(
+                text = selected.text,
+                onHighlight = { colour -> scope.launch { text.highlight(colour, chapter) } },
+                // A note is a highlight with something written on it, so there is nothing to
+                // write on until the highlight exists. Marking in the first colour and opening
+                // the editor is the shortest honest path from "these words" to "and here is
+                // what I think of them"; a reader who wanted another colour changes it in the
+                // list afterwards.
+                onNote = {
+                    scope.launch { noting = text.highlight(HighlightColour.YELLOW, chapter) }
+                },
+                onCopy = {
+                    scope.launch {
+                        clipboard.setClipEntry(
+                            ClipEntry(ClipData.newPlainText(null, selected.text)),
+                        )
+                    }
+                    text.clearSelection()
+                },
+                onSearch = {
+                    val words = selected.text
+                    text.clearSelection()
+                    isFindingText = true
+                    scope.launch { text.search(words, pageLabel) }
+                },
+                onDismiss = { text.clearSelection() },
+            )
+        }
+    }
+
+    if (isFindingText && text != null) {
+        ModalBottomSheet(onDismissRequest = { isFindingText = false }) {
+            PdfTextSheet(
+                state = text,
+                matches = pdfMatches,
+                isSearching = isPdfSearching,
+                isCapped = isPdfCapped,
+                annotations = pdfAnnotations,
+                onSearch = { query -> scope.launch { text.search(query, pageLabel) } },
+                onGo = { page ->
+                    // A jump, like the slider's: it leaves the same way back, because
+                    // `ebook-reader` asks for one control after a search hit, a mark or a
+                    // link -- they are one act from the reader's side.
+                    jump(page)
+                    isFindingText = false
+                },
+                onNote = { noting = it },
+                onRemove = { annotation -> scope.launch { text.remove(annotation.id) } },
+                // The platform's own share sheet rather than a file this app writes:
+                // `ebook-reader` asks for them to be "exportable", and where they go is the
+                // reader's business.
+                onExport = { format ->
+                    shareAnnotations(
+                        context,
+                        AnnotationExport.document(pdfAnnotations, text.title, format),
+                    )
+                },
+            )
+        }
+    }
+
+    noting?.let { annotation ->
+        PdfNoteDialog(
+            initial = annotation.note,
+            onSave = { note ->
+                scope.launch { text?.annotate(annotation, note) }
+                noting = null
+            },
+            onDismiss = { noting = null },
+        )
+    }
+
+    if (saysThereIsNoText) {
+        PdfNoTextDialog { saysThereIsNoText = false }
+    }
+}
+
+/**
+ * Opens the search, the marks, and on iOS the outline too.
+ *
+ * Only for a PDF that carries text: `ebook-reader` requires a text-dependent control to be
+ * hidden rather than disabled when there is none.
+ */
+@Composable
+private fun FindTextButton(onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ManageSearch,
+                contentDescription = stringResource(R.string.reader_pdf_find),
+                tint = Color.White,
+                modifier = Modifier.padding(StoryArcSpace.sm),
+            )
+        }
+    }
+}
+
+/**
+ * Hands a document to whatever the reader wants to keep it in.
+ *
+ * Nothing is written to disk: the export exists to leave this app, and a file cached on the way
+ * out would be a copy of what a reader wrote that nobody asked for.
+ */
+private fun shareAnnotations(context: android.content.Context, document: String) {
+    if (document.isBlank()) return
+    context.startActivity(
+        android.content.Intent.createChooser(
+            android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_TEXT, document)
+            },
+            null,
+        ),
+    )
 }
 
 /**
@@ -1107,6 +1330,21 @@ private fun ZoomablePage(
      * is how a reader ends up able to do neither.
      */
     stitch: ScrollAxis? = null,
+    /**
+     * The marks and the live selection to paint over a PDF page, normalised to it.
+     *
+     * Empty for a comic and for a PDF with no text layer, which is what makes the whole
+     * selection apparatus cost a scanned publication nothing.
+     */
+    decoration: PdfPageDecoration = PdfPageDecoration(),
+    /**
+     * A press and drag over the text, reported in normalised page coordinates, with `true` once
+     * the finger has lifted.
+     *
+     * Null where there is no text to select, which is also what stops the detector being
+     * installed at all -- a gesture that could only ever fail is a gesture that eats presses.
+     */
+    onSelect: ((PdfTextPoint, PdfTextPoint, Boolean) -> Unit)? = null,
 ) {
     // Rebuilt only when the reader moves a control, not on every frame of a scroll.
     val colours = remember(adjustments) { adjustments.colourFilter() }
@@ -1116,6 +1354,9 @@ private fun ZoomablePage(
     val page = remember(bitmap, size) {
         PageBounds.of(IntSize(bitmap.width, bitmap.height), size)
     }
+    // The live selection is drawn in the app's own accent rather than in a highlight colour: it
+    // is not a mark yet, and colouring it yellow would say that it was.
+    val selectionTint = LocalStoryArcPalette.current.accent
 
     // Back to the fit whenever the page or the mode changes. `comic-reader` wants
     // the *zoom* carried across a turn in fit-to-width mode, and that is what
@@ -1185,15 +1426,82 @@ private fun ZoomablePage(
             // Centred on what was tapped, not on the middle of the screen: the
             // point of a double-tap is to magnify *that* panel.
             .tappable(onTap = onTap, onDoubleTap = { zoom = zoom.doubleTapped(it, page) })
+            .selectable(onSelect, zoom, page)
             .graphicsLayer {
                 scaleX = zoom.scale
                 scaleY = zoom.scale
                 translationX = zoom.offset.x
                 translationY = zoom.offset.y
                 renderEffect = sharpen
+            }
+            // Inside the layer, so a mark stays on its words through a pinch and a pan.
+            // Outside it the highlight would sit still while the page moved underneath.
+            .drawWithContent {
+                drawContent()
+                if (decoration.isEmpty) return@drawWithContent
+                for (mark in decoration.marks) {
+                    drawRect(
+                        color = mark.colour.swatch.copy(alpha = MARK_OPACITY),
+                        topLeft = viewRect(mark.rect, page).topLeft,
+                        size = viewRect(mark.rect, page).size,
+                    )
+                }
+                for (rect in decoration.selection) {
+                    drawRect(
+                        color = selectionTint.copy(alpha = SELECTION_OPACITY),
+                        topLeft = viewRect(rect, page).topLeft,
+                        size = viewRect(rect, page).size,
+                    )
+                }
             },
     )
 }
+
+/**
+ * The press that starts a selection, installed only where there is text under the finger.
+ *
+ * `ebook-reader` requires a text-dependent control to be absent rather than present and inert,
+ * and a detector is a control: one that could never resolve would still swallow a long press the
+ * page has other plans for.
+ *
+ * Every point is unprojected before it is normalised. A finger reports where it is on the
+ * *screen*, and the words it is over are at a fixed place on the *page* -- the two are the same
+ * only at fit scale with nothing panned, which is the one state a reader who has zoomed in to
+ * read is not in.
+ */
+private fun Modifier.selectable(
+    onSelect: ((PdfTextPoint, PdfTextPoint, Boolean) -> Unit)?,
+    zoom: PageZoom,
+    page: PageBounds,
+): Modifier {
+    if (onSelect == null) return this
+    return this.pointerInput(onSelect, zoom, page) {
+        var origin = PdfTextPoint(0f, 0f)
+        var latest = origin
+        detectDragGesturesAfterLongPress(
+            onDragStart = {
+                origin = normalisedPoint(zoom.unprojected(it, page), page)
+                latest = origin
+                onSelect(origin, origin, false)
+            },
+            onDrag = { change, _ ->
+                latest = normalisedPoint(zoom.unprojected(change.position, page), page)
+                onSelect(origin, latest, false)
+            },
+            onDragEnd = { onSelect(origin, latest, true) },
+            onDragCancel = { onSelect(origin, latest, true) },
+        )
+    }
+}
+
+/** How much of the ink shows. Enough to read as a mark, little enough to read the words under it. */
+private const val MARK_OPACITY = 0.38f
+
+/**
+ * The live selection is drawn in a neutral tint rather than in a highlight colour: it is not a
+ * mark yet, and colouring it yellow would say that it was.
+ */
+private const val SELECTION_OPACITY = 0.32f
 
 /**
  * Taps, reported with the size they landed in so the caller can find the edges.

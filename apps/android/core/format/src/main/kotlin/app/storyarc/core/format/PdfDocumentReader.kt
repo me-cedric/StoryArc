@@ -18,23 +18,20 @@ sealed class PdfException(message: String) : Exception(message) {
 /**
  * Reads a PDF as a paged publication.
  *
- * PDF is the one format where the two platforms are deliberately not symmetric.
- * `ebook-reader` makes text-layer features iOS-only in 1.0, because Android
- * offers no PDF text API that is also a renderer — [PdfRenderer] draws pages and
- * exposes nothing else. So this type has no `text`, `search` or `outline`, and
- * iOS's `PdfDocumentReader` does: not missing work, a specified difference.
+ * The page: count, size in points, and rendering on demand. `ebook-reader`
+ * requires a several-hundred-megabyte PDF opened from a remote source to render
+ * pages as they are needed, which is why no page is rasterised until it is asked
+ * for.
  *
- * The consequence for the UI is in the spec too. Because the capability is absent
- * rather than failing, text-dependent controls are **hidden** on Android, never
- * shown disabled — nothing may suggest that search is available and broken. There
- * is no `hasTextLayer` here on purpose: the platform cannot answer the question,
- * and a property that always returned `false` would invite a caller to treat it
- * as a real answer.
+ * What is written on the page is next door, in [PdfTextReader]. [PdfRenderer]
+ * itself gained text extraction, selection and search in the `framework-pdf`
+ * mainline module, but only from extension 13 -- so the text half is a reader a
+ * device may not have at all, and it is kept apart from the one that always
+ * exists. ADR-0011 records that.
  *
- * What *is* symmetric is the page: count, size in points, and rendering on
- * demand. `ebook-reader` requires a several-hundred-megabyte PDF opened from a
- * remote source to render pages as they are needed, which is why no page is
- * rasterised until it is asked for.
+ * There is no `hasTextLayer` here on purpose: this type cannot answer the
+ * question, and a property that always returned false would invite a caller to
+ * treat it as a real answer. [PdfTextReader.hasTextLayer] is the answer.
  *
  * Not thread-safe, and not made to look like it is: [PdfRenderer] permits one
  * open page at a time, so a caller must serialise access. Close it when done.

@@ -61,6 +61,9 @@ tasks.withType<Test>().configureEach {
 
 dependencies {
     implementation(project(":core:model"))
+    // Annotations only: `@RequiresExtension` on the PDF text reader and
+    // `@ChecksSdkIntAtLeast` on the check that guards it. Nothing at runtime.
+    implementation(libs.androidx.annotation)
     // Flow, for LibraryScanner. Already a main dependency of :core:model and on
     // the app's classpath through Compose, so this declares what is used rather
     // than adding anything to the build.

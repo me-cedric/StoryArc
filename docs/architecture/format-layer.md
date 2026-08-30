@@ -15,7 +15,8 @@ across the two on purpose, so a reviewer can diff them by eye.
 | CBZ, and any ZIP | `ZipReader` | none — ours ([ADR-0008]) |
 | CBT | `TarReader` | none — ours |
 | CBR | `RarReader` + `RarDecoder` | libarchive, for decompression only |
-| PDF | `PdfDocumentReader` | the platform: PDFKit, `PdfRenderer` |
+| PDF pages | `PdfDocumentReader` | the platform: PDFKit, `PdfRenderer` |
+| PDF text | `PdfTextLayer` / `PdfTextReading` | the platform: PDFKit, `PdfRendererPreV` ([ADR-0011]) |
 | Plain folder | `ImageFolderArchive` | none |
 | EPUB structure | `EpubReader` | none — ours |
 | EPUB *rendering* | — | Readium, not built yet |
@@ -228,8 +229,10 @@ Each of these is specified, not accidental:
 
 | Asymmetry | Reason |
 | --- | --- |
-| PDF text, search and outline are iOS-only | Android has no PDF text API that is also a renderer. `ebook-reader` makes this explicit, and requires the controls to be *hidden* rather than disabled |
-| Android's `PdfDocumentReader` has no `hasTextLayer` at all | The platform cannot answer the question, and a property hard-coded to `false` would invite a caller to treat it as an answer |
+| A PDF's document **outline** is iOS-only | PDFKit reads one; `android.graphics.pdf` exposes links, text and form fields and no outline. `ebook-reader` requires the control to be *absent* rather than empty ([ADR-0011]) |
+| Android's PDF text reader may not exist at all | It is `PdfRendererPreV`, from extension 13 of the `framework-pdf` mainline module. `PdfTextReading.open` returns `null` where the device has none, and the reader then takes the scanned-PDF path ([ADR-0011]) |
+| Android's `PdfDocumentReader` has no `hasTextLayer` at all | That type draws pages and reads no text. `PdfTextReading.hasTextLayer` answers, and a property hard-coded to `false` on the renderer would invite a caller to treat it as an answer |
+| PDF **selection** tests are unit tests on iOS, instrumented on Android | PDFKit runs on the macOS host; the platform's PDF text classes are framework stubs off-device |
 | Page-decoding tests are unit tests on iOS, instrumented on Android | ImageIO runs on the macOS host; `ImageDecoder` and `Bitmap` are framework stubs off-device |
 | The RAR decoder is JNI on Android, a SwiftPM C target on iOS | Two build systems, one copy of the sources |
 | Cover loading is one test on iOS and two on Android | The byte-level half is a unit test; decoding to a `Bitmap` needs a device |
@@ -247,3 +250,4 @@ as evidence that a regex works.
 [ADR-0001]: ../decisions/0001-independent-native-cores.md
 [ADR-0005]: ../decisions/0005-format-and-rendering-libraries.md
 [ADR-0008]: ../decisions/0008-ranged-reads-and-own-zip-reader.md
+[ADR-0011]: ../decisions/0011-pdf-text-on-android.md

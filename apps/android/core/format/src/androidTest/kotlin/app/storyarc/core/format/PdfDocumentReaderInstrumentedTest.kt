@@ -12,10 +12,10 @@ import java.io.File
 /**
  * Asserted against the shared corpus in `packages/test-fixtures`.
  *
- * iOS's `PdfDocumentReaderTests` asserts everything here **plus** text, search
- * and the outline. That asymmetry is what `ebook-reader` specifies rather than a
- * gap in this file: `PdfRenderer` has no text API at all, so Android renders PDF
- * pages as images and hides text-dependent controls.
+ * iOS's `PdfDocumentReaderTests` asserts everything here plus the text layer,
+ * which on this side lives in [PdfTextReading] and is asserted in
+ * `PdfTextReaderInstrumentedTest`. What stays iOS-only is the document outline:
+ * PDFKit reads it and the platform's PDF API does not expose one. ADR-0011.
  *
  * Instrumented rather than a JVM unit test because `PdfRenderer` and `Bitmap` are
  * framework classes that are stubs off-device — the same reason

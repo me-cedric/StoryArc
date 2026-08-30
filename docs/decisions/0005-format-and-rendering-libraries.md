@@ -78,7 +78,7 @@ viewer fragment and 5–8 MB per ABI for a capability comic PDFs never use), Coi
 | Need | Library | Licence | Confidence |
 | --- | --- | --- | --- |
 | EPUB, reflowable + fixed-layout | **Readium Kotlin toolkit** 3.3.x, via Maven Central | BSD-3-Clause | Known |
-| PDF | **System `PdfRenderer`** — images only, no text layer | Android SDK | **Decided.** `androidx.pdf` has text search but ships a whole `PdfViewerFragment`; pdfium costs 5–8 MB per ABI for a capability comic PDFs never use. |
+| PDF | **System `PdfRenderer`** for pages, **`PdfRendererPreV`** for text | Android SDK | **Superseded in part by [ADR-0011](0011-pdf-text-on-android.md).** The platform's PDF module gained text extraction, search and selection, so no library is needed after all; `androidx.pdf` and pdfium stay rejected for the reasons below. The document outline is still not exposed. |
 | ZIP | **Our own reader** over `RandomAccessSource`; inflate from `java.util.zip.Inflater` | — | **Known** — superseded by [ADR-0008](0008-ranged-reads-and-own-zip-reader.md). |
 | TAR (CBT) | **Our own `TarReader`** | none | **Proven** — mirrors iOS file for file, asserted against the same corpus |
 | 7-Zip (CB7) | — | — | **Not supported** |

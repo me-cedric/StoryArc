@@ -101,10 +101,18 @@ The app SHALL render PDF as a paged publication.
 #### Scenario: Text-based PDF
 - **WHEN** a PDF contains a text layer
 - **THEN** text selection, in-publication search, and the document outline work
+- **AND** a selection offers the same four things a reflowable selection does — highlight in several colours, add a note, copy, and search-in-publication — stored as the same record and exported by the same document
+- **AND** where a platform's PDF library exposes no document outline, that control is absent rather than empty, which [ADR-0011](../../decisions/0011-pdf-text-on-android.md) records
 
 #### Scenario: Scanned PDF
 - **WHEN** a PDF is images only
 - **THEN** it is read with the image-reader behaviour of [`comic-reader`](../comic-reader/spec.md), and text-dependent controls are hidden
+- **AND** a reader who presses on a word expecting to select it is told in one sentence that the file is images of pages, rather than being met with silence
+
+#### Scenario: A device that cannot read PDF text
+- **WHEN** the platform's PDF text API is absent on this device
+- **THEN** the publication behaves exactly as a scanned PDF does: no search control, no selection, and the same one-sentence statement
+- **AND** nothing names the missing API, because a reader can act on neither that nor the file's contents and only the second is about the book
 
 #### Scenario: Large PDF
 - **WHEN** a PDF of several hundred megabytes is opened from a remote source

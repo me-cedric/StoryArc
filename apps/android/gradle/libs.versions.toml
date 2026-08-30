@@ -9,6 +9,10 @@ kotlin = "2.4.10"
 ksp = "2.3.9"
 room = "2.8.4"
 coreKtx = "1.19.0"
+# `@RequiresExtension` and `@ChecksSdkIntAtLeast`. The PDF text API lives in a
+# mainline module, and these are the only way to tell lint that a check on the
+# extension level is a real guard rather than a boolean. ADR-0011.
+androidxAnnotation = "1.10.0"
 jcifsNg = "2.1.10"
 lifecycle = "2.11.0"
 activityCompose = "1.13.0"
@@ -35,6 +39,7 @@ kotlinxSerialization = "1.11.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-annotation = { group = "androidx.annotation", name = "annotation", version.ref = "androidxAnnotation" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }

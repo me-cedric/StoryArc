@@ -65,6 +65,23 @@ extension ReaderView {
                     .tint(.white)
                 }
 
+                // Only for a PDF that carries text. `ebook-reader` requires a
+                // text-dependent control to be hidden rather than disabled when there is no
+                // text, and a button that opened a search box over a scan would be exactly the
+                // promise the spec forbids.
+                if pdfText != nil {
+                    Button { isFindingText = true } label: {
+                        Label {
+                            Text("reader.pdf.find", bundle: .module)
+                        } icon: {
+                            Image(systemName: "text.magnifyingglass")
+                        }
+                        .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.glass)
+                    .tint(.white)
+                }
+
                 if model.pages.count > 1 {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {

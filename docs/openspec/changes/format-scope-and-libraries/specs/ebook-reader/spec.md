@@ -2,24 +2,27 @@
 
 ### Requirement: PDF rendering
 
-The app SHALL render PDF as a paged publication. Text-layer features are
-**iOS-only in 1.0**: Android renders PDF pages as images, because the platform
-offers no PDF text API that is also a renderer rather than a prebuilt viewer.
+The app SHALL render PDF as a paged publication. The text layer comes from each
+platform's own PDF library — PDFKit on one, `android.graphics.pdf` on the other.
+The document outline is the one part of it only PDFKit exposes, which
+[ADR-0011](../../../../decisions/0011-pdf-text-on-android.md) records.
 
 #### Scenario: Text-based PDF
-- **WHEN** a PDF containing a text layer is opened on iOS
+- **WHEN** a PDF contains a text layer
 - **THEN** text selection, in-publication search, and the document outline work
-- **AND** on Android the same publication renders without them, per the scenario below
-
-#### Scenario: Text-based PDF on Android
-- **WHEN** a PDF containing a text layer is opened on Android
-- **THEN** it renders with the image-reader behaviour of [`comic-reader`](../comic-reader/spec.md), and text-dependent controls are hidden rather than shown disabled
-- **AND** the reader does not claim a capability it does not have — nothing in the UI suggests text search is available and failing
+- **AND** a selection offers the same four things a reflowable selection does — highlight in several colours, add a note, copy, and search-in-publication — stored as the same record and exported by the same document
+- **AND** where a platform's PDF library exposes no document outline, that control is absent rather than empty, which [ADR-0011](../../../../decisions/0011-pdf-text-on-android.md) records
 
 #### Scenario: Scanned PDF
 - **WHEN** a PDF is images only
 - **THEN** it is read with the image-reader behaviour of [`comic-reader`](../comic-reader/spec.md), and text-dependent controls are hidden
+- **AND** a reader who presses on a word expecting to select it is told in one sentence that the file is images of pages, rather than being met with silence
 - **AND** this is the behaviour on both platforms, because there is no text layer to expose
+
+#### Scenario: A device that cannot read PDF text
+- **WHEN** the platform's PDF text API is absent on this device
+- **THEN** the publication behaves exactly as a scanned PDF does: no search control, no selection, and the same one-sentence statement
+- **AND** nothing names the missing API, because a reader can act on neither that nor the file's contents and only the second is about the book
 
 #### Scenario: Large PDF
 - **WHEN** a PDF of several hundred megabytes is opened from a remote source
@@ -33,10 +36,10 @@ offers no PDF text API that is also a renderer rather than a prebuilt viewer.
 
 #### Scenario: Page rendering is identical across platforms
 - **WHEN** the same PDF page is rendered on both platforms
-- **THEN** it appears at the same aspect ratio, fit and zoom behaviour, because only the text layer differs — not the page
+- **THEN** it appears at the same aspect ratio, fit and zoom behaviour, because only the document outline differs — not the page
 - **AND** page geometry is reported in PDF points rather than pixels, so the two platforms are comparable without reference to a screen
 
 #### Scenario: A text layer is detected rather than assumed
-- **WHEN** a PDF is opened on iOS
+- **WHEN** a PDF is opened
 - **THEN** whether it has a text layer is determined by looking for text, not by the file extension
 - **AND** a scanned PDF therefore offers no selection or search on either platform, because there is nothing to select or find

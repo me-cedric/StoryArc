@@ -66,6 +66,21 @@ object PublicationAccess {
             PdfDocumentReader(File(path))
         }
 
+    /**
+     * A PDF's text layer, opened wherever the file lives, or null when there is none to open.
+     *
+     * Null covers two different absences on purpose, because the reader answers them the same
+     * way: a device with no PDF text API (ADR-0011), and a file this app could open for
+     * drawing but not for reading. Either way there is no text, and `ebook-reader` requires
+     * the controls that depend on it to be absent rather than broken.
+     */
+    fun openPdfText(resolver: ContentResolver, path: String): PdfTextReading? =
+        if (isDocument(path)) {
+            PdfTextReading.open(resolver, path.toUri())
+        } else {
+            PdfTextReading.open(File(path))
+        }
+
     /** The publication's cover, however it has to be produced. */
     suspend fun anyCover(
         resolver: ContentResolver,

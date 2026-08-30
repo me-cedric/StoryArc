@@ -72,11 +72,19 @@ public struct ReaderView: View {
     private let onDismissTrouble: () -> Void
     private let onDownloadForOffline: (() -> Void)?
 
+    /// Where highlights and notes are kept, or `nil` in a preview.
+    ///
+    /// The same store the reflowable reader writes to, holding the same record: a mark made
+    /// in a PDF and a mark made in a novel come out of one export, which is what
+    /// `ebook-reader` means by "listed in one place".
+    let annotations: AnnotationStore?
+
     public init(
         publication: Publication,
         url: URL,
         progress: ProgressStore? = nil,
         preferences: ReaderPreferences? = nil,
+        annotations: AnnotationStore? = nil,
         previousInSeries: Publication? = nil,
         nextInSeries: Publication? = nil,
         onOpen: @escaping (Publication) -> Void = { _ in },
@@ -93,6 +101,7 @@ public struct ReaderView: View {
             )
         )
         self.preferences = preferences
+        self.annotations = annotations
         self.blockedSince = blockedSince
         self.onDismissTrouble = onDismissTrouble
         self.onDownloadForOffline = onDownloadForOffline
@@ -201,6 +210,26 @@ public struct ReaderView: View {
     /// rather than stored: an exemption is about one page of one book in front of the
     /// reader now, and a store of page numbers outlives the pages it describes.
     @State var uncropped: Set<Int> = []
+
+    /// The text layer of a PDF that has one, and nothing at all otherwise.
+    ///
+    /// `nil` is the whole of the degradation `ebook-reader` asks for: a comic, and a PDF that
+    /// is images only, never builds one, and every control that depends on text is written
+    /// against its presence rather than against a flag.
+    @State var pdfText: PdfTextModel?
+
+    /// Whether the find sheet — search, marks, contents — is open.
+    @State var isFindingText = false
+
+    /// The mark a note is being written on, or nothing.
+    @State var noting: Annotation?
+
+    /// Whether the reader has been told, in one sentence, that this PDF has no text.
+    ///
+    /// Said only when they try. `ebook-reader` forbids a control that promises what it cannot
+    /// do, so there is no search box to explain; what is left is the press that would have
+    /// selected a word, and an answer to it.
+    @State var saysThereIsNoText = false
 
     /// Whether the reader is holding the device at one way up.
     ///
@@ -314,6 +343,9 @@ public struct ReaderView: View {
         // those, and a buzz on each is a defect.
         .storyArcFeedback(.completion, trigger: hasReachedEnd) { $0 }
         .storyArcFeedback(.refusal, trigger: refusals)
+        // The selection menu, the find sheet, and the one sentence a PDF with no text gets.
+        // Empty for everything else, which is most of what this reader opens.
+        .overlay { pdfTextControls }
         // Over the page rather than in place of it: `network-share` requires pages already
         // read to stay readable while the network is away.
         .overlay(alignment: .bottom) {

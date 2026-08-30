@@ -20,8 +20,11 @@ and it is the worst possible streaming case because solid blocks mean one page
 can require decompressing everything around it. It is being dropped because
 nobody has it, not because it is hard.
 
-**PDF text on Android** turns out to have no good middle option, and the honest
-answer changes what the reader can promise there.
+**PDF text on Android** was written up here as impossible. It is not: the
+platform's own PDF module gained text extraction, search and selection, and
+[ADR-0011](../../../decisions/0011-pdf-text-on-android.md) supersedes what this
+proposal originally said. The one part that stays iOS-only is the document
+outline.
 
 ## What changes
 
@@ -40,12 +43,14 @@ The Open Questions section goes away — it is answered.
 
 ### Modified: `ebook-reader`
 
-PDF text selection, in-publication search and outline navigation are **iOS-only**
-in 1.0. Android renders PDF pages as images with the text-dependent controls
-hidden — the same path the spec already defines for scanned PDFs, now applied to
-all PDFs on that platform.
+PDF text selection and in-publication search work on both platforms, over each
+platform's own PDF library. **Outline navigation is iOS-only**: PDFKit reads a
+document outline and `android.graphics.pdf` exposes none, so that one control is
+absent on Android rather than shown empty.
 
-This is the first requirement in StoryArc that differs by platform, so it says so
+A device whose PDF module predates the text API takes the scanned-PDF path — the
+controls are hidden, exactly as they are for a file with no text in it. That is
+still the only requirement in StoryArc that differs by platform, and it says so
 explicitly rather than quietly under-delivering on one side.
 
 ## Library decisions
@@ -58,7 +63,7 @@ Recorded in [ADR-0005](../../../docs/decisions/0005-format-and-rendering-librari
 | CBT (TAR) | **libarchive**, same integration |
 | CB7 (7-Zip) | **Not supported.** The linker drops its reader automatically, since nothing reaches it |
 | PDF, iOS | **PDFKit** — full text layer |
-| PDF, Android | **System `PdfRenderer`** — images only, no text layer |
+| PDF, Android | **System `PdfRenderer`** for pages, **`PdfRendererPreV`** for the text layer — no outline (ADR-0011) |
 | Page decoding, iOS | **ImageIO** |
 | Page decoding, Android | **`ImageDecoder`** — no Coil, keeping the two decode paths symmetric |
 
@@ -72,8 +77,8 @@ reasoning still covers this case.
 ## Non-goals
 
 - **CB7.** Named refusal, not silent failure. Cheap to add later if anyone asks.
-- **PDF text on Android.** Revisit when `androidx.pdf` ships something that is a
-  renderer rather than a prebuilt `Fragment` with its own search UI.
+- **The PDF outline on Android.** Revisit if `android.graphics.pdf` ever exposes
+  one; nothing else in the text layer is missing. ADR-0011.
 - **Streaming solid archives.** Physically impossible, not deferred.
 - **Archive passwords.** Already refused by `publication-formats`; unchanged.
 

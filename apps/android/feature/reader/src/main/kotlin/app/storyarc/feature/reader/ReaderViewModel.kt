@@ -31,6 +31,7 @@ import app.storyarc.core.model.ShelfSettings
 import app.storyarc.core.model.ThemeScope
 import app.storyarc.core.model.TransitionChoices
 import app.storyarc.core.model.scrollAlong
+import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.ReadingPosition
@@ -85,6 +86,14 @@ class ReaderViewModel(
      * therefore measured where it runs, not asserted here.
      */
     private val canCurl: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
+    /**
+     * Where highlights and notes are kept, or null in a preview.
+     *
+     * The same store the reflowable reader writes to, holding the same record: a mark made in
+     * a PDF and a mark made in a novel come out of one export, which is what `ebook-reader`
+     * means by "listed in one place".
+     */
+    private val annotationStore: AnnotationStore? = null,
 ) : ViewModel() {
 
     /** The shelf this publication's reading mode is remembered under. */
@@ -331,6 +340,26 @@ class ReaderViewModel(
      */
     private var pdf: PdfDocumentReader? = null
 
+    private val _pdfText = MutableStateFlow<PdfTextState?>(null)
+
+    /**
+     * The text layer of a PDF that has one, and nothing at all otherwise.
+     *
+     * Null is the whole of the degradation `ebook-reader` asks for: a comic, a PDF that is
+     * images only, and a device with no PDF text API (ADR-0011) all arrive here the same way,
+     * and every control that depends on text is written against this being present rather than
+     * against a flag.
+     */
+    internal val pdfText: StateFlow<PdfTextState?> = _pdfText.asStateFlow()
+
+    /**
+     * Whether this publication is a PDF at all.
+     *
+     * What tells "there is no text in this file" apart from "this is a comic": only the first
+     * has anything to say to a reader who presses on a word expecting to select it.
+     */
+    val isPdf: Boolean get() = publication.format == PublicationFormat.PDF
+
     /**
      * `PdfRenderer` permits one open page at a time and says so. Warming a window
      * of three pages would otherwise render them concurrently and throw.
@@ -440,6 +469,10 @@ class ReaderViewModel(
             }
             pdf = reader
             _pages.value = (0 until reader.pageCount).map { PageEntry("${'$'}{it + 1}", 0L) }
+            // The same file again, for what is written on it. Absent for a scan, and absent
+            // on a device whose PDF module predates the text API -- both of which the reader
+            // answers by offering nothing rather than by offering something broken.
+            openPdfText(reader.pageCount)
             // Finished reopens at page one, exactly as an archive does.
             val record = progress?.progress(publication.identity)
             val recorded = record?.position?.takeUnless { record.isFinished }
@@ -450,6 +483,38 @@ class ReaderViewModel(
             _failure.value = cause.message ?: "could not be opened"
         }
         _isOpened.value = true
+    }
+
+    /**
+     * Opens the same PDF a second time, for its text.
+     *
+     * A second handle rather than a second use of the first: the renderer permits one open page
+     * at a time, and a selection that waited behind a page render would arrive after the finger
+     * had moved. Probing for a text layer opens pages, so it happens off the main thread.
+     *
+     * Closed again the moment it turns out to have nothing to say. A scan opens, is asked, and
+     * is let go before the reader has drawn a page.
+     */
+    private suspend fun openPdfText(pageCount: Int) {
+        val opened = withContext(Dispatchers.IO) {
+            val reader = PublicationAccess.openPdfText(resolver, path) ?: return@withContext null
+            if (reader.hasTextLayer) {
+                reader
+            } else {
+                reader.close()
+                null
+            }
+        } ?: return
+
+        val state = PdfTextState(
+            reader = opened,
+            store = annotationStore,
+            publication = publication.identity.stableId,
+            title = publication.displayTitle,
+            pageCount = pageCount,
+        )
+        state.load()
+        _pdfText.value = state
     }
 
     fun image(index: Int): Bitmap? = decoded[index]
@@ -724,6 +789,7 @@ class ReaderViewModel(
     override fun onCleared() {
         archive?.close()
         pdf?.close()
+        _pdfText.value?.close()
         decoded.clear()
         thumbnails.clear()
         wide.clear()

@@ -57,4 +57,30 @@
         <item quantity="one">%1$d página omitida</item>
         <item quantity="other">%1$d páginas omitidas</item>
     </plurals>
+    <string name="reader_pdf_page">Página %1$d</string>
+    <string name="reader_pdf_find">Buscar en el PDF</string>
+    <string name="reader_pdf_tab_search">Búsqueda</string>
+    <string name="reader_pdf_tab_marks">Marcas</string>
+    <string name="reader_pdf_search">Buscar en este PDF</string>
+    <string name="reader_pdf_search_running">Buscando en cada página…</string>
+    <string name="reader_pdf_search_none">No se encontró nada en esta publicación.</string>
+    <string name="reader_pdf_search_capped">Las primeras 200 coincidencias. Acota la búsqueda para ver menos.</string>
+    <string name="reader_pdf_marks_empty">Mantén pulsada una palabra para resaltarla o escribir una nota.</string>
+    <string name="reader_pdf_marks_remove">Eliminar</string>
+    <string name="reader_pdf_note">Nota</string>
+    <string name="reader_pdf_note_save">Guardar</string>
+    <string name="reader_pdf_note_cancel">Cancelar</string>
+    <string name="reader_pdf_copy">Copiar</string>
+    <string name="reader_pdf_search_selection">Buscar esto</string>
+    <string name="reader_pdf_deselect">Anular selección</string>
+    <string name="reader_pdf_export_text">Compartir como texto</string>
+    <string name="reader_pdf_export_markdown">Compartir como Markdown</string>
+    <string name="reader_pdf_no_text_title">No hay texto en esta página</string>
+    <string name="reader_pdf_no_text_message">Este PDF contiene imágenes de páginas en lugar de texto, así que no hay nada que seleccionar ni buscar.</string>
+    <string name="reader_pdf_no_text_done">OK</string>
+    <string name="reader_pdf_colour_yellow">Amarillo</string>
+    <string name="reader_pdf_colour_green">Verde</string>
+    <string name="reader_pdf_colour_blue">Azul</string>
+    <string name="reader_pdf_colour_pink">Rosa</string>
+    <string name="reader_pdf_colour_purple">Morado</string>
 </resources>

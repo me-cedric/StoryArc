@@ -43,6 +43,7 @@ import app.storyarc.core.model.Bookmark
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.designsystem.theme.StoryArcTheme
+import app.storyarc.core.designsystem.theme.swatch
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.SettingsStore

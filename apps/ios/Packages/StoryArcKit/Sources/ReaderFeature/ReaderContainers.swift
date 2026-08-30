@@ -148,7 +148,9 @@ extension ReaderView {
                 onTap: onTap,
                 onZoom: { scale in
                     Task { await model.holdZoom(scale, at: index) }
-                }
+                },
+                decoration: decoration(at: index),
+                onSelect: selectionHandler(at: index)
             )
         } else {
             // A slot that outlived its pages, for the frame between a publication
@@ -175,11 +177,19 @@ extension ReaderView {
     }
 
     /// The series' adjustments, with the trim off for a page the reader excused.
+    ///
+    /// And off for every page of a PDF that carries text. Margin trimming exists for a *scan*
+    /// — `comic-reader` asks for "uniform white or black margins ... trimmed per page" — and a
+    /// PDF with a real text layer is not one: its margins are the publisher's typography.
+    /// Trimming them would also move the words out from under the marks a reader put on them,
+    /// because a highlight is normalised to the whole page and the trimmed raster is not it.
     func trimming(at index: Int) -> ImageAdjustments {
-        guard uncropped.contains(index) else { return adjustments }
-        var excused = adjustments
-        excused.cropsBorders = false
-        return excused
+        guard !uncropped.contains(index), pdfText == nil else {
+            var excused = adjustments
+            excused.cropsBorders = false
+            return excused
+        }
+        return adjustments
     }
 
     /// Short enough not to read as an animation, which is the point of the name.

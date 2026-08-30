@@ -57,4 +57,30 @@
         <item quantity="one">%1$d page skipped</item>
         <item quantity="other">%1$d pages skipped</item>
     </plurals>
+    <string name="reader_pdf_page">Page %1$d</string>
+    <string name="reader_pdf_find">Find in PDF</string>
+    <string name="reader_pdf_tab_search">Search</string>
+    <string name="reader_pdf_tab_marks">Marks</string>
+    <string name="reader_pdf_search">Search this PDF</string>
+    <string name="reader_pdf_search_running">Searching every page…</string>
+    <string name="reader_pdf_search_none">Nothing found in this publication.</string>
+    <string name="reader_pdf_search_capped">The first 200 matches. Narrow the search to see fewer.</string>
+    <string name="reader_pdf_marks_empty">Press and hold a word to highlight it or write a note on it.</string>
+    <string name="reader_pdf_marks_remove">Delete</string>
+    <string name="reader_pdf_note">Note</string>
+    <string name="reader_pdf_note_save">Save</string>
+    <string name="reader_pdf_note_cancel">Cancel</string>
+    <string name="reader_pdf_copy">Copy</string>
+    <string name="reader_pdf_search_selection">Search for this</string>
+    <string name="reader_pdf_deselect">Deselect</string>
+    <string name="reader_pdf_export_text">Share as text</string>
+    <string name="reader_pdf_export_markdown">Share as Markdown</string>
+    <string name="reader_pdf_no_text_title">No text on this page</string>
+    <string name="reader_pdf_no_text_message">This PDF is images of pages rather than text, so there is nothing to select or search.</string>
+    <string name="reader_pdf_no_text_done">OK</string>
+    <string name="reader_pdf_colour_yellow">Yellow</string>
+    <string name="reader_pdf_colour_green">Green</string>
+    <string name="reader_pdf_colour_blue">Blue</string>
+    <string name="reader_pdf_colour_pink">Pink</string>
+    <string name="reader_pdf_colour_purple">Purple</string>
 </resources>

@@ -1227,10 +1227,10 @@ def _stream(dictionary: str, payload: bytes) -> bytes:
 
 
 # ── 16a. A text PDF: a text layer, and an outline ────────────────────────────
-# Pins the iOS-only capabilities. `ebook-reader` requires text selection,
-# in-publication search and the outline on iOS, and requires Android to *hide*
-# those controls rather than show them disabled — so a fixture that genuinely has
-# a text layer is what makes "hidden, not disabled" testable.
+# `ebook-reader` requires text selection and in-publication search on both
+# platforms, and the document outline on whichever platform's PDF library
+# exposes one — iOS only, per ADR-0011. A fixture that genuinely has a text
+# layer is what makes "hidden, not disabled" testable for the ones that do not.
 PDF_PAGE_W, PDF_PAGE_H = 612, 792  # US Letter, in points
 PDF_TEXT_PAGES = ["Chapter One", "Chapter Two", "Chapter Three"]
 
@@ -1279,13 +1279,13 @@ write_bytes("text-pages.pdf", _pdf(_objects, root=1))
 PDFS.append(
     {
         "file": "comics/text-pages.pdf",
-        "pins": "a PDF with a real text layer and an outline — the iOS-only capabilities",
+        "pins": "a PDF with a real text layer and an outline",
         "expectedPageCount": len(PDF_TEXT_PAGES),
         "expectedPageSizePoints": [PDF_PAGE_W, PDF_PAGE_H],
         "hasTextLayer": True,
         "expectedPageText": PDF_TEXT_PAGES,
         "expectedOutlineTitles": PDF_TEXT_PAGES,
-        "note": "iOS must offer selection, search and the outline. Android must hide those controls rather than disable them.",
+        "note": "Both platforms must offer selection and search. Only iOS reads the outline; Android hides that control rather than showing it empty (ADR-0011).",
     }
 )
 
@@ -1333,7 +1333,7 @@ PDFS.append(
         "expectedPageSizePoints": [PDF_IMAGE_W, PDF_IMAGE_H],
         "hasTextLayer": False,
         "expectedAspect": [PAGE_W, PAGE_H],
-        "note": "No text layer at all, so neither platform may offer selection or search. Page box is 2:3, matching every other fixture page.",
+        "note": "No text layer at all, so neither platform may offer selection or search, on any device. Page box is 2:3, matching every other fixture page.",
     }
 )
 

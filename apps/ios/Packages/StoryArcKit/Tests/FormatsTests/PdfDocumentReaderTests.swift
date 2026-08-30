@@ -7,9 +7,9 @@ import Testing
 /// Asserted against the shared corpus in `packages/test-fixtures`.
 ///
 /// Android's `PdfDocumentReaderTest` asserts the page-level half of this — count,
-/// size, rendering — and deliberately not the text half. `ebook-reader` makes
-/// text-layer features iOS-only in 1.0, so the asymmetry is the specified
-/// behaviour rather than missing coverage.
+/// size, rendering. The text half is asserted there too, in
+/// `PdfTextReaderInstrumentedTest`, because Android's PDF text API needs a device
+/// to run on. What stays iOS-only is the document outline: ADR-0011 records why.
 @Suite("PDF reading")
 struct PdfDocumentReaderTests {
     private func reader(_ name: String) throws -> PdfDocumentReader {
@@ -116,16 +116,87 @@ struct PdfDocumentReaderTests {
         }
     }
 
-    @Test("In-publication search returns the pages a phrase appears on")
-    func search() throws {
+    @Test("A page's text is what the search rule is applied to")
+    func searchOverAPage() throws {
         let reader = try reader("text-pages.pdf")
-        #expect(reader.search("Chapter Two") == [1])
+        let page = try #require(try reader.text(at: 1))
+        let found = PdfTextSearch.matches(in: page, page: 1, query: "chapter two")
         // Case-insensitive, because a reader's search box is not a grep.
-        #expect(reader.search("chapter three") == [2])
-        // Present on every page, so every page comes back, in order.
-        #expect(reader.search("Chapter") == [0, 1, 2])
-        #expect(reader.search("nowhere in this document").isEmpty)
-        #expect(reader.search("").isEmpty)
+        #expect(found.count == 1)
+        #expect(found.first?.snippet.line == "Chapter Two")
+        #expect(PdfTextSearch.matches(in: page, page: 1, query: "Chapter Three").isEmpty)
+    }
+
+    // MARK: - Selection
+
+    @Test("A drag across a page selects the words it crossed")
+    func selectionAcrossThePage() throws {
+        let reader = try reader("text-pages.pdf")
+        let selected = try #require(
+            reader.selection(
+                onPage: 0,
+                from: CGPoint(x: 0, y: 0),
+                to: CGPoint(x: 1, y: 1)
+            )
+        )
+        #expect(selected.text == "Chapter One")
+        #expect(selected.locator.page == 0)
+        #expect(selected.locator.end > selected.locator.start)
+        #expect(!selected.rects.isEmpty)
+    }
+
+    @Test("Selection rectangles are normalised, so the reader can draw them over any raster")
+    func selectionRectsAreNormalised() throws {
+        let reader = try reader("text-pages.pdf")
+        let selected = try #require(
+            reader.selection(onPage: 0, from: CGPoint(x: 0, y: 0), to: CGPoint(x: 1, y: 1))
+        )
+        for rect in selected.rects {
+            #expect(rect.minX >= 0 && rect.maxX <= 1)
+            #expect(rect.minY >= 0 && rect.maxY <= 1)
+            #expect(rect.width > 0 && rect.height > 0)
+        }
+        // The fixture writes one line near the top of the page, so the mark belongs there
+        // rather than in the middle — which is what proves the flip from PDF's own
+        // bottom-left origin actually happened.
+        let top = try #require(selected.rects.map(\.minY).min())
+        #expect(top < 0.5)
+    }
+
+    @Test("A press with no drag takes the word under it")
+    func selectionOfOneWord() throws {
+        let reader = try reader("text-pages.pdf")
+        // Inside the fixture's own line: 24pt type with its baseline at 700 on a 792-point
+        // page, so a tenth of the way down is on the glyphs.
+        let point = CGPoint(x: 0.15, y: 0.1)
+        let word = try #require(reader.selection(onPage: 0, from: point, to: point))
+        #expect(!word.text.isEmpty)
+        #expect("Chapter One".contains(word.text))
+    }
+
+    @Test("A selection is found again from the locator it was stored under")
+    func selectionRoundTrip() throws {
+        let reader = try reader("text-pages.pdf")
+        let selected = try #require(
+            reader.selection(onPage: 1, from: CGPoint(x: 0, y: 0), to: CGPoint(x: 1, y: 1))
+        )
+        let again = try #require(reader.selection(for: selected.locator))
+        #expect(again.text == selected.text)
+        #expect(again.locator == selected.locator)
+    }
+
+    @Test("A drag over a page with no text selects nothing rather than an empty run")
+    func selectionWithoutText() throws {
+        let reader = try reader("image-pages.pdf")
+        #expect(reader.selection(
+            onPage: 0, from: CGPoint(x: 0, y: 0), to: CGPoint(x: 1, y: 1)
+        ) == nil)
+    }
+
+    @Test("A locator naming a page the document does not have selects nothing")
+    func selectionOutOfRange() throws {
+        let reader = try reader("text-pages.pdf")
+        #expect(reader.selection(for: PdfLocator(page: 9, start: 0, end: 4)) == nil)
     }
 
     @Test("The outline is read with its titles and destinations")

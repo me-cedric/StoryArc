@@ -4,6 +4,7 @@ internal import ReadiumNavigator
 internal import ReadiumShared
 public import SwiftUI
 
+internal import DesignSystem
 public import StoryArcCore
 
 // What a reader marks, and how it is drawn back onto the page.
@@ -110,23 +111,5 @@ public extension EpubReaderModel {
             locator: locator,
             style: .highlight(tint: UIColor(annotation.colour.swatch), isActive: false)
         )
-    }
-}
-
-extension HighlightColour {
-    /// What the colour looks like on a page.
-    ///
-    /// Fixed hues rather than palette tokens: a highlight is ink a reader chose, and one that
-    /// changed colour when they changed theme would stop meaning what they meant by it. The
-    /// opacity is what makes it legible over any of the six page colours — Readium composites
-    /// this over the text, so a solid fill would bury the words it is marking.
-    var swatch: SwiftUI.Color {
-        switch self {
-        case .yellow: SwiftUI.Color(red: 1.00, green: 0.85, blue: 0.25)
-        case .green: SwiftUI.Color(red: 0.45, green: 0.85, blue: 0.45)
-        case .blue: SwiftUI.Color(red: 0.40, green: 0.72, blue: 1.00)
-        case .pink: SwiftUI.Color(red: 1.00, green: 0.55, blue: 0.75)
-        case .purple: SwiftUI.Color(red: 0.72, green: 0.55, blue: 1.00)
-        }
     }
 }

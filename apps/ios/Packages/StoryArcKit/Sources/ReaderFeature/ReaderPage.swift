@@ -29,6 +29,11 @@ struct PageView: View {
     /// when the user zooms", and the scroll view is the only thing that knows how far.
     let onZoom: (Double) -> Void
 
+    /// The marks and the live selection over a PDF page. Empty for everything else.
+    var decoration: PdfPageDecoration = .none
+    /// How a press-and-drag over the page is answered, or `nil` where there is no text.
+    var onSelect: ((CGPoint, CGPoint, Bool) -> Void)?
+
     var body: some View {
         if let image {
             // Fit, not fill: cropping a comic page loses artwork, and
@@ -39,7 +44,9 @@ struct PageView: View {
                 pageID: pageID,
                 fit: fit,
                 onTap: onTap,
-                onZoom: onZoom
+                onZoom: onZoom,
+                decoration: decoration,
+                onSelect: onSelect
             )
             .adjusted(adjustments)
             .accessibilityLabel(label)

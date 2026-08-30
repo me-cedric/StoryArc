@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.swatch
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.AnnotationExport

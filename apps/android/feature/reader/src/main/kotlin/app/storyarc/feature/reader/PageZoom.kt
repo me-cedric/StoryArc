@@ -76,6 +76,19 @@ internal data class PageZoom(
         return PageZoom(next, kept + pan).bounded(page)
     }
 
+    /**
+     * A point on the screen, back in the page's own unscaled coordinates.
+     *
+     * The inverse of the transform in this type's own note: the page is drawn scaled about its
+     * centre with [offset] applied afterwards, so undoing it is subtract, unscale, re-centre.
+     *
+     * What a selection needs. A finger reports where it is on the *screen*, and the words it is
+     * over are at a fixed place on the *page* -- the two are only the same at fit scale with
+     * nothing panned, which is the one state a reader who has zoomed in to read is not in.
+     */
+    fun unprojected(point: Offset, page: PageBounds): Offset =
+        page.centre + (point - page.centre - offset) / scale
+
     /** A double tap: in to [DOUBLE_TAP] centred on the point, or back out to fit. */
     fun doubleTapped(at: Offset, page: PageBounds): PageZoom {
         if (isMagnified) return PageZoom()

@@ -26,6 +26,7 @@ import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ReaderPreferences
+import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.SettingsStore
 import app.storyarc.core.catalogue.CertificatePins
@@ -921,6 +922,10 @@ class MainActivity : ComponentActivity() {
                                 // scope inside it: `reading-themes` gives comics and
                                 // reflowable text separate defaults.
                                 shelfStore = readerPreferences,
+                                // And the same store the ebook reader marks into. A PDF
+                                // that carries text is highlighted the same way a novel
+                                // is, and `ebook-reader` lists both in one place.
+                                annotationStore = AnnotationStore.open(this@MainActivity),
                             )
                         }
                         // Closing the reader is one moment `kavita-server` sends a position.
