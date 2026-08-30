@@ -65,6 +65,11 @@ struct DownloadQueueSection: View {
 private struct DownloadQueueRow: View {
     @Environment(\.theme) private var theme
 
+    /// At the accessibility sizes the title and its three controls cannot share a line:
+    /// the title truncates to two characters while *Stop* wraps to two lines, which is
+    /// neither readable nor tappable. Above the threshold the row becomes two.
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     let download: Download
     let canReorder: Bool
     let onReorder: (Bool) -> Void
@@ -72,23 +77,15 @@ private struct DownloadQueueRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
-            HStack(spacing: StoryArcSpace.sm) {
-                Text(download.title)
-                    .foregroundStyle(theme.palette.textPrimary)
-                    .lineLimit(1)
-
-                Spacer(minLength: 0)
-
-                if canReorder {
-                    reorder(later: false, symbol: "chevron.up")
-                    reorder(later: true, symbol: "chevron.down")
+            if typeSize.isAccessibilitySize {
+                title.lineLimit(3)
+                HStack(spacing: StoryArcSpace.sm) { controls }
+            } else {
+                HStack(spacing: StoryArcSpace.sm) {
+                    title.lineLimit(1)
+                    Spacer(minLength: 0)
+                    controls
                 }
-
-                Button(role: .destructive, action: onStop) {
-                    Text("downloads.stop")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
             }
 
             state
@@ -96,6 +93,26 @@ private struct DownloadQueueRow: View {
         .padding(StoryArcSpace.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(theme.palette.surfaceRaised, in: RoundedRectangle(cornerRadius: StoryArcRadius.md))
+    }
+
+    private var title: some View {
+        Text(download.title)
+            .foregroundStyle(theme.palette.textPrimary)
+    }
+
+    /// Reorder, where there is an order to change, and stop.
+    @ViewBuilder
+    private var controls: some View {
+        if canReorder {
+            reorder(later: false, symbol: "chevron.up")
+            reorder(later: true, symbol: "chevron.down")
+        }
+
+        Button(role: .destructive, action: onStop) {
+            Text("downloads.stop").lineLimit(1)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
     }
 
     /// Where this one has got to, said in whichever way is true of it.
