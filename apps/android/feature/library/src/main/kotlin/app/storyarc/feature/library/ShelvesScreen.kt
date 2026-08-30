@@ -1,19 +1,17 @@
 package app.storyarc.feature.library
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -31,24 +29,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
-import app.storyarc.core.designsystem.tokens.StoryArcColor
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
-import androidx.compose.foundation.lazy.LazyListScope
 import app.storyarc.core.kavita.KavitaClient
-import app.storyarc.core.kavita.KavitaCollection
-import app.storyarc.core.kavita.KavitaReadingList
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
 import app.storyarc.core.model.ShelfEditQueue
 import app.storyarc.core.model.ShelfOrigin
+import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.ShelfEditStore
 import java.util.UUID
@@ -59,6 +55,11 @@ import java.util.UUID
  * `collections-and-reading-lists` requires local and server groupings to appear "in one
  * list, each labelled with its source" rather than segregated. Two sections here because
  * they are two different ideas, not two different origins -- the origin is a label on a row.
+ *
+ * Drawn as two shelves of covers rather than two lists of names. §3.6 of the revamp: "a
+ * collection with no artwork is a folder listing", and a folder listing is the one thing this
+ * app is not. Each section leads with the sentence that says what its shelves *are*, because
+ * *collection* and *reading list* are words a reader has to be taught once.
  *
  * iOS's `ShelvesView` is the same screen.
  */
@@ -92,9 +93,9 @@ fun ShelvesScreen(
         }
     }
 
-    // Edits owed to a server, so a row can say so and a conflict can be said once. Read into
-    // the screen rather than asked for per row: the badge and the notice come out of the same
-    // reconciliation, and a row that fetched its own would disagree with the dialogue above.
+    // Edits owed to a server, so a shelf can say so and a conflict can be said once. Read into
+    // the screen rather than asked for per card: the badge and the notice come out of the same
+    // reconciliation, and a card that fetched its own would disagree with the dialogue above.
     val context = LocalContext.current
     val edits = remember(context) { ShelfEditStore.open(context) }
     val progress = remember(context) { KavitaProgressStore.open(context) }
@@ -160,77 +161,72 @@ fun ShelvesScreen(
             )
         },
     ) { insets ->
-        LazyColumn(
+        val finished = viewModel.finishedPublications()
+
+        LazyVerticalGrid(
+            // Both bounds for the reason `CoverGrid` gives, and a wider minimum than a
+            // publication's: a shelf is a composite of four covers, and four covers below
+            // about 150 dp stop being four covers.
+            columns = BoundedAdaptive(SHELF_MINIMUM_WIDTH, SHELF_MAXIMUM_WIDTH),
             modifier = Modifier.fillMaxSize().padding(insets),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(StoryArcSpace.gutter),
-            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+            contentPadding = PaddingValues(StoryArcSpace.gutter),
+            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
         ) {
-            item {
-                Text(
-                    text = stringResource(R.string.shelves_collections),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.textSecondary,
-                )
-            }
             val serverCollections = serverShelves.filterNot { it.isList }
+            heading(R.string.shelves_collections, R.string.shelves_collections_about)
+
             if (shelves.collections.isEmpty() && serverCollections.isEmpty()) {
-                item { Blurb(stringResource(R.string.shelves_collections_none)) }
+                blurb(R.string.shelves_collections_none)
             } else {
                 items(shelves.collections, key = { it.id }) { collection ->
-                    ShelfRow(
-                        name = collection.name,
-                        count = collection.members.size,
-                        source = collection.origin.sourceName(registry.sources),
+                    // `collections-and-reading-lists` gives a collection with contents a
+                    // cover "composite of its first four member covers", and the artwork is
+                    // the interface.
+                    ShelfCard(
+                        viewModel = viewModel,
+                        title = collection.name,
+                        subtitle = caption(collection.origin, collection.members.size, registry.sources),
+                        tiles = shelfTiles(collection),
                         onOpen = { onOpenCollection(collection.id) },
                         onDelete = { viewModel.deleteCollection(collection.id) },
-                        // `collections-and-reading-lists` gives a collection with contents a
-                        // cover "composite of its first four member covers", and the artwork
-                        // is the interface: a shelf of collections is a shelf of covers, not
-                        // a list of names.
-                        cover = { ShelfCover(collection, viewModel) },
                     )
                 }
                 items(serverCollections, key = { "c-${it.server.id}-${it.id}" }) { shelf ->
-                    ShelfRow(
-                        name = shelf.title,
-                        count = null,
-                        source = shelf.server.title,
-                        onOpen = { onOpenServerCollection(shelf.server, shelf.id, shelf.title) },
-                        onDelete = null,
-                    )
+                    ServerShelfCard(viewModel, shelf) {
+                        onOpenServerCollection(shelf.server, shelf.id, shelf.title)
+                    }
                 }
             }
 
-            item {
-                Text(
-                    text = stringResource(R.string.shelves_lists),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.textSecondary,
-                    modifier = Modifier.padding(top = StoryArcSpace.md),
-                )
-            }
             val serverLists = serverShelves.filter { it.isList }
+            heading(R.string.shelves_lists, R.string.shelves_lists_about)
+
             if (shelves.lists.isEmpty() && serverLists.isEmpty()) {
-                item { Blurb(stringResource(R.string.shelves_lists_none)) }
+                blurb(R.string.shelves_lists_none)
             } else {
                 items(shelves.lists, key = { it.id }) { list ->
-                    ShelfRow(
-                        name = list.name,
-                        count = list.entries.size,
-                        source = list.origin.sourceName(registry.sources),
+                    // A list's tiles are its first four entries in *its* order, and its rail
+                    // is how far through that order the reader is -- the two things that make
+                    // it a list rather than a bag.
+                    ShelfCard(
+                        viewModel = viewModel,
+                        title = list.name,
+                        subtitle = caption(list.origin, list.entries.size, registry.sources),
+                        tiles = shelfTiles(list),
                         onOpen = { onOpenList(list.id) },
+                        progress = fraction(list, finished),
                         onDelete = { viewModel.deleteList(list.id) },
                     )
                 }
                 items(serverLists, key = { "l-${it.server.id}-${it.id}" }) { shelf ->
-                    ShelfRow(
-                        name = shelf.title,
-                        count = null,
-                        source = shelf.server.title,
-                        onOpen = { onOpenServerList(shelf.server, shelf.id, shelf.title) },
-                        onDelete = null,
+                    ServerShelfCard(
+                        viewModel = viewModel,
+                        shelf = shelf,
                         pending = queue.pending(ShelfSync.key(shelf)).size,
-                    )
+                    ) {
+                        onOpenServerList(shelf.server, shelf.id, shelf.title)
+                    }
                 }
             }
         }
@@ -304,77 +300,91 @@ fun ShelvesScreen(
     }
 }
 
-@Composable
-private fun Blurb(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = LocalStoryArcPalette.current.textSecondary,
-    )
-}
+/** The narrowest a composite of four covers still reads as four covers. */
+private val SHELF_MINIMUM_WIDTH = 150.dp
 
-@Composable
-private fun ShelfRow(
-    name: String,
-    count: Int?,
-    source: String?,
-    onOpen: () -> Unit,
-    // Null for a server's own shelf. Deleting one is the server's business, and a bin icon
-    // that only ever failed would be worse than no bin icon.
-    onDelete: (() -> Unit)?,
-    /** The composite, for a local collection. Null for a shelf whose contents are elsewhere. */
-    cover: (@Composable () -> Unit)? = null,
-    /** How many edits this shelf still owes its server. */
-    pending: Int = 0,
-) {
-    val palette = LocalStoryArcPalette.current
-    val items = count?.let { pluralStringResource(R.plurals.shelves_count, it, it) }
+/** And the widest, so a tablet gets more shelves rather than enormous ones. */
+private val SHELF_MAXIMUM_WIDTH = 220.dp
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpen)
-            .defaultMinSize(minHeight = 48.dp)
-            .padding(vertical = StoryArcSpace.xs),
-    ) {
-        cover?.invoke()
-        Column(modifier = Modifier.weight(1f)) {
-            Text(name, style = MaterialTheme.typography.bodyLarge, color = palette.textPrimary)
-            val subtitle = listOfNotNull(source, items).joinToString(" · ")
-            if (subtitle.isNotEmpty()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.textSecondary,
-                )
-            }
-            // `collections-and-reading-lists`: "the pending state is visible on the list".
-            // On the row as well as inside it, because a reader looking for what has not
-            // gone out yet should not have to open every list to find it.
-            if (pending > 0) {
-                Text(
-                    text = pluralStringResource(R.plurals.shelves_pending, pending, pending),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = StoryArcColor.Status.offline,
-                )
-            }
-        }
-        if (onDelete != null) {
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Filled.Delete,
-                    contentDescription = stringResource(R.string.shelves_delete, name),
-                    tint = palette.textSecondary,
-                )
-            }
+/**
+ * A section's name and the one sentence that says what its shelves are.
+ *
+ * §3.6 asks for Komga's metaphor in the copy -- a collection groups what you like, a reading
+ * list is a playlist for books. Above the shelf rather than only in the empty state, because
+ * the reader who has never met the word is not always the reader who has none of them.
+ */
+private fun LazyGridScope.heading(title: Int, about: Int) {
+    item(span = { GridItemSpan(maxLineSpan) }) {
+        Column(modifier = Modifier.semantics(mergeDescendants = true) { heading() }) {
+            Text(
+                text = stringResource(title),
+                style = MaterialTheme.typography.titleMedium,
+                color = LocalStoryArcPalette.current.textPrimary,
+            )
+            Text(
+                text = stringResource(about),
+                style = MaterialTheme.typography.bodySmall,
+                color = LocalStoryArcPalette.current.textSecondary,
+            )
         }
     }
 }
 
+private fun LazyGridScope.blurb(text: Int) {
+    item(span = { GridItemSpan(maxLineSpan) }) {
+        Text(
+            text = stringResource(text),
+            style = MaterialTheme.typography.bodySmall,
+            color = LocalStoryArcPalette.current.textTertiary,
+        )
+    }
+}
+
+/**
+ * A shelf that lives in an online library.
+ *
+ * No composite: its members are chapters on a server this device has not necessarily opened,
+ * so there is no local artwork to compose from and a half-loaded mosaic would be worse than a
+ * clean blank.
+ */
+@Composable
+private fun ServerShelfCard(
+    viewModel: LibraryViewModel,
+    shelf: ServerShelf,
+    pending: Int = 0,
+    onOpen: () -> Unit,
+) {
+    ShelfCard(
+        viewModel = viewModel,
+        title = shelf.title,
+        subtitle = shelf.server.title,
+        tiles = emptyList(),
+        onOpen = onOpen,
+        pending = pending,
+    )
+}
+
+/** Where the grouping came from, and how much is in it. */
+@Composable
+private fun caption(origin: ShelfOrigin, count: Int, sources: List<Source>): String {
+    val items = pluralStringResource(R.plurals.shelves_count, count, count)
+    val source = origin.sourceName(sources) ?: return items
+    return "$source · $items"
+}
+
+/**
+ * How far through a reading list the reader is.
+ *
+ * [ReadingList.position] counts it, so the rail on the card and the line inside the list can
+ * never disagree about where the reader is.
+ */
+private fun fraction(list: ReadingList, finished: Set<String>): Float {
+    if (list.entries.isEmpty()) return 0f
+    return list.position { it in finished }.toFloat() / list.entries.size
+}
+
 /** The name of the source a grouping came from, when it came from one. */
-private fun ShelfOrigin.sourceName(sources: List<app.storyarc.core.model.Source>): String? =
+private fun ShelfOrigin.sourceName(sources: List<Source>): String? =
     sourceId?.let { id -> sources.firstOrNull { it.id == id }?.displayName }
 
 /** Kept so the file's two public entry points sit beside their model types. */

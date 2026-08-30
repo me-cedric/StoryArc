@@ -143,6 +143,8 @@
     <string name="shelves_title">Shelves</string>
     <string name="shelves_collections">Collections</string>
     <string name="shelves_lists">Reading lists</string>
+    <string name="shelves_collections_about">Books and comics you group yourself, in no particular order.</string>
+    <string name="shelves_lists_about">Playlists for books. Anything, from anywhere, in the order you choose.</string>
     <string name="shelves_collections_none">No collections yet. A collection groups books and comics in no particular order.</string>
     <string name="shelves_lists_none">No reading lists yet. A reading list keeps its order, and offers the next entry when you finish one.</string>
     <string name="shelves_new">New</string>
@@ -166,6 +168,7 @@
         <item quantity="other">%1$d titles</item>
     </plurals>
     <string name="shelves_promote">Copy to an online library…</string>
+    <string name="shelves_promote_named">Copy to %1$s…</string>
     <string name="shelves_promote_unavailable">No online library you can reach is able to hold a reading list.</string>
     <string name="shelves_promote_title">Copy to an online library</string>
     <string name="shelves_promote_choose">Choose an online library</string>

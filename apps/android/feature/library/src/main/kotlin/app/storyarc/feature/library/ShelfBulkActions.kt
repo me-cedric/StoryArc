@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -98,16 +99,27 @@ internal fun ShelfBulkMenu(
                 if (ids.isEmpty()) isAllOnDevice = true else pending = ids to viewModel.bytesOnDisk(ids)
             },
         )
-        // `collections-and-reading-lists` offers to copy a local list to a server. Disabled
-        // with the reason under it rather than hidden: a reader who cannot find the action
-        // does not learn that their server is unreachable, they learn that the app cannot
-        // do it.
+        // `collections-and-reading-lists` offers to copy a local list to a server, and when
+        // none is reachable "the offer to copy is disabled and says why, rather than failing
+        // after the user has confirmed it". So it is never hidden -- but §3.6 of the revamp
+        // demotes it: it is a thing a reader does occasionally, not one of the things this
+        // menu is for. Hence a divider and last place below the two everyday actions.
         if (promoting != null && promoter != null && promoting.origin == ShelfOrigin.Local) {
+            HorizontalDivider()
             DropdownMenuItem(
                 enabled = listServers.isNotEmpty(),
                 text = {
                     Column {
-                        Text(stringResource(R.string.shelves_promote))
+                        // Named when there is one online library to name, which is the
+                        // ordinary case: "Copy to Attic Kavita…" is a specific errand, where
+                        // "Copy to an online library…" is a feature announcing itself. With
+                        // two or more the generic wording is the honest one, because the
+                        // choice is the next screen's.
+                        Text(
+                            text = listServers.singleOrNull()
+                                ?.let { stringResource(R.string.shelves_promote_named, it.title) }
+                                ?: stringResource(R.string.shelves_promote),
+                        )
                         if (listServers.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.shelves_promote_unavailable),

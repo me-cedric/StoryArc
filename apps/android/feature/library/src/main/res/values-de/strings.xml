@@ -143,6 +143,8 @@
     <string name="shelves_title">Regale</string>
     <string name="shelves_collections">Sammlungen</string>
     <string name="shelves_lists">Leselisten</string>
+    <string name="shelves_collections_about">Bücher und Comics, die Sie selbst gruppieren, ohne bestimmte Reihenfolge.</string>
+    <string name="shelves_lists_about">Playlists zum Lesen. Alles, von überall, in der Reihenfolge, die Sie wählen.</string>
     <string name="shelves_collections_none">Noch keine Sammlungen. Eine Sammlung fasst Bücher und Comics ohne bestimmte Reihenfolge zusammen.</string>
     <string name="shelves_lists_none">Noch keine Leselisten. Eine Leseliste behält ihre Reihenfolge und schlägt den nächsten Eintrag vor, wenn Sie einen beenden.</string>
     <string name="shelves_new">Neu</string>
@@ -166,6 +168,7 @@
         <item quantity="other">%1$d Titel</item>
     </plurals>
     <string name="shelves_promote">In eine Online-Bibliothek kopieren…</string>
+    <string name="shelves_promote_named">Nach %1$s kopieren…</string>
     <string name="shelves_promote_unavailable">Keine erreichbare Online-Bibliothek kann eine Leseliste aufnehmen.</string>
     <string name="shelves_promote_title">In eine Online-Bibliothek kopieren</string>
     <string name="shelves_promote_choose">Online-Bibliothek wählen</string>

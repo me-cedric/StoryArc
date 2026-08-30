@@ -143,6 +143,8 @@
     <string name="shelves_title">Estanterías</string>
     <string name="shelves_collections">Colecciones</string>
     <string name="shelves_lists">Listas de lectura</string>
+    <string name="shelves_collections_about">Libros y cómics que agrupa usted, sin un orden concreto.</string>
+    <string name="shelves_lists_about">Listas de reproducción para leer. Lo que sea, venga de donde venga, en el orden que elija.</string>
     <string name="shelves_collections_none">Aún no hay colecciones. Una colección agrupa libros y cómics sin un orden concreto.</string>
     <string name="shelves_lists_none">Aún no hay listas de lectura. Una lista conserva su orden y ofrece la siguiente entrada cuando termina una.</string>
     <string name="shelves_new">Nuevo</string>
@@ -166,6 +168,7 @@
         <item quantity="other">%1$d títulos</item>
     </plurals>
     <string name="shelves_promote">Copiar a una biblioteca en línea…</string>
+    <string name="shelves_promote_named">Copiar en %1$s…</string>
     <string name="shelves_promote_unavailable">Ninguna biblioteca en línea accesible puede alojar una lista de lectura.</string>
     <string name="shelves_promote_title">Copiar a una biblioteca en línea</string>
     <string name="shelves_promote_choose">Elegir una biblioteca en línea</string>

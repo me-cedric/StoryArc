@@ -143,6 +143,8 @@
     <string name="shelves_title">Étagères</string>
     <string name="shelves_collections">Collections</string>
     <string name="shelves_lists">Listes de lecture</string>
+    <string name="shelves_collections_about">Des livres et des bandes dessinées que vous regroupez vous-même, sans ordre particulier.</string>
+    <string name="shelves_lists_about">Des playlists pour la lecture. N’importe quoi, d’où que ce soit, dans l’ordre que vous choisissez.</string>
     <string name="shelves_collections_none">Aucune collection pour l’instant. Une collection regroupe des livres et des bandes dessinées sans ordre particulier.</string>
     <string name="shelves_lists_none">Aucune liste de lecture pour l’instant. Une liste conserve son ordre et propose l’entrée suivante quand vous en terminez une.</string>
     <string name="shelves_new">Nouveau</string>
@@ -166,6 +168,7 @@
         <item quantity="other">%1$d titres</item>
     </plurals>
     <string name="shelves_promote">Copier vers une bibliothèque en ligne…</string>
+    <string name="shelves_promote_named">Copier vers %1$s…</string>
     <string name="shelves_promote_unavailable">Aucune bibliothèque en ligne joignable ne peut héberger une liste de lecture.</string>
     <string name="shelves_promote_title">Copier vers une bibliothèque en ligne</string>
     <string name="shelves_promote_choose">Choisir une bibliothèque en ligne</string>
