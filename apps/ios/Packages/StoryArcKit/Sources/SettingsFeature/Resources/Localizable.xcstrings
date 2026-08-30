@@ -3327,6 +3327,35 @@
         }
       }
     },
+    "sources.action.reconnect": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zugangsdaten erneut eingeben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Re-enter credentials"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a introducir las credenciales"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisir à nouveau les identifiants"
+          }
+        }
+      }
+    },
     "sources.action.refresh": {
       "extractionState": "manual",
       "localizations": {

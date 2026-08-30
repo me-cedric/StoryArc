@@ -28,6 +28,15 @@ public final class SmbConnection {
     public var username = ""
     public var password = ""
 
+    /// The source this connection is putting back, when it is re-authorising one.
+    ///
+    /// `sources` requires "a single action to re-enter credentials, pre-filled with
+    /// everything except the secret". Holding the source rather than only its address is
+    /// what makes the result a *replacement*: the same identifier keeps the source's place
+    /// in the order, its downloads and its reading positions, where removing and re-adding
+    /// — which an iOS comment used to name as the workaround — loses all three.
+    public private(set) var replacing: Source?
+
     private let credentials: CredentialStore?
     private var resolved: SmbAddress?
 
@@ -43,6 +52,23 @@ public final class SmbConnection {
         // A pasted `\\host\share` names both at once, so the share field may be empty.
         return !share.trimmingCharacters(in: .whitespaces).isEmpty
             || SmbAddress.parse(typedHost) != nil
+    }
+
+    /// Seeds the sheet from a share whose password was refused.
+    ///
+    /// The host, the share and the user name come back out of the locator; the password does
+    /// not, because the locator never held one — `sources` forbids a secret reaching the
+    /// registry, and that is exactly what makes this prefill safe to build from it.
+    public func prefill(from source: Source) {
+        replacing = source
+        step = .entering
+        password = ""
+        guard let locator = source.locator,
+              let address = SmbLocator.read(locator, password: nil)
+        else { return }
+        host = address.host
+        share = address.share
+        username = address.username ?? ""
     }
 
     /// Connects and lists the share's root, which is the first thing a reader chooses from.
@@ -94,10 +120,10 @@ public final class SmbConnection {
             port: target.port
         )
 
-        let id = UUID()
+        let id = replacing?.id ?? UUID()
         var reference: String?
         if !rooted.isGuest {
-            let key = CredentialStore.reference(for: id)
+            let key = replacing?.credentialReference ?? CredentialStore.reference(for: id)
             guard credentials?.save(rooted.password ?? "", for: key) == true else {
                 step = .failed(String(localized: "smb.error.keyNotStored", bundle: .module, locale: .storyArc))
                 return nil

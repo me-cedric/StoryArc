@@ -67,7 +67,13 @@ public struct SourceDiagnosis: Sendable, Equatable {
         isRemovable: Bool = true
     ) -> SourceDiagnosis {
         let mine = downloads.filter { $0.sourceID == source.id && $0.state.isFinished }
-        var actions: [SourceAction] = [.testConnection, .refresh, .clearCache]
+        var actions: [SourceAction] = []
+        // First, and only when it is the answer. `sources`: a source whose credential was
+        // refused gets "a single action to re-enter credentials, pre-filled with everything
+        // except the secret" — and a reader looking at a screen that says the sign-in failed
+        // should not have to read past four working actions to find the one that fixes it.
+        if source.state.needsUserAction { actions.append(.reconnect) }
+        actions += [.testConnection, .refresh, .clearCache]
         // Only when there is something to remove. An action that frees nothing still asks
         // for a confirmation, and a reader who answers it watches nothing happen.
         if !mine.isEmpty { actions.append(.removeDownloads) }
@@ -107,6 +113,13 @@ public enum SourceFailure: Sendable, Equatable {
 
 /// What a source's detail screen can do to it.
 public enum SourceAction: String, Sendable, Hashable, CaseIterable {
+    /// Re-open the sheet this source was added through, with everything but the secret
+    /// already filled in. Offered only to a source whose credential was refused.
+    ///
+    /// Not "remove and re-add", which is what an iOS comment used to name as the workaround:
+    /// that loses the source's place in the order, its downloads, and — after thirty days —
+    /// the reading positions its tombstone was holding.
+    case reconnect
     /// Ask the source, now. For a folder that is whether it can still be read.
     case testConnection
     /// Re-fetch the catalogue.
@@ -124,7 +137,7 @@ public enum SourceAction: String, Sendable, Hashable, CaseIterable {
     /// delete bytes a reader may be relying on being there on a train.
     public var isDestructive: Bool {
         switch self {
-        case .testConnection, .refresh, .clearCache: false
+        case .reconnect, .testConnection, .refresh, .clearCache: false
         case .removeDownloads, .remove: true
         }
     }

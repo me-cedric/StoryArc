@@ -42,6 +42,15 @@ public final class KavitaConnection {
     /// reader has already given is how a form makes someone feel they typed it wrong.
     public var addressCarriesKey: Bool { KavitaAddress.fromOpds(address) != nil }
 
+    /// The source this connection is putting back, when it is re-authorising one.
+    ///
+    /// `sources` requires "a single action to re-enter credentials, pre-filled with
+    /// everything except the secret". Holding the source rather than only its address is
+    /// what makes the result a *replacement*: the same identifier keeps the source's place
+    /// in the order, its downloads and its reading positions, where removing and re-adding
+    /// — which an iOS comment used to name as the workaround — loses all three.
+    public private(set) var replacing: Source?
+
     private let credentials: CredentialStore?
     private var resolved: KavitaAddress?
 
@@ -54,6 +63,18 @@ public final class KavitaConnection {
     /// screen says so.
     public init(credentials: CredentialStore? = nil) {
         self.credentials = credentials
+    }
+
+    /// Seeds the sheet from a source whose key was refused.
+    ///
+    /// The address comes back, the key does not. A key the server has just rejected is not
+    /// a starting point, and showing dots where one used to be would invite the reader to
+    /// press Connect on the credential that failed.
+    public func prefill(from source: Source) {
+        replacing = source
+        address = source.locator ?? ""
+        apiKey = ""
+        step = .entering
     }
 
     public func connect() async {
@@ -89,7 +110,8 @@ public final class KavitaConnection {
         guard let source = KavitaSource.make(
             address: address,
             identity: identity,
-            credentials: credentials
+            credentials: credentials,
+            replacing: replacing
         ) else {
             step = .failed(String(localized: "kavita.error.keyNotStored", bundle: .module, locale: .storyArc))
             return nil
@@ -141,13 +163,17 @@ enum KavitaSource {
     /// Nil when the key cannot be stored. A Kavita source without its key is a row that
     /// fails on the next launch with nothing to explain why, so the caller says so instead
     /// of saving one.
+    /// `replacing` is the source being re-authorised, when there is one. Its identifier and
+    /// its credential reference are reused, so the new key lands under the name the registry
+    /// already holds and the source keeps everything filed under that identifier.
     static func make(
         address: KavitaAddress,
         identity: KavitaIdentity,
-        credentials: CredentialStore?
+        credentials: CredentialStore?,
+        replacing: Source? = nil
     ) -> Source? {
-        let id = UUID()
-        let reference = CredentialStore.reference(for: id)
+        let id = replacing?.id ?? UUID()
+        let reference = replacing?.credentialReference ?? CredentialStore.reference(for: id)
         guard let credentials, credentials.save(address.apiKey, for: reference) else { return nil }
 
         return Source(

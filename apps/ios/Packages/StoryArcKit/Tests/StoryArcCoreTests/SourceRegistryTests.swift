@@ -17,6 +17,48 @@ struct SourceRegistryTests {
         Source(displayName: name, kind: kind)
     }
 
+    // MARK: - Re-entering a credential
+
+    @Test("A re-authorised source keeps its place, so its precedence does not move")
+    func replacingKeepsPosition() {
+        let first = source("Kavita", kind: .kavitaServer)
+        let second = source("Comics")
+        let registry = SourceRegistry().adding(first).adding(second)
+
+        let reauthorised = Source(
+            id: first.id,
+            displayName: "someone · nas.local",
+            kind: .kavitaServer,
+            state: .connected,
+            credentialReference: "new-reference"
+        )
+        let after = registry.replacing(reauthorised)
+
+        #expect(after.sources.map(\.id) == [first.id, second.id])
+        #expect(after[first.id]?.credentialReference == "new-reference")
+    }
+
+    @Test("The reader's own name for a source survives re-entering its credential")
+    func replacingKeepsTheReadersName() {
+        let original = source("Kavita", kind: .kavitaServer)
+        let registry = SourceRegistry().adding(original).renaming(original.id, to: "Downstairs NAS")
+
+        let after = registry.replacing(
+            Source(id: original.id, displayName: "someone · nas.local", kind: .kavitaServer)
+        )
+
+        #expect(after[original.id]?.displayName == "Downstairs NAS")
+    }
+
+    @Test("A source removed while the sheet was open is not put back by it")
+    func replacingDoesNotResurrect() {
+        let gone = source("Kavita", kind: .kavitaServer)
+
+        let after = SourceRegistry().replacing(gone)
+
+        #expect(after.sources.isEmpty)
+    }
+
     // MARK: - Order
 
     @Test("A new source goes to the end, because the order is the reader's")

@@ -53,6 +53,15 @@ public final class CatalogueConnection {
         !address.trimmingCharacters(in: .whitespaces).isEmpty && step != .connecting
     }
 
+    /// The source this connection is putting back, when it is re-authorising one.
+    ///
+    /// `sources` requires "a single action to re-enter credentials, pre-filled with
+    /// everything except the secret". Holding the source rather than only its address is
+    /// what makes the result a *replacement*: the same identifier keeps the source's place
+    /// in the order, its downloads and its reading positions, where removing and re-adding
+    /// — which an iOS comment used to name as the workaround — loses all three.
+    public private(set) var replacing: Source?
+
     private let client: OpdsClient
     private let pins: CertificatePins
     private let credentials: CredentialStore?
@@ -82,6 +91,20 @@ public final class CatalogueConnection {
         self.credentials = credentials
         self.pinStore = pinStore
         client = OpdsClient(pins: pins)
+    }
+
+    /// Seeds the sheet from a catalogue whose sign-in was refused.
+    ///
+    /// The address comes back, the sign-in does not. A credential the server has just
+    /// rejected is not a starting point, and showing dots where one used to be would invite
+    /// the reader to press Connect on the credential that failed.
+    public func prefill(from source: Source) {
+        replacing = source
+        address = source.locator ?? ""
+        user = ""
+        password = ""
+        token = ""
+        step = .entering
     }
 
     /// Fetches the root feed and reports what came back.
@@ -154,7 +177,8 @@ public final class CatalogueConnection {
             guard let source = KavitaSource.make(
                 address: kavita.address,
                 identity: kavita.identity,
-                credentials: credentials
+                credentials: credentials,
+                replacing: replacing
             ) else {
                 step = .failed(
                     String(localized: "catalogue.error.secretNotStored", bundle: .module, locale: .storyArc)
@@ -175,13 +199,13 @@ public final class CatalogueConnection {
             credential = .basic(user: user, password: url.password ?? "")
         }
 
-        let id = UUID()
+        let id = replacing?.id ?? UUID()
         var reference: String?
         if let credential {
             // Nil when the secret cannot be stored, and the step says so. A catalogue
             // whose sign-in was accepted and then dropped is a row that fails on the next
             // launch with nothing to explain why.
-            let stored = CredentialStore.reference(for: id)
+            let stored = replacing?.credentialReference ?? CredentialStore.reference(for: id)
             guard let credentials, credentials.save(credential.stored, for: stored) else {
                 step = .failed(
                     String(localized: "catalogue.error.secretNotStored", bundle: .module, locale: .storyArc)

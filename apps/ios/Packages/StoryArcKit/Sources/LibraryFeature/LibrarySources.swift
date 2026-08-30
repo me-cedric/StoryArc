@@ -47,6 +47,18 @@ extension LibraryModel {
         sourceStore?.save(registry)
     }
 
+    /// Puts a re-authorised source back where it stood.
+    ///
+    /// `sources` requires "a single action to re-enter credentials" for a source that was
+    /// refused. The sheet writes the new secret under the reference the registry already
+    /// holds, so all this has to do is put the row back — and putting it *back* rather than
+    /// adding it is the point: the position decides which of two sources wins for a title,
+    /// and the identifier is what the downloads and the reading positions are filed under.
+    public func reconnect(_ source: Source) {
+        registry = registry.replacing(source)
+        sourceStore?.save(registry)
+    }
+
     // Internal, not private: `private` is file-scoped, and the callers now sit
     // in the other half of this type.
     /// Records a folder as a source, if it is not one already.

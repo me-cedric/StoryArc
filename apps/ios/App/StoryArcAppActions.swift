@@ -148,6 +148,10 @@ extension StoryArcApp {
 extension StoryArcApp {
     func perform(_ action: SourceAction, on source: Source) async {
         switch action {
+        // The sheet the source was added through, re-opened with everything but the secret.
+        // Presented from here rather than run here, because the answer arrives when the
+        // reader has finished typing.
+        case .reconnect: reconnecting = source
         case .testConnection: await library.test(source)
         case .refresh: await library.refresh(source)
         case .clearCache: library.clearCache(of: source)

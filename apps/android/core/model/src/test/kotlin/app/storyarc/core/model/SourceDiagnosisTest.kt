@@ -165,6 +165,34 @@ class SourceDiagnosisTest {
     }
 
     @Test
+    fun `a refused credential is offered the one action that fixes it, first`() {
+        val diagnosis = SourceDiagnosis.of(
+            source(state = SourceConnectionState.Unauthorized("Key refused")),
+            itemCount = 0,
+            downloads = emptyList(),
+        )
+
+        assertEquals(SourceAction.RECONNECT, diagnosis.actions.first())
+    }
+
+    @Test
+    fun `a source that is answering is not asked to sign in again`() {
+        val states = listOf(
+            SourceConnectionState.Connected,
+            SourceConnectionState.Connecting,
+            SourceConnectionState.Unreachable(0L),
+        )
+        states.forEach { state ->
+            val diagnosis = SourceDiagnosis.of(
+                source(state = state),
+                itemCount = 0,
+                downloads = emptyList(),
+            )
+            assertFalse(diagnosis.actions.contains(SourceAction.RECONNECT))
+        }
+    }
+
+    @Test
     fun `only the two that delete bytes ask before they happen`() {
         assertEquals(
             listOf(SourceAction.REMOVE_DOWNLOADS, SourceAction.REMOVE),

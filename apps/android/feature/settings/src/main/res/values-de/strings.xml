@@ -113,6 +113,7 @@
     <string name="sources_detail_items">In Ihrer Bibliothek</string>
     <string name="sources_detail_downloaded">Heruntergeladen</string>
     <string name="sources_detail_open">%1$s öffnen</string>
+    <string name="sources_action_reconnect">Zugangsdaten erneut eingeben</string>
     <string name="sources_action_test">Verbindung testen</string>
     <string name="sources_action_refresh">Aktualisieren</string>
     <string name="sources_action_clear_cache">Cache leeren</string>

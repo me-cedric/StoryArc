@@ -253,6 +253,7 @@ private fun status(state: SourceConnectionState): Int = when (state) {
 }
 
 private fun label(action: SourceAction): Int = when (action) {
+    SourceAction.RECONNECT -> R.string.sources_action_reconnect
     SourceAction.TEST_CONNECTION -> R.string.sources_action_test
     SourceAction.REFRESH -> R.string.sources_action_refresh
     SourceAction.CLEAR_CACHE -> R.string.sources_action_clear_cache

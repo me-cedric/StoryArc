@@ -93,6 +93,13 @@ struct StoryArcApp: App {
     /// they change their mind. `offline-downloads` gives them ten seconds.
     @State var removedDownload: RemovedDownload?
 
+    /// The source whose credential is being re-entered, when one is.
+    ///
+    /// `sources` asks for "a single action to re-enter credentials" on a refused source, and
+    /// the action is pressed on a screen inside Settings — which is a sheet, so the answer
+    /// has to be presented from the layer that owns it.
+    @State var reconnecting: Source?
+
     init() {
         // How the reader reaches a share. Registered here because this is where the source
         // registry and the credential store both are; `Formats` stays unaware that SMB
@@ -190,6 +197,16 @@ struct StoryArcApp: App {
                 )
                     .storyArcTheme(appearance: settings.appearance)
                     .speaking(settings.language)
+                    // Over Settings, because that is where the action was pressed and the
+                    // reader has not asked to leave the screen they were diagnosing.
+                    .sheet(item: $reconnecting) { source in
+                        SourceReconnectSheet(source: source) { reconnected in
+                            library.reconnect(reconnected)
+                            reconnecting = nil
+                        }
+                        .storyArcTheme(appearance: settings.appearance)
+                        .speaking(settings.language)
+                    }
             }
             // The system hands a file over here, and until this existed it was dropped.
             // `Info.plist` declares StoryArc as a handler for six formats, so the app was

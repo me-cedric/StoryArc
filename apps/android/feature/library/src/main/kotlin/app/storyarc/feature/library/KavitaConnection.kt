@@ -42,7 +42,32 @@ class KavitaConnection(
     val address = MutableStateFlow("")
     val apiKey = MutableStateFlow("")
 
+    /**
+     * The source this connection is putting back, when it is re-authorising one.
+     *
+     * `sources` requires "a single action to re-enter credentials, pre-filled with everything
+     * except the secret". Holding the source rather than only its address is what makes the
+     * result a *replacement*: the same identifier keeps the source's place in the order, its
+     * downloads and its reading positions, where removing and re-adding loses all three.
+     */
+    var replacing: Source? = null
+        private set
+
     private var resolved: KavitaAddress? = null
+
+    /**
+     * Seeds the sheet from a source whose key was refused.
+     *
+     * The address comes back, the key does not. A key the server has just rejected is not a
+     * starting point, and showing dots where one used to be would invite the reader to press
+     * Connect on the credential that failed.
+     */
+    fun prefill(source: Source) {
+        replacing = source
+        address.value = source.locator.orEmpty()
+        apiKey.value = ""
+        _step.value = Step.Entering
+    }
 
     /**
      * Whether the address the reader pasted already carries a key.
@@ -91,7 +116,7 @@ class KavitaConnection(
         val confirmed = _step.value as? Step.Confirmed ?: return null
         val target = resolved ?: return null
 
-        return kavitaSource(target, confirmed.identity, credentials) ?: run {
+        return kavitaSource(target, confirmed.identity, credentials, replacing) ?: run {
             _step.value = Step.Failed(context.getString(R.string.kavita_error_key_not_stored))
             null
         }
@@ -119,9 +144,15 @@ internal fun kavitaSource(
     address: KavitaAddress,
     identity: KavitaIdentity,
     credentials: CredentialStore?,
+    /**
+     * The source being re-authorised, when there is one. Its identifier and its credential
+     * reference are reused, so the new key lands under the name the registry already holds
+     * and the source keeps everything filed under that identifier.
+     */
+    replacing: Source? = null,
 ): Source? {
-    val id = UUID.randomUUID()
-    val reference = CredentialStore.reference(id)
+    val id = replacing?.id ?: UUID.randomUUID()
+    val reference = replacing?.credentialReference ?: CredentialStore.reference(id)
     if (credentials == null || !credentials.save(address.apiKey, reference)) return null
 
     return Source(

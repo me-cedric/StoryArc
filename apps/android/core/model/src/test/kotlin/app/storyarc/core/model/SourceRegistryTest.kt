@@ -21,6 +21,43 @@ class SourceRegistryTest {
     private fun source(name: String, kind: SourceKind = SourceKind.LOCAL_FOLDER) =
         Source(displayName = name, kind = kind)
 
+    // Re-entering a credential
+
+    @Test
+    fun `a re-authorised source keeps its place, so its precedence does not move`() {
+        val first = source("Kavita", kind = SourceKind.KAVITA_SERVER)
+        val second = source("Comics")
+        val registry = SourceRegistry().adding(first).adding(second)
+
+        val after = registry.replacing(
+            first.copy(
+                displayName = "someone \u00b7 nas.local",
+                state = SourceConnectionState.Connected,
+                credentialReference = "new-reference",
+            ),
+        )
+
+        assertEquals(listOf(first.id, second.id), after.sources.map { it.id })
+        assertEquals("new-reference", after[first.id]?.credentialReference)
+    }
+
+    @Test
+    fun `the reader's own name for a source survives re-entering its credential`() {
+        val original = source("Kavita", kind = SourceKind.KAVITA_SERVER)
+        val registry = SourceRegistry().adding(original).renaming(original.id, "Downstairs NAS")
+
+        val after = registry.replacing(original.copy(displayName = "someone \u00b7 nas.local"))
+
+        assertEquals("Downstairs NAS", after[original.id]?.displayName)
+    }
+
+    @Test
+    fun `a source removed while the sheet was open is not put back by it`() {
+        val gone = source("Kavita", kind = SourceKind.KAVITA_SERVER)
+
+        assertTrue(SourceRegistry().replacing(gone).sources.isEmpty())
+    }
+
     @Test
     fun `a new source goes to the end because the order is the reader's`() {
         val registry = SourceRegistry().adding(source("Comics")).adding(source("Books"))

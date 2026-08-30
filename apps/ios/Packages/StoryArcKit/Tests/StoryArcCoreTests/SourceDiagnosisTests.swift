@@ -138,6 +138,25 @@ struct SourceDiagnosisTests {
         #expect(diagnosis.actions == [.testConnection, .refresh, .clearCache])
     }
 
+    @Test("A refused credential is offered the one action that fixes it, first")
+    func offersReconnectWhenUnauthorized() {
+        let diagnosis = SourceDiagnosis.of(
+            source(state: .unauthorized(reason: "Key refused")),
+            itemCount: 0,
+            downloads: []
+        )
+
+        #expect(diagnosis.actions.first == .reconnect)
+    }
+
+    @Test("A source that is answering is not asked to sign in again")
+    func hidesReconnectWhenThereIsNothingToFix() {
+        for state in [SourceConnectionState.connected, .connecting, .unreachable(since: Date())] {
+            let diagnosis = SourceDiagnosis.of(source(state: state), itemCount: 0, downloads: [])
+            #expect(!diagnosis.actions.contains(.reconnect))
+        }
+    }
+
     @Test("Only the two that delete bytes ask before they happen")
     func namesTheDestructiveActions() {
         #expect(SourceAction.allCases.filter(\.isDestructive) == [.removeDownloads, .remove])

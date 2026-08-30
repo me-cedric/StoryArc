@@ -54,7 +54,35 @@ class SmbConnection(
     val username = MutableStateFlow("")
     val password = MutableStateFlow("")
 
+    /**
+     * The source this connection is putting back, when it is re-authorising one.
+     *
+     * `sources` requires "a single action to re-enter credentials, pre-filled with everything
+     * except the secret". Holding the source rather than only its address is what makes the
+     * result a *replacement*: the same identifier keeps the source's place in the order, its
+     * downloads and its reading positions, where removing and re-adding loses all three.
+     */
+    var replacing: Source? = null
+        private set
+
     private var resolved: SmbAddress? = null
+
+    /**
+     * Seeds the sheet from a share whose password was refused.
+     *
+     * The host, the share and the user name come back out of the locator; the password does
+     * not, because the locator never held one — `sources` forbids a secret reaching the
+     * registry, and that is exactly what makes this prefill safe to build from it.
+     */
+    fun prefill(source: Source) {
+        replacing = source
+        _step.value = Step.Entering
+        password.value = ""
+        val address = source.locator?.let { SmbLocator.parse(it, null) } ?: return
+        host.value = address.host
+        share.value = address.share
+        username.value = address.username.orEmpty()
+    }
 
     /** Whether there is enough typed in to try. */
     fun isReady(): Boolean = host.value.isNotBlank() && share.value.isNotBlank()
@@ -132,10 +160,10 @@ class SmbConnection(
         val current = _step.value as? Step.Browsing ?: return null
         val rooted = target.copy(path = current.path)
 
-        val id = UUID.randomUUID()
+        val id = replacing?.id ?: UUID.randomUUID()
         var reference: String? = null
         if (!rooted.isGuest) {
-            val key = CredentialStore.reference(id)
+            val key = replacing?.credentialReference ?: CredentialStore.reference(id)
             if (credentials == null || !credentials.save(rooted.password.orEmpty(), key)) {
                 _step.value = Step.Failed(context.getString(R.string.smb_error_key_not_stored))
                 return null

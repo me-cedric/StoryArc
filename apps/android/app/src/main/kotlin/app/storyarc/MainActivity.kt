@@ -34,6 +34,7 @@ import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
+import app.storyarc.core.model.SourceKind
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
@@ -357,6 +358,10 @@ class MainActivity : ComponentActivity() {
                 var isAddingCatalogue by remember { mutableStateOf(false) }
                 var isAddingKavita by remember { mutableStateOf(false) }
                 var isAddingShare by remember { mutableStateOf(false) }
+                // The source whose credential is being re-entered, when one is. `sources`
+                // asks for "a single action to re-enter credentials" on a refused source,
+                // and the sheet it re-opens is the one the source was added through.
+                var reconnecting by remember { mutableStateOf<Source?>(null) }
                 var share by remember { mutableStateOf<SmbPage?>(null) }
                 // A stack of folders, like the catalogue's: the browser leaves the
                 // composition while a publication is open, so its position lives here.
@@ -417,6 +422,46 @@ class MainActivity : ComponentActivity() {
                             connection.reset()
                         },
                     )
+                }
+
+                // Signing in again to a source whose credential was refused.
+                //
+                // The sheet the source was added through, re-opened -- not a smaller password
+                // prompt: a refused credential is often a symptom of the address having moved,
+                // and a form that only offers the secret cannot fix that. What comes back
+                // carries the same identifier, so it replaces the row rather than joining it.
+                reconnecting?.let { source ->
+                    val done: (Source) -> Unit = {
+                        libraryViewModel.reconnectSource(it)
+                        reconnecting = null
+                    }
+                    val dismiss = { reconnecting = null }
+                    when (source.kind) {
+                        SourceKind.KAVITA_SERVER -> {
+                            val connection = remember(source.id) {
+                                KavitaConnection(applicationContext, credentials)
+                                    .apply { prefill(source) }
+                            }
+                            KavitaSheet(connection, onAdd = done, onDismiss = dismiss)
+                        }
+                        SourceKind.OPDS_CATALOG -> {
+                            val connection = remember(source.id) {
+                                CatalogueConnection(applicationContext, pins, pinStore, credentials)
+                                    .apply { prefill(source) }
+                            }
+                            CatalogueSheet(connection, onAdd = done, onDismiss = dismiss)
+                        }
+                        SourceKind.NETWORK_SHARE -> {
+                            val connection = remember(source.id) {
+                                SmbConnection(applicationContext, credentials).apply { prefill(source) }
+                            }
+                            SmbSheet(connection, onAdd = done, onDismiss = dismiss)
+                        }
+                        // Never reached: a folder has no credential to refuse, so
+                        // `SourceDiagnosis` never offers the action for one. Answered rather
+                        // than defaulted, so a fifth kind has to be thought about here too.
+                        SourceKind.LOCAL_FOLDER -> Unit
+                    }
                 }
 
                 val route: (Publication, String) -> Unit = { publication, path ->
@@ -798,6 +843,9 @@ class MainActivity : ComponentActivity() {
                             // same switch.
                             onSourceAction = { source, action ->
                                 when (action) {
+                                    // Presented rather than run: the answer arrives when the
+                                    // reader has finished typing.
+                                    SourceAction.RECONNECT -> reconnecting = source
                                     SourceAction.TEST_CONNECTION ->
                                         libraryViewModel.testSource(source, credentials, pins)
                                     SourceAction.REFRESH ->

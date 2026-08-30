@@ -118,6 +118,7 @@
     <string name="sources_detail_items">In your library</string>
     <string name="sources_detail_downloaded">Downloaded</string>
     <string name="sources_detail_open">Open %1$s</string>
+    <string name="sources_action_reconnect">Re-enter credentials</string>
     <string name="sources_action_test">Test connection</string>
     <string name="sources_action_refresh">Refresh</string>
     <string name="sources_action_clear_cache">Clear cache</string>

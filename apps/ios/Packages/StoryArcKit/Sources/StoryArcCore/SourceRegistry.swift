@@ -64,6 +64,27 @@ public struct SourceRegistry: Sendable, Equatable {
         return SourceRegistry(sources: moved, tombstones: tombstones)
     }
 
+    /// Puts a re-authorised source back where the old one stood.
+    ///
+    /// `sources` requires the app to offer "a single action to re-enter credentials" when
+    /// one is refused. The point of replacing rather than removing and adding is everything
+    /// that would otherwise be lost: the source's position in the order — which decides
+    /// which of two sources wins for the same publication — and, because the identifier is
+    /// the same, its downloads and its reading positions.
+    ///
+    /// The reader's own name for it survives too. They renamed it after adding it, and a
+    /// re-authorisation is not the moment to hand the server's name back.
+    ///
+    /// A source that is no longer in the registry is not added: it was removed while the
+    /// sheet was open, and putting it back would be the app arguing with the reader.
+    public func replacing(_ source: Source) -> SourceRegistry {
+        guard let existing = self[source.id] else { return self }
+        return SourceRegistry(
+            sources: sources.map { $0.id == source.id ? source.renamed(existing.displayName) : $0 },
+            tombstones: tombstones
+        )
+    }
+
     /// Records what a source's connection looks like right now.
     ///
     /// State is deliberately not persisted — it describes a network, and a state read back

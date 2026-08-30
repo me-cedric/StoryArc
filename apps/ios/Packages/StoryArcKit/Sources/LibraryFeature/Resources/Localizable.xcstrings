@@ -7544,25 +7544,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieses Gerät hat den Schlüssel für %@ nicht mehr. Entfernen Sie die Quelle in den Einstellungen und fügen Sie sie erneut hinzu."
+            "value": "Dieses Gerät hat den Schlüssel für %@ nicht mehr. Öffnen Sie die Quelle in den Einstellungen und geben Sie die Zugangsdaten erneut ein."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This device no longer holds the key for %@. Remove the source in Settings and add it again."
+            "value": "This device no longer holds the key for %@. Open the source in Settings and re-enter its credentials."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este dispositivo ya no guarda la clave de %@. Elimina la fuente en Ajustes y vuelve a añadirla."
+            "value": "Este dispositivo ya no conserva la clave de %@. Abra la fuente en Ajustes y vuelva a introducir sus credenciales."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cet appareil ne conserve plus la clé de %@. Supprimez la source dans les réglages, puis ajoutez-la de nouveau."
+            "value": "Cet appareil ne conserve plus la clé de %@. Ouvrez la source dans les Réglages et saisissez à nouveau ses identifiants."
           }
         }
       }

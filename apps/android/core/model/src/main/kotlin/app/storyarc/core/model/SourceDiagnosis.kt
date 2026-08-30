@@ -55,6 +55,12 @@ data class SourceDiagnosis(
         ): SourceDiagnosis {
             val mine = downloads.filter { it.sourceId == source.id && it.state.isFinished }
             val actions = buildList {
+                // First, and only when it is the answer. `sources`: a source whose credential
+                // was refused gets "a single action to re-enter credentials, pre-filled with
+                // everything except the secret" — and a reader looking at a screen that says
+                // the sign-in failed should not have to read past four working actions to
+                // find the one that fixes it.
+                if (source.state.needsUserAction) add(SourceAction.RECONNECT)
                 add(SourceAction.TEST_CONNECTION)
                 add(SourceAction.REFRESH)
                 add(SourceAction.CLEAR_CACHE)
@@ -104,6 +110,16 @@ sealed interface SourceFailure {
 
 /** What a source's detail screen can do to it. */
 enum class SourceAction {
+    /**
+     * Re-open the sheet this source was added through, with everything but the secret
+     * already filled in. Offered only to a source whose credential was refused.
+     *
+     * Not "remove and re-add", which is what an iOS comment used to name as the workaround:
+     * that loses the source's place in the order, its downloads, and — after thirty days —
+     * the reading positions its tombstone was holding.
+     */
+    RECONNECT,
+
     /** Ask the source, now. For a folder that is whether it can still be read. */
     TEST_CONNECTION,
 
@@ -128,7 +144,7 @@ enum class SourceAction {
      */
     val isDestructive: Boolean
         get() = when (this) {
-            TEST_CONNECTION, REFRESH, CLEAR_CACHE -> false
+            RECONNECT, TEST_CONNECTION, REFRESH, CLEAR_CACHE -> false
             REMOVE_DOWNLOADS, REMOVE -> true
         }
 }

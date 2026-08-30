@@ -74,6 +74,33 @@ class CatalogueConnection(
     val password = MutableStateFlow("")
     val token = MutableStateFlow("")
 
+    /**
+     * The source this connection is putting back, when it is re-authorising one.
+     *
+     * `sources` requires "a single action to re-enter credentials, pre-filled with everything
+     * except the secret". Holding the source rather than only its address is what makes the
+     * result a *replacement*: the same identifier keeps the source's place in the order, its
+     * downloads and its reading positions, where removing and re-adding loses all three.
+     */
+    var replacing: Source? = null
+        private set
+
+    /**
+     * Seeds the sheet from a catalogue whose sign-in was refused.
+     *
+     * The address comes back, the sign-in does not. A credential the server has just rejected
+     * is not a starting point, and showing dots where one used to be would invite the reader
+     * to press Connect on the credential that failed.
+     */
+    fun prefill(source: Source) {
+        replacing = source
+        address.value = source.locator.orEmpty()
+        user.value = ""
+        password.value = ""
+        token.value = ""
+        _step.value = Step.Entering
+    }
+
     private val client = OpdsClient(pins)
 
     /**
@@ -185,7 +212,7 @@ class CatalogueConnection(
         // What was pasted was a Kavita server, so a Kavita source is what gets saved: the
         // key goes to the secure store and the registry gets the base URL without it.
         kavita?.let { (address, identity) ->
-            return kavitaSource(address, identity, credentials) ?: run {
+            return kavitaSource(address, identity, credentials, replacing) ?: run {
                 _step.value = Step.Failed(
                     context.getString(R.string.catalogue_error_secret_not_stored),
                 )
@@ -195,7 +222,7 @@ class CatalogueConnection(
 
         val url = resolved ?: return null
 
-        val id = UUID.randomUUID()
+        val id = replacing?.id ?: UUID.randomUUID()
         var reference: String? = null
         // A URL written as `https://user:password@host/feed` is a credential in the shape of
         // an address, and `HttpURLConnection` authenticates from it — so the fetch succeeded
@@ -208,7 +235,7 @@ class CatalogueConnection(
             // Null when the secret cannot be stored, and the step says so. A catalogue whose
             // sign-in was accepted and then dropped is a row that fails on the next launch
             // with nothing to explain why.
-            val stored = CredentialStore.reference(id)
+            val stored = replacing?.credentialReference ?: CredentialStore.reference(id)
             if (credentials == null || !credentials.save(secret.stored, stored)) {
                 _step.value = Step.Failed(
                     context.getString(R.string.catalogue_error_secret_not_stored),

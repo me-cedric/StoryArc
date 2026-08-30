@@ -148,6 +148,7 @@ struct SourceDetail: View {
 
     private static func label(for action: SourceAction) -> LocalizedStringKey {
         switch action {
+        case .reconnect: "sources.action.reconnect"
         case .testConnection: "sources.action.test"
         case .refresh: "sources.action.refresh"
         case .clearCache: "sources.action.clearCache"

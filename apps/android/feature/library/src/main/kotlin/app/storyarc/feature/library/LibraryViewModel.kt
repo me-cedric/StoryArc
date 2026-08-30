@@ -490,6 +490,20 @@ class LibraryViewModel(
         sourceStore?.save(_registry.value)
     }
 
+    /**
+     * Puts a re-authorised source back where it stood.
+     *
+     * `sources` requires "a single action to re-enter credentials" for a source that was
+     * refused. The sheet writes the new secret under the reference the registry already
+     * holds, so all this has to do is put the row back — and putting it *back* rather than
+     * adding it is the point: the position decides which of two sources wins for a title, and
+     * the identifier is what the downloads and the reading positions are filed under.
+     */
+    fun reconnectSource(source: Source) {
+        _registry.update { it.replacing(source) }
+        sourceStore?.save(_registry.value)
+    }
+
     fun renameSource(source: Source, name: String) {
         _registry.update { it.renaming(source.id, name) }
         sourceStore?.save(_registry.value)
