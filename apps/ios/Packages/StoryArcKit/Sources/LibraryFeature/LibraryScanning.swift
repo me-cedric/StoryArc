@@ -152,13 +152,27 @@ extension LibraryModel {
         if let seen = publications.firstIndex(
             where: { $0.identity.matches(publication.identity) }
         ) {
-            // Unless the second find knows something the first did not. The app's own
-            // Documents folder is scanned before any source is restored, so a reader whose
-            // library lives there had every publication found unattributed first — and a
-            // source that holds eleven books reported nought. Whichever scan carries a
-            // source wins; the earlier row is otherwise identical.
-            if publications[seen].sourceID == nil, attributed.sourceID != nil {
-                publications[seen].sourceID = attributed.sourceID
+            // Unless this find came through a source the reader put higher. `sources`: the
+            // combined view "lists titles from higher sources first when two sources hold
+            // the same publication" — so the registry's order decides which copy the row is,
+            // not which scan happened to reach it first. ``SourcePrecedence`` is where that
+            // comparison lives and where it is asserted.
+            //
+            // The unattributed case falls out of the same rule: the app's own Documents
+            // folder is scanned before any source is restored, so a reader whose library
+            // lives there had every publication found with no source at all — and a source
+            // holding eleven books reported nought. Nil ranks last, so the source wins.
+            guard SourcePrecedence.prefers(
+                attributed.sourceID,
+                over: publications[seen].sourceID,
+                in: registry.sources
+            ) else { return false }
+
+            publications[seen].sourceID = attributed.sourceID
+            // The file goes with the attribution. A row that says one source and opens the
+            // other source's copy is the same bug wearing a different hat.
+            if let path = publication.identity.normalizedPath {
+                locations[publications[seen].id] = URL(fileURLWithPath: path)
             }
             return false
         }

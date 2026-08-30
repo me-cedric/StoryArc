@@ -44,6 +44,7 @@ import app.storyarc.core.persistence.LibraryCache
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.SourcePrecedence
 import app.storyarc.core.model.SourceProbe
 import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.model.BulkSelection
@@ -986,17 +987,28 @@ class LibraryViewModel(
     private fun adopt(publication: Publication, sourceId: UUID?): Boolean {
         val seen = _publications.value.indexOfFirst { it.identity.matches(publication.identity) }
         if (seen >= 0) {
-            // Unless the second find knows something the first did not. The app's own files
-            // directory is scanned before any source is restored, so a reader whose library
-            // lives there had every publication found unattributed first -- and a source
-            // that holds eleven books reported nought. Whichever scan carries a source wins.
-            if (_publications.value[seen].sourceId == null && sourceId != null) {
-                _publications.update { current ->
-                    current.mapIndexed { index, existing ->
-                        if (index == seen) existing.copy(sourceId = sourceId) else existing
-                    }
+            // Unless this find came through a source the reader put higher. `sources`: the
+            // combined view "lists titles from higher sources first when two sources hold the
+            // same publication" -- so the registry's order decides which copy the row is, not
+            // which scan happened to reach it first. [SourcePrecedence] is where that
+            // comparison lives and where it is asserted.
+            //
+            // The unattributed case falls out of the same rule: the app's own files directory
+            // is scanned before any source is restored, so a reader whose library lives there
+            // had every publication found with no source at all -- and a source holding eleven
+            // books reported nought. Null ranks last, so the source wins.
+            val existing = _publications.value[seen]
+            if (!SourcePrecedence.prefers(sourceId, existing.sourceId, _registry.value.sources)) {
+                return false
+            }
+            _publications.update { current ->
+                current.mapIndexed { index, each ->
+                    if (index == seen) each.copy(sourceId = sourceId) else each
                 }
             }
+            // The file goes with the attribution. A row that says one source and opens the
+            // other source's copy is the same bug wearing a different hat.
+            publication.identity.normalizedPath?.let { locations[existing.id] = it }
             return false
         }
 
