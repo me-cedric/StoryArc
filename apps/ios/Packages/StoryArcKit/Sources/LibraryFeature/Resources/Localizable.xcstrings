@@ -7305,6 +7305,93 @@
         }
       }
     },
+    "source.offline.body %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ist nicht erreichbar, daher kann der Inhalt nicht aufgelistet werden. Bereits heruntergeladene Publikationen bleiben in Ihrer Bibliothek und bleiben lesbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ cannot be reached, so what it holds cannot be listed. Publications you have already downloaded from it stay in your library and stay readable."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede acceder a %@, así que su contenido no se puede listar. Las publicaciones que ya descargó de esta fuente siguen en su biblioteca y siguen siendo legibles."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est injoignable, son contenu ne peut donc pas être listé. Les publications que vous en avez déjà téléchargées restent dans votre bibliothèque et restent lisibles."
+          }
+        }
+      }
+    },
+    "source.offline.retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut versuchen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réessayer"
+          }
+        }
+      }
+    },
+    "source.offline.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Antwort"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not answering"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin respuesta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sans réponse"
+          }
+        }
+      }
+    },
     "source.onThisDevice": {
       "comment": "The name of the source that holds the copies a reader imported.",
       "extractionState": "manual",
@@ -7599,22 +7686,16 @@
     "sync.conflict.body %lld": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld publications moved on both this device and the server. The furthest position was kept."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld publications ont avancé sur cet appareil et sur le serveur. La position la plus avancée a été conservée."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Bei %lld Publikationen hat sich sowohl dieses Gerät als auch der Server bewegt. Die weiteste Position wurde behalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld publications moved on both this device and the server. The furthest position was kept."
           }
         },
         "es": {
@@ -7622,28 +7703,28 @@
             "state": "translated",
             "value": "%lld publicaciones avanzaron en este dispositivo y en el servidor. Se ha conservado la posición más avanzada."
           }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld publications ont avancé sur cet appareil et sur le serveur. La position la plus avancée a été conservée."
+          }
         }
       }
     },
     "sync.conflict.keep": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep the furthest"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Garder le plus avancé"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Weiteste behalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep the furthest"
           }
         },
         "es": {
@@ -7651,28 +7732,28 @@
             "state": "translated",
             "value": "Quedarse con el más avanzado"
           }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Garder le plus avancé"
+          }
         }
       }
     },
     "sync.conflict.take": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Take the other"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prendre l’autre"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Die andere nehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Take the other"
           }
         },
         "es": {
@@ -7680,34 +7761,40 @@
             "state": "translated",
             "value": "Tomar la otra"
           }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prendre l’autre"
+          }
         }
       }
     },
     "sync.conflict.title": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Read in two places"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lu à deux endroits"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "An zwei Stellen gelesen"
           }
         },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read in two places"
+          }
+        },
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Leído en dos sitios"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lu à deux endroits"
           }
         }
       }

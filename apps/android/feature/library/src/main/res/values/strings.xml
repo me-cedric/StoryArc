@@ -14,6 +14,9 @@
     <string name="source_state_connected">Connected</string>
     <string name="source_state_connecting">Connecting…</string>
     <string name="source_state_unreachable">Offline — showing cached content</string>
+    <string name="source_offline_title">Not answering</string>
+    <string name="source_offline_body">%1$s cannot be reached, so what it holds cannot be listed. Publications you have already downloaded from it stay in your library and stay readable.</string>
+    <string name="source_offline_retry">Try again</string>
     <string name="source_state_unauthorized">Sign-in needed</string>
     <string name="library_cell_cannot_open">Cannot be opened</string>
     <string name="library_scanning">Scanning — %1$d found</string>

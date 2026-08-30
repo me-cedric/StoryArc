@@ -14,6 +14,9 @@
     <string name="source_state_connected">Conectada</string>
     <string name="source_state_connecting">Conectando…</string>
     <string name="source_state_unreachable">Sin conexión: contenido en caché</string>
+    <string name="source_offline_title">Sin respuesta</string>
+    <string name="source_offline_body">No se puede acceder a %1$s, así que su contenido no se puede listar. Las publicaciones que ya descargó de esta fuente siguen en su biblioteca y siguen siendo legibles.</string>
+    <string name="source_offline_retry">Reintentar</string>
     <string name="source_state_unauthorized">Se requiere iniciar sesión</string>
     <string name="library_cell_cannot_open">No se puede abrir</string>
     <string name="library_scanning">Analizando — %1$d encontrados</string>

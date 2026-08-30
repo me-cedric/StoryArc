@@ -20,8 +20,18 @@ struct SourceBrowser: View {
     let lists: [ServerShelf]
     let onOpen: (Publication, URL) -> Void
 
+    /// Asks this source again. Handed in because the registry belongs to the model and a
+    /// browser has no business holding one.
+    var onRetry: () async -> Void = {}
+
     var body: some View {
-        if let page = CataloguePage(source: source, credentials: credentials) {
+        // A source that is not answering is not opened into a browser that will fail: it
+        // would fetch, wait, and land on an empty list with nothing to say why. `sources`
+        // promises "cached contents remain browsable", and for a server there are none —
+        // saying so is the amended scenario, and the honest thing besides.
+        if case .unreachable = source.state {
+            OfflineSource(name: source.displayName, onRetry: onRetry)
+        } else if let page = CataloguePage(source: source, credentials: credentials) {
             CatalogueBrowserView(
                 title: page.title,
                 url: page.url,

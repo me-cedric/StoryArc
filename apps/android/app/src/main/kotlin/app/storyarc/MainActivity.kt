@@ -34,6 +34,7 @@ import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
+import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
@@ -63,6 +64,7 @@ import app.storyarc.feature.library.KavitaConnection
 import app.storyarc.feature.library.KavitaLevel
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSheet
+import app.storyarc.feature.library.OfflineSourceScreen
 import app.storyarc.feature.library.SmbBrowserScreen
 import app.storyarc.feature.library.SmbConnection
 import app.storyarc.core.format.PublicationAccess
@@ -362,6 +364,10 @@ class MainActivity : ComponentActivity() {
                 // asks for "a single action to re-enter credentials" on a refused source,
                 // and the sheet it re-opens is the one the source was added through.
                 var reconnecting by remember { mutableStateOf<Source?>(null) }
+                // The source a reader opened while it was not answering. `sources` promises
+                // cached contents stay browsable; a server's are not cached, so this is the
+                // screen that says so rather than an empty list that does not.
+                var offlineSource by remember { mutableStateOf<Source?>(null) }
                 var share by remember { mutableStateOf<SmbPage?>(null) }
                 // A stack of folders, like the catalogue's: the browser leaves the
                 // composition while a publication is open, so its position lives here.
@@ -508,18 +514,40 @@ class MainActivity : ComponentActivity() {
                 // ends up opening the wrong one.
                 val browse: (Source) -> Unit = { source ->
                     browsingSource = source.id
-                    CataloguePage.of(source, credentials)?.let {
-                        chosen = null
-                        catalogue = listOf(it)
+                    // A source that is not answering is not opened into a browser that will
+                    // fail: it would fetch, wait, and land on an empty list with nothing to
+                    // say why. `sources` promises "cached contents remain browsable", and for
+                    // a server there are none -- saying so is the amended scenario, and the
+                    // honest thing besides.
+                    if (source.state is SourceConnectionState.Unreachable) {
+                        offlineSource = source
+                    } else {
+                        CataloguePage.of(source, credentials)?.let {
+                            chosen = null
+                            catalogue = listOf(it)
+                        }
+                        KavitaPage.of(source, credentials)?.let {
+                            kavita = it
+                            kavitaLevel = KavitaLevel.Libraries
+                        }
+                        SmbPage.of(source, credentials)?.let {
+                            share = it
+                            sharePath = emptyList()
+                        }
                     }
-                    KavitaPage.of(source, credentials)?.let {
-                        kavita = it
-                        kavitaLevel = KavitaLevel.Libraries
-                    }
-                    SmbPage.of(source, credentials)?.let {
-                        share = it
-                        sharePath = emptyList()
-                    }
+                }
+
+                offlineSource?.let { source ->
+                    BackHandler { offlineSource = null }
+                    OfflineSourceScreen(
+                        name = source.displayName,
+                        onRetry = {
+                            libraryViewModel.testSource(source, credentials, pins)
+                            offlineSource = null
+                        },
+                        onBack = { offlineSource = null },
+                    )
+                    return@StoryArcTheme
                 }
 
                 // `native-experience`: the launcher's own menu, published from the shelf

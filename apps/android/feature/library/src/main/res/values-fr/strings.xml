@@ -14,6 +14,9 @@
     <string name="source_state_connected">Connectée</string>
     <string name="source_state_connecting">Connexion…</string>
     <string name="source_state_unreachable">Hors ligne — contenu en cache</string>
+    <string name="source_offline_title">Sans réponse</string>
+    <string name="source_offline_body">%1$s est injoignable, son contenu ne peut donc pas être listé. Les publications que vous en avez déjà téléchargées restent dans votre bibliothèque et restent lisibles.</string>
+    <string name="source_offline_retry">Réessayer</string>
     <string name="source_state_unauthorized">Connexion requise</string>
     <string name="library_cell_cannot_open">Impossible à ouvrir</string>
     <string name="library_scanning">Analyse — %1$d trouvés</string>

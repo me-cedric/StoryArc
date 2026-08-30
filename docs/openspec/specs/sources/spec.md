@@ -68,7 +68,9 @@ the user from browsing what is already cached.
 #### Scenario: Source becomes unreachable
 - **WHEN** a source fails to respond
 - **THEN** the source is marked `unreachable` with a neutral indicator, never a red error badge
-- **AND** its cached contents remain browsable
+- **AND** a local folder's cached contents remain browsable, from the metadata cache below
+- **AND** publications already downloaded from the source remain in the library and remain readable
+- **AND** a server, catalogue or share states plainly that its contents are not available while it is unreachable, rather than presenting an empty list
 - **AND** titles that are not downloaded are shown dimmed and are not openable
 
 #### Scenario: Credentials rejected
@@ -127,3 +129,12 @@ time, cached item count, and downloaded size.
 - Should two sources exposing the same publication be de-duplicated into one
   library row with a source picker, or listed separately? Current requirement
   orders by source priority; de-duplication is deferred.
+- Should an OPDS or Kavita response be cached to disk so a server's contents stay
+  browsable offline? `Source becomes unreachable` originally promised this for
+  every source. It was amended because only a local folder's catalogue is written
+  to disk: caching a server's would mean a second catalogue store per source type,
+  in a caches directory the system may evict mid-browse — so the "not available
+  offline" screen would still be needed — and it would put server-supplied
+  acquisition URLs on disk, which is where an embedded credential could survive a
+  launch. Deferred rather than refused: it is a real feature, and it needs its own
+  proposal covering eviction and the origin rule.

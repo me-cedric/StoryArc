@@ -242,7 +242,8 @@ public struct LibraryView: View {
             credentials: credentials,
             kavitaProgress: kavitaProgress,
             lists: model.serverLists,
-            onOpen: onOpen
+            onOpen: onOpen,
+            onRetry: { await model.test(source) }
         )
     }
 

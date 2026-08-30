@@ -14,6 +14,9 @@
     <string name="source_state_connected">Verbunden</string>
     <string name="source_state_connecting">Verbinden …</string>
     <string name="source_state_unreachable">Offline – zwischengespeicherte Inhalte</string>
+    <string name="source_offline_title">Keine Antwort</string>
+    <string name="source_offline_body">%1$s ist nicht erreichbar, daher kann der Inhalt nicht aufgelistet werden. Bereits heruntergeladene Publikationen bleiben in Ihrer Bibliothek und bleiben lesbar.</string>
+    <string name="source_offline_retry">Erneut versuchen</string>
     <string name="source_state_unauthorized">Anmeldung erforderlich</string>
     <string name="library_cell_cannot_open">Kann nicht geöffnet werden</string>
     <string name="library_scanning">Durchsuchen — %1$d gefunden</string>
