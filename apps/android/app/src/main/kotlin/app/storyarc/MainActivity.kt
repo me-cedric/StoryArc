@@ -349,6 +349,7 @@ class MainActivity : ComponentActivity() {
                                 // copies live beside it -- see `ImportedCopies`.
                                 downloadStore,
                                 scanJournal,
+                                kavitaCards,
                             )
                         }
                     },
@@ -513,6 +514,8 @@ class MainActivity : ComponentActivity() {
                 val serverShelf = openServerShelf
                 // Which source the reader is browsing, so the rail's indicator matches.
                 var browsingSource by remember { mutableStateOf<java.util.UUID?>(null) }
+                // A term the reader typed in the library, for the server to answer itself.
+                var kavitaSearch by remember { mutableStateOf("") }
 
                 // One tap, three destinations, decided by what the source is. The reader
                 // picked a place to browse, not a protocol.
@@ -810,8 +813,12 @@ class MainActivity : ComponentActivity() {
                             lists = serverLists,
                             level = kavitaLevel,
                             onLevel = { kavitaLevel = it },
+                            searching = kavitaSearch,
                             onOpen = route,
-                            onBack = { kavita = null },
+                            onBack = {
+                                kavita = null
+                                kavitaSearch = ""
+                            },
                         )
                     } else if (page != null && selection == null && !isShowingSettings) {
                         // Keyed on the address so entering a section builds a fresh browser
@@ -1006,6 +1013,13 @@ class MainActivity : ComponentActivity() {
                                 isShowingSettings = true
                             },
                             onBrowse = browse,
+                            // `kavita-server`: a search within a Kavita source goes to the
+                            // server. The library's own field filters the local index; this
+                            // carries the question across, and the browser opens with it.
+                            onSearchOnServer = { source, term ->
+                                kavitaSearch = term
+                                browse(source)
+                            },
                             onAddCatalogue = { isAddingCatalogue = true },
                             onAddKavita = { isAddingKavita = true },
                             onAddShare = { isAddingShare = true },

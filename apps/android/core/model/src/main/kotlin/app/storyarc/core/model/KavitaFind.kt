@@ -97,6 +97,34 @@ data class KavitaCard(
     val facts: List<String>
         get() = (if (releaseYear > 0) listOf(releaseYear.toString()) else emptyList()) +
             people + subjects
+
+    /**
+     * This publication as the server describes it, rather than as its file does.
+     *
+     * **Both of `kavita-server`'s metadata scenarios are this one function.** "When a
+     * publication's `ComicInfo.xml` disagrees with Kavita's metadata, the app displays
+     * Kavita's values, because the server is the curated source"; and "when a downloaded
+     * Kavita publication is opened with the server unreachable, the cached server metadata is
+     * displayed, not the file's embedded metadata". The second is the first, applied from disk
+     * instead of from a live answer -- which is the whole reason the card is written down when
+     * the download is taken.
+     *
+     * The result is [MetadataOrigin.AUTHORITATIVE], so nothing downstream silently puts the
+     * file's values back: that ordering already exists and this is what it was for.
+     *
+     * A field the card is silent about keeps what the file said. The server not having a
+     * summary is not the server saying there is none, and blanking a description the file does
+     * have would be losing information in the name of preferring a source.
+     */
+    fun appliedTo(publication: Publication): Publication = publication.copy(
+        displayTitle = chapterName.ifEmpty { publication.displayTitle },
+        series = seriesName.ifEmpty { null } ?: publication.series,
+        authors = people.ifEmpty { publication.authors },
+        year = if (releaseYear > 0) releaseYear else publication.year,
+        summary = summary?.takeIf { it.isNotEmpty() } ?: publication.summary,
+        tags = subjects.ifEmpty { publication.tags },
+        origin = MetadataOrigin.AUTHORITATIVE,
+    )
 }
 
 /**

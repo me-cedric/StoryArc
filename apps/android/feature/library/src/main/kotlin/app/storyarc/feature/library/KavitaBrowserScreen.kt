@@ -87,6 +87,13 @@ fun KavitaBrowserScreen(
     lists: List<ServerList> = emptyList(),
     level: KavitaLevel,
     onLevel: (KavitaLevel) -> Unit,
+    /**
+     * A term the reader typed in the library, which this server can answer itself.
+     *
+     * `kavita-server` asks a search within a Kavita source to reach the server; the library's
+     * field filters the local index, and this is the question carried across.
+     */
+    searching: String = "",
     onOpen: (Publication, String) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -106,6 +113,15 @@ fun KavitaBrowserScreen(
     var failure by remember(address) { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(client, searching) {
+        // The question the reader already asked, put to the server that can answer it.
+        if (searching.isNotEmpty() && finder.term.isEmpty()) {
+            isSearching = true
+            finder.type(searching)
+            finder.run(context, client, sourceId)
+        }
+    }
 
     LaunchedEffect(client) {
         runCatching { client.libraries() }

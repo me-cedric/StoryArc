@@ -134,6 +134,13 @@ fun LibraryScreen(
      * library knows which catalogue was chosen and does not know what a browser is.
      */
     onBrowse: (Source) -> Unit = {},
+    /**
+     * Puts a running search to the server the library is scoped to.
+     *
+     * `kavita-server` asks a search within a Kavita source to reach the server; the field
+     * above filters the local index, and this is the way across.
+     */
+    onSearchOnServer: (Source, String) -> Unit = { _, _ -> },
     /** Opens the add-a-catalogue sheet, which the app layer hosts. */
     onAddCatalogue: () -> Unit = {},
     /** Opens the collections screen, which the app layer hosts. */
@@ -447,6 +454,37 @@ fun LibraryScreen(
             if (catalogues.isNotEmpty() && !windowClass.showsSidebar) {
                 CatalogueStrip(sources = catalogues, onOpen = onBrowse)
             }
+
+            // **`kavita-server` requires the query to go to the server when the search is
+            // within a Kavita source, and this is what that scope was missing.** Narrowing
+            // the library to a Kavita server and typing filtered the *local index* -- what
+            // this device happens to hold -- and the server's own search, which reaches
+            // chapters, people, genres and tags, was never asked.
+            //
+            // Offered rather than substituted, which is the same shape `library-browsing`
+            // already uses for "widen the scope to all sources": the local matches are useful
+            // and immediate, and a search that silently left the device for the network would
+            // take a reader looking for a downloaded chapter somewhere they did not ask to go.
+            registry.sources
+                .firstOrNull {
+                    it.id == query.scope.sourceId &&
+                        it.kind == SourceKind.KAVITA_SERVER &&
+                        query.search.isNotBlank()
+                }
+                ?.let { server ->
+                    Text(
+                        text = stringResource(R.string.library_search_on_server, server.displayName),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.accent,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSearchOnServer(server, query.search) }
+                            .padding(
+                                horizontal = StoryArcSpace.gutter,
+                                vertical = StoryArcSpace.xs,
+                            ),
+                    )
+                }
 
         Box(
             modifier = Modifier.fillMaxSize(),

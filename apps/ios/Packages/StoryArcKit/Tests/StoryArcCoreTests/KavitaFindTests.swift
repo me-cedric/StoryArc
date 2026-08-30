@@ -28,6 +28,62 @@ struct KavitaFindTests {
         )
     }
 
+    /// A publication indexed from the file, with the values a `ComicInfo.xml` would carry.
+    private func fromFile() -> Publication {
+        Publication(
+            identity: PublicationIdentity(normalizedPath: "/downloads/p1/file.cbz"),
+            format: .cbz,
+            displayTitle: "File title",
+            series: "File series",
+            authors: ["File author"],
+            year: 1970,
+            summary: "What the file says.",
+            tags: ["file-tag"],
+            origin: .embedded,
+            pageCount: 24
+        )
+    }
+
+    @Test("The server's values replace the file's")
+    func serverWins() {
+        // `kavita-server`: "the app displays Kavita's values, because the server is the
+        // curated source" — and the same values again when the server is unreachable and
+        // this card is all that is left of it.
+        let described = card("p1", series: "Tidal Reach").applied(to: fromFile())
+        #expect(described.series == "Tidal Reach")
+        #expect(described.displayTitle == "1")
+        #expect(described.origin == .authoritative)
+    }
+
+    @Test("A field the card is silent about keeps what the file said")
+    func silenceKeepsTheFile() {
+        // The server having no summary is not the server saying there is none.
+        let bare = KavitaCard(
+            publicationId: "p1",
+            sourceId: "s",
+            seriesId: 7,
+            chapterId: 1,
+            seriesName: "Tidal Reach",
+            chapterName: "The Harbour"
+        )
+        let described = bare.applied(to: fromFile())
+        #expect(described.summary == "What the file says.")
+        #expect(described.authors == ["File author"])
+        #expect(described.year == 1970)
+        #expect(described.tags == ["file-tag"])
+    }
+
+    @Test("What the file alone knows survives the overlay")
+    func fileFactsSurvive() {
+        // The card describes a publication; it does not describe the archive. A page count
+        // or a cover path replaced from a card would be the server answering a question it
+        // was never asked.
+        let described = card("p1", series: "Tidal Reach").applied(to: fromFile())
+        #expect(described.pageCount == 24)
+        #expect(described.format == fromFile().format)
+        #expect(described.id == fromFile().id)
+    }
+
     @Test("An empty query asks for nothing")
     func emptyQuery() {
         #expect(KavitaFind.term("") == nil)

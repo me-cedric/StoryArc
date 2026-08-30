@@ -25,6 +25,9 @@ public struct LibraryView: View {
     /// inside it — which would pop the screen they are reading.
     @State private var browsing: Source.ID?
 
+    /// The term to hand a server's own search when one is opened from the library.
+    @State private var serverSearch = ""
+
     /// How wide the window is, and nothing about what device it belongs to.
     ///
     /// `native-experience` wants the layout to follow the window through Split View,
@@ -243,6 +246,9 @@ public struct LibraryView: View {
             kavitaProgress: kavitaProgress,
             lists: model.serverLists,
             onOpen: onOpen,
+            // Carried in so the server is asked the question the reader already typed,
+            // rather than being opened at its list of libraries with an empty field.
+            searching: serverSearch,
             onRetry: { await model.test(source) }
         )
     }
@@ -307,6 +313,10 @@ public struct LibraryView: View {
 
     private var content: some View {
         Group {
+            KavitaServerSearchOffer(registry: model.registry, query: model.query) { source in
+                serverSearch = model.query.search
+                browsing = source.id
+            }
             if !model.visible.isEmpty {
                 if model.layout == .grid {
                     CoverGrid(

@@ -4821,6 +4821,35 @@
         }
       }
     },
+    "library.search.onServer %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stattdessen auf „%@“ suchen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search “%@” for this instead"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar en «%@» en su lugar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chercher plutôt sur « %@ »"
+          }
+        }
+      }
+    },
     "library.search.prompt": {
       "extractionState": "manual",
       "localizations": {

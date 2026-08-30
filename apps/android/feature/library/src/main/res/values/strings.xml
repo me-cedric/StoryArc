@@ -309,4 +309,5 @@
     <string name="source_unauthorized_title">The sign-in is no longer stored</string>
     <string name="source_unauthorized_body">This device no longer holds the key for %1$s. Open the source in Settings and re-enter its credentials.</string>
     <string name="source_unauthorized_refused_body">%1$s refused the stored key. Open the source in Settings and enter a new one.</string>
+    <string name="library_search_on_server">Search “%1$s” for this instead</string>
 </resources>

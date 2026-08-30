@@ -123,6 +123,51 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
     public var facts: [String] {
         (releaseYear > 0 ? [String(releaseYear)] : []) + people + subjects
     }
+
+    /// This publication as the server describes it, rather than as its file does.
+    ///
+    /// **Both of `kavita-server`'s metadata scenarios are this one function.** "When a
+    /// publication's `ComicInfo.xml` disagrees with Kavita's metadata, the app displays
+    /// Kavita's values, because the server is the curated source"; and "when a downloaded
+    /// Kavita publication is opened with the server unreachable, the cached server metadata
+    /// is displayed, not the file's embedded metadata". The second is the first, applied
+    /// from disk instead of from a live answer — which is the whole reason the card is
+    /// written down when the download is taken.
+    ///
+    /// The result is ``MetadataOrigin/authoritative``, so nothing downstream silently puts
+    /// the file's values back: that ordering already exists and this is what it was for.
+    ///
+    /// A field the card is silent about keeps what the file said. The server not having a
+    /// summary is not the server saying there is none, and blanking a description the file
+    /// does have would be losing information in the name of preferring a source.
+    public func applied(to publication: Publication) -> Publication {
+        Publication(
+            identity: publication.identity,
+            format: publication.format,
+            displayTitle: chapterName.isEmpty ? publication.displayTitle : chapterName,
+            series: seriesName.isEmpty ? publication.series : seriesName,
+            number: publication.number,
+            volume: publication.volume,
+            authors: people.isEmpty ? publication.authors : people,
+            publisher: publication.publisher,
+            year: releaseYear > 0 ? releaseYear : publication.year,
+            language: publication.language,
+            summary: summary?.isEmpty == false ? summary : publication.summary,
+            genres: publication.genres,
+            tags: subjects.isEmpty ? publication.tags : subjects,
+            origin: .authoritative,
+            pageCount: publication.pageCount,
+            skippedPageCount: publication.skippedPageCount,
+            coverPath: publication.coverPath,
+            readingDirection: publication.readingDirection,
+            isFixedLayout: publication.isFixedLayout,
+            streaming: publication.streaming,
+            sourceID: publication.sourceID,
+            fileSize: publication.fileSize,
+            modifiedAt: publication.modifiedAt,
+            addedAt: publication.addedAt
+        )
+    }
 }
 
 /// Searching a Kavita source, and what a search falls back to when the server is away.

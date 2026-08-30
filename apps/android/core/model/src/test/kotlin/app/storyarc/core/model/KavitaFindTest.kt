@@ -32,6 +32,60 @@ class KavitaFindTest {
         subjects = subjects,
     )
 
+    /** A publication indexed from the file, with the values a `ComicInfo.xml` would carry. */
+    private fun fromFile() = Publication(
+        identity = PublicationIdentity(normalizedPath = "/downloads/p1/file.cbz"),
+        format = PublicationFormat.CBZ,
+        displayTitle = "File title",
+        series = "File series",
+        authors = listOf("File author"),
+        year = 1970,
+        summary = "What the file says.",
+        tags = listOf("file-tag"),
+        origin = MetadataOrigin.EMBEDDED,
+        pageCount = 24,
+    )
+
+    @Test
+    fun `the server's values replace the file's`() {
+        // `kavita-server`: "the app displays Kavita's values, because the server is the
+        // curated source" -- and the same values again when the server is unreachable and
+        // this card is all that is left of it.
+        val described = card("p1", "Tidal Reach").appliedTo(fromFile())
+        assertEquals("Tidal Reach", described.series)
+        assertEquals("1", described.displayTitle)
+        assertEquals(MetadataOrigin.AUTHORITATIVE, described.origin)
+    }
+
+    @Test
+    fun `a field the card is silent about keeps what the file said`() {
+        // The server having no summary is not the server saying there is none.
+        val bare = KavitaCard(
+            publicationId = "p1",
+            sourceId = "s",
+            seriesId = 7,
+            chapterId = 1,
+            seriesName = "Tidal Reach",
+            chapterName = "The Harbour",
+        )
+        val described = bare.appliedTo(fromFile())
+        assertEquals("What the file says.", described.summary)
+        assertEquals(listOf("File author"), described.authors)
+        assertEquals(1970, described.year)
+        assertEquals(listOf("file-tag"), described.tags)
+    }
+
+    @Test
+    fun `what the file alone knows survives the overlay`() {
+        // The card describes a publication; it does not describe the archive. A page count or
+        // a cover path replaced from a card would be the server answering a question it was
+        // never asked.
+        val described = card("p1", "Tidal Reach").appliedTo(fromFile())
+        assertEquals(24, described.pageCount)
+        assertEquals(fromFile().format, described.format)
+        assertEquals(fromFile().id, described.id)
+    }
+
     @Test
     fun `an empty query asks for nothing`() {
         assertNull(KavitaFind.term(""))

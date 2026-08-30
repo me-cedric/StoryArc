@@ -20,6 +20,8 @@ public struct KavitaBrowserView: View {
     /// Where a pulled position is written. See `KavitaSync.pull`.
     private let progress: ProgressStore?
     private let lists: [ServerShelf]
+    /// A term the reader typed in the library, which this server can answer itself.
+    private let searching: String
     private let onOpen: (Publication, URL) -> Void
 
     /// Created here, once, from the address.
@@ -47,6 +49,7 @@ public struct KavitaBrowserView: View {
         store: KavitaProgressStore,
         progress: ProgressStore? = nil,
         lists: [ServerShelf] = [],
+        searching: String = "",
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
     ) {
         self.title = title
@@ -55,6 +58,7 @@ public struct KavitaBrowserView: View {
         self.store = store
         self.progress = progress
         self.lists = lists
+        self.searching = searching
         _client = State(initialValue: KavitaClient(address: address))
         self.onOpen = onOpen
     }
@@ -73,6 +77,11 @@ public struct KavitaBrowserView: View {
         #endif
         .kavitaSearchable(finder) { await finder.run(client, sourceId: sourceId) }
         .task {
+            // The question the reader already asked, put to the server that can answer it.
+            if !searching.isEmpty, finder.term.isEmpty {
+                finder.term = searching
+                await finder.run(client, sourceId: sourceId)
+            }
             guard libraries.isEmpty, failure == nil else { return }
             do {
                 libraries = try await client.libraries()

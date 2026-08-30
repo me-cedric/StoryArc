@@ -20,6 +20,13 @@ struct SourceBrowser: View {
     let lists: [ServerShelf]
     let onOpen: (Publication, URL) -> Void
 
+    /// A term the reader has already typed, for a server that can answer it itself.
+    ///
+    /// `kavita-server` asks for a search within a Kavita source to reach the server. The
+    /// library's own field filters the local index; this is what carries the question across
+    /// when the reader takes the offer.
+    var searching: String = ""
+
     /// Asks this source again. Handed in because the registry belongs to the model and a
     /// browser has no business holding one.
     var onRetry: () async -> Void = {}
@@ -61,6 +68,7 @@ struct SourceBrowser: View {
                 sourceId: page.id,
                 store: kavitaProgress,
                 lists: lists,
+                searching: searching,
                 onOpen: onOpen
             )
         } else {

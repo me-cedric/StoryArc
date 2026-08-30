@@ -309,4 +309,5 @@
     <string name="source_unauthorized_title">Zugang nicht mehr gespeichert</string>
     <string name="source_unauthorized_body">Dieses Gerät hat den Schlüssel für %1$s nicht mehr. Öffnen Sie die Quelle in den Einstellungen und geben Sie die Zugangsdaten erneut ein.</string>
     <string name="source_unauthorized_refused_body">%1$s hat den gespeicherten Schlüssel abgelehnt. Öffnen Sie die Quelle in den Einstellungen und geben Sie einen neuen ein.</string>
+    <string name="library_search_on_server">Stattdessen auf „%1$s“ suchen</string>
 </resources>

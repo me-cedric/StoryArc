@@ -309,4 +309,5 @@
     <string name="source_unauthorized_title">L’identifiant n’est plus enregistré</string>
     <string name="source_unauthorized_body">Cet appareil ne conserve plus la clé de %1$s. Ouvrez la source dans les Réglages et saisissez à nouveau ses identifiants.</string>
     <string name="source_unauthorized_refused_body">%1$s a refusé la clé enregistrée. Ouvrez la source dans les Réglages et saisissez-en une nouvelle.</string>
+    <string name="library_search_on_server">Chercher plutôt sur « %1$s »</string>
 </resources>

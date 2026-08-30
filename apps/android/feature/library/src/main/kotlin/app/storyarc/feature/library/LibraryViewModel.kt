@@ -28,6 +28,7 @@ import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.KavitaCardStore
 import app.storyarc.core.persistence.ImportedCopies
 import app.storyarc.core.persistence.ImportedCopy
 import app.storyarc.core.persistence.documentNameOf
@@ -93,6 +94,15 @@ class LibraryViewModel(
      * "cancellable and resumable" -- see [ScanJournal] for why those are one promise.
      */
     private val journal: ScanJournal? = null,
+    /**
+     * What a Kavita server said about the downloads it produced.
+     *
+     * Read when a download joins the shelf, so the row carries the server's description
+     * rather than the file's -- which is what `kavita-server` requires whether or not the
+     * server can be reached. Null for a view model built without one, the way every other
+     * store here is optional.
+     */
+    private val cards: KavitaCardStore? = null,
 ) : AndroidViewModel(application) {
 
     /**
@@ -853,7 +863,15 @@ class LibraryViewModel(
                     val path = publication.identity.normalizedPath ?: return@collect
                     val record = store.download(File(path), downloads) ?: return@collect
                     if (!record.state.isFinished) return@collect
-                    if (adopt(publication, record.sourceId, path)) added = true
+                    // What the server said wins over what the file says. `kavita-server` is
+                    // explicit: the server is the curated source, and a downloaded Kavita
+                    // title read with the server unreachable shows "the cached server
+                    // metadata, not the file's embedded metadata". The card is the cache,
+                    // written when the chapter was kept, and this is the one place every
+                    // kept download passes through on its way to the shelf.
+                    val described = cards?.card(publication.id)?.appliedTo(publication)
+                        ?: publication
+                    if (adopt(described, record.sourceId, path)) added = true
                 }
             }
             if (!added) return@launch

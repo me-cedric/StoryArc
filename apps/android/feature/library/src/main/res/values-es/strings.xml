@@ -309,4 +309,5 @@
     <string name="source_unauthorized_title">El acceso ya no está guardado</string>
     <string name="source_unauthorized_body">Este dispositivo ya no conserva la clave de %1$s. Abra la fuente en Ajustes y vuelva a introducir sus credenciales.</string>
     <string name="source_unauthorized_refused_body">%1$s rechazó la clave guardada. Abra la fuente en Ajustes e introduzca una nueva.</string>
+    <string name="library_search_on_server">Buscar en «%1$s» en su lugar</string>
 </resources>
