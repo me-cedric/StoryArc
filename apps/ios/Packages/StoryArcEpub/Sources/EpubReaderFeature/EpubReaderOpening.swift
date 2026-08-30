@@ -2,6 +2,7 @@ public import Foundation
 
 internal import SwiftUI
 internal import UIKit
+internal import WebKit
 
 internal import ReadiumNavigator
 internal import ReadiumShared
@@ -53,6 +54,10 @@ extension EpubReaderModel {
     }
 
     private func start(_ opened: ReadiumShared.Publication) async {
+        // Before the navigator exists, because installing the rule list is synchronous
+        // and compiling it is not. ADR-0015.
+        await PublicationEgress.prepare()
+
         // A recorded position wins over the beginning. `reading-progress` is about
         // picking up where you left off, and a book you are halfway through should
         // not reopen at its title page.
@@ -258,6 +263,18 @@ final class NavigatorObserver: EPUBNavigatorDelegate {
 
     init(model: EpubReaderModel) {
         self.model = model
+    }
+
+    /// Where a publication is stopped from reaching the network.
+    ///
+    /// The only hook the toolkit offers into a spread's `WKWebViewConfiguration`, which
+    /// it builds privately. Named for user scripts, but the controller it hands over is
+    /// also what a content rule list is installed on. See ``PublicationEgress``.
+    func navigator(
+        _ navigator: EPUBNavigatorViewController,
+        setupUserScripts userContentController: WKUserContentController
+    ) {
+        PublicationEgress.deny(userContentController)
     }
 
     func navigator(_ navigator: any Navigator, locationDidChange locator: Locator) {
