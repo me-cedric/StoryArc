@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -163,6 +164,12 @@ internal fun DownloadQueueRow(
     onStop: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
+    // At the accessibility font scales the title and its three controls cannot share a
+    // line: the title is squeezed to a couple of characters while *Stop* takes half the
+    // row. Above the threshold the row becomes two. iOS makes the same split at
+    // `dynamicTypeSize.isAccessibilitySize`.
+    val isStacked = LocalDensity.current.fontScale >= 1.5f
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -171,15 +178,17 @@ internal fun DownloadQueueRow(
             .padding(StoryArcSpace.md),
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        val title = @Composable { modifier: Modifier ->
             Text(
                 text = download.title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = palette.textPrimary,
-                maxLines = 1,
+                maxLines = if (isStacked) 3 else 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
+                modifier = modifier,
             )
+        }
+        val controls = @Composable {
             if (canReorder) {
                 IconButton(onClick = { onReorder(false) }) {
                     Icon(
@@ -203,6 +212,16 @@ internal fun DownloadQueueRow(
                 }
             }
             TextButton(onClick = onStop) { Text(stringResource(R.string.downloads_stop)) }
+        }
+
+        if (isStacked) {
+            title(Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically) { controls() }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                title(Modifier.weight(1f))
+                controls()
+            }
         }
 
         when (val state = download.state) {
