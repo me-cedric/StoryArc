@@ -5,26 +5,51 @@ internal import StoryArcCore
 
 // The reader chrome's two button clusters.
 //
-// Split out of `ReaderChrome.swift` for a reason the compiler imposes: grouping and
-// morphing glass both need a `Namespace.ID`, `@Namespace` is stored storage, and stored
-// storage cannot be declared in an extension — which is all `ReaderChrome.swift` is.
-// A view of its own is the only place the namespace can live. It also keeps that file
-// under the project's 400-line ceiling, which it was 45 lines away from.
+// Split out of `ReaderChrome.swift` because that file is an extension, and the clusters
+// need a view of their own: a `ButtonStyle` and the layout that goes with it. It also
+// keeps that file under the project's 400-line ceiling, which it was 45 lines away from.
 //
-// Both clusters sit inside the `GlassEffectContainer` that `ReaderView` wraps the chrome
-// in. That container is what makes the union and the morph possible; neither does
-// anything on its own.
+// **Why not `ToolbarSpacer` or `glassEffectUnion`, which the design direction names.**
+// `ToolbarSpacer` groups items inside a real `.toolbar`; this chrome is a hand-built
+// overlay that fades in over the artwork and auto-hides, not a navigation bar, so there
+// is no toolbar for it to space. `glassEffectUnion` was tried first and does nothing
+// here: glass drawn by `.buttonStyle(.glass)` is the button style's own, it does not join
+// the enclosing `GlassEffectContainer`, and a row of glass buttons stays a row of
+// separate pills however close together it sits. That was verified on a booted iPhone 17
+// Pro rather than reasoned about — a burst of captures showed the merged shape only in
+// the frames while the chrome was still fading in, and the settled state unchanged.
+//
+// So a cluster paints one `storyArcGlass` capsule and holds plain buttons. That helper is
+// the house glass, and it carries the opaque Reduce-Transparency and Increase-Contrast
+// fallback `native-experience` requires — which is the thing `.buttonStyle(.glass)` was
+// originally chosen for, and the reason a hand-paint would otherwise be wrong here.
+// The press feedback the glass style would have given is restored below rather than lost.
+
+/// A control inside a shared glass capsule.
+///
+/// The 44pt minimum is stated rather than inherited: the glass button style used to
+/// supply it, and a plain button does not.
+private struct ChromeButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(.white)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(.rect)
+            .opacity(configuration.isPressed ? 0.4 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
 
 /// The top row: the way out, and the tools that act on the page.
 ///
-/// Two capsules rather than five pills. `glassEffectUnion` merges the tools into one
-/// shape, and Close stays outside it — it leaves the reader, the others change what the
-/// reader is looking at, and a control that ends the session should not read as one more
-/// item in a strip of adjustments.
+/// Two shapes rather than five pills. Close keeps its own capsule and the platform's
+/// glass button style — it leaves the reader, the others change what the reader is
+/// looking at, and a control that ends the session should not read as one more item in a
+/// strip of adjustments.
 ///
-/// The three conditional tools carry a `glassEffectID`, so a tool that arrives with the
-/// publication's shape — a PDF that turns out to carry text, a comic that turns out to
-/// pair its pages — grows out of the capsule instead of popping in beside it.
+/// The tools share one capsule, so a tool that arrives with the publication's shape — a
+/// PDF that turns out to carry text, a comic that turns out to pair its pages — widens
+/// the capsule it belongs to instead of popping in beside it as another pill.
 struct ReaderTopControls: View {
     let model: ReaderModel
     /// Whether nothing is applied to the page, which decides the adjust icon's fill.
@@ -39,7 +64,7 @@ struct ReaderTopControls: View {
     @Binding var isBrowsingThumbnails: Bool
     let onClose: () -> Void
 
-    @Namespace private var glass
+    private var hasThumbnails: Bool { model.pages.count > 1 }
 
     var body: some View {
         HStack {
@@ -54,12 +79,13 @@ struct ReaderTopControls: View {
             // The platform's own glass button rather than glass painted behind
             // a plain one: it carries the interactive highlight, and its own
             // Reduce-Transparency fallback, which a hand-rolled pill does not.
+            // It stands alone, so nothing has to merge with it.
             .buttonStyle(.glass)
             .tint(.white)
 
             Spacer()
 
-            HStack(spacing: StoryArcSpace.xs) {
+            HStack(spacing: 0) {
                 Button { isAdjusting = true } label: {
                     Label {
                         Text("reader.adjust", bundle: .module)
@@ -72,9 +98,6 @@ struct ReaderTopControls: View {
                     }
                     .labelStyle(.iconOnly)
                 }
-                .buttonStyle(.glass)
-                .tint(.white)
-                .glassEffectUnion(id: Self.toolCluster, namespace: glass)
 
                 // Only where there is a pairing to shift. `comic-reader` offers the
                 // offset "for publications whose cover throws the pairing off", which
@@ -92,10 +115,6 @@ struct ReaderTopControls: View {
                         }
                         .labelStyle(.iconOnly)
                     }
-                    .buttonStyle(.glass)
-                    .tint(.white)
-                    .glassEffectID("spreads", in: glass)
-                    .glassEffectUnion(id: Self.toolCluster, namespace: glass)
                 }
 
                 if hasPdfText {
@@ -107,13 +126,9 @@ struct ReaderTopControls: View {
                         }
                         .labelStyle(.iconOnly)
                     }
-                    .buttonStyle(.glass)
-                    .tint(.white)
-                    .glassEffectID("find", in: glass)
-                    .glassEffectUnion(id: Self.toolCluster, namespace: glass)
                 }
 
-                if model.pages.count > 1 {
+                if hasThumbnails {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isBrowsingThumbnails.toggle()
@@ -128,18 +143,18 @@ struct ReaderTopControls: View {
                         }
                         .labelStyle(.iconOnly)
                     }
-                    .buttonStyle(.glass)
-                    .tint(.white)
-                    .glassEffectID("thumbnails", in: glass)
-                    .glassEffectUnion(id: Self.toolCluster, namespace: glass)
                 }
             }
+            .buttonStyle(ChromeButtonStyle())
+            .storyArcGlass()
+            // The capsule resizes when a tool arrives or leaves rather than jumping to
+            // the new width.
+            .animation(.smooth(duration: 0.25), value: hasPairs)
+            .animation(.smooth(duration: 0.25), value: hasPdfText)
+            .animation(.smooth(duration: 0.25), value: hasThumbnails)
         }
         .padding(StoryArcSpace.md)
     }
-
-    /// One union id for the whole tool cluster: every member merges into the same shape.
-    private static let toolCluster = "reader.tools"
 }
 
 /// How the publication is laid out: which way it runs, and whether the device may turn.
@@ -150,14 +165,17 @@ struct ReaderLayoutControls: View {
     let model: ReaderModel
     @Binding var isOrientationLocked: Bool
 
-    @Namespace private var glass
-
     var body: some View {
-        HStack(spacing: StoryArcSpace.xs) {
-            directionPicker
-            #if os(iOS)
-            orientationButton
-            #endif
+        HStack(spacing: 0) {
+            HStack(spacing: 0) {
+                directionPicker
+                #if os(iOS)
+                orientationButton
+                #endif
+            }
+            .buttonStyle(ChromeButtonStyle())
+            .storyArcGlass()
+
             Spacer()
         }
     }
@@ -191,10 +209,10 @@ struct ReaderLayoutControls: View {
                 Image(systemName: "arrow.left.arrow.right")
             }
             .labelStyle(.iconOnly)
+            .foregroundStyle(.white)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(.rect)
         }
-        .buttonStyle(.glass)
-        .tint(.white)
-        .glassEffectUnion(id: Self.layoutCluster, namespace: glass)
     }
 
     #if os(iOS)
@@ -213,15 +231,10 @@ struct ReaderLayoutControls: View {
             }
             .labelStyle(.iconOnly)
         }
-        .buttonStyle(.glass)
-        .tint(.white)
-        .glassEffectUnion(id: Self.layoutCluster, namespace: glass)
     }
 
     private var orientationTitleKey: LocalizedStringKey {
         isOrientationLocked ? "reader.orientation.unlock" : "reader.orientation.lock"
     }
     #endif
-
-    private static let layoutCluster = "reader.layout"
 }
