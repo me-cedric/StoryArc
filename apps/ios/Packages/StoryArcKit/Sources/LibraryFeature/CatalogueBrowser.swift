@@ -38,6 +38,7 @@ public final class CatalogueBrowser {
     /// The grid *and* every group: an OPDS 2.0 feed can put its whole catalogue in named
     /// groups and leave the top level empty, and a search that only looked at ``entries``
     /// would answer "nothing" for a page full of publications.
+    ///
     /// Once each: nothing in OPDS stops a feed from listing the same publication at the top
     /// level and inside a group, and a filtered run that showed it twice would read as two
     /// copies of a book.
