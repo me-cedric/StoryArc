@@ -1,93 +1,363 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "shortcut.continue" : {
-      "comment" : "Home-screen quick action. The publication's own title is the subtitle beneath it.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Weiterlesen"
+  "sourceLanguage": "en",
+  "strings": {
+    "home.keepReading": {
+      "extractionState": "manual",
+      "comment": "Home's hero: the publications the reader stopped part-way through.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiterlesen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continue reading"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue reading"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seguir leyendo"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar leyendo"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reprendre la lecture"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre la lecture"
           }
         }
       }
     },
-    "shortcut.downloads" : {
-      "comment" : "Home-screen quick action: what has been fetched, and what is still coming.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Downloads"
+    "home.nothingOpen": {
+      "extractionState": "manual",
+      "comment": "Home with nothing in progress. Absent rather than empty is the rule for the sections; this is the one line that replaces them.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch nichts geöffnet. Wählen Sie etwas aus Ihrer Bibliothek."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Downloads"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing open yet. Pick something from your library."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Descargas"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada abierto todavía. Elige algo de tu biblioteca."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Téléchargements"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien d'ouvert pour l'instant. Choisissez quelque chose dans votre bibliothèque."
           }
         }
       }
     },
-    "shortcut.library" : {
-      "comment" : "Home-screen quick action: everything on the device.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bibliothek"
+    "home.recentlyAdded": {
+      "extractionState": "manual",
+      "comment": "Home shelf: what arrived most recently.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zuletzt hinzugefügt"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Library"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently added"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Biblioteca"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadido recientemente"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bibliothèque"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouts récents"
+          }
+        }
+      }
+    },
+    "home.settings": {
+      "extractionState": "manual",
+      "comment": "The only trailing item of Home's navigation bar.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réglages"
+          }
+        }
+      }
+    },
+    "home.shelves": {
+      "extractionState": "manual",
+      "comment": "Home row: collections and reading lists.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regale"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shelves"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estanterías"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Étagères"
+          }
+        }
+      }
+    },
+    "shortcut.continue": {
+      "comment": "Home-screen quick action. The publication's own title is the subtitle beneath it.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiterlesen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue reading"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir leyendo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre la lecture"
+          }
+        }
+      }
+    },
+    "shortcut.downloads": {
+      "comment": "Home-screen quick action: what has been fetched, and what is still coming.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Téléchargements"
+          }
+        }
+      }
+    },
+    "shortcut.library": {
+      "comment": "Home-screen quick action: everything on the device.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliothek"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Library"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biblioteca"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliothèque"
+          }
+        }
+      }
+    },
+    "tab.downloads": {
+      "extractionState": "manual",
+      "comment": "The third destination: everything readable with no network.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Téléchargements"
+          }
+        }
+      }
+    },
+    "tab.home": {
+      "extractionState": "manual",
+      "comment": "The first destination, and where the app opens.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accueil"
+          }
+        }
+      }
+    },
+    "tab.library": {
+      "extractionState": "manual",
+      "comment": "The second destination: the whole shelf.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliothek"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Library"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biblioteca"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliothèque"
+          }
+        }
+      }
+    },
+    "tab.search": {
+      "extractionState": "manual",
+      "comment": "The search role, set apart from the three destinations.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suchen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

@@ -39,6 +39,14 @@ struct StoryArcApp: App {
 
     @State var isShowingSettings = false
 
+    /// Which of the shell's tabs the reader is on.
+    ///
+    /// `navigation-shell`: the app opens on the home surface, and opens somewhere else
+    /// only when the launch named somewhere else — a quick action, a handover, a shortcut.
+    /// Held here rather than inside ``AppShell`` because those three arrive at the app,
+    /// not at the tab bar.
+    @State var tab: AppShell.Selection = .destination(.home)
+
     /// Whether Settings should open straight at Downloads, because a quick action asked
     /// for it rather than the reader tapping their way in.
     @State var isShowingDownloads = false
@@ -140,7 +148,8 @@ struct StoryArcApp: App {
 
     var body: some Scene {
         WindowGroup {
-            LibraryView(
+            AppShell(
+                tab: $tab,
                 model: library,
                 progress: progress,
                 onOpen: { publication, url in

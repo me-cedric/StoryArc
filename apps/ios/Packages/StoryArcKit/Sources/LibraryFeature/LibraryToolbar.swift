@@ -2,34 +2,28 @@ internal import SwiftUI
 
 internal import DesignSystem
 
-// What the library's toolbar holds.
+// What the library's toolbar holds — and, as much, what it no longer holds.
 //
-// Split out of `LibraryView.swift`, which had reached the 400-line cap this project
-// enforces once the sidebar layout arrived. The division is the same one the file already
-// makes: that file is what the library *is*, this is what can be done to it.
+// It held seven `.primaryAction` items on an iPhone, in one undifferentiated pill:
+// scope, select, layout, sort, filter, add-books, shelves and settings, six of them
+// drawn as an unlabelled glyph with nothing to say which of them belonged together.
+// Apple's own rule is to group items that affect the same part of the interface, so
+// there are three groups now, separated by `ToolbarSpacer`:
+//
+//   [Select]  ·  [Layout · Sort · Filter · Scope]  ·  [Add books]
+//
+// **Settings and Shelves left the toolbar.** Neither is something done *to* the shelf,
+// which is the only thing this bar is for. Settings is the trailing item of the home
+// destination's navigation bar; Shelves is a row on the same surface. Add-books stays,
+// for now and against the direction's end state: it is the only way to add a source on
+// iOS, the two places the direction moves it to — the rebuilt empty state and Settings'
+// connected-libraries screen — are later slices, and moving it before they exist would
+// leave a reader with a populated library no way to add a second source at all.
 
 extension LibraryView {
 
     @ToolbarContentBuilder
     var toolbarItems: some ToolbarContent {
-        // `library-browsing`: one library over every configured source, "and a way to narrow
-        // it to one". First in the bar, where Android puts its own selector
-        // (`LibraryScreen.kt`), and gated on the same rule — below two sources there is
-        // nothing to choose between.
-        //
-        // This item was left out of an earlier round, which reported that adding it
-        // segfaulted on first layout — `EXC_BAD_ACCESS` in `ToolbarContentBuilder`
-        // — and suspected the `Picker` tag, `LibraryScope` being an enum that carries a
-        // `UUID` where `SortMenu`'s tag is a plain enum. That does not reproduce. The item
-        // was mounted verbatim as described, built with `pnpm build:ios`, installed on a
-        // booted iPhone 17 Pro with two sources configured, and the menu opens, selects and
-        // persists. The `UUID`-carrying tag is fine: `LibraryScope` is `Hashable` and its
-        // hash is the `UUID`'s, which is exactly what a `Picker` tag needs.
-        if !ScopeMenu.offered(in: model.registry).isEmpty {
-            ToolbarItem(placement: .primaryAction) {
-                ScopeMenu(model: model)
-            }
-        }
         if !model.publications.isEmpty {
             // The way in. The way out is in the bar the selection puts up, so the toolbar
             // does not gain a control that is only ever half useful.
@@ -42,10 +36,15 @@ extension LibraryView {
                     } icon: {
                         Image(systemName: "checklist")
                     }
-                    .labelStyle(.iconOnly)
                 }
                 .disabled(selection.isActive)
             }
+
+            // Selecting is a mode you enter; the three below change what the shelf shows
+            // while you stay where you are. Two different parts of the interface, so two
+            // capsules rather than one row of six glyphs.
+            ToolbarSpacer(.fixed, placement: .primaryAction)
+
             ToolbarItem(placement: .primaryAction) {
                 LayoutToggle(model: model)
             }
@@ -55,10 +54,23 @@ extension LibraryView {
             ToolbarItem(placement: .primaryAction) {
                 FilterMenu(model: model)
             }
+            // `library-browsing`: one library over every configured source, "and a way to
+            // narrow it to one". Beside the filters rather than first in the bar, because
+            // that is what it is — the last per-source control on the shelf, and the slice
+            // that turns the scope axis from origin into availability is where it stops
+            // being a mode and becomes one filter among the others.
+            if !ScopeMenu.offered(in: model.registry).isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    ScopeMenu(model: model)
+                }
+            }
+
+            ToolbarSpacer(.fixed, placement: .primaryAction)
         }
-        // A menu rather than a second button. There are two ways to add a
-        // source now and there will be four; a toolbar with one button per kind
-        // would crowd out the controls a reader uses every day.
+
+        // A menu rather than a button per kind: there are four ways to add a source, and
+        // a toolbar with one button each would crowd out the controls a reader uses every
+        // day.
         ToolbarItem(placement: .primaryAction) {
             Menu {
                 Button {
@@ -102,33 +114,6 @@ extension LibraryView {
                     Text("library.addSource", bundle: .module)
                 } icon: {
                     Image(systemName: "plus")
-                }
-            }
-        }
-        // Last, and only where there is no sidebar. A reader with an empty
-        // library still needs to reach About, and `settings-and-about` puts the
-        // licences there — but a wide window already shows both of these as
-        // rows, and a toolbar that repeated them would be two buttons for one
-        // place.
-        if !windowClass.showsSidebar {
-            ToolbarItem(placement: .primaryAction) {
-                NavigationLink {
-                    ShelvesView(model: model, onOpen: onOpen)
-                } label: {
-                    Label {
-                        Text("shelves.title", bundle: .module)
-                    } icon: {
-                        Image(systemName: "square.stack")
-                    }
-                }
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: onOpenSettings) {
-                    Label {
-                        Text("library.settings", bundle: .module)
-                    } icon: {
-                        Image(systemName: "gearshape")
-                    }
                 }
             }
         }

@@ -3580,6 +3580,36 @@
         }
       }
     },
+    "library.downloads.title": {
+      "extractionState": "manual",
+      "comment": "The third destination: everything readable with no network at all.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Téléchargements"
+          }
+        }
+      }
+    },
     "library.empty.filtered": {
       "extractionState": "manual",
       "localizations": {

@@ -83,8 +83,13 @@ extension StoryArcApp {
 
     /// Puts the reader where a quick action asked to be, from wherever it found them.
     ///
-    /// The library entry promises the *shelf*, so it undoes everything covering it: the
-    /// reader, Settings, and the library's own navigation into a catalogue. The last of
+    /// Both entries now name a destination the shell already has, which is what
+    /// `navigation-shell` means by opening "there instead". Downloads in particular used
+    /// to open *Settings*, scrolled to a section inside it — the only place the app kept
+    /// what a reader needs before a flight.
+    ///
+    /// The library entry promises the *shelf*, so it also undoes everything covering it:
+    /// the reader, Settings, and the library's own navigation into a source. The last of
     /// those is `@State` inside `LibraryView`, which nothing out here can reach — hence
     /// the counter, which the view watches and answers by unwinding itself. Android's
     /// `MainActivity` holds that stack directly and clears it in place; same landing,
@@ -97,11 +102,11 @@ extension StoryArcApp {
         // library to place it rather than handing it back. The shelf is the honest
         // landing if that ever changes.
         case .library, .continueReading:
+            tab = .destination(.library)
             libraryRequests += 1
         case .downloads:
             downloads = downloadStore.library()
-            isShowingDownloads = true
-            isShowingSettings = true
+            tab = .destination(.onDevice)
         }
     }
 
