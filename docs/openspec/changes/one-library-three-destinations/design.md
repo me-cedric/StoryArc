@@ -74,6 +74,17 @@ per-destination state restoration, deep links, or a pane scaffold — and the
 delta requires all four. It becomes a real navigation graph with typed
 destinations, which also drops the file under the project's 800-line cap.
 
+**The per-source destination goes, on both platforms.** `LibrarySidebar.swift`
+and `LibraryRail.kt` both build their list as *Library → one row per browsable
+source → Collections*, from a destination case that carries a source identifier.
+That case is deleted rather than hidden: as long as a source *can* be a
+destination, something will put one there again. What replaces it is a filter
+that names the source, and the settings screen that owns connections. The chip
+strip above the shelf goes with it — its content is a way in to a server, which
+is not shelf furniture, and on iOS its glass sits underneath the navigation bar's
+own glass, which is the nesting the platform demotes and this codebase has
+already recorded a device observation about.
+
 **iOS is additive.** `StoryArcApp.swift` puts `LibraryView` directly in the
 `WindowGroup` body; a `TabView` goes around it and the existing library view
 becomes one destination's content. The toolbar shrinks — settings and add-source
