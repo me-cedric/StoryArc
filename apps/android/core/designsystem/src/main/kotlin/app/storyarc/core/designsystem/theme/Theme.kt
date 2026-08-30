@@ -2,9 +2,11 @@ package app.storyarc.core.designsystem.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -15,6 +17,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import app.storyarc.core.designsystem.tokens.StoryArcColor
+import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.model.AppearanceMode
 
 /**
@@ -115,7 +118,68 @@ data class StoryArcPalette(
     }
 }
 
+/**
+ * StoryArc's own surface, text and border roles — **the content half of the colour rule.**
+ *
+ * There are two colour sources in this app and they are not interchangeable. Which one a
+ * screen reads is decided by what the screen *is*, not by which import was nearer:
+ *
+ * | Surface class | Read from |
+ * | --- | --- |
+ * | **Chrome** — app bars, search, navigation, sheets, dialogs, settings, the download queue | `MaterialTheme.colorScheme`. Dynamic colour in full; this is where Material You earns its keep and where the app reads as an Android app rather than a themed one. |
+ * | **Content** — the cover grid's ground, a publication's hero, the reader | This palette. |
+ * | **State that has to survive a wallpaper** — downloaded, offline, unread | `StoryArcColor.Status`, which is fixed and already correct. |
+ *
+ * The middle row is the one with a reason behind it rather than a preference: a
+ * wallpaper-derived tonal wash laid across a wall of covers destroys the one thing a
+ * reader is using to tell one book from another. So the artwork keeps a neutral ground
+ * whatever the wallpaper is doing, and [StoryArcTheme] holds the two apart by pinning the
+ * content-ground roles of whichever scheme it hands to Material — see `groundedInContent`.
+ */
 val LocalStoryArcPalette = staticCompositionLocalOf { StoryArcPalette.Dark }
+
+/**
+ * Material's shape scale, wired from `StoryArcRadius`.
+ *
+ * Until this existed the tokens described one shape scale and every Material component
+ * drew another: `MaterialTheme.shapes` was never set, so a chip, a card, a sheet and a
+ * dialog took M3's defaults while call sites hand-passed
+ * `RoundedCornerShape(StoryArcRadius.md)` to whatever they remembered to. Setting it once
+ * here is the difference between a token that documents an intention and a token that has
+ * one.
+ *
+ * StoryArc's five chrome radii map onto Material's five slots in order. `cover` is
+ * deliberately absent: 4 dp is a fact about printed stock and belongs to artwork, not to a
+ * dialog. `capsule` is absent for the same kind of reason — a pill is a shape a component
+ * asks for by name.
+ */
+internal val StoryArcShapes = Shapes(
+    extraSmall = RoundedCornerShape(StoryArcRadius.sm),
+    small = RoundedCornerShape(StoryArcRadius.md),
+    medium = RoundedCornerShape(StoryArcRadius.lg),
+    large = RoundedCornerShape(StoryArcRadius.xl),
+    extraLarge = RoundedCornerShape(StoryArcRadius.sheet),
+)
+
+/**
+ * The scheme with its content-ground roles held to StoryArc's neutrals.
+ *
+ * The chrome/content split described on [LocalStoryArcPalette] cannot be left to each
+ * screen to remember, because the one screen that forgets is the one with the covers on
+ * it. `background` is what a `Scaffold` paints behind everything by default, so it is the
+ * ground artwork sits on, and it is pinned here — along with the text drawn on it and the
+ * scrim drawn over it. Every other role stays exactly as it arrived, which for a dynamic
+ * scheme means the whole of Material You reaches the chrome untouched.
+ *
+ * Applied to the brand schemes as well as the dynamic one. It changes nothing there —
+ * they already carry these values — and one code path that is occasionally a no-op is
+ * worth more than a branch that has to be kept true.
+ */
+internal fun ColorScheme.groundedInContent(palette: StoryArcPalette): ColorScheme = copy(
+    background = palette.surfaceCanvas,
+    onBackground = palette.textPrimary,
+    scrim = palette.scrim,
+)
 
 
 private fun brandDarkScheme() = darkColorScheme(
@@ -182,18 +246,6 @@ fun StoryArcTheme(
         AppearanceMode.DARK, AppearanceMode.OLED_DARK -> true
     }
 
-    val context = LocalContext.current
-    val colorScheme = when {
-        // Dynamic colour and true black are incompatible asks: Material You derives its
-        // surfaces from the wallpaper, and a wallpaper-tinted "true black" is neither.
-        // The explicit choice wins over the automatic one.
-        appearance.isTrueBlack -> brandOledDarkScheme()
-        useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        darkTheme -> brandDarkScheme()
-        else -> brandLightScheme()
-    }
-
     val base = when {
         appearance.isTrueBlack -> StoryArcPalette.OledDark
         darkTheme -> StoryArcPalette.Dark
@@ -206,18 +258,33 @@ fun StoryArcTheme(
     val isHighContrast = rememberHighContrast()
     val palette = if (isHighContrast) base.strengthened() else base
 
+    val context = LocalContext.current
+    val chrome = when {
+        // Dynamic colour and true black are incompatible asks: Material You derives its
+        // surfaces from the wallpaper, and a wallpaper-tinted "true black" is neither.
+        // The explicit choice wins over the automatic one.
+        appearance.isTrueBlack -> brandOledDarkScheme()
+        useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        darkTheme -> brandDarkScheme()
+        else -> brandLightScheme()
+    }
+
+    // Dynamic colour dresses the chrome; the ground under the artwork stays StoryArc's.
+    // The rule and its reason are on `LocalStoryArcPalette`.
+    val colorScheme = chrome.groundedInContent(palette).let {
+        // Material's own subtle outline goes the same way as StoryArc's, so a divider
+        // drawn by a Material component is strengthened too.
+        if (isHighContrast) it.copy(outlineVariant = it.outline) else it
+    }
+
     CompositionLocalProvider(LocalStoryArcPalette provides palette) {
         MaterialExpressiveTheme(
-            // Material's own subtle outline goes the same way as StoryArc's, so a
-            // divider drawn by a Material component is strengthened too.
-            colorScheme = if (isHighContrast) {
-                colorScheme.copy(outlineVariant = colorScheme.outline)
-            } else {
-                colorScheme
-            },
+            colorScheme = colorScheme,
             // The Expressive scheme is the recommended default and is what makes
             // the app feel like Android 16 rather than a themed Material 2 app.
             motionScheme = MotionScheme.expressive(),
+            shapes = StoryArcShapes,
             typography = StoryArcTypography,
             content = content,
         )

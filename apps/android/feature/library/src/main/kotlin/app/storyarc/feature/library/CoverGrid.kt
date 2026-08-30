@@ -44,12 +44,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
@@ -58,6 +60,28 @@ import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.MatchKind
 import app.storyarc.core.model.Publication
 
+/** The widest a cover is ever drawn. Above it a phone shows one and a half of them. */
+internal val COVER_MAXIMUM_WIDTH = 168.dp
+
+/**
+ * The narrowest a cover may be drawn in a window this wide, in dp.
+ *
+ * `design.md` §4: "Minimum cover width scales by size class: 104 / 132 / 158 pt". One
+ * number for every window is what left a 1400 dp tablet showing roughly eleven columns of
+ * phone-sized covers — a shelf reads as a shelf at a size the room can afford, and a room
+ * that got bigger should not simply hold more of the same postage stamps.
+ *
+ * The two thresholds are Material's own medium (600 dp) and expanded (840 dp) breakpoints,
+ * which is also where `StoryArcWindowClass` will grow its remaining cases. Taken from the
+ * window's width rather than from a device check, for the reason `WindowClass.kt` sets out
+ * at length: a multi-window slot, a rotation and a fold are all the same event.
+ */
+internal fun coverMinimumWidth(windowWidthDp: Int): Dp = when {
+    windowWidthDp >= 840 -> 158.dp
+    windowWidthDp >= 600 -> 132.dp
+    else -> 104.dp
+}
+
 /**
  * The cover grid.
  *
@@ -65,9 +89,16 @@ import app.storyarc.core.model.Publication
  * cover size stays within the readable range defined in the design tokens".
  * [BoundedAdaptive] is what does that — a fixed column count would give a phone
  * postage stamps and a tablet a wall of enormous covers, and the platform's own
- * `GridCells.Adaptive` takes only the lower bound.
+ * `GridCells.Adaptive` takes only the lower bound. [coverMinimumWidth] supplies the
+ * lower bound the window can afford.
  *
  * iOS's `CoverGrid` uses the same two bounds for the same reason.
+ *
+ * The grid does **not** scroll itself back to the top when the continue-reading row
+ * arrives. It used to, on the reasoning that a lazy grid anchors on its first visible item
+ * and so would leave the new row off-screen. That is true, and it is still not worth
+ * moving a reader who did not ask to be moved: they scrolled somewhere deliberately and
+ * an asynchronous read of stored positions is no reason to take it back.
  */
 @Composable
 internal fun CoverGrid(
@@ -104,23 +135,17 @@ internal fun CoverGrid(
 ) {
     // The readable range. Below the minimum a cover stops being recognisable;
     // above the maximum a phone shows one and a half of them.
-    val minimumWidth = 108.dp
-    val maximumWidth = 168.dp
     val density = LocalDensity.current
+    val windowWidth = LocalWindowInfo.current.containerSize.width
+    val minimumWidth = remember(density, windowWidth) {
+        coverMinimumWidth(with(density) { windowWidth.toDp().value.toInt() })
+    }
+    val maximumWidth = COVER_MAXIMUM_WIDTH
     // Pixels, not dp: a cover decoded at dp size is blurry on every device made
     // since 2010.
     val maxPixelSize = remember(density) { with(density) { maximumWidth.roundToPx() } }
 
     val gridState = rememberLazyGridState()
-    // The continue row arrives after the grid does — recorded positions are read
-    // once the scan has something to match them against. A lazy grid anchors on
-    // its first visible item, so inserting a row above that anchor leaves the new
-    // row scrolled off the top of the screen rather than on it. Anchoring back to
-    // the start is what makes it visible, and it only ever happens while the user
-    // is still looking at the top of a freshly scanned library.
-    LaunchedEffect(continueReading.isNotEmpty()) {
-        if (continueReading.isNotEmpty()) gridState.scrollToItem(0)
-    }
 
     LazyVerticalGrid(
         // Both bounds, not just the minimum: `GridCells.Adaptive` has no maximum, so a
@@ -182,7 +207,7 @@ internal fun MatchHeading(kind: MatchKind, modifier: Modifier = Modifier) {
     val palette = LocalStoryArcPalette.current
     Text(
         text = stringResource(kind.labelRes),
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.titleLarge,
         color = palette.textPrimary,
         modifier = modifier.fillMaxWidth().padding(top = StoryArcSpace.md),
     )
@@ -227,7 +252,7 @@ private fun ContinueReadingRow(
     ) {
         Text(
             text = stringResource(R.string.library_continue_reading),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             color = palette.textPrimary,
         )
         LazyRow(
@@ -321,12 +346,14 @@ private fun CoverCell(
             // reserves its space before its cover arrives, so the grid does not
             // reflow as images land.
             modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f),
-            color = palette.surfaceRaised,
-            shape = RoundedCornerShape(StoryArcRadius.md),
-            // A hairline rather than a shadow: a pale cover on a pale surface
-            // needs an edge, and a shadow under every cell reads as noise at grid
-            // density.
-            border = androidx.compose.foundation.BorderStroke(1.dp, palette.borderSubtle),
+            // `design.md` §4: art "letterboxes onto `surfaceSunken` rather than being
+            // distorted". This is the well the letterbox bars show, which is why it is the
+            // sunken role and not the raised one — the cover sits *in* the cell.
+            color = palette.surfaceSunken,
+            // 4 dp, not 10. `design.md` §4: "Cover radius stays at 4 pt on purpose. A
+            // comic cover is printed stock. Rounding it like an app icon reads as wrong,
+            // and every reader app that does it looks like a music player."
+            shape = RoundedCornerShape(StoryArcRadius.cover),
         ) {
             val fraction = viewModel.readFraction(publication)
             val bitmap = cover
@@ -334,10 +361,14 @@ private fun CoverCell(
                 Image(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                    // Fit, not Crop. A manga volume is taller than 2:3 and a square EPUB
+                    // cover is not close to it; cropping to the cell cut the edges off
+                    // artwork the reader is using to recognise the book. The bars this
+                    // leaves fall on `surfaceSunken` above, which is the letterbox.
+                    contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(StoryArcRadius.md)),
+                        .clip(RoundedCornerShape(StoryArcRadius.cover)),
                 )
             } else {
                 // A set title rather than an empty rectangle. A grid of publications
@@ -407,7 +438,7 @@ private fun CoverCell(
         Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair)) {
             Text(
                 text = publication.displayTitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = palette.textPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -415,7 +446,7 @@ private fun CoverCell(
             if (subtitle != null) {
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.bodySmall,
                     color = palette.textTertiary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -427,7 +458,7 @@ private fun CoverCell(
             viewModel.sourceName(publication)?.let { source ->
                 Text(
                     text = stringResource(R.string.library_cell_source, source),
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.bodySmall,
                     color = palette.textTertiary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

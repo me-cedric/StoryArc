@@ -1,35 +1,33 @@
 package app.storyarc.core.designsystem.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import app.storyarc.core.designsystem.tokens.StoryArcType
 
 /**
- * The type scale from `packages/design-tokens/tokens/typography.json`, mapped
- * onto Material's slots.
+ * Material's own type scale, unmodified.
  *
- * System sans everywhere, because that is what makes the chrome read as stock.
- * The single serif moment — `display`, used on publication titles — is applied
- * per-call rather than through a Material slot, so it stays deliberate.
+ * **This deliberately contradicts [docs/design.md]'s implication that StoryArc's eleven
+ * type roles map one-to-one onto both platforms.** They do not, and the mapping was the
+ * defect: this file used to pour iOS's numbers into Material's slots — `displayLarge` at
+ * 34/41 where Material says 57/64, `bodyLarge` at 17/22 where Material says 16/24 — while
+ * `titleLarge`, `displayMedium` and `displaySmall` were left unset and fell through to
+ * Material's defaults. Three slots in Material's scale, eight in iOS's, inside one theme.
+ *
+ * A type scale is a platform artifact. Material slots carry Material sizes, the same way
+ * iOS's chrome carries 17 pt body, and a reader who knows what an Android app looks like
+ * gets one. The practical consequence is the one the revamp needs: a 34 sp `displayLarge`
+ * cannot carry a very large title, and 57 sp can.
+ *
+ * Nothing is spelled out below because Material already spells it out, and a scale written
+ * in two places drifts. `Typography()` is the M3 baseline in full, including the Expressive
+ * `*Emphasized` styles — which are how a section header gains weight here, rather than by
+ * bolding a slot that Material defines as regular.
+ *
+ * The tokens in `StoryArcType` are unaffected and still describe the product's roles; what
+ * stopped is their being routed through Material's slots. StoryArc's single serif moment
+ * is [EditorialFontFamily] below, applied per call, so it stays deliberate.
  */
-private fun sans(size: androidx.compose.ui.unit.TextUnit, line: androidx.compose.ui.unit.TextUnit, weight: FontWeight) =
-    TextStyle(fontFamily = FontFamily.Default, fontSize = size, lineHeight = line, fontWeight = weight)
-
-internal val StoryArcTypography = Typography(
-    displayLarge = sans(StoryArcType.displaySize, StoryArcType.displayLineHeight, FontWeight.SemiBold),
-    headlineLarge = sans(StoryArcType.title1Size, StoryArcType.title1LineHeight, FontWeight.Bold),
-    headlineMedium = sans(StoryArcType.title2Size, StoryArcType.title2LineHeight, FontWeight.Bold),
-    headlineSmall = sans(StoryArcType.title3Size, StoryArcType.title3LineHeight, FontWeight.SemiBold),
-    titleMedium = sans(StoryArcType.headlineSize, StoryArcType.headlineLineHeight, FontWeight.SemiBold),
-    bodyLarge = sans(StoryArcType.bodySize, StoryArcType.bodyLineHeight, FontWeight.Normal),
-    bodyMedium = sans(StoryArcType.calloutSize, StoryArcType.calloutLineHeight, FontWeight.Normal),
-    bodySmall = sans(StoryArcType.subheadlineSize, StoryArcType.subheadlineLineHeight, FontWeight.Normal),
-    labelLarge = sans(StoryArcType.footnoteSize, StoryArcType.footnoteLineHeight, FontWeight.Medium),
-    labelMedium = sans(StoryArcType.captionSize, StoryArcType.captionLineHeight, FontWeight.Normal),
-    labelSmall = sans(StoryArcType.caption2Size, StoryArcType.caption2LineHeight, FontWeight.Normal),
-)
+internal val StoryArcTypography = Typography()
 
 /** The serif face used only for publication titles and series headers. */
 val EditorialFontFamily: FontFamily = FontFamily.Serif
