@@ -34,10 +34,42 @@ struct CoverGrid: View {
     var selection: Set<String>?
     var onToggle: (Publication) -> Void = { _ in }
 
+    /// How much room the shelf itself has.
+    ///
+    /// Measured rather than read from `horizontalSizeClass`, for the reason
+    /// ``LibraryView`` gives for measuring the window: a size class is coarse, and it
+    /// answers the wrong question here anyway. This grid is a *column* of a window — a
+    /// regular-width iPad showing a sidebar hands the shelf a good 300 pt less than the
+    /// same iPad without one, and a shelf pushed into a detail column is narrower still.
+    /// So the input is the width of the grid, not of the device.
+    @State private var width: CGFloat = 0
+
+    /// The width at or above which the shelf stops being a widened phone.
+    ///
+    /// An iPad Pro clears it in either orientation; the same iPad in a half-width Split
+    /// View slot does not, and gets the middle tier, which is the point of measuring.
+    private static let confidentShelfWidth: CGFloat = 900
+
     /// The readable range. Below the minimum a cover stops being recognisable;
     /// above the maximum a phone shows one and a half of them.
-    private let minimumWidth: CGFloat = 108
-    private let maximumWidth: CGFloat = 168
+    ///
+    /// `design.md`: "Minimum cover width scales by size class: 104 / 132 / 158 pt." One
+    /// pair for every window is what put eight phone-sized cells in a 13-inch iPad — the
+    /// same lattice widened, rather than the fewer, larger, more confident covers a big
+    /// window is for.
+    private var minimumWidth: CGFloat {
+        switch width {
+        case ..<StoryArcWindowClass.sidebarWidthThreshold: 104
+        case ..<Self.confidentShelfWidth: 132
+        default: 158
+        }
+    }
+
+    /// Headroom over the minimum, so the last column grows into the leftover instead of
+    /// leaving a ragged margin down the trailing edge. 1.6 is the ratio the single
+    /// hard-coded pair already used, kept so a phone still shows the three columns it
+    /// shows today.
+    private var maximumWidth: CGFloat { (minimumWidth * 1.6).rounded() }
 
     var body: some View {
         ScrollView {
@@ -46,6 +78,11 @@ struct CoverGrid: View {
                     publications: continueReading,
                     model: model,
                     onOpen: onOpen,
+                    // Slightly larger than a shelf cover, because there are few of them
+                    // and they are what the reader came back for. The multiplier keeps a
+                    // phone at the 128 pt this row already was, and lets an iPad grow
+                    // with the shelf under it rather than staying a phone's row above it.
+                    coverWidth: (minimumWidth * 1.25).rounded(),
                     maxPixelSize: Int(maximumWidth * displayScale)
                 )
             }
@@ -63,6 +100,10 @@ struct CoverGrid: View {
                 }
             }
         }
+        // The one input to the cover size, and it is this grid's own width. Same
+        // measurement `LibraryView` makes of the window, one level down, so a Split View
+        // drag, a rotation and a sidebar appearing are all the same event: it changed.
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
     @ViewBuilder
@@ -114,6 +155,9 @@ struct ContinueReadingRow: View {
     let publications: [Publication]
     let model: LibraryModel
     let onOpen: (Publication) -> Void
+    /// How wide one shortcut is. Handed down rather than fixed, so this row scales with
+    /// the shelf beneath it instead of staying a phone's row in a 13-inch window.
+    let coverWidth: CGFloat
     let maxPixelSize: Int
 
     var body: some View {
@@ -132,7 +176,7 @@ struct ContinueReadingRow: View {
                             onOpen: onOpen,
                             maxPixelSize: maxPixelSize
                         )
-                        .frame(width: 128)
+                        .frame(width: coverWidth)
                     }
                 }
                 .padding(.horizontal, StoryArcSpace.gutter)
@@ -163,6 +207,31 @@ struct PickMark: View {
             .font(.title3)
             .padding(StoryArcSpace.xs)
             // Announced by the cell, which already speaks the title this belongs to.
+            .accessibilityHidden(true)
+    }
+}
+
+/// Whether the app itself holds this publication's bytes.
+///
+/// `design.md` asks for "downloaded state as a small filled mark in one corner", and the
+/// palette describes `status/downloaded` as "the one badge permitted to compete with cover
+/// art". Neither platform drew it, so the only thing the shelf could say about a cover was
+/// how far into it the reader had got. This is the other question a shelf is asked — can I
+/// read this with no network — and it is the axis the library's own scope selector is
+/// moving to, so it had better be visible on the covers.
+///
+/// Filled, and the only status colour in the grid. A glyph on its own ground reads over any
+/// artwork; an unfilled one is a shape lost in whatever the cover happens to be.
+struct OnDeviceMark: View {
+    @Environment(\.theme) private var theme
+
+    var body: some View {
+        Image(systemName: "arrow.down.circle.fill")
+            .symbolRenderingMode(.palette)
+            .foregroundStyle(theme.palette.surfaceCanvas, StoryArcColor.Status.downloaded)
+            .font(.subheadline)
+            .padding(StoryArcSpace.xs)
+            // Announced by the cell, which already names the publication this belongs to.
             .accessibilityHidden(true)
     }
 }

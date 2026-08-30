@@ -2,6 +2,7 @@ public import CoreGraphics
 public import Foundation
 
 public import Formats
+internal import Persistence
 public import StoryArcCore
 
 // What a cell needs to know about one publication.
@@ -25,6 +26,30 @@ extension LibraryModel {
     /// Where a publication's file is, so the app layer can hand it to a reader.
     public func location(of publication: Publication) -> URL? {
         locations[publication.id]
+    }
+
+    /// Whether the app itself holds this publication's bytes.
+    ///
+    /// `offline-downloads` promises that what has been downloaded stays readable, and
+    /// `design.md` asks the grid to say so with "a small filled mark in one corner".
+    /// This is the question behind that mark, and the answer has to be cheap: it is
+    /// asked once per visible cell on every redraw, so it is a path comparison against
+    /// a location the model already holds and never a read of the download store.
+    /// ``keptOffline`` is the store-reading answer, deliberately kept for the two places
+    /// that ask it when the reader acts rather than when the shelf draws.
+    ///
+    /// A publication found by a folder scan is on the device too, but not *kept* by the
+    /// app: the folder can be unmounted, the card pulled, the bookmark staled — which is
+    /// what ``LibraryModel/unavailableFolders`` exists for. Only a copy in the app's own
+    /// storage carries the promise, so only that copy earns the mark.
+    func isOnDevice(_ publication: Publication) -> Bool {
+        guard let store = downloadStore, let url = locations[publication.id] else { return false }
+        // Trailing separator on the folder, so a sibling directory whose name merely
+        // begins with the store's — `…/Downloads-old` beside `…/Downloads` — is not
+        // read as being inside it.
+        let folder = store.directory.standardizedFileURL.path(percentEncoded: false)
+        let prefix = folder.hasSuffix("/") ? folder : folder + "/"
+        return url.standardizedFileURL.path(percentEncoded: false).hasPrefix(prefix)
     }
 
     // MARK: - Covers

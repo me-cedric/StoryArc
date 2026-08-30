@@ -37,12 +37,16 @@ struct CoverCell: View {
                 // does not reflow as images land.
                 .aspectRatio(2.0 / 3.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
-                .clipShape(.rect(cornerRadius: StoryArcRadius.md))
+                // `design.md`: "Cover radius stays at 4 pt on purpose. A comic
+                // cover is printed stock." `StoryArcRadius.cover` is that 4 pt,
+                // and it had been defined and then used by nothing — the cell
+                // rounded artwork to `md`, 10 pt, which is an app icon.
+                .clipShape(.rect(cornerRadius: StoryArcRadius.cover))
                 .overlay {
                     // A hairline rather than a shadow: a pale cover on a pale
                     // surface needs an edge, and a shadow under every cell reads
                     // as noise at grid density.
-                    RoundedRectangle(cornerRadius: StoryArcRadius.md)
+                    RoundedRectangle(cornerRadius: StoryArcRadius.cover)
                         .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
                 }
                 .overlay(alignment: .bottom) {
@@ -52,6 +56,13 @@ struct CoverCell: View {
                 }
                 .overlay(alignment: .topTrailing) {
                     if let isPicked { PickMark(isPicked: isPicked) }
+                }
+                // `design.md` asks for "downloaded state as a small filled mark in one
+                // corner", and the palette calls `status/downloaded` "the one badge
+                // permitted to compete with cover art". Neither platform drew it.
+                // Opposite corner from the pick mark, so selection mode does not bury it.
+                .overlay(alignment: .bottomTrailing) {
+                    if model.isOnDevice(publication) { OnDeviceMark() }
                 }
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
@@ -146,9 +157,20 @@ struct CoverCell: View {
     @ViewBuilder
     private var artwork: some View {
         if let cover {
-            Image(decorative: cover, scale: 1)
-                .resizable()
-                .scaledToFill()
+            // Letterboxed, not cropped. `design.md`: "Manga volumes and EPUB covers
+            // vary. The cell crops to a consistent shape and letterboxes onto
+            // `surfaceSunken` rather than distorting art." `.scaledToFill()` inside a
+            // fixed 2:3 frame did the opposite — it cut the edges off every cover whose
+            // proportion was not the comic trim, which is most of a manga shelf and
+            // every square EPUB. The artwork is the interface; a well behind it is a
+            // cheaper price than a crop through it.
+            ZStack {
+                theme.palette.surfaceSunken
+
+                Image(decorative: cover, scale: 1)
+                    .resizable()
+                    .scaledToFit()
+            }
         } else {
             // A set title rather than an empty rectangle. A grid of publications with no
             // cover art — and plenty of EPUBs carry none — was a wall of identical grey
@@ -200,6 +222,15 @@ struct CoverCell: View {
                     localized: "library.cell.progress \(Int(fraction * 100))",
                     bundle: .module
                 )
+            )
+        }
+        // Spoken for the same reason the progress is: a mark in the corner of a cover
+        // is invisible to VoiceOver, and "can I read this on the train" is the whole
+        // question the mark answers. The wording is the one the catalogue already uses
+        // for the same state, in the four languages it is already translated into.
+        if model.isOnDevice(publication) {
+            parts.append(
+                String(localized: "catalogue.entry.downloaded", bundle: .module, locale: .storyArc)
             )
         }
         if let pageCount = publication.pageCount {
