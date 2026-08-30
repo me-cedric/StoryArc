@@ -36,16 +36,53 @@ object BuildInfo {
      * The issue tracker, pre-filled with what a bug report needs and nothing else.
      *
      * `settings-and-about`: "the app version, platform version, and device class
-     * pre-filled, and no personal data". Device *class* rather than device: `Build.MODEL`
-     * is not personal on its own, but it narrows a person far more than "phone" does, and
-     * the spec asked for the class.
+     * pre-filled, and no personal data". All three, in the order iOS's `BuildInfo.issue`
+     * writes them. The device class had been settled here in prose and stated only in the
+     * diagnostic export, so a reader who tapped Report a problem sent a report that did
+     * not say what they were holding.
      */
-    fun issueUrl(): String {
+    fun issueUrl(context: Context): String {
         val body = Uri.encode(
-            "StoryArc $version ($build)\nAndroid ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})\n\n",
+            issueBody(
+                platform = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+                deviceClass = deviceClass(context),
+            ),
         )
         return "https://github.com/me-cedric/StoryArc/issues/new?body=$body"
     }
+
+    /**
+     * The three facts, in order, and nothing else.
+     *
+     * Its own function because it is the part of the scenario worth asserting, and the two
+     * values around it need a `Context` and a device to read. iOS's `BuildInfo.issueBody`
+     * is the same function, asserted the same way.
+     */
+    internal fun issueBody(platform: String, deviceClass: String): String =
+        "StoryArc $version ($build)\n$platform\n$deviceClass\n\n"
+
+    /**
+     * Phone or tablet, and nothing narrower.
+     *
+     * Device *class* rather than device: `Build.MODEL` is not personal on its own, but it
+     * narrows a person far more than "phone" does, and the spec asked for the class. iOS
+     * answers the same question from `userInterfaceIdiom`; Android has no such property,
+     * so the answer comes from the width the platform itself uses to pick `sw600dp`
+     * resources.
+     *
+     * One function, two readers: the issue link and the diagnostic export. Two copies of
+     * this threshold is how a report and an export come to disagree about the device they
+     * describe.
+     */
+    fun deviceClass(context: Context): String =
+        if (context.resources.configuration.smallestScreenWidthDp >= TABLET_WIDTH_DP) {
+            "tablet"
+        } else {
+            "phone"
+        }
+
+    /** The width at which Android itself starts loading `sw600dp` resources. */
+    private const val TABLET_WIDTH_DP = 600
 
     fun open(context: Context, url: String) {
         runCatching {

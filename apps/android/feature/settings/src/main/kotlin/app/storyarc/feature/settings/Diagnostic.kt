@@ -44,11 +44,11 @@ internal object Diagnostic {
             add("")
             add("[Device]")
             add("platform = Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-            // A class, not a model. `BuildInfo.issueUrl` already settled this for the
-            // issue link: `Build.MODEL` narrows a person far more than "tablet" does, and
+            // A class, not a model. `BuildInfo.deviceClass` settles it for both readers:
+            // `Build.MODEL` narrows a person far more than "tablet" does, and
             // `settings-and-about` asked for the class. A diagnostic the reader shares
             // publicly is a stronger reason to hold that line, not a reason to relax it.
-            add("deviceClass = ${if (metrics.smallestScreenWidthDp >= 600) "tablet" else "phone"}")
+            add("deviceClass = ${BuildInfo.deviceClass(context)}")
             add("screenWidthDp = ${metrics.screenWidthDp}")
             add("locale = ${Locale.getDefault()}")
             add("fontScale = ${metrics.fontScale}")

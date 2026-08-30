@@ -39,11 +39,18 @@ enum BuildInfo {
         let deviceClass = "Mac"
         #endif
         components?.queryItems = [
-            URLQueryItem(
-                name: "body",
-                value: "StoryArc \(version) (\(build))\n\(platform)\n\(deviceClass)\n\n"
-            )
+            URLQueryItem(name: "body", value: issueBody(platform: platform, deviceClass: deviceClass))
         ]
         return components?.url ?? repository
+    }
+
+    /// The three facts, in order, and nothing else.
+    ///
+    /// Its own function because it is the part of the scenario worth asserting, and the two
+    /// values around it need a device to read: on the host that runs these tests `UIKit` is
+    /// absent, so ``issue`` reports a Mac. Android's `BuildInfo.issueBody` is the same
+    /// function, asserted the same way.
+    static func issueBody(platform: String, deviceClass: String) -> String {
+        "StoryArc \(version) (\(build))\n\(platform)\n\(deviceClass)\n\n"
     }
 }

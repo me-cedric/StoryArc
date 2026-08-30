@@ -78,7 +78,7 @@ internal fun AboutGroup(modifier: Modifier = Modifier) {
             LinkRow(R.string.about_licence, "https://github.com/me-cedric/StoryArc/blob/main/LICENSE")
             // The one support link, on the one screen. Never a prompt.
             LinkRow(R.string.about_support, "https://ko-fi.com/mecedric")
-            LinkRow(R.string.about_report, BuildInfo.issueUrl())
+            LinkRow(R.string.about_report, BuildInfo.issueUrl(context))
         }
 
         Text(
