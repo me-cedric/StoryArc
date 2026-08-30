@@ -310,4 +310,24 @@
     <string name="source_unauthorized_body">StoryArc has lost its sign-in for %1$s. Open it in Settings and sign in again.</string>
     <string name="source_unauthorized_refused_body">%1$s refused the sign-in StoryArc had. Open it in Settings and sign in again.</string>
     <string name="library_search_on_server">Search “%1$s” for this instead</string>
+
+    <!-- Home -->
+    <string name="home_title">Home</string>
+    <string name="home_keep_reading">Keep reading</string>
+    <string name="home_up_next">Up next</string>
+    <string name="home_recently_added">Recently added</string>
+    <string name="home_finished">Finished</string>
+    <string name="home_finished_this_week">This week</string>
+    <string name="home_finished_this_month">This month</string>
+    <string name="home_finished_earlier">Earlier</string>
+    <string name="home_show_all">See all</string>
+    <string name="home_away">Can\'t be opened right now</string>
+    <string name="home_part_read">Part-read</string>
+    <string name="home_first_run">Nothing here yet \u2014 open a comic and StoryArc starts from there.</string>
+    <string name="home_open_a_comic">Open a comic</string>
+    <string name="home_connect_a_library">Connect a library</string>
+    <plurals name="home_pages_left">
+        <item quantity="one">%1$d page left</item>
+        <item quantity="other">%1$d pages left</item>
+    </plurals>
 </resources>

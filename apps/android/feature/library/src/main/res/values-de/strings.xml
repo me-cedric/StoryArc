@@ -310,4 +310,24 @@
     <string name="source_unauthorized_body">StoryArc hat die Anmeldung für %1$s verloren. Öffnen Sie sie in den Einstellungen und melden Sie sich erneut an.</string>
     <string name="source_unauthorized_refused_body">%1$s hat die gespeicherte Anmeldung abgelehnt. Öffnen Sie sie in den Einstellungen und melden Sie sich erneut an.</string>
     <string name="library_search_on_server">Stattdessen auf „%1$s“ suchen</string>
+
+    <!-- Start -->
+    <string name="home_title">Start</string>
+    <string name="home_keep_reading">Weiterlesen</string>
+    <string name="home_up_next">Als N\u00e4chstes</string>
+    <string name="home_recently_added">Neu hinzugef\u00fcgt</string>
+    <string name="home_finished">Ausgelesen</string>
+    <string name="home_finished_this_week">Diese Woche</string>
+    <string name="home_finished_this_month">Diesen Monat</string>
+    <string name="home_finished_earlier">Fr\u00fcher</string>
+    <string name="home_show_all">Alle ansehen</string>
+    <string name="home_away">L\u00e4sst sich gerade nicht \u00f6ffnen</string>
+    <string name="home_part_read">Angefangen</string>
+    <string name="home_first_run">Hier ist noch nichts \u2014 \u00f6ffnen Sie einen Comic, und StoryArc beginnt damit.</string>
+    <string name="home_open_a_comic">Comic \u00f6ffnen</string>
+    <string name="home_connect_a_library">Bibliothek verbinden</string>
+    <plurals name="home_pages_left">
+        <item quantity="one">Noch %1$d Seite</item>
+        <item quantity="other">Noch %1$d Seiten</item>
+    </plurals>
 </resources>

@@ -1,0 +1,267 @@
+package app.storyarc.feature.library
+
+import android.graphics.Bitmap
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.tokens.StoryArcRadius
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.Publication
+
+/** The proportions of a comic cover, near enough for every publisher. */
+internal const val HOME_COVER_ASPECT = 3f / 2f
+
+/** How dim an entry that cannot be opened right now is drawn. */
+private const val AWAY_ALPHA = 0.45f
+
+/**
+ * How tall the text under a cover is.
+ *
+ * Measured in `sp` and converted, so it grows with the reader's text size instead of
+ * clipping at it — the carousel and the shelf rows both need a height before they can lay
+ * out, and a height fixed in `dp` is the reason a card's title disappears at 200%.
+ */
+@Composable
+internal fun homeCaptionHeight(lines: Int): Dp =
+    with(LocalDensity.current) { (lines * 22).sp.toDp() } + StoryArcSpace.md
+
+/**
+ * One cover, letterboxed rather than cropped, decoded when the card appears.
+ *
+ * `design.md` is explicit that artwork is never cropped to fill a cell: a manga volume and
+ * a square ebook cover are not 2:3, and cropping the art to make them so cuts the title off
+ * the top of the artwork. The letterbox goes onto `surfaceSunken` so the cell still reads
+ * as a cell, at the 4 dp cover radius the tokens reserve for printed stock.
+ *
+ * Decoded lazily through the model, which caches it — `publication-formats` asks for covers
+ * to be pulled "as rows approach the viewport" rather than during the scan, and the cache
+ * is what makes the same cover on Home and on the library shelf one bitmap and not two.
+ */
+@Composable
+internal fun HomeCoverArt(
+    publication: Publication,
+    cover: suspend (Publication, Int) -> Bitmap?,
+    width: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+    val pixels = with(LocalDensity.current) { width.roundToPx() }
+    var bitmap by remember(publication.id) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(publication.id, pixels) { bitmap = cover(publication, pixels) }
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(StoryArcRadius.cover))
+            .background(palette.surfaceSunken),
+        contentAlignment = Alignment.Center,
+    ) {
+        bitmap?.let {
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+/**
+ * The Keep reading card — the one hero moment on the surface.
+ *
+ * M3 Expressive's own guidance is to combine tactics for a hero but to "stick to one or
+ * two"; this uses tactic #1, breaking from the surrounding shape style, and tactic #2,
+ * containment. Every other shelf on Home is a bare cover at the 4 dp cover radius with no
+ * container at all. This one is a raised container at 22 dp with the cover inside it, so
+ * the emphasis is carried entirely by shape and elevation — **no tint reaches the
+ * artwork**, which is the whole reason to emphasise this way on a screen whose content is
+ * other people's art. It is also the divergence the register records at #10: iOS emphasises
+ * with a prominent glass button and scale contrast, Android with shape and containment.
+ *
+ * The progress line is `LinearWavyProgressIndicator`, Expressive's own determinate
+ * indicator, and it carries no text of its own — how much is left is said in pages beside
+ * it, because `home-screen` refuses a percentage as the only answer.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun HomeKeepReadingCard(
+    entry: HomeEntry,
+    cover: suspend (Publication, Int) -> Bitmap?,
+    width: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+    // The dim is animated on Material's own effects spec rather than a fixed duration:
+    // divergence #11, and the scheme's speed tokens are device-aware in a way a constant
+    // is not. A source coming back should not make a cover flick to full brightness.
+    val dim by animateFloatAsState(
+        targetValue = if (entry.isReadableNow) 1f else AWAY_ALPHA,
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        label = "home-card-dim",
+    )
+
+    Column(
+        modifier = modifier
+            .width(width)
+            .clip(RoundedCornerShape(StoryArcRadius.xl))
+            .background(palette.surfaceRaised)
+            .padding(StoryArcSpace.md),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
+    ) {
+        HomeCoverArt(
+            publication = entry.publication,
+            cover = cover,
+            width = width,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(width * HOME_COVER_ASPECT)
+                .alpha(dim),
+        )
+
+        Text(
+            text = entry.publication.displayTitle,
+            style = MaterialTheme.typography.titleMedium,
+            color = palette.textPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        LinearWavyProgressIndicator(
+            progress = { entry.fraction.toFloat() },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Text(
+            text = homeRemainingText(entry),
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.textSecondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * One cover on a plain shelf: the artwork, the title, and nothing else.
+ *
+ * Deliberately uncontained. The hero has the only container on the surface, and a shelf
+ * cell that grew one would be a second thing asking to be looked at — which is the
+ * "overwhelming or distracting" the Expressive guidance warns about, and the failure mode
+ * that turns a reading room back into a file manager.
+ */
+@Composable
+internal fun HomeShelfCell(
+    entry: HomeEntry,
+    cover: suspend (Publication, Int) -> Bitmap?,
+    width: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalStoryArcPalette.current
+    val dim by animateFloatAsState(
+        targetValue = if (entry.isReadableNow) 1f else AWAY_ALPHA,
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        label = "home-cell-dim",
+    )
+
+    Column(
+        modifier = modifier.width(width),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+    ) {
+        HomeCoverArt(
+            publication = entry.publication,
+            cover = cover,
+            width = width,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(width * HOME_COVER_ASPECT)
+                .alpha(dim),
+        )
+        Text(
+            text = entry.publication.displayTitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.textPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (!entry.isReadableNow) {
+            Text(
+                text = stringResource(R.string.home_away),
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.textTertiary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/**
+ * What one card announces to a screen reader.
+ *
+ * The card is one target, so it reads as one thing: the title, then how much is left, then
+ * — only when it applies — that it cannot be opened. Assembled here rather than left to the
+ * default traversal, which would read a cover with no description, a title, a bare progress
+ * percentage and a sentence as four separate stops.
+ */
+@Composable
+internal fun Modifier.homeCardSemantics(entry: HomeEntry, label: String): Modifier {
+    val away = stringResource(R.string.home_away)
+    val description = if (entry.isReadableNow) {
+        "${entry.publication.displayTitle}. $label"
+    } else {
+        "${entry.publication.displayTitle}. $label. $away"
+    }
+    return clearAndSetSemantics { contentDescription = description }
+}
+
+/**
+ * How much is left, in the reader's own terms.
+ *
+ * Pages when the publication says how many it has; otherwise the plain sentence that it is
+ * part-read. Never a bare percentage — `home-screen` names that as the thing not to do, and
+ * the wavy line above already carries the shape of the answer.
+ */
+@Composable
+internal fun homeRemainingText(entry: HomeEntry): String {
+    val pages = entry.pagesRemaining
+    return if (pages == null) {
+        stringResource(R.string.home_part_read)
+    } else {
+        pluralStringResource(R.plurals.home_pages_left, pages, pages)
+    }
+}

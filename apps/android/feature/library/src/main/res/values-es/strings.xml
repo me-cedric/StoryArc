@@ -310,4 +310,24 @@
     <string name="source_unauthorized_body">StoryArc ha perdido el inicio de sesión de %1$s. Ábrela en Ajustes e inicia sesión de nuevo.</string>
     <string name="source_unauthorized_refused_body">%1$s rechazó el inicio de sesión guardado. Ábrela en Ajustes e inicia sesión de nuevo.</string>
     <string name="library_search_on_server">Buscar en «%1$s» en su lugar</string>
+
+    <!-- Inicio -->
+    <string name="home_title">Inicio</string>
+    <string name="home_keep_reading">Seguir leyendo</string>
+    <string name="home_up_next">A continuaci\u00f3n</string>
+    <string name="home_recently_added">A\u00f1adidos recientemente</string>
+    <string name="home_finished">Terminados</string>
+    <string name="home_finished_this_week">Esta semana</string>
+    <string name="home_finished_this_month">Este mes</string>
+    <string name="home_finished_earlier">Antes de eso</string>
+    <string name="home_show_all">Ver todo</string>
+    <string name="home_away">No se puede abrir ahora mismo</string>
+    <string name="home_part_read">Empezado</string>
+    <string name="home_first_run">Aqu\u00ed no hay nada todav\u00eda: abre un c\u00f3mic y StoryArc empieza por ah\u00ed.</string>
+    <string name="home_open_a_comic">Abrir un c\u00f3mic</string>
+    <string name="home_connect_a_library">Conectar una biblioteca</string>
+    <plurals name="home_pages_left">
+        <item quantity="one">Queda %1$d p\u00e1gina</item>
+        <item quantity="other">Quedan %1$d p\u00e1ginas</item>
+    </plurals>
 </resources>

@@ -310,4 +310,24 @@
     <string name="source_unauthorized_body">StoryArc a perdu la connexion à %1$s. Ouvrez-la dans Réglages et reconnectez-vous.</string>
     <string name="source_unauthorized_refused_body">%1$s a refusé la connexion enregistrée par StoryArc. Ouvrez-la dans Réglages et reconnectez-vous.</string>
     <string name="library_search_on_server">Chercher plutôt sur « %1$s »</string>
+
+    <!-- Accueil -->
+    <string name="home_title">Accueil</string>
+    <string name="home_keep_reading">Reprendre la lecture</string>
+    <string name="home_up_next">\u00c0 suivre</string>
+    <string name="home_recently_added">Ajout\u00e9s r\u00e9cemment</string>
+    <string name="home_finished">Termin\u00e9s</string>
+    <string name="home_finished_this_week">Cette semaine</string>
+    <string name="home_finished_this_month">Ce mois-ci</string>
+    <string name="home_finished_earlier">Avant cela</string>
+    <string name="home_show_all">Tout voir</string>
+    <string name="home_away">Impossible \u00e0 ouvrir pour l\u2019instant</string>
+    <string name="home_part_read">Commenc\u00e9</string>
+    <string name="home_first_run">Rien ici pour l\u2019instant \u2014 ouvrez une BD et StoryArc part de l\u00e0.</string>
+    <string name="home_open_a_comic">Ouvrir une BD</string>
+    <string name="home_connect_a_library">Connecter une biblioth\u00e8que</string>
+    <plurals name="home_pages_left">
+        <item quantity="one">%1$d page restante</item>
+        <item quantity="other">%1$d pages restantes</item>
+    </plurals>
 </resources>
