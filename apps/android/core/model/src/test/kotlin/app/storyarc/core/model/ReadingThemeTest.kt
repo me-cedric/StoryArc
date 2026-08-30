@@ -296,6 +296,26 @@ class ReadingThemeTest {
     }
 
     @Test
+    fun `A fit chosen for one series is not the fit every other series opens at`() {
+        // The defect this replaced: one key for the whole library, so fit-to-width
+        // chosen for a manga changed how every comic in the library opened.
+        val memory = ShelfMemory()
+            .remembering(ShelfSettings(fit = PageFit.WIDTH), ThemeScope.FIXED_LAYOUT, "Blame!")
+        assertEquals(PageFit.WIDTH, memory.theme(ThemeScope.FIXED_LAYOUT, "Blame!").fit)
+        assertEquals(PageFit.SCREEN, memory.theme(ThemeScope.FIXED_LAYOUT, "Bone").fit)
+    }
+
+    @Test
+    fun `A series never opened takes the fit from the scope's default`() {
+        val memory = ShelfMemory()
+            .settingDefault(ShelfSettings(fit = PageFit.HEIGHT), ThemeScope.FIXED_LAYOUT)
+            .remembering(ShelfSettings(fit = PageFit.WIDTH), ThemeScope.FIXED_LAYOUT, "Blame!")
+        assertEquals(PageFit.HEIGHT, memory.theme(ThemeScope.FIXED_LAYOUT, "Bone").fit)
+        // And the default does not sweep a shelf that has already said otherwise.
+        assertEquals(PageFit.WIDTH, memory.theme(ThemeScope.FIXED_LAYOUT, "Blame!").fit)
+    }
+
+    @Test
     fun `Reflowable and fixed-layout keep separate defaults for the same shelf name`() {
         // A series called "Bone" can hold both a comic and an ebook, and a line height
         // means nothing to a page of artwork.

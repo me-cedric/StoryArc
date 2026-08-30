@@ -348,10 +348,7 @@ extension ReaderView {
     var fitBinding: Binding<PageFit> {
         Binding(
             get: { fit },
-            set: { new in
-                fit = new
-                preferences?.save(new)
-            }
+            set: { new in model.choose(new) }
         )
     }
 

@@ -47,6 +47,14 @@ enum class ThemeScope { REFLOWABLE, FIXED_LAYOUT }
  *   and the next begins. `comic-reader`: pages are "stitched with no gap by default, with an
  *   option to show a separator". Default off, because a webtoon is drawn to be read as one
  *   strip and a line across it is a seam its author did not put there.
+ * @property fit how a page is sized on the screen. `comic-reader` requires the fit to persist
+ *   "per series", and per series is exactly what this store is; it used to be one value for
+ *   the whole library, so fit-to-width chosen for a manga changed how every other comic
+ *   opened. A shelf that has never been told inherits the scope's default, the way every
+ *   other value here does — and that default is seeded once from the old global value (see
+ *   `ReaderPreferences.themes()`), so a reader who had chosen
+ *   fit-to-width keeps opening at fit-to-width rather than being quietly returned to
+ *   fit-to-screen on the day they update.
  */
 @Serializable
 data class ShelfSettings(
@@ -58,6 +66,7 @@ data class ShelfSettings(
     val adjustments: ImageAdjustments = ImageAdjustments(),
     val offsetsSpreads: Boolean = false,
     val showsPageSeparator: Boolean = false,
+    val fit: PageFit = PageFit.SCREEN,
 )
 
 /**

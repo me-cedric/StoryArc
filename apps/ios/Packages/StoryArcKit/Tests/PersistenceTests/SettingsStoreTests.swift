@@ -112,15 +112,72 @@ struct SettingsStoreTests {
         // The claim the reset dialogue has to make: sources, downloads and reading
         // progress are not affected. It is true because `AppSettings` holds none of
         // them, and this asserts the neighbouring store survives.
-        let calm = ShelfSettings(theme: ReadingTheme(preset: .calm))
+        let calm = ShelfSettings(theme: ReadingTheme(preset: .calm)).settingFit(.width)
         suite.reader.save(ShelfMemory().remembering(calm, for: .fixedLayout, shelf: "Bone"))
-        suite.reader.save(PageFit.width)
         suite.settings.save(AppSettings(appearance: .light, turnPagesWithVolumeButtons: true))
 
         suite.settings.reset()
 
         #expect(suite.settings.settings() == .defaults)
-        #expect(suite.reader.themes().theme(for: .fixedLayout, shelf: "Bone").theme.preset == .calm)
-        #expect(suite.reader.pageFit() == .width)
+        let bone = suite.reader.themes().theme(for: .fixedLayout, shelf: "Bone")
+        #expect(bone.theme.preset == .calm)
+        // A fit chosen while reading is a decision, not a setting, so a reset leaves it.
+        #expect(bone.fit == .width)
+    }
+
+    // MARK: - The fit that used to be global
+
+    @Test("The one fit the library used to share becomes the fixed-layout default")
+    func legacyFitBecomesTheDefault() throws {
+        let suite = try fresh()
+        defer { suite.discard() }
+
+        // What a build before the fit was per series left behind.
+        suite.defaults.set("width", forKey: "app.storyarc.pageFit")
+
+        let memory = suite.reader.themes()
+        // Every shelf that has not been told otherwise inherits it, which is what
+        // "global" meant — rather than every comic in the library reverting to
+        // fit-to-screen on the day the reader updates.
+        #expect(memory.theme(for: .fixedLayout, shelf: "Bone").fit == .width)
+        #expect(memory.default(for: .fixedLayout).fit == .width)
+    }
+
+    @Test("The old fit is folded in once, and a later choice is not overwritten by it")
+    func legacyFitIsFoldedInOnce() throws {
+        let suite = try fresh()
+        defer { suite.discard() }
+
+        suite.defaults.set("width", forKey: "app.storyarc.pageFit")
+        _ = suite.reader.themes()
+        #expect(suite.defaults.string(forKey: "app.storyarc.pageFit") == nil)
+
+        // The reader then sets the default to something else. A migration that ran
+        // again would put fit-to-width back over it on the next read.
+        let chosen = suite.reader.themes().default(for: .fixedLayout).settingFit(.original)
+        suite.reader.save(suite.reader.themes().settingDefault(chosen, for: .fixedLayout))
+        #expect(suite.reader.themes().default(for: .fixedLayout).fit == .original)
+    }
+
+    @Test("A shelf that chose its own fit keeps it when the old global one is folded in")
+    func legacyFitDoesNotSweepAShelf() throws {
+        let suite = try fresh()
+        defer { suite.discard() }
+
+        let chosen = ShelfSettings().settingFit(.height)
+        suite.reader.save(ShelfMemory().remembering(chosen, for: .fixedLayout, shelf: "Bone"))
+        suite.defaults.set("width", forKey: "app.storyarc.pageFit")
+
+        let memory = suite.reader.themes()
+        #expect(memory.theme(for: .fixedLayout, shelf: "Bone").fit == .height)
+        #expect(memory.theme(for: .fixedLayout, shelf: "Blame!").fit == .width)
+    }
+
+    @Test("A library with no stored fit is left at fit-to-screen")
+    func noLegacyFit() throws {
+        let suite = try fresh()
+        defer { suite.discard() }
+
+        #expect(suite.reader.themes().default(for: .fixedLayout).fit == .screen)
     }
 }

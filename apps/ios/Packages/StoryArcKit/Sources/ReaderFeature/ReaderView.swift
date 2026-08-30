@@ -108,7 +108,6 @@ public struct ReaderView: View {
         self.previousInSeries = previousInSeries
         self.nextInSeries = nextInSeries
         self.onOpen = onOpen
-        _fit = State(initialValue: preferences?.pageFit() ?? .screen)
         let shelf = publication.series ?? publication.displayTitle
         self.shelf = shelf
         _adjustments = State(
@@ -121,7 +120,7 @@ public struct ReaderView: View {
     /// series and [not be] applied globally", and a comic with no series is its own shelf.
     let shelf: String
 
-    /// Where the fit choice is remembered. Absent in previews.
+    /// Where the per-series choices are remembered. Absent in previews.
     let preferences: ReaderPreferences?
 
     /// Whether the page in front of the reader is being trimmed, and a way to say no.
@@ -156,8 +155,12 @@ public struct ReaderView: View {
     /// be two different values or the second one is silent.
     @State var refusals = 0
 
-    /// How the page is sized. `comic-reader` requires the choice to persist.
-    @State var fit: PageFit = .screen
+    /// How the page is sized.
+    ///
+    /// Read from the shelf rather than held here: `comic-reader` requires the choice to
+    /// persist per series, and the shelf is where every other per-series reader choice
+    /// already lives, and `ReaderModel.choose(_ fit:)` is what writes it there.
+    var fit: PageFit { model.settings.fit }
 
     /// Whether the thumbnail strip is open.
     @State var isBrowsingThumbnails = false

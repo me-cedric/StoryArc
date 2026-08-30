@@ -52,6 +52,18 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
     /// a separator". Default off, because a webtoon is drawn to be read as one strip and
     /// a line across it is a seam its author did not put there.
     public var showsPageSeparator: Bool
+    /// How a page is sized on the screen.
+    ///
+    /// `comic-reader` requires the fit to persist "per series", and per series is exactly
+    /// what this store is. It used to be one value for the whole library, so fit-to-width
+    /// chosen for a manga changed how every other comic opened.
+    ///
+    /// A shelf that has never been told inherits the scope's default, the way every other
+    /// value here does. That default is seeded once from the old global value — see
+    /// `ReaderPreferences.themes()` — so a reader who had chosen fit-to-width keeps
+    /// opening at fit-to-width rather than being quietly returned to fit-to-screen on the
+    /// day they update, and only the series they later say otherwise about differ.
+    public var fit: PageFit
 
     /// - Parameter values: the typography. Defaults to the preset's own, which is
     ///   what an unmodified theme means.
@@ -63,7 +75,8 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
         readingDirection: ReadingDirection? = nil,
         adjustments: ImageAdjustments = ImageAdjustments(),
         offsetsSpreads: Bool = false,
-        showsPageSeparator: Bool = false
+        showsPageSeparator: Bool = false,
+        fit: PageFit = .screen
     ) {
         self.theme = theme
         self.values = values ?? theme.preset.values
@@ -73,6 +86,7 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
         self.adjustments = adjustments
         self.offsetsSpreads = offsetsSpreads
         self.showsPageSeparator = showsPageSeparator
+        self.fit = fit
     }
 
     /// Decodes what is there and defaults what is not.
@@ -100,7 +114,8 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
             showsPageSeparator: try container.decodeIfPresent(
                 Bool.self,
                 forKey: .showsPageSeparator
-            ) ?? false
+            ) ?? false,
+            fit: try container.decodeIfPresent(PageFit.self, forKey: .fit) ?? .screen
         )
     }
 }
@@ -142,6 +157,13 @@ extension ShelfSettings {
     public func settingPageSeparator(_ isShown: Bool) -> ShelfSettings {
         var copy = self
         copy.showsPageSeparator = isShown
+        return copy
+    }
+
+    /// The same settings with the page sized a different way.
+    public func settingFit(_ fit: PageFit) -> ShelfSettings {
+        var copy = self
+        copy.fit = fit
         return copy
     }
 

@@ -97,9 +97,8 @@ class SettingsStoreTest {
         // The claim the reset dialogue has to make: sources, downloads and reading
         // progress are not affected. It is true because `AppSettings` holds none of them,
         // and this asserts the neighbouring store survives.
-        val calm = ShelfSettings(ReadingTheme(ThemePreset.CALM))
+        val calm = ShelfSettings(ReadingTheme(ThemePreset.CALM), fit = PageFit.WIDTH)
         stores.reader.save(ShelfMemory().remembering(calm, ThemeScope.FIXED_LAYOUT, "Bone"))
-        stores.reader.save(PageFit.WIDTH)
         stores.settings.save(
             AppSettings(appearance = AppearanceMode.LIGHT, turnPagesWithVolumeButtons = true),
         )
@@ -107,10 +106,9 @@ class SettingsStoreTest {
         stores.settings.reset()
 
         assertEquals(AppSettings.Defaults, stores.settings.settings())
-        assertEquals(
-            ThemePreset.CALM,
-            stores.reader.themes().theme(ThemeScope.FIXED_LAYOUT, "Bone").theme.preset,
-        )
-        assertEquals(PageFit.WIDTH, stores.reader.pageFit())
+        val bone = stores.reader.themes().theme(ThemeScope.FIXED_LAYOUT, "Bone")
+        assertEquals(ThemePreset.CALM, bone.theme.preset)
+        // A fit chosen while reading is a decision, not a setting, so a reset leaves it.
+        assertEquals(PageFit.WIDTH, bone.fit)
     }
 }

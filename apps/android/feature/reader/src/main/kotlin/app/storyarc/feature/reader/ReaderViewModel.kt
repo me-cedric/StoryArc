@@ -23,6 +23,7 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ImageAdjustments
 import app.storyarc.core.model.MemoryPressure
+import app.storyarc.core.model.PageFit
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.PrefetchWindow
 import app.storyarc.core.model.ScrollAxis
@@ -205,6 +206,17 @@ class ReaderViewModel(
     /** Shows or hides the line between pages in a continuous scroll. */
     fun choosePageSeparator(isShown: Boolean) {
         update(_settings.value.copy(showsPageSeparator = isShown))
+    }
+
+    /**
+     * Sizes the page a different way, for this shelf from now on.
+     *
+     * `comic-reader` requires the fit to persist "per series". It used to be one value for
+     * the whole library, so fit-to-width chosen for a manga changed how every other comic
+     * opened; it is now kept where the other six per-series reader choices are.
+     */
+    fun chooseFit(fit: PageFit) {
+        update(_settings.value.copy(fit = fit))
     }
 
     /**

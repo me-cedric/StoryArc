@@ -193,6 +193,15 @@ public final class ReaderModel {
         remember(settings.settingPageSeparator(isShown))
     }
 
+    /// Sizes the page a different way, for this shelf from now on.
+    ///
+    /// `comic-reader` requires the fit to persist "per series". It used to be one value
+    /// for the whole library, so fit-to-width chosen for a manga changed how every other
+    /// comic opened; it is now kept where the other six per-series reader choices are.
+    public func choose(_ fit: PageFit) {
+        remember(settings.settingFit(fit))
+    }
+
     private func remember(_ new: ShelfSettings) {
         settings = new
         guard let preferences else { return }

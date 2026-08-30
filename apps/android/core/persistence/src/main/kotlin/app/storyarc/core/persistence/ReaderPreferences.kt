@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import app.storyarc.core.model.PageFit
 import app.storyarc.core.model.ShelfMemory
+import app.storyarc.core.model.ThemeScope
 import kotlinx.serialization.json.Json
 
 class ReaderPreferences(private val preferences: SharedPreferences) {
@@ -14,7 +15,12 @@ class ReaderPreferences(private val preferences: SharedPreferences) {
                 context.getSharedPreferences("app.storyarc.reader", Context.MODE_PRIVATE),
             )
 
-        private const val FIT = "pageFit"
+        /**
+         * The one fit the whole library used to share.
+         *
+         * Read once, folded into the fixed-layout default, and removed. See [themes].
+         */
+        private const val LEGACY_FIT = "pageFit"
         private const val THEMES = "themes"
 
         /**
@@ -27,15 +33,6 @@ class ReaderPreferences(private val preferences: SharedPreferences) {
         private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     }
 
-    fun pageFit(): PageFit =
-        preferences.getString(FIT, null)
-            ?.let { name -> runCatching { PageFit.valueOf(name) }.getOrNull() }
-            ?: PageFit.SCREEN
-
-    fun save(fit: PageFit) {
-        preferences.edit().putString(FIT, fit.name).apply()
-    }
-
     /**
      * Every reading theme the reader has chosen, per shelf and per scope.
      *
@@ -44,13 +41,35 @@ class ReaderPreferences(private val preferences: SharedPreferences) {
      * scattered the entries across preference keys would have to reimplement that
      * walk. Unreadable stored data reads as no data — a theme is a preference, and
      * losing one is worth far less than refusing to open the book.
+     *
+     * It is also where the page fit is picked up from where it used to live. The fit was
+     * one value for the whole library before `comic-reader`'s "persists per series" was
+     * honoured, and a reader who had chosen fit-to-width would otherwise find every comic
+     * they own back at fit-to-screen on the day they updated. So the old value becomes the
+     * fixed-layout *default*: every shelf that has not been told otherwise inherits it,
+     * which is exactly what "global" meant, and a shelf they set later keeps its own. The
+     * old key is removed as it is folded in, so this happens once.
      */
-    fun themes(): ShelfMemory =
-        preferences.getString(THEMES, null)
-            ?.let { runCatching { json.decodeFromString<ShelfMemory>(it) }.getOrNull() }
-            ?: ShelfMemory()
+    fun themes(): ShelfMemory {
+        val memory = storedThemes()
+        val fit = preferences.getString(LEGACY_FIT, null)
+            ?.let { name -> runCatching { PageFit.valueOf(name) }.getOrNull() }
+            ?: return memory
+        val migrated = memory.settingDefault(
+            memory.default(ThemeScope.FIXED_LAYOUT).copy(fit = fit),
+            ThemeScope.FIXED_LAYOUT,
+        )
+        preferences.edit().remove(LEGACY_FIT).apply()
+        save(migrated)
+        return migrated
+    }
 
     fun save(memory: ShelfMemory) {
         preferences.edit().putString(THEMES, json.encodeToString(memory)).apply()
     }
+
+    private fun storedThemes(): ShelfMemory =
+        preferences.getString(THEMES, null)
+            ?.let { runCatching { json.decodeFromString<ShelfMemory>(it) }.getOrNull() }
+            ?: ShelfMemory()
 }

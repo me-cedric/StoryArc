@@ -145,7 +145,6 @@ import app.storyarc.core.model.SpreadLayout
 import app.storyarc.core.model.TransitionChoices
 import app.storyarc.core.model.TransitionUnavailability
 import app.storyarc.core.model.scrollAxis
-import app.storyarc.core.persistence.ReaderPreferences
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -172,8 +171,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 fun ReaderScreen(
     viewModel: ReaderViewModel,
     onClose: () -> Unit,
-    /** Where the fit choice is remembered. Absent in previews. */
-    preferences: ReaderPreferences? = null,
     /**
      * What surrounds this publication in its series, and how to open one of them.
      * Supplied by the app layer: the reader does not know what a library is, and a
@@ -213,12 +210,6 @@ fun ReaderScreen(
     // first publication and then show a spinner for ever on the second.
     LaunchedEffect(viewModel) { viewModel.open(maxPixelSize) }
 
-    // `comic-reader`: the fit choice persists. Stored globally rather than per
-    // series — the spec says per series, and a series is not yet a thing the app
-    // can key anything on.
-    var fit by rememberSaveable { mutableStateOf(preferences?.pageFit() ?: PageFit.SCREEN) }
-    LaunchedEffect(fit) { preferences?.save(fit) }
-
     // `comic-reader`: "the screen does not auto-lock while a page is visible, and
     // normal locking resumes on leaving". A long look at one page is reading, not
     // idling. On the view rather than the window flag, so leaving the screen
@@ -234,6 +225,11 @@ fun ReaderScreen(
     // that area, and black is what it is until a reader says otherwise.
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val matte = remember(settings) { matteColour(settings.theme.custom?.background) }
+
+    // `comic-reader`: the fit choice persists per series, so it is read from the shelf
+    // rather than held here — the same place the transition, the direction, the axis, the
+    // adjustments, the spread offset and the separator are all kept.
+    val fit = settings.fit
 
     Box(
         modifier = modifier.fillMaxSize().background(matte),
@@ -260,7 +256,7 @@ fun ReaderScreen(
                 nextInSeries = nextInSeries,
                 onOpen = onOpen,
                 fit = fit,
-                onFitChange = { fit = it },
+                onFitChange = viewModel::chooseFit,
                 matte = matte,
             )
         }

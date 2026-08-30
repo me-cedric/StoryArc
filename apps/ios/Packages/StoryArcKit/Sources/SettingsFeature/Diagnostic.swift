@@ -70,7 +70,6 @@ enum Diagnostic {
             // Android one should be able to see that the row is missing on purpose.
             "volumeButtonsTurnPages = unavailable on iOS",
             "readingThemeFollowsAppearance = \(settings.linkReadingThemeToAppearance)",
-            "pageFit = \(readerStore.pageFit())",
             "",
             "[Reading defaults]",
         ]
@@ -80,6 +79,9 @@ enum Diagnostic {
             lines.append("\(scope).preset = \(shelf.theme.preset)")
             lines.append("\(scope).modified = \(shelf.theme.isModified)")
             lines.append("\(scope).transition = \(shelf.transition)")
+            // Per scope rather than on its own line above: the fit is a per-series
+            // choice now, and what a report can state is the default a shelf inherits.
+            lines.append("\(scope).fit = \(shelf.fit)")
         }
 
         lines += [

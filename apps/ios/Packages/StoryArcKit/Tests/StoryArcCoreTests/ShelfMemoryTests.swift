@@ -23,6 +23,26 @@ struct ShelfMemoryTests {
         #expect(memory.theme(for: .reflowable, shelf: "Blame!").theme.preset == .paper)
     }
 
+    @Test("A fit chosen for one series is not the fit every other series opens at")
+    func fitIsPerSeries() {
+        // The defect this replaced: one key for the whole library, so fit-to-width
+        // chosen for a manga changed how every comic in the library opened.
+        let memory = ShelfMemory()
+            .remembering(ShelfSettings().settingFit(.width), for: .fixedLayout, shelf: "Blame!")
+        #expect(memory.theme(for: .fixedLayout, shelf: "Blame!").fit == .width)
+        #expect(memory.theme(for: .fixedLayout, shelf: "Bone").fit == .screen)
+    }
+
+    @Test("A series never opened takes the fit from the scope's default")
+    func fitFallsThroughToTheDefault() {
+        let memory = ShelfMemory()
+            .settingDefault(ShelfSettings().settingFit(.height), for: .fixedLayout)
+            .remembering(ShelfSettings().settingFit(.width), for: .fixedLayout, shelf: "Blame!")
+        #expect(memory.theme(for: .fixedLayout, shelf: "Bone").fit == .height)
+        // And the default does not sweep a shelf that has already said otherwise.
+        #expect(memory.theme(for: .fixedLayout, shelf: "Blame!").fit == .width)
+    }
+
     @Test("Reflowable and fixed-layout keep separate defaults for the same shelf name")
     func scopesDoNotCollide() {
         // A series called "Bone" can hold both a comic and an ebook, and a line height

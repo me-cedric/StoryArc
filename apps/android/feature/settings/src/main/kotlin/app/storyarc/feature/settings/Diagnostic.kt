@@ -58,7 +58,6 @@ internal object Diagnostic {
             add("language = ${settings.language ?: "system"}")
             add("volumeButtonsTurnPages = ${settings.turnPagesWithVolumeButtons}")
             add("readingThemeFollowsAppearance = ${settings.linkReadingThemeToAppearance}")
-            add("pageFit = ${reader.pageFit()}")
             add("")
             add("[Reading defaults]")
             for (scope in ThemeScope.entries) {
@@ -66,6 +65,9 @@ internal object Diagnostic {
                 add("$scope.preset = ${shelf.theme.preset}")
                 add("$scope.modified = ${shelf.theme.isModified}")
                 add("$scope.transition = ${shelf.transition}")
+                // Per scope rather than on its own line above: the fit is a per-series
+                // choice now, and what a report can state is the default a shelf inherits.
+                add("$scope.fit = ${shelf.fit}")
             }
             add("")
             add("[Storage]")
