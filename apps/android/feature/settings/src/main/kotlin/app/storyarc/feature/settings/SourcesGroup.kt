@@ -1,5 +1,6 @@
 package app.storyarc.feature.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -61,6 +62,14 @@ internal fun SourcesGroup(
     itemCount: (Source) -> Int,
     onRemove: (Source) -> Unit,
     onRename: (Source, String) -> Unit,
+    /**
+     * Opens a source's own screen.
+     *
+     * The row itself, not a chevron beside four other buttons: `sources` calls the detail a
+     * screen a reader "opens", and a row that is already announced as one element is the
+     * thing they will press.
+     */
+    onOpen: (Source) -> Unit = {},
     modifier: Modifier = Modifier,
     /**
      * Moves a source one place, up or down.
@@ -161,6 +170,12 @@ internal fun SourcesGroup(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp)
+                    .clickable(
+                        onClickLabel = stringResource(
+                            R.string.sources_detail_open,
+                            source.displayName,
+                        ),
+                    ) { onOpen(source) }
                     // One control per row, announced once rather than as three unrelated
                     // pieces of text on the way past.
                     .semantics(mergeDescendants = true) {},

@@ -33,6 +33,7 @@ import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.model.Source
+import app.storyarc.core.model.SourceAction
 import app.storyarc.core.persistence.CertificatePinStore
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.DownloadStore
@@ -776,12 +777,40 @@ class MainActivity : ComponentActivity() {
                             // across and carries the removal back.
                             sources = registry.sources,
                             itemCount = { libraryViewModel.itemCount(it.id) },
-                            onRemoveSource = { libraryViewModel.removeSource(it, credentials) },
+                            onRemoveSource = { source ->
+                                // The downloads first. The registry entry is what attributes a
+                                // download to a source, so deleting the source before its files
+                                // leaves bytes on disk that nothing in the app can name, let
+                                // alone offer to remove.
+                                downloads = removeDownloads(source, downloads, downloadStore)
+                                libraryViewModel.removeSource(source, credentials)
+                            },
                             onRenameSource = { source, name ->
                                 libraryViewModel.renameSource(source, name)
                             },
                             onReorderSource = { source, later ->
                                 libraryViewModel.reorderSource(source, later)
+                            },
+                            // `sources` names five actions on a source's own screen. The first
+                            // three are the library's; the last two also touch the download
+                            // store, which this layer owns rather than the view model — so this
+                            // is where the two halves meet. iOS's `StoryArcApp` carries the
+                            // same switch.
+                            onSourceAction = { source, action ->
+                                when (action) {
+                                    SourceAction.TEST_CONNECTION ->
+                                        libraryViewModel.testSource(source, credentials, pins)
+                                    SourceAction.REFRESH ->
+                                        libraryViewModel.refreshSource(source, credentials, pins)
+                                    SourceAction.CLEAR_CACHE ->
+                                        libraryViewModel.clearSourceCache(source)
+                                    SourceAction.REMOVE_DOWNLOADS ->
+                                        downloads = removeDownloads(source, downloads, downloadStore)
+                                    SourceAction.REMOVE -> {
+                                        downloads = removeDownloads(source, downloads, downloadStore)
+                                        libraryViewModel.removeSource(source, credentials)
+                                    }
+                                }
                             },
                             // Read from the store rather than from a browser's acquisition: the
                             // store is the record, and Settings can be reached without ever

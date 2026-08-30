@@ -558,6 +558,96 @@ class LibraryViewModel(
     }
 
     /**
+     * Asks one source, now, and says so while it is asking.
+     *
+     * `sources`: a source's detail screen "offers actions to test the connection, refresh,
+     * clear the cache, remove downloads, and remove the source". Removal already existed;
+     * this and the two below did not, on either platform.
+     *
+     * Marked `Connecting` first. A test whose only visible effect arrives a network timeout
+     * later is a button a reader presses twice. A folder is asked of the content resolver
+     * rather than of a network: it is either still readable or it is not, which is the
+     * distinction [SourceProbe.isRemote] draws.
+     *
+     * iOS's `LibraryModel.test` answers the same way.
+     */
+    fun testSource(source: Source, credentials: CredentialStore?, pins: CertificatePins) {
+        if (!SourceProbe.isRemote(source.kind)) {
+            _registry.update { it.marking(source.id, folderState(source)) }
+            return
+        }
+        viewModelScope.launch {
+            _registry.update { it.marking(source.id, SourceConnectionState.Connecting) }
+            val reason = getApplication<Application>().getString(R.string.source_state_unauthorized)
+            val state = SourceHealth.probe(
+                source,
+                credentials,
+                pins,
+                System.currentTimeMillis(),
+                reason,
+            )
+            _registry.update { it.marking(source.id, state) }
+        }
+    }
+
+    /**
+     * Re-fetches what one source holds.
+     *
+     * The test first, because a refresh of a source that is not answering is a walk that
+     * finds nothing — and a walk that finds nothing is deliberately not allowed to empty the
+     * shelf. For a folder the walk is the refresh; for a server the probe is, since a
+     * server's contents are browsed rather than folded into the shelf.
+     */
+    fun refreshSource(source: Source, credentials: CredentialStore?, pins: CertificatePins) {
+        testSource(source, credentials, pins)
+        if (source.kind == SourceKind.LOCAL_FOLDER) rescan()
+    }
+
+    /**
+     * Drops what is cached for one source, and nothing else.
+     *
+     * The rows go, the on-disk snapshot is rewritten without them, and the next refresh puts
+     * back whatever is still there. Downloads are untouched: `sources` lists clearing the
+     * cache and removing downloads as two actions, and a reader on a train who meant the
+     * first must not get the second.
+     *
+     * Cover *files* are not swept one by one. They live in the cache directory keyed by
+     * publication, are evicted under storage pressure, and Privacy's "Clear cache" takes the
+     * lot — so those bytes are already reachable by something the reader can press.
+     */
+    fun clearSourceCache(source: Source) {
+        val gone = _publications.value.filter { it.sourceId == source.id }.map { it.id }
+        if (gone.isEmpty()) return
+        _publications.update { list -> list.filterNot { it.id in gone } }
+        gone.forEach { covers.remove(it); locations.remove(it) }
+        // Written through rather than left for the next scan. [cacheLibrary] refuses to
+        // replace a good snapshot with an empty one — that guard is there for a walk that
+        // failed, and this is not one, so an emptied library clears the file outright.
+        if (_publications.value.isEmpty()) libraryCache.clear() else cacheLibrary()
+        _cachedAt.value = null
+        rebuild()
+    }
+
+    /**
+     * Whether a folder source can still be read.
+     *
+     * The persisted permission is the question. A tree the system no longer grants is a
+     * folder the app cannot open, whatever is on the card — and the answer is grey rather
+     * than red, because `local-library` names an unavailable folder separately and "offline
+     * is a normal state, not an error".
+     */
+    private fun folderState(source: Source): SourceConnectionState {
+        val granted = resolver.persistedUriPermissions.any {
+            it.uri.toString() == source.locator && it.isReadPermission
+        }
+        return if (granted) {
+            SourceConnectionState.Connected
+        } else {
+            SourceConnectionState.Unreachable(System.currentTimeMillis())
+        }
+    }
+
+    /**
      * Drops a source that has no folder behind it — a catalogue, a Kavita server, a share.
      *
      * The tombstone rather than a discard, for the reason [unregister] gives: `sources`

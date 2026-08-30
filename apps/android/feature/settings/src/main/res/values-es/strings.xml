@@ -105,6 +105,20 @@
         <item quantity="one">Esto quita %1$d publicación de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días.</item>
         <item quantity="other">Esto quita %1$d publicaciones de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días.</item>
     </plurals>
+    <string name="sources_detail_status">Estado</string>
+    <string name="sources_detail_last_sync">Última sincronización correcta</string>
+    <string name="sources_detail_never">Nunca</string>
+    <string name="sources_detail_last_error">Último error</string>
+    <string name="sources_detail_error_unreachable">Sin respuesta desde el %1$s</string>
+    <string name="sources_detail_items">En su biblioteca</string>
+    <string name="sources_detail_downloaded">Descargado</string>
+    <string name="sources_detail_open">Abrir %1$s</string>
+    <string name="sources_action_test">Probar la conexión</string>
+    <string name="sources_action_refresh">Actualizar</string>
+    <string name="sources_action_clear_cache">Vaciar la caché</string>
+    <string name="sources_action_remove_downloads">Quitar las descargas</string>
+    <string name="sources_remove_downloads_title">¿Quitar las descargas de %1$s?</string>
+    <string name="sources_remove_downloads_body">Esto elimina %1$s de archivos descargados de esta fuente. La fuente se conserva, y sus posiciones de lectura también.</string>
     <string name="sources_rename_title">Renombrar fuente</string>
     <string name="sources_rename_field">Nombre</string>
     <string name="sources_rename_save">Guardar</string>

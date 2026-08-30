@@ -105,6 +105,20 @@
         <item quantity="one">Cela retire %1$d publication de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
         <item quantity="other">Cela retire %1$d publications de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
     </plurals>
+    <string name="sources_detail_status">État</string>
+    <string name="sources_detail_last_sync">Dernière synchronisation réussie</string>
+    <string name="sources_detail_never">Jamais</string>
+    <string name="sources_detail_last_error">Dernière erreur</string>
+    <string name="sources_detail_error_unreachable">Sans réponse depuis le %1$s</string>
+    <string name="sources_detail_items">Dans votre bibliothèque</string>
+    <string name="sources_detail_downloaded">Téléchargé</string>
+    <string name="sources_detail_open">Ouvrir %1$s</string>
+    <string name="sources_action_test">Tester la connexion</string>
+    <string name="sources_action_refresh">Actualiser</string>
+    <string name="sources_action_clear_cache">Vider le cache</string>
+    <string name="sources_action_remove_downloads">Supprimer les téléchargements</string>
+    <string name="sources_remove_downloads_title">Supprimer les téléchargements de %1$s ?</string>
+    <string name="sources_remove_downloads_body">Cela supprime %1$s de fichiers téléchargés depuis cette source. La source reste, et vos positions de lecture aussi.</string>
     <string name="sources_rename_title">Renommer la source</string>
     <string name="sources_rename_field">Nom</string>
     <string name="sources_rename_save">Enregistrer</string>

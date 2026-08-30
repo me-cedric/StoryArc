@@ -35,7 +35,11 @@ import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.Source
+import app.storyarc.core.model.SourceAction
+import app.storyarc.core.model.SourceDiagnosis
+import app.storyarc.core.persistence.ImportedCopies
 import app.storyarc.core.persistence.ReaderPreferences
+import java.util.UUID
 
 /**
  * Settings, as the seven groups `settings-and-about` names.
@@ -89,6 +93,11 @@ fun SettingsScreen(
     /** Moves a source one place, up or down. `sources`: the order persists and decides precedence. */
     onReorderSource: (Source, Boolean) -> Unit = { _, _ -> },
     /**
+     * Runs one of the five actions a source's detail screen offers. `sources` names all
+     * five; four of them had nowhere to be pressed.
+     */
+    onSourceAction: (Source, SourceAction) -> Unit = { _, _ -> },
+    /**
      * What is on the device, and what it weighs. Handed in for the same reason the sources
      * are: the downloads belong to the library that fetched them.
      */
@@ -112,11 +121,38 @@ fun SettingsScreen(
         mutableStateOf(SettingMatch.of(SettingsGroup.DOWNLOADS).takeIf { opensAtDownloads })
     }
 
+    // Which source is being diagnosed, when one is. A third level rather than a dialog:
+    // `sources` calls it a screen, it carries five fields and five actions, and the two
+    // destructive ones need a confirmation of their own on top.
+    var openSource by remember { mutableStateOf<UUID?>(null) }
+    val diagnosed = sources.firstOrNull { it.id == openSource }
+
     // Enabled only inside a group, so the system back goes *up one level* rather than
     // out of Settings. The host's own handler closes Settings, and the innermost enabled
-    // handler wins — which is how one gesture means two things without either knowing
-    // about the other.
+    // handler wins — which is how one gesture means three things without any of them
+    // knowing about the others: a source's screen goes back to the group, the group goes
+    // back to the list, and the list closes Settings.
     PredictiveBack(enabled = open != null) { open = null }
+    PredictiveBack(enabled = openSource != null) { openSource = null }
+
+    if (diagnosed != null) {
+        SourceDetailScreen(
+            source = diagnosed,
+            diagnosis = SourceDiagnosis.of(
+                diagnosed,
+                itemCount = itemCount(diagnosed),
+                downloads = downloads.downloads,
+                // "On this device" is the app's own imported copies, not a source the
+                // reader added, so it is not one they can remove. The same exception the
+                // list makes, asked once so the two cannot disagree.
+                isRemovable = diagnosed.id != ImportedCopies.SOURCE_ID,
+            ),
+            onAction = { onSourceAction(diagnosed, it) },
+            onBack = { openSource = null },
+            modifier = modifier,
+        )
+        return
+    }
 
     when (val match = open) {
         null -> GroupList(
@@ -140,6 +176,7 @@ fun SettingsScreen(
             onRemoveSource = onRemoveSource,
             onRenameSource = onRenameSource,
             onReorderSource = onReorderSource,
+            onOpenSource = { openSource = it.id },
             downloads = downloads,
             bytesOnDisk = bytesOnDisk,
             onRemoveDownload = onRemoveDownload,
@@ -310,6 +347,7 @@ private fun GroupDetail(
     onRemoveSource: (Source) -> Unit,
     onRenameSource: (Source, String) -> Unit,
     onReorderSource: (Source, Boolean) -> Unit,
+    onOpenSource: (Source) -> Unit,
     downloads: DownloadLibrary,
     bytesOnDisk: Long,
     onRemoveDownload: (Download) -> Unit,
@@ -354,7 +392,14 @@ private fun GroupDetail(
                 // that does not exist yet says so; hiding it leaves a reader hunting for
                 // where sources live.
                 SettingsGroup.SOURCES ->
-                    SourcesGroup(sources, itemCount, onRemoveSource, onRenameSource, onReorder = onReorderSource)
+                    SourcesGroup(
+                        sources = sources,
+                        itemCount = itemCount,
+                        onRemove = onRemoveSource,
+                        onRename = onRenameSource,
+                        onOpen = onOpenSource,
+                        onReorder = onReorderSource,
+                    )
                 SettingsGroup.DOWNLOADS -> DownloadsGroup(
                     library = downloads,
                     bytesOnDisk = bytesOnDisk,

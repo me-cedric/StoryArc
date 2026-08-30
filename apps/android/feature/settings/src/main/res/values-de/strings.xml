@@ -105,6 +105,20 @@
         <item quantity="one">Das entfernt %1$d Publikation aus Ihrer Bibliothek. Es wird keine Datei auf dem Gerät gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten.</item>
         <item quantity="other">Das entfernt %1$d Publikationen aus Ihrer Bibliothek. Es wird keine Datei auf dem Gerät gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten.</item>
     </plurals>
+    <string name="sources_detail_status">Status</string>
+    <string name="sources_detail_last_sync">Letzte erfolgreiche Synchronisierung</string>
+    <string name="sources_detail_never">Nie</string>
+    <string name="sources_detail_last_error">Letzter Fehler</string>
+    <string name="sources_detail_error_unreachable">Keine Antwort seit %1$s</string>
+    <string name="sources_detail_items">In Ihrer Bibliothek</string>
+    <string name="sources_detail_downloaded">Heruntergeladen</string>
+    <string name="sources_detail_open">%1$s öffnen</string>
+    <string name="sources_action_test">Verbindung testen</string>
+    <string name="sources_action_refresh">Aktualisieren</string>
+    <string name="sources_action_clear_cache">Cache leeren</string>
+    <string name="sources_action_remove_downloads">Downloads entfernen</string>
+    <string name="sources_remove_downloads_title">Downloads von %1$s entfernen?</string>
+    <string name="sources_remove_downloads_body">Das löscht %1$s an Dateien, die von dieser Quelle heruntergeladen wurden. Die Quelle bleibt, und Ihre Lesepositionen auch.</string>
     <string name="sources_rename_title">Quelle umbenennen</string>
     <string name="sources_rename_field">Name</string>
     <string name="sources_rename_save">Sichern</string>

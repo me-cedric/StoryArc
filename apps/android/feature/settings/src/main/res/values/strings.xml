@@ -110,6 +110,20 @@
         <item quantity="one">This removes %1$d publication from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days.</item>
         <item quantity="other">This removes %1$d publications from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days.</item>
     </plurals>
+    <string name="sources_detail_status">Status</string>
+    <string name="sources_detail_last_sync">Last successful sync</string>
+    <string name="sources_detail_never">Never</string>
+    <string name="sources_detail_last_error">Last error</string>
+    <string name="sources_detail_error_unreachable">No answer since %1$s</string>
+    <string name="sources_detail_items">In your library</string>
+    <string name="sources_detail_downloaded">Downloaded</string>
+    <string name="sources_detail_open">Open %1$s</string>
+    <string name="sources_action_test">Test connection</string>
+    <string name="sources_action_refresh">Refresh</string>
+    <string name="sources_action_clear_cache">Clear cache</string>
+    <string name="sources_action_remove_downloads">Remove downloads</string>
+    <string name="sources_remove_downloads_title">Remove downloads from %1$s?</string>
+    <string name="sources_remove_downloads_body">This deletes %1$s of files downloaded from this source. The source stays, and so do your reading positions.</string>
     <string name="sources_rename_title">Rename source</string>
     <string name="sources_rename_field">Name</string>
     <string name="sources_rename_save">Save</string>
