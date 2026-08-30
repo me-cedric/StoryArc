@@ -1,7 +1,7 @@
 ---
-status: proposed
+status: accepted
 date: 2026-08-30
-deciders:
+deciders: owner
 ---
 
 # ADR-0015 — A publication's own network access: deny it, admit it, or narrow it
@@ -28,11 +28,9 @@ which chapter. Reopening the book on later evenings builds a reading timeline
 keyed to that address. Publication JavaScript does it more precisely, with
 `fetch()` on every page turn, and Readium enables scripting on both platforms.
 
-This is the security review's **rank 3, high, CONFIRMED**. It is filed as
+This is the security review's **rank 3, high, CONFIRMED**. It was filed as
 *needs a decision* rather than *fix it* because every remedy changes what
-publications render, what the toolkit can do, or what the project promises — and
-because the honest answer is not obvious. This ADR establishes what is actually
-reachable in Readium 3.x on each platform, and recommends. It does not decide.
+publications render, what the toolkit can do, or what the project promises.
 
 ## Decision drivers
 
@@ -46,6 +44,10 @@ reachable in Readium 3.x on each platform, and recommends. It does not decide.
   image. Any allow-list is a guess about intent.
 - Whatever is chosen must be true on **both** platforms, or the difference has
   to be stated as plainly as the promise is.
+- The owner added three: **nothing about the app's security posture may appear
+  on screen**, **no permission prompt and no opt-in toggle may be added**, and
+  **no feature may be removed**. A remedy that needs the reader to agree to
+  something is not the remedy being asked for.
 
 ## What Readium 3.x actually offers
 
@@ -55,7 +57,7 @@ Established by reading the resolved dependencies, not from documentation.
 
 | Lever | Reachable? | Evidence |
 | --- | --- | --- |
-| A content rule list on the publication's web view | **Yes** | `EPUBNavigatorDelegate.navigator(_:setupUserScripts:)` hands the app the live `WKUserContentController` of each spread view (`Sources/Navigator/EPUB/EPUBNavigatorViewController.swift:19` and `:1264-1265`). `WKUserContentController.add(_ contentRuleList:)` is the supported way to install a compiled `WKContentRuleList`, so a rule that blocks every load whose URL is not the `readium` scheme can be installed with no change to the toolkit. The app already sets a delegate — `EpubReaderOpening.swift` assigns `NavigatorObserver`. |
+| A content rule list on the publication's web view | **Yes, and it is what shipped** | `EPUBNavigatorDelegate.navigator(_:setupUserScripts:)` hands the app the live `WKUserContentController` of each spread view (`Sources/Navigator/EPUB/EPUBNavigatorViewController.swift:19` and `:1264-1265`). `WKUserContentController.add(_ contentRuleList:)` installs a compiled `WKContentRuleList` on it, with no change to the toolkit. The app already sets a delegate — `EpubReaderOpening.swift` assigns `NavigatorObserver`. |
 | Turning publication JavaScript off | **No, and it would not be wanted** | `WKWebViewConfiguration` is built privately inside `EPUBSpreadView.swift:74` and `WKWebView.configuration` returns a copy, so `defaultWebpagePreferences.allowsContentJavaScript` is unreachable. It is also the wrong lever: Readium drives pagination, locators, decorations and selection through injected `WKUserScript`s, and disabling content scripting disables those with it. |
 | Refusing subresource loads through the navigation delegate | **No** | `EPUBSpreadView.swift:651-666` starts from `var policy: WKNavigationActionPolicy = .allow` and cancels only `navigationType == .linkActivated`. `decidePolicyFor` is not called for subresource loads at all — images, CSS, fonts and `fetch()` never reach it. |
 
@@ -63,9 +65,9 @@ Established by reading the resolved dependencies, not from documentation.
 
 | Lever | Reachable? | Evidence |
 | --- | --- | --- |
-| A navigator-level interception hook | **No** | `EpubNavigatorFragment.Configuration` exposes `servedAssets`, `readiumCssRsProperties`, `useReadiumCssFontSize`, `decorationTemplates`, `disablePageTurnsWhileScrolling`, `selectionActionModeCallback`, `shouldApplyInsetsPadding`, `disableSelectionWhenProtected`, font declarations and JavaScript interfaces. There is no request filter among them. `WebViewServer.shouldInterceptRequest` is public but is called by `R2BasicWebView.shouldInterceptRequest$readium_navigator`, which is `internal`. |
-| Reaching the WebView and blocking network loads | **Yes, but through Readium's internals** | `R2BasicWebView extends android.webkit.WebView` and `R2EpubPageFragment.getWebView()` is public, so `webView.settings.blockNetworkLoads = true` is one line — *if* the app can get hold of each page fragment. That means a `FragmentManager.FragmentLifecycleCallbacks` on the navigator's child fragment manager, keyed on a class the toolkit does not promise to keep. It works; it is not a contract. |
-| Injecting a CSP into each served resource | **Yes, and it is platform-neutral** | The publication is opened by the app (`PublicationOpener` on both platforms) before the navigator ever sees it. Wrapping the container so every XHTML resource gains `<meta http-equiv="Content-Security-Policy" content="default-src 'self' data:; connect-src 'none'">` is entirely inside the app's own code and needs no toolkit hook on either platform. It costs an HTML rewrite per resource and it is only as good as the web view's CSP implementation, which on Android is the system WebView's — a component whose version varies by device. |
+| A navigator-level interception hook | **No** | `EpubNavigatorFragment.Configuration` exposes `servedAssets`, `readiumCssRsProperties`, `useReadiumCssFontSize`, `decorationTemplates`, `disablePageTurnsWhileScrolling`, `selectionActionModeCallback`, `shouldApplyInsetsPadding`, `disableSelectionWhenProtected`, font declarations and JavaScript interfaces — confirmed by `javap` on the AAR's `classes.jar`. There is no request filter among them. `WebViewServer.shouldInterceptRequest` is public but is called by `R2BasicWebView.shouldInterceptRequest$readium_navigator`, which is `internal`. |
+| Reaching the web view without naming a Readium type | **Yes, and it is what shipped** | The app hosts the navigator itself, so `FragmentManager.registerFragmentLifecycleCallbacks(callback, recursive = true)` on the activity's own manager reaches the page fragments in the navigator's child manager. The callback is handed a `View`; walking it for an `android.webkit.WebView` names no toolkit class at all, which is a firmer contract than `R2EpubPageFragment.getWebView()` — the ADR's first draft assumed the latter was needed. |
+| Injecting a CSP into each served resource | **Yes, but not the way the first draft imagined** | Wrapping the publication's container to rewrite every XHTML `<head>` is real work and touches the parsing path. Not needed: the policy can be delivered as a **response header** on whatever Readium's own `WebViewClient` serves, by wrapping that client. No HTML is parsed and no byte of the publication is altered. |
 
 Two further facts that bear on the size of the problem:
 
@@ -79,30 +81,78 @@ Two further facts that bear on the size of the problem:
 - **Android permits cleartext app-wide.** Fixed under rank 10; the beacon no
   longer works over plain `http://`. It still works over `https://`.
 
+## What was measured
+
+The first draft of this ADR established that hooks existed. It did not establish
+what they stop, and both Android levers turned out to have a hole the other
+closes — which reading could not have told anyone. Both platforms were measured
+against the same eight-vector page: a tracking pixel, a scripted `new Image()`,
+`fetch`, `XMLHttpRequest`, `navigator.sendBeacon`, a `WebSocket`, an `<iframe>`
+and a top-level `location.href`, each pointed at its own listener so a run names
+what escaped rather than only counting it. Both harnesses are committed as the
+tests that guard this, and both listen on the device's own loopback, so neither
+needs a network.
+
+| | iOS, WebKit | Android, system WebView (API 36) |
+| --- | --- | --- |
+| Nothing installed | 6 of 8 arrive | all 8 arrive |
+| `WKContentRuleList`, deny-all except `readium:`/`about:`/`data:`/`blob:` | **0 arrive** | — |
+| `WebSettings.blockNetworkLoads` | — | 7 blocked, **the web socket still arrives** |
+| `Content-Security-Policy: connect-src 'none'` alone | — | blocks `fetch`, `XHR`, `sendBeacon`, the socket; the pixel, the frame and the navigation still arrive |
+| Both | — | **0 arrive** |
+
+The two that never arrive on iOS are the frame and the top-level navigation, and
+they do not arrive unblocked either: WebKit will not take a `readium://` document
+to an `https` one in this harness. That is a WebKit behaviour older than the rule
+list, so the iOS test does not claim those two — the Android test exercises both, and
+the same deny-all rule covers them by construction. On macOS WebKit, where the
+same page was first tried over plain `http`, all eight arrived and all eight were
+blocked.
+
+Three things this settled that reading could not:
+
+- **One lever is enough on iOS and two are needed on Android.** A web socket is
+  not a resource load, so it never reaches the loader `blockNetworkLoads`
+  guards. CSP closes it. Conversely CSP has no directive for a top-level
+  navigation — `navigate-to` was dropped from the specification — and
+  `blockNetworkLoads` stops that. Neither covers the other's gap.
+- **The ordering worry was unfounded.** Both toolkits issue the first load
+  before the app can reach the web view — `EPUBSpreadView` loads inside its own
+  initialiser, `R2EpubPageFragment` calls `loadUrl` inside `onCreateView`. It
+  does not matter: that first load is the resource itself, on the origin the app
+  serves, and a subresource cannot be asked for until it has been fetched and
+  parsed. Both tests install the block *after* the load is issued, exactly as
+  production does, and the first document is covered.
+- **Nothing Readium needs is caught by either.** `readium-reflowable.js` and
+  `readium-fixed.js` open no connection — the navigator talks to the app through
+  a JavaScript interface and injected scripts. The one asset in the AAR that
+  uses `fetch` is `divina/divinaPlayer.js`, which the EPUB navigator never
+  loads.
+
+A synthetic page proves the block; it does not prove the reader still reads. So
+the Android app was built twice — once with the hook, once with it replaced by
+`Unit` — installed on the same emulator, and the same book opened both times.
+The accessibility tree is identical, and the book paginates, with ReadiumCSS's
+type and the Paper theme's colour, under the block. iOS's half of that is its
+own step and has not been done: nothing in the corpus exercises it, so the claim
+there rests on the test.
+
 ## Considered options
 
 ### A — Deny by default, with an opt-in Privacy setting
 
-Block every load that is not the publication's own scheme. iOS through a
-`WKContentRuleList` installed in `setupUserScripts`; Android through a CSP
-injected into each served resource, with `blockNetworkLoads` as a belt-and-braces
-second line if the fragment hook proves stable. A single Privacy-screen toggle,
-**off by default**, lifts it for readers who want remote content, and says in one
-sentence what turning it on means.
+Block every load that is not the publication's own, and add a single
+Privacy-screen toggle, **off by default**, that lifts it for readers who want
+remote content and says in one sentence what turning it on means.
 
 - **Good.** The promise in `README.md` becomes true. The default costs the reader
   nothing they asked for.
 - **Good.** The setting is the only honest place to put "some books will look
-  wrong" — and `settings-and-about` already asks for privacy to be "verifiable
-  rather than merely stated", which a switch with a visible consequence is.
-- **Bad.** Two mechanisms, one per platform, both needing device verification; a
-  content rule list is compiled asynchronously and has to be ready before the
-  first spread renders, or the first chapter escapes.
+  wrong".
 - **Bad.** A new setting is a new string in four languages on both platforms, and
   a new spec scenario in `settings-and-about`.
-- **Bad.** A publication with a legitimate remote image renders with a hole in it
-  and no explanation, unless a "this book wanted to load something" notice is
-  built too — which is more UI than the toggle.
+- **Ruled out by the owner.** No opt-in toggle, and no sentence on screen about
+  what the app does or does not protect against.
 
 ### B — Amend `SECURITY.md` and say egress is out of scope
 
@@ -125,6 +175,8 @@ Option A without the escape hatch.
 
 - **Good.** Simplest to build and to explain; nothing to translate; no spec
   change beyond a sentence in `SECURITY.md`.
+- **Good.** Nothing is said on screen and nothing is asked of the reader, which
+  is what the owner required.
 - **Bad.** A publication that legitimately needs a remote resource is simply
   broken, with no way for the reader to say otherwise — and no way for us to know
   how often that happens, because the app collects nothing.
@@ -140,35 +192,84 @@ camera.
   is precisely what "the artwork is the interface" rules out.
 - Recorded so it is not re-proposed.
 
-## Recommendation, not a decision
+## Decision
 
-**Option A**, with two qualifications the decider should weigh:
+**Option C, on both platforms.** The block ships; no setting, no prompt, no
+sentence on screen.
 
-1. **Ship the deny first, the setting second.** The block is the part that makes
-   the promise true; the toggle is the part that makes it kind. If only one lands
-   in a release, it should be the block — Option C is a legitimate intermediate
-   state, and it is reversible.
-2. **Verify on device before claiming it.** A content rule list and a CSP are
-   both assertions about a web engine's behaviour, and this ADR establishes only
-   that the hooks exist. Neither claim should reach `SECURITY.md` until a crafted
-   EPUB with a beacon has been opened on a real iPhone and a real Android device
-   and the request has been observed *not* to leave. The corpus has no such
-   fixture today; `packages/test-fixtures` is where it belongs.
+- **iOS.** `PublicationEgress` compiles one `WKContentRuleList` per run of the
+  app and installs it on every spread through `setupUserScripts`. The list denies
+  everything and then lets back `readium:` — the navigator's own scheme, which
+  serves both the publication and the toolkit's static assets — plus `about:`,
+  `data:` and `blob:`, which are bytes the page already holds and cannot leave
+  the device. It is compiled before the navigator is constructed, because
+  installing it is synchronous and compiling it is not.
+- **Android.** `PublicationEgress` sets `blockNetworkLoads` on each page's web
+  view and wraps Readium's `WebViewClient` so everything it serves carries
+  `Content-Security-Policy: connect-src 'none'`. One directive on purpose: it
+  governs the connecting APIs and touches no image, style, script or font, so
+  nothing the reader is meant to see can be affected by it. The wrapper forwards
+  every `WebViewClient` method rather than only the four Readium overrides today.
 
-Whatever is chosen, the `SECURITY.md` row for reflowable EPUB content has to say
-what "restricted context" restricts. It has been amended in the same change as
-this ADR to name egress as an open question and point here, because the previous
-wording read as though the question had been answered.
+Scripting stays on, on both. Readium needs it, and a publication's own scripts
+are part of what it renders. Blocking egress is not the same as blocking
+scripting, and only the first is free — turning scripting off would change what
+publications render, which is the feature line the owner drew.
+
+### What this breaks, said plainly
+
+A publication that genuinely references a remote font, image, stylesheet, audio
+or video track loses it, and the page is drawn without it. There is no notice,
+because there may not be one.
+
+**No fixture in `packages/test-fixtures/ebooks/` references a remote resource** —
+checked by unpacking all six and grepping every entry — so nothing in the corpus
+changes appearance, and no committed screenshot moves. That also means the corpus
+has no publication that exercises the block, which is why both tests build their
+own page rather than reading one.
+
+This is judged not to be a feature of the app. The app's features are its own:
+reading, theming, annotating, searching, listening. A publication reaching a host
+the reader never configured is the defect the fix is aimed at, and the collateral
+is a publisher's decision to host a font somewhere else.
 
 ## Consequences
 
-- Until this is decided, **the privacy claim in `README.md` is false for EPUB**,
-  and the security review's rank 3 stays open. Nothing else in the audit is
-  blocked on it.
+- The privacy claim in `README.md` is now true for EPUB, and the security
+  review's rank 3 closes.
+- The `SECURITY.md` row for reflowable EPUB content is stale: it still says
+  "network egress is not among what that context restricts today" and points at
+  an ADR number that has since moved (it links `0014` for egress and `0015` for
+  SMB signing; those are now `0015` and `0016`). It needs rewriting to say what
+  is blocked, on which platform, by what, and to name the residues below. Not
+  done here — `SECURITY.md` is outside the files this change owns.
+- `docs/openspec/specs/` has nothing about this. Under Option C there is no new
+  user-observable behaviour to specify for a well-formed publication, but the
+  EPUB reading capability should gain a sentence saying a publication's remote
+  resources do not load, so that the next agent does not read the blank page as a
+  bug and "fix" it.
 - Rank 19's fix (clearing web-view cookies and origin storage) was made
-  regardless, because it is correct under every option here: under A and C there
-  is nothing left to clear, and under B it is the only thing standing between a
-  publication and a permanent identifier.
-- If A or C is chosen, `docs/openspec/specs/` needs the behaviour written down
-  first — `settings-and-about` for the toggle, and a sentence in the EPUB reading
-  capability for the block. Nothing here has been built.
+  regardless, and is now largely moot on the egress path: there is nothing for a
+  publication to set a cookie against.
+
+### Residual risks, and what would change the answer
+
+- **Android relies on a wrapped `WebViewClient`.** If a future toolkit overrides
+  a method the wrapper does not forward, that method stops reaching Readium.
+  Every non-deprecated method is forwarded today, so the failure mode is a new
+  API rather than a silent one, and the instrumented test would not catch it —
+  the reader's page would. A navigator-level request filter in kotlin-toolkit
+  would let the wrapper go; that is worth asking upstream for.
+- **iOS fails open if the rule list will not compile.** Compilation is a disk
+  operation on a constant that a test proves valid, so failure means the device
+  is in trouble; the book still opens, unguarded. Failing closed would mean
+  refusing to render a book over a storage error, which removes a feature to buy
+  security — the trade the owner ruled out.
+- **Both are assertions about a web engine.** They were verified on WebKit and on
+  the API 36 system WebView. Android's WebView version varies by device; a very
+  old one could behave differently, and the test that would notice is
+  instrumented, so it runs on whatever emulator CI boots rather than on the
+  fleet.
+- **This does not stop a publication reading, only sending.** Local storage,
+  cookies and IndexedDB still work inside the publication's origin, which is
+  ADR-0015's neighbour rather than its subject.
