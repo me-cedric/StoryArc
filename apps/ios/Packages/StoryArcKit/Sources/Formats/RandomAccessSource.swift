@@ -32,7 +32,10 @@ extension RandomAccessSource {
     /// mid-structure means the file is malformed, not that the caller should
     /// retry with less.
     func readExactly(offset: Int64, count: Int) async throws -> Data {
-        guard offset >= 0, count >= 0, offset + Int64(count) <= length else {
+        // The last guard before a header's numbers become a read, so the addition here
+        // reports overflow instead of performing it: an offset near `Int64.max` plus a
+        // count is a trap, and a trap is not something a caller can catch and report.
+        guard HeaderBounds.span(offset: offset, count: Int64(count), fitsIn: length) else {
             throw SourceError.outOfBounds(offset: offset, count: count, length: length)
         }
         let data = try await read(offset: offset, count: count)

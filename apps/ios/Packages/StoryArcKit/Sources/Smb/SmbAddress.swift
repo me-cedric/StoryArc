@@ -119,3 +119,45 @@ public struct SmbIdentity: Sendable, Equatable {
         self.isEncrypted = isEncrypted
     }
 }
+
+extension SmbEntry {
+    /// Where this entry's bytes may be written under `directory`, or `nil` when the
+    /// server's name is not usable as a filename.
+    ///
+    /// A hostile server picks both the destination and the content. `name` comes
+    /// verbatim out of a directory-listing response, and a name of
+    /// `../../Preferences/group.app.storyarc.plist` handed straight to `appending(path:)`
+    /// resolves out of the cache directory and into the app's own preferences — the
+    /// server then chooses what is written there. Only a decoder that needs a real file
+    /// (PDF, solid RAR, CB7) makes the app write anything down, and the server chooses
+    /// which format it serves, so it chooses whether that happens.
+    ///
+    /// The rule is the one `ImageFolderArchive.data(for:)` applies to a publication's own
+    /// internal paths: keep the last component, and refuse a name that means a directory
+    /// rather than a file. Refused rather than trimmed, like a download id — trimming is
+    /// what invites `....//` and the rest of that family — and the resolved path is
+    /// checked back against `directory` as the belt to that brace.
+    ///
+    /// `SmbClient.list` drops an exact `.` and `..` so the browser does not list them, and
+    /// that is not this check: `../../Preferences/x.plist` is not an exact match and
+    /// survives it untouched. A name only becomes dangerous where it becomes a path, which
+    /// is here.
+    public func cacheLocation(in directory: URL) -> URL? {
+        // Both separators. `\` is SMB's own, and a rule that knows only `/` is a rule
+        // written in the wrong protocol.
+        let components = name.split(whereSeparator: { $0 == "/" || $0 == "\\" })
+        guard let last = components.last.map(String.init), !last.isEmpty else { return nil }
+        // `.`, `..`, and any longer run of dots — every one of them names a directory.
+        guard last.contains(where: { $0 != "." }) else { return nil }
+        // Nothing that survived the split can still be a separator, and nothing that
+        // reaches a filesystem call may carry a NUL. Checked anyway: this is the last
+        // place either could be true.
+        guard !last.contains("/"), !last.contains("\\"), !last.contains("\0") else { return nil }
+
+        let local = directory.appending(path: last)
+        guard local.standardizedFileURL.path
+            .hasPrefix(directory.standardizedFileURL.path + "/")
+        else { return nil }
+        return local
+    }
+}

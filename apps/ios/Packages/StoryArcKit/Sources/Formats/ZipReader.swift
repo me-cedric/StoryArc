@@ -92,7 +92,7 @@ public struct ZipReader: Sendable {
             }
         }
 
-        guard cdOffset >= 0, cdSize >= 0, cdOffset + cdSize <= source.length else {
+        guard HeaderBounds.span(offset: cdOffset, count: cdSize, fitsIn: source.length) else {
             throw ZipError.malformed("central directory outside the source")
         }
 
@@ -108,7 +108,9 @@ public struct ZipReader: Sendable {
             directory = try await source.readExactly(offset: cdOffset, count: Int(cdSize))
         }
 
-        self.entries = try Self.parseCentralDirectory(directory, expectedCount: entryCount)
+        self.entries = try Self.parseCentralDirectory(
+            directory, expectedCount: entryCount, sourceLength: source.length
+        )
         self.hasArchiveComment = commentLength > 0
     }
 
@@ -235,7 +237,9 @@ public struct ZipReader: Sendable {
                 isEncrypted: entry.isEncrypted
             )
         }
-        guard parsed.dataOffset + entry.compressedSize <= source.length else { return }
+        guard HeaderBounds.span(
+            offset: parsed.dataOffset, count: entry.compressedSize, fitsIn: source.length
+        ) else { return }
         found.append(entry)
     }
 
@@ -305,9 +309,19 @@ public struct ZipReader: Sendable {
 
         // The local header's own name and extra lengths tell us where the data
         // starts. Its size fields are ignored — see ZipEntry.
+        //
+        // The subtraction reports overflow rather than performing it. The offset is
+        // range-checked where the central directory is parsed; this is the check that
+        // the check held, and it costs one branch on a read that already does IO.
+        let (available, overflowed) = source.length.subtractingReportingOverflow(
+            entry.localHeaderOffset
+        )
+        guard !overflowed, available >= 0 else {
+            throw ZipError.malformed("local header outside the source")
+        }
         let headerProbe = try await source.readExactly(
             offset: entry.localHeaderOffset,
-            count: min(30, Int(source.length - entry.localHeaderOffset))
+            count: Int(min(30, available))
         )
         var reader = ByteReader(headerProbe)
         guard try reader.uint32() == Self.localHeaderSignature else {
@@ -318,7 +332,9 @@ public struct ZipReader: Sendable {
         let extraLength = Int(try reader.uint16())
 
         let dataOffset = entry.localHeaderOffset + 30 + Int64(nameLength) + Int64(extraLength)
-        guard dataOffset + entry.compressedSize <= source.length else {
+        guard HeaderBounds.span(
+            offset: dataOffset, count: entry.compressedSize, fitsIn: source.length
+        ) else {
             throw ZipError.malformed("entry data outside the source")
         }
 

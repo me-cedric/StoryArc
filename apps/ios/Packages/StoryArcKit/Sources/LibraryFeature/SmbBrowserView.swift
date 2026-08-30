@@ -145,7 +145,11 @@ public struct SmbBrowserView: View {
             // Refused means the decoder needs a file. Fetch it, and index again with one.
             let directory = URL.cachesDirectory.appending(path: "Smb", directoryHint: .isDirectory)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let local = directory.appending(path: entry.name)
+            // The server named this file. `cacheLocation` is what keeps its name from
+            // being a place — see `SmbEntry`.
+            guard let local = entry.cacheLocation(in: directory) else {
+                throw SmbError.unexpected(detail: "unusable entry name")
+            }
             let existing = try? local.resourceValues(forKeys: [.fileSizeKey]).fileSize
             if existing.map({ Int64($0) }) != entry.length {
                 try await source.read(offset: 0, count: Int(entry.length))

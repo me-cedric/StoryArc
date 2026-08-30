@@ -192,7 +192,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - third_party/libarchive/VENDORING.md:32 and :110-112 — the repo's own warning: 'CVE tracking is manual', 'vulnerability alerts will not find them automatically', 'treat a RAR-reader CVE as urgent: those two files parse untrusted input from the internet'. Echoed at SECURITY.md:35. git log shows the sources landed 2026-08-24 and have not moved since.
 
 
-### 5. iOS: Int64 overflow on attacker-controlled ZIP64/TAR header fields traps the process, so one crafted CBZ in a watched folder crashes the app on every launch
+### 5. FIXED — iOS: Int64 overflow on attacker-controlled ZIP64/TAR header fields traps the process, so one crafted CBZ in a watched folder crashes the app on every launch
 
 **🟡 medium** · ios · our-code · effort: small · **CONFIRMED**
 
@@ -211,7 +211,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - apps/android/core/format/src/main/kotlin/app/storyarc/core/format/ZipReader.kt:107 and :234 — the mirrored expressions; Kotlin wraps silently and RandomAccessSource.kt:45 (`if (offset < 0 || count < 0 || offset + count > length)`) rejects the wrapped negative, so Android degrades to an exception.
 
 
-### 6. A hostile SMB server picks both the destination and the content: an unfiltered share entry name writes outside the app's cache directory
+### 6. FIXED — A hostile SMB server picks both the destination and the content: an unfiltered share entry name writes outside the app's cache directory
 
 **🟡 medium** · both · our-code · effort: small · **CONFIRMED**
 

@@ -73,14 +73,19 @@ public struct TarReader: Sendable {
 
             let size = try Self.size(of: block)
             let dataOffset = offset
-            // Entry data is padded to a whole number of blocks.
-            offset += (size + Int64(Self.blockSize) - 1) / Int64(Self.blockSize) * Int64(Self.blockSize)
 
-            guard size >= 0, dataOffset + size <= source.length else {
+            // Checked *before* any arithmetic uses it. A GNU base-256 field can carry a
+            // size within 256 of Int64.max, and the block padding below adds 511 to it:
+            // performing that addition first is a process abort, not a `TarError`.
+            guard HeaderBounds.span(offset: dataOffset, count: size, fitsIn: source.length) else {
                 // The header claims more bytes than the file holds. Stop rather
                 // than trusting the next offset, which is now meaningless.
                 break
             }
+
+            // Entry data is padded to a whole number of blocks. Safe now: `size` is no
+            // larger than what remains of a real file.
+            offset += (size + Int64(Self.blockSize) - 1) / Int64(Self.blockSize) * Int64(Self.blockSize)
 
             switch Self.typeFlag(of: block) {
             case 0x4C:  // 'L' — GNU long name; this block's data names the next entry.
@@ -108,8 +113,7 @@ public struct TarReader: Sendable {
 
     /// A whole entry. No decompression: TAR stores bytes verbatim.
     public func data(for entry: TarEntry) async throws -> Data {
-        guard entry.size >= 0, entry.dataOffset >= 0,
-              entry.dataOffset + entry.size <= source.length
+        guard HeaderBounds.span(offset: entry.dataOffset, count: entry.size, fitsIn: source.length)
         else { throw TarError.malformed("entry lies outside the source") }
         return try await source.readExactly(offset: entry.dataOffset, count: Int(entry.size))
     }

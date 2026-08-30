@@ -1,5 +1,7 @@
 package app.storyarc.core.smb
 
+import java.io.File
+
 /**
  * Where a share is, and who is asking.
  *
@@ -119,3 +121,39 @@ data class SmbIdentity(
      */
     val isEncrypted: Boolean,
 )
+
+/**
+ * Where this entry's bytes may be written under [directory], or `null` when the server's
+ * name is not usable as a filename.
+ *
+ * A hostile server picks both the destination and the content. [SmbEntry.name] comes
+ * verbatim out of a directory listing, and a name of `../shared_prefs/settings.xml` handed
+ * straight to `File(directory, name)` resolves out of the cache directory and into the
+ * app's own preferences -- the server then chooses what is written there. Only a decoder
+ * that needs a real file (`PdfRenderer`, libarchive) makes the app write anything down, and
+ * the server chooses which format it serves, so it chooses whether that happens.
+ *
+ * The rule is the one `ImageFolderArchive` applies to a publication's own internal paths:
+ * keep the last component, and refuse a name that means a directory rather than a file.
+ * Refused rather than trimmed, like a download id -- trimming is what invites `....//` and
+ * the rest of that family -- and the resolved path is checked back against [directory] as
+ * the belt to that brace.
+ *
+ * Not filtered in [SmbClient.list]: a share may legitimately show a folder called `..` and
+ * the browser can display it. The name only becomes dangerous where it becomes a path.
+ */
+fun SmbEntry.cacheLocation(directory: File): File? {
+    // Both separators. `\` is SMB's own, and a rule that knows only `/` is a rule written
+    // in the wrong protocol.
+    val last = name.split('/', '\\').lastOrNull { it.isNotEmpty() } ?: return null
+    // `.`, `..`, and any longer run of dots -- every one of them names a directory.
+    if (last.all { it == '.' }) return null
+    // Nothing that survived the split can still be a separator, and nothing that reaches a
+    // filesystem call may carry a NUL. Checked anyway: this is the last place either could
+    // be true.
+    if (last.any { it == '/' || it == '\\' || it == '\u0000' }) return null
+
+    val local = File(directory, last)
+    if (!local.canonicalPath.startsWith(directory.canonicalPath + File.separator)) return null
+    return local
+}

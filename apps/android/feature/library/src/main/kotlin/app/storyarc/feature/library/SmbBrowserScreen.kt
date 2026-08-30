@@ -48,6 +48,8 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.smb.SmbClient
 import app.storyarc.core.smb.SmbEntry
+import app.storyarc.core.smb.SmbError
+import app.storyarc.core.smb.cacheLocation
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -240,7 +242,11 @@ private suspend fun openFromShare(
 
     val local = withContext(Dispatchers.IO) {
         val directory = File(context.cacheDir, "smb").apply { mkdirs() }
-        File(directory, entry.name).apply {
+        // The server named this file. `cacheLocation` is what keeps its name from being a
+        // place -- see `SmbEntry`.
+        val destination = entry.cacheLocation(directory)
+            ?: throw SmbError.Unexpected("unusable entry name")
+        destination.apply {
             if (length() != entry.length) {
                 writeBytes(source.read(0, entry.length.toInt()))
             }

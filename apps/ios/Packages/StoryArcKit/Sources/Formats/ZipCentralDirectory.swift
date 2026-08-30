@@ -7,7 +7,15 @@ public import Foundation
 // an entry is the other half. They share a type and nothing else.
 
 extension ZipReader {
-    static func parseCentralDirectory(_ data: Data, expectedCount: Int64) throws -> [ZipEntry] {
+    /// Reads the entries out of a central directory.
+    ///
+    /// `sourceLength` is not decoration. A zip64 extra field can override an entry's
+    /// offset and compressed size with any 64-bit number, and those numbers are added to
+    /// things later — so they are range-checked here, where they are parsed, rather than
+    /// in the guard that would trap on them.
+    static func parseCentralDirectory(
+        _ data: Data, expectedCount: Int64, sourceLength: Int64
+    ) throws -> [ZipEntry] {
         var reader = ByteReader(data)
         var parsed: [ZipEntry] = []
 
@@ -46,23 +54,38 @@ extension ZipReader {
                 if let value = zip64.compressedSize { compressedSize = value }
                 if let value = zip64.localOffset { localOffset = value }
             }
-
-            parsed.append(
-                ZipEntry(
-                    path: path,
-                    compressedSize: compressedSize,
-                    uncompressedSize: uncompressedSize,
-                    localHeaderOffset: localOffset,
-                    compressionMethod: method,
-                    isEncrypted: flags & 0x0001 != 0
-                )
+            let entry = ZipEntry(
+                path: path,
+                compressedSize: compressedSize,
+                uncompressedSize: uncompressedSize,
+                localHeaderOffset: localOffset,
+                compressionMethod: method,
+                isEncrypted: flags & 0x0001 != 0
             )
+            try checkFits(entry, in: sourceLength)
+            parsed.append(entry)
         }
 
         // A count mismatch means a damaged directory. Returning what parsed is
         // more useful than refusing the archive, and the caller can compare.
         _ = expectedCount
         return parsed
+    }
+
+    /// Refuses an entry whose zip64 override put it outside the file.
+    ///
+    /// The override is the only way any of these leaves the range a 32-bit field could
+    /// hold, and it is unchecked on the wire. An entry that starts or ends outside the
+    /// file is a lie about the archive rather than damage to it, so the archive is
+    /// refused rather than half-read. `uncompressedSize` is exempt on purpose:
+    /// compression is what makes a value larger than the file honest there.
+    private static func checkFits(_ entry: ZipEntry, in sourceLength: Int64) throws {
+        guard HeaderBounds.position(entry.localHeaderOffset, fitsIn: sourceLength),
+              HeaderBounds.position(entry.compressedSize, fitsIn: sourceLength),
+              entry.uncompressedSize >= 0
+        else {
+            throw ZipError.malformed("central directory entry outside the source")
+        }
     }
 
     struct Zip64Fields {
@@ -126,7 +149,10 @@ extension ZipReader {
         try locator.skip(4)           // disk holding the zip64 EOCD
         let recordOffset = Int64(bitPattern: try locator.uint64())
 
-        guard recordOffset >= 0, recordOffset + 56 <= source.length else {
+        // `recordOffset + 56` is the arithmetic this guard used to do itself, on a
+        // number the file chose. At 0x7FFFFFFFFFFFFFC8 the addition leaves Int64 before
+        // the comparison runs, and Swift aborts the process rather than throwing.
+        guard HeaderBounds.span(offset: recordOffset, count: 56, fitsIn: source.length) else {
             throw ZipError.malformed("zip64 EOCD offset outside the source")
         }
 
@@ -147,6 +173,13 @@ extension ZipReader {
         let entryCount = Int64(bitPattern: try reader.uint64())
         let size = Int64(bitPattern: try reader.uint64())
         let offset = Int64(bitPattern: try reader.uint64())
+        // Checked here rather than by the caller: two positive values whose sum leaves
+        // Int64 pass every `>= 0` test and trap on the addition that follows.
+        guard entryCount >= 0,
+              HeaderBounds.span(offset: offset, count: size, fitsIn: source.length)
+        else {
+            throw ZipError.malformed("zip64 central directory outside the source")
+        }
         return Zip64Directory(entryCount: entryCount, size: size, offset: offset)
     }
 
