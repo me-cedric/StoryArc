@@ -12,6 +12,21 @@ extension LibraryView {
 
     @ToolbarContentBuilder
     var toolbarItems: some ToolbarContent {
+        // `ScopeMenu` belongs here, and putting it here segfaults.
+        //
+        // Android mounts its own scope selector first in the bar (`LibraryScreen.kt`), gated
+        // on a second source to narrow to. iOS's `ScopeMenu` is written, translated and
+        // mounted by nothing, so an iOS reader cannot leave "all sources" — the scope
+        // persists, narrows the shelf, the search, the filters and the continue row, and has
+        // no control. Adding `ToolbarItem { ScopeMenu(model: model) }` to this builder
+        // compiles, lints and passes every test, and then crashes the app on first layout:
+        // `EXC_BAD_ACCESS` inside `ToolbarContentBuilder.buildExpression`, reached from this
+        // property, with a second thread faulting in AttributeGraph's layout-descriptor
+        // walk. Reverted rather than shipped, because a crash is worse than the gap.
+        //
+        // Not investigated further here: the suspect is the `Picker` inside `ScopeMenu`
+        // whose tag is `LibraryScope`, an enum carrying a `UUID`, where `SortMenu`'s tag is
+        // a plain enum and works. That is its own piece of work.
         if !model.publications.isEmpty {
             // The way in. The way out is in the bar the selection puts up, so the toolbar
             // does not gain a control that is only ever half useful.
