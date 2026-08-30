@@ -1,0 +1,94 @@
+// The notation. Every element kind here maps to something the repository
+// actually contains, so that reading a diagram and reading the build files
+// give the same answer.
+specification {
+
+  element person {
+    notation 'Person'
+    style {
+      shape person
+      color secondary
+    }
+  }
+
+  // A shipped application: one of the two independent native apps.
+  element app {
+    notation 'Native application'
+    style {
+      shape mobile
+      color primary
+    }
+  }
+
+  // A Swift Package Manager package. Only iOS has these.
+  element package {
+    notation 'SPM package'
+    style {
+      color indigo
+      opacity 10%
+    }
+  }
+
+  // A build module: an SPM target on iOS, a Gradle module on Android.
+  element module {
+    notation 'Build module'
+    style {
+      shape rectangle
+      color indigo
+    }
+  }
+
+  // A type or file inside one module.
+  element component {
+    notation 'Component'
+    style {
+      shape rectangle
+      color sky
+    }
+  }
+
+  // A committed, declarative artefact both apps read. Not code.
+  element artefact {
+    notation 'Shared artefact'
+    style {
+      shape storage
+      color green
+    }
+  }
+
+  // Something outside the app, reached over a network or the file system.
+  element externalSystem {
+    notation 'External system'
+    style {
+      shape rectangle
+      color slate
+    }
+  }
+
+  // A capability the product deliberately does not have. Drawn so the absence
+  // is stated rather than assumed. Nothing of this kind exists in the code.
+  element absent {
+    notation 'Deliberately absent'
+    style {
+      shape rectangle
+      color muted
+      border dashed
+      opacity 5%
+    }
+  }
+
+  relationship dependsOn {
+    notation 'Build dependency'
+  }
+
+  relationship reads {
+    notation 'Reads over a protocol'
+    line dashed
+  }
+
+  tag ios
+  tag android
+  tag shared
+  tag mirrored
+  tag absence
+}
