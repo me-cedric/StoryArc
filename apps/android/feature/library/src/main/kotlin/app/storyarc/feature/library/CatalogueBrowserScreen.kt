@@ -37,6 +37,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,6 +53,7 @@ import app.storyarc.core.catalogue.OpdsFacet
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import kotlinx.coroutines.launch
 
 /**
  * A page of a catalogue: its sections, its publications, and the groups it declares.
@@ -82,6 +84,9 @@ fun CatalogueBrowserScreen(
     var term by rememberSaveable { mutableStateOf("") }
     var filtered by remember { mutableStateOf<List<OpdsEntry>?>(null) }
     val shown = filtered ?: entries
+    // The screen's own scope rather than the browser's: a search the reader left behind by
+    // walking out of the page should not outlive the page.
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(browser) { browser.load() }
 
@@ -129,16 +134,23 @@ fun CatalogueBrowserScreen(
                     if (it.isEmpty()) filtered = null
                 },
                 onSubmit = {
-                    when (val outcome = browser.search(term)) {
-                        // A server-answered search opens as its own page, like entering a
-                        // section, so the reader can go back to where they searched from.
-                        is CatalogueBrowser.SearchOutcome.Server -> {
-                            filtered = null
-                            onEnter(term, outcome.url)
-                        }
+                    // Asked rather than read again when the answer arrives: resolving an
+                    // OpenSearch description document is a request, and the reader can
+                    // have typed on since.
+                    val asked = term
+                    scope.launch {
+                        when (val outcome = browser.search(asked)) {
+                            // A server-answered search opens as its own page, like entering
+                            // a section, so the reader can go back to where they searched
+                            // from.
+                            is CatalogueBrowser.SearchOutcome.Server -> {
+                                filtered = null
+                                onEnter(asked, outcome.url)
+                            }
 
-                        is CatalogueBrowser.SearchOutcome.Local -> filtered = outcome.matches
-                        CatalogueBrowser.SearchOutcome.Cleared -> filtered = null
+                            is CatalogueBrowser.SearchOutcome.Local -> filtered = outcome.matches
+                            CatalogueBrowser.SearchOutcome.Cleared -> filtered = null
+                        }
                     }
                 },
             )

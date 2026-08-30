@@ -178,14 +178,19 @@ public struct CatalogueBrowserView: View {
 
     /// A search the server answers, or one this page answers itself.
     private func runSearch() {
-        switch browser.search(term) {
-        case .server:
-            searching = term
-            filtered = nil
-        case let .local(matches):
-            filtered = matches
-        case .cleared:
-            filtered = nil
+        // Asked rather than read again when the answer arrives: resolving an OpenSearch
+        // description document is a request, and the reader can have typed on since.
+        let asked = term
+        Task {
+            switch await browser.search(asked) {
+            case .server:
+                searching = asked
+                filtered = nil
+            case let .local(matches):
+                filtered = matches
+            case .cleared:
+                filtered = nil
+            }
         }
     }
 

@@ -133,9 +133,14 @@ public final class CatalogueBrowser {
     /// `opds-catalog`: "a catalogue without search falls back to filtering the cached
     /// catalogue, and says so". The fallback filters what has been fetched, which is the
     /// only cache there is until downloads exist.
-    public func search(_ term: String) -> SearchOutcome {
+    public func search(_ term: String) async -> SearchOutcome {
         let trimmed = term.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return .cleared }
+        // An OPDS 1.2 server usually advertises search through a description document
+        // rather than an inline template, which is the commoner half of this scenario and
+        // was the half nothing followed: every such catalogue fell back to filtering what
+        // was already loaded. One request, and only when a reader actually searches.
+        await resolveDescription()
         guard let url = searchURL(for: trimmed) else {
             return .local(searchable.filter { $0.matches(trimmed) })
         }
@@ -143,9 +148,30 @@ public final class CatalogueBrowser {
     }
 
     /// Where a search for this term goes, when the catalogue advertises one.
+    ///
+    /// The resolved template first: once a description document has been read, it is what
+    /// this catalogue's search means, and the page a server-answered search opens is built
+    /// from here rather than from the outcome above.
     public func searchURL(for term: String) -> URL? {
-        guard let template = feed?.searchTemplate else { return nil }
+        guard let template = resolvedTemplate ?? feed?.searchTemplate else { return nil }
         return Self.fill(template, with: term.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    /// The template a description document holds, fetched once per page.
+    private var resolvedTemplate: String?
+
+    /// Reads the description document the feed pointed at, if it pointed at one.
+    ///
+    /// Silent on failure. A description document that cannot be fetched or does not offer a
+    /// usable template leaves this catalogue with no reachable search, which is exactly the
+    /// state the local fallback exists for.
+    private func resolveDescription() async {
+        guard resolvedTemplate == nil,
+              feed?.searchTemplate == nil,
+              let document = feed?.searchDescription,
+              let data = try? await client.data(at: document, credential: credential)
+        else { return }
+        resolvedTemplate = OpenSearchDescription.template(data, baseURL: document)
     }
 
     /// Substitutes a term into whichever placeholder the template uses.

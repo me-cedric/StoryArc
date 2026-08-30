@@ -11,6 +11,7 @@ import app.storyarc.core.catalogue.OpdsError
 import app.storyarc.core.catalogue.OpdsFeed
 import app.storyarc.core.catalogue.OpdsOrigin
 import app.storyarc.core.catalogue.OpdsRefusal
+import app.storyarc.core.catalogue.OpenSearchDescription
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.persistence.CredentialStore
@@ -142,16 +143,54 @@ class CatalogueBrowser(
      * catalogue, and says so". The fallback filters what has been fetched, which is the only
      * cache there is until downloads exist.
      */
-    fun search(term: String): SearchOutcome {
+    suspend fun search(term: String): SearchOutcome {
         val trimmed = term.trim()
         if (trimmed.isEmpty()) return SearchOutcome.Cleared
+        // An OPDS 1.2 server usually advertises search through a description document
+        // rather than an inline template, which is the commoner half of this scenario and
+        // was the half nothing followed: every such catalogue fell back to filtering what
+        // was already loaded. One request, and only when a reader actually searches.
+        resolveDescription()
         val url = searchUrl(trimmed)
             ?: return SearchOutcome.Local(searchable.filter { it.matches(trimmed) })
         return SearchOutcome.Server(url)
     }
 
-    /** Where a search for this term goes, when the catalogue advertises one. */
-    fun searchUrl(term: String): String? = _feed.value?.searchTemplate?.let { fill(it, term.trim()) }
+    /**
+     * Where a search for this term goes, when the catalogue advertises one.
+     *
+     * The resolved template first: once a description document has been read, it is what
+     * this catalogue's search means.
+     */
+    fun searchUrl(term: String): String? =
+        (resolvedTemplate ?: _feed.value?.searchTemplate)?.let { fill(it, term.trim()) }
+
+    /** The template a description document holds, fetched once per page. */
+    private var resolvedTemplate: String? = null
+
+    /**
+     * Reads the description document the feed pointed at, if it pointed at one.
+     *
+     * Silent on failure. A description document that cannot be fetched or does not offer a
+     * usable template leaves this catalogue with no reachable search, which is exactly the
+     * state the local fallback exists for.
+     */
+    private suspend fun resolveDescription() {
+        if (resolvedTemplate != null) return
+        val page = _feed.value ?: return
+        if (page.searchTemplate != null) return
+        val document = page.searchDescription ?: return
+        val body = try {
+            client.bytes(document, credential)
+        } catch (refusal: OpdsRefusal.Untrusted) {
+            return
+        } catch (error: OpdsError) {
+            return
+        } catch (error: IOException) {
+            return
+        }
+        resolvedTemplate = OpenSearchDescription.template(body, document)
+    }
 
     private suspend fun fetch(url: String, appending: Boolean) {
         if (!appending) _state.value = State.Loading
