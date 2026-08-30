@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 /// A file the system handed over that StoryArc will not open, and what to say about it.
 ///
@@ -26,5 +26,22 @@ struct RefusedFile: Identifiable, Sendable {
                 + "It reads \(Self.supported)."
         }
         return "\(name) is not a file StoryArc recognises. It reads \(Self.supported)."
+    }
+}
+
+extension View {
+    /// Says why a handed-over file was refused.
+    ///
+    /// Here rather than in `StoryArcApp` so the wording and the alert that carries it sit
+    /// together — and because the app file is at the length the linter allows.
+    func refusing(_ file: Binding<RefusedFile?>) -> some View {
+        alert(
+            Text(verbatim: "Cannot open this file"),
+            isPresented: Binding(get: { file.wrappedValue != nil }, set: { if !$0 { file.wrappedValue = nil } })
+        ) {
+            Button(role: .cancel) { file.wrappedValue = nil } label: { Text(verbatim: "OK") }
+        } message: {
+            Text(file.wrappedValue?.message ?? "")
+        }
     }
 }

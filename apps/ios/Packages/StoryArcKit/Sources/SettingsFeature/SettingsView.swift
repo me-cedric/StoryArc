@@ -66,10 +66,19 @@ public struct SettingsView: View {
     @State private var query = ""
     @State private var isConfirmingReset = false
 
+    /// Which group the screen has been pushed into, if any.
+    ///
+    /// A path rather than a self-contained `NavigationLink` per row: the home-screen menu
+    /// offers Downloads directly, and a screen whose navigation lives entirely inside its
+    /// own links is one nothing outside it can point at. Android's `SettingsScreen` holds
+    /// the same value in the same place, for the same reason.
+    @State private var path: [SettingMatch]
+
     public init(
         settings: Binding<AppSettings>,
         readerStore: ReaderPreferences,
         onReset: @escaping () -> Void,
+        opensAtDownloads: Bool = false,
         sources: [Source] = [],
         itemCount: @escaping (Source.ID) -> Int = { _ in 0 },
         onRemoveSource: @escaping (Source) -> Void = { _ in },
@@ -84,6 +93,7 @@ public struct SettingsView: View {
         _settings = settings
         self.readerStore = readerStore
         self.onReset = onReset
+        _path = State(initialValue: opensAtDownloads ? [SettingMatch(group: .downloads)] : [])
         self.sources = sources
         self.itemCount = itemCount
         self.onRemoveSource = onRemoveSource
@@ -97,7 +107,7 @@ public struct SettingsView: View {
     }
 
     public var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 let matches = SettingsGroup.search(query)
                 if matches.isEmpty {
@@ -106,10 +116,7 @@ public struct SettingsView: View {
                 }
 
                 ForEach(matches) { match in
-                    NavigationLink {
-                        detail(for: match.group, highlight: match.anchor)
-                            .navigationTitle(Text(match.group.titleKey, bundle: .module))
-                    } label: {
+                    NavigationLink(value: match) {
                         Label {
                             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                                 Text(match.anchor?.titleKey ?? match.group.titleKey, bundle: .module)
@@ -138,6 +145,10 @@ public struct SettingsView: View {
                         }
                     }
                 }
+            }
+            .navigationDestination(for: SettingMatch.self) { match in
+                detail(for: match.group, highlight: match.anchor)
+                    .navigationTitle(Text(match.group.titleKey, bundle: .module))
             }
             .searchable(text: $query, prompt: Text("settings.search", bundle: .module))
             // `settings-and-about`: the app "confirms and states explicitly that sources,

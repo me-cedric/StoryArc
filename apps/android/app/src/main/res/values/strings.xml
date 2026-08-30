@@ -5,4 +5,13 @@
     <string name="open_in_unsupported">%1$s is a %2$s file, which StoryArc does not read. It reads CBZ, CBR, CBT, EPUB and PDF.</string>
     <string name="open_in_unreadable">%1$s is not a file StoryArc recognises. It reads CBZ, CBR, CBT, EPUB and PDF.</string>
     <string name="open_in_dismiss">OK</string>
+
+    <!-- `native-experience` quick actions: the menu the launcher shows on a long press.
+         A launcher draws the long label where there is room for it and the short one where
+         there is not, so the short label names the act and the long label names the act
+         and the book. iOS shows both at once, on two lines. -->
+    <string name="shortcut_continue">Continue reading</string>
+    <string name="shortcut_continue_named">Continue %1$s</string>
+    <string name="shortcut_library">Library</string>
+    <string name="shortcut_downloads">Downloads</string>
 </resources>

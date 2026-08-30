@@ -34,6 +34,23 @@ SHALL follow that platform's current design language.
 - **WHEN** the platform offers a system affordance the app needs
 - **THEN** the system one is used — share sheet, document picker, context menu, haptics, quick actions, widgets, Handoff on iOS, and predictive back on Android
 
+#### Scenario: Home-screen quick actions
+- **WHEN** the app icon is held down
+- **THEN** the menu offers the publication in progress, named, followed by the library, followed by downloads once anything has been downloaded
+- **AND** the entries survive the app being killed, because the system stores them rather than the app
+- **AND** choosing the library lands on the shelf rather than on wherever the app was last left
+- **AND** every entry is localised in each supported language
+
+#### Scenario: Continuity
+- **WHEN** a publication is being read
+- **THEN** iOS publishes it as a user activity, so the reader's other devices offer to continue it and the publication appears in Spotlight
+- **AND** Android reports the same publication to the launcher as a used shortcut, so the launcher and the Assistant can surface it
+- **AND** neither platform carries the reading position between devices, because there is no backend to carry it
+
+#### Scenario: A publication a continuity handover names is no longer there
+- **WHEN** a quick action or a handover names a publication the library cannot place
+- **THEN** the app lands on the library rather than on an error, and the entry is replaced the next time the menu is published
+
 ### Requirement: Dynamic colour
 
 The app SHALL adopt each platform's dynamic-colour behaviour.

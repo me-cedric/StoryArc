@@ -5,7 +5,7 @@ internal import SwiftUI
 /// `settings-and-about` asks for matches to be listed "with their group path", which is
 /// what `anchor == nil` distinguishes — a group match shows its current value, a setting
 /// match shows the group it lives in and, once opened, lights the row up.
-struct SettingMatch: Identifiable {
+struct SettingMatch: Identifiable, Hashable {
     let group: SettingsGroup
     let anchor: SettingsAnchor?
 

@@ -36,6 +36,14 @@ struct StoryArcApp: App {
 
     @State private var isShowingSettings = false
 
+    /// Whether Settings should open straight at Downloads, because a quick action asked
+    /// for it rather than the reader tapping their way in.
+    @State private var isShowingDownloads = false
+
+    /// How many times the reader has asked to be taken back to the shelf. See
+    /// ``show(_:)``.
+    @State private var libraryRequests = 0
+
     /// What the reader is currently showing, if anything.
     ///
     /// The app layer owns this because a feature module never depends on another
@@ -50,7 +58,10 @@ struct StoryArcApp: App {
     /// One store for the whole app. ADR-0006 makes the local record authoritative,
     /// so the reader writing and the library reading have to be the same store —
     /// two would disagree about where the user is.
-    private let progress: ProgressStore?
+    ///
+    /// Not `private`: the sweep in `FinishedDownloadSweep.swift` is the other half of
+    /// this type, and Swift's `private` is file-scoped.
+    let progress: ProgressStore?
 
     /// Held here so the app can refresh it when the reader closes.
     @State private var library: LibraryModel
@@ -72,12 +83,12 @@ struct StoryArcApp: App {
     /// What is on the device. Held here because Settings can be reached without ever
     /// opening a catalogue, and re-read on each appearance so a download made while
     /// browsing shows up.
-    private let downloadStore = DownloadStore()
-    @State private var downloads = DownloadStore().library()
+    let downloadStore = DownloadStore()
+    @State var downloads = DownloadStore().library()
 
     /// A download removed because the reader finished it, and the bytes waiting in case
     /// they change their mind. `offline-downloads` gives them ten seconds.
-    @State private var removedDownload: RemovedDownload?
+    @State var removedDownload: RemovedDownload?
 
     init() {
         // How the reader reaches a share. Registered here because this is where the source
@@ -184,6 +195,30 @@ struct StoryArcApp: App {
         dismissed = selection
     }
 
+    /// Puts the reader where a quick action asked to be, from wherever it found them.
+    ///
+    /// The library entry promises the *shelf*, so it undoes everything covering it: the
+    /// reader, Settings, and the library's own navigation into a catalogue. The last of
+    /// those is `@State` inside `LibraryView`, which nothing out here can reach — hence
+    /// the counter, which the view watches and answers by unwinding itself. Android's
+    /// `MainActivity` holds that stack directly and clears it in place; same landing,
+    /// each platform's own way of getting there.
+    private func show(_ place: QuickActionRequest) {
+        reading = nil
+        isShowingSettings = false
+        switch place {
+        // A named publication never arrives here — `ReadingContinuity` waits for the
+        // library to place it rather than handing it back. The shelf is the honest
+        // landing if that ever changes.
+        case .library, .continueReading:
+            libraryRequests += 1
+        case .downloads:
+            downloads = downloadStore.library()
+            isShowingDownloads = true
+            isShowingSettings = true
+        }
+    }
+
     /// Copies a publication off a share and onto the device.
     ///
     /// The copying lives in `KeepForOffline.swift`, beside Android's own file of that
@@ -193,40 +228,6 @@ struct StoryArcApp: App {
         SmbReachability.clear()
         reading = ReadingSelection(publication: selection.publication, url: file)
         dismissed = reading
-    }
-
-    /// Takes a finished publication's download off the device, reversibly.
-    private func sweepFinishedDownload() async {
-        let library = downloadStore.library()
-
-        // Asked of the store one path at a time, and awaited: `ProgressStore` is an actor,
-        // and a predicate that could not await it would answer "not finished" to everything
-        // and sweep nothing, for ever, silently.
-        var done: Set<String> = []
-        for download in library.finished {
-            let path = downloadStore.location(of: download).path
-            let record = try? await progress?.progress(
-                for: PublicationIdentity(normalizedPath: path)
-            )
-            if record?.isFinished == true { done.insert(path) }
-        }
-
-        let finished = downloadStore.finishedDownload(in: library) { done.contains($0) }
-        guard let finished,
-              let outcome = downloadStore.removeAfterFinishing(finished.id, from: library)
-        else { return }
-
-        downloads = outcome.library
-        removedDownload?.settle()
-        removedDownload = outcome.removed
-
-        let taken = outcome.removed
-        Task {
-            try? await Task.sleep(for: .seconds(10))
-            guard removedDownload?.download.id == taken.download.id else { return }
-            taken.settle()
-            removedDownload = nil
-        }
     }
 
     /// Returns both stores to what a fresh install has, and nothing more.
@@ -265,8 +266,10 @@ struct StoryArcApp: App {
                     // Re-read on the way in, so a download made while browsing a catalogue
                     // is on this screen rather than one launch behind it.
                     downloads = downloadStore.library()
+                    isShowingDownloads = false
                     isShowingSettings = true
-                }
+                },
+                showLibrary: libraryRequests
             )
             .storyArcTheme(appearance: settings.appearance)
             .speaking(settings.language)
@@ -275,6 +278,7 @@ struct StoryArcApp: App {
                     settings: settingsBinding,
                     readerStore: ReaderPreferences(),
                     onReset: resetSettings,
+                    opensAtDownloads: isShowingDownloads,
                     sources: library.registry.sources,
                     itemCount: { library.itemCount(of: $0) },
                     onRemoveSource: { library.remove($0) },
@@ -326,17 +330,17 @@ struct StoryArcApp: App {
                 guard phase != .active else { return }
                 Task { await reportToKavita(reading?.publication ?? dismissed?.publication) }
             }
-            .alert(
-                Text(verbatim: "Cannot open this file"),
-                isPresented: Binding(
-                    get: { refusedFile != nil },
-                    set: { if !$0 { refusedFile = nil } }
-                )
-            ) {
-                Button(role: .cancel) { refusedFile = nil } label: { Text(verbatim: "OK") }
-            } message: {
-                Text(refusedFile?.message ?? "")
-            }
+            .refusing($refusedFile)
+            // `native-experience`: the home-screen menu, Handoff and Spotlight. All three
+            // name a publication and none of them can open one, so the waiting lives in
+            // `ReadingContinuity` and this hands it the three ways back in.
+            .continuing(
+                reading: reading,
+                library: library,
+                hasDownloads: !downloads.downloads.isEmpty,
+                onOpen: openNext,
+                onShow: show
+            )
             .fullScreenCover(item: $reading, onDismiss: dismissedReader) { selection in
                 // Full screen, not a sheet: `comic-reader` wants nothing on screen
                 // while reading, and a sheet keeps a card edge and the view behind

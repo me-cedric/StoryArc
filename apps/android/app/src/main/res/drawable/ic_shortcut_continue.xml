@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive, like the launcher icon: the launcher masks a shortcut icon to whatever shape
+     it uses for the app, and a bare vector would be drawn as-is on a surface whose colour
+     nothing here controls. Same background as `ic_launcher`, so the menu reads as this app.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_shortcut_continue_foreground" />
+</adaptive-icon>

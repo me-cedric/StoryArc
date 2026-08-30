@@ -22,6 +22,7 @@ import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.ReaderPreferences
@@ -100,6 +101,17 @@ import androidx.compose.foundation.layout.Box
 /** `offline-downloads`: "the removal is undoable for 10 seconds". */
 private const val UNDO_WINDOW_MILLIS = 10_000L
 
+/**
+ * How long to keep looking for a publication a quick action named.
+ *
+ * `sources` restores the cached catalogue before it walks anything, so the usual answer
+ * arrives in a frame or two. The cap is what stops a cold start with a slow share from
+ * throwing the reader into a book five minutes after they asked for it, by which time they
+ * are somewhere else. iOS's `ReadingContinuity` waits the same five seconds.
+ */
+private const val RESOLVE_ATTEMPTS = 20
+private const val RESOLVE_INTERVAL_MILLIS = 250L
+
 class MainActivity : ComponentActivity() {
     /**
      * Filled in by whichever reader is on screen, read by [onKeyDown].
@@ -119,6 +131,15 @@ class MainActivity : ComponentActivity() {
      * ([onNewIntent], when the app is already open). Both have to reach the same reader.
      */
     private val handedOver = mutableStateOf<Uri?>(null)
+
+    /**
+     * A quick action the launcher sent, waiting for the composition to pick it up.
+     *
+     * A `MutableState` for the same reason [handedOver] is one: the intent can arrive
+     * before the first composition (the app was not running) or long after it
+     * ([onNewIntent], when it was), and both have to reach the same handler.
+     */
+    private val quickAction = mutableStateOf<QuickActionRequest?>(null)
 
     /** Read on each key press rather than cached: the setting can change mid-session. */
     private val volumeTurnsEnabled: Boolean
@@ -147,6 +168,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         OpenedFile.uriFrom(intent)?.let { handedOver.value = it }
+        HomeScreenActions.requestFrom(intent)?.let { quickAction.value = it }
     }
 
     /**
@@ -177,6 +199,10 @@ class MainActivity : ComponentActivity() {
         // A cold start from a file manager or a share sheet. Until this line existed the
         // system handed StoryArc a file and StoryArc showed its library instead.
         handedOver.value = OpenedFile.uriFrom(intent)
+        // And the other kind of cold start: the reader held the app icon down and chose
+        // an entry. `native-experience` asks for quick actions, and until this line the
+        // launcher started the app and the choice was dropped on the floor.
+        quickAction.value = HomeScreenActions.requestFrom(intent)
 
         // One store for the whole app. ADR-0006 makes the local record
         // authoritative, so the reader writing and the library reading have to be
@@ -239,6 +265,11 @@ class MainActivity : ComponentActivity() {
                 // accepts one; neither knows the other exists.
                 var reading by remember { mutableStateOf<Pair<Publication, String>?>(null) }
                 var isShowingSettings by remember { mutableStateOf(false) }
+                // Whether Settings should open straight at Downloads, because a quick
+                // action asked for it rather than the reader tapping their way in.
+                var isShowingDownloads by remember { mutableStateOf(false) }
+                // A publication a quick action named, still waiting to be found.
+                var wanted by remember { mutableStateOf<String?>(null) }
                 // Re-read on the way in, so a download made while browsing a catalogue is on
                 // this screen rather than one launch behind it.
                 var downloads by remember { mutableStateOf(downloadStore.library()) }
@@ -383,6 +414,16 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val route: (Publication, String) -> Unit = { publication, path ->
+                    // `native-experience` asks for continuity. Android has no Handoff and
+                    // there is no backend to invent one with, so the honest mirror is to
+                    // tell the system: the entry is pushed *and* reported as used, which is
+                    // what lets the launcher rank it and the Assistant answer for it.
+                    // Here rather than on a timer, because opening a book is the event.
+                    HomeScreenActions.reportOpened(
+                        this@MainActivity,
+                        publication,
+                        downloads.downloads.isNotEmpty(),
+                    )
                     if (publication.format == PublicationFormat.EPUB && !publication.isFixedLayout) {
                         startActivity(
                             EpubReaderActivity.intent(
@@ -428,6 +469,81 @@ class MainActivity : ComponentActivity() {
                         share = it
                         sharePath = emptyList()
                     }
+                }
+
+                // `native-experience`: the launcher's own menu, published from the shelf
+                // it describes. Republished whenever the list itself changes -- a reading
+                // position moving, a download arriving -- so the entry a reader sees on
+                // their home screen names the book they were last on.
+                val continueReading by libraryViewModel.continueReading
+                    .collectAsStateWithLifecycle()
+                LaunchedEffect(continueReading.firstOrNull(), downloads.downloads.isNotEmpty()) {
+                    // The activity's context, never the application's: `localization`
+                    // lets the reader override the interface language, and that override
+                    // lives on this activity -- see `InterfaceLanguage`. Published from
+                    // the application context, every entry would be in the system's
+                    // language while the app was in the reader's.
+                    HomeScreenActions.publish(
+                        this@MainActivity,
+                        continueReading.firstOrNull(),
+                        downloads.downloads.isNotEmpty(),
+                    )
+                }
+
+                // What the reader chose from that menu. Cleared as soon as it is taken, so
+                // a rotation does not act on it a second time.
+                val chosenAction = quickAction.value
+                LaunchedEffect(chosenAction) {
+                    when (chosenAction) {
+                        null -> Unit
+                        is QuickActionRequest.ContinueReading -> {
+                            quickAction.value = null
+                            wanted = chosenAction.publicationId
+                        }
+                        // The entry promises the *shelf*, not wherever the reader last
+                        // was, so everything stacked on top of the library comes off --
+                        // the same unwinding the rail does for its own Library row.
+                        QuickActionRequest.Library -> {
+                            quickAction.value = null
+                            reading = null
+                            isShowingSettings = false
+                            catalogue = emptyList()
+                            chosen = null
+                            kavita = null
+                            share = null
+                            openCollection = null
+                            openList = null
+                            openServerShelf = null
+                            isShowingShelves = false
+                        }
+                        QuickActionRequest.Downloads -> {
+                            quickAction.value = null
+                            reading = null
+                            downloads = downloadStore.library()
+                            isShowingDownloads = true
+                            isShowingSettings = true
+                        }
+                    }
+                }
+
+                // Waiting rather than looking, because a quick action lands on a cold
+                // start: the shelf is still empty at the moment the request arrives.
+                // Giving up is part of the behaviour rather than a failure of it -- the
+                // reader lands on the library, which is where they would have landed.
+                LaunchedEffect(wanted) {
+                    val id = wanted ?: return@LaunchedEffect
+                    repeat(RESOLVE_ATTEMPTS) {
+                        val publication = libraryViewModel.publications.value
+                            .firstOrNull { it.id == id }
+                        if (publication != null) {
+                            wanted = null
+                            libraryViewModel.location(publication)
+                                ?.let { route(publication, it) }
+                            return@LaunchedEffect
+                        }
+                        kotlinx.coroutines.delay(RESOLVE_INTERVAL_MILLIS)
+                    }
+                    wanted = null
                 }
 
                 // Where the reader last went from the rail, so its indicator matches the
@@ -476,6 +592,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onOpenSettings = {
                                 downloads = downloadStore.library()
+                                isShowingDownloads = false
                                 isShowingSettings = true
                             },
                         )
@@ -629,6 +746,7 @@ class MainActivity : ComponentActivity() {
                         SettingsScreen(
                             settings = settings,
                             readerStore = readerPreferences,
+                            opensAtDownloads = isShowingDownloads,
                             // The registry belongs to the library, and a feature module never
                             // depends on another feature module — so the app layer carries it
                             // across and carries the removal back.
@@ -692,7 +810,10 @@ class MainActivity : ComponentActivity() {
                                     readerPreferences.themes().clearingDefaults(),
                                 )
                             },
-                            onClose = { isShowingSettings = false },
+                            onClose = {
+                                isShowingSettings = false
+                                isShowingDownloads = false
+                            },
                         )
                     } else if (selection == null) {
                         val publications by libraryViewModel.publications
@@ -727,6 +848,7 @@ class MainActivity : ComponentActivity() {
                             onOpen = route,
                             onOpenSettings = {
                                 downloads = downloadStore.library()
+                                isShowingDownloads = false
                                 isShowingSettings = true
                             },
                             onBrowse = browse,

@@ -78,6 +78,12 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIApplicationSupportsIndirectInputEvents: true
+        # `native-experience`: Handoff, and the same activity in Spotlight. iOS creates no
+        # `NSUserActivity` for a type that is not declared here, so without this line the
+        # reader's other device is never offered the book and nothing is indexed. See
+        # `ReadingActivity`.
+        NSUserActivityTypes:
+          - app.storyarc.reading
         # `local-library`: open a file where it lives rather than copying it in.
         LSSupportsOpeningDocumentsInPlace: true
         # And the other half of it: `local-library`'s imported copies live in the

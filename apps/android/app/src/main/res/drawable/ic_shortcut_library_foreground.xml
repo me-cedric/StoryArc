@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- `native-experience` quick action: the library. Three spines on a shelf. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#0F0D0B"
+        android:pathData="M32,32h12v44H32zM48,32h12v44H48zM64,34l11,-3 12,43 -11,3z" />
+</vector>

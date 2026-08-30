@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- `native-experience` quick action: downloads. An arrow onto a tray. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#0F0D0B"
+        android:pathData="M49,28h10v24h12l-17,20 -17,-20h12z" />
+    <path
+        android:fillColor="#0F0D0B"
+        android:pathData="M32,74h44v6H32z" />
+</vector>

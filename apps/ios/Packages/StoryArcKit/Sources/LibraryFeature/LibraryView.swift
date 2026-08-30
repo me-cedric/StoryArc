@@ -49,6 +49,8 @@ public struct LibraryView: View {
     let onOpen: (Publication, URL) -> Void
     private let progress: ProgressStore?
     let onOpenSettings: () -> Void
+    /// See the initialiser. Watched rather than read: only a *change* is a request.
+    private let showLibrary: Int
 
     /// One pin set for the whole app, loaded once.
     ///
@@ -77,11 +79,20 @@ public struct LibraryView: View {
         /// The library does not know what a settings screen is, for the same reason it
         /// does not know what a reader is: a feature target never depends on another
         /// feature target. It reports that the reader asked.
-        onOpenSettings: @escaping () -> Void = {}
+        onOpenSettings: @escaping () -> Void = {},
+        /// How often the app layer has asked for the shelf itself.
+        ///
+        /// `native-experience`'s home-screen menu offers the library, and that entry
+        /// promises the shelf rather than wherever the reader last was — a reader who left
+        /// the app inside a catalogue would otherwise be handed the catalogue back. Where
+        /// this view has navigated to is `@State`, which nothing outside can reach, so the
+        /// app layer changes a number and the view answers by unwinding itself.
+        showLibrary: Int = 0
     ) {
         self.model = model
         self.progress = progress
         self.onOpenSettings = onOpenSettings
+        self.showLibrary = showLibrary
         self.onOpen = onOpen
 
         let store = CertificatePinStore()
@@ -149,6 +160,12 @@ public struct LibraryView: View {
         // which is what keeps a Split View drag, a rotation and — on the mirror side —
         // an Android fold the same event.
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        // The shelf, asked for by name. Both layouts, because a wide window can be sitting
+        // in a source and a narrow one can have pushed into it.
+        .onChange(of: showLibrary) { _, _ in
+            browsing = nil
+            sidebar = .library
+        }
         // `local-library`: a folder picked here is reachable again after a restart,
         // which is what the security-scoped bookmark in the model is for.
         .fileImporter(

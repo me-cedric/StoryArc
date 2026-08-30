@@ -71,6 +71,14 @@ fun SettingsScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     /**
+     * Whether to open straight at Downloads, because something outside asked for it.
+     *
+     * `native-experience`'s home-screen menu offers Downloads directly, and this screen's
+     * navigation is its own state -- so the host says where to land rather than reaching
+     * in. iOS's `SettingsView` takes the same flag, in the same place.
+     */
+    opensAtDownloads: Boolean = false,
+    /**
      * The configured sources. Handed in, because the registry belongs to the library and a
      * feature module never depends on another feature module.
      */
@@ -100,7 +108,9 @@ fun SettingsScreen(
     // The match rather than the group, because a search result that named a *setting* has
     // to survive the navigation: the group is where to go, the anchor is what to point at
     // once there.
-    var open by remember { mutableStateOf<SettingMatch?>(null) }
+    var open by remember {
+        mutableStateOf(SettingMatch.of(SettingsGroup.DOWNLOADS).takeIf { opensAtDownloads })
+    }
 
     // Enabled only inside a group, so the system back goes *up one level* rather than
     // out of Settings. The host's own handler closes Settings, and the innermost enabled

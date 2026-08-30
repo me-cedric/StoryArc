@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- `native-experience` quick action: continue reading. An open book with a bookmark
+     falling out of it — the page the reader stopped on. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#0F0D0B"
+        android:pathData="M30,38h18a7,7 0,0 1,7 7v27a5,5 0,0 0,-5 -5H30zM78,38H62a7,7 0,0 0,-7 7v27a5,5 0,0 1,5 -5h18z" />
+    <path
+        android:fillColor="#0F0D0B"
+        android:pathData="M64,30h10v26l-5,-5 -5,5z" />
+</vector>

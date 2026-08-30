@@ -6,4 +6,9 @@
     <string name="open_in_unsupported">%1$s es un archivo %2$s, que StoryArc no lee. Lee CBZ, CBR, CBT, EPUB y PDF.</string>
     <string name="open_in_unreadable">StoryArc no reconoce %1$s. Lee CBZ, CBR, CBT, EPUB y PDF.</string>
     <string name="open_in_dismiss">OK</string>
+
+    <string name="shortcut_continue">Seguir leyendo</string>
+    <string name="shortcut_continue_named">Seguir con %1$s</string>
+    <string name="shortcut_library">Biblioteca</string>
+    <string name="shortcut_downloads">Descargas</string>
 </resources>
