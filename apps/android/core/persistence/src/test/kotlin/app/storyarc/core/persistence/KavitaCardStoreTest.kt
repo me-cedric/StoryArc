@@ -21,6 +21,7 @@ class KavitaCardStoreTest {
         chapter: Int = 1,
     ) = KavitaCard(
         publicationId = publication,
+        downloadId = "download-$publication",
         sourceId = source,
         libraryId = 3,
         seriesId = 7,
@@ -42,6 +43,7 @@ class KavitaCardStoreTest {
         assertEquals("A summary the server holds.", read!!.summary)
         // The whole chain, because a progress post missing one of the four is refused.
         assertEquals(3, read.libraryId)
+        assertEquals("download-p1", read.downloadId)
         assertEquals(listOf("1998", "Ada Okonkwo", "Adventure"), read.facts)
     }
 

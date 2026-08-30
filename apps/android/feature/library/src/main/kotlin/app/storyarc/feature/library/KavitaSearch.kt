@@ -170,7 +170,7 @@ fun KavitaHits(
 @Composable
 private fun HitRow(hit: KavitaHit, onOpenSeries: (Int) -> Unit, onOpenKept: (String) -> Unit) {
     val palette = LocalStoryArcPalette.current
-    val opens = hit.publicationId != null || hit.isOpenable
+    val opens = hit.downloadId != null || hit.isOpenable
     Text(
         text = hit.title,
         style = MaterialTheme.typography.bodyLarge,
@@ -184,7 +184,7 @@ private fun HitRow(hit: KavitaHit, onOpenSeries: (Int) -> Unit, onOpenKept: (Str
                     Modifier
                 } else {
                     Modifier.clickable {
-                        hit.publicationId?.let(onOpenKept) ?: onOpenSeries(hit.seriesId)
+                        hit.downloadId?.let(onOpenKept) ?: onOpenSeries(hit.seriesId)
                     }
                 },
             )
@@ -208,10 +208,10 @@ private fun heading(kind: KavitaHit.Kind) = when (kind) {
  */
 internal suspend fun openKeptPublication(
     context: Context,
-    publicationId: String,
+    downloadId: String,
 ): Pair<Publication, String>? {
     val store = DownloadStore.open(context)
-    val download = store.library()[publicationId] ?: return null
+    val download = store.library()[downloadId] ?: return null
     val file: File = store.location(download)
     if (!file.exists()) return null
     return runCatching { PublicationIndexer.index(file) to file.absolutePath }.getOrNull()

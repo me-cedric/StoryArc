@@ -63,19 +63,28 @@ object KavitaKeep {
         cards: KavitaCardStore = KavitaCardStore.open(context),
         progress: KavitaProgressStore = KavitaProgressStore.open(context),
     ): Kept? = runCatching {
+        val title = chapter.displayName.ifEmpty { "${series.name} ${chapter.number}" }
         val fetched = client.chapter(chapter.id)
-        // Indexed where it lands first, because the download's own path is named after the
-        // publication's identity and the identity comes out of the file.
         val staged = withContext(Dispatchers.IO) {
             kavitaCacheFile(context, chapter.id, fetched.mediaType).apply { writeBytes(fetched.bytes) }
         }
-        val indexed = PublicationIndexer.index(staged, catalogueSeries = series.name)
-        val mediaType = fetched.mediaType ?: indexed.format.mediaType ?: return@runCatching null
-        // `library-browsing` attributes a download to the source its record names, which is
-        // what puts a kept chapter on the one shelf that spans every source.
-        val publication = indexed.copy(sourceId = sourceId)
+        // The server's word is preferred and is usually there. Indexing the staged copy is the
+        // fallback for a server that sent no type, because the extension the download is
+        // written under decides which reader opens it.
+        val mediaType = fetched.mediaType
+            ?: PublicationIndexer.index(staged).format.mediaType
+            ?: return@runCatching null
 
-        val destination = downloads.location(publication.id, mediaType, publication.displayTitle)
+        // The record's own identifier, and therefore the directory the bytes go in.
+        //
+        // The server's chapter, not the file's identity. It was the file's, and driving it
+        // showed why that cannot work: the identity of a publication is its path, the path is
+        // chosen from the identity, and the file the reader ends up with is at a *third* path
+        // -- so the card was filed under the staging directory and the shelf, indexing the
+        // download, never found it. A catalogue download has the same shape and solved it the
+        // same way: `Download.id` is what the *source* calls the thing.
+        val identifier = "kavita:${origin.sourceId}:${chapter.id}"
+        val destination = downloads.location(identifier, mediaType, title)
         val bytes = withContext(Dispatchers.IO) {
             downloads.prepare()
             downloads.prepare(destination)
@@ -90,12 +99,20 @@ object KavitaKeep {
             destination.length()
         }
 
+        // Indexed where it landed, not where it was staged. This is the identity the library
+        // will compute when it walks the download tree, which is what the card has to be filed
+        // under for the server's metadata to reach the shelf.
+        // `library-browsing` attributes a download to the source its record names, which is
+        // what puts a kept chapter on the one shelf that spans every source.
+        val publication = PublicationIndexer.index(destination, catalogueSeries = series.name)
+            .copy(sourceId = sourceId)
+
         downloads.save(
             downloads.library().queueing(
                 Download(
-                    id = publication.id,
+                    id = identifier,
                     sourceId = sourceId,
-                    title = publication.displayTitle,
+                    title = title,
                     // No secret in it: Kavita takes the key as a bearer header on this route,
                     // not in the query, so what is written down is a path and a chapter number.
                     remote = client.address.chapterUrl(chapter.id),
@@ -108,7 +125,7 @@ object KavitaKeep {
             ),
         )
 
-        cards.save(card(publication.id, chapter, series, metadata, origin))
+        cards.save(card(publication.id, identifier, chapter, series, metadata, origin))
         // The same note the open path leaves, and for the same reason: the reader opens a file
         // and knows nothing about servers, so this is what lets the position get home.
         progress.remember(publication.id, origin)
@@ -119,12 +136,14 @@ object KavitaKeep {
     /** What the server said, in the shape that survives it going away. */
     private fun card(
         publicationId: String,
+        downloadId: String,
         chapter: KavitaChapter,
         series: KavitaSeries,
         metadata: KavitaMetadata?,
         origin: KavitaOrigin,
     ) = KavitaCard(
         publicationId = publicationId,
+        downloadId = downloadId,
         sourceId = origin.sourceId,
         libraryId = origin.libraryId,
         seriesId = series.id,

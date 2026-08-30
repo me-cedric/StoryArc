@@ -23,6 +23,7 @@ class KavitaFindTest {
         subjects: List<String> = emptyList(),
     ) = KavitaCard(
         publicationId = publication,
+        downloadId = "download-$publication",
         sourceId = "s",
         seriesId = seriesId,
         chapterId = 1,
@@ -102,7 +103,7 @@ class KavitaFindTest {
     @Test
     fun `a series name match is a series hit`() {
         val hits = KavitaFind.inCache("tidal", listOf(card("a", "Tidal Reach", seriesId = 7)))
-        assertEquals(listOf(KavitaHit(KavitaHit.Kind.SERIES, "Tidal Reach", 7, "a")), hits)
+        assertEquals(listOf(KavitaHit(KavitaHit.Kind.SERIES, "Tidal Reach", 7, "download-a")), hits)
     }
 
     @Test
@@ -111,7 +112,7 @@ class KavitaFindTest {
             "harbour",
             listOf(card("a", "Tidal Reach", seriesId = 7, chapter = "The Harbour")),
         )
-        assertEquals(listOf(KavitaHit(KavitaHit.Kind.CHAPTER, "The Harbour", 7, "a")), hits)
+        assertEquals(listOf(KavitaHit(KavitaHit.Kind.CHAPTER, "The Harbour", 7, "download-a")), hits)
     }
 
     @Test
@@ -162,10 +163,12 @@ class KavitaFindTest {
     }
 
     @Test
-    fun `a cached row names the publication it opens`() {
-        // Offline a row that cannot be opened is a row that is only there to disappoint.
+    fun `a cached row names the download it opens, not the publication it describes`() {
+        // Offline a row that cannot be opened is a row that is only there to disappoint -- and
+        // the two keys are different, which is what made the row inert when it was the
+        // publication's.
         val hits = KavitaFind.inCache("tidal", listOf(card("p1", "Tidal Reach")))
-        assertEquals("p1", hits.first().publicationId)
+        assertEquals("download-p1", hits.first().downloadId)
     }
 
     @Test

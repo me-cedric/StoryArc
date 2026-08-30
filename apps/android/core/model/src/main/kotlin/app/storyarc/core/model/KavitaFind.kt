@@ -22,14 +22,18 @@ data class KavitaHit(
      */
     val seriesId: Int = 0,
     /**
-     * The publication on this device this row is, when the row came from the cache.
+     * The download on this device this row opens, when the row came from the cache.
      *
      * Null for everything the server answered: the server knows about publications this
      * device has never held. Set for a cached row, which is the difference that matters --
      * with the server away, a row that cannot be opened is a row that is only there to
      * disappoint.
+     *
+     * The *download's* identifier, not the publication's. They are two different keys and
+     * driving this proved it: a download is filed under what the server calls the chapter, and
+     * the publication under the path the file ended up at.
      */
-    val publicationId: String? = null,
+    val downloadId: String? = null,
 ) {
     /** Which of the spec's five a match is, and therefore which heading it appears under. */
     enum class Kind {
@@ -66,8 +70,19 @@ data class KavitaHit(
  */
 @Serializable
 data class KavitaCard(
-    /** The publication this describes, which is what a reader opens and what the store keys on. */
+    /**
+     * The publication this describes, which is the identity the library computes for the
+     * downloaded file and therefore what the shelf looks the card up by.
+     */
     val publicationId: String,
+    /**
+     * The download the file belongs to, which is a different key.
+     *
+     * `Download.id` is what the *source* calls the thing -- for Kavita, the server's chapter.
+     * The publication's identity is the path the bytes ended up at. Both are needed and
+     * neither can be derived from the other, so the card holds both.
+     */
+    val downloadId: String = "",
     /** Which source it came from, so removing a server can take its cards with it. */
     val sourceId: String,
     /**
@@ -170,10 +185,10 @@ object KavitaFind {
         // nothing else it could open -- the series itself lives on a server that is not
         // answering, and the reader asked for something they can read now.
         cards.filter { matches(it.seriesName) }.forEach {
-            add(KavitaHit(KavitaHit.Kind.SERIES, it.seriesName, it.seriesId, it.publicationId))
+            add(KavitaHit(KavitaHit.Kind.SERIES, it.seriesName, it.seriesId, it.downloadId))
         }
         cards.filter { matches(it.chapterName) }.forEach {
-            add(KavitaHit(KavitaHit.Kind.CHAPTER, it.chapterName, it.seriesId, it.publicationId))
+            add(KavitaHit(KavitaHit.Kind.CHAPTER, it.chapterName, it.seriesId, it.downloadId))
         }
         cards.forEach { card ->
             card.people.filter(::matches).forEach { add(KavitaHit(KavitaHit.Kind.PERSON, it)) }

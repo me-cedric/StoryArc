@@ -65,41 +65,56 @@ enum KavitaKeep {
         let (chapter, series, origin, sourceID) =
             (subject.chapter, subject.series, subject.origin, subject.sourceID)
 
+        let title = chapter.displayName.isEmpty
+            ? "\(series.name) \(chapter.number)"
+            : chapter.displayName
+
         guard let fetched = try? await client.chapter(chapter.id),
-              // Indexed where it lands first, because the download's own path is named after
-              // the publication's identity and the identity comes out of the file.
               let staged = kavitaCacheFile(
                   chapterId: chapter.id,
                   mediaType: fetched.mediaType,
-                  named: "\(series.name) \(chapter.number)"
+                  named: title
               ),
               (try? fetched.bytes.write(to: staged, options: .atomic)) != nil,
-              var publication = try? await PublicationIndexer.index(
-                  fileAt: staged,
-                  catalogueSeries: series.name
-              ),
-              let mediaType = fetched.mediaType ?? publication.format.mediaType
+              let mediaType = await type(of: fetched, at: staged)
         else { return nil }
 
+        // The record's own identifier, and therefore the directory the bytes go in.
+        //
+        // The server's chapter, not the file's identity. It was the file's, and driving it
+        // showed why that cannot work: the identity of a publication is its path, the path
+        // is chosen from the identity, and the file the reader ends up with is at a *third*
+        // path — so the card was filed under the staging directory and the shelf, indexing
+        // the download, never found it. A catalogue download has the same shape and solved
+        // it the same way: `Download.id` is what the *source* calls the thing.
+        let identifier = "kavita:\(origin.sourceId):\(chapter.id)"
+        let destination = downloads.location(
+            for: identifier,
+            mediaType: mediaType,
+            title: title
+        )
+        guard let bytes = file(staged, to: destination, in: downloads) else { return nil }
+
+        // Indexed where it landed, not where it was staged. This is the identity the library
+        // will compute when it walks the download tree, which is what the card has to be
+        // filed under for the server's metadata to reach the shelf.
+        guard var publication = try? await PublicationIndexer.index(
+            fileAt: destination,
+            catalogueSeries: series.name
+        ) else { return nil }
         // `library-browsing` attributes a download to the source its record names, which is
         // what puts a kept chapter on the one shelf that spans every source.
         publication.sourceID = sourceID
 
-        let destination = downloads.location(
-            for: publication.id,
-            mediaType: mediaType,
-            title: publication.displayTitle
-        )
-        guard let bytes = file(staged, to: destination, in: downloads) else { return nil }
         // No secret in it: Kavita takes the key as a bearer header on this route, not in the
         // query, so what is written down is a path and a chapter number.
         let remote = await client.address.chapterURL(chapter.id) ?? destination
         downloads.save(
             downloads.library().queueing(
                 Download(
-                    id: publication.id,
+                    id: identifier,
                     sourceID: sourceID,
-                    title: publication.displayTitle,
+                    title: title,
                     remote: remote,
                     mediaType: mediaType,
                     state: .finished,
@@ -110,12 +125,22 @@ enum KavitaKeep {
             )
         )
 
-        cards.save(card(publication.id, subject))
+        cards.save(card(publication.id, downloadId: identifier, subject))
         // The same note the open path leaves, and for the same reason: the reader opens a
         // file and knows nothing about servers, so this is what lets the position get home.
         progress.remember(origin, for: publication.id)
 
         return Kept(publication: publication, file: destination)
+    }
+
+    /// What the file is, from the server's word or from the bytes.
+    ///
+    /// The server's declaration is preferred and is usually there. Indexing the staged copy
+    /// is the fallback for a server that sent no type, because the extension the download is
+    /// written under decides which reader opens it.
+    private static func type(of fetched: KavitaFile, at staged: URL) async -> String? {
+        if let declared = fetched.mediaType { return declared }
+        return try? await PublicationIndexer.index(fileAt: staged).format.mediaType
     }
 
     /// Moves the staged bytes to where the store says they live, and reports what they weigh.
@@ -137,9 +162,14 @@ enum KavitaKeep {
     }
 
     /// What the server said, in the shape that survives it going away.
-    private static func card(_ publicationId: String, _ subject: Subject) -> KavitaCard {
+    private static func card(
+        _ publicationId: String,
+        downloadId: String,
+        _ subject: Subject
+    ) -> KavitaCard {
         KavitaCard(
             publicationId: publicationId,
+            downloadId: downloadId,
             sourceId: subject.origin.sourceId,
             libraryId: subject.origin.libraryId,
             seriesId: subject.series.id,

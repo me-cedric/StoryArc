@@ -27,19 +27,23 @@ public struct KavitaHit: Sendable, Equatable, Hashable, Identifiable {
     /// row that plainly is not.
     public let seriesId: Int
 
-    /// The publication on this device this row is, when the row came from the cache.
+    /// The download on this device this row opens, when the row came from the cache.
     ///
     /// Nil for everything the server answered: the server knows about publications this
     /// device has never held. Set for a cached row, which is the difference that matters —
     /// with the server away, a row that cannot be opened is a row that is only there to
     /// disappoint.
-    public let publicationId: String?
+    ///
+    /// The *download's* identifier, not the publication's. They are two different keys and
+    /// driving this proved it: a download is filed under what the server calls the chapter,
+    /// and the publication under the path the file ended up at.
+    public let downloadId: String?
 
-    public init(kind: Kind, title: String, seriesId: Int = 0, publicationId: String? = nil) {
+    public init(kind: Kind, title: String, seriesId: Int = 0, downloadId: String? = nil) {
         self.kind = kind
         self.title = title
         self.seriesId = seriesId
-        self.publicationId = publicationId
+        self.downloadId = downloadId
     }
 
     /// Identity is what the row *is*, not where it came from: the same series found twice —
@@ -62,8 +66,16 @@ public struct KavitaHit: Sendable, Equatable, Hashable, Identifiable {
 /// A value with no network and no disk in it. `Persistence`'s `KavitaCardStore` writes it;
 /// Android's `KavitaCard` mirrors it field for field.
 public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
-    /// The publication this describes, which is what a reader opens and what the store keys on.
+    /// The publication this describes, which is the identity the library computes for the
+    /// downloaded file and therefore what the shelf looks the card up by.
     public let publicationId: String
+
+    /// The download the file belongs to, which is a different key.
+    ///
+    /// `Download.id` is what the *source* calls the thing — for Kavita, the server's chapter.
+    /// The publication's identity is the path the bytes ended up at. Both are needed and
+    /// neither can be derived from the other, so the card holds both.
+    public let downloadId: String
 
     /// Which source it came from, so removing a server can take its cards with it.
     public let sourceId: String
@@ -92,6 +104,7 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
 
     public init(
         publicationId: String,
+        downloadId: String = "",
         sourceId: String,
         libraryId: Int = 0,
         seriesId: Int,
@@ -104,6 +117,7 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
         releaseYear: Int = 0
     ) {
         self.publicationId = publicationId
+        self.downloadId = downloadId
         self.sourceId = sourceId
         self.libraryId = libraryId
         self.seriesId = seriesId
@@ -217,7 +231,7 @@ public enum KavitaFind {
                 kind: .series,
                 title: card.seriesName,
                 seriesId: card.seriesId,
-                publicationId: card.publicationId
+                downloadId: card.downloadId
             ))
         }
         for card in cards where matches(card.chapterName) {
@@ -225,7 +239,7 @@ public enum KavitaFind {
                 kind: .chapter,
                 title: card.chapterName,
                 seriesId: card.seriesId,
-                publicationId: card.publicationId
+                downloadId: card.downloadId
             ))
         }
         for card in cards {

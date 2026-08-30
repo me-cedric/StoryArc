@@ -147,7 +147,7 @@ struct KavitaHits: View {
 
     @ViewBuilder
     private func row(_ hit: KavitaHit) -> some View {
-        if hit.publicationId != nil || hit.isOpenable {
+        if hit.downloadId != nil || hit.isOpenable {
             Button {
                 Task { await open(hit) }
             } label: {
@@ -172,17 +172,17 @@ struct KavitaHits: View {
     /// library, so a series built from the row alone would report reading against library
     /// zero for as long as the reader stayed in it.
     private func open(_ hit: KavitaHit) async {
-        if let publicationId = hit.publicationId {
-            await openKept(publicationId)
+        if let downloadId = hit.downloadId {
+            await openKept(downloadId)
             return
         }
         opening = try? await client.seriesDetail(hit.seriesId)
     }
 
     /// Opens a download this device already holds.
-    private func openKept(_ publicationId: String) async {
+    private func openKept(_ downloadId: String) async {
         let downloads = DownloadStore()
-        guard let download = downloads.library()[publicationId] else { return }
+        guard let download = downloads.library()[downloadId] else { return }
         let file = downloads.location(of: download)
         guard FileManager.default.fileExists(atPath: file.path()),
               let publication = try? await PublicationIndexer.index(fileAt: file)

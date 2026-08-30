@@ -21,6 +21,7 @@ struct KavitaCardStoreTests {
     ) -> KavitaCard {
         KavitaCard(
             publicationId: publication,
+            downloadId: "download-\(publication)",
             sourceId: source,
             libraryId: 3,
             seriesId: 7,
@@ -42,6 +43,7 @@ struct KavitaCardStoreTests {
         #expect(read.summary == "A summary the server holds.")
         // The whole chain, because a progress post missing one of the four is refused.
         #expect(read.libraryId == 3)
+        #expect(read.downloadId == "download-p1")
         #expect(read.facts == ["1998", "Ada Okonkwo", "Adventure"])
     }
 

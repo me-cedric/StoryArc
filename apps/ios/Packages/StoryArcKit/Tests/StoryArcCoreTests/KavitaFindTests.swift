@@ -18,6 +18,7 @@ struct KavitaFindTests {
     ) -> KavitaCard {
         KavitaCard(
             publicationId: publication,
+            downloadId: "download-\(publication)",
             sourceId: "s",
             seriesId: seriesId,
             chapterId: 1,
@@ -100,7 +101,7 @@ struct KavitaFindTests {
     @Test("A series name match is a series hit")
     func seriesMatch() {
         let hits = KavitaFind.inCache("tidal", [card("a", series: "Tidal Reach", seriesId: 7)])
-        #expect(hits == [KavitaHit(kind: .series, title: "Tidal Reach", seriesId: 7, publicationId: "a")])
+        #expect(hits == [KavitaHit(kind: .series, title: "Tidal Reach", seriesId: 7, downloadId: "download-a")])
     }
 
     @Test("A chapter name match is a chapter hit")
@@ -109,7 +110,7 @@ struct KavitaFindTests {
             "harbour",
             [card("a", series: "Tidal Reach", seriesId: 7, chapter: "The Harbour")]
         )
-        #expect(hits == [KavitaHit(kind: .chapter, title: "The Harbour", seriesId: 7, publicationId: "a")])
+        #expect(hits == [KavitaHit(kind: .chapter, title: "The Harbour", seriesId: 7, downloadId: "download-a")])
     }
 
     @Test("Matching ignores case")
@@ -156,11 +157,13 @@ struct KavitaFindTests {
         #expect(hits.count == 1)
     }
 
-    @Test("A cached row names the publication it opens")
+    @Test("A cached row names the download it opens, not the publication it describes")
     func cachedRowOpens() {
-        // Offline a row that cannot be opened is a row that is only there to disappoint.
+        // Offline a row that cannot be opened is a row that is only there to disappoint —
+        // and the two keys are different, which is what made the row inert when it was the
+        // publication's.
         let hits = KavitaFind.inCache("tidal", [card("p1", series: "Tidal Reach")])
-        #expect(hits.first?.publicationId == "p1")
+        #expect(hits.first?.downloadId == "download-p1")
     }
 
     @Test("A card matching nothing is not a result")
