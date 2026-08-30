@@ -8,42 +8,31 @@ on screen while the user is reading.
 
 ## Requirements
 
-### Requirement: Reading modes
+### Requirement: Page transitions in the comic reader
 
-The app SHALL offer the following page-transition modes, selectable per
-publication and remembered per series.
-
-| Mode | Behaviour |
-| --- | --- |
-| Page curl | Interactive page turn that follows the finger, with a lit page edge and a shadow cast on the page beneath |
-| Slide | Paged horizontal transition |
-| Fade | Cross-dissolve between pages |
-| Vertical scroll | Continuous vertical scrolling, for webtoons |
-| Horizontal scroll | Continuous horizontal scrolling |
-
-#### Scenario: Page curl follows the finger
-- **WHEN** a user drags horizontally across the page in page-curl mode
-- **THEN** the page deforms and lifts in real time under the finger, at the display's refresh rate
-- **AND** releasing past the halfway point completes the turn, releasing before it springs back, and flick velocity completes the turn regardless of distance
-
-#### Scenario: Page curl is interruptible
-- **WHEN** a user starts a new drag while a page-curl animation is still settling
-- **THEN** the new gesture takes over from the current position without the page snapping
-
-#### Scenario: Reduce Motion
-- **WHEN** the system Reduce Motion setting is on
-- **THEN** page curl and slide are replaced by a cross-dissolve
-- **AND** the mode picker states why the animated modes are unavailable, rather than hiding them without explanation
-
-#### Scenario: Continuous scroll
-- **WHEN** a user reads in vertical scroll mode
-- **THEN** pages are stitched with no gap by default, with an option to show a separator
-- **AND** scroll position is preserved exactly when leaving and returning
+The comic reader SHALL use the transition engine defined in
+[`page-transitions`](../page-transitions/spec.md) — Curl, Slide, Fast fade and
+Scroll — and SHALL add only the behaviour that is specific to image pages.
 
 #### Scenario: Mode persistence
 - **WHEN** a user changes reading mode for a publication
 - **THEN** the choice applies to every publication in the same series
 - **AND** a global default applies to publications in series never opened before
+- **AND** the comic default is independent of the reflowable default, per [`reading-themes`](../reading-themes/spec.md)
+
+#### Scenario: Continuous scroll
+- **WHEN** a user reads in Scroll mode
+- **THEN** pages are stitched with no gap by default, with an option to show a separator
+- **AND** scroll position is preserved exactly when leaving and returning
+
+#### Scenario: Scroll axis for webtoons
+- **WHEN** a publication is a webtoon, or its pages are materially taller than they are wide
+- **THEN** Scroll defaults to the vertical axis
+- **AND** the axis remains overridable
+
+#### Scenario: Curl over image pages
+- **WHEN** a curl runs over a comic page
+- **THEN** it uses the already-decoded page directly rather than a re-raster, because the page is an image before the turn begins
 
 ### Requirement: Reading direction
 

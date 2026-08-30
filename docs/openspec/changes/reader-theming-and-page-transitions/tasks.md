@@ -637,8 +637,10 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       long. `drawToBitmap` on the container gives the still directly, because Android's
       WebView renders in process.
 
-      Until that lands the Android reader passes `canFade = false` and says "not available
-      yet", rather than offering a mode that quietly gives a Slide.
+      **That landed.** `ReflowableTurn.kt` carries the `TurnInterceptor` this note
+      describes, and `EpubReaderViewModel.transitions` passes `canFade = true` on both
+      platforms. Fast fade over reflowable text is built on both; Curl over it is not,
+      which is the one thing 4.3b still owes.
 
       Reverify against Apple Books when the curl is built: the crease, the lit edge, and
       the mirrored text on the back are the three things to compare.
@@ -742,11 +744,14 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 - [x] **4.9** Absent-Curl path: hide Curl where the device cannot honour it —
       Android below API 33, and any device failing the frame-rate check — default
       to Slide, state the reason in plain language without naming an API level,
-      and leave a stored Curl preference untouched. **Done, and currently that is
-      every device**, because the curl does not exist yet: `canCurl` defaults to
-      false on both platforms. `page-transitions` says "the app never ships a curl
-      that stutters in preference to a slide that does not", so the honest answer for
-      a curl with no implementation is that it is unavailable.
+      and leave a stored Curl preference untouched. **Done.**
+
+      This note used to end "and currently that is every device, because the curl does
+      not exist yet: `canCurl` defaults to false on both platforms". That stopped being
+      true when 4.3 landed and was never corrected. The comic readers now pass a real
+      answer — `Build.VERSION.SDK_INT >= TIRAMISU` on Android
+      (`ReaderViewModel.kt:89`), `true` on iOS, whose floor is 26 — so the absent-Curl
+      path is the API-31-and-32 path rather than every device.
 
       Two treatments, because the spec asks for two, and the difference is whether
       the reader can do anything about it. Reduce Motion leaves Curl and Slide
@@ -979,9 +984,59 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       amount. A divergence here would undermine `reading-progress`' promise that a
       position is portable between devices.
 - [ ] **7.7** `/opsx:sync` to merge the delta specs into the main specs.
+      **Partly done: everything that shipped is merged, four things are held.**
 
-      Two links are waiting on this: `docs/design.md` points at
-      `openspec/specs/page-transitions/spec.md` and `.../reading-themes/spec.md`, and
-      both capabilities are new in this change, so they exist only in its delta until
-      the sync runs. The links name the destination on purpose rather than the delta,
-      which would break the other way round.
+      The two links `docs/design.md` was holding now resolve —
+      `openspec/specs/reading-themes/spec.md` and
+      `openspec/specs/page-transitions/spec.md` both exist.
+
+      Waiting for the whole change to finish had a cost that had grown too large to
+      keep paying: `ebook-reader`'s *Theme choice* scenario still named Paper, Sepia,
+      Night and High Contrast, three of which have not existed under any name since
+      1.5 deleted `ReaderTheme`. Anyone reading the contract alone mis-scored that
+      scenario in both directions.
+
+      **Merged**, because it is built on both platforms: both new capabilities
+      (`reading-themes` less its *Live preview* requirement, `page-transitions` less
+      one scenario); `ebook-reader`'s eleven axes, two-depth sheet, publisher-styles
+      coupling, six presets and preset grid; `comic-reader`'s *Reading modes*
+      requirement retired in favour of *Page transitions in the comic reader*;
+      OLED Dark and the appearance-to-theme link in `settings-and-about`; and
+      `native-experience`'s reader chrome material, preset grid and theme-sheet
+      reachability.
+
+      **Held back, and why:**
+
+      1. **`reading-themes` › *Live preview*** — task 3.6. There is no preview inside
+         the sheet. The preset cards preview each theme's colours and face, which is a
+         different thing, and the page *behind* the sheet updates live, which is the
+         part that shipped. `ebook-reader`'s *Typography controls* keeps the
+         live-preview clause it already carried — it is a promise the spec made before
+         this change and this sync neither strengthens nor withdraws it — but it is now
+         a separate bullet from the built one, so the two can be scored apart.
+      2. **`page-transitions` › *Curl on reflowable content*** — task 4.3b. Curl over
+         a reflowable page needs the page rastered first and nothing rasters it. Both
+         readers refuse Curl for reflowable content and say why, which is the
+         *A mode is unavailable for the content* scenario doing its job.
+      3. **`comic-reader` › "a double-page spread curls as one surface"** — the curl
+         container takes one decoded page (`ReaderContainers.swift:22`,
+         `CurledPages.kt`) and knows nothing about the spread layout the paged and
+         scroll containers use. In spread mode a curl turns one page.
+      4. **`settings-and-about` › Natural** — tasks 5.2 and 5.4. `naturalLight` and
+         `naturalDark` exist in the tokens and on both platforms as generated colours,
+         and nothing selects them: `AppearanceMode` has four cases and a test asserting
+         Natural is not a fifth. An appearance no reader can reach is not an
+         appearance, so the row and the *Natural carries texture* scenario stay here.
+
+      **One clause was added that the delta did not have.** `page-transitions` ›
+      *Hardware input* now says that where a platform does not let an app observe the
+      volume buttons, no setting is offered and the reason is stated once. That is
+      what both apps do — Android offers the switch, iOS's Reading group explains why
+      there is none — and without it the scenario reads as a gap on iOS rather than as
+      the platform decision it is.
+
+      **Two notes elsewhere in this file were stale when checked against the code**,
+      and are corrected in place: 4.9's "currently that is every device", and 4.3b's
+      account of Android Fast fade.
+
+      Tick this when 3.6, 4.3b, 5.2 and 5.4 land and the four held items go in.

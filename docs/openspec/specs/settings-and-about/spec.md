@@ -9,7 +9,15 @@ nothing.
 
 ### Requirement: Appearance
 
-The app SHALL offer System, Light, and Dark appearance, defaulting to System.
+The app SHALL offer System, Light, Dark and OLED Dark appearances, defaulting to
+System.
+
+| Option | What it is |
+| --- | --- |
+| **System** | Follows the device. The default. |
+| **Light** | Warm paper neutrals. |
+| **Dark** | Warm ink neutrals. |
+| **OLED Dark** | True black surfaces, for OLED panels where black draws no power. |
 
 #### Scenario: Choosing appearance
 - **WHEN** a user selects an appearance
@@ -19,9 +27,15 @@ The app SHALL offer System, Light, and Dark appearance, defaulting to System.
 - **WHEN** appearance is System and the device switches theme
 - **THEN** the app follows, including while it is in the background
 
+#### Scenario: OLED Dark is not the same as Dark
+- **WHEN** a user selects OLED Dark
+- **THEN** app surfaces become true black
+- **AND** the reader surface stays marginally above true black, because pure black smears on OLED during a page turn — the setting is honoured where it helps and explained where it does not
+
 #### Scenario: Reader theme is separate
 - **WHEN** a user changes app appearance
 - **THEN** the reading theme is not overridden, because a dark app chrome with a paper-white page is a legitimate preference
+- **AND** a single opt-in setting links them for users who want that instead
 
 ### Requirement: Settings organisation
 
