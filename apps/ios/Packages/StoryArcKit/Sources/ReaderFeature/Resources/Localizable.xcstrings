@@ -474,25 +474,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diese Publikation enthält keine Seiten, die StoryArc anzeigen kann."
+            "value": "Dieser Comic hat keine Seiten, die StoryArc anzeigen kann."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This publication has no pages StoryArc can show."
+            "value": "This comic has no pages StoryArc can show."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta publicación no tiene páginas que StoryArc pueda mostrar."
+            "value": "Este cómic no tiene páginas que StoryArc pueda mostrar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cette publication ne contient aucune page que StoryArc puisse afficher."
+            "value": "Cette bande dessinée n’a aucune page que StoryArc puisse afficher."
           }
         }
       }
@@ -909,25 +909,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diese Publikation liegt auf einer Freigabe, die nicht erreichbar ist. Bereits gelesene Seiten sind weiterhin da."
+            "value": "Dieser Comic liegt in einem geteilten Ordner, der nicht erreichbar ist. Bereits gelesene Seiten sind weiterhin da."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This publication is on a share that cannot be reached. Pages already read are still here."
+            "value": "This comic is in a shared folder that cannot be reached. Pages already read are still here."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta publicación está en un recurso que no se puede alcanzar. Las páginas ya leídas siguen aquí."
+            "value": "Este cómic está en una carpeta compartida a la que no se puede acceder. Las páginas ya leídas siguen aquí."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cette publication est sur un partage inaccessible. Les pages déjà lues sont toujours là."
+            "value": "Cette bande dessinée est dans un dossier partagé injoignable. Les pages déjà lues sont toujours là."
           }
         }
       }
@@ -1806,25 +1806,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "In dieser Publikation nichts gefunden."
+            "value": "Nichts in diesem PDF gefunden."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing found in this publication."
+            "value": "Nothing found in this PDF."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se encontró nada en esta publicación."
+            "value": "No se encontró nada en este PDF."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien trouvé dans cette publication."
+            "value": "Rien trouvé dans ce PDF."
           }
         }
       }
@@ -1962,19 +1962,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Marks"
+            "value": "Highlights"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Marcas"
+            "value": "Resaltados"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Marques"
+            "value": "Surlignages"
           }
         }
       }
@@ -2184,25 +2184,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Paarung um eine Seite verschieben"
+            "value": "Die Doppelseite anders ausrichten"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shift the pairing by one"
+            "value": "Line up the two-page view differently"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desplazar el emparejamiento una página"
+            "value": "Alinear de otro modo la vista de dos páginas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Décaler l’appariement d’une page"
+            "value": "Aligner autrement la vue sur deux pages"
           }
         }
       }
@@ -2387,25 +2387,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nicht verfügbar für Text, der neu umbricht: dafür wird ein Bild der Seite gebraucht."
+            "value": "Nicht verfügbar für Bücher, deren Text sich in der Größe anpasst."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Not available for text that reflows: it needs a picture of the page."
+            "value": "Not available for books whose text resizes."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No disponible para texto que se recompone: hace falta una imagen de la página."
+            "value": "No disponible para libros cuyo texto cambia de tamaño."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Indisponible pour un texte qui se recompose : il faut une image de la page."
+            "value": "Non disponible pour les livres dont le texte se redimensionne."
           }
         }
       }

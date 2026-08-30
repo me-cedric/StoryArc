@@ -30,10 +30,10 @@
     <string name="reader_transition_scroll_horizontal">Défilement horizontal</string>
     <string name="reader_transition_reduce_motion">Indisponible tant que votre système supprime les animations.</string>
     <string name="reader_transition_no_curl">La pliure n’est pas proposée ici : cet appareil ne peut pas la dessiner assez fluidement.</string>
-    <string name="reader_transition_reflowable">Indisponible pour un texte qui se recompose.</string>
-    <string name="reader_empty">Cette publication ne contient aucune page que StoryArc peut afficher.</string>
+    <string name="reader_transition_reflowable">Non disponible pour les livres dont le texte se redimensionne.</string>
+    <string name="reader_empty">Cette bande dessinée n’a aucune page que StoryArc puisse afficher.</string>
     <string name="reader_offline_brief">En attente du réseau…</string>
-    <string name="reader_offline_long">Cette publication est sur un partage inaccessible. Les pages déjà lues sont toujours là.</string>
+    <string name="reader_offline_long">Cette bande dessinée est dans un dossier partagé injoignable. Les pages déjà lues sont toujours là.</string>
     <string name="reader_offline_download">La télécharger</string>
     <string name="reader_offline_leave">Retour à la bibliothèque</string>
     <string name="reader_offline_dismiss">Masquer</string>
@@ -51,7 +51,7 @@
     <string name="reader_chapter_previous">Chapitre précédent</string>
     <string name="reader_chapter_next">Chapitre suivant</string>
     <string name="reader_return">Retour à la page %1$d</string>
-    <string name="reader_spreads_offset">Décaler l’appariement d’une page</string>
+    <string name="reader_spreads_offset">Aligner autrement la vue sur deux pages</string>
     <string name="reader_separator">Afficher le séparateur de pages</string>
     <plurals name="reader_skipped">
         <item quantity="one">%1$d page ignorée</item>
@@ -60,10 +60,10 @@
     <string name="reader_pdf_page">Page %1$d</string>
     <string name="reader_pdf_find">Rechercher dans le PDF</string>
     <string name="reader_pdf_tab_search">Recherche</string>
-    <string name="reader_pdf_tab_marks">Marques</string>
+    <string name="reader_pdf_tab_marks">Surlignages</string>
     <string name="reader_pdf_search">Rechercher dans ce PDF</string>
     <string name="reader_pdf_search_running">Recherche sur chaque page…</string>
-    <string name="reader_pdf_search_none">Rien trouvé dans cette publication.</string>
+    <string name="reader_pdf_search_none">Rien trouvé dans ce PDF.</string>
     <string name="reader_pdf_search_capped">Les 200 premières occurrences. Affinez la recherche pour en voir moins.</string>
     <string name="reader_pdf_marks_empty">Appuyez longuement sur un mot pour le surligner ou y ajouter une note.</string>
     <string name="reader_pdf_marks_remove">Supprimer</string>

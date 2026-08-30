@@ -18,7 +18,7 @@
     <string name="theme_preset_calm">Calme</string>
     <string name="theme_preset_focus">Focus</string>
     <string name="theme_publisher_styles_title">La mise en forme de l’éditeur est active</string>
-    <string name="theme_publisher_styles_reason">Original conserve la publication telle qu’elle a été publiée : ces réglages n’ont donc aucun effet. La taille du texte, si.</string>
+    <string name="theme_publisher_styles_reason">Original conserve le livre exactement tel qu’il a été publié : ces réglages ne peuvent donc pas atteindre la page. La taille du texte, si.</string>
     <string name="theme_publisher_styles_action">Utiliser la typographie de StoryArc</string>
     <string name="theme_axis_font_size">Taille du texte</string>
     <string name="theme_axis_font_family">Police</string>
@@ -44,7 +44,7 @@
     <string name="theme_typeface_atkinson">Atkinson Hyperlegible</string>
     <string name="theme_typeface_low_vision">Conçue pour la basse vision</string>
     <string name="theme_axis_value_multiple">%1$s fois</string>
-    <string name="theme_axis_value_em">%1$s em</string>
+    <string name="theme_axis_value_em">%1$s fois</string>
     <string name="theme_font_size_position">Taille %1$d sur %2$d</string>
     <string name="theme_brightness_percent">%1$d %%</string>
     <string name="theme_page_colour">Couleur de la page</string>
@@ -70,7 +70,7 @@
     <string name="theme_page_turn_fade">Fondu rapide</string>
     <string name="theme_page_turn_scroll">Défilement continu</string>
     <string name="theme_page_turn_reduce_motion">Indisponible tant que votre système supprime les animations.</string>
-    <string name="theme_page_turn_reflowable">Pas encore disponible pour le texte qui se recompose : il faut une image de la page.</string>
+    <string name="theme_page_turn_reflowable">Non disponible pour les livres dont le texte se redimensionne.</string>
     <string name="epub_contents">Sommaire</string>
     <string name="epub_contents_none">Ce livre ne déclare aucun sommaire.</string>
     <string name="epub_contents_here">Ici</string>

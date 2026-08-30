@@ -30,10 +30,10 @@
     <string name="reader_transition_scroll_horizontal">Scrollen, horizontal</string>
     <string name="reader_transition_reduce_motion">Nicht verfügbar, solange Ihr System Animationen entfernt.</string>
     <string name="reader_transition_no_curl">Blättern wird hier nicht angeboten: dieses Gerät kann es nicht flüssig genug darstellen.</string>
-    <string name="reader_transition_reflowable">Nicht verfügbar für Text, der neu umbricht.</string>
-    <string name="reader_empty">Diese Publikation enthält keine Seiten, die StoryArc anzeigen kann.</string>
+    <string name="reader_transition_reflowable">Nicht verfügbar für Bücher, deren Text sich in der Größe anpasst.</string>
+    <string name="reader_empty">Dieser Comic hat keine Seiten, die StoryArc anzeigen kann.</string>
     <string name="reader_offline_brief">Warten auf das Netzwerk…</string>
-    <string name="reader_offline_long">Diese Publikation liegt auf einer Freigabe, die nicht erreichbar ist. Bereits gelesene Seiten sind weiterhin da.</string>
+    <string name="reader_offline_long">Dieser Comic liegt in einem geteilten Ordner, der nicht erreichbar ist. Bereits gelesene Seiten sind weiterhin da.</string>
     <string name="reader_offline_download">Herunterladen</string>
     <string name="reader_offline_leave">Zurück zur Bibliothek</string>
     <string name="reader_offline_dismiss">Ausblenden</string>
@@ -51,7 +51,7 @@
     <string name="reader_chapter_previous">Vorheriges Kapitel</string>
     <string name="reader_chapter_next">Nächstes Kapitel</string>
     <string name="reader_return">Zurück zu Seite %1$d</string>
-    <string name="reader_spreads_offset">Paarung um eine Seite verschieben</string>
+    <string name="reader_spreads_offset">Die Doppelseite anders ausrichten</string>
     <string name="reader_separator">Seitentrenner anzeigen</string>
     <plurals name="reader_skipped">
         <item quantity="one">%1$d Seite übersprungen</item>
@@ -63,7 +63,7 @@
     <string name="reader_pdf_tab_marks">Markierungen</string>
     <string name="reader_pdf_search">Dieses PDF durchsuchen</string>
     <string name="reader_pdf_search_running">Jede Seite wird durchsucht…</string>
-    <string name="reader_pdf_search_none">In dieser Publikation nichts gefunden.</string>
+    <string name="reader_pdf_search_none">Nichts in diesem PDF gefunden.</string>
     <string name="reader_pdf_search_capped">Die ersten 200 Treffer. Grenzen Sie die Suche ein, um weniger zu sehen.</string>
     <string name="reader_pdf_marks_empty">Tippen und halten Sie ein Wort, um es zu markieren oder zu kommentieren.</string>
     <string name="reader_pdf_marks_remove">Löschen</string>

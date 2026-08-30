@@ -18,7 +18,7 @@
     <string name="theme_preset_calm">Suave</string>
     <string name="theme_preset_focus">Enfoque</string>
     <string name="theme_publisher_styles_title">Se usa el estilo del editor</string>
-    <string name="theme_publisher_styles_reason">Original conserva la publicación tal como se publicó, así que estos ajustes no llegan a la página. El tamaño del texto sí.</string>
+    <string name="theme_publisher_styles_reason">Original mantiene el libro exactamente como se publicó, así que estos controles no llegan a la página. El tamaño del texto sí.</string>
     <string name="theme_publisher_styles_action">Usar la tipografía de StoryArc</string>
     <string name="theme_axis_font_size">Tamaño del texto</string>
     <string name="theme_axis_font_family">Tipografía</string>
@@ -44,7 +44,7 @@
     <string name="theme_typeface_atkinson">Atkinson Hyperlegible</string>
     <string name="theme_typeface_low_vision">Diseñada para baja visión</string>
     <string name="theme_axis_value_multiple">%1$s veces</string>
-    <string name="theme_axis_value_em">%1$s em</string>
+    <string name="theme_axis_value_em">%1$s veces</string>
     <string name="theme_font_size_position">Tamaño %1$d de %2$d</string>
     <string name="theme_brightness_percent">%1$d %%</string>
     <string name="theme_page_colour">Color de la página</string>
@@ -70,7 +70,7 @@
     <string name="theme_page_turn_fade">Fundido rápido</string>
     <string name="theme_page_turn_scroll">Desplazamiento continuo</string>
     <string name="theme_page_turn_reduce_motion">No disponible mientras su sistema elimina las animaciones.</string>
-    <string name="theme_page_turn_reflowable">Todavía no disponible para el texto que se reajusta: necesita una imagen de la página.</string>
+    <string name="theme_page_turn_reflowable">No disponible para libros cuyo texto cambia de tamaño.</string>
     <string name="epub_contents">Contenido</string>
     <string name="epub_contents_none">Este libro no declara ningún índice.</string>
     <string name="epub_contents_here">Aquí</string>

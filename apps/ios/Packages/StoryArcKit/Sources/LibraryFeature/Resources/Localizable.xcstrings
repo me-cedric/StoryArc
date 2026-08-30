@@ -355,25 +355,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Was der Server gesendet hat, konnte nicht als Publikation gelesen werden."
+            "value": "Was der Server gesendet hat, konnte nicht geöffnet werden."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "What the server sent could not be read as a publication."
+            "value": "What the server sent could not be opened."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lo que envió el servidor no se pudo leer como una publicación."
+            "value": "No se pudo abrir lo que envió el servidor."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce que le serveur a envoyé n’a pas pu être lu comme une publication."
+            "value": "Ce que le serveur a envoyé n’a pas pu être ouvert."
           }
         }
       }
@@ -413,25 +413,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Katalog hinzufügen"
+            "value": "Hinzufügen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add catalogue"
+            "value": "Add"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añadir catálogo"
+            "value": "Añadir"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajouter le catalogue"
+            "value": "Ajouter"
           }
         }
       }
@@ -442,25 +442,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Calibre-Web, Komga, Kavita, Ubooquity und alles andere, was OPDS spricht."
+            "value": "Funktioniert mit Calibre-Web, Komga, Kavita, Ubooquity und den meisten anderen Bibliotheksservern."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Calibre-Web, Komga, Kavita, Ubooquity and anything else that speaks OPDS."
+            "value": "Works with Calibre-Web, Komga, Kavita, Ubooquity and most other library servers."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Calibre-Web, Komga, Kavita, Ubooquity y cualquier otro servidor que hable OPDS."
+            "value": "Funciona con Calibre-Web, Komga, Kavita, Ubooquity y la mayoría de los demás servidores de biblioteca."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Calibre-Web, Komga, Kavita, Ubooquity et tout autre serveur qui parle OPDS."
+            "value": "Fonctionne avec Calibre-Web, Komga, Kavita, Ubooquity et la plupart des autres serveurs de bibliothèque."
           }
         }
       }
@@ -964,25 +964,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Server hat %1$d %2$@ geantwortet."
+            "value": "Der Server hat abgelehnt: %1$d %2$@."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The server answered %1$d %2$@."
+            "value": "The server refused: %1$d %2$@."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El servidor respondió %1$d %2$@."
+            "value": "El servidor lo rechazó: %1$d %2$@."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le serveur a répondu %1$d %2$@."
+            "value": "Le serveur a refusé : %1$d %2$@."
           }
         }
       }
@@ -1399,25 +1399,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieser Katalog bietet keine Suche, daher wurde nur das Geladene gefiltert."
+            "value": "Diese Bibliothek bietet keine Suche, deshalb wurde nur das Geladene gefiltert."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This catalogue does not offer search, so only what has loaded was filtered."
+            "value": "This library does not offer search, so only what has loaded was filtered."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este catálogo no ofrece búsqueda, así que solo se filtró lo ya cargado."
+            "value": "Esta biblioteca no ofrece búsqueda, así que solo se filtró lo que ya se había cargado."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce catalogue ne propose pas de recherche : seul ce qui est chargé a été filtré."
+            "value": "Cette bibliothèque ne propose pas de recherche : seul ce qui est déjà chargé a été filtré."
           }
         }
       }
@@ -1428,25 +1428,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "In diesem Katalog suchen"
+            "value": "In dieser Bibliothek suchen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search this catalogue"
+            "value": "Search this library"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Buscar en este catálogo"
+            "value": "Buscar en esta biblioteca"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rechercher dans ce catalogue"
+            "value": "Chercher dans cette bibliothèque"
           }
         }
       }
@@ -1460,13 +1460,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Publikation"
+                  "value": "%lld Titel"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Publikationen"
+                  "value": "%lld Titel"
                 }
               }
             }
@@ -1478,13 +1478,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publication"
+                  "value": "%lld title"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publications"
+                  "value": "%lld titles"
                 }
               }
             }
@@ -1496,13 +1496,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publicación"
+                  "value": "%lld título"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publicaciones"
+                  "value": "%lld títulos"
                 }
               }
             }
@@ -1514,13 +1514,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publication"
+                  "value": "%lld titre"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publications"
+                  "value": "%lld titres"
                 }
               }
             }
@@ -1563,25 +1563,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Im Schlüsselbund des Geräts gespeichert, nie in einem Backup oder Protokoll."
+            "value": "Wird im sicheren Speicher dieses Geräts abgelegt. Niemals in einer Sicherung oder einem Protokoll."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stored in the device keychain, never in a backup or a log."
+            "value": "Kept in this device’s secure storage. Never in a backup or a log."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se guarda en el llavero del dispositivo, nunca en una copia de seguridad ni en un registro."
+            "value": "Se guarda en el almacenamiento seguro de este dispositivo. Nunca en una copia de seguridad ni en un registro."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conservé dans le trousseau de l’appareil, jamais dans une sauvegarde ni un journal."
+            "value": "Conservé dans le stockage sécurisé de cet appareil. Jamais dans une sauvegarde ni un journal."
           }
         }
       }
@@ -1737,25 +1737,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "OPDS-Katalog"
+            "value": "Online-Bibliothek hinzufügen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "OPDS catalogue"
+            "value": "Add an online library"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Catálogo OPDS"
+            "value": "Añadir una biblioteca en línea"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Catalogue OPDS"
+            "value": "Ajouter une bibliothèque en ligne"
           }
         }
       }
@@ -2104,25 +2104,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Server hinzufügen"
+            "value": "Hinzufügen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add server"
+            "value": "Add"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añadir servidor"
+            "value": "Añadir"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajouter le serveur"
+            "value": "Ajouter"
           }
         }
       }
@@ -2597,25 +2597,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aus Ihren Kavita-Kontoeinstellungen. Im Schlüsselbund des Geräts gespeichert."
+            "value": "Kopieren Sie ihn aus Ihren Kavita-Kontoeinstellungen. Er wird im sicheren Speicher dieses Geräts abgelegt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "From your Kavita account settings. Stored in the device keychain."
+            "value": "Copy it from your Kavita account settings. It is kept in this device’s secure storage."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desde los ajustes de su cuenta de Kavita. Se guarda en el llavero del dispositivo."
+            "value": "Cópiala desde los ajustes de tu cuenta de Kavita. Se guarda en el almacenamiento seguro de este dispositivo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Depuis les réglages de votre compte Kavita. Conservée dans le trousseau de l’appareil."
+            "value": "Copiez-la depuis les réglages de votre compte Kavita. Elle est conservée dans le stockage sécurisé de cet appareil."
           }
         }
       }
@@ -2742,25 +2742,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Was dieser Server auf diesem Gerät hinterlassen hat"
+            "value": "Was diese Bibliothek auf diesem Gerät hinterlassen hat"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "What this server has left on this device"
+            "value": "What this library has left on this device"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lo que este servidor ha dejado en este dispositivo"
+            "value": "Lo que esta biblioteca ha dejado en este dispositivo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce que ce serveur a laissé sur cet appareil"
+            "value": "Ce que cette bibliothèque a laissé sur cet appareil"
           }
         }
       }
@@ -2771,25 +2771,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Von diesem Server wurde nichts auf diesem Gerät behalten."
+            "value": "Von dieser Bibliothek wurde nichts auf diesem Gerät behalten."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing from this server has been kept on this device."
+            "value": "Nothing from this library has been kept on this device."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se ha guardado nada de este servidor en este dispositivo."
+            "value": "No se ha guardado nada de esta biblioteca en este dispositivo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien de ce serveur n’a été conservé sur cet appareil."
+            "value": "Rien de cette bibliothèque n’a été conservé sur cet appareil."
           }
         }
       }
@@ -2800,25 +2800,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieser Server antwortet nicht. Die Ergebnisse beschränken sich auf das, was auf diesem Gerät liegt."
+            "value": "Diese Bibliothek antwortet nicht. Die Ergebnisse beschränken sich auf das, was auf diesem Gerät liegt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This server is not answering. Results are limited to what is on this device."
+            "value": "This library is not answering. Results are limited to what is on this device."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este servidor no responde. Los resultados se limitan a lo que hay en este dispositivo."
+            "value": "Esta biblioteca no responde. Los resultados se limitan a lo que hay en este dispositivo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce serveur ne répond pas. Les résultats se limitent à ce qui est sur cet appareil."
+            "value": "Cette bibliothèque ne répond pas. Les résultats se limitent à ce qui est sur cet appareil."
           }
         }
       }
@@ -2916,25 +2916,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diesen Server durchsuchen"
+            "value": "In dieser Bibliothek suchen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search this server"
+            "value": "Search this library"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Buscar en este servidor"
+            "value": "Buscar en esta biblioteca"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rechercher sur ce serveur"
+            "value": "Chercher dans cette bibliothèque"
           }
         }
       }
@@ -3003,25 +3003,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kavita-Server"
+            "value": "Kavita-Bibliothek"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kavita server"
+            "value": "Kavita library"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Servidor Kavita"
+            "value": "Biblioteca Kavita"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Serveur Kavita"
+            "value": "Bibliothèque Kavita"
           }
         }
       }
@@ -3039,13 +3039,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add Folder"
+            "value": "Add a folder"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añadir carpeta"
+            "value": "Añadir una carpeta"
           }
         },
         "fr": {
@@ -3062,25 +3062,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quelle hinzufügen"
+            "value": "Bücher hinzufügen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add a source"
+            "value": "Add books"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añadir una fuente"
+            "value": "Añadir libros"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajouter une source"
+            "value": "Ajouter des livres"
           }
         }
       }
@@ -3094,13 +3094,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Publikation geändert"
+                  "value": "%lld Titel geändert"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Publikationen geändert"
+                  "value": "%lld Titel geändert"
                 }
               }
             }
@@ -3112,13 +3112,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publication changed"
+                  "value": "%lld title changed"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publications changed"
+                  "value": "%lld titles changed"
                 }
               }
             }
@@ -3130,13 +3130,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publicación cambiada"
+                  "value": "%lld título cambiado"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publicaciones cambiadas"
+                  "value": "%lld títulos cambiados"
                 }
               }
             }
@@ -3148,13 +3148,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publication modifiée"
+                  "value": "%lld titre modifié"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publications modifiées"
+                  "value": "%lld titres modifiés"
                 }
               }
             }
@@ -3258,13 +3258,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Publikation auf diesem Gerät behalten?"
+                  "value": "%lld Titel auf diesem Gerät behalten?"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Publikationen auf diesem Gerät behalten?"
+                  "value": "%lld Titel auf diesem Gerät behalten?"
                 }
               }
             }
@@ -3276,13 +3276,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Keep %lld publication on this device?"
+                  "value": "Keep %lld title on this device?"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Keep %lld publications on this device?"
+                  "value": "Keep %lld titles on this device?"
                 }
               }
             }
@@ -3294,13 +3294,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "¿Guardar %lld publicación en este dispositivo?"
+                  "value": "¿Guardar %lld título en este dispositivo?"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "¿Guardar %lld publicaciones en este dispositivo?"
+                  "value": "¿Guardar %lld títulos en este dispositivo?"
                 }
               }
             }
@@ -3312,13 +3312,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Garder %lld publication sur cet appareil ?"
+                  "value": "Garder %lld titre sur cet appareil ?"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Garder %lld publications sur cet appareil ?"
+                  "value": "Garder %lld titres sur cet appareil ?"
                 }
               }
             }
@@ -3586,25 +3586,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Publikation entspricht den aktiven Filtern."
+            "value": "Nichts passt zu den gewählten Filtern."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No publication matches the active filters."
+            "value": "Nothing matches the filters you set."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ninguna publicación coincide con los filtros activos."
+            "value": "Nada coincide con los filtros que has puesto."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucune publication ne correspond aux filtres actifs."
+            "value": "Rien ne correspond aux filtres que vous avez choisis."
           }
         }
       }
@@ -3673,25 +3673,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fügen Sie eine Quelle hinzu oder öffnen Sie einfach eine Datei – StoryArc funktioniert ohne Einrichtung."
+            "value": "Fügen Sie einen Ort zum Lesen hinzu oder öffnen Sie einfach eine Datei. StoryArc funktioniert ganz ohne Einrichtung."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add a source, or just open a file — StoryArc works without any setup."
+            "value": "Add somewhere to read from, or just open a file. StoryArc works with no setup at all."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añade una fuente o simplemente abre un archivo: StoryArc funciona sin configuración."
+            "value": "Añade un sitio del que leer, o simplemente abre un archivo. StoryArc funciona sin ninguna configuración."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajoutez une source, ou ouvrez simplement un fichier — StoryArc fonctionne sans configuration."
+            "value": "Ajoutez un endroit où lire, ou ouvrez simplement un fichier. StoryArc fonctionne sans aucune configuration."
           }
         }
       }
@@ -3953,25 +3953,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Format"
+            "value": "Art der Datei"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Format"
+            "value": "Kind of file"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Formato"
+            "value": "Tipo de archivo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Format"
+            "value": "Type de fichier"
           }
         }
       }
@@ -4069,25 +4069,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lesestatus"
+            "value": "Gelesen oder ungelesen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Read state"
+            "value": "Read or unread"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Estado de lectura"
+            "value": "Leído o sin leer"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "État de lecture"
+            "value": "Lu ou non lu"
           }
         }
       }
@@ -4158,25 +4158,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Datei importieren…"
+            "value": "Datei öffnen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Import a File…"
+            "value": "Open a file"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Importar un archivo…"
+            "value": "Abrir un archivo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Importer un fichier…"
+            "value": "Ouvrir un fichier"
           }
         }
       }
@@ -4245,25 +4245,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diese Datei lässt sich nicht importieren"
+            "value": "Diese Datei lässt sich nicht öffnen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cannot import this file"
+            "value": "Cannot open this file"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se puede importar este archivo"
+            "value": "No se puede abrir este archivo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible d’importer ce fichier"
+            "value": "Impossible d’ouvrir ce fichier"
           }
         }
       }
@@ -4652,25 +4652,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ihre Position in dieser Publikation wird vergessen; beim nächsten Öffnen beginnt sie auf Seite eins. Sonst ändert sich nichts, und die Datei selbst bleibt unberührt."
+            "value": "Ihre Stelle hier wird vergessen, und es öffnet sich beim nächsten Mal auf Seite eins. Sonst ändert sich nichts, und die Datei selbst bleibt unberührt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your place in this publication is forgotten, and it opens at page one next time. Nothing else changes, and the file itself is untouched."
+            "value": "Your place here is forgotten, and it opens at page one next time. Nothing else changes, and the file itself is untouched."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se olvida tu posición en esta publicación y la próxima vez se abrirá en la primera página. No cambia nada más y el archivo en sí no se toca."
+            "value": "Se olvida tu punto de lectura aquí, y la próxima vez se abrirá en la primera página. Nada más cambia, y el archivo no se toca."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Votre position dans cette publication est oubliée : la prochaine ouverture se fera à la première page. Rien d’autre ne change et le fichier lui-même n’est pas touché."
+            "value": "Votre position ici est oubliée, et la lecture reprendra à la première page. Rien d’autre ne change, et le fichier lui-même n’est pas touché."
           }
         }
       }
@@ -4740,25 +4740,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Durchsuchen — %lld gefunden"
+            "value": "Ihre Comics werden hinzugefügt – %lld gefunden"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scanning — %lld found"
+            "value": "Adding your comics — %lld found"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Analizando — %lld encontrados"
+            "value": "Añadiendo tus cómics: %lld encontrados"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Analyse — %lld trouvés"
+            "value": "Ajout de vos bandes dessinées — %lld trouvées"
           }
         }
       }
@@ -4769,25 +4769,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quelle"
+            "value": "Anzeigen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Source"
+            "value": "Show"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fuente"
+            "value": "Mostrar"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Source"
+            "value": "Afficher"
           }
         }
       }
@@ -4798,25 +4798,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alle Quellen"
+            "value": "Überall"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "All sources"
+            "value": "Everywhere"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todas las fuentes"
+            "value": "En todas partes"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Toutes les sources"
+            "value": "Partout"
           }
         }
       }
@@ -4943,25 +4943,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "In allen Quellen suchen"
+            "value": "Überall suchen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search all sources"
+            "value": "Search everything"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Buscar en todas las fuentes"
+            "value": "Buscar en todo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chercher dans toutes les sources"
+            "value": "Chercher partout"
           }
         }
       }
@@ -5137,25 +5137,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld übersprungen"
+            "value": "%lld konnten nicht geöffnet werden"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld skipped"
+            "value": "%lld couldn’t be opened"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld omitidos"
+            "value": "%lld no se pudieron abrir"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld ignorés"
+            "value": "%lld n’ont pas pu être ouverts"
           }
         }
       }
@@ -5311,25 +5311,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dateigröße"
+            "value": "Größe auf diesem Gerät"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "File size"
+            "value": "Size on this device"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tamaño del archivo"
+            "value": "Tamaño en este dispositivo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Taille du fichier"
+            "value": "Taille sur cet appareil"
           }
         }
       }
@@ -5630,25 +5630,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Noch nichts in dieser Sammlung. Fügen Sie Publikationen aus der Bibliothek hinzu."
+            "value": "Noch nichts in dieser Sammlung. Fügen Sie Bücher und Comics aus Ihrer Bibliothek hinzu."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing in this collection yet. Add publications from the library."
+            "value": "Nothing in this collection yet. Add books and comics from your library."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aún no hay nada en esta colección. Añada publicaciones desde la biblioteca."
+            "value": "Aún no hay nada en esta colección. Añade libros y cómics desde tu biblioteca."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien dans cette collection pour l’instant. Ajoutez des publications depuis la bibliothèque."
+            "value": "Rien dans cette collection pour l’instant. Ajoutez des livres et des bandes dessinées depuis votre bibliothèque."
           }
         }
       }
@@ -5688,25 +5688,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Noch keine Sammlungen. Eine Sammlung fasst Publikationen ohne feste Reihenfolge zusammen."
+            "value": "Noch keine Sammlungen. Eine Sammlung fasst Bücher und Comics ohne bestimmte Reihenfolge zusammen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No collections yet. A collection groups publications in no particular order."
+            "value": "No collections yet. A collection groups books and comics in no particular order."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aún no hay colecciones. Una colección agrupa publicaciones sin un orden concreto."
+            "value": "Aún no hay colecciones. Una colección agrupa libros y cómics sin un orden concreto."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucune collection pour l’instant. Une collection regroupe des publications sans ordre particulier."
+            "value": "Aucune collection pour l’instant. Une collection regroupe des livres et des bandes dessinées sans ordre particulier."
           }
         }
       }
@@ -5717,25 +5717,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "„%1$@“ hat sich auf dem Server geändert, daher wurde dessen Version behalten. Dies wurde nicht hinzugefügt: %2$@."
+            "value": "„%1$@“ hat sich in der Online-Bibliothek geändert, deshalb wurde deren Version behalten. Diese wurden nicht hinzugefügt: %2$@."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "“%1$@” changed on the server, so its version was kept. These were not added: %2$@."
+            "value": "“%1$@” changed in the online library, so its version was kept. These were not added: %2$@."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "«%1$@» cambió en el servidor, así que se conservó su versión. Esto no se añadió: %2$@."
+            "value": "«%1$@» cambió en la biblioteca en línea, así que se conservó su versión. Estos no se añadieron: %2$@."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "« %1$@ » a changé sur le serveur, sa version a donc été conservée. Ceci n’a pas été ajouté : %2$@."
+            "value": "« %1$@ » a changé dans la bibliothèque en ligne, sa version a donc été conservée. Ceux-ci n’ont pas été ajoutés : %2$@."
           }
         }
       }
@@ -5746,25 +5746,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Version des Servers wurde behalten"
+            "value": "Die Version der Online-Bibliothek wurde behalten"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The server’s version was kept"
+            "value": "The online library’s version was kept"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se conservó la versión del servidor"
+            "value": "Se conservó la versión de la biblioteca en línea"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La version du serveur a été conservée"
+            "value": "La version de la bibliothèque en ligne a été conservée"
           }
         }
       }
@@ -5807,13 +5807,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Publikation"
+                  "value": "%lld Titel"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Publikationen"
+                  "value": "%lld Titel"
                 }
               }
             }
@@ -5825,13 +5825,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publication"
+                  "value": "%lld title"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publications"
+                  "value": "%lld titles"
                 }
               }
             }
@@ -5843,13 +5843,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publicación"
+                  "value": "%lld título"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publicaciones"
+                  "value": "%lld títulos"
                 }
               }
             }
@@ -5861,13 +5861,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publication"
+                  "value": "%lld titre"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld publications"
+                  "value": "%lld titres"
                 }
               }
             }
@@ -5910,25 +5910,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Noch nichts in dieser Liste. Fügen Sie Publikationen aus der Bibliothek hinzu."
+            "value": "Noch nichts in dieser Liste. Fügen Sie Bücher und Comics aus Ihrer Bibliothek hinzu."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing in this list yet. Add publications from the library."
+            "value": "Nothing in this list yet. Add books and comics from your library."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aún no hay nada en esta lista. Añada publicaciones desde la biblioteca."
+            "value": "Aún no hay nada en esta lista. Añade libros y cómics desde tu biblioteca."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien dans cette liste pour l’instant. Ajoutez des publications depuis la bibliothèque."
+            "value": "Rien dans cette liste pour l’instant. Ajoutez des livres et des bandes dessinées depuis votre bibliothèque."
           }
         }
       }
@@ -5968,25 +5968,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Von seiner Quelle nicht mehr verfügbar"
+            "value": "Nicht mehr dort, wo es war"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No longer available from its source"
+            "value": "No longer where it used to be"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ya no está disponible en su fuente"
+            "value": "Ya no está donde estaba"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "N’est plus disponible depuis sa source"
+            "value": "N’est plus là où il était"
           }
         }
       }
@@ -6203,13 +6203,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Änderung wartet auf den Server"
+                  "value": "%lld Änderung noch nicht gespeichert"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Änderungen warten auf den Server"
+                  "value": "%lld Änderungen noch nicht gespeichert"
                 }
               }
             }
@@ -6221,13 +6221,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld edit waiting for the server"
+                  "value": "%lld change not saved yet"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld edits waiting for the server"
+                  "value": "%lld changes not saved yet"
                 }
               }
             }
@@ -6239,13 +6239,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld cambio esperando al servidor"
+                  "value": "%lld cambio aún sin guardar"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld cambios esperando al servidor"
+                  "value": "%lld cambios aún sin guardar"
                 }
               }
             }
@@ -6257,13 +6257,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld modification en attente du serveur"
+                  "value": "%lld modification pas encore enregistrée"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld modifications en attente du serveur"
+                  "value": "%lld modifications pas encore enregistrées"
                 }
               }
             }
@@ -6277,25 +6277,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wartet auf den Server"
+            "value": "Noch nicht gespeichert"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server"
+            "value": "Not saved yet"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esperando al servidor"
+            "value": "Aún no guardado"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "En attente du serveur"
+            "value": "Pas encore enregistré"
           }
         }
       }
@@ -6306,25 +6306,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Auf einen Server kopieren…"
+            "value": "In eine Online-Bibliothek kopieren…"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copy to a server…"
+            "value": "Copy to an online library…"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copiar a un servidor…"
+            "value": "Copiar a una biblioteca en línea…"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copier vers un serveur…"
+            "value": "Copier vers une bibliothèque en ligne…"
           }
         }
       }
@@ -6335,25 +6335,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Server wählen"
+            "value": "Online-Bibliothek wählen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose a server"
+            "value": "Choose an online library"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elegir un servidor"
+            "value": "Elegir una biblioteca en línea"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choisir un serveur"
+            "value": "Choisir une bibliothèque en ligne"
           }
         }
       }
@@ -6499,25 +6499,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Es wurde nichts kopiert. Der Server hat die Liste nicht angenommen."
+            "value": "Es wurde nichts kopiert. Die Online-Bibliothek hat die Liste nicht angenommen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing was copied. The server did not take the list."
+            "value": "Nothing was copied. The online library did not take the list."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se copió nada. El servidor no aceptó la lista."
+            "value": "No se copió nada. La biblioteca en línea no aceptó la lista."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien n’a été copié. Le serveur n’a pas accepté la liste."
+            "value": "Rien n’a été copié. La bibliothèque en ligne n’a pas accepté la liste."
           }
         }
       }
@@ -6663,25 +6663,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Auf einen Server kopieren"
+            "value": "In eine Online-Bibliothek kopieren"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copy to a server"
+            "value": "Copy to an online library"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copiar a un servidor"
+            "value": "Copiar a una biblioteca en línea"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copier vers un serveur"
+            "value": "Copier vers une bibliothèque en ligne"
           }
         }
       }
@@ -6692,25 +6692,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kein erreichbarer Server kann eine Leseliste aufnehmen."
+            "value": "Keine erreichbare Online-Bibliothek kann eine Leseliste aufnehmen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No reachable server can hold a reading list."
+            "value": "No online library you can reach is able to hold a reading list."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ningún servidor accesible puede alojar una lista de lectura."
+            "value": "Ninguna biblioteca en línea accesible puede alojar una lista de lectura."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucun serveur joignable ne peut héberger une liste de lecture."
+            "value": "Aucune bibliothèque en ligne joignable ne peut héberger une liste de lecture."
           }
         }
       }
@@ -6721,25 +6721,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ hat sie nicht, und StoryArc lädt niemals eine Datei auf einen Server. Sie bleiben in der lokalen Liste."
+            "value": "%@ hat sie nicht, und StoryArc lädt niemals eine Datei hoch. Sie bleiben in der Liste auf diesem Gerät."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ does not hold them, and StoryArc never uploads a file to a server. They stay in the local list."
+            "value": "%@ does not hold them, and StoryArc never uploads a file. They stay in the list on this device."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ no las tiene, y StoryArc nunca sube un archivo a un servidor. Se quedan en la lista local."
+            "value": "%@ no las tiene, y StoryArc nunca sube ningún archivo. Se quedan en la lista de este dispositivo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ ne les possède pas, et StoryArc n’envoie jamais de fichier à un serveur. Elles restent dans la liste locale."
+            "value": "%@ ne les possède pas, et StoryArc n’envoie jamais de fichier. Elles restent dans la liste sur cet appareil."
           }
         }
       }
@@ -6750,25 +6750,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "„%@“ kann nur Publikationen von diesem Server enthalten."
+            "value": "„%@“ kann nur aufnehmen, was aus dieser Bibliothek kommt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "“%@” can only hold publications from that server."
+            "value": "“%@” can only hold what comes from that library."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "«%@» solo puede contener publicaciones de ese servidor."
+            "value": "«%@» solo puede contener lo que viene de esa biblioteca."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "« %@ » ne peut contenir que des publications de ce serveur."
+            "value": "« %@ » ne peut contenir que ce qui vient de cette bibliothèque."
           }
         }
       }
@@ -6779,25 +6779,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stattdessen lokale Liste erstellen"
+            "value": "Stattdessen eine Liste auf diesem Gerät anlegen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Create a local list instead"
+            "value": "Make a list on this device instead"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Crear una lista local en su lugar"
+            "value": "Crear una lista en este dispositivo en su lugar"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Créer une liste locale à la place"
+            "value": "Créer plutôt une liste sur cet appareil"
           }
         }
       }
@@ -6808,25 +6808,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nur von diesem Server"
+            "value": "Nur aus dieser Bibliothek"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Only from this server"
+            "value": "Only from this library"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Solo de este servidor"
+            "value": "Solo de esta biblioteca"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seulement depuis ce serveur"
+            "value": "Seulement depuis cette bibliothèque"
           }
         }
       }
@@ -6837,25 +6837,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sammlungen"
+            "value": "Regale"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Collections"
+            "value": "Shelves"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Colecciones"
+            "value": "Estanterías"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Collections"
+            "value": "Étagères"
           }
         }
       }
@@ -7475,25 +7475,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Netzwerkfreigabe"
+            "value": "Geteilten Ordner hinzufügen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Network share"
+            "value": "Add a shared folder"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recurso de red"
+            "value": "Añadir una carpeta compartida"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Partage réseau"
+            "value": "Ajouter un dossier partagé"
           }
         }
       }
@@ -7649,25 +7649,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kavita-Server"
+            "value": "Kavita-Bibliothek"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kavita server"
+            "value": "Kavita library"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Servidor Kavita"
+            "value": "Biblioteca Kavita"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Serveur Kavita"
+            "value": "Bibliothèque Kavita"
           }
         }
       }
@@ -7678,25 +7678,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Auf diesem Gerät, in iCloud Drive oder bei jedem Dateianbieter"
+            "value": "Auf diesem Gerät, in iCloud Drive oder überall in Dateien"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "On this device, iCloud Drive, or any Files provider"
+            "value": "On this device, in iCloud Drive, or anywhere in Files"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "En este dispositivo, iCloud Drive o cualquier proveedor de Archivos"
+            "value": "En este dispositivo, en iCloud Drive o en cualquier lugar de Archivos"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sur cet appareil, iCloud Drive ou tout fournisseur Fichiers"
+            "value": "Sur cet appareil, dans iCloud Drive ou n’importe où dans Fichiers"
           }
         }
       }
@@ -7736,25 +7736,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Eine SMB-Freigabe auf einem NAS oder einem anderen Computer"
+            "value": "Ein Ordner, den ein anderer Computer oder Heimserver mit Ihnen teilt"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "An SMB share on a NAS or another computer"
+            "value": "A folder another computer or home server shares with you"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Un recurso SMB en un NAS u otro ordenador"
+            "value": "Una carpeta que otro ordenador o servidor doméstico comparte contigo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Un partage SMB sur un NAS ou un autre ordinateur"
+            "value": "Un dossier qu’un autre ordinateur ou serveur domestique partage avec vous"
           }
         }
       }
@@ -7765,25 +7765,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Netzwerkfreigabe"
+            "value": "Ein Computer in Ihrem Netzwerk"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Network share"
+            "value": "A computer on your network"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recurso compartido en red"
+            "value": "Un ordenador de tu red"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Partage réseau"
+            "value": "Un ordinateur de votre réseau"
           }
         }
       }
@@ -7794,25 +7794,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jeder Server, der OPDS spricht, etwa Calibre-Web oder Komga"
+            "value": "Eine Bibliothek, mit der Sie sich über das Internet verbinden. Funktioniert mit Calibre-Web, Komga, Kavita und anderen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Any server that speaks OPDS, such as Calibre-Web or Komga"
+            "value": "A library you connect to over the internet. Works with Calibre-Web, Komga, Kavita and others."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cualquier servidor que hable OPDS, como Calibre-Web o Komga"
+            "value": "Una biblioteca a la que te conectas por internet. Funciona con Calibre-Web, Komga, Kavita y otras."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tout serveur compatible OPDS, comme Calibre-Web ou Komga"
+            "value": "Une bibliothèque à laquelle vous vous connectez par internet. Fonctionne avec Calibre-Web, Komga, Kavita et d’autres."
           }
         }
       }
@@ -7823,25 +7823,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "OPDS-Katalog"
+            "value": "Online-Bibliothek"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "OPDS catalogue"
+            "value": "Online library"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Catálogo OPDS"
+            "value": "Biblioteca en línea"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Catalogue OPDS"
+            "value": "Bibliothèque en ligne"
           }
         }
       }
@@ -7852,25 +7852,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ ist nicht erreichbar, daher kann der Inhalt nicht aufgelistet werden. Bereits heruntergeladene Publikationen bleiben in Ihrer Bibliothek und bleiben lesbar."
+            "value": "%@ ist nicht erreichbar, deshalb lässt sich der Inhalt nicht auflisten. Alles, was Sie bereits daraus geladen haben, bleibt in Ihrer Bibliothek und bleibt lesbar."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ cannot be reached, so what it holds cannot be listed. Publications you have already downloaded from it stay in your library and stay readable."
+            "value": "%@ cannot be reached, so what it holds cannot be listed. Anything you have already downloaded from it stays in your library and stays readable."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se puede acceder a %@, así que su contenido no se puede listar. Las publicaciones que ya descargó de esta fuente siguen en su biblioteca y siguen siendo legibles."
+            "value": "No se puede acceder a %@, así que no se puede listar lo que contiene. Lo que ya hayas descargado de ahí sigue en tu biblioteca y se puede leer."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ est injoignable, son contenu ne peut donc pas être listé. Les publications que vous en avez déjà téléchargées restent dans votre bibliothèque et restent lisibles."
+            "value": "%@ est injoignable, donc son contenu ne peut pas être listé. Ce que vous en avez déjà téléchargé reste dans votre bibliothèque et reste lisible."
           }
         }
       }
@@ -7998,25 +7998,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das entfernt %lld Publikationen aus Ihrer Bibliothek. Es wird keine Datei auf dem Gerät gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten."
+            "value": "Damit werden %lld Titel aus Ihrer Bibliothek entfernt. Auf Ihrem Gerät wird keine Datei gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This removes %lld publications from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days."
+            "value": "This removes %lld titles from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esto quita %lld publicaciones de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días."
+            "value": "Esto quita %lld títulos de tu biblioteca. No se borra ningún archivo de tu dispositivo, y no se ha descargado nada. Tus posiciones de lectura se conservan 30 días."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cela retire %lld publications de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours."
+            "value": "Cela retire %lld titres de votre bibliothèque. Aucun fichier de votre appareil n’est supprimé, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours."
           }
         }
       }
@@ -8143,25 +8143,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Offline – zwischengespeicherte Inhalte"
+            "value": "Keine Antwort"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Offline — showing cached content"
+            "value": "Not answering"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sin conexión: contenido en caché"
+            "value": "Sin respuesta"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hors ligne — contenu en cache"
+            "value": "Sans réponse"
           }
         }
       }
@@ -8172,25 +8172,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieses Gerät hat den Schlüssel für %@ nicht mehr. Öffnen Sie die Quelle in den Einstellungen und geben Sie die Zugangsdaten erneut ein."
+            "value": "StoryArc hat die Anmeldung für %@ verloren. Öffnen Sie sie in den Einstellungen und melden Sie sich erneut an."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This device no longer holds the key for %@. Open the source in Settings and re-enter its credentials."
+            "value": "StoryArc has lost its sign-in for %@. Open it in Settings and sign in again."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este dispositivo ya no conserva la clave de %@. Abra la fuente en Ajustes y vuelva a introducir sus credenciales."
+            "value": "StoryArc ha perdido el inicio de sesión de %@. Ábrela en Ajustes e inicia sesión de nuevo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cet appareil ne conserve plus la clé de %@. Ouvrez la source dans les Réglages et saisissez à nouveau ses identifiants."
+            "value": "StoryArc a perdu la connexion à %@. Ouvrez-la dans Réglages et reconnectez-vous."
           }
         }
       }
@@ -8201,25 +8201,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ hat den gespeicherten Schlüssel abgelehnt. Öffnen Sie die Quelle in den Einstellungen und geben Sie einen neuen ein."
+            "value": "%@ hat die gespeicherte Anmeldung abgelehnt. Öffnen Sie sie in den Einstellungen und melden Sie sich erneut an."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ refused the stored key. Open the source in Settings and enter a new one."
+            "value": "%@ refused the sign-in StoryArc had. Open it in Settings and sign in again."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ rechazó la clave guardada. Abra la fuente en Ajustes e introduzca una nueva."
+            "value": "%@ rechazó el inicio de sesión guardado. Ábrela en Ajustes e inicia sesión de nuevo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ a refusé la clé enregistrée. Ouvrez la source dans les Réglages et saisissez-en une nouvelle."
+            "value": "%@ a refusé la connexion enregistrée par StoryArc. Ouvrez-la dans Réglages et reconnectez-vous."
           }
         }
       }
@@ -8259,25 +8259,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bei %lld Publikationen hat sich sowohl dieses Gerät als auch der Server bewegt. Die weiteste Position wurde behalten."
+            "value": "%lld Titel wurden sowohl auf diesem Gerät als auch in der Herkunftsbibliothek weitergelesen. Die weiteste Position wurde behalten."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld publications moved on both this device and the server. The furthest position was kept."
+            "value": "%lld titles moved on both this device and the library they came from. The furthest position was kept."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld publicaciones avanzaron en este dispositivo y en el servidor. Se ha conservado la posición más avanzada."
+            "value": "%lld títulos avanzaron tanto en este dispositivo como en la biblioteca de origen. Se conservó la posición más avanzada."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld publications ont avancé sur cet appareil et sur le serveur. La position la plus avancée a été conservée."
+            "value": "%lld titres ont avancé à la fois sur cet appareil et dans la bibliothèque d’origine. La position la plus avancée a été conservée."
           }
         }
       }

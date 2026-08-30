@@ -587,25 +587,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Höchster Speicherplatz"
+            "value": "Wie viel Speicher genutzt werden darf"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Most disk to use"
+            "value": "How much space to use"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Espacio máximo"
+            "value": "Cuánto espacio usar"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Espace maximal"
+            "value": "Espace à utiliser au maximum"
           }
         }
       }
@@ -703,25 +703,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nichts ist heruntergeladen. Eine Publikation aus einem Katalog bleibt auf dem Gerät, sobald Sie sie öffnen."
+            "value": "Nichts ist heruntergeladen. Ein Buch, das Sie aus einer Online-Bibliothek öffnen, bleibt auf diesem Gerät."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing is downloaded. A publication from a catalogue is kept on the device once you open it."
+            "value": "Nothing is downloaded. A book you open from an online library is kept on this device."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No hay nada descargado. Una publicación de un catálogo se conserva en el dispositivo en cuanto la abre."
+            "value": "No hay nada descargado. Un libro que abras desde una biblioteca en línea se guarda en este dispositivo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien n’est téléchargé. Une publication d’un catalogue est conservée sur l’appareil dès que vous l’ouvrez."
+            "value": "Rien n’est téléchargé. Un livre que vous ouvrez depuis une bibliothèque en ligne est conservé sur cet appareil."
           }
         }
       }
@@ -935,25 +935,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dies löscht die Kopie von %@ auf diesem Gerät. Ihre Leseposition bleibt erhalten, und der Katalog kann sie erneut liefern."
+            "value": "Dies löscht die Kopie von %@ auf diesem Gerät. Ihre Leseposition bleibt erhalten, und es kann erneut heruntergeladen werden."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This deletes the copy of %@ on this device. Your reading position is kept, and the catalogue can be asked for it again."
+            "value": "This deletes the copy of %@ on this device. Your reading position is kept, and it can be downloaded again."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esto elimina la copia de %@ en este dispositivo. Se conserva su posición de lectura y el catálogo puede volver a facilitarla."
+            "value": "Esto elimina la copia de %@ en este dispositivo. Se conserva tu posición de lectura, y se puede descargar otra vez."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cela supprime la copie de %@ sur cet appareil. Votre position de lecture est conservée et le catalogue peut la redonner."
+            "value": "Cela supprime la copie de %@ sur cet appareil. Votre position de lecture est conservée, et il peut être téléchargé à nouveau."
           }
         }
       }
@@ -1371,25 +1371,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dekodierte Seiten und Web-View-Daten. Wird beim Lesen neu aufgebaut."
+            "value": "Seiten, die StoryArc bereithält, damit sie schnell öffnen. Werden beim Lesen neu aufgebaut."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Decoded pages and web-view data. Rebuilt as you read."
+            "value": "Pages StoryArc kept ready so they open fast. Rebuilt as you read."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Páginas decodificadas y datos del web view. Se reconstruye al leer."
+            "value": "Páginas que StoryArc deja preparadas para que se abran rápido. Se reconstruyen a medida que lees."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pages décodées et données de la vue web. Reconstruit à la lecture."
+            "value": "Des pages que StoryArc garde prêtes pour qu’elles s’ouvrent vite. Reconstituées à mesure que vous lisez."
           }
         }
       }
@@ -1429,25 +1429,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cache löschen"
+            "value": "Speicher freigeben"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clear cache"
+            "value": "Free up space"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Borrar la caché"
+            "value": "Liberar espacio"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Effacer le cache"
+            "value": "Libérer de l’espace"
           }
         }
       }
@@ -1487,25 +1487,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jede heruntergeladene Publikation wird von diesem Gerät entfernt. Ihre Quellen, Ihr Lesefortschritt und Ihre Sammlungen bleiben unberührt; was noch auf einer Quelle liegt, lässt sich erneut herunterladen."
+            "value": "Alles Heruntergeladene wird von diesem Gerät entfernt. Ihre Bibliotheken, Ihr Lesefortschritt und Ihre Sammlungen bleiben unberührt, und alles, was noch in einer Bibliothek liegt, lässt sich erneut herunterladen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Every downloaded publication is removed from this device. Your sources, your reading progress and your collections are not affected, and anything still on a source can be downloaded again."
+            "value": "Everything downloaded is removed from this device. Your libraries, your reading progress and your collections are not affected, and anything still in a library can be downloaded again."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se elimina de este dispositivo cada publicación descargada. Tus fuentes, tu progreso de lectura y tus colecciones no se ven afectados, y lo que siga en una fuente se puede volver a descargar."
+            "value": "Se quita de este dispositivo todo lo descargado. Tus bibliotecas, tu progreso de lectura y tus colecciones no se ven afectados, y lo que siga en una biblioteca se puede descargar otra vez."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chaque publication téléchargée est retirée de cet appareil. Vos sources, votre progression de lecture et vos collections ne sont pas touchées, et ce qui reste sur une source peut être téléchargé de nouveau."
+            "value": "Tout ce qui a été téléchargé est retiré de cet appareil. Vos bibliothèques, votre progression de lecture et vos collections ne sont pas touchées, et ce qui reste dans une bibliothèque peut être téléchargé à nouveau."
           }
         }
       }
@@ -1545,25 +1545,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jede Publikation beginnt wieder auf der ersten Seite. Ihre Dateien, Quellen und Einstellungen bleiben unberührt."
+            "value": "Jedes Buch und jeder Comic springt zurück auf die erste Seite. Ihre Dateien, Ihre Bibliotheken und Ihre Einstellungen bleiben unberührt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Every publication goes back to its first page. Your files, sources and settings are not affected."
+            "value": "Every book and comic goes back to its first page. Your files, your libraries and your settings are not affected."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cada publicación vuelve a su primera página. Sus archivos, fuentes y ajustes no se ven afectados."
+            "value": "Cada libro y cada cómic vuelve a su primera página. Tus archivos, tus bibliotecas y tus ajustes no se ven afectados."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chaque publication revient à sa première page. Vos fichiers, sources et réglages ne sont pas touchés."
+            "value": "Chaque livre et chaque bande dessinée revient à sa première page. Vos fichiers, vos bibliothèques et vos réglages ne sont pas touchés."
           }
         }
       }
@@ -1748,25 +1748,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Publikationen, die auf diesem Gerät liegen. Löschen entfernt die Dateien, nicht den Lesefortschritt."
+            "value": "Auf diesem Gerät behalten, damit sie ohne Netz öffnen. Löschen entfernt die Dateien, nicht das Gelesene."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Publications kept on this device. Clearing removes the files, not what you have read."
+            "value": "Kept on this device so they open without a network. Clearing removes the files, not what you have read."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Publicaciones guardadas en este dispositivo. Borrarlas elimina los archivos, no lo que has leído."
+            "value": "Se guardan en este dispositivo para abrirse sin red. Borrar quita los archivos, no lo que has leído."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Publications conservées sur cet appareil. Les effacer supprime les fichiers, pas votre progression."
+            "value": "Conservés sur cet appareil pour s’ouvrir sans réseau. Effacer supprime les fichiers, pas ce que vous avez lu."
           }
         }
       }
@@ -1806,25 +1806,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Stelle, an der Sie in jeder Publikation aufgehört haben."
+            "value": "Die Stelle, an der Sie in allem Geöffneten aufgehört haben."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Where you stopped in every publication."
+            "value": "Where you stopped in everything you have opened."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El punto donde se detuvo en cada publicación."
+            "value": "Dónde lo dejaste en todo lo que has abierto."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’endroit où vous vous êtes arrêté dans chaque publication."
+            "value": "L’endroit où vous vous êtes arrêté dans tout ce que vous avez ouvert."
           }
         }
       }
@@ -1835,25 +1835,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Daten verlassen dieses Gerät nur zu den Quellen, die Sie selbst eingerichtet haben."
+            "value": "Daten verlassen dieses Gerät nur zu den Bibliotheken, die Sie selbst eingerichtet haben."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Data leaves this device only to the sources you configured yourself."
+            "value": "Data leaves this device only to the libraries you set up yourself."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Los datos salen de este dispositivo solo hacia las fuentes que usted configuró."
+            "value": "Los datos solo salen de este dispositivo hacia las bibliotecas que tú mismo configuraste."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les données ne quittent cet appareil que vers les sources que vous avez vous-même configurées."
+            "value": "Les données ne quittent cet appareil que vers les bibliothèques que vous avez ajoutées vous-même."
           }
         }
       }
@@ -1922,25 +1922,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Comics und feste Seiten"
+            "value": "Comics und Bilderbücher"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Comics and fixed pages"
+            "value": "Comics and picture books"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cómics y páginas fijas"
+            "value": "Cómics y libros ilustrados"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "BD et pages fixes"
+            "value": "BD et livres illustrés"
           }
         }
       }
@@ -3111,25 +3111,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quellen"
+            "value": "Ihre Bibliotheken"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sources"
+            "value": "Your libraries"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fuentes"
+            "value": "Tus bibliotecas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sources"
+            "value": "Vos bibliothèques"
           }
         }
       }
@@ -3140,25 +3140,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Noch keine Quellen"
+            "value": "Noch keine Bibliotheken"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No sources yet"
+            "value": "No libraries yet"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aún no hay fuentes"
+            "value": "Aún no hay bibliotecas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucune source pour l’instant"
+            "value": "Aucune bibliothèque"
           }
         }
       }
@@ -3169,25 +3169,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ordner, Netzwerkfreigaben, OPDS-Kataloge und Kavita-Server. Vorläufig aus der Bibliothek hinzugefügt."
+            "value": "Ordner, geteilte Ordner und Online-Bibliotheken. Vorerst über Ihre Bibliothek hinzuzufügen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Folders, network shares, OPDS catalogues and Kavita servers. Added from the library for now."
+            "value": "Folders, shared folders and online libraries. Added from your library for now."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Carpetas, recursos de red, catálogos OPDS y servidores Kavita. Por ahora se añaden desde la biblioteca."
+            "value": "Carpetas, carpetas compartidas y bibliotecas en línea. Por ahora se añaden desde tu biblioteca."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dossiers, partages réseau, catalogues OPDS et serveurs Kavita. Ajoutés depuis la bibliothèque pour l’instant."
+            "value": "Dossiers, dossiers partagés et bibliothèques en ligne. Ajoutés depuis votre bibliothèque pour l’instant."
           }
         }
       }
@@ -3201,13 +3201,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Quelle"
+                  "value": "%lld Bibliothek"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Quellen"
+                  "value": "%lld Bibliotheken"
                 }
               }
             }
@@ -3219,13 +3219,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld source"
+                  "value": "%lld library"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld sources"
+                  "value": "%lld libraries"
                 }
               }
             }
@@ -3237,13 +3237,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld fuente"
+                  "value": "%lld biblioteca"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld fuentes"
+                  "value": "%lld bibliotecas"
                 }
               }
             }
@@ -3255,13 +3255,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld source"
+                  "value": "%lld bibliothèque"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld sources"
+                  "value": "%lld bibliothèques"
                 }
               }
             }
@@ -3304,25 +3304,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cache leeren"
+            "value": "Speicher freigeben"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clear cache"
+            "value": "Free up space"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vaciar la caché"
+            "value": "Liberar espacio"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vider le cache"
+            "value": "Libérer de l’espace"
           }
         }
       }
@@ -3333,25 +3333,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zugangsdaten erneut eingeben"
+            "value": "Erneut anmelden"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Re-enter credentials"
+            "value": "Sign in again"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Volver a introducir las credenciales"
+            "value": "Iniciar sesión de nuevo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Saisir à nouveau les identifiants"
+            "value": "Se reconnecter"
           }
         }
       }
@@ -3449,25 +3449,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld Publikationen"
+            "value": "%lld Titel"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld publications"
+            "value": "%lld titles"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld publicaciones"
+            "value": "%lld títulos"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld publications"
+            "value": "%lld titres"
           }
         }
       }
@@ -3594,25 +3594,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Letzte erfolgreiche Synchronisierung"
+            "value": "Zuletzt aktualisiert"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Last successful sync"
+            "value": "Last updated"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Última sincronización correcta"
+            "value": "Última actualización"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dernière synchronisation réussie"
+            "value": "Dernière mise à jour"
           }
         }
       }
@@ -3710,25 +3710,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Noch keine Quellen. Fügen Sie einen Ordner aus der Bibliothek hinzu, um zu beginnen."
+            "value": "Noch keine Bibliotheken. Fügen Sie über Ihre Bibliothek einen Ordner hinzu, um zu beginnen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No sources yet. Add a folder from the library to get started."
+            "value": "No libraries yet. Add a folder from your library to get started."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aún no hay fuentes. Añada una carpeta desde la biblioteca para empezar."
+            "value": "Aún no hay bibliotecas. Añade una carpeta desde tu biblioteca para empezar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucune source pour l’instant. Ajoutez un dossier depuis la bibliothèque pour commencer."
+            "value": "Aucune bibliothèque. Ajoutez un dossier depuis votre bibliothèque pour commencer."
           }
         }
       }
@@ -3768,25 +3768,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das entfernt %lld Publikationen aus Ihrer Bibliothek. Es wird keine Datei auf dem Gerät gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten."
+            "value": "Damit werden %lld Titel aus Ihrer Bibliothek entfernt. Auf Ihrem Gerät wird keine Datei gelöscht, und es wurde nichts heruntergeladen. Ihre Lesepositionen bleiben 30 Tage erhalten."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This removes %lld publications from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days."
+            "value": "This removes %lld titles from your library. No files on your device are deleted, and nothing was downloaded. Your reading positions are kept for 30 days."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esto quita %lld publicaciones de su biblioteca. No se elimina ningún archivo del dispositivo, y no se descargó nada. Sus posiciones de lectura se conservan 30 días."
+            "value": "Esto quita %lld títulos de tu biblioteca. No se borra ningún archivo de tu dispositivo, y no se ha descargado nada. Tus posiciones de lectura se conservan 30 días."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cela retire %lld publications de votre bibliothèque. Aucun fichier n’est supprimé de votre appareil, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours."
+            "value": "Cela retire %lld titres de votre bibliothèque. Aucun fichier de votre appareil n’est supprimé, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours."
           }
         }
       }
@@ -3826,25 +3826,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das löscht %@ an Dateien, die von dieser Quelle heruntergeladen wurden. Die Quelle bleibt, und Ihre Lesepositionen auch."
+            "value": "Das löscht %@ an Dateien, die aus dieser Bibliothek geladen wurden. Die Bibliothek bleibt, und Ihre Lesepositionen ebenfalls."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This deletes %@ of files downloaded from this source. The source stays, and so do your reading positions."
+            "value": "This deletes %@ of files downloaded from this library. The library stays, and so do your reading positions."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esto elimina %@ de archivos descargados de esta fuente. La fuente se conserva, y sus posiciones de lectura también."
+            "value": "Esto borra %@ de archivos descargados de esta biblioteca. La biblioteca se queda, y tus posiciones de lectura también."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cela supprime %@ de fichiers téléchargés depuis cette source. La source reste, et vos positions de lecture aussi."
+            "value": "Cela supprime %@ de fichiers téléchargés depuis cette bibliothèque. La bibliothèque reste, ainsi que vos positions de lecture."
           }
         }
       }
@@ -4000,25 +4000,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quelle umbenennen"
+            "value": "Umbenennen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rename source"
+            "value": "Rename"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Renombrar fuente"
+            "value": "Cambiar el nombre"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Renommer la source"
+            "value": "Renommer"
           }
         }
       }
@@ -4116,25 +4116,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nicht erreichbar"
+            "value": "Keine Antwort"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unreachable"
+            "value": "Not answering"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No disponible"
+            "value": "Sin respuesta"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Injoignable"
+            "value": "Sans réponse"
           }
         }
       }

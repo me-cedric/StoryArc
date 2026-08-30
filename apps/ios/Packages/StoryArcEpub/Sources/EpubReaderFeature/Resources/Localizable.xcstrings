@@ -1544,25 +1544,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ em"
+            "value": "%@-fach"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ em"
+            "value": "%@ times"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ em"
+            "value": "%@ veces"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ em"
+            "value": "%@ fois"
           }
         }
       }
@@ -2385,25 +2385,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Für umbrechenden Text noch nicht verfügbar: es braucht ein Bild der Seite."
+            "value": "Nicht verfügbar für Bücher, deren Text sich in der Größe anpasst."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Not available yet for text that reflows: it needs a picture of the page."
+            "value": "Not available for books whose text resizes."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todavía no disponible para el texto que se reajusta: necesita una imagen de la página."
+            "value": "No disponible para libros cuyo texto cambia de tamaño."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pas encore disponible pour le texte qui se recompose : il faut une image de la page."
+            "value": "Non disponible pour les livres dont le texte se redimensionne."
           }
         }
       }
@@ -2675,25 +2675,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Original behält die Publikation genau so, wie sie veröffentlicht wurde. Diese Einstellungen erreichen die Seite daher nicht. Die Textgröße schon."
+            "value": "Original behält das Buch genau so, wie es veröffentlicht wurde, deshalb erreichen diese Regler die Seite nicht. Die Textgröße schon."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Original keeps the publication exactly as it was published, so these controls cannot reach the page. Text size still can."
+            "value": "Original keeps the book exactly as it was published, so these controls cannot reach the page. Text size still can."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Original conserva la publicación tal como se publicó, así que estos ajustes no llegan a la página. El tamaño del texto sí."
+            "value": "Original mantiene el libro exactamente como se publicó, así que estos controles no llegan a la página. El tamaño del texto sí."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Original conserve la publication telle qu’elle a été publiée : ces réglages n’ont donc aucun effet. La taille du texte, si."
+            "value": "Original conserve le livre exactement tel qu’il a été publié : ces réglages ne peuvent donc pas atteindre la page. La taille du texte, si."
           }
         }
       }
