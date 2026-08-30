@@ -141,9 +141,7 @@ public struct ShelvesView: View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
             heading("shelves.collections", about: "shelves.collections.about")
 
-            if local.isEmpty, server.isEmpty {
-                blurb("shelves.collections.none")
-            } else {
+            if !local.isEmpty || !server.isEmpty {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: StoryArcSpace.xl) {
                     ForEach(local) { collection in
                         NavigationLink {
@@ -187,9 +185,7 @@ public struct ShelvesView: View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
             heading("shelves.lists", about: "shelves.lists.about")
 
-            if local.isEmpty, server.isEmpty {
-                blurb("shelves.lists.none")
-            } else {
+            if !local.isEmpty || !server.isEmpty {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: StoryArcSpace.xl) {
                     ForEach(local) { list in
                         NavigationLink {
@@ -238,7 +234,9 @@ public struct ShelvesView: View {
     /// §3.6 asks for Komga's metaphor in the copy — a collection groups what you like, a
     /// reading list is a playlist for books. Above the shelf rather than only in the empty
     /// state, because the reader who has never met the word is not always the reader who
-    /// has none of them.
+    /// has none of them — and it *is* the empty state, because a second sentence saying
+    /// there are none of something the line above has just defined tells the reader nothing
+    /// the blank space below it does not.
     @ViewBuilder
     private func heading(_ title: LocalizedStringKey, about: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
@@ -251,13 +249,6 @@ public struct ShelvesView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
-    }
-
-    @ViewBuilder
-    private func blurb(_ key: LocalizedStringKey) -> some View {
-        Text(key, bundle: .module)
-            .textRole(.footnote)
-            .foregroundStyle(theme.palette.textTertiary)
     }
 
     /// A shelf that lives in an online library.

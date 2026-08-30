@@ -137,6 +137,11 @@ struct StoryArcApp: App {
                 bookmarks: FolderBookmarks(),
                 preferences: LibraryPreferences(),
                 sourceStore: SourceStore(),
+                // Without this the model keeps its shelves in memory only: every
+                // collection and reading list a reader made was gone on the next launch,
+                // and `ShelvesStore` — which exists, is tested, and is written to on every
+                // edit — was never read by the app that ships.
+                shelvesStore: ShelvesStore(),
                 // One store, two readers of it: what was downloaded joins the one
                 // library rather than being reachable only by browsing back to the server
                 // it came from, and imported copies live in it too — see `ImportedCopies`.
