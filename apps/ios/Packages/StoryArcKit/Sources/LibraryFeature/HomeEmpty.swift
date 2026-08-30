@@ -20,12 +20,12 @@ struct HomeEmpty: View {
     var body: some View {
         ContentUnavailableView {
             Label {
-                Text("home.empty.title", bundle: .module)
+                Text("library.empty.title", bundle: .module)
             } icon: {
                 Image(systemName: "book.closed")
             }
         } description: {
-            Text("home.empty.body", bundle: .module)
+            Text("library.empty.subtitle", bundle: .module)
         } actions: {
             // "Open a comic", not "Open a file". The design direction names the action in
             // the reader's terms, and the library's own empty state — the same situation on

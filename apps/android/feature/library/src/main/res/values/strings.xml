@@ -2,7 +2,7 @@
 <resources>
     <string name="library_title">Library</string>
     <string name="library_empty_title">Nothing here yet</string>
-    <string name="library_empty_subtitle">Add somewhere to read from, or just open a file. StoryArc works with no setup at all.</string>
+    <string name="library_empty_subtitle">Open a comic and start reading. You can add a whole folder whenever you like.</string>
     <string name="source_kind_local_folder_title">Files and folders</string>
     <string name="source_kind_local_folder_explanation">On this device, in Google Drive, or anywhere in Files</string>
     <string name="source_kind_network_share_title">A computer on your network</string>
@@ -325,9 +325,7 @@
     <string name="home_show_all">See all</string>
     <string name="home_away">Can\'t be opened right now</string>
     <string name="home_part_read">Part-read</string>
-    <string name="home_first_run">Nothing here yet \u2014 open a comic and StoryArc starts from there.</string>
-    <string name="home_open_a_comic">Open a comic</string>
-    <string name="home_connect_a_library">Connect a library</string>
+    <string name="library_open_comic">Open a comic</string>
     <plurals name="home_pages_left">
         <item quantity="one">%1$d page left</item>
         <item quantity="other">%1$d pages left</item>
@@ -356,4 +354,6 @@
     <string name="search_waiting">Still looking…</string>
     <string name="search_silent">%1$s didn\u2019t answer</string>
     <string name="search_retry">Try again</string>
+    <string name="library_away_body">None of the places you added can be reached right now. Anything already on this device is still here to read.</string>
+    <string name="library_pending_body">Nothing has arrived from the places you added yet.</string>
 </resources>

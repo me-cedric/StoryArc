@@ -2,7 +2,7 @@
 <resources>
     <string name="library_title">Bibliothèque</string>
     <string name="library_empty_title">Rien pour l’instant</string>
-    <string name="library_empty_subtitle">Ajoutez un endroit où lire, ou ouvrez simplement un fichier. StoryArc fonctionne sans aucune configuration.</string>
+    <string name="library_empty_subtitle">Ouvrez une bande dessinée et commencez à lire. Vous pourrez ajouter un dossier entier quand vous voudrez.</string>
     <string name="source_kind_local_folder_title">Fichiers et dossiers</string>
     <string name="source_kind_local_folder_explanation">Sur cet appareil, dans Google Drive ou n’importe où dans Fichiers</string>
     <string name="source_kind_network_share_title">Un ordinateur de votre réseau</string>
@@ -325,9 +325,7 @@
     <string name="home_show_all">Tout voir</string>
     <string name="home_away">Impossible \u00e0 ouvrir pour l\u2019instant</string>
     <string name="home_part_read">Commenc\u00e9</string>
-    <string name="home_first_run">Rien ici pour l\u2019instant \u2014 ouvrez une BD et StoryArc part de l\u00e0.</string>
-    <string name="home_open_a_comic">Ouvrir une BD</string>
-    <string name="home_connect_a_library">Connecter une biblioth\u00e8que</string>
+    <string name="library_open_comic">Ouvrir une BD</string>
     <plurals name="home_pages_left">
         <item quantity="one">%1$d page restante</item>
         <item quantity="other">%1$d pages restantes</item>
@@ -356,4 +354,6 @@
     <string name="search_waiting">Recherche en cours…</string>
     <string name="search_silent">%1$s n\u2019a pas répondu</string>
     <string name="search_retry">Réessayer</string>
+    <string name="library_away_body">Aucun des endroits que vous avez ajoutés n’est joignable pour le moment. Tout ce qui est déjà sur cet appareil reste lisible.</string>
+    <string name="library_pending_body">Rien n’est encore arrivé des endroits que vous avez ajoutés.</string>
 </resources>

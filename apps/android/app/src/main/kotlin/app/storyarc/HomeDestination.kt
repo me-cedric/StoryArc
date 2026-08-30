@@ -1,5 +1,6 @@
 package app.storyarc
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -114,13 +115,35 @@ internal fun HomeDestination(host: AppHost) {
         uri: Uri? -> uri?.let { host.library.importFile(it) }
     }
 
+    // The plain secondary. Android hands a picked folder over as a tree `Uri` and grants
+    // access to it only for this process — until the app asks for the grant to be
+    // persisted, which can only be done here, with the result in hand. That single call is
+    // what makes `local-library`'s "reachable after a device restart" true.
+    //
+    // It used to be a button reading "Connect a library" that carried the reader to the
+    // Library destination, where the empty state named four transports at them. One tap
+    // that finishes the job, in the same words iOS uses, replaces it.
+    val pickFolder = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { tree: Uri? ->
+        if (tree != null) {
+            runCatching {
+                host.activity.contentResolver.takePersistableUriPermission(
+                    tree,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            host.library.addFolder(tree)
+        }
+    }
+
     HomeScreen(
         surface = surface,
         cover = host.library::cover,
         onOpen = { publication -> open(host, publication, isReadableNow(publication)) },
         onShowAll = { section -> showAll(host, section) },
         onOpenFile = { openFile.launch(arrayOf("*/*")) },
-        onConnectLibrary = { host.goToLibrary() },
+        onAddFolder = { pickFolder.launch(null) },
     )
 }
 

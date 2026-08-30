@@ -67,6 +67,7 @@ extension LibraryView {
         if isNarrowedToDevice { return { availability = .everywhere } }
         if model.query.scope == .allSources { return nil }
         return { model.widenToAllSources() }
+    }
 
     /// Asks every source again, and walks the folders again.
     ///

@@ -69,9 +69,11 @@ struct ScanSummary: View {
 /// caller anywhere in the app — the audit counted its strings among the nine that shipped
 /// unreachable. This is its caller.
 ///
-/// The sentence is `home.empty.*` rather than a second copy of its own, because Home *is*
-/// this state when the library is empty (`home-screen`), and two surfaces describing one
-/// situation in two sets of words is how a four-language app drifts.
+/// The sentence is `library.empty.*` and Home's is the same one, because Home *is* this
+/// state when the library is empty (`home-screen`). It arrived as two near-identical pairs
+/// — `home.empty.*` and `library.empty.*`, differing by a word in French and by a clause in
+/// English — which is how one situation described twice in a four-language app drifts. One
+/// pair now, on both destinations and both platforms.
 struct EmptyLibraryView: View {
     /// The primary, and deliberately not a source: a file picker configures nothing and
     /// remembers nothing beyond the copy the app keeps.
@@ -85,12 +87,12 @@ struct EmptyLibraryView: View {
     var body: some View {
         ContentUnavailableView {
             Label {
-                Text("home.empty.title", bundle: .module)
+                Text("library.empty.title", bundle: .module)
             } icon: {
                 Image(systemName: "book.closed")
             }
         } description: {
-            Text("home.empty.body", bundle: .module)
+            Text("library.empty.subtitle", bundle: .module)
         } actions: {
             Button(action: openComic) {
                 Text("library.openComic", bundle: .module)

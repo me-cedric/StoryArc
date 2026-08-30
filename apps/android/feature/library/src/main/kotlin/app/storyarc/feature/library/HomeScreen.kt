@@ -85,7 +85,7 @@ fun HomeScreen(
     onOpen: (Publication) -> Unit,
     onShowAll: (HomeSection) -> Unit,
     onOpenFile: () -> Unit,
-    onConnectLibrary: () -> Unit,
+    onAddFolder: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
     // The flexible bar, not the small one all twelve of the app's other bars use. Its large
@@ -123,7 +123,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.section),
         ) {
             if (surface.isBare) {
-                item { HomeFirstRun(onOpenFile = onOpenFile, onConnectLibrary = onConnectLibrary) }
+                item { HomeFirstRun(onOpenFile = onOpenFile, onAddFolder = onAddFolder) }
                 return@LazyColumn
             }
 
@@ -354,26 +354,43 @@ private fun HomeCoverRun(
  * here is a list of protocols to be understood before the app can be used.
  *
  * Hand-composed, per the divergence register #12: Material has no empty-state component,
- * and a port of iOS's would be the cross-platform habit this revamp is undoing.
+ * and a port of iOS's would be the cross-platform habit this revamp is undoing. The *words*
+ * are shared with iOS and with the library's own empty state, which is the same situation on
+ * the next destination along: `library_empty_title` and `library_empty_subtitle` were two
+ * near-identical pairs, differing by a word in French and a clause in English, which is how
+ * one situation described twice in a four-language app comes apart.
+ *
+ * The secondary is a folder, not a menu of four. It is the one kind that needs no address
+ * and no credentials, so it is the only one that can be finished in a single tap from a
+ * screen a reader reached ten seconds after installing. The other three are named in the
+ * library's own empty state, one destination along, where the reader is already looking for
+ * somewhere to read from.
  */
 @Composable
-private fun HomeFirstRun(onOpenFile: () -> Unit, onConnectLibrary: () -> Unit) {
+private fun HomeFirstRun(onOpenFile: () -> Unit, onAddFolder: () -> Unit) {
     val palette = LocalStoryArcPalette.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.xxl),
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
     ) {
         Text(
-            text = stringResource(R.string.home_first_run),
+            text = stringResource(R.string.library_empty_title),
             style = MaterialTheme.typography.headlineSmall,
             color = palette.textPrimary,
-            modifier = Modifier.widthIn(max = 520.dp),
         )
-        Button(onClick = onOpenFile) { Text(stringResource(R.string.home_open_a_comic)) }
-        TextButton(onClick = onConnectLibrary) {
-            Text(stringResource(R.string.home_connect_a_library))
+        Text(
+            text = stringResource(R.string.library_empty_subtitle),
+            style = MaterialTheme.typography.bodyLarge,
+            color = palette.textSecondary,
+            modifier = Modifier
+                .widthIn(max = 520.dp)
+                .padding(bottom = StoryArcSpace.sm),
+        )
+        Button(onClick = onOpenFile) { Text(stringResource(R.string.library_open_comic)) }
+        TextButton(onClick = onAddFolder) {
+            Text(stringResource(R.string.library_add_folder))
         }
     }
 }

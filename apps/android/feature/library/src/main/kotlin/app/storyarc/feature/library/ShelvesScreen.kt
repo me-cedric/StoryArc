@@ -176,6 +176,13 @@ fun ShelvesScreen(
             val serverCollections = serverShelves.filterNot { it.isList }
             heading(R.string.shelves_collections, R.string.shelves_collections_about)
 
+            if (shelves.collections.isEmpty() && serverCollections.isEmpty()) {
+                makeShelfButton(R.string.shelves_new_collection) {
+                    draft = ""
+                    creating = false
+                }
+            }
+
             if (shelves.collections.isNotEmpty() || serverCollections.isNotEmpty()) {
                 items(shelves.collections, key = { it.id }) { collection ->
                     // `collections-and-reading-lists` gives a collection with contents a
@@ -199,6 +206,13 @@ fun ShelvesScreen(
 
             val serverLists = serverShelves.filter { it.isList }
             heading(R.string.shelves_lists, R.string.shelves_lists_about)
+
+            if (shelves.lists.isEmpty() && serverLists.isEmpty()) {
+                makeShelfButton(R.string.shelves_new_list) {
+                    draft = ""
+                    creating = true
+                }
+            }
 
             if (shelves.lists.isNotEmpty() || serverLists.isNotEmpty()) {
                 items(shelves.lists, key = { it.id }) { list ->
@@ -324,6 +338,28 @@ private fun LazyGridScope.heading(title: Int, about: Int) {
                 style = MaterialTheme.typography.bodySmall,
                 color = LocalStoryArcPalette.current.textSecondary,
             )
+        }
+    }
+}
+
+/**
+ * What an empty section offers instead of blank space.
+ *
+ * The sentence stays in [heading] — repeating "no collections yet" under a line that has
+ * just explained what a collection *is* tells the reader nothing the blank space does not.
+ * What the blank space was missing is the way out: the only way to make a shelf was the plus
+ * in the app bar, which is a control a reader has to already know about, on the one screen
+ * where they demonstrably do not. iOS grew the same button in `ShelvesView`.
+ */
+private fun LazyGridScope.makeShelfButton(label: Int, onClick: () -> Unit) {
+    item(span = { GridItemSpan(maxLineSpan) }) {
+        TextButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = null,
+                modifier = Modifier.padding(end = StoryArcSpace.xs),
+            )
+            Text(stringResource(label))
         }
     }
 }

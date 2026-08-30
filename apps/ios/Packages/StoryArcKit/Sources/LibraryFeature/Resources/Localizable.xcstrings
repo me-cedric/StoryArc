@@ -2454,66 +2454,6 @@
         }
       }
     },
-    "home.empty.body": {
-      "comment": "The one sentence under Home's empty state. Reading first, setting up later.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öffnen Sie einen Comic und lesen Sie los. Einen ganzen Ordner können Sie jederzeit hinzufügen."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open a comic and start reading. You can add a whole folder whenever you like."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abre un cómic y empieza a leer. Puedes añadir una carpeta entera cuando quieras."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ouvrez une bande dessinée et commencez à lire. Vous pourrez ajouter un dossier entier quand vous voudrez."
-          }
-        }
-      }
-    },
-    "home.empty.title": {
-      "comment": "Home when the reader owns nothing yet. Home is itself the empty state.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hier ist noch nichts"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nothing here yet"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aquí todavía no hay nada"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rien ici pour l’instant"
-          }
-        }
-      }
-    },
     "home.pagesLeft %lld": {
       "comment": "How much of a comic is left, on Home's hero card.",
       "extractionState": "manual",
@@ -4580,25 +4520,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fügen Sie einen Ort zum Lesen hinzu oder öffnen Sie einfach eine Datei. StoryArc funktioniert ganz ohne Einrichtung."
+            "value": "Öffnen Sie einen Comic und lesen Sie los. Einen ganzen Ordner können Sie jederzeit hinzufügen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add somewhere to read from, or just open a file. StoryArc works with no setup at all."
+            "value": "Open a comic and start reading. You can add a whole folder whenever you like."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añade un sitio del que leer, o simplemente abre un archivo. StoryArc funciona sin ninguna configuración."
+            "value": "Abre un cómic y empieza a leer. Puedes añadir una carpeta entera cuando quieras."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajoutez un endroit où lire, ou ouvrez simplement un fichier. StoryArc fonctionne sans aucune configuration."
+            "value": "Ouvrez une bande dessinée et commencez à lire. Vous pourrez ajouter un dossier entier quand vous voudrez."
           }
         }
       }
@@ -5431,7 +5371,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ouvrir une bande dessinée"
+            "value": "Ouvrir une BD"
           }
         }
       }
