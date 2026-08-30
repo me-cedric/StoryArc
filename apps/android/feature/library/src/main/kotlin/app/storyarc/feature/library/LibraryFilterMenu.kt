@@ -4,13 +4,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,58 +19,77 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.model.LibraryQuery
+import app.storyarc.core.model.LibraryScope
 import app.storyarc.core.model.ReadState
+import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.model.YearRange
 import java.util.Locale
 
 /**
  * One group of alternatives the reader can narrow by.
  *
- * `library-browsing` names ten facets; these are the seven the app can answer. The
- * enum exists so the menu can show one group at a time — see [FilterMenu].
+ * `library-browsing` names ten facets; these are the eight the app can answer. The
+ * enum exists so the menu can show one group at a time — see [FilterChipMenu].
+ *
+ * [LIBRARY] leads because it is the newest and the one that changed shape: narrowing to a
+ * single library used to be a *scope* — a mode with its own control in the top bar, which
+ * silently narrowed the search as well and which a reader could be left in without
+ * noticing. It is a filter now, cleared by the same action that clears every other filter
+ * and counted in the same badge.
  */
-private enum class FilterSection { READ_STATE, FORMAT, LANGUAGE, PUBLISHER, GENRE, TAG, DECADE }
+private enum class FilterSection {
+    LIBRARY,
+    READ_STATE,
+    FORMAT,
+    LANGUAGE,
+    PUBLISHER,
+    GENRE,
+    TAG,
+    DECADE,
+}
 
 /**
  * What the library is narrowed to.
  *
  * `library-browsing`: the groups combine with AND, the active count is visible on
- * the control, and one action clears them all. None of that changed when the groups
- * went from two to seven — what changed is that the menu shows one group at a time.
- * A flat menu listing every publisher, genre and tag a real library holds would run
+ * the control, and one action clears them all. The menu shows one group at a time —
+ * a flat menu listing every publisher, genre and tag a real library holds would run
  * past the bottom of the screen long before the reader reached "Clear filters", and
  * the reader would have to scroll a menu to undo a mistake.
  *
- * Split out of `LibraryScreen` for the same reason it grew: the menu is now longer
- * than the screen's own scaffold. iOS's `FilterMenu` uses nested `Menu`s for the
- * same effect — SwiftUI has submenus and `DropdownMenu` does not.
+ * A chip rather than an icon button. The chip says how many filters are active in a word
+ * a reader can read at a glance, which the tinted funnel glyph it replaces could not — and
+ * it sits in [LibraryControls] beside the axis and the sort, where the three narrowing
+ * decisions belong together.
  */
 @Composable
-internal fun FilterMenu(query: LibraryQuery, viewModel: LibraryViewModel) {
-    val palette = LocalStoryArcPalette.current
+internal fun FilterChipMenu(
+    query: LibraryQuery,
+    registry: SourceRegistry,
+    viewModel: LibraryViewModel,
+    onQueryChange: (LibraryQuery) -> Unit,
+    onClearFilters: () -> Unit,
+) {
     var open by remember { mutableStateOf(false) }
     var section by remember { mutableStateOf<FilterSection?>(null) }
+    val active = query.narrowingCount
 
-    IconButton(onClick = { open = true }) {
-        Icon(
-            imageVector = Icons.Filled.FilterList,
-            contentDescription = if (query.hasFilters) {
-                // A plural, not a format. "1 filters active" is wrong in every
-                // language, and the count reaches 1 whenever a reader sets one filter.
-                pluralStringResource(
-                    R.plurals.library_filter_active,
-                    query.activeFilterCount,
-                    query.activeFilterCount,
-                )
-            } else {
-                stringResource(R.string.library_filter)
-            },
-            // Colour is never the only signal: the count is in the description.
-            tint = if (query.hasFilters) palette.accent else palette.textSecondary,
-        )
-    }
+    FilterChip(
+        selected = active > 0,
+        onClick = { open = true },
+        label = {
+            Text(
+                text = if (active > 0) {
+                    // A plural, not a format. "1 filters active" is wrong in every
+                    // language, and the count reaches 1 whenever a reader sets one filter.
+                    pluralStringResource(R.plurals.library_filter_active, active, active)
+                } else {
+                    stringResource(R.string.library_filter)
+                },
+            )
+        },
+    )
     DropdownMenu(
         expanded = open,
         onDismissRequest = {
@@ -82,23 +100,41 @@ internal fun FilterMenu(query: LibraryQuery, viewModel: LibraryViewModel) {
         },
     ) {
         when (val chosen = section) {
-            null -> SectionList(query, viewModel, onOpen = { section = it }, onClear = {
-                viewModel.clearFilters()
-                open = false
-            })
+            null -> SectionList(
+                query = query,
+                registry = registry,
+                viewModel = viewModel,
+                onOpen = { section = it },
+                onClear = {
+                    onClearFilters()
+                    open = false
+                },
+            )
 
             else -> {
                 BackItem(chosen) { section = null }
-                SectionValues(chosen, query, viewModel)
+                SectionValues(chosen, query, registry, viewModel, onQueryChange)
             }
         }
     }
 }
 
+/**
+ * How much of the view the reader has narrowed, the library filter included.
+ *
+ * `LibraryQuery.activeFilterCount` counts the seven facets it holds and cannot count the
+ * scope, which is a field beside them rather than one of them. Counted here so the badge
+ * matches what "Clear filters" undoes — a chip reading "2 filters active" that clears
+ * three things is a chip nobody trusts twice.
+ */
+private val LibraryQuery.narrowingCount: Int
+    get() = activeFilterCount + if (scope == LibraryScope.AllSources) 0 else 1
+
 /** The groups themselves, each one worth opening only if the library has values for it. */
 @Composable
 private fun SectionList(
     query: LibraryQuery,
+    registry: SourceRegistry,
     viewModel: LibraryViewModel,
     onOpen: (FilterSection) -> Unit,
     onClear: () -> Unit,
@@ -106,7 +142,7 @@ private fun SectionList(
     FilterSection.entries.forEach { section ->
         // A group with nothing in it is left out entirely: an empty "Genre" list
         // tells the reader nothing and costs a tap to find out.
-        if (section.hasValues(viewModel)) {
+        if (section.hasValues(registry, viewModel)) {
             SectionItem(
                 label = stringResource(section.labelRes),
                 isActive = section.isActive(query),
@@ -114,7 +150,7 @@ private fun SectionList(
             )
         }
     }
-    if (query.hasFilters) {
+    if (query.narrowingCount > 0) {
         HorizontalDivider()
         DropdownMenuItem(
             text = { Text(stringResource(R.string.library_filter_clear)) },
@@ -125,17 +161,25 @@ private fun SectionList(
 
 /** The values of one group, as the reader ticks them. */
 @Composable
-private fun SectionValues(section: FilterSection, query: LibraryQuery, viewModel: LibraryViewModel) {
+private fun SectionValues(
+    section: FilterSection,
+    query: LibraryQuery,
+    registry: SourceRegistry,
+    viewModel: LibraryViewModel,
+    onQueryChange: (LibraryQuery) -> Unit,
+) {
     when (section) {
+        FilterSection.LIBRARY -> LibraryValues(query, registry, onQueryChange)
+
         FilterSection.READ_STATE -> ReadState.entries.forEach { state ->
             CheckedItem(stringResource(state.labelRes), state in query.readStates) {
-                viewModel.setQuery(query.copy(readStates = toggled(query.readStates, state)))
+                onQueryChange(query.copy(readStates = toggled(query.readStates, state)))
             }
         }
 
         FilterSection.FORMAT -> viewModel.availableFormats().forEach { format ->
             CheckedItem(format.displayName, format in query.formats) {
-                viewModel.setQuery(query.copy(formats = toggled(query.formats, format)))
+                onQueryChange(query.copy(formats = toggled(query.formats, format)))
             }
         }
 
@@ -143,43 +187,77 @@ private fun SectionValues(section: FilterSection, query: LibraryQuery, viewModel
         // by "German", which is the rule the language setting already follows.
         FilterSection.LANGUAGE -> viewModel.availableLanguages().forEach { code ->
             CheckedItem(languageName(code), code in query.languages) {
-                viewModel.setQuery(query.copy(languages = toggled(query.languages, code)))
+                onQueryChange(query.copy(languages = toggled(query.languages, code)))
             }
         }
 
         FilterSection.PUBLISHER -> viewModel.availablePublishers().forEach { publisher ->
             CheckedItem(publisher, publisher in query.publishers) {
-                viewModel.setQuery(query.copy(publishers = toggled(query.publishers, publisher)))
+                onQueryChange(query.copy(publishers = toggled(query.publishers, publisher)))
             }
         }
 
         FilterSection.GENRE -> viewModel.availableGenres().forEach { genre ->
             CheckedItem(genre, genre in query.genres) {
-                viewModel.setQuery(query.copy(genres = toggled(query.genres, genre)))
+                onQueryChange(query.copy(genres = toggled(query.genres, genre)))
             }
         }
 
         FilterSection.TAG -> viewModel.availableTags().forEach { tag ->
             CheckedItem(tag, tag in query.tags) {
-                viewModel.setQuery(query.copy(tags = toggled(query.tags, tag)))
+                onQueryChange(query.copy(tags = toggled(query.tags, tag)))
             }
         }
 
-        FilterSection.DECADE -> DecadeValues(query, viewModel)
+        FilterSection.DECADE -> DecadeValues(query, viewModel, onQueryChange)
+    }
+}
+
+/**
+ * The libraries a reader has added, offered by name.
+ *
+ * Radio buttons rather than checkboxes: a publication comes from one library, so a set of
+ * them is a question the shelf cannot answer. "Everywhere" is how the filter is turned back
+ * off — the same act as unticking the last value in any other group.
+ *
+ * The registry's order, because `sources` makes that order meaningful and a list that
+ * reshuffled it would undo an arrangement the reader made by hand.
+ */
+@Composable
+private fun LibraryValues(
+    query: LibraryQuery,
+    registry: SourceRegistry,
+    onQueryChange: (LibraryQuery) -> Unit,
+) {
+    ChosenItem(
+        label = stringResource(R.string.library_scope_all),
+        chosen = query.scope == LibraryScope.AllSources,
+    ) {
+        onQueryChange(query.copy(scope = LibraryScope.AllSources))
+    }
+    registry.sources.forEach { source ->
+        val scope = LibraryScope.OneSource(source.id)
+        ChosenItem(label = source.displayName, chosen = query.scope == scope) {
+            onQueryChange(query.copy(scope = scope))
+        }
     }
 }
 
 /**
  * The year range, offered as the decades the library actually spans.
  *
- * Radio buttons rather than the checkboxes every other group uses, because a range
+ * Radio buttons rather than the checkboxes most groups use, because a range
  * is one answer and not a set of them. "Any year" is how it is turned back off — the
  * same act as unticking the last value in any other group.
  */
 @Composable
-private fun DecadeValues(query: LibraryQuery, viewModel: LibraryViewModel) {
+private fun DecadeValues(
+    query: LibraryQuery,
+    viewModel: LibraryViewModel,
+    onQueryChange: (LibraryQuery) -> Unit,
+) {
     ChosenItem(stringResource(R.string.library_filter_decade_any), !query.years.isActive) {
-        viewModel.setQuery(query.copy(years = YearRange()))
+        onQueryChange(query.copy(years = YearRange()))
     }
     viewModel.availableDecades().forEach { start ->
         ChosenItem(
@@ -189,7 +267,7 @@ private fun DecadeValues(query: LibraryQuery, viewModel: LibraryViewModel) {
             // nothing selected is the honest answer to that.
             chosen = query.years.from == start,
         ) {
-            viewModel.setQuery(query.copy(years = YearRange(from = start, to = start + 9)))
+            onQueryChange(query.copy(years = YearRange(from = start, to = start + 9)))
         }
     }
 }
@@ -272,6 +350,7 @@ private fun languageName(code: String): String {
  */
 private val FilterSection.labelRes: Int
     get() = when (this) {
+        FilterSection.LIBRARY -> R.string.library_filter_library
         FilterSection.READ_STATE -> R.string.library_filter_read_state
         FilterSection.FORMAT -> R.string.library_filter_format
         FilterSection.LANGUAGE -> R.string.library_filter_language
@@ -282,6 +361,7 @@ private val FilterSection.labelRes: Int
     }
 
 private fun FilterSection.isActive(query: LibraryQuery): Boolean = when (this) {
+    FilterSection.LIBRARY -> query.scope != LibraryScope.AllSources
     FilterSection.READ_STATE -> query.readStates.isNotEmpty()
     FilterSection.FORMAT -> query.formats.isNotEmpty()
     FilterSection.LANGUAGE -> query.languages.isNotEmpty()
@@ -291,7 +371,13 @@ private fun FilterSection.isActive(query: LibraryQuery): Boolean = when (this) {
     FilterSection.DECADE -> query.years.isActive
 }
 
-private fun FilterSection.hasValues(viewModel: LibraryViewModel): Boolean = when (this) {
+private fun FilterSection.hasValues(
+    registry: SourceRegistry,
+    viewModel: LibraryViewModel,
+): Boolean = when (this) {
+    // Only with a second library to narrow to. A group whose whole list is "Everywhere"
+    // and the one library there is asks the reader nothing.
+    FilterSection.LIBRARY -> registry.sources.size > 1
     // Always offered: the three read states exist whether or not anything is in them,
     // and "Unread" over an empty result is an answer rather than a dead end.
     FilterSection.READ_STATE -> true

@@ -4,110 +4,65 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.Checklist
-import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
-import app.storyarc.core.designsystem.theme.rememberWindowClass
 import app.storyarc.core.designsystem.theme.StoryArcTheme
-import app.storyarc.core.designsystem.tokens.StoryArcRadius
+import app.storyarc.core.designsystem.theme.rememberWindowClass
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.BulkSelection
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibraryScope
-import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.Publication
-import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
-import app.storyarc.core.model.attributesPublications
-import app.storyarc.core.model.nameOf
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * The library. At this stage it renders the empty state and the source list —
- * the two surfaces `sources` requires before any content exists.
+ * The library — the exhaustive shelf, and only that.
  *
- * Cover grid, search, filtering and sorting land with the `library-browsing`
- * capability; this is the shell they hang off.
- */
-/**
- * The library.
- *
- * Three states, in the order a user meets them: nothing added, a scan running, and
- * a grid of covers. Search, filtering and sorting are the rest of
- * `library-browsing` and are not here yet.
+ * Four states, in the order a reader meets them: nothing added, a walk running, a shelf
+ * narrowed to nothing, and the covers themselves. What used to be a bar of eight icons is
+ * now a flexible bar with an overflow menu ([LibraryTopBar]) and a chip row of the controls
+ * a reader actually touches ([LibraryControls]) — see `LibraryTopBar`'s own note for the
+ * defect that forced it.
  *
  * `viewModel` is nullable so previews and the empty-state tests can render without
  * an Application — the screen is otherwise identical either way.
@@ -135,7 +90,7 @@ fun LibraryScreen(
      */
     onBrowse: (Source) -> Unit = {},
     /**
-     * Puts a running search to the server the library is scoped to.
+     * Puts a running search to the server the library is filtered to.
      *
      * `kavita-server` asks a search within a Kavita source to reach the server; the field
      * above filters the local index, and this is the way across.
@@ -177,18 +132,16 @@ fun LibraryScreen(
 
     // The one input to the layout, and it is the window's own: no device check, no
     // posture check. When it says there is room, the app layer is drawing a navigation
-    // rail beside this screen, and the two ways in that the rail already shows -- the
-    // catalogue strip and the collections and settings icons -- come off the top bar
-    // rather than being offered twice.
+    // rail beside this screen, and the two ways in that the rail already shows -- shelves
+    // and settings -- come off the overflow menu rather than being offered twice.
     val windowClass = rememberWindowClass()
 
-    // What Android does at a content boundary. `native-experience` asks for a scroll edge
-    // effect where content meets chrome; on Material that is the top bar taking its
-    // scrolled container colour as the shelf passes under it, and it is pinned rather
-    // than collapsing because the sort, filter and layout controls have to stay reachable
-    // while a reader is deep in a long library. The stretch at the far end of a scroll is
-    // Compose's own and needs nothing declared.
-    val topBarScroll = TopAppBarDefaults.pinnedScrollBehavior()
+    // Hide-on-scroll, not pinned. `native-experience` asks for a scroll edge effect where
+    // content meets chrome; on Material that is the flexible bar collapsing as the shelf
+    // passes under it, which is Android's answer to getting chrome out of the artwork's
+    // way. The controls a reader needs mid-scroll do not go with it -- they sit below the
+    // bar in their own row, which is the whole point of moving them out of it.
+    val topBarScroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     /** The publication whose add-to-shelf sheet is open, if any. */
     var shelving by remember { mutableStateOf<Publication?>(null) }
@@ -206,6 +159,16 @@ fun LibraryScreen(
     var isShelvingSelection by remember { mutableStateOf(false) }
     /** The last bulk action, until its ten seconds are up. */
     var undo by remember { mutableStateOf<BulkUndo?>(null) }
+
+    /**
+     * The library's primary axis: everything, or only what can be read with no network.
+     *
+     * Saved rather than remembered, so a rotation or a trip through the reader comes back
+     * to the shelf the reader left. It does not yet survive a cold start: the query is what
+     * `LibraryPreferences` persists and availability is not part of it — see
+     * [LibraryAvailability] and the handoff.
+     */
+    var availability by rememberSaveable { mutableStateOf(LibraryAvailability.EVERYTHING) }
 
     // Android hands a picked folder over as a tree `Uri` and grants access to it
     // only for this process — until the app asks for the grant to be persisted,
@@ -306,6 +269,12 @@ fun LibraryScreen(
     val groups by (viewModel?.matchGroups ?: MutableStateFlow(emptyList<MatchGroup>()))
         .collectAsStateWithLifecycle()
 
+    // The shelf as the primary axis leaves it. One pass over an already-sorted list, so
+    // narrowing and widening never re-orders what the reader is looking at.
+    val shown = remember(visible, availability, registry) {
+        visible.narrowedTo(availability, registry)
+    }
+
     val snackbars = remember { SnackbarHostState() }
     val undoLabel = stringResource(R.string.downloads_undo)
     val removedMessage = removedDownload?.let {
@@ -330,76 +299,26 @@ fun LibraryScreen(
         containerColor = palette.surfaceCanvas,
         snackbarHost = { SnackbarHost(snackbars) },
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.library_title)) },
+            LibraryTopBar(
                 scrollBehavior = topBarScroll,
-                actions = {
-                    // `library-browsing`: one library over every source, narrowable to one.
-                    // Only with a second source to narrow to — a selector whose whole menu
-                    // is "All sources" and the one source there is asks nothing.
-                    if (viewModel != null && registry.attributesPublications) {
-                        ScopeMenu(query, registry, viewModel::setQuery)
-                    }
-                    if (viewModel != null && publications.isNotEmpty()) {
-                        // The way in. The way out is in the bar the selection puts up, so
-                        // the toolbar does not gain a control that is only half useful.
-                        IconButton(
-                            onClick = { selection = selection.begin() },
-                            enabled = !selection.isActive,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Checklist,
-                                contentDescription = stringResource(R.string.library_select),
-                                tint = palette.accent,
-                            )
-                        }
-                        LayoutToggle(layout, viewModel::setLayout)
-                        SortMenu(query, viewModel::setQuery)
-                        FilterMenu(query, viewModel)
-                    }
-                    if (viewModel != null) {
-                        // A menu rather than a second button. There are two ways to add a
-                        // source now and there will be four; a toolbar with one button per
-                        // kind would crowd out the controls a reader uses every day.
-                        AddSourceMenu(
-                            onAddFolder = { pickFolder.launch(null) },
-                            onAddCatalogue = onAddCatalogue,
-                            onAddKavita = onAddKavita,
-                            onAddShare = onAddShare,
-                            onImport = { importFile.launch(arrayOf("*/*")) },
-                        )
-                        IconButton(onClick = { viewModel.rescan() }) {
-                            Icon(
-                                imageVector = Icons.Filled.Refresh,
-                                contentDescription = stringResource(
-                                    R.string.library_scan_folder,
-                                ),
-                                tint = palette.accent,
-                            )
-                        }
-                    }
-                    // Last, and only where there is no rail. A reader with an empty
-                    // library still needs to reach About, and `settings-and-about` puts
-                    // the licences there -- but a wide window already shows both of these
-                    // as rail items, and a top bar that repeated them would be two
-                    // buttons for one place.
-                    if (!windowClass.showsSidebar) {
-                        IconButton(onClick = onOpenShelves) {
-                            Icon(
-                                imageVector = Icons.Filled.Inventory2,
-                                contentDescription = stringResource(R.string.shelves_title),
-                                tint = palette.accent,
-                            )
-                        }
-                        IconButton(onClick = onOpenSettings) {
-                            Icon(
-                                imageVector = Icons.Filled.Settings,
-                                contentDescription = stringResource(R.string.library_settings),
-                                tint = palette.accent,
-                            )
-                        }
-                    }
+                onAddFolder = { pickFolder.launch(null) },
+                onAddCatalogue = onAddCatalogue,
+                onAddKavita = onAddKavita,
+                onAddShare = onAddShare,
+                onImport = { importFile.launch(arrayOf("*/*")) },
+                // The way in. The way out is in the bar the selection puts up, so the
+                // menu does not gain an entry that is only half useful.
+                onSelect = if (viewModel != null && publications.isNotEmpty() &&
+                    !selection.isActive
+                ) {
+                    { selection = selection.begin() }
+                } else {
+                    null
                 },
+                // A wide window already shows both of these as rail items, and a menu that
+                // repeated them would be two ways to one place.
+                onOpenShelves = if (windowClass.showsSidebar) null else onOpenShelves,
+                onOpenSettings = if (windowClass.showsSidebar) null else onOpenSettings,
             )
         },
         bottomBar = {
@@ -441,141 +360,94 @@ fun LibraryScreen(
         },
     ) { insets ->
         Column(modifier = Modifier.fillMaxSize().padding(insets)) {
-            // Above the library rather than inside it. A catalogue is not a shelf of local
-            // publications -- nothing in it is on the device yet -- and mixing the two
-            // would make "what can I read on the train" unanswerable.
-            // Catalogues and Kavita servers together: both are places to browse rather than
-            // shelves of local publications, and a reader with one of each should not have to
-            // learn two ways in.
-            // Catalogues, servers and shares together: all three are places to browse
-            // rather than shelves of local publications, and a reader with one of each
-            // should not have to learn three ways in.
+            // Above the library rather than inside it. A catalogue, a server and a share
+            // are all places to browse rather than shelves of local publications, and
+            // mixing the two would make "what can I read on the train" unanswerable.
             val catalogues = registry.sources.filter { it.kind.isBrowsable }
             if (catalogues.isNotEmpty() && !windowClass.showsSidebar) {
                 CatalogueStrip(sources = catalogues, onOpen = onBrowse)
             }
 
-            // **`kavita-server` requires the query to go to the server when the search is
-            // within a Kavita source, and this is what that scope was missing.** Narrowing
-            // the library to a Kavita server and typing filtered the *local index* -- what
-            // this device happens to hold -- and the server's own search, which reaches
-            // chapters, people, genres and tags, was never asked.
-            //
-            // Offered rather than substituted, which is the same shape `library-browsing`
-            // already uses for "widen the scope to all sources": the local matches are useful
-            // and immediate, and a search that silently left the device for the network would
-            // take a reader looking for a downloaded chapter somewhere they did not ask to go.
-            registry.sources
-                .firstOrNull {
-                    it.id == query.scope.sourceId &&
-                        it.kind == SourceKind.KAVITA_SERVER &&
-                        query.search.isNotBlank()
-                }
-                ?.let { server ->
-                    Text(
-                        text = stringResource(R.string.library_search_on_server, server.displayName),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = palette.accent,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSearchOnServer(server, query.search) }
-                            .padding(
-                                horizontal = StoryArcSpace.gutter,
-                                vertical = StoryArcSpace.xs,
-                            ),
-                    )
-                }
+            KavitaSearchOffer(registry, query, onSearchOnServer)
 
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            val state = scanState
-            when {
-                visible.isNotEmpty() && viewModel != null ->
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        SearchField(
-                            value = query.search,
-                            recents = recentSearches,
-                            onChange = { viewModel.setQuery(query.copy(search = it)) },
-                            onClearRecents = viewModel::clearRecentSearches,
-                        )
-                        cachedAt?.let { CachedNotice(it) }
-                        val open: (Publication) -> Unit = { publication ->
-                            viewModel.location(publication)?.let { onOpen(publication, it) }
-                        }
-                        val addToShelf: (Publication) -> Unit = { shelving = it }
-                        if (layout == LibraryLayout.GRID) {
-                            CoverGrid(
-                                publications = visible,
-                                viewModel = viewModel,
-                                // Hidden while a search or filter is running: the
-                                // row is a shortcut to what you were reading, and
-                                // showing publications the query excluded reads as
-                                // a bug.
-                                // Hidden while picking as well: the row is a shortcut into
-                                // the reader, and a cover that opened one mid-selection
-                                // would throw away everything the reader had chosen.
-                                continueReading = if (query.isNarrowed || selection.isActive) {
-                                    emptyList()
-                                } else {
-                                    continueReading
-                                },
-                                onOpen = open,
-                                onAddToShelf = addToShelf,
-                                selection = selection.ids.takeIf { selection.isActive },
-                                onToggle = { selection = selection.toggle(it.id) },
-                            )
-                        } else {
-                            CoverList(
-                                publications = visible,
-                                viewModel = viewModel,
-                                onOpen = open,
-                                selection = selection.ids.takeIf { selection.isActive },
-                                onToggle = { selection = selection.toggle(it.id) },
-                                onAddToShelf = addToShelf,
-                                groups = groups,
-                            )
-                        }
-                    }
-
-                // A library that is not empty but looks it. `library-browsing`
-                // forbids showing that silently: say what is narrowing it and
-                // offer one action to undo.
-                publications.isNotEmpty() && viewModel != null ->
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        SearchField(
-                            value = query.search,
-                            recents = recentSearches,
-                            onChange = { viewModel.setQuery(query.copy(search = it)) },
-                            onClearRecents = viewModel::clearRecentSearches,
-                        )
-                        cachedAt?.let { CachedNotice(it) }
-                        NarrowedToNothing(
+            // Pull to refresh, and no refresh button. Android was the only platform
+            // carrying both, and the gesture is the one Material names for a shelf that
+            // re-reads itself.
+            PullToRefreshBox(
+                isRefreshing = scanState is LibraryScanState.Scanning,
+                onRefresh = { viewModel?.rescan() },
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val state = scanState
+                    when {
+                        shown.isNotEmpty() && viewModel != null -> Shelf(
+                            viewModel = viewModel,
+                            publications = shown,
+                            continueReading = continueReading,
+                            groups = groups,
                             query = query,
-                            onClear = {
-                                viewModel.clearFilters()
-                                viewModel.setQuery(viewModel.query.value.copy(search = ""))
-                            },
-                            scopeName = registry.nameOf(query.scope.sourceId),
-                            // Offered only when there is somewhere wider to go.
-                            onWiden = if (query.scope == LibraryScope.AllSources) {
-                                null
-                            } else {
-                                viewModel::widenToAllSources
-                            },
+                            registry = registry,
+                            layout = layout,
+                            availability = availability,
+                            selection = selection,
+                            onAvailabilityChange = { availability = it },
+                            onSelectionChange = { selection = it },
+                            recents = recentSearches,
+                            cachedAt = cachedAt,
+                            onOpen = onOpen,
+                            onAddToShelf = { shelving = it },
+                        )
+
+                        // A library that is not empty but looks it. `library-browsing`
+                        // forbids showing that silently: say what is narrowing it and
+                        // offer one action to undo.
+                        publications.isNotEmpty() && viewModel != null ->
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                SearchField(
+                                    value = query.search,
+                                    recents = recentSearches,
+                                    onChange = {
+                                        viewModel.setQuery(query.copy(search = it))
+                                    },
+                                    onClearRecents = viewModel::clearRecentSearches,
+                                )
+                                NarrowedToNothing(
+                                    query = query,
+                                    isOnDeviceOnly = availability.isNarrowing &&
+                                        visible.isNotEmpty(),
+                                    onClear = {
+                                        availability = LibraryAvailability.EVERYTHING
+                                        viewModel.setQuery(
+                                            query.withoutFilters()
+                                                .copy(search = "", scope = LibraryScope.AllSources),
+                                        )
+                                    },
+                                    // Offered only when the axis is what is hiding things.
+                                    onWiden = if (availability.isNarrowing) {
+                                        { availability = LibraryAvailability.EVERYTHING }
+                                    } else {
+                                        null
+                                    },
+                                )
+                            }
+
+                        state is LibraryScanState.Scanning -> Scanning(state.found)
+
+                        registry.sources.isEmpty() ->
+                            EmptyLibrary(onScan = { pickFolder.launch(null) })
+
+                        else -> SourceList(
+                            sources = registry.sources,
+                            itemCount = { viewModel?.itemCount(it.id) ?: 0 },
+                            onRemove = onRemoveSource,
                         )
                     }
-
-                state is LibraryScanState.Scanning -> Scanning(state.found)
-                registry.sources.isEmpty() -> EmptyLibrary(onScan = { pickFolder.launch(null) })
-                else -> SourceList(
-                    sources = registry.sources,
-                    itemCount = { viewModel?.itemCount(it.id) ?: 0 },
-                    onRemove = onRemoveSource,
-                )
+                }
             }
-        }
         }
     }
 
@@ -634,533 +506,132 @@ fun LibraryScreen(
 }
 
 /**
- * `library-browsing`: results update as the user types, debounced, with no submit
- * action. Arranging is a sort of what is already in memory, so a keystroke costs
- * one pass rather than a request.
- */
-@Composable
-private fun SearchField(
-    value: String,
-    recents: RecentSearches,
-    onChange: (String) -> Unit,
-    onClearRecents: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var isFocused by remember { mutableStateOf(false) }
-
-    Column(modifier = modifier) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onChange,
-            singleLine = true,
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            placeholder = { Text(stringResource(R.string.library_search)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm)
-                .onFocusChanged { isFocused = it.isFocused },
-        )
-        // Offered only while nothing has been typed — once there is a term, the
-        // results below are the better answer, and a list of old searches on top of
-        // them would hide what was just found.
-        if (isFocused && value.isBlank() && !recents.isEmpty) {
-            RecentSearchList(recents.terms, onUse = onChange, onClear = onClearRecents)
-        }
-    }
-}
-
-/**
- * What the reader searched for lately, under an open search field.
+ * The shelf itself: the search field, the controls, and the covers under them.
  *
- * `library-browsing`: "when a user opens search, recent queries are offered, and
- * can be cleared". Choosing one puts the term in the field, which runs the search:
- * a recent query is a shortcut to the search, not to whatever it found last time.
+ * Its own composable so the screen above reads as the four states it has, rather than as
+ * one of them written out at length inside a `when`.
  */
 @Composable
-private fun RecentSearchList(
-    terms: List<String>,
-    onUse: (String) -> Unit,
-    onClear: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val palette = LocalStoryArcPalette.current
-
-    Column(modifier = modifier.padding(horizontal = StoryArcSpace.gutter)) {
-        Text(
-            text = stringResource(R.string.library_search_recent),
-            style = MaterialTheme.typography.labelLarge,
-            color = palette.textTertiary,
-            modifier = Modifier.padding(vertical = StoryArcSpace.xs),
-        )
-        terms.forEach { term ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onUse(term) }
-                    // Material's 48 dp touch-target floor, per `native-experience`.
-                    .heightIn(min = StoryArcSpace.xxl + StoryArcSpace.lg)
-                    .padding(vertical = StoryArcSpace.xs),
-                horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.History,
-                    contentDescription = null,
-                    tint = palette.textTertiary,
-                )
-                Text(
-                    text = term,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.textPrimary,
-                )
-            }
-        }
-        TextButton(onClick = onClear) {
-            Text(stringResource(R.string.library_search_recent_clear))
-        }
-    }
-}
-
-/**
- * Grid or list.
- *
- * One button that shows the layout it would switch *to*, rather than a segmented
- * control that spends permanent space on a binary choice.
- */
-@Composable
-private fun LayoutToggle(layout: LibraryLayout, onChange: (LibraryLayout) -> Unit) {
-    val palette = LocalStoryArcPalette.current
-    val isGrid = layout == LibraryLayout.GRID
-    IconButton(
-        onClick = { onChange(if (isGrid) LibraryLayout.LIST else LibraryLayout.GRID) },
-    ) {
-        Icon(
-            imageVector = if (isGrid) Icons.AutoMirrored.Filled.List else Icons.Filled.GridView,
-            contentDescription = stringResource(
-                if (isGrid) R.string.library_layout_list else R.string.library_layout_grid,
-            ),
-            tint = palette.accent,
-        )
-    }
-}
-
-/**
- * Which source the library is showing.
- *
- * `library-browsing`: one library over every configured source, and a way to narrow it to
- * one. A menu rather than a row of chips, because the number of sources is the reader's and
- * a strip of six of them would take the space the artwork is for.
- */
-@Composable
-private fun ScopeMenu(
+private fun Shelf(
+    viewModel: LibraryViewModel,
+    publications: List<Publication>,
+    continueReading: List<Publication>,
+    groups: List<MatchGroup>,
     query: LibraryQuery,
     registry: SourceRegistry,
-    onChange: (LibraryQuery) -> Unit,
+    layout: LibraryLayout,
+    availability: LibraryAvailability,
+    selection: LibrarySelection,
+    onAvailabilityChange: (LibraryAvailability) -> Unit,
+    onSelectionChange: (LibrarySelection) -> Unit,
+    recents: RecentSearches,
+    cachedAt: Long?,
+    onOpen: (Publication, String) -> Unit,
+    onAddToShelf: (Publication) -> Unit,
 ) {
-    val palette = LocalStoryArcPalette.current
-    var open by remember { mutableStateOf(false) }
-    val everywhere = stringResource(R.string.library_scope_all)
-
-    IconButton(onClick = { open = true }) {
-        Icon(
-            imageVector = Icons.Filled.Layers,
-            // Which source, spoken. The icon says that a scope is set and cannot say which
-            // one, and colour is never the only signal.
-            contentDescription = registry.nameOf(query.scope.sourceId) ?: everywhere,
-            tint = if (query.scope == LibraryScope.AllSources) palette.textSecondary else palette.accent,
+    Column(modifier = Modifier.fillMaxSize()) {
+        SearchField(
+            value = query.search,
+            recents = recents,
+            onChange = { viewModel.setQuery(query.copy(search = it)) },
+            onClearRecents = viewModel::clearRecentSearches,
         )
-    }
-    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-        MenuHeading(stringResource(R.string.library_scope))
-        DropdownMenuItem(
-            text = { Text(everywhere) },
-            leadingIcon = {
-                RadioButton(selected = query.scope == LibraryScope.AllSources, onClick = null)
-            },
-            onClick = {
-                onChange(query.copy(scope = LibraryScope.AllSources))
-                open = false
-            },
-        )
-        // The registry's order, because `sources` makes that order meaningful and a
-        // selector that reshuffled it would undo an arrangement the reader made by hand.
-        registry.sources.forEach { source ->
-            val scope = LibraryScope.OneSource(source.id)
-            DropdownMenuItem(
-                text = { Text(source.displayName) },
-                leadingIcon = { RadioButton(selected = query.scope == scope, onClick = null) },
-                onClick = {
-                    onChange(query.copy(scope = scope))
-                    open = false
-                },
-            )
-        }
-    }
-}
-
-/** How the library is ordered. */
-@Composable
-private fun SortMenu(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
-    val palette = LocalStoryArcPalette.current
-    var open by remember { mutableStateOf(false) }
-
-    IconButton(onClick = { open = true }) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.Sort,
-            contentDescription = stringResource(R.string.library_sort),
-            tint = palette.accent,
-        )
-    }
-    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-        LibrarySort.entries.forEach { sort ->
-            DropdownMenuItem(
-                text = { Text(stringResource(sort.labelRes)) },
-                leadingIcon = { RadioButton(selected = query.sort == sort, onClick = null) },
-                onClick = { onChange(query.copy(sort = sort)) },
-            )
-        }
-        HorizontalDivider()
-        listOf(true to R.string.library_sort_ascending, false to R.string.library_sort_descending)
-            .forEach { (ascending, label) ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(label)) },
-                    leadingIcon = {
-                        RadioButton(selected = query.ascending == ascending, onClick = null)
-                    },
-                    onClick = { onChange(query.copy(ascending = ascending)) },
-                )
-            }
-    }
-}
-
-/** A library that has publications and is showing none of them. */
-@Composable
-private fun NarrowedToNothing(
-    query: LibraryQuery,
-    onClear: () -> Unit,
-    modifier: Modifier = Modifier,
-    /** What the view is scoped to, when it is scoped to one source. */
-    scopeName: String? = null,
-    /**
-     * Shows every source again. Null when the view is not scoped, so the offer is absent
-     * rather than present and pointless.
-     */
-    onWiden: (() -> Unit)? = null,
-) {
-    val palette = LocalStoryArcPalette.current
-    val term = query.search.trim()
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(StoryArcSpace.gutter),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md, Alignment.CenterVertically),
-    ) {
-        Text(
-            // Names what was searched, which is what makes the state actionable
-            // rather than a shrug. Three sentences because there are three ways to arrive
-            // here, and a reader told "no publication matches the active filters" when they
-            // have set no filter at all goes looking for a filter that does not exist.
-            text = when {
-                term.isNotEmpty() -> stringResource(R.string.library_empty_search, term)
-                query.hasFilters -> stringResource(R.string.library_empty_filtered)
-                scopeName != null -> stringResource(R.string.library_empty_scope, scopeName)
-                else -> stringResource(R.string.library_empty_filtered)
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = palette.textSecondary,
-            textAlign = TextAlign.Center,
-        )
-        // `library-browsing`: a search that found nothing "offers to widen the scope to all
-        // sources if the search was scoped". First, because it is the likelier of the two —
-        // a reader who scoped to one server and typed a title usually wants the rest of
-        // their library asked, not their filters undone.
-        if (onWiden != null) {
-            Button(onClick = onWiden) { Text(stringResource(R.string.library_search_widen)) }
-        }
-        TextButton(onClick = onClear) { Text(stringResource(R.string.library_filter_clear)) }
-    }
-}
-
-/**
- * How the browsing enums are named on screen.
- *
- * The enums live in `:core:model` and carry no resources: the domain has no
- * business holding UI copy. Naming them is presentation, so it lives here.
- */
-private val LibrarySort.labelRes: Int
-    get() = when (this) {
-        LibrarySort.TITLE -> R.string.library_sort_title
-        LibrarySort.SERIES -> R.string.library_sort_series
-        LibrarySort.LAST_READ -> R.string.library_sort_last_read
-        LibrarySort.PROGRESS -> R.string.library_sort_progress
-        LibrarySort.YEAR -> R.string.library_sort_year
-        LibrarySort.DATE_ADDED -> R.string.library_sort_date_added
-        LibrarySort.FILE_SIZE -> R.string.library_sort_file_size
-    }
-
-/**
- * A folder that was remembered and can no longer be read.
- *
- * `local-library`: name the folder and offer one action to pick it again. Never a
- * silent disappearance — a library that quietly loses half its rows looks broken
- * rather than disconnected.
- */
-@Composable
-private fun UnavailableFolders(
-    names: List<String>,
-    onRepick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val palette = LocalStoryArcPalette.current
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(StoryArcSpace.md),
-        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.library_folder_unavailable, names.joinToString(", ")),
-            style = MaterialTheme.typography.labelLarge,
-            color = palette.textSecondary,
-            modifier = Modifier.weight(1f),
-        )
-        Button(onClick = onRepick) { Text(stringResource(R.string.library_repick_folder)) }
-    }
-}
-
-/**
- * While a scan runs.
- *
- * `local-library` requires progress reported as a count of items found, and
- * requires that browsing what is already found is not blocked — so this is only
- * ever seen before the first publication arrives.
- */
-@Composable
-private fun Scanning(found: Int, modifier: Modifier = Modifier) {
-    val palette = LocalStoryArcPalette.current
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-    ) {
-        CircularProgressIndicator(color = palette.accent)
-        Text(
-            text = stringResource(R.string.library_scanning, found),
-            style = MaterialTheme.typography.bodySmall,
-            color = palette.textSecondary,
-        )
-    }
-}
-
-/**
- * `sources`: an empty library names the four source types with a one-line
- * explanation of each. Never an illustration with no action — see DESIGN.md §9.
- */
-@Composable
-private fun EmptyLibrary(onScan: () -> Unit = {}, modifier: Modifier = Modifier) {
-    val palette = LocalStoryArcPalette.current
-
-    Column(
-        modifier = modifier
-            .widthIn(max = StoryArcSpace.huge * 8)
-            .padding(horizontal = StoryArcSpace.gutter),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xl),
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-        ) {
-            Text(
-                text = stringResource(R.string.library_empty_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = palette.textPrimary,
-            )
-            Text(
-                text = stringResource(R.string.library_empty_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = palette.textSecondary,
-                textAlign = TextAlign.Center,
-            )
-        }
-
-        Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
-            SourceKind.entries.forEach { kind -> SourceKindRow(kind) }
-        }
-
-        // `sources` requires the empty state to offer an action rather than only
-        // describe one — see DESIGN.md §9.
-        Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.library_scan_folder))
-        }
-    }
-}
-
-@Composable
-private fun SourceKindRow(kind: SourceKind, modifier: Modifier = Modifier) {
-    val palette = LocalStoryArcPalette.current
-
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = palette.surfaceRaised,
-        shape = RoundedCornerShape(StoryArcRadius.lg),
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(StoryArcSpace.md)
-                // Material's 48 dp touch-target floor, per `native-experience`.
-                .heightIn(min = StoryArcSpace.xxl + StoryArcSpace.lg),
-            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = kind.icon,
-                contentDescription = null,
-                tint = palette.accent,
-            )
-            // Tight stack: title and explanation read as one object, per the
-            // uneven-rhythm rule in DESIGN.md §4.
-            Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair)) {
-                Text(
-                    text = stringResource(kind.titleRes),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = palette.textPrimary,
-                )
-                Text(
-                    text = stringResource(kind.explanationRes),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.textSecondary,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SourceList(
-    sources: List<Source>,
-    modifier: Modifier = Modifier,
-    itemCount: (Source) -> Int = { 0 },
-    onRemove: ((Source) -> Unit)? = null,
-) {
-    val palette = LocalStoryArcPalette.current
-    var removing by remember { mutableStateOf<Source?>(null) }
-
-    removing?.let { source ->
-        AlertDialog(
-            onDismissRequest = { removing = null },
-            title = { Text(stringResource(R.string.source_remove_title, source.displayName)) },
-            // `sources` asks the app to state "how many downloaded files and how much disk
-            // space will be freed before asking for confirmation". For a folder the honest
-            // answer is none and nothing, and saying so is the whole point: a reader must
-            // not have to guess whether this deletes their comics.
-            text = {
-                Text(
-                    pluralStringResource(
-                        R.plurals.source_remove_body,
-                        itemCount(source),
-                        itemCount(source),
-                    ),
+        LibraryControls(
+            query = query,
+            registry = registry,
+            layout = layout,
+            availability = availability,
+            onAvailabilityChange = onAvailabilityChange,
+            onQueryChange = viewModel::setQuery,
+            onLayoutChange = viewModel::setLayout,
+            // One action, everything it undoes. The library filter is cleared with the
+            // rest of them, so there is no state a reader can be left in without noticing.
+            onClearFilters = {
+                onAvailabilityChange(LibraryAvailability.EVERYTHING)
+                viewModel.setQuery(
+                    query.withoutFilters().copy(scope = LibraryScope.AllSources),
                 )
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    onRemove?.invoke(source)
-                    removing = null
-                }) {
-                    Text(
-                        text = stringResource(R.string.source_remove),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { removing = null }) {
-                    Text(stringResource(R.string.library_cancel))
-                }
-            },
+            viewModel = viewModel,
         )
-    }
+        cachedAt?.let { CachedNotice(it) }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(StoryArcSpace.gutter),
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-    ) {
-        items(sources, key = { it.id }) { source ->
-            Surface(
-                // An offline source is dimmed, never reddened — offline is normal.
-                modifier = Modifier.fillMaxWidth().alpha(if (source.state.canFetch) 1f else 0.55f),
-                color = palette.surfaceRaised,
-                shape = RoundedCornerShape(StoryArcRadius.lg),
-            ) {
-                Row(
-                    modifier = Modifier.padding(StoryArcSpace.md),
-                    horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-                    verticalAlignment = Alignment.CenterVertically,
+        val open: (Publication) -> Unit = { publication ->
+            viewModel.location(publication)?.let { onOpen(publication, it) }
+        }
+        if (layout == LibraryLayout.GRID) {
+            CoverGrid(
+                publications = publications,
+                viewModel = viewModel,
+                // Hidden while a search or filter is running: the row is a shortcut to
+                // what you were reading, and showing publications the query excluded
+                // reads as a bug. Hidden while picking as well: a cover that opened one
+                // mid-selection would throw away everything the reader had chosen.
+                continueReading = if (
+                    query.isNarrowed || selection.isActive || availability.isNarrowing
                 ) {
-                    Icon(source.kind.icon, contentDescription = null, tint = palette.accent)
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair),
-                    ) {
-                        Text(
-                            text = source.displayName,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = palette.textPrimary,
-                        )
-                        // Colour is never the only signal: the state is spelled
-                        // out here as well as carried by the dot beside it.
-                        Text(
-                            text = stringResource(source.state.statusRes),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = palette.textTertiary,
-                        )
-                    }
-
-                    Surface(
-                        modifier = Modifier.size(StoryArcSpace.sm),
-                        shape = CircleShape,
-                        color = source.state.indicatorColor(palette),
-                        content = {},
-                    )
-
-                    if (onRemove != null) {
-                        IconButton(onClick = { removing = source }) {
-                            Icon(
-                                imageVector = Icons.Filled.Delete,
-                                contentDescription = stringResource(
-                                    R.string.source_remove_action,
-                                    source.displayName,
-                                ),
-                                tint = palette.textSecondary,
-                            )
-                        }
-                    }
-                }
-            }
+                    emptyList()
+                } else {
+                    continueReading
+                },
+                onOpen = open,
+                onAddToShelf = onAddToShelf,
+                selection = selection.ids.takeIf { selection.isActive },
+                onToggle = { onSelectionChange(selection.toggle(it.id)) },
+            )
+        } else {
+            CoverList(
+                publications = publications,
+                viewModel = viewModel,
+                onOpen = open,
+                selection = selection.ids.takeIf { selection.isActive },
+                onToggle = { onSelectionChange(selection.toggle(it.id)) },
+                onAddToShelf = onAddToShelf,
+                groups = groups,
+            )
         }
     }
+}
+
+/**
+ * The way across to a server's own search.
+ *
+ * **`kavita-server` requires the query to go to the server when the search is within a
+ * Kavita source, and this is what the old scope selector was missing.** Narrowing the
+ * library to a Kavita server and typing filtered the *local index* — what this device
+ * happens to hold — and the server's own search, which reaches chapters, people, genres
+ * and tags, was never asked.
+ *
+ * Offered rather than substituted: the local matches are useful and immediate, and a
+ * search that silently left the device for the network would take a reader looking for a
+ * downloaded chapter somewhere they did not ask to go.
+ */
+@Composable
+private fun KavitaSearchOffer(
+    registry: SourceRegistry,
+    query: LibraryQuery,
+    onSearchOnServer: (Source, String) -> Unit,
+) {
+    val palette = LocalStoryArcPalette.current
+    val server = registry.sources.firstOrNull {
+        it.id == query.scope.sourceId &&
+            it.kind == SourceKind.KAVITA_SERVER &&
+            query.search.isNotBlank()
+    } ?: return
+
+    Text(
+        text = stringResource(R.string.library_search_on_server, server.displayName),
+        style = MaterialTheme.typography.bodySmall,
+        color = palette.accent,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSearchOnServer(server, query.search) }
+            .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.xs),
+    )
 }
 
 @Preview(name = "Empty library — dark")
 @Composable
 private fun LibraryScreenEmptyPreview() {
     StoryArcTheme(useDynamicColor = false) { LibraryScreen() }
-}
-
-/** A label above a group of menu items, so a long menu reads as sections. */
-@Composable
-private fun MenuHeading(text: String) {
-    val palette = LocalStoryArcPalette.current
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = palette.textTertiary,
-        modifier = Modifier.padding(horizontal = StoryArcSpace.md, vertical = StoryArcSpace.xs),
-    )
 }

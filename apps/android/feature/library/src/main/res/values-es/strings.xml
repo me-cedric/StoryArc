@@ -20,7 +20,6 @@
     <string name="source_state_unauthorized">Se requiere iniciar sesión</string>
     <string name="library_cell_cannot_open">No se puede abrir</string>
     <string name="library_scanning">Añadiendo tus cómics: %1$d encontrados</string>
-    <string name="library_scan_folder">Actualizar la biblioteca</string>
     <string name="library_add_folder">Añadir una carpeta</string>
     <string name="library_folder_unavailable">Ya no se puede leer %1$s.</string>
     <string name="library_repick_folder">Elegir de nuevo</string>
@@ -287,10 +286,10 @@
     <string name="sync_conflict_keep">Quedarse con el más avanzado</string>
     <string name="sync_conflict_take">Tomar la otra</string>
     <string name="sync_conflict_body">%1$d títulos avanzaron tanto en este dispositivo como en la biblioteca de origen. Se conservó la posición más avanzada.</string>
-    <string name="library_scope">Mostrar</string>
     <string name="library_scope_all">En todas partes</string>
-    <string name="library_search_widen">Buscar en todo</string>
-    <string name="library_empty_scope">Todavía no hay nada de %1$s en este dispositivo.</string>
+    <string name="library_more">Más</string>
+    <string name="library_filter_library">Qué biblioteca</string>
+    <string name="library_empty_on_device">Nada de su biblioteca se puede leer sin conexión.</string>
     <string name="library_cell_source">De %1$s</string>
     <string name="library_match_series">Series</string>
     <string name="library_match_publication">Títulos</string>

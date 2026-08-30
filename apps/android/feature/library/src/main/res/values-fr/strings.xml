@@ -20,7 +20,6 @@
     <string name="source_state_unauthorized">Connexion requise</string>
     <string name="library_cell_cannot_open">Impossible à ouvrir</string>
     <string name="library_scanning">Ajout de vos bandes dessinées — %1$d trouvées</string>
-    <string name="library_scan_folder">Actualiser la bibliothèque</string>
     <string name="library_add_folder">Ajouter un dossier</string>
     <string name="library_folder_unavailable">%1$s n’est plus lisible.</string>
     <string name="library_repick_folder">Choisir à nouveau</string>
@@ -287,10 +286,10 @@
     <string name="sync_conflict_keep">Garder le plus avancé</string>
     <string name="sync_conflict_take">Prendre l’autre</string>
     <string name="sync_conflict_body">%1$d titres ont avancé à la fois sur cet appareil et dans la bibliothèque d’origine. La position la plus avancée a été conservée.</string>
-    <string name="library_scope">Afficher</string>
     <string name="library_scope_all">Partout</string>
-    <string name="library_search_widen">Chercher partout</string>
-    <string name="library_empty_scope">Rien de %1$s n’est encore sur cet appareil.</string>
+    <string name="library_more">Plus</string>
+    <string name="library_filter_library">Quelle bibliothèque</string>
+    <string name="library_empty_on_device">Rien dans votre bibliothèque ne peut être lu sans connexion.</string>
     <string name="library_cell_source">De %1$s</string>
     <string name="library_match_series">Séries</string>
     <string name="library_match_publication">Titres</string>

@@ -20,7 +20,6 @@
     <string name="source_state_unauthorized">Sign-in needed</string>
     <string name="library_cell_cannot_open">Cannot be opened</string>
     <string name="library_scanning">Adding your comics — %1$d found</string>
-    <string name="library_scan_folder">Refresh the library</string>
     <string name="library_add_folder">Add a folder</string>
     <string name="library_folder_unavailable">%1$s can no longer be read.</string>
     <string name="library_repick_folder">Choose again</string>
@@ -287,10 +286,10 @@
     <string name="sync_conflict_keep">Keep the furthest</string>
     <string name="sync_conflict_take">Take the other</string>
     <string name="sync_conflict_body">%1$d titles moved on both this device and the library they came from. The furthest position was kept.</string>
-    <string name="library_scope">Show</string>
     <string name="library_scope_all">Everywhere</string>
-    <string name="library_search_widen">Search everything</string>
-    <string name="library_empty_scope">Nothing from %1$s is on this device yet.</string>
+    <string name="library_more">More</string>
+    <string name="library_filter_library">Which library</string>
+    <string name="library_empty_on_device">Nothing in your library can be read without a connection.</string>
     <string name="library_cell_source">From %1$s</string>
     <string name="library_match_series">Series</string>
     <string name="library_match_publication">Titles</string>
