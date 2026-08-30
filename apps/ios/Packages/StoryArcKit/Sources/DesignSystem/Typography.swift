@@ -108,11 +108,29 @@ public enum TextRole: Sendable, CaseIterable {
 }
 
 extension View {
+    /// Applies a role, at the size the reader's own phone asks for.
+    ///
+    /// Both branches go through a Dynamic Type text style, so every role scales with the
+    /// system setting. The serif branch used to take `.system(size:)` with the token value
+    /// instead, which is a *fixed* point size: the editorial display role — every large
+    /// title on Home and on a publication's page — stayed at 34 pt however large the reader
+    /// had set their text. That is the one role a reader most wants bigger.
+    ///
+    /// Nothing is lost by the change: `displaySize` is 34 and `.largeTitle` is 34 at the
+    /// default setting, so the design size is unchanged and only the scaling is new.
+    ///
+    /// Note what this deliberately does *not* consult: the reading theme. A reading theme
+    /// carries its own font size, and it governs the page of a book and nothing else. The
+    /// app's own chrome follows the phone, so choosing a larger type size for reading does
+    /// not enlarge the tab bar, and linking the app's appearance to a reading theme changes
+    /// colour without touching text size.
     public func textRole(_ role: TextRole) -> some View {
         let metrics = role.metrics
-        let font: Font = role.usesEditorialSerif
-            ? .system(size: metrics.size, weight: role.weight, design: .serif)
-            : .system(role.textStyle, design: .default, weight: role.weight)
+        let font: Font = .system(
+            role.textStyle,
+            design: role.usesEditorialSerif ? .serif : .default,
+            weight: role.weight
+        )
         return self
             .font(font)
             .tracking(metrics.tracking)
