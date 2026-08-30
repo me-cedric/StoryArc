@@ -267,6 +267,10 @@ public struct LibraryView: View {
                 text: searchBinding,
                 prompt: Text("library.search.prompt", bundle: .module)
             )
+            // `library-browsing`: "when a user opens search, recent queries are offered".
+            // The list, its rules and its storage were on both platforms; this modifier
+            // was the missing half, so no iOS reader had ever seen one.
+            .searchSuggestions { RecentSearchSuggestions(model: model) }
             // Reloaded on every appearance, which is what makes the bar under a
             // cover reflect the page the reader just reached.
             .task {
@@ -352,10 +356,19 @@ public struct LibraryView: View {
                 // A library that is not empty but looks it. `library-browsing`
                 // forbids showing that silently: say what is narrowing it and
                 // offer one action to undo.
-                NarrowedToNothing(query: model.query) {
-                    model.clearFilters()
-                    model.query.search = ""
-                }
+                NarrowedToNothing(
+                    query: model.query,
+                    clear: {
+                        model.clearFilters()
+                        model.query.search = ""
+                    },
+                    scopeName: model.registry.name(of: model.query.scope.sourceID),
+                    // Offered only when there is somewhere wider to go. Written here from
+                    // the start and never passed, so the button never drew.
+                    widen: model.query.scope == .allSources
+                        ? nil
+                        : { model.widenToAllSources() }
+                )
             } else if case .scanning = model.scanState {
                 ScanningView(state: model.scanState)
             } else if model.registry.sources.isEmpty {
