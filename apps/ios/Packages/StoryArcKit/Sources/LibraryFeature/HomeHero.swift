@@ -44,6 +44,12 @@ struct HomeHero: View {
         min(max(available * Self.cardShare, 0), Self.widestCard)
     }
 
+    /// The lone card takes the width between the gutters, because there is nothing beside
+    /// it for a peek to promise.
+    private var soloWidth: CGFloat {
+        min(max(available - StoryArcSpace.gutter * 2, 0), Self.widestCard)
+    }
+
     var body: some View {
         Group {
             // `home-screen`: with fewer in progress than a carousel needs to make sense,
@@ -52,12 +58,16 @@ struct HomeHero: View {
             // publication the reader is in the middle of, which is the thing this section
             // exists to never do.
             if publications.count == 1, let only = publications.first {
-                card(only)
+                card(only, width: soloWidth)
                     .padding(.horizontal, StoryArcSpace.gutter)
             } else {
                 carousel
             }
         }
+        // Full width *before* the measurement, and that order is the whole of it: measuring
+        // a container that a card had already shrunk made the card's width an input to
+        // itself, and the loop settled on a card two thirds of the size it was asked for.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { available = $0 }
     }
 
@@ -65,7 +75,7 @@ struct HomeHero: View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: StoryArcSpace.md) {
                 ForEach(publications) { publication in
-                    card(publication)
+                    card(publication, width: cardWidth)
                         // Depth as cards pass: the one in the middle is the one being
                         // offered, and the ones beside it say so by standing back.
                         .scrollTransition(axis: .horizontal) { content, phase in
@@ -85,12 +95,12 @@ struct HomeHero: View {
         .contentMargins(.horizontal, StoryArcSpace.gutter, for: .scrollContent)
     }
 
-    private func card(_ publication: Publication) -> some View {
+    private func card(_ publication: Publication, width: CGFloat) -> some View {
         HomeHeroCard(
             publication: publication,
             model: model,
-            width: cardWidth,
-            height: cardWidth * Self.cardAspect,
+            width: width,
+            height: width * Self.cardAspect,
             onOpen: onOpen
         )
     }
@@ -178,6 +188,13 @@ private struct HomeHeroCard: View {
         }
         .padding(StoryArcSpace.lg)
         .frame(width: width, alignment: .leading)
+        // The one place on this screen where text stops growing, and the reason is what
+        // happens without it: the card is a fixed frame over artwork, so past
+        // `accessibility1` the title hits its scale floor while the caption under it keeps
+        // growing, and the smallest words on the card become the title of the book. The
+        // heading above scales without limit, and so does the list it leads to, where the
+        // same titles are set as ordinary text with room to wrap.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
     }
 
     /// The small line above the title: what this issue belongs to.
@@ -185,8 +202,16 @@ private struct HomeHeroCard: View {
     /// The series where there is one, because that is what a reader recognises before they
     /// recognise an issue title. Otherwise whoever published it, and otherwise nothing —
     /// an uppercase "CBZ" over someone's artwork is a file extension wearing a kicker.
+    ///
+    /// Absent when the title already carries the series, which is most of a folder library:
+    /// a title guessed from a filename usually *is* the series and the issue joined back
+    /// together, and "EMBER LINES" set over "Ember Lines #2" is an echo rather than a
+    /// second fact.
     private var kicker: String? {
-        if let series = publication.series, series != publication.displayTitle { return series }
+        if let series = publication.series,
+            !publication.displayTitle.localizedCaseInsensitiveContains(series) {
+            return series
+        }
         return publication.publisher
     }
 

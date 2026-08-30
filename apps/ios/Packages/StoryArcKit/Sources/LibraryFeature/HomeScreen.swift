@@ -100,6 +100,17 @@ public struct HomeScreen: View {
                     }
                 }
             }
+            // Reading history is read *after* the library is, and again each time the walk
+            // finishes. The order is the whole point: positions are matched to
+            // publications, so a read taken while the shelf is still empty matches nothing
+            // and files nothing — and the app keeps no publications between launches, so
+            // on a cold start the shelf is *always* still empty for a moment. Home opened
+            // with no Keep reading and no Up next until the reader visited the library tab,
+            // which is precisely the class of bug the shell was built to end.
+            .task { await model.refreshProgress() }
+            .onChange(of: model.scanState) { _, state in
+                if case .finished = state { Task { await model.refreshProgress() } }
+            }
             .importingPublications(into: model, isPresented: $isImporting)
             // `local-library`: a folder picked here is reachable again after a restart,
             // which is what the security-scoped bookmark in the model is for.

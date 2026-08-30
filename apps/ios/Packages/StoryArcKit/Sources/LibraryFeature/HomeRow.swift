@@ -172,8 +172,12 @@ private struct HomeShelfCard: View {
         guard isReadable else {
             return String(localized: "home.unavailable", bundle: .module, locale: .storyArc)
         }
-        if let series = publication.series, series != publication.displayTitle {
-            return publication.number.map { "\(series) #\($0)" } ?? series
+        if let series = publication.series {
+            let line = publication.number.map { "\(series) #\($0)" } ?? series
+            // A guessed title is often the series and the issue joined back together, and
+            // a card that printed the same words twice would look like a rendering fault
+            // rather than a second fact.
+            if line.caseInsensitiveCompare(publication.displayTitle) != .orderedSame { return line }
         }
         return publication.authors.first
     }
