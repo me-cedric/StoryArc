@@ -47,5 +47,8 @@ struct HomeEmpty: View {
             .buttonStyle(.plain)
         }
         .frame(maxWidth: StoryArcSpace.huge * 8)
+        // At the largest Dynamic Type size this sentence is taller than the screen, and
+        // without somewhere to scroll the secondary action sits behind the tab bar.
+        .reachableAtEveryTextSize()
     }
 }

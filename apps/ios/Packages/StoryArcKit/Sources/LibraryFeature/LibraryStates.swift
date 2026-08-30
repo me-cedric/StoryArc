@@ -113,6 +113,29 @@ struct EmptyLibraryView: View {
             )
         }
         .frame(maxWidth: StoryArcSpace.huge * 8)
+        .reachableAtEveryTextSize()
+    }
+}
+
+extension View {
+    /// Lets an empty state scroll once the reader's text size makes it taller than the screen.
+    ///
+    /// `ContentUnavailableView` centres its contents and does not scroll them. At the largest
+    /// Dynamic Type size that put the secondary action *behind the tab bar* — reachable by
+    /// nobody, on the one screen whose whole job is to be reachable. Caught on a booted
+    /// simulator at `accessibility-extra-extra-extra-large`, which is why AGENTS.md §6 asks
+    /// for that size by name and why a `#Preview` would not have found it.
+    ///
+    /// A minimum height rather than a fixed one: at every ordinary size the view still fills
+    /// the screen and stays centred, and the scroll view only has somewhere to go when the
+    /// content genuinely outgrows it.
+    func reachableAtEveryTextSize() -> some View {
+        GeometryReader { proxy in
+            ScrollView {
+                frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
     }
 }
 
@@ -178,6 +201,7 @@ struct LibraryAway: View {
             .buttonStyle(.plain)
         }
         .frame(maxWidth: StoryArcSpace.huge * 8)
+        .reachableAtEveryTextSize()
     }
 }
 
