@@ -151,7 +151,10 @@ struct DetailActions: View {
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
         .controlSize(.large)
-        .accessibilityLabel(Text("library.settings", bundle: .module))
+        // An ellipsis has nothing to announce. Named rather than left to VoiceOver, which
+        // would read the glyph's own description and tell a reader nothing about what is
+        // behind it.
+        .accessibilityLabel(Text("detail.more", bundle: .module))
     }
 
     /// Whether there is anything here a copy could be made of.

@@ -2114,6 +2114,36 @@
       },
       "comment": "Shown by the surface a reader is returned to when the page cannot open."
     },
+    "detail.more": {
+      "comment": "Spoken label for the page's overflow menu button.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weitere Aktionen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More actions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más acciones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autres actions"
+          }
+        }
+      }
+    },
     "detail.provenance.alsoIn %@": {
       "extractionState": "manual",
       "localizations": {

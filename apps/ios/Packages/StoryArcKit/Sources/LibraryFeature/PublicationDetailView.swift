@@ -64,6 +64,12 @@ public struct PublicationDetailView: View {
                 series
                 DetailProvenanceLine(provenance: provenance)
             }
+            // A measure, not a margin. On a 13-inch iPad the description runs to nearly two
+            // hundred characters a line and the primary action becomes a metre-wide bar —
+            // both of which are the page *filling* the window rather than composing it.
+            // Wider than a reading column because the series shelf lives in it too.
+            .frame(maxWidth: 720)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, StoryArcSpace.gutter)
             .padding(.bottom, StoryArcSpace.xxxl)
         }
