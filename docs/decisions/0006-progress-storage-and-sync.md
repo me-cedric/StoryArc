@@ -122,6 +122,91 @@ release train briefly lagged Kotlin 2.4.10 — the combination that works here i
 **Room 2.8.4 with KSP 2.3.9**, which keeps Gradle's configuration cache intact.
 The earlier KSP versioning scheme (`<kotlin>-<ksp>`) no longer applies.
 
+## What the code reaches, and what it does not
+
+Read out of both trees on 2026-08-30. The decision above stands — the rules are
+the right rules, and `ProgressMergeTests` and `ProgressMergeTest` assert the whole
+table on each platform. What is recorded here is that the app cannot currently
+*reach* parts of it, because an ADR that describes behaviour the code does not
+have is worse than no ADR.
+
+### The sync watermark is never written, so one row of the table is unreachable
+
+`syncedPosition` is the field the table's *"since last sync"* is measured
+against, and **no production code on either platform writes it**. Every
+construction outside a test takes the default `nil`: `ReaderModel.swift:374` on
+iOS, `ReaderViewModel.kt:644` and `EpubReaderViewModel.kt:705` on Android. The
+stores persist whatever they were handed (`ProgressStore.swift:128`,
+`ProgressStore.kt:208`), so a nil goes in and a nil comes back.
+
+`ProgressMerge` reads that absence as "assume it moved" —
+`ReadingProgress.swift:108` and `ReadingProgress.kt:104` both fall back to
+`true`. `localMoved` is therefore permanently true, `remoteMoved` with it, and
+the first row above — *remote ahead, local unchanged since last sync → adopt
+remote, silently* — cannot be reached. That case falls through to the third row.
+
+**What a reader sees.** A chapter read on another device, and nothing read on
+this one, is handled as a disagreement rather than a hand-over: the app raises
+the "Read in two places" alert and asks which position to keep. The position it
+settles on is the right one — furthest wins, and the further one is the remote —
+but the reader is asked to resolve a conflict that is not one, which is exactly
+the interruption the silent row exists to avoid.
+
+Writing the position down as `syncedPosition` when it is pushed or adopted is
+what closes this. Nothing in the rule itself needs changing.
+
+**And the two stores would not agree even once it is written.** iOS encodes the
+whole `ReadingPosition` as JSON and decodes it back (`ProgressStore.swift:128`
+and `:304`). Android keeps only its fraction, in a single `syncedProgression`
+column, and rebuilds it as `ReadingPosition.Reflowable(fraction, "")`
+(`ProgressStore.kt:208` and `:320`). The merge compares positions by value, so on
+Android a restored watermark would not equal the page position it was made from,
+nor a reflowable one whose locator it dropped — `localMoved` would stay true
+there after the write that fixes iOS. The column has to carry the position, not a
+number derived from it.
+
+### A pull that finds the server behind pushes nothing
+
+`ProgressPull` sorts a merge into three piles, and the `toPush` pile —
+`ProgressPull.swift:14`, `ProgressPull.kt:20` — is **discarded by both of its
+callers**. `KavitaSync.swift:65-66` and `KavitaSync.kt:77-78` consume `toSave`
+and `conflicts` and nothing else. A pull that establishes the server is behind
+saves the local record it already had and tells the server nothing.
+
+Positions do still reach Kavita by the ordinary route: the reader reports one on
+leaving (`KavitaSync.report`, from `StoryArcAppActions.swift:70` and
+`MainActivity.kt:1093`), and held ones are flushed when the server is reachable
+again. What is missing is the second row of the table — *remote behind local →
+keep local, push it* — at the one moment the app has just proved it applies.
+
+### Identity nearly always falls to the last resort
+
+**Rule 1, the server identifier, is never constructed in production.** The only
+`ServerIdentifier` built outside a test is the one each store decodes back out of
+a stored key (`ProgressStore.swift:297`, `ProgressStore.kt:296`), and nothing
+writes that key non-nil, because nothing hands a store an identity carrying one.
+
+**Rule 2, the content digest, has one production caller in the repository.**
+`OpenedFile.kt:69`, where Android digests a file handed to it from outside the
+app. On iOS, `PublicationIndexer.contentDigest` (`PublicationIndexer.swift:384`)
+is called only by its own test. Both library scanners key on the path instead —
+`PublicationIndexer.swift:372`, `LibraryScanner.kt:384`,
+`PublicationIndexer.kt:409`.
+
+So anything the library scanned is identified by rule 3, the normalised path,
+which this ADR calls a last resort. Two of the consequences claimed below — that
+a position survives a rename or a move, and that one file read from a folder and
+from a share resolves to one record — do not hold at runtime for those
+publications. The lookup that would honour a digest is written and tested
+(`ProgressStore.swift:264`, `ProgressStore.kt:285`); it is the digest that is not
+supplied.
+
+One promised outcome does hold, by a route this ADR does not describe: a Kavita
+chapter finds its local progress record because `KavitaProgressStore` keeps its
+own chapter-id → publication-id table (`remember(_:for:)`), which `KavitaSync.pull`
+reads. That is a side mapping beside the identity, not identity rule 1, and it
+covers Kavita only.
+
 ## Consequences
 
 - Progress works with no server, which is the common case for a folder of CBZs.
