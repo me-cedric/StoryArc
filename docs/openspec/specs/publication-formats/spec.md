@@ -35,6 +35,8 @@ The app SHALL open the following formats:
 #### Scenario: Corrupt archive
 - **WHEN** an archive is truncated or its index is unreadable
 - **THEN** the app opens whatever pages it can read and states how many were skipped, rather than refusing the whole publication
+- **AND** the count is shown in the reader's own controls, where it recedes with them,
+  because it is a fact about the file rather than about the page in front of the reader
 
 ### Requirement: Page ordering
 
@@ -83,7 +85,11 @@ The app SHALL produce a cover for every publication.
 
 #### Scenario: EPUB cover
 - **WHEN** an EPUB declares a cover image
-- **THEN** that image is used; otherwise the first page of the spine is rendered as the cover
+- **THEN** that image is used; otherwise the image shown by the first item in the spine
+  becomes the cover, and is cached like any other
+- **AND** a first spine item that shows no image leaves the publication with no cover,
+  because rasterising arbitrary XHTML needs a web view on both platforms and that is a
+  larger decision than a thumbnail
 
 #### Scenario: Cover generation cost
 - **WHEN** a folder of 10,000 publications is scanned
@@ -96,11 +102,17 @@ The app SHALL decode pages without exhausting memory, regardless of source image
 #### Scenario: Very large page
 - **WHEN** a page is larger than the device can hold at full resolution
 - **THEN** it is downsampled to the display's needs for viewing and re-decoded at higher resolution when the user zooms
+- **AND** the re-decoded copy is held only while the zoom is, up to a ceiling the
+  memory-pressure prefetch window sets, so a magnified page never costs more than one
+  extra page
 
 #### Scenario: Supported image codecs
 - **WHEN** a page is JPEG, PNG, WebP, AVIF, GIF, or HEIC
 - **THEN** it renders
-- **AND** a page in an unsupported codec displays a placeholder naming the codec, and does not break pagination
+- **AND** a page in an unsupported codec displays a placeholder naming the codec — read
+  from the page's own bytes, not from its file name — and does not break pagination
+- **AND** a page whose bytes could not be read at all keeps its place in the reading order
+  and is retried, because an unreachable source is not a broken file
 
 #### Scenario: Wide double-page image
 - **WHEN** a single image is materially wider than it is tall in a portrait publication
@@ -108,7 +120,11 @@ The app SHALL decode pages without exhausting memory, regardless of source image
 
 ## Open Questions
 
-- CB7 depends on a 7-Zip decoder on both platforms. If a suitable
-  permissively-licensed decoder is unavailable on one platform, CB7 will be
-  listed as unsupported there rather than silently failing. To be resolved
-  during the format-layer spike.
+- CB7 depends on a 7-Zip decoder on both platforms, and the spike answered the
+  question it was asked: a decoder exists and is permissively licensed, but reaching
+  it means vendoring a second C library on both platforms for a format that is rare
+  and cannot be streamed. The cost, the three ways to answer it and a recommendation
+  are in [ADR-0011](../../../decisions/0011-cb7-support.md). **Still open**: it is a
+  product decision, not an engineering one. Until it is made a `.cb7` is refused by
+  name rather than reported as a broken file, which the *Detecting format* scenario
+  already requires.

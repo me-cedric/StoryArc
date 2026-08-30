@@ -20,10 +20,16 @@ across the two on purpose, so a reviewer can diff them by eye.
 | Plain folder | `ImageFolderArchive` | none |
 | EPUB structure | `EpubReader` | none — ours |
 | EPUB *rendering* | — | Readium, not built yet |
-| CB7 | — | refused by name |
+| CB7 | — | refused by name — the cost of changing that is [ADR-0011](../decisions/0011-cb7-support.md) |
 
 Page bytes are then decoded by `PageDecoder`, which is ImageIO on Apple and
-`ImageDecoder` on Android — the platform in both cases ([ADR-0005]).
+`ImageDecoder` on Android — the platform in both cases ([ADR-0005]). Bytes the
+platform decoder refuses are named by `PageCodec`, which sniffs the signature and
+falls back to the extension: `publication-formats` requires an undecodable page to
+show "a placeholder naming the codec", and a name is what lets a reader tell an
+unsupported format from a damaged file. That is also why `jxl` is in
+`PageOrdering`'s image extensions although nothing decodes it — a page excluded
+from the page list is a page nobody can be told about.
 
 Metadata comes from `ComicInfo` for comics and `EpubReader` for books. Both are
 ours, both need no dependency, and both feed the library rather than the reader.
@@ -76,6 +82,15 @@ a time.
 reading order, table of contents, cover and the fixed-layout flag all come out of
 the package document with no dependency, which is everything the *library* needs
 to shelve a book. Readium is needed only when someone opens one to read.
+
+`EpubSpineCover` is the other half of the cover rule. A publication that declares
+no cover image gets one from the image its first spine item shows, which is what a
+fixed-layout page carries by construction and what a converter emits for a
+reflowable one. The result is an ordinary path inside the container, so nothing
+downstream learns that it was found rather than declared. A first spine item
+holding only text leaves the publication with no cover: rasterising arbitrary
+XHTML would mean a web view on both platforms, which is a decision [ADR-0005]
+scoped to reading a book rather than to drawing a thumbnail of one.
 
 ## Reaching the bytes
 

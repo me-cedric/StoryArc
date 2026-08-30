@@ -24,6 +24,7 @@ ADR that supersedes it rather than quietly doing something else.
 | [0010](0010-smb-clients.md) | An SMB2 client per platform, both pure and permissively licensed | Accepted |
 | [0011](0011-home-screen-widgets.md) | Home-screen widgets wait for a shared snapshot, and for a signing team | Accepted — deferral |
 | [0012](0012-pdf-text-on-android.md) | PDF text on Android comes from the platform's own PDF module | Accepted |
+| [0013](0013-cb7-support.md) | CB7: what a 7-Zip decoder would cost, and three ways to answer it | **Proposed** — open, awaiting a decision |
 
 ## Considered options
 
