@@ -17,6 +17,8 @@ struct KavitaSeriesList: View {
     let library: KavitaLibraryFolder
     let sourceId: String
     let store: KavitaProgressStore
+    /// Where a pulled position is written. See `KavitaSync.pull`.
+    var progress: ProgressStore?
     /// This server's own reading lists, passed through to each chapter list.
     var lists: [ServerShelf] = []
     let onOpen: (Publication, URL) -> Void
@@ -42,6 +44,7 @@ struct KavitaSeriesList: View {
                             series: each,
                             sourceId: sourceId,
                             store: store,
+                            progress: progress,
                             lists: lists,
                             onOpen: onOpen
                         )

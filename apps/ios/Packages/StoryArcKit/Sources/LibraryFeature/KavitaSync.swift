@@ -1,6 +1,7 @@
 import Foundation
 
 public import Kavita
+public import StoryArcCore
 public import Persistence
 
 /// Telling a Kavita server where the reader got to.
@@ -24,6 +25,45 @@ public enum KavitaSync {
         } catch {
             store.hold(unsent)
         }
+    }
+
+    /// Takes what the server says other devices have read, and merges it in.
+    ///
+    /// `reading-progress`: "progress recorded on other devices is merged into the local
+    /// store". The rules are ADR-0006's and live in ``ProgressPull``; what is here is the
+    /// part that only this source can do — turning a chapter's `pagesRead` into a position,
+    /// and finding which publication on this device that chapter was read as.
+    ///
+    /// A chapter this device has never opened is skipped rather than adopted. The position
+    /// is real and the publication is not: the library holds nothing to attach it to, and
+    /// inventing an identity for it would be inventing a reading.
+    ///
+    /// Returns the conflicts, which are the only part a caller has to say anything about.
+    @discardableResult
+    public static func pull(
+        _ chapters: [KavitaChapter],
+        in kavita: KavitaProgressStore,
+        into progress: ProgressStore
+    ) async -> [ProgressPull.Conflict] {
+        var remote: [ReadingProgress] = []
+        var local: [String: ReadingProgress] = [:]
+
+        for chapter in chapters where chapter.pages > 0 {
+            guard let publicationId = kavita.publication(forChapter: chapter.id),
+                  let held = try? await progress.progress(forStableID: publicationId)
+            else { continue }
+            local[held.identity.stableID] = held
+            // The server's position, wearing the local record's identity — which is the
+            // only thing that lets the two be compared at all.
+            var reported = held
+            reported.position = .page(index: max(0, chapter.pagesRead - 1), of: chapter.pages)
+            reported.updatedAt = Date()
+            remote.append(reported)
+        }
+
+        let pull = ProgressPull.merging(remote: remote) { local[$0.stableID] }
+        for record in pull.toSave { try? await progress.save(record) }
+        return pull.conflicts
     }
 
     /// Sends one deliberate mark, keeping it for later if the server is not there.

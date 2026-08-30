@@ -92,6 +92,20 @@ public struct KavitaProgressStore: @unchecked Sendable {
     /// Where a publication came from, or nil when it did not come from a Kavita server.
     public func origin(of publicationId: String) -> KavitaOrigin? { links()[publicationId] }
 
+    /// The publication one chapter was read as, if this device has ever opened it.
+    ///
+    /// The inverse of ``remember(_:for:)``, and what a pull needs: a server reports progress
+    /// against a chapter id, and the local store keys on the publication the reader opened.
+    /// Without this the two never meet and a merge silently matches nothing, which is worse
+    /// than not merging at all — it looks like synchronisation and is not.
+    ///
+    /// Nil for a chapter this device has not opened. `reading-progress` still wants that
+    /// position, but it belongs to a publication the library does not hold yet, and
+    /// inventing an identity for it would be inventing a reading.
+    public func publication(forChapter chapterId: Int) -> String? {
+        links().first { $0.value.chapterId == chapterId }?.key
+    }
+
     /// Keeps a position that could not be sent. One per chapter: the latest page wins.
     public func hold(_ unsent: KavitaUnsent) {
         write(self.unsent().filter { $0.key != unsent.key } + [unsent])

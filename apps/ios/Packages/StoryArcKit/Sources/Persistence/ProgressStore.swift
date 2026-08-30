@@ -105,6 +105,18 @@ public actor ProgressStore {
         try existing(for: identity).map(Self.domain)
     }
 
+    /// The record for a publication named only by its stable id.
+    ///
+    /// What a source-side pull has to work from: a server reports progress against its own
+    /// chapter id, and the only thing linking that to this device is the publication id the
+    /// chapter was opened as. Matching on the whole identity is impossible from a string,
+    /// so this matches on the one component a string *is*.
+    public func progress(forStableID id: String) throws -> ReadingProgress? {
+        try context.fetch(FetchDescriptor<StoredProgress>())
+            .map(Self.domain)
+            .first { $0.identity.stableID == id }
+    }
+
     /// Records a position, replacing whatever was there.
     ///
     /// Last write wins *locally* — this is one device, and the interesting

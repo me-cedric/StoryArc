@@ -18,12 +18,15 @@ struct KavitaChapterList: View {
     let series: KavitaSeries
     let sourceId: String
     let store: KavitaProgressStore
+    /// Where a pulled position is written. Nil in a preview, which has no store to merge into.
+    var progress: ProgressStore?
     /// This server's own reading lists, which its chapters may be added to.
     var lists: [ServerShelf] = []
     let onOpen: (Publication, URL) -> Void
 
     @State private var volumes: [KavitaVolume] = []
     @State private var metadata: KavitaMetadata?
+    @State private var conflicts: [ProgressPull.Conflict] = []
     @State private var resume: KavitaChapter?
     @State private var fetching: Int?
 
@@ -76,6 +79,38 @@ struct KavitaChapterList: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        // `reading-progress`: a genuine conflict is one the reader "is told once — naming
+        // both — with the option to take the other". Once, not per chapter: a server that
+        // has moved on in six places is one thing that happened, and six alerts about it
+        // would be the app making a reader dismiss its own synchronisation.
+        .alert(
+            Text("sync.conflict.title", bundle: .module),
+            isPresented: Binding(
+                get: { !conflicts.isEmpty },
+                set: { if !$0 { conflicts = [] } }
+            )
+        ) {
+            Button(role: .cancel) { conflicts = [] } label: {
+                Text("sync.conflict.keep", bundle: .module)
+            }
+            Button {
+                // Taking the other means writing back what was set aside — the reader
+                // saying the further position was not theirs.
+                let discarded = conflicts
+                conflicts = []
+                Task {
+                    for conflict in discarded {
+                        var restored = conflict.resolved
+                        restored.position = conflict.discarded
+                        try? await progress?.save(restored)
+                    }
+                }
+            } label: {
+                Text("sync.conflict.take", bundle: .module)
+            }
+        } message: {
+            Text("sync.conflict.body \(conflicts.count)", bundle: .module)
+        }
         .task {
             guard volumes.isEmpty else { return }
             volumes = (try? await client.volumes(ofSeries: series.id)) ?? []
@@ -83,6 +118,16 @@ struct KavitaChapterList: View {
             // still show the other two rather than an empty screen.
             metadata = try? await client.metadata(ofSeries: series.id)
             resume = try? await client.continuePoint(ofSeries: series.id)
+            // `reading-progress`: "when a synchronising source refreshes, progress recorded
+            // on other devices is merged into the local store". This is that refresh — the
+            // chapters have just arrived carrying what the server thinks has been read.
+            if let progress {
+                conflicts = await KavitaSync.pull(
+                    volumes.flatMap(\.chapters),
+                    in: store,
+                    into: progress
+                )
+            }
         }
     }
 

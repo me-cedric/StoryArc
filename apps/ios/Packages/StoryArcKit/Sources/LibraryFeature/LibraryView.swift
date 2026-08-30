@@ -216,6 +216,7 @@ public struct LibraryView: View {
                             address: page.address,
                             sourceId: page.id,
                             store: kavitaProgress,
+                            progress: progress,
                             lists: model.serverLists,
                             onOpen: onOpen
                         )

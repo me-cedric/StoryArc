@@ -17,6 +17,8 @@ public struct KavitaBrowserView: View {
     private let address: KavitaAddress
     private let sourceId: String
     private let store: KavitaProgressStore
+    /// Where a pulled position is written. See `KavitaSync.pull`.
+    private let progress: ProgressStore?
     private let lists: [ServerShelf]
     private let onOpen: (Publication, URL) -> Void
 
@@ -36,6 +38,7 @@ public struct KavitaBrowserView: View {
         address: KavitaAddress,
         sourceId: String,
         store: KavitaProgressStore,
+        progress: ProgressStore? = nil,
         lists: [ServerShelf] = [],
         onOpen: @escaping (Publication, URL) -> Void = { _, _ in }
     ) {
@@ -43,6 +46,7 @@ public struct KavitaBrowserView: View {
         self.address = address
         self.sourceId = sourceId
         self.store = store
+        self.progress = progress
         self.lists = lists
         _client = State(initialValue: KavitaClient(address: address))
         self.onOpen = onOpen
@@ -62,6 +66,7 @@ public struct KavitaBrowserView: View {
                         library: library,
                         sourceId: sourceId,
                         store: store,
+                        progress: progress,
                         lists: lists,
                         onOpen: onOpen
                     )
