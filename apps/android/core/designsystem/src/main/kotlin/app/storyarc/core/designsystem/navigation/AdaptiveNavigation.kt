@@ -72,13 +72,29 @@ fun AdaptiveNavigationShell(
     entries: List<NavigationEntry>,
     modifier: Modifier = Modifier,
     showsNavigation: Boolean = true,
+    /**
+     * Entries a rail has room for and a navigation bar has not.
+     *
+     * Drawn only where the window is wide enough for a rail, and never in the bar: Material
+     * caps a navigation bar at three to five destinations, and `navigation-shell` fixes the
+     * destination set at three. These are the secondary entries the same requirement allows
+     * a wide window to reveal — sections and shelves, never a configured source.
+     */
+    secondaryEntries: List<NavigationEntry> = emptyList(),
     content: @Composable () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
+    // The V2 measurement, not the one the scaffold defaults to: the original reports three
+    // width classes, and the deprecated call says so itself. This one carries Material's
+    // large and extra-large classes as well, which is the measurement the tablet slice needs
+    // and the one this shell should already be reading.
+    val type = NavigationSuiteScaffoldDefaults.navigationSuiteType(currentWindowAdaptiveInfoV2())
+    val isRail = type == NavigationSuiteType.WideNavigationRailCollapsed ||
+        type == NavigationSuiteType.WideNavigationRailExpanded
     NavigationSuiteScaffold(
         modifier = modifier,
         navigationSuiteItems = {
-            entries.forEach { entry ->
+            (if (isRail) entries + secondaryEntries else entries).forEach { entry ->
                 item(
                     selected = entry.selected,
                     onClick = entry.onSelect,
@@ -90,15 +106,7 @@ fun AdaptiveNavigationShell(
                 )
             }
         },
-        // The V2 measurement, not the one the scaffold defaults to: the original reports
-        // three width classes, and the deprecated call says so itself. This one carries
-        // Material's large and extra-large classes as well, which is the measurement the
-        // tablet slice needs and the one this shell should already be reading.
-        layoutType = if (showsNavigation) {
-            NavigationSuiteScaffoldDefaults.navigationSuiteType(currentWindowAdaptiveInfoV2())
-        } else {
-            NavigationSuiteType.None
-        },
+        layoutType = if (showsNavigation) type else NavigationSuiteType.None,
         containerColor = palette.surfaceCanvas,
         content = content,
     )

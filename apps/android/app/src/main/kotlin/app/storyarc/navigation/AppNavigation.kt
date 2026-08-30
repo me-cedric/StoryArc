@@ -1,5 +1,7 @@
 package app.storyarc.navigation
 
+import androidx.compose.runtime.saveable.Saver
+
 /**
  * Where the app is, whole, in one value.
  *
@@ -111,4 +113,26 @@ data class AppNavigation(
      */
     val stateKey: String
         get() = "${destination.name}/${stack.size}/${current?.let { it::class.simpleName } ?: "root"}"
+
+    companion object {
+        /**
+         * What survives the activity being rebuilt: the destination, and not the path.
+         *
+         * A destination is a name. A screen on the path is a live page of an online
+         * library, an open publication or a server address, none of which belongs in a
+         * saved-state bundle — so a rebuilt activity lands on the destination the reader was
+         * on, at its root, rather than on the home surface as it did before. The font size
+         * changing is the commonest way to meet this, and it used to lose everything.
+         */
+        val Saver: Saver<AppNavigation, String> =
+            Saver(
+                save = { it.destination.name },
+                restore = { name ->
+                    AppNavigation(
+                        AppDestination.entries.firstOrNull { it.name == name }
+                            ?: AppDestination.start,
+                    )
+                },
+            )
+    }
 }

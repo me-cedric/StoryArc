@@ -23,6 +23,12 @@
     <string name="destination_downloads">Downloads</string>
     <string name="destination_open_library">Go to your library</string>
 
+    <!-- Secondary entries, drawn only where the window is wide enough for a rail. The
+         library's own top bar carries both on a narrow window and drops them on a wide one,
+         so these are what stops a tablet reader reaching neither. -->
+    <string name="destination_shelves">Shelves</string>
+    <string name="destination_settings">Settings</string>
+
     <string name="home_keep_reading">Keep reading</string>
     <string name="home_empty">Nothing is part-read yet. Open something and it will be waiting here.</string>
 

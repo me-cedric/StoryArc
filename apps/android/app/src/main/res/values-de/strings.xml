@@ -16,6 +16,8 @@
     <string name="destination_library">Bibliothek</string>
     <string name="destination_downloads">Downloads</string>
     <string name="destination_open_library">Zur Bibliothek</string>
+    <string name="destination_shelves">Regale</string>
+    <string name="destination_settings">Einstellungen</string>
 
     <string name="home_keep_reading">Weiterlesen</string>
     <string name="home_empty">Noch nichts angefangen. Öffnen Sie etwas, und es wartet hier auf Sie.</string>

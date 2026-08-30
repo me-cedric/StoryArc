@@ -7,11 +7,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -63,7 +66,9 @@ internal fun AppShell(
     /** A quick action the launcher sent, waiting for the same. */
     quickAction: MutableState<QuickActionRequest?>,
 ) {
-    var navigation by remember { mutableStateOf(AppNavigation()) }
+    var navigation by rememberSaveable(stateSaver = AppNavigation.Saver) {
+        mutableStateOf(AppNavigation())
+    }
     var sheet by remember { mutableStateOf<AppSheet?>(null) }
     var refusedFile by remember { mutableStateOf<OpenedFile.Outcome?>(null) }
 
@@ -197,6 +202,34 @@ internal fun AppShell(
                 onSelect = { navigation = navigation.select(destination) },
             )
         },
+        // Only a rail draws these. The library's own top bar carries Shelves and Settings on
+        // a narrow window and deliberately drops both once the window is wide enough for
+        // side navigation — so without them here, a tablet reader could reach neither.
+        secondaryEntries = listOf(
+            NavigationEntry(
+                label = stringResource(R.string.destination_shelves),
+                icon = Icons.Filled.Inventory2,
+                selected = navigation.current is Screen.Shelves,
+                onSelect = {
+                    // Choosing the entry a reader is already on is not a second copy of it.
+                    if (navigation.current !is Screen.Shelves) {
+                        navigation = navigation.push(Screen.Shelves)
+                    }
+                },
+            ),
+            NavigationEntry(
+                label = stringResource(R.string.destination_settings),
+                icon = Icons.Filled.Settings,
+                // Never selected: Settings is a screen the reader comes back from rather
+                // than a place they stay in, and an indicator left on it would be claiming
+                // the library was somewhere else.
+                selected = false,
+                onSelect = {
+                    downloads.value = dependencies.downloads.library()
+                    navigation = navigation.push(Screen.Settings())
+                },
+            ),
+        ),
         showsNavigation = navigation.showsNavigation,
     ) {
         // What each position on each destination's path remembered — a scroll offset, an

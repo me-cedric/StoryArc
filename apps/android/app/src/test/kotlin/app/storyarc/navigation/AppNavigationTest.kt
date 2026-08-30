@@ -1,5 +1,6 @@
 package app.storyarc.navigation
 
+import androidx.compose.runtime.saveable.SaverScope
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -16,6 +17,11 @@ import java.util.UUID
  * decidable here, in milliseconds, rather than in an instrumented test nobody runs.
  */
 class AppNavigationTest {
+
+    /** What a `Saver` is handed at save time. Nothing here consults it. */
+    private object TestSaverScope : SaverScope {
+        override fun canBeSaved(value: Any): Boolean = true
+    }
 
     private fun collection() = Screen.Collection(UUID.randomUUID())
 
@@ -155,6 +161,24 @@ class AppNavigationTest {
         val navigation = AppNavigation().select(AppDestination.LIBRARY).push(Screen.Shelves)
 
         assertTrue(navigation.stateKey != navigation.push(collection()).stateKey)
+    }
+
+    @Test
+    fun `a rebuilt activity comes back to the destination it was on, at its root`() {
+        val navigation = AppNavigation()
+            .select(AppDestination.DOWNLOADS)
+            .push(Screen.Settings())
+
+        val saved = with(AppNavigation.Saver) { TestSaverScope.save(navigation) }
+        val restored = AppNavigation.Saver.restore(requireNotNull(saved))
+
+        assertEquals(AppDestination.DOWNLOADS, restored?.destination)
+        assertNull(restored?.current)
+    }
+
+    @Test
+    fun `an unreadable saved destination falls back to the one the app opens on`() {
+        assertEquals(AppDestination.HOME, AppNavigation.Saver.restore("ELSEWHERE")?.destination)
     }
 
     @Test
