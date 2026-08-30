@@ -298,9 +298,10 @@ class MainActivity : ComponentActivity() {
                                 preferences,
                                 sourceStore,
                                 shelvesStore,
-                                // The same store the downloads use. `local-library`'s
-                                // imported copies live beside them on purpose -- see
-                                // `ImportedCopies`.
+                                // One store, two readers of it: what was downloaded joins
+                                // the one library rather than being reachable only by
+                                // browsing back to the server it came from, and imported
+                                // copies live beside it -- see `ImportedCopies`.
                                 downloadStore,
                                 scanJournal,
                             )

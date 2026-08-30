@@ -55,7 +55,10 @@ object LibraryIndex {
         val term = query.search.trim().lowercase(locale)
         val collator = Collator.getInstance(locale).apply { strength = Collator.SECONDARY }
 
-        val kept = publications.filter { publication ->
+        // Narrowed to the scope before anything else is asked. `library-browsing`: with a
+        // single source selected "the view, its search, and its filters apply to that source
+        // alone", so nothing outside it should ever reach a filter to be judged.
+        val kept = inScope(publications, query.scope).filter { publication ->
             keeps(publication, query, progress(publication).state) &&
                 (term.isEmpty() || rank(publication, term, locale) != null)
         }
@@ -171,7 +174,9 @@ object LibraryIndex {
      * A title that starts with what was typed is what the user meant far more
      * often than an author whose name contains it somewhere.
      */
-    private fun rank(publication: Publication, term: String, locale: Locale): Int? {
+    /** Internal, not private: [LibraryMatch] groups results by *why* they matched and asks
+     * this for the reason. */
+    internal fun rank(publication: Publication, term: String, locale: Locale): Int? {
         fun has(value: String?) = value?.lowercase(locale)?.contains(term) == true
         val title = publication.displayTitle.lowercase(locale)
         return when {

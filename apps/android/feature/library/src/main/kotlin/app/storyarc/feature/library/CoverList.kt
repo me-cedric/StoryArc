@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.Publication
 
 /**
@@ -68,6 +69,11 @@ internal fun CoverList(
     onToggle: (Publication) -> Unit = {},
     /** A long press, where a publication is put on a shelf. Null where nothing hosts it. */
     onAddToShelf: ((Publication) -> Unit)? = null,
+    /**
+     * Search results under their own headings. Empty means there is no search running and
+     * the list is one run of rows.
+     */
+    groups: List<MatchGroup> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     val thumbnailWidth = 44.dp
@@ -78,7 +84,10 @@ internal fun CoverList(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = StoryArcSpace.sm),
     ) {
-        items(publications, key = { it.id }) { publication ->
+        // `library-browsing`: results are "grouped by match kind" while a search is running.
+        // A list already reads as sections, so grouping here costs the reader nothing to
+        // learn.
+        val row: @Composable (Publication) -> Unit = { publication ->
             ListRow(
                 publication,
                 viewModel,
@@ -90,6 +99,19 @@ internal fun CoverList(
                 onAddToShelf = onAddToShelf,
             )
             HorizontalDivider()
+        }
+        if (groups.isEmpty()) {
+            items(publications, key = { it.id }) { row(it) }
+        } else {
+            for (group in groups) {
+                item(key = "heading-${group.kind}") {
+                    MatchHeading(
+                        group.kind,
+                        modifier = Modifier.padding(horizontal = StoryArcSpace.gutter),
+                    )
+                }
+                items(group.publications, key = { it.id }) { row(it) }
+            }
         }
     }
 }
@@ -179,7 +201,7 @@ private fun ListRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = rowSubtitle(publication),
+                text = rowSubtitle(publication, viewModel.sourceName(publication)),
                 style = MaterialTheme.typography.labelLarge,
                 color = palette.textTertiary,
                 maxLines = 1,
@@ -202,9 +224,13 @@ private fun ListRow(
 /**
  * What distinguishes this row from its neighbours, format included: in a list the
  * artwork is too small to say what kind of publication this is.
+ *
+ * The source is last and only sometimes there. `library-browsing`: a publication "shows its
+ * source only when more than one source is configured" — with one source the word would be
+ * on every row and would separate nothing from nothing.
  */
 @Composable
-private fun rowSubtitle(publication: Publication): String {
+private fun rowSubtitle(publication: Publication, source: String?): String {
     val parts = buildList {
         if (!publication.isOpenable) add(stringResource(R.string.library_cell_cannot_open))
         val series = publication.series
@@ -214,6 +240,7 @@ private fun rowSubtitle(publication: Publication): String {
             publication.authors.firstOrNull()?.let { add(it) }
         }
         add(publication.format.displayName)
+        source?.let { add(stringResource(R.string.library_cell_source, it)) }
     }
     return parts.joinToString(" · ")
 }

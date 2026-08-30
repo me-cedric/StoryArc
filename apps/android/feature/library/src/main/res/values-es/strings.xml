@@ -252,4 +252,13 @@
     <string name="sync_conflict_keep">Quedarse con el más avanzado</string>
     <string name="sync_conflict_take">Tomar la otra</string>
     <string name="sync_conflict_body">%1$d publicaciones avanzaron en este dispositivo y en el servidor. Se ha conservado la posición más avanzada.</string>
+    <string name="library_scope">Fuente</string>
+    <string name="library_scope_all">Todas las fuentes</string>
+    <string name="library_search_widen">Buscar en todas las fuentes</string>
+    <string name="library_empty_scope">Todavía no hay nada de %1$s en este dispositivo.</string>
+    <string name="library_cell_source">De %1$s</string>
+    <string name="library_match_series">Series</string>
+    <string name="library_match_publication">Títulos</string>
+    <string name="library_match_person">Personas</string>
+    <string name="library_match_tag">Etiquetas</string>
 </resources>

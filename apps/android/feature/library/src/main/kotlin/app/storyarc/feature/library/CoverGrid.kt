@@ -55,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.MatchGroup
+import app.storyarc.core.model.MatchKind
 import app.storyarc.core.model.Publication
 
 /**
@@ -76,6 +78,11 @@ internal fun CoverGrid(
      * not drawn — `library-browsing` requires it absent rather than shown empty.
      */
     continueReading: List<Publication> = emptyList(),
+    /**
+     * Search results under their own headings. Empty means there is no search running and
+     * the shelf is drawn as one run of covers.
+     */
+    groups: List<MatchGroup> = emptyList(),
     /**
      * What to do when a cover is tapped. The library does not open the reader
      * itself — a feature module never depends on another feature module, so the
@@ -130,7 +137,11 @@ internal fun CoverGrid(
                 ContinueReadingRow(continueReading, viewModel, onOpen, maxPixelSize, onAddToShelf)
             }
         }
-        items(publications, key = { it.id }) { publication ->
+        // `library-browsing`: while a search is running, results are "grouped by match
+        // kind". One heading and one run of covers per group rather than a second screen —
+        // the reader is looking at their library with a word typed over it, not somewhere
+        // else.
+        val cell: @Composable (Publication) -> Unit = { publication ->
             CoverCell(
                 publication,
                 viewModel,
@@ -141,8 +152,50 @@ internal fun CoverGrid(
                 onToggle = onToggle,
             )
         }
+        if (groups.isEmpty()) {
+            items(publications, key = { it.id }) { cell(it) }
+        } else {
+            for (group in groups) {
+                item(span = { GridItemSpan(maxLineSpan) }, key = "heading-${group.kind}") {
+                    MatchHeading(group.kind)
+                }
+                items(group.publications, key = { it.id }) { cell(it) }
+            }
+        }
     }
 }
+
+/**
+ * Why the results under it matched.
+ *
+ * `library-browsing` asks for results "grouped by match kind — series, publication, person,
+ * tag", which only means anything if the reader is told which group they are looking at.
+ */
+@Composable
+internal fun MatchHeading(kind: MatchKind, modifier: Modifier = Modifier) {
+    val palette = LocalStoryArcPalette.current
+    Text(
+        text = stringResource(kind.labelRes),
+        style = MaterialTheme.typography.titleMedium,
+        color = palette.textPrimary,
+        modifier = modifier.fillMaxWidth().padding(top = StoryArcSpace.md),
+    )
+}
+
+/**
+ * How a match kind is named on screen.
+ *
+ * The kinds live in `:core:model` and carry no resources: the domain has no business
+ * holding UI copy. Naming them is presentation, so it lives here — the same split iOS makes
+ * with `titleKey`. Plural, because a heading names a set.
+ */
+private val MatchKind.labelRes: Int
+    get() = when (this) {
+        MatchKind.SERIES -> R.string.library_match_series
+        MatchKind.PUBLICATION -> R.string.library_match_publication
+        MatchKind.PERSON -> R.string.library_match_person
+        MatchKind.TAG -> R.string.library_match_tag
+    }
 
 /**
  * What the reader was in the middle of.
@@ -215,6 +268,9 @@ private fun CoverCell(
     }
 
     val subtitle = cellSubtitle(publication)
+    // Spoken as well as drawn: a caption a sighted reader gets is a caption everyone gets.
+    val source = viewModel.sourceName(publication)
+        ?.let { stringResource(R.string.library_cell_source, it) }
 
     Column(
         // One label for the whole cell. Read as three elements it would announce
@@ -245,6 +301,7 @@ private fun CoverCell(
                     publication.displayTitle,
                     subtitle,
                     publication.format.displayName,
+                    source,
                 ).joinToString(", ")
                 // Spoken, because a tick in the corner of a cover is invisible to
                 // TalkBack and "is this one picked" is the only question selection mode
@@ -352,6 +409,18 @@ private fun CoverCell(
             if (subtitle != null) {
                 Text(
                     text = subtitle,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = palette.textTertiary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            // `library-browsing`: a publication "shows its source only when more than one
+            // source is configured". A line only some readers ever see, which is the point —
+            // with one source it would be the same word under every cover.
+            viewModel.sourceName(publication)?.let { source ->
+                Text(
+                    text = stringResource(R.string.library_cell_source, source),
                     style = MaterialTheme.typography.labelLarge,
                     color = palette.textTertiary,
                     maxLines = 1,

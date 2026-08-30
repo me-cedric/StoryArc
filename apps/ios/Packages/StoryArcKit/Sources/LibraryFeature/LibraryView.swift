@@ -283,6 +283,10 @@ public struct LibraryView: View {
                         continueReading: model.query.isNarrowed || selection.isActive
                             ? []
                             : model.continueReading,
+                        // `library-browsing`: while a search is running, results are
+                        // "grouped by match kind". Empty when nothing is typed, and then
+                        // the shelf is one run of covers.
+                        groups: model.matchGroups,
                         model: model,
                         onOpen: open,
                         selection: selection.isActive ? selection.ids : nil,
@@ -291,6 +295,7 @@ public struct LibraryView: View {
                 } else {
                     CoverList(
                         publications: model.visible,
+                        groups: model.matchGroups,
                         model: model,
                         onOpen: open,
                         selection: selection.isActive ? selection.ids : nil,

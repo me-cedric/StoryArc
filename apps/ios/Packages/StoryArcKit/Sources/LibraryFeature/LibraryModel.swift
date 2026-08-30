@@ -40,6 +40,13 @@ public final class LibraryModel {
             // into one entry, which is what makes recording each of them safe.
             remember(query.search)
             preferences?.save(query)
+            // A new scope brings its own layout with it. `library-browsing` keeps the grid
+            // or list choice per scope, so switching source has to *read* the layout as
+            // well as write it — otherwise whichever scope was open last would quietly
+            // impose its choice on the next one.
+            if query.scope != oldValue.scope, let stored = preferences?.layout(for: query.scope) {
+                layout = stored
+            }
             rebuild()
         }
     }
@@ -61,9 +68,9 @@ public final class LibraryModel {
     }
 
     /// Grid or list. `library-browsing` requires both, and requires the choice to
-    /// persist.
+    /// persist per scope.
     public var layout: LibraryLayout = .grid {
-        didSet { if layout != oldValue { preferences?.save(layout) } }
+        didSet { if layout != oldValue { preferences?.save(layout, for: query.scope) } }
     }
 
     /// The publications on screen: filtered, ranked and sorted.
@@ -72,6 +79,10 @@ public final class LibraryModel {
     /// 10,000 to stay usable, and a computed property would re-sort all of them
     /// on every redraw.
     public private(set) var visible: [Publication] = []
+
+    /// Search results, grouped by why each one matched. Empty when nothing is being
+    /// searched for, and the caller draws the flat shelf then.
+    public private(set) var matchGroups: [MatchGroup] = []
 
     /// In-progress publications, most recently read first. Empty means the row is
     /// not drawn at all, which is what `library-browsing` asks for.
@@ -155,10 +166,12 @@ public final class LibraryModel {
 
     let sourceStore: SourceStore?
     let shelvesStore: ShelvesStore?
-
-    /// Where copies the reader imported live. `local-library` asks for them to be kept in
-    /// "app-managed storage", and this store already owns exactly that — see
-    /// ``ImportedCopies``.
+    /// One store, two readers of it.
+    ///
+    /// What has been downloaded, so those publications can join the shelf — see
+    /// ``adoptDownloads()``; and where copies the reader imported live, because
+    /// `local-library` asks for them to be kept in "app-managed storage" and this store
+    /// already owns exactly that — see ``ImportedCopies``.
     let downloadStore: DownloadStore?
 
     /// The last import that did not happen, named so the reader can be told which file.
@@ -190,7 +203,10 @@ public final class LibraryModel {
         // cannot loop back into the save that the observers perform.
         if let preferences {
             self.query = preferences.query()
-            self.layout = preferences.layout()
+            // Resolved against the registry as it was read back, so a scope naming a source
+            // removed in the last session opens the whole library rather than an empty one.
+            self.query.scope = self.query.scope.resolved(in: self.registry)
+            self.layout = preferences.layout(for: self.query.scope)
             self.recentSearches = preferences.recentSearches()
         }
     }
@@ -348,53 +364,25 @@ public final class LibraryModel {
     /// Recomputes what is on screen from the library and the query.
     func rebuild() {
         visible = LibraryIndex.arrange(publications, query: query) { self.state(of: $0) }
-        continueReading = LibraryIndex.continueReading(publications) { self.state(of: $0) }
+        matchGroups = LibraryIndex.grouped(publications, query: query) { self.state(of: $0) }
+        // Narrowed to the scope, not to the whole query: the row is what the reader was in
+        // the middle of, and a filter on format has nothing to say about that.
+        continueReading = LibraryIndex.continueReading(
+            LibraryIndex.inScope(publications, query.scope)
+        ) { self.state(of: $0) }
     }
 
     private func state(of publication: Publication) -> LibraryIndex.Progress {
         .of(progress[publication.id])
     }
 
-    /// Where a publication's file is, so the app layer can hand it to a reader.
-    public func location(of publication: Publication) -> URL? {
-        locations[publication.id]
-    }
-
-    // MARK: - Covers
-
-    /// The cover for a publication, decoded once and remembered.
+    /// Shows every source again.
     ///
-    /// Called by a cell as it appears, which is what makes extraction lazy. A
-    /// publication with no cover returns `nil` rather than throwing: a missing
-    /// cover is a normal state and the cell draws a placeholder.
-    public func cover(for publication: Publication, maxPixelSize: Int) async -> CGImage? {
-        if let cached = covers[publication.id] { return cached }
-
-        // Disk before the archive. `sources` asks for a cover to be "stored on disk at
-        // display resolution", and the reason is what this skips: without it every launch
-        // reopened a ZIP, read its central directory, inflated an entry and decoded an
-        // image, per cover, to draw a grid the reader had already seen.
-        let cache = CoverCache()
-        let identity = publication.id
-        if let stored = await Task.detached(priority: .utility, operation: {
-            cache.image(for: identity, maxPixelSize: maxPixelSize)
-        }).value {
-            covers[publication.id] = stored
-            return stored
-        }
-
-        guard let url = locations[publication.id] else { return nil }
-
-        let image = await Task.detached(priority: .utility) {
-            let decoded = try? await CoverLoader.anyCover(
-                for: publication, at: url, maxPixelSize: maxPixelSize
-            )
-            if let decoded { cache.store(decoded, for: identity, maxPixelSize: maxPixelSize) }
-            return decoded
-        }.value
-
-        guard let image else { return nil }
-        covers[publication.id] = image
-        return image
+    /// `library-browsing` asks the no-results state to "offer to widen the scope to all
+    /// sources if the search was scoped", which is a different offer from clearing the
+    /// filters: the reader who scoped to one server and found nothing usually wants the
+    /// same words put to the rest of their library, not their filters undone.
+    public func widenToAllSources() {
+        query.scope = .allSources
     }
 }

@@ -108,7 +108,9 @@ struct StoryArcApp: App {
                 bookmarks: FolderBookmarks(),
                 preferences: LibraryPreferences(),
                 sourceStore: SourceStore(),
-                // The same store the downloads use — see `ImportedCopies` for why.
+                // One store, two readers of it: what was downloaded joins the one
+                // library rather than being reachable only by browsing back to the server
+                // it came from, and imported copies live in it too — see `ImportedCopies`.
                 downloadStore: DownloadStore(),
                 journal: ScanJournal()
             )

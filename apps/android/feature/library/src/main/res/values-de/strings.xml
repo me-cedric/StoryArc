@@ -252,4 +252,13 @@
     <string name="sync_conflict_keep">Weiteste behalten</string>
     <string name="sync_conflict_take">Die andere nehmen</string>
     <string name="sync_conflict_body">Bei %1$d Publikationen hat sich sowohl dieses Gerät als auch der Server bewegt. Die weiteste Position wurde behalten.</string>
+    <string name="library_scope">Quelle</string>
+    <string name="library_scope_all">Alle Quellen</string>
+    <string name="library_search_widen">In allen Quellen suchen</string>
+    <string name="library_empty_scope">Von %1$s ist noch nichts auf diesem Gerät.</string>
+    <string name="library_cell_source">Aus %1$s</string>
+    <string name="library_match_series">Reihen</string>
+    <string name="library_match_publication">Titel</string>
+    <string name="library_match_person">Personen</string>
+    <string name="library_match_tag">Schlagwörter</string>
 </resources>

@@ -49,7 +49,10 @@ public enum LibraryIndex {
     ) -> [Publication] {
         let term = query.search.trimmingCharacters(in: .whitespaces).lowercased()
 
-        let kept = publications.filter { publication in
+        // Narrowed to the scope before anything else is asked. `library-browsing`: with a
+        // single source selected "the view, its search, and its filters apply to that
+        // source alone", so nothing outside it should ever reach a filter to be judged.
+        let kept = inScope(publications, query.scope).filter { publication in
             keeps(publication, query: query, state: progress(publication).state)
                 && (term.isEmpty || rank(publication, matching: term) != nil)
         }
@@ -155,7 +158,9 @@ public enum LibraryIndex {
     ///
     /// A title that starts with what was typed is what the user meant far more
     /// often than an author whose name contains it somewhere.
-    private static func rank(_ publication: Publication, matching term: String) -> Int? {
+    /// Not `private`: `LibraryMatch` groups results by *why* they matched and asks this
+    /// for the reason, and Swift's `private` is file-scoped.
+    static func rank(_ publication: Publication, matching term: String) -> Int? {
         func has(_ value: String?) -> Bool { value?.lowercased().contains(term) == true }
         let title = publication.displayTitle.lowercased()
         if title.hasPrefix(term) { return 0 }

@@ -17,14 +17,15 @@ struct LibraryIndexTests {
         series: String? = nil,
         number: String? = nil,
         authors: [String] = [],
-        format: PublicationFormat = .cbz,
         publisher: String? = nil,
+        format: PublicationFormat = .cbz,
         year: Int? = nil,
         language: String? = nil,
         genres: [String] = [],
         tags: [String] = [],
         fileSize: Int64? = nil,
-        addedAt: Date? = nil
+        addedAt: Date? = nil,
+        source: UUID? = nil
     ) -> Publication {
         Publication(
             identity: PublicationIdentity(normalizedPath: "/library/\(title)"),
@@ -39,6 +40,7 @@ struct LibraryIndexTests {
             genres: genres,
             tags: tags,
             origin: .inferred,
+            sourceID: source,
             fileSize: fileSize,
             addedAt: addedAt
         )
@@ -296,8 +298,8 @@ struct LibraryIndexTests {
     func everyGroupCombines() {
         let match = publication(
             "Watchmen",
-            format: .cbz,
             publisher: "DC",
+            format: .cbz,
             year: 1986,
             language: "en",
             genres: ["Superhero"],
@@ -306,8 +308,8 @@ struct LibraryIndexTests {
         // Identical but for the publisher, which is enough to drop it.
         let miss = publication(
             "Watchmen Companion",
-            format: .cbz,
             publisher: "Marvel",
+            format: .cbz,
             year: 1986,
             language: "en",
             genres: ["Superhero"],

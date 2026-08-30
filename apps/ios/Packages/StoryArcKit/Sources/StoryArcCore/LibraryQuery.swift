@@ -83,6 +83,14 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
     public var sort: LibrarySort
     public var ascending: Bool
 
+    /// Which source is being shown.
+    ///
+    /// Part of the query rather than transient view state, because `library-browsing` says
+    /// the scope "persists until changed" and the query is the thing that is already saved
+    /// and restored. It also means the scope reaches the search and the filters by the same
+    /// route they reach everything else, which is what that requirement asks for.
+    public var scope: LibraryScope
+
     public init(
         search: String = "",
         readStates: Set<ReadState> = [],
@@ -93,7 +101,8 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         tags: Set<String> = [],
         years: YearRange = YearRange(),
         sort: LibrarySort = .title,
-        ascending: Bool = true
+        ascending: Bool = true,
+        scope: LibraryScope = .allSources
     ) {
         self.search = search
         self.readStates = readStates
@@ -105,6 +114,7 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         self.years = years
         self.sort = sort
         self.ascending = ascending
+        self.scope = scope
     }
 
     /// What the filter control shows as a badge.
@@ -128,6 +138,10 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
     public var hasFilters: Bool { activeFilterCount > 0 }
 
     /// Whether anything at all is narrowing the view, search included.
+    ///
+    /// Not the scope, again deliberately: this is what hides the continue-reading row, and
+    /// a scoped library is still a library to continue reading in. The row is narrowed to
+    /// the scope instead of being taken away.
     public var isNarrowed: Bool {
         hasFilters || !search.trimmingCharacters(in: .whitespaces).isEmpty
     }
@@ -170,6 +184,9 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         years = try container.decodeIfPresent(YearRange.self, forKey: .years) ?? YearRange()
         sort = try container.decodeIfPresent(LibrarySort.self, forKey: .sort) ?? .title
         ascending = try container.decodeIfPresent(Bool.self, forKey: .ascending) ?? true
+        // Added later than the rest, and defaulted like them: a query written before
+        // scopes existed names no scope, and the whole library is the honest reading.
+        scope = try container.decodeIfPresent(LibraryScope.self, forKey: .scope) ?? .allSources
     }
 }
 

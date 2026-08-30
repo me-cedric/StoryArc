@@ -5,6 +5,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
+import app.storyarc.core.model.LibraryScope
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadState
@@ -16,8 +17,8 @@ import org.junit.runner.RunWith
 import java.util.UUID
 
 /**
- * `library-browsing` requires filters and the layout to survive leaving the
- * library. Instrumented because `SharedPreferences` needs a real `Context`, and
+ * `library-browsing` requires filters, the scope and the layout to survive leaving
+ * the library. Instrumented because `SharedPreferences` needs a real `Context`, and
  * what is being asserted is that the values actually round-trip through storage.
  *
  * iOS's `LibraryPreferencesTests` asserts the same four things.
@@ -76,5 +77,25 @@ class LibraryPreferencesTest {
         assertEquals(LibraryLayout.GRID, preferences.layout())
         preferences.save(LibraryLayout.LIST)
         assertEquals(LibraryLayout.LIST, preferences.layout())
+    }
+
+    @Test
+    fun a_layout_chosen_for_one_scope_does_not_follow_the_reader_into_another() {
+        val preferences = fresh()
+        // `library-browsing`: covers for the comics on this device, a list for the server's
+        // catalogue — "a dense list for one library does not force it everywhere".
+        val server = LibraryScope.OneSource(UUID.randomUUID())
+        preferences.save(LibraryLayout.LIST, server)
+
+        assertEquals(LibraryLayout.LIST, preferences.layout(server))
+        assertEquals(LibraryLayout.GRID, preferences.layout(LibraryScope.AllSources))
+    }
+
+    @Test
+    fun the_scope_comes_back_on_the_next_launch_because_it_persists_until_changed() {
+        val preferences = fresh()
+        val server = LibraryScope.OneSource(UUID.randomUUID())
+        preferences.save(LibraryQuery(scope = server))
+        assertEquals(server, preferences.query().scope)
     }
 }

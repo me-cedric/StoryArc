@@ -17,6 +17,9 @@ struct CoverList: View {
     @Environment(\.displayScale) private var displayScale
 
     let publications: [Publication]
+    /// Search results under their own headings. Empty means there is no search running and
+    /// the list is one run of rows.
+    var groups: [MatchGroup] = []
     let model: LibraryModel
     let onOpen: (Publication) -> Void
 
@@ -31,20 +34,37 @@ struct CoverList: View {
     private let thumbnailWidth: CGFloat = 44
 
     var body: some View {
-        List(publications) { publication in
-            ListRow(
-                publication: publication,
-                model: model,
-                onOpen: onOpen,
-                thumbnailWidth: thumbnailWidth,
-                maxPixelSize: Int(thumbnailWidth * displayScale),
-                isPicked: selection?.contains(publication.id),
-                onToggle: onToggle
-            )
-            .listRowBackground(theme.palette.surfaceCanvas)
+        List {
+            // `library-browsing`: results are "grouped by match kind" while a search is
+            // running. A list already has section headers, so grouping here costs the
+            // reader nothing to learn.
+            if groups.isEmpty {
+                ForEach(publications) { row($0) }
+            } else {
+                ForEach(groups) { group in
+                    Section {
+                        ForEach(group.publications) { row($0) }
+                    } header: {
+                        Text(group.kind.titleKey, bundle: .module)
+                    }
+                }
+            }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+    }
+
+    private func row(_ publication: Publication) -> some View {
+        ListRow(
+            publication: publication,
+            model: model,
+            onOpen: onOpen,
+            thumbnailWidth: thumbnailWidth,
+            maxPixelSize: Int(thumbnailWidth * displayScale),
+            isPicked: selection?.contains(publication.id),
+            onToggle: onToggle
+        )
+        .listRowBackground(theme.palette.surfaceCanvas)
     }
 }
 
@@ -146,6 +166,10 @@ struct ListRow: View {
 
     /// What distinguishes this row from its neighbours, format included: in a list
     /// the artwork is too small to say what kind of publication this is.
+    ///
+    /// The source is last and only sometimes there. `library-browsing`: a publication
+    /// "shows its source only when more than one source is configured" — with one source
+    /// the word would be on every row and would separate nothing from nothing.
     private var subtitle: String {
         var parts: [String] = []
         if !publication.isOpenable {
@@ -157,6 +181,15 @@ struct ListRow: View {
             parts.append(author)
         }
         parts.append(publication.format.displayName)
+        if let source = model.sourceName(of: publication) {
+            parts.append(
+                String(
+                    localized: "library.cell.source \(source)",
+                    bundle: .module,
+                    locale: .storyArc
+                )
+            )
+        }
         return parts.joined(separator: " · ")
     }
 }

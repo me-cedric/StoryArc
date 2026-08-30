@@ -17,6 +17,9 @@ struct CoverGrid: View {
     /// In-progress publications, most recently read first. Empty means the row is
     /// not drawn — `library-browsing` requires it absent rather than shown empty.
     var continueReading: [Publication] = []
+    /// Search results under their own headings. Empty means there is no search running and
+    /// the shelf is drawn as one run of covers.
+    var groups: [MatchGroup] = []
     let model: LibraryModel
     /// What to do when a cover is tapped. The library does not open the reader
     /// itself — a feature module never depends on another feature module, so the
@@ -47,40 +50,56 @@ struct CoverGrid: View {
                 )
             }
 
-            LazyVGrid(
-                columns: [
-                    GridItem(
-                        .adaptive(minimum: minimumWidth, maximum: maximumWidth),
-                        spacing: StoryArcSpace.md,
-                        // Top, not the default centre. A cell is a cover with a
-                        // caption under it, and a caption runs to one, two or three
-                        // lines depending on the title and whether there is a
-                        // series. Centring makes the row as tall as its wordiest
-                        // cell and then floats every *cover* to a different height,
-                        // so a shelf of artwork looks misaligned. Aligning to the
-                        // top puts every cover on one line and lets the captions
-                        // below it end where they end.
-                        alignment: .top
-                    )
-                ],
-                spacing: StoryArcSpace.lg
-            ) {
-                ForEach(publications) { publication in
-                    CoverCell(
-                        publication: publication,
-                        model: model,
-                        onOpen: onOpen,
-                        // Pixels, not points: a cover decoded at point size is
-                        // blurry on every device made since 2010.
-                        maxPixelSize: Int(maximumWidth * displayScale),
-                        isPicked: selection?.contains(publication.id),
-                        onToggle: onToggle
-                    )
+            // `library-browsing`: while a search is running, results are "grouped by match
+            // kind". One heading and one grid per group rather than a second screen — the
+            // reader is looking at their library with a word typed over it, not somewhere
+            // else.
+            if groups.isEmpty {
+                grid(publications)
+            } else {
+                ForEach(groups) { group in
+                    MatchHeading(kind: group.kind)
+                    grid(group.publications)
                 }
             }
-            .padding(.horizontal, StoryArcSpace.gutter)
-            .padding(.vertical, StoryArcSpace.md)
         }
+    }
+
+    @ViewBuilder
+    private func grid(_ items: [Publication]) -> some View {
+        LazyVGrid(
+            columns: [
+                GridItem(
+                    .adaptive(minimum: minimumWidth, maximum: maximumWidth),
+                    spacing: StoryArcSpace.md,
+                    // Top, not the default centre. A cell is a cover with a
+                    // caption under it, and a caption runs to one, two or three
+                    // lines depending on the title and whether there is a
+                    // series. Centring makes the row as tall as its wordiest
+                    // cell and then floats every *cover* to a different height,
+                    // so a shelf of artwork looks misaligned. Aligning to the
+                    // top puts every cover on one line and lets the captions
+                    // below it end where they end.
+                    alignment: .top
+                )
+            ],
+            spacing: StoryArcSpace.lg
+        ) {
+            ForEach(items) { publication in
+                CoverCell(
+                    publication: publication,
+                    model: model,
+                    onOpen: onOpen,
+                    // Pixels, not points: a cover decoded at point size is
+                    // blurry on every device made since 2010.
+                    maxPixelSize: Int(maximumWidth * displayScale),
+                    isPicked: selection?.contains(publication.id),
+                    onToggle: onToggle
+                )
+            }
+        }
+        .padding(.horizontal, StoryArcSpace.gutter)
+        .padding(.vertical, StoryArcSpace.md)
     }
 }
 
@@ -121,196 +140,6 @@ struct ContinueReadingRow: View {
         }
         .padding(.top, StoryArcSpace.md)
         .padding(.bottom, StoryArcSpace.sm)
-    }
-}
-
-/// One publication in the grid.
-struct CoverCell: View {
-    /// The server whose list just refused this publication, if one did.
-    @State private var refusedServer: String?
-    @State private var restarting: Publication?
-
-    @Environment(\.theme) private var theme
-
-    let publication: Publication
-    let model: LibraryModel
-    let onOpen: (Publication) -> Void
-    let maxPixelSize: Int
-
-    /// Whether this one is picked, or `nil` when the library is not in selection mode.
-    var isPicked: Bool?
-    var onToggle: (Publication) -> Void = { _ in }
-
-    @State private var cover: CGImage?
-    @State private var didAttemptLoad = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
-            artwork
-                // 2:3 is the comic and book proportion. Fixing it here means a
-                // cell reserves its space before its cover arrives, so the grid
-                // does not reflow as images land.
-                .aspectRatio(2.0 / 3.0, contentMode: .fit)
-                .frame(maxWidth: .infinity)
-                .clipShape(.rect(cornerRadius: StoryArcRadius.md))
-                .overlay {
-                    // A hairline rather than a shadow: a pale cover on a pale
-                    // surface needs an edge, and a shadow under every cell reads
-                    // as noise at grid density.
-                    RoundedRectangle(cornerRadius: StoryArcRadius.md)
-                        .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
-                }
-                .overlay(alignment: .bottom) {
-                    if let fraction = model.readFraction(of: publication) {
-                        ProgressBar(fraction: fraction)
-                    }
-                }
-                .overlay(alignment: .topTrailing) {
-                    if let isPicked { PickMark(isPicked: isPicked) }
-                }
-
-            VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                Text(publication.displayTitle)
-                    .textRole(.footnote)
-                    .foregroundStyle(theme.palette.textPrimary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-
-                if let subtitle {
-                    Text(subtitle)
-                        .textRole(.caption)
-                        .foregroundStyle(theme.palette.textTertiary)
-                        .lineLimit(1)
-                }
-            }
-        }
-        // One label for the whole cell. Read as three separate elements it would
-        // announce the title, then the format, then an unlabelled image.
-        .contentShape(.rect)
-        // A publication that cannot be read is not tappable. Opening it only to
-        // show the same refusal a second time wastes the user's tap.
-        //
-        // While the reader is picking, a tap picks. A cover that opened the reader
-        // mid-selection would throw away everything they had chosen so far.
-        .onTapGesture {
-            if isPicked != nil {
-                onToggle(publication)
-            } else if publication.isOpenable {
-                onOpen(publication)
-            }
-        }
-        // `collections-and-reading-lists`: a publication "may belong to any number of
-        // collections", and this is where a reader says so. Only shown when there is
-        // somewhere to add it to — a menu whose only content is "you have no collections"
-        // is a menu that wastes a long press. Absent while picking: the bar below is
-        // already offering the same actions for everything that is picked.
-        .contextMenu {
-            if isPicked == nil {
-                AddToShelfMenu(
-                    model: model,
-                    publications: [publication],
-                    onRefused: { refusedServer = $0 },
-                    onRestart: { restarting = publication }
-                )
-            }
-        }
-        // `reading-progress` requires the clear to be confirmed. Here rather than in the
-        // menu because a context menu cannot present one, and destructive because it is:
-        // the position is the only copy the app promises never to lose.
-        .confirmationDialog(
-            Text("library.restart.title \(publication.displayTitle)", bundle: .module),
-            isPresented: Binding(
-                get: { restarting?.id == publication.id },
-                set: { if !$0 { restarting = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) {
-                Task { await model.restart(publication) }
-                restarting = nil
-            } label: {
-                Text("library.restart.confirm", bundle: .module)
-            }
-        } message: {
-            Text("library.restart.body", bundle: .module)
-        }
-        .refusedByServer($refusedServer, model: model, publication: publication)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
-        // Spoken, because a tick in the corner of a cover is invisible to VoiceOver and
-        // "is this one picked" is the only question selection mode asks.
-        .accessibilityAddTraits(isPicked == true ? .isSelected : [])
-        .task(id: publication.id) {
-            guard !didAttemptLoad else { return }
-            didAttemptLoad = true
-            cover = await model.cover(for: publication, maxPixelSize: maxPixelSize)
-        }
-    }
-
-    @ViewBuilder
-    private var artwork: some View {
-        if let cover {
-            Image(decorative: cover, scale: 1)
-                .resizable()
-                .scaledToFill()
-        } else {
-            // A set title rather than an empty rectangle. A grid of publications with no
-            // cover art — and plenty of EPUBs carry none — was a wall of identical grey
-            // cards labelled with a format, which is the one thing every card in that wall
-            // had in common. The title is what tells them apart. The format stays, smaller,
-            // because it is still the answer to "why is there no picture".
-            ZStack(alignment: .bottom) {
-                theme.palette.surfaceRaised
-
-                Text(publication.displayTitle)
-                    .textRole(.headline)
-                    .foregroundStyle(theme.palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(4)
-                    .minimumScaleFactor(0.6)
-                    .padding(.horizontal, StoryArcSpace.sm)
-                    .frame(maxHeight: .infinity)
-
-                Text(publication.format.displayName)
-                    .textRole(.caption)
-                    .foregroundStyle(theme.palette.textTertiary)
-                    .padding(.bottom, StoryArcSpace.xs)
-            }
-        }
-    }
-
-    /// The second line: what distinguishes this row from its neighbours.
-    private var subtitle: String? {
-        if !publication.isOpenable {
-            // Said plainly rather than shown as a broken cover. `publication-formats`
-            // requires a named refusal, and a grid cell is where a user meets it.
-            return String(localized: "library.cell.cannotOpen", bundle: .module, locale: .storyArc)
-        }
-        if let series = publication.series, series != publication.displayTitle {
-            return publication.number.map { "\(series) #\($0)" } ?? series
-        }
-        return publication.authors.first
-    }
-
-    private var accessibilityLabel: String {
-        var parts = [publication.displayTitle]
-        if let subtitle { parts.append(subtitle) }
-        parts.append(publication.format.displayName)
-        // Progress is spoken, because a bar at the foot of a cover is invisible to
-        // anyone using VoiceOver and "how far in am I" is the whole point of it.
-        if let fraction = model.readFraction(of: publication) {
-            parts.append(
-                String(
-                    localized: "library.cell.progress \(Int(fraction * 100))",
-                    bundle: .module
-                )
-            )
-        }
-        if let pageCount = publication.pageCount {
-            parts.append(String(localized: "library.cell.pages \(pageCount)", bundle: .module, locale: .storyArc))
-        }
-        return parts.joined(separator: ", ")
     }
 }
 

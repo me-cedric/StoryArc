@@ -136,4 +136,46 @@ struct LibraryPreferencesTests {
         preferences.save(LibraryLayout.list)
         #expect(preferences.layout() == .list)
     }
+
+    @Test("A layout chosen for one scope does not follow the reader into another")
+    func layoutIsPerScope() throws {
+        let suite = try fresh()
+        let preferences = suite.preferences
+        defer { suite.discard() }
+
+        // `library-browsing`: covers for the comics on this device, a list for the
+        // server's catalogue — "a dense list for one library does not force it
+        // everywhere".
+        let server = LibraryScope.source(UUID())
+        preferences.save(LibraryLayout.list, for: server)
+
+        #expect(preferences.layout(for: server) == .list)
+        #expect(preferences.layout(for: .allSources) == .grid)
+    }
+
+    @Test("A scope never given a layout falls back rather than resetting to the grid")
+    func layoutFallsBack() throws {
+        let suite = try fresh()
+        let preferences = suite.preferences
+        defer { suite.discard() }
+
+        // Written under the key used before the layout was per scope, which is what a
+        // reader upgrading has on disk. Handing them the grid again would be the upgrade
+        // undoing a choice they made.
+        suite.defaults.set("list", forKey: "app.storyarc.libraryLayout")
+
+        #expect(preferences.layout(for: .allSources) == .list)
+        #expect(preferences.layout(for: .source(UUID())) == .list)
+    }
+
+    @Test("The scope comes back on the next launch, because it persists until changed")
+    func scopeRoundTrip() throws {
+        let suite = try fresh()
+        let preferences = suite.preferences
+        defer { suite.discard() }
+
+        let server = LibraryScope.source(UUID())
+        preferences.save(LibraryQuery(scope: server))
+        #expect(preferences.query().scope == server)
+    }
 }

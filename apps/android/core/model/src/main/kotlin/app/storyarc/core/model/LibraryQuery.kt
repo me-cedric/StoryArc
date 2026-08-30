@@ -83,6 +83,15 @@ data class LibraryQuery(
     val years: YearRange = YearRange(),
     val sort: LibrarySort = LibrarySort.TITLE,
     val ascending: Boolean = true,
+    /**
+     * Which source is being shown.
+     *
+     * Part of the query rather than transient screen state, because `library-browsing` says
+     * the scope "persists until changed" and the query is the thing that is already saved
+     * and restored. It also means the scope reaches the search and the filters by the same
+     * route they reach everything else, which is what that requirement asks for.
+     */
+    val scope: LibraryScope = LibraryScope.AllSources,
 ) {
     /**
      * What the filter control shows as a badge.
@@ -98,7 +107,13 @@ data class LibraryQuery(
 
     val hasFilters: Boolean get() = activeFilterCount > 0
 
-    /** Whether anything at all is narrowing the view, search included. */
+    /**
+     * Whether anything at all is narrowing the view, search included.
+     *
+     * Not the scope, again deliberately: this is what hides the continue-reading row, and a
+     * scoped library is still a library to continue reading in. The row is narrowed to the
+     * scope instead of being taken away.
+     */
     val isNarrowed: Boolean get() = hasFilters || search.isNotBlank()
 
     /**
@@ -130,3 +145,4 @@ enum class LibraryLayout {
     GRID,
     LIST,
 }
+

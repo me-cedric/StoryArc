@@ -88,3 +88,18 @@ extension ReadState {
         }
     }
 }
+
+extension MatchKind {
+    /// The heading over a group of search results.
+    ///
+    /// Plural, because a heading names a set: "Series" over one result still reads
+    /// correctly, where "Serie" over four would not.
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .series: "library.match.series"
+        case .publication: "library.match.publication"
+        case .person: "library.match.person"
+        case .tag: "library.match.tag"
+        }
+    }
+}
