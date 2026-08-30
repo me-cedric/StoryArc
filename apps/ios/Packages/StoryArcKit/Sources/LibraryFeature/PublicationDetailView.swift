@@ -51,26 +51,38 @@ public struct PublicationDetailView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
-                DetailHero(publication: publication, cover: cover)
-                DetailTitleBlock(publication: publication)
-                DetailActions(
-                    publication: publication,
-                    model: model,
-                    isKept: $isKept,
-                    file: file,
-                    onRead: read
-                )
-                summary
+                // A measure, not a margin. On a 13-inch iPad the description runs to nearly
+                // two hundred characters a line and the primary action becomes a metre-wide
+                // bar — both of which are the page *filling* the window rather than
+                // composing it.
+                VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
+                    DetailHero(publication: publication, cover: cover)
+                    DetailTitleBlock(publication: publication)
+                    DetailActions(
+                        publication: publication,
+                        model: model,
+                        isKept: $isKept,
+                        file: file,
+                        onRead: read
+                    )
+                    summary
+                }
+                .frame(maxWidth: SidebarLayout.maxContentWidth)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, StoryArcSpace.gutter)
+
+                // Outside the measure, and that is the change §3.11 asks for: "horizontal
+                // shelves touch the leading and trailing edges so the system scrolls them
+                // under the sidebar automatically". Held inside the column it was a short
+                // run of covers boxed in the middle of a 13-inch window with the shelf
+                // ending long before the window did. It carries its own gutter now.
                 series
+
                 DetailProvenanceLine(provenance: provenance)
+                    .frame(maxWidth: SidebarLayout.maxContentWidth)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, StoryArcSpace.gutter)
             }
-            // A measure, not a margin. On a 13-inch iPad the description runs to nearly two
-            // hundred characters a line and the primary action becomes a metre-wide bar —
-            // both of which are the page *filling* the window rather than composing it.
-            // Wider than a reading column because the series shelf lives in it too.
-            .frame(maxWidth: 720)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, StoryArcSpace.gutter)
             .padding(.bottom, StoryArcSpace.xxxl)
         }
         .background(DetailBackground(wash: wash))

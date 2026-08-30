@@ -210,6 +210,12 @@ public struct HomeScreen: View {
             .foregroundStyle(theme.palette.textPrimary)
             .padding(.horizontal, StoryArcSpace.gutter)
             .frame(minHeight: StoryArcSpace.xxl)
+            // §3.11's `maxContentWidth`, and the one row on Home that needed it. Every
+            // other thing here is a shelf that scrolls, so it *should* run to the window's
+            // edge; this is a label with a chevron pushed to the far side of it, and on a
+            // 13-inch iPad the two ended up a foot apart with nothing in between. Leading
+            // rather than centred, so it starts on the same gutter the shelves do.
+            .frame(maxWidth: SidebarLayout.maxContentWidth, alignment: .leading)
         }
         .buttonStyle(.plain)
     }

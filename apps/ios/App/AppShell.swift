@@ -43,6 +43,9 @@ struct AppShell: View {
     enum Selection: Hashable {
         case destination(LibraryDestination)
         case search
+        /// A row the iPad sidebar reveals below the three. Not a destination and never in
+        /// the tab bar — see ``SidebarEntry`` and ``LibrarySidebar``.
+        case sidebar(SidebarEntry)
     }
 
     /// Where the reader is. `navigation-shell`: the app opens on the home surface, unless
@@ -97,6 +100,11 @@ struct AppShell: View {
             } label: {
                 label(Text("tab.search"), "magnifyingglass")
             }
+
+            // The iPad's second half of the same set: library sections and the reader's
+            // shelves, under their own headers, hidden from the tab bar so the phone still
+            // shows three destinations and the search role and nothing else.
+            LibrarySidebar(model: model, onOpen: onOpen) { Selection.sidebar($0) }
         }
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)

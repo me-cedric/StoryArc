@@ -29,9 +29,19 @@ struct HomeHero: View {
     /// like the whole section, and a reader would have no reason to push it.
     private static let cardShare: CGFloat = 0.86
 
-    /// The widest a card grows. A phone never reaches it; a 13-inch iPad would otherwise
-    /// hand one publication a frame the size of a page.
+    /// The widest a card grows. A phone never reaches either number.
+    ///
+    /// Two of them by window width, which is §3.11's "fewer, larger, more confident covers,
+    /// not the same phone lattice widened". One cap sized for a phone left a 13-inch iPad
+    /// showing a hero the size of a paperback with half the window empty beside it; the
+    /// wide cap is still well short of a frame the size of a page, which is what the single
+    /// number was protecting against in the first place.
+    ///
+    /// Measured rather than read from `horizontalSizeClass`, for the reason ``CoverGrid``
+    /// gives: the same iPad hands this shelf a good 300 pt less once the sidebar is out,
+    /// and less again in a Split View slot. The input is the width the shelf actually got.
     private static let widestCard: CGFloat = 420
+    private static let widestCardInAWideWindow: CGFloat = 560
 
     /// Cover proportions, opened out a little. Comic trim is 2:3; the card is 4:5, which
     /// is enough room for the caption without either cropping the art or leaving a band of
@@ -40,14 +50,21 @@ struct HomeHero: View {
 
     @State private var available: CGFloat = 0
 
+    /// The cap this window earns.
+    private var widest: CGFloat {
+        available >= StoryArcWindowClass.sidebarWidthThreshold
+            ? Self.widestCardInAWideWindow
+            : Self.widestCard
+    }
+
     private var cardWidth: CGFloat {
-        min(max(available * Self.cardShare, 0), Self.widestCard)
+        min(max(available * Self.cardShare, 0), widest)
     }
 
     /// The lone card takes the width between the gutters, because there is nothing beside
     /// it for a peek to promise.
     private var soloWidth: CGFloat {
-        min(max(available - StoryArcSpace.gutter * 2, 0), Self.widestCard)
+        min(max(available - StoryArcSpace.gutter * 2, 0), widest)
     }
 
     var body: some View {
@@ -68,6 +85,13 @@ struct HomeHero: View {
         // a container that a card had already shrunk made the card's width an input to
         // itself, and the loop settled on a card two thirds of the size it was asked for.
         .frame(maxWidth: .infinity, alignment: .leading)
+        // §3.11: the hero's art mirrors and blurs outward under the floating glass sidebar,
+        // so the surface reads as one thing the chrome is sitting on rather than as a card
+        // inside a frame. It is the single detail that most makes a screen read as iPadOS
+        // 26, and it is what the publication-detail hero already does. A phone has nothing
+        // for it to extend under and the modifier is inert there — which is why this is one
+        // line and not a size-class branch.
+        .backgroundExtensionEffect()
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { available = $0 }
     }
 

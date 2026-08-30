@@ -1,0 +1,244 @@
+public import SwiftUI
+
+internal import DesignSystem
+public import StoryArcCore
+
+/// A secondary place the sidebar can send a reader.
+///
+/// Secondary is the whole of it. `navigation-shell` fixes the destination set at three and
+/// says the wide window "SHALL become the platform's own wide-window navigation without
+/// becoming a different set" — so nothing here is a destination, and none of it appears in
+/// the tab bar. These are *sections of the one library* and *the reader's own shelves*,
+/// which is the second half of the same requirement, and the reason a shelf can be reached
+/// in one tap on an iPad without the phone growing a fourth tab.
+///
+/// **No case is a source.** That is the sentence the requirement repeats three times, and
+/// it is what tells this apart from the `SidebarDestination` the shell replaced: a reader
+/// with four servers got four navigation rows and their own navigation said *Kavita* to
+/// them. A reader with four servers gets exactly these rows.
+public enum SidebarEntry: Hashable, Sendable {
+    /// What arrived lately, over every source at once.
+    case recentlyAdded
+    /// The library grouped by what a reader recognises before an issue title.
+    case series
+    /// Every collection and reading list — the route that makes the overflow reachable
+    /// however many shelves a reader has.
+    case allShelves
+    case collection(UUID)
+    case list(UUID)
+}
+
+/// How wide text is allowed to get before the window stops composing it.
+///
+/// §3.11 asks for a `maxContentWidth` "so text does not run to 13 inches". On a 13-inch
+/// iPad an unconstrained description runs to nearly two hundred characters a line and a
+/// primary action becomes a metre-wide bar — both of which are a page *filling* a window
+/// rather than using it. Wider than a pure reading column because a shelf of covers lives
+/// inside the same measure on the detail page.
+///
+/// Deliberately **not** applied to a horizontal shelf. §3.11 is explicit that shelves
+/// "touch the leading and trailing edges so the system scrolls them under the sidebar
+/// automatically" — a shelf pulled into this column would sit in a box in the middle of the
+/// window, which is the layout this slice exists to end.
+///
+/// It lives here rather than in `DesignSystem` only because this slice does not own that
+/// file; it belongs beside ``StoryArcWindowClass/sidebarWidthThreshold``, and the handoff
+/// says so.
+enum SidebarLayout {
+    static let maxContentWidth: CGFloat = 720
+}
+
+/// The iPad sidebar's own rows: library sections, then the reader's shelves.
+///
+/// Dropped into the shell's `TabView` beside the three destinations, and **hidden from the
+/// tab bar** with `defaultVisibility(.hidden, for: .tabBar)`. That modifier is the whole
+/// reason this can exist without touching the phone: `.sidebarAdaptable` renders one set
+/// two ways, and without it every row below would land in a compact tab bar that
+/// `navigation-shell` caps at three destinations plus the search role — pushing the three
+/// into an overflow that the same requirement forbids.
+///
+/// The sections follow the Apple Music sidebar the owner sent, which is also what §3.11
+/// asks for: a **Library** header over sections of the one library, then a **Shelves**
+/// header over what the reader made. Settings stays in the toolbar, outside the selection,
+/// as it already is.
+public struct LibrarySidebar<Value: Hashable>: TabContent {
+    private let model: LibraryModel
+    private let onOpen: (Publication, URL) -> Void
+    /// How a sidebar entry is spelled in the shell's own selection type.
+    ///
+    /// A closure rather than a shared enum, so the shell keeps one selection type and this
+    /// file needs to know nothing about it.
+    private let value: (SidebarEntry) -> Value
+
+    public init(
+        model: LibraryModel,
+        onOpen: @escaping (Publication, URL) -> Void,
+        value: @escaping (SidebarEntry) -> Value
+    ) {
+        self.model = model
+        self.onOpen = onOpen
+        self.value = value
+    }
+
+    /// The shelves listed inline, longest-lived first.
+    ///
+    /// Capped, and the cap is not a truncation: whatever does not fit is behind *All
+    /// shelves* at the foot of the same section, which is what `navigation-shell` means by
+    /// "the overflow is reachable within the navigation itself". The three destinations
+    /// cannot be displaced by a reader with forty collections.
+    private static var inlineShelfLimit: Int { 8 }
+
+    public var body: some TabContent<Value> {
+        TabSection {
+            Tab(value: value(.recentlyAdded)) {
+                NavigationStack {
+                    HomeMore(
+                        title: Text("home.recentlyAdded", bundle: .module),
+                        publications: HomeShelves.recentlyAdded(in: model.publications, limit: .max),
+                        model: model,
+                        onOpen: open
+                    )
+                }
+            } label: {
+                Label {
+                    Text("home.recentlyAdded", bundle: .module)
+                } icon: {
+                    Image(systemName: "clock")
+                }
+            }
+
+            Tab(value: value(.series)) {
+                NavigationStack {
+                    SidebarSeriesList(model: model, onOpen: open)
+                }
+            } label: {
+                Label {
+                    Text("library.match.series", bundle: .module)
+                } icon: {
+                    Image(systemName: "square.stack.3d.up")
+                }
+            }
+        } header: {
+            Text("sidebar.library", bundle: .module)
+        }
+        .defaultVisibility(.hidden, for: .tabBar)
+
+        TabSection {
+            ForEach(model.shelves.collections.prefix(Self.inlineShelfLimit)) { collection in
+                Tab(value: value(.collection(collection.id))) {
+                    NavigationStack {
+                        CollectionDetail(model: model, id: collection.id, onOpen: onOpen)
+                    }
+                } label: {
+                    Label {
+                        Text(collection.name)
+                    } icon: {
+                        Image(systemName: "square.stack")
+                    }
+                }
+            }
+
+            ForEach(model.shelves.lists.prefix(Self.inlineShelfLimit)) { list in
+                Tab(value: value(.list(list.id))) {
+                    NavigationStack {
+                        ReadingListDetail(model: model, id: list.id, onOpen: onOpen)
+                    }
+                } label: {
+                    Label {
+                        Text(list.name)
+                    } icon: {
+                        Image(systemName: "list.bullet")
+                    }
+                }
+            }
+
+            // Always present, never conditional on the cap. It is the way to make a shelf
+            // as well as the way to the ones that did not fit, and a reader with none at
+            // all needs it most.
+            Tab(value: value(.allShelves)) {
+                NavigationStack {
+                    ShelvesView(model: model, onOpen: onOpen)
+                }
+            } label: {
+                Label {
+                    Text("sidebar.allShelves", bundle: .module)
+                } icon: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        } header: {
+            Text("shelves.title", bundle: .module)
+        }
+        .defaultVisibility(.hidden, for: .tabBar)
+    }
+
+    private func open(_ publication: Publication) {
+        if let url = model.location(of: publication) { onOpen(publication, url) }
+    }
+}
+
+/// The library as its series, for the sidebar's *Series* row.
+///
+/// A list of names rather than a second grid of covers: the question this row answers is
+/// *what runs do I have*, and a wall of issue covers answers *what issues do I have*, which
+/// is the Library destination's job. Choosing one leads to the same grid every other shelf
+/// leads to, filtered to that series — so a reader learns the screen once.
+///
+/// Unattributed publications are absent rather than gathered under a heading of their own.
+/// A folder library is mostly loose files, and *Uncategorised (412)* at the top of this list
+/// would be the list.
+struct SidebarSeriesList: View {
+    @Environment(\.theme) private var theme
+
+    let model: LibraryModel
+    let onOpen: (Publication) -> Void
+
+    /// Every series in the library, in the order a reader reads names.
+    ///
+    /// `localizedStandardCompare` rather than `<`, for the reason ``DetailSeriesShelf``
+    /// gives about issue numbers: a plain string comparison sorts by code point, which puts
+    /// "Ändern" after "Zephyr" in German and is wrong in every language that has an accent.
+    private var series: [(name: String, issues: [Publication])] {
+        Dictionary(grouping: model.publications.filter { !($0.series ?? "").isEmpty }) {
+            $0.series ?? ""
+        }
+        .map { (name: $0.key, issues: $0.value) }
+        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    var body: some View {
+        let series = series
+
+        Group {
+            if series.isEmpty {
+                // The same shape `home-screen` uses: one sentence, and no heading over a
+                // gap. A library with no series is a normal library, not a fault.
+                ContentUnavailableView {
+                    Text("library.match.series", bundle: .module)
+                } description: {
+                    Text("sidebar.series.empty", bundle: .module)
+                }
+            } else {
+                List(series, id: \.name) { entry in
+                    NavigationLink {
+                        HomeMore(
+                            title: Text(entry.name),
+                            publications: entry.issues,
+                            model: model,
+                            onOpen: onOpen
+                        )
+                    } label: {
+                        Text(entry.name)
+                            .textRole(.body)
+                            .foregroundStyle(theme.palette.textPrimary)
+                    }
+                }
+                .listStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.palette.surfaceCanvas)
+        .scrollEdgeEffectStyle(.soft, for: .all)
+        .navigationTitle(Text("library.match.series", bundle: .module))
+    }
+}

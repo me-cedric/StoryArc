@@ -22,6 +22,10 @@ struct DetailSeriesShelf: View {
             Text("detail.series.title", bundle: .module)
                 .textRole(.title3)
                 .foregroundStyle(theme.palette.textPrimary)
+                // The heading keeps the page's gutter; the run below no longer inherits one,
+                // because the shelf now sits outside the page's measured column so that it
+                // can reach the window's edges (§3.11).
+                .padding(.horizontal, StoryArcSpace.gutter)
 
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: StoryArcSpace.coverGap) {
@@ -33,6 +37,10 @@ struct DetailSeriesShelf: View {
             }
             .scrollIndicators(.hidden)
             .scrollClipDisabled()
+            // On the *content*, so the first cover starts at the gutter and the run still
+            // scrolls edge to edge underneath the chrome — the same pair of decisions
+            // ``HomeShelfRow`` makes, so a shelf behaves the same wherever it appears.
+            .contentMargins(.horizontal, StoryArcSpace.gutter, for: .scrollContent)
         }
     }
 
