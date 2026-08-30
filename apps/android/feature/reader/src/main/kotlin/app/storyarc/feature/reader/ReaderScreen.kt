@@ -40,32 +40,20 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.automirrored.filled.ManageSearch
-import androidx.compose.material.icons.filled.ScreenLockRotation
-import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -142,8 +130,6 @@ import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.model.SpreadLayout
-import app.storyarc.core.model.TransitionChoices
-import app.storyarc.core.model.TransitionUnavailability
 import app.storyarc.core.model.scrollAxis
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -942,43 +928,29 @@ private fun Pager(
                     modifier = Modifier.align(Alignment.TopCenter),
                 )
             }
-            Row(modifier = Modifier.align(Alignment.TopEnd)) {
-                TransitionMenu(
-                    choices = choices,
-                    showsSeparator = settings.showsPageSeparator,
-                    onToggleSeparator = viewModel::choosePageSeparator,
-                    // A scroll row is an axis choice: recording it as one is what
-                    // makes the override stick, rather than leaving the axis implied
-                    // and the mode disagreeing with it.
-                    onChoose = { mode ->
-                        val axis = mode.scrollAxis
-                        if (axis != null) viewModel.choose(axis) else viewModel.choose(mode)
-                    },
-                    onOpenChange = { isMenuOpen = it },
-                )
-                FitMenu(
-                    fit = fit,
-                    onChange = onFitChange,
-                    onOpenChange = { isMenuOpen = it },
-                )
-                // Only where there is a pairing to shift. `comic-reader` offers the
-                // offset "for publications whose cover throws the pairing off", which is
-                // a question that does not arise in portrait or in a scroll.
-                if (layout.hasPairs) {
-                    SpreadOffsetButton(
-                        isOffset = settings.offsetsSpreads,
-                        onToggle = { viewModel.chooseSpreadOffset(!settings.offsetsSpreads) },
-                    )
-                }
-                AdjustButton(isNeutral = adjustments.isNeutral) { isAdjusting = true }
-                // Only for a PDF that carries text. `ebook-reader` requires a text-dependent
-                // control to be hidden rather than disabled when there is none, and a button
-                // that opened a search box over a scan would be exactly the promise the spec
-                // forbids.
-                if (pdfText != null) {
-                    FindTextButton { isFindingText = true }
-                }
-            }
+            ReaderToolCluster(
+                choices = choices,
+                showsSeparator = settings.showsPageSeparator,
+                onToggleSeparator = viewModel::choosePageSeparator,
+                // A scroll row is an axis choice: recording it as one is what makes the
+                // override stick, rather than leaving the axis implied and the mode
+                // disagreeing with it.
+                onChooseTransition = { mode ->
+                    val axis = mode.scrollAxis
+                    if (axis != null) viewModel.choose(axis) else viewModel.choose(mode)
+                },
+                fit = fit,
+                onChooseFit = onFitChange,
+                hasPairs = layout.hasPairs,
+                isOffset = settings.offsetsSpreads,
+                onToggleOffset = { viewModel.chooseSpreadOffset(!settings.offsetsSpreads) },
+                adjustmentsAreNeutral = adjustments.isNeutral,
+                onAdjust = { isAdjusting = true },
+                hasPdfText = pdfText != null,
+                onFindText = { isFindingText = true },
+                onMenuOpenChange = { isMenuOpen = it },
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
 
             Column(
                 // A band, for the same reason the pills carry a scrim: the page number
@@ -1008,17 +980,13 @@ private fun Pager(
 
                 // Down here with the page count rather than in the top row, which on a
                 // phone is already the way out of the reader and three controls wide.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    DirectionMenu(
-                        direction = direction,
-                        onChoose = viewModel::choose,
-                        onOpenChange = { isMenuOpen = it },
-                    )
-                    OrientationToggle(
-                        isLocked = isOrientationLocked,
-                        onToggle = { isOrientationLocked = !isOrientationLocked },
-                    )
-                }
+                ReaderLayoutCluster(
+                    direction = direction,
+                    onChooseDirection = viewModel::choose,
+                    isOrientationLocked = isOrientationLocked,
+                    onToggleOrientation = { isOrientationLocked = !isOrientationLocked },
+                    onMenuOpenChange = { isMenuOpen = it },
+                )
 
                 ChapterRow(
                     previous = previousInSeries,
@@ -1197,26 +1165,6 @@ private fun Pager(
 
     if (saysThereIsNoText) {
         PdfNoTextDialog { saysThereIsNoText = false }
-    }
-}
-
-/**
- * Opens the search, the marks, and on iOS the outline too.
- *
- * Only for a PDF that carries text: `ebook-reader` requires a text-dependent control to be
- * hidden rather than disabled when there is none.
- */
-@Composable
-private fun FindTextButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
-        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ManageSearch,
-                contentDescription = stringResource(R.string.reader_pdf_find),
-                tint = Color.White,
-                modifier = Modifier.padding(StoryArcSpace.sm),
-            )
-        }
     }
 }
 
@@ -1656,29 +1604,6 @@ private fun PageSeparator(
     }
 }
 
-/**
- * Shifts which pages are paired, for a publication whose cover throws the pairing off.
- *
- * iOS's spread-offset button is the same control.
- */
-@Composable
-private fun SpreadOffsetButton(
-    isOffset: Boolean,
-    onToggle: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    IconButton(onClick = onToggle, modifier = modifier.padding(StoryArcSpace.md)) {
-        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
-            Icon(
-                imageVector = Icons.Filled.ViewColumn,
-                contentDescription = stringResource(R.string.reader_spreads_offset),
-                tint = if (isOffset) LocalStoryArcPalette.current.accent else Color.White,
-                modifier = Modifier.padding(StoryArcSpace.sm),
-            )
-        }
-    }
-}
-
 /** Opens and closes the page strip. */
 @Composable
 private fun ThumbnailToggle(
@@ -1697,260 +1622,6 @@ private fun ThumbnailToggle(
         }
     }
 }
-
-/**
- * How the page is sized. `comic-reader` names the four modes.
- */
-@Composable
-private fun FitMenu(
-    fit: PageFit,
-    onChange: (PageFit) -> Unit,
-    onOpenChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var open by remember { mutableStateOf(false) }
-    LaunchedEffect(open) { onOpenChange(open) }
-
-    Box(modifier) {
-        IconButton(onClick = { open = true }, modifier = Modifier.padding(StoryArcSpace.md)) {
-            Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
-                Icon(
-                    imageVector = Icons.Filled.Fullscreen,
-                    contentDescription = stringResource(R.string.reader_fit),
-                    tint = Color.White,
-                    modifier = Modifier.padding(StoryArcSpace.sm),
-                )
-            }
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            PageFit.entries.forEach { candidate ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(candidate.labelRes)) },
-                    leadingIcon = { RadioButton(selected = fit == candidate, onClick = null) },
-                    onClick = {
-                        onChange(candidate)
-                        open = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-/**
- * Which way the pages run.
- *
- * `comic-reader` opens a publication in the direction its metadata declares and lets the
- * reader overrule that, for the series. Two rows and a radio, the same shape as [FitMenu]
- * rather than a bare toggle: metadata gets this wrong often enough that a reader who
- * suspects it needs to see which way the comic is running, not only be able to flip it.
- */
-@Composable
-private fun DirectionMenu(
-    direction: ReadingDirection,
-    onChoose: (ReadingDirection) -> Unit,
-    onOpenChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var open by remember { mutableStateOf(false) }
-    LaunchedEffect(open) { onOpenChange(open) }
-
-    Box(modifier) {
-        IconButton(onClick = { open = true }, modifier = Modifier.padding(StoryArcSpace.md)) {
-            Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
-                Icon(
-                    imageVector = Icons.Filled.SwapHoriz,
-                    contentDescription = stringResource(R.string.reader_direction),
-                    tint = Color.White,
-                    modifier = Modifier.padding(StoryArcSpace.sm),
-                )
-            }
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            ReadingDirection.entries.forEach { candidate ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(candidate.labelRes)) },
-                    leadingIcon = { RadioButton(selected = direction == candidate, onClick = null) },
-                    onClick = {
-                        onChoose(candidate)
-                        open = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-/**
- * Holds the screen at the way up it is now.
- *
- * `comic-reader` scopes the lock to the reader, so it is a button here rather than a row
- * in Settings. Its name says what pressing it would do rather than what the state is:
- * with no label on screen beside the icon, that sentence is all TalkBack has to go on.
- */
-@Composable
-private fun OrientationToggle(
-    isLocked: Boolean,
-    onToggle: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    IconButton(onClick = onToggle, modifier = modifier.padding(StoryArcSpace.md)) {
-        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
-            Icon(
-                imageVector = if (isLocked) {
-                    Icons.Filled.ScreenLockRotation
-                } else {
-                    Icons.Filled.ScreenRotation
-                },
-                contentDescription = stringResource(
-                    if (isLocked) R.string.reader_orientation_unlock else R.string.reader_orientation_lock,
-                ),
-                tint = if (isLocked) LocalStoryArcPalette.current.accent else Color.White,
-                modifier = Modifier.padding(StoryArcSpace.sm),
-            )
-        }
-    }
-}
-
-/**
- * The page-transition picker.
- *
- * Four rows, and `page-transitions` is specific about what a row that cannot run
- * looks like: "shown unavailable with a one-line reason, never silently absent". So a
- * row disabled by reduced motion stays, greyed, with the reason under it — a control
- * that vanishes teaches the reader nothing.
- *
- * Curl is the one exception, and the spec draws that line itself: where the *device*
- * cannot honour it, Curl is "absent from the picker on that device… with the reason
- * stated once in plain language — naming the requirement, not an API level". A
- * permanently dead row is furniture; a sentence is an explanation.
- */
-@Composable
-private fun TransitionMenu(
-    choices: TransitionChoices,
-    onChoose: (PageTransition) -> Unit,
-    onOpenChange: (Boolean) -> Unit,
-    /** Whether a continuous scroll draws a line where one page ends and the next begins. */
-    showsSeparator: Boolean,
-    onToggleSeparator: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var open by remember { mutableStateOf(false) }
-    LaunchedEffect(open) { onOpenChange(open) }
-
-    Box(modifier) {
-        IconButton(onClick = { open = true }, modifier = Modifier.padding(StoryArcSpace.md)) {
-            Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                    contentDescription = stringResource(R.string.reader_transition),
-                    tint = Color.White,
-                    modifier = Modifier.padding(StoryArcSpace.sm),
-                )
-            }
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            choices.offered.forEach { mode ->
-                val reason = choices.unavailable[mode]
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(stringResource(mode.labelRes))
-                            if (reason != null) {
-                                Text(
-                                    text = stringResource(reason.labelRes),
-                                    style = MaterialTheme.typography.labelSmall,
-                                )
-                            }
-                        }
-                    },
-                    leadingIcon = {
-                        RadioButton(
-                            selected = choices.chosen == mode,
-                            onClick = null,
-                            enabled = reason == null,
-                        )
-                    },
-                    enabled = reason == null,
-                    onClick = {
-                        onChoose(mode)
-                        open = false
-                    },
-                )
-            }
-            // Only where there are stitched pages to separate. In a paged mode there is a
-            // whole screen between one page and the next already.
-            if (choices.effective.scrollAxis != null) {
-                HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.reader_separator)) },
-                    leadingIcon = { Checkbox(checked = showsSeparator, onCheckedChange = null) },
-                    onClick = { onToggleSeparator(!showsSeparator) },
-                )
-            }
-            if (choices.curlIsAbsent) {
-                // Once, and in the reader's language rather than the platform's.
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = stringResource(R.string.reader_transition_no_curl),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    },
-                    enabled = false,
-                    onClick = {},
-                )
-            }
-        }
-    }
-}
-
-/** How the transition modes are named on screen. */
-private val PageTransition.labelRes: Int
-    get() = when (this) {
-        PageTransition.PAGE_CURL -> R.string.reader_transition_curl
-        PageTransition.SLIDE -> R.string.reader_transition_slide
-        PageTransition.FAST_FADE -> R.string.reader_transition_fade
-        PageTransition.VERTICAL_SCROLL -> R.string.reader_transition_scroll_vertical
-        PageTransition.HORIZONTAL_SCROLL -> R.string.reader_transition_scroll_horizontal
-    }
-
-/** Why a mode cannot run, in one line. */
-private val TransitionUnavailability.labelRes: Int
-    get() = when (this) {
-        TransitionUnavailability.REDUCE_MOTION -> R.string.reader_transition_reduce_motion
-        // A comic page is already an image, so this reason cannot arise here. It is
-        // named rather than swallowed by an `else`, so that adding a third reason still
-        // breaks this file rather than silently showing the wrong sentence.
-        TransitionUnavailability.REFLOWABLE_TEXT -> R.string.reader_transition_reflowable
-    }
-
-/**
- * Which way the pages run, named the way a reader would say it.
- *
- * Right-to-left reuses the sentence TalkBack already reads out on entering a manga,
- * because it is the same fact and a second wording of it would be one to keep in step
- * for nothing.
- */
-private val ReadingDirection.labelRes: Int
-    get() = when (this) {
-        ReadingDirection.LEFT_TO_RIGHT -> R.string.reader_left_to_right
-        ReadingDirection.RIGHT_TO_LEFT -> R.string.reader_right_to_left
-    }
-
-/**
- * How the fit modes are named on screen.
- *
- * The enum lives in `:core:model` and carries no resources: the domain has no
- * business holding UI copy.
- */
-private val PageFit.labelRes: Int
-    get() = when (this) {
-        PageFit.SCREEN -> R.string.reader_fit_screen
-        PageFit.WIDTH -> R.string.reader_fit_width
-        PageFit.HEIGHT -> R.string.reader_fit_height
-        PageFit.ORIGINAL -> R.string.reader_fit_original
-    }
 
 /**
  * What the reader shows after the last page.
