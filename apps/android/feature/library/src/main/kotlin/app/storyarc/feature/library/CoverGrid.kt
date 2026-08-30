@@ -133,8 +133,6 @@ internal fun CoverGrid(
     onToggle: (Publication) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    // The readable range. Below the minimum a cover stops being recognisable;
-    // above the maximum a phone shows one and a half of them.
     val density = LocalDensity.current
     val windowWidth = LocalWindowInfo.current.containerSize.width
     val minimumWidth = remember(density, windowWidth) {
