@@ -267,6 +267,24 @@ public struct LibraryView: View {
                 model.restoreFolders()
                 await model.refreshProgress()
                 await model.probeNetworkSources(credentials: credentials, pins: pins)
+                // And keeps asking while anything is away, per `sources`' backoff. Written,
+                // documented and called by nothing until now, so an unreachable source was
+                // only ever re-probed when this view next appeared — a reader whose Wi-Fi
+                // came back while they were looking at the shelf watched it stay grey.
+                //
+                // After the probe rather than beside it: the loop stops as soon as nothing
+                // is unreachable, so started before the first answer it would stop before
+                // there was one. Cancellation is this modifier's, which is exactly when
+                // nobody is looking at the answer — and returning to the foreground starts
+                // it again, which is the requirement's other half.
+                await model.retryUnreachableSources(credentials: credentials, pins: pins)
+            }
+            // `sources` names pull-to-refresh: a refresh "re-fetches the catalogue in the
+            // background" and updates the view "incrementally rather than clearing it". iOS
+            // had no reader-initiated refresh at all; Android has a toolbar button.
+            .refreshable {
+                await model.probeNetworkSources(credentials: credentials, pins: pins)
+                await model.rescan()
             }
             .toolbar { toolbarItems }
             // A bar, so the notice floats on glass and the shelf fades out beneath it

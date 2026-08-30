@@ -55,6 +55,26 @@ extension LibraryModel {
         }
     }
 
+    /// Walks every folder again, without emptying the shelf first.
+    ///
+    /// `sources`: a refresh "re-fetches the catalogue in the background" and updates the view
+    /// "incrementally rather than clearing it and re-populating". ``scan(_:)`` already
+    /// appends to what is there and removes only what it can prove is gone, so this is only
+    /// the loop over the folders — and the loop has to wait, because the model holds one
+    /// scan task and starting a second cancels the first.
+    ///
+    /// Nothing here for a server: a catalogue's contents are browsed rather than folded into
+    /// the shelf, so what a refresh means for one is asking whether it answers —
+    /// ``refresh(_:)`` on a single source does that.
+    public func rescan() async {
+        let targets = folders.isEmpty ? [documentsFolder] : folders
+        for folder in targets {
+            scan(folder)
+            await scanTask?.value
+        }
+        await refreshProgress()
+    }
+
     /// Everything a finished scan settles.
     private func finish(_ folder: URL, found: Int, skipped: Int) {
         scanState = .finished(found: found, skipped: skipped)

@@ -315,6 +315,11 @@ class LibraryViewModel(
     fun retryUnreachableSources(credentials: CredentialStore?, pins: CertificatePins) {
         retryJob?.cancel()
         retryJob = viewModelScope.launch {
+            // The first answer, before the schedule. This used to be a separate call the
+            // screen made beside this one, so the loop's first check could run before any
+            // source had been asked -- and a loop that finds nothing unreachable stops. iOS
+            // awaits its probe and then starts the loop; this is the same order.
+            probeAndWait(credentials, pins)
             var failures = 0
             while (isActive) {
                 val away = _registry.value.sources.any { it.state is SourceConnectionState.Unreachable }
@@ -330,10 +335,6 @@ class LibraryViewModel(
     fun stopRetrying() {
         retryJob?.cancel()
         retryJob = null
-    }
-
-    fun probeNetworkSources(credentials: CredentialStore?, pins: CertificatePins) {
-        viewModelScope.launch { probeAndWait(credentials, pins) }
     }
 
     private suspend fun probeAndWait(credentials: CredentialStore?, pins: CertificatePins) {

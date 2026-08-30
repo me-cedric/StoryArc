@@ -280,7 +280,7 @@ public final class LibraryModel {
     /// is what that means on iOS. Android scans `getExternalFilesDir` for the same
     /// reason. It is scanned, deliberately not added to `folders`: there is no
     /// bookmark to keep and nothing for the user to remove.
-    private var documentsFolder: URL {
+    var documentsFolder: URL {
         URL.documentsDirectory
     }
 

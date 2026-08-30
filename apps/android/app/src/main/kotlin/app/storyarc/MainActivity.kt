@@ -985,10 +985,12 @@ class MainActivity : ComponentActivity() {
                             onAddKavita = { isAddingKavita = true },
                             onAddShare = { isAddingShare = true },
                             onProbeSources = {
-                                libraryViewModel.probeNetworkSources(credentials, pins)
-                                // And keeps asking while anything is away, per `sources`'
-                                // backoff. Stopped when the library leaves the screen, which is
-                                // when nobody is looking at the answer.
+                                // Asks every source once and then keeps asking while anything
+                                // is away, per `sources`' backoff. One call rather than two:
+                                // the probe used to be launched beside the loop, so the loop
+                                // could check before any answer had arrived and stop. Stopped
+                                // when the library leaves the screen, which is when nobody is
+                                // looking at the answer.
                                 libraryViewModel.retryUnreachableSources(credentials, pins)
                             },
                             onMark = { publication, isRead ->
