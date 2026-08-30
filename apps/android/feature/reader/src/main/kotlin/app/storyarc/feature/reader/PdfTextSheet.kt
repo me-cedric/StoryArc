@@ -58,7 +58,7 @@ import app.storyarc.core.model.SearchMatch
  * reason, with three tabs rather than two.
  *
  * Two, not three: iOS's sheet also holds the document's own navigation, and this platform's PDF
- * API exposes no outline to show. ADR-0011 records that, and the tab is absent rather than empty.
+ * API exposes no outline to show. ADR-0012 records that, and the tab is absent rather than empty.
  */
 internal enum class PdfTextTab(val labelRes: Int) {
     SEARCH(R.string.reader_pdf_tab_search),

@@ -15,7 +15,7 @@ import java.io.File
  *
  * Mirrors the selection and search half of iOS's `PdfDocumentReaderTests`, case for case. The
  * document outline is not here and is not missing: PDFKit reads one and the platform's PDF API
- * exposes none, which ADR-0011 records.
+ * exposes none, which ADR-0012 records.
  *
  * Instrumented rather than a JVM unit test because the PDF text API is a framework class that
  * is a stub off-device -- the same reason `PdfDocumentReaderInstrumentedTest` is instrumented.

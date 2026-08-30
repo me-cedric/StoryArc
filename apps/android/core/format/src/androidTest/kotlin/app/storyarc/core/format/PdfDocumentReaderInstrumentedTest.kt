@@ -15,7 +15,7 @@ import java.io.File
  * iOS's `PdfDocumentReaderTests` asserts everything here plus the text layer,
  * which on this side lives in [PdfTextReading] and is asserted in
  * `PdfTextReaderInstrumentedTest`. What stays iOS-only is the document outline:
- * PDFKit reads it and the platform's PDF API does not expose one. ADR-0011.
+ * PDFKit reads it and the platform's PDF API does not expose one. ADR-0012.
  *
  * Instrumented rather than a JVM unit test because `PdfRenderer` and `Bitmap` are
  * framework classes that are stubs off-device — the same reason

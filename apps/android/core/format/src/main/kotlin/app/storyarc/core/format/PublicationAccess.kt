@@ -70,7 +70,7 @@ object PublicationAccess {
      * A PDF's text layer, opened wherever the file lives, or null when there is none to open.
      *
      * Null covers two different absences on purpose, because the reader answers them the same
-     * way: a device with no PDF text API (ADR-0011), and a file this app could open for
+     * way: a device with no PDF text API (ADR-0012), and a file this app could open for
      * drawing but not for reading. Either way there is no text, and `ebook-reader` requires
      * the controls that depend on it to be absent rather than broken.
      */

@@ -9,7 +9,7 @@ import Testing
 /// Android's `PdfDocumentReaderTest` asserts the page-level half of this — count,
 /// size, rendering. The text half is asserted there too, in
 /// `PdfTextReaderInstrumentedTest`, because Android's PDF text API needs a device
-/// to run on. What stays iOS-only is the document outline: ADR-0011 records why.
+/// to run on. What stays iOS-only is the document outline: ADR-0012 records why.
 @Suite("PDF reading")
 struct PdfDocumentReaderTests {
     private func reader(_ name: String) throws -> PdfDocumentReader {

@@ -29,7 +29,7 @@ import java.util.UUID
  *
  * `ebook-reader`: a PDF that "contains a text layer" gets selection and in-publication search. The
  * document outline is the one part of that scenario this platform cannot answer -- the PDF API
- * exposes links and text and no outline -- which ADR-0011 records.
+ * exposes links and text and no outline -- which ADR-0012 records.
  *
  * Its own [Mutex], not the view model's: the text reader holds a second document handle, so a
  * selection has no reason to wait behind a page render.

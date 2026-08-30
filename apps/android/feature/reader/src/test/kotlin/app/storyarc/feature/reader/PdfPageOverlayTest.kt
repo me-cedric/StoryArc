@@ -14,7 +14,7 @@ import org.junit.Test
  * functions rather than code inside a composable.
  *
  * The outline half of the iOS suite has no mirror here, and is not missing: this platform's PDF
- * API exposes no document outline. ADR-0011.
+ * API exposes no document outline. ADR-0012.
  */
 class PdfPageOverlayTest {
 

@@ -11,7 +11,7 @@ import Testing
 /// which is the whole reason they are free functions rather than methods on a scroll view.
 ///
 /// Two cases differ from the Android suite, and neither is a gap. The outline is here and not
-/// there, because that platform's PDF API exposes none (ADR-0011). And Android asserts an
+/// there, because that platform's PDF API exposes none (ADR-0012). And Android asserts an
 /// *unprojection* that has no mirror here: its page is transformed by a `graphicsLayer`, so a
 /// finger reports screen coordinates, while `UIScrollView` reports a touch already in the
 /// content's own space.

@@ -27,7 +27,7 @@ sealed class PdfException(message: String) : Exception(message) {
  * itself gained text extraction, selection and search in the `framework-pdf`
  * mainline module, but only from extension 13 -- so the text half is a reader a
  * device may not have at all, and it is kept apart from the one that always
- * exists. ADR-0011 records that.
+ * exists. ADR-0012 records that.
  *
  * There is no `hasTextLayer` here on purpose: this type cannot answer the
  * question, and a property that always returned false would invite a caller to

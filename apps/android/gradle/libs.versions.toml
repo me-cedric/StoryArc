@@ -11,7 +11,7 @@ room = "2.8.4"
 coreKtx = "1.19.0"
 # `@RequiresExtension` and `@ChecksSdkIntAtLeast`. The PDF text API lives in a
 # mainline module, and these are the only way to tell lint that a check on the
-# extension level is a real guard rather than a boolean. ADR-0011.
+# extension level is a real guard rather than a boolean. ADR-0012.
 androidxAnnotation = "1.10.0"
 jcifsNg = "2.1.10"
 # Not a library this app calls. jcifs-ng declares 1.76 and hands it the SPNEGO

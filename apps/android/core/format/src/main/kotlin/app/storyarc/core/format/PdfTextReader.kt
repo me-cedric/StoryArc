@@ -61,7 +61,7 @@ data class PdfTextSelection(
  * Separate from [PdfDocumentReader], which draws pages and knows nothing about what is written
  * on them -- and separate for a reason that is not tidiness: this reader may not exist. The
  * platform's PDF text API ships in the `framework-pdf` mainline module, so a device answers for
- * itself whether it has one; see [isSupported] and ADR-0011. A reader that is null is the whole
+ * itself whether it has one; see [isSupported] and ADR-0012. A reader that is null is the whole
  * of the degradation: the screen then offers no selection and no search box, exactly as it does
  * for a PDF that carries no text at all, because a control that cannot deliver what it promises
  * is worse than no control.
@@ -114,7 +114,7 @@ interface PdfTextReading : AutoCloseable {
          * The `framework-pdf` extension that first carried text extraction, selection and
          * search. Android 15 ships it in the platform; Android 12 to 14 get it through a Google
          * Play system update, which is why this is a question about the *device* rather than
-         * about the API level alone. ADR-0011.
+         * about the API level alone. ADR-0012.
          */
         const val PDF_TEXT_EXTENSION: Int = 13
 

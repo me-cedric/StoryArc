@@ -56,7 +56,7 @@ actor PdfPageRenderer {
     /// The document's own navigation, empty when it carries none.
     ///
     /// PDFKit reads an outline and Android's PDF API exposes none, which is why this has no
-    /// Kotlin mirror. ADR-0011.
+    /// Kotlin mirror. ADR-0012.
     func outline() -> [PdfOutlineItem] { reader.outline }
 
     /// One page, rasterised at the size it will be drawn.

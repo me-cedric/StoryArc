@@ -25,13 +25,13 @@ public enum PdfError: Error, Equatable {
 ///
 /// What is written on the page is next door, in `PdfTextLayer`. The split is not
 /// tidiness: on Android the text half is a separate reader that a device may not
-/// have at all (ADR-0011), and keeping the same seam here is what makes the two
+/// have at all (ADR-0012), and keeping the same seam here is what makes the two
 /// codebases answer the same question in the same place.
 ///
 /// The document outline stays here, and stays iOS-only. PDFKit reads it;
 /// Android's PDF API exposes links and text but no outline, so `ebook-reader`'s
 /// "the document outline works" is honoured on one platform and the control is
-/// absent rather than empty on the other. ADR-0011 records that.
+/// absent rather than empty on the other. ADR-0012 records that.
 ///
 /// Deliberately **not** `Sendable`. `PDFDocument` is a mutable reference type
 /// with no thread-safety guarantee, and claiming otherwise would be a lie the

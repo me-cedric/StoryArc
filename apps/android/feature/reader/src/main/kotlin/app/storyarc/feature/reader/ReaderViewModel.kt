@@ -358,7 +358,7 @@ class ReaderViewModel(
      * The text layer of a PDF that has one, and nothing at all otherwise.
      *
      * Null is the whole of the degradation `ebook-reader` asks for: a comic, a PDF that is
-     * images only, and a device with no PDF text API (ADR-0011) all arrive here the same way,
+     * images only, and a device with no PDF text API (ADR-0012) all arrive here the same way,
      * and every control that depends on text is written against this being present rather than
      * against a flag.
      */
