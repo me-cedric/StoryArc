@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -74,13 +75,17 @@ import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
+import app.storyarc.core.model.LibraryScope
 import app.storyarc.core.model.LibrarySort
+import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.model.attributesPublications
+import app.storyarc.core.model.nameOf
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -173,6 +178,9 @@ fun LibraryScreen(
 
     LaunchedEffect(viewModel) {
         viewModel?.restoreFolders()
+        // So a publication downloaded from a server joins the one library, rather than being
+        // reachable only by browsing back to the server it came from.
+        viewModel?.adoptDownloads()
         onProbeSources()
     }
 
@@ -196,6 +204,8 @@ fun LibraryScreen(
     val query by (viewModel?.query ?: MutableStateFlow(LibraryQuery()))
         .collectAsStateWithLifecycle()
     val layout by (viewModel?.layout ?: MutableStateFlow(LibraryLayout.GRID))
+        .collectAsStateWithLifecycle()
+    val groups by (viewModel?.matchGroups ?: MutableStateFlow(emptyList<MatchGroup>()))
         .collectAsStateWithLifecycle()
 
     val snackbars = remember { SnackbarHostState() }
@@ -223,6 +233,12 @@ fun LibraryScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.library_title)) },
                 actions = {
+                    // `library-browsing`: one library over every source, narrowable to one.
+                    // Only with a second source to narrow to — a selector whose whole menu
+                    // is "All sources" and the one source there is asks nothing.
+                    if (viewModel != null && registry.attributesPublications) {
+                        ScopeMenu(query, registry, viewModel::setQuery)
+                    }
                     if (viewModel != null && publications.isNotEmpty()) {
                         LayoutToggle(layout, viewModel::setLayout)
                         SortMenu(query, viewModel::setQuery)
@@ -331,6 +347,7 @@ fun LibraryScreen(
                                 // a bug.
                                 continueReading =
                                     if (query.isNarrowed) emptyList() else continueReading,
+                                groups = groups,
                                 onOpen = open,
                                 onAddToShelf = addToShelf,
                             )
@@ -339,6 +356,7 @@ fun LibraryScreen(
                                 publications = visible,
                                 viewModel = viewModel,
                                 onOpen = open,
+                                groups = groups,
                             )
                         }
                     }
@@ -354,6 +372,13 @@ fun LibraryScreen(
                             onClear = {
                                 viewModel.clearFilters()
                                 viewModel.setQuery(viewModel.query.value.copy(search = ""))
+                            },
+                            scopeName = registry.nameOf(query.scope.sourceId),
+                            // Offered only when there is somewhere wider to go.
+                            onWiden = if (query.scope == LibraryScope.AllSources) {
+                                null
+                            } else {
+                                viewModel::widenToAllSources
                             },
                         )
                     }
@@ -421,6 +446,60 @@ private fun LayoutToggle(layout: LibraryLayout, onChange: (LibraryLayout) -> Uni
             ),
             tint = palette.accent,
         )
+    }
+}
+
+/**
+ * Which source the library is showing.
+ *
+ * `library-browsing`: one library over every configured source, and a way to narrow it to
+ * one. A menu rather than a row of chips, because the number of sources is the reader's and
+ * a strip of six of them would take the space the artwork is for.
+ */
+@Composable
+private fun ScopeMenu(
+    query: LibraryQuery,
+    registry: SourceRegistry,
+    onChange: (LibraryQuery) -> Unit,
+) {
+    val palette = LocalStoryArcPalette.current
+    var open by remember { mutableStateOf(false) }
+    val everywhere = stringResource(R.string.library_scope_all)
+
+    IconButton(onClick = { open = true }) {
+        Icon(
+            imageVector = Icons.Filled.Layers,
+            // Which source, spoken. The icon says that a scope is set and cannot say which
+            // one, and colour is never the only signal.
+            contentDescription = registry.nameOf(query.scope.sourceId) ?: everywhere,
+            tint = if (query.scope == LibraryScope.AllSources) palette.textSecondary else palette.accent,
+        )
+    }
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        MenuHeading(stringResource(R.string.library_scope))
+        DropdownMenuItem(
+            text = { Text(everywhere) },
+            leadingIcon = {
+                RadioButton(selected = query.scope == LibraryScope.AllSources, onClick = null)
+            },
+            onClick = {
+                onChange(query.copy(scope = LibraryScope.AllSources))
+                open = false
+            },
+        )
+        // The registry's order, because `sources` makes that order meaningful and a
+        // selector that reshuffled it would undo an arrangement the reader made by hand.
+        registry.sources.forEach { source ->
+            val scope = LibraryScope.OneSource(source.id)
+            DropdownMenuItem(
+                text = { Text(source.displayName) },
+                leadingIcon = { RadioButton(selected = query.scope == scope, onClick = null) },
+                onClick = {
+                    onChange(query.copy(scope = scope))
+                    open = false
+                },
+            )
+        }
     }
 }
 
@@ -547,6 +626,13 @@ private fun NarrowedToNothing(
     query: LibraryQuery,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
+    /** What the view is scoped to, when it is scoped to one source. */
+    scopeName: String? = null,
+    /**
+     * Shows every source again. Null when the view is not scoped, so the offer is absent
+     * rather than present and pointless.
+     */
+    onWiden: (() -> Unit)? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val term = query.search.trim()
@@ -560,16 +646,26 @@ private fun NarrowedToNothing(
     ) {
         Text(
             // Names what was searched, which is what makes the state actionable
-            // rather than a shrug.
-            text = if (term.isEmpty()) {
-                stringResource(R.string.library_empty_filtered)
-            } else {
-                stringResource(R.string.library_empty_search, term)
+            // rather than a shrug. Three sentences because there are three ways to arrive
+            // here, and a reader told "no publication matches the active filters" when they
+            // have set no filter at all goes looking for a filter that does not exist.
+            text = when {
+                term.isNotEmpty() -> stringResource(R.string.library_empty_search, term)
+                query.hasFilters -> stringResource(R.string.library_empty_filtered)
+                scopeName != null -> stringResource(R.string.library_empty_scope, scopeName)
+                else -> stringResource(R.string.library_empty_filtered)
             },
             style = MaterialTheme.typography.bodyMedium,
             color = palette.textSecondary,
             textAlign = TextAlign.Center,
         )
+        // `library-browsing`: a search that found nothing "offers to widen the scope to all
+        // sources if the search was scoped". First, because it is the likelier of the two —
+        // a reader who scoped to one server and typed a title usually wants the rest of
+        // their library asked, not their filters undone.
+        if (onWiden != null) {
+            Button(onClick = onWiden) { Text(stringResource(R.string.library_search_widen)) }
+        }
         TextButton(onClick = onClear) { Text(stringResource(R.string.library_filter_clear)) }
     }
 }

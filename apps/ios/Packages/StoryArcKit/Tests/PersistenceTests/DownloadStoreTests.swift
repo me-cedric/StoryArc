@@ -122,4 +122,52 @@ struct DownloadStoreTests {
         try Data(count: 300).write(to: file)
         #expect(store.bytesOnDisk() == 300)
     }
+
+    @Test("A downloaded file is traced back to the source it came from")
+    func attributesAFileToItsSource() throws {
+        // `library-browsing` shows one library spanning every source, and a file on disk
+        // carries no memory of the server it came from. The record does, and the directory
+        // is what joins the two.
+        let store = try fixture().store
+        let server = UUID()
+        let record = Download(
+            id: "urn:uuid:7",
+            sourceID: server,
+            title: "Bone",
+            remote: URL(fileURLWithPath: "/bone.cbz"),
+            mediaType: "application/vnd.comicbook+zip",
+            state: .finished
+        )
+        let library = DownloadLibrary(downloads: [record])
+
+        let file = store.location(for: record.id, extension: "cbz", named: record.title)
+        #expect(store.download(forFileAt: file, in: library)?.sourceID == server)
+    }
+
+    @Test("A file named something else in the same directory is still traced")
+    func attributionFollowsTheDirectory() throws {
+        // The writers have not always agreed on the file's name -- one path writes the
+        // title, another the identifier -- and they have always agreed on the directory.
+        // Matching on the name would lose half the library's attributions.
+        let store = try fixture().store
+        let record = Download(
+            id: "urn:uuid:7",
+            sourceID: UUID(),
+            title: "Bone",
+            remote: URL(fileURLWithPath: "/bone.cbz"),
+            mediaType: "application/vnd.comicbook+zip",
+            state: .finished
+        )
+        let library = DownloadLibrary(downloads: [record])
+
+        let renamed = store.location(for: record.id, extension: "cbz")
+        #expect(store.download(forFileAt: renamed, in: library)?.id == record.id)
+    }
+
+    @Test("A file no download claims is attributed to nothing")
+    func attributionRefusesToGuess() throws {
+        let store = try fixture().store
+        let stray = store.directory.appending(path: "elsewhere/Akira.cbz")
+        #expect(store.download(forFileAt: stray, in: DownloadLibrary()) == nil)
+    }
 }

@@ -103,7 +103,10 @@ struct StoryArcApp: App {
                 progress: store,
                 bookmarks: FolderBookmarks(),
                 preferences: LibraryPreferences(),
-                sourceStore: SourceStore()
+                sourceStore: SourceStore(),
+                // So a publication downloaded from a server joins the one library, rather
+                // than being reachable only by browsing back to the server it came from.
+                downloadStore: DownloadStore()
             )
         )
     }
@@ -389,12 +392,4 @@ struct StoryArcApp: App {
         }
         .continuingDownloadsInBackground()
     }
-}
-
-/// One publication, chosen for reading.
-private struct ReadingSelection: Identifiable {
-    let publication: Publication
-    let url: URL
-
-    var id: String { publication.id }
 }

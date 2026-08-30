@@ -198,4 +198,13 @@
         <item quantity="one">Eine Veröffentlichung wird heruntergeladen</item>
         <item quantity="other">%1$d Veröffentlichungen werden heruntergeladen</item>
     </plurals>
+    <string name="library_scope">Quelle</string>
+    <string name="library_scope_all">Alle Quellen</string>
+    <string name="library_search_widen">In allen Quellen suchen</string>
+    <string name="library_empty_scope">Von %1$s ist noch nichts auf diesem Gerät.</string>
+    <string name="library_cell_source">Aus %1$s</string>
+    <string name="library_match_series">Reihen</string>
+    <string name="library_match_publication">Titel</string>
+    <string name="library_match_person">Personen</string>
+    <string name="library_match_tag">Schlagwörter</string>
 </resources>

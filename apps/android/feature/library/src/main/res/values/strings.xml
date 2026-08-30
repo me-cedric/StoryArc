@@ -198,4 +198,13 @@
         <item quantity="one">Downloading one publication</item>
         <item quantity="other">Downloading %1$d publications</item>
     </plurals>
+    <string name="library_scope">Source</string>
+    <string name="library_scope_all">All sources</string>
+    <string name="library_search_widen">Search all sources</string>
+    <string name="library_empty_scope">Nothing from %1$s is on this device yet.</string>
+    <string name="library_cell_source">From %1$s</string>
+    <string name="library_match_series">Series</string>
+    <string name="library_match_publication">Titles</string>
+    <string name="library_match_person">People</string>
+    <string name="library_match_tag">Tags</string>
 </resources>

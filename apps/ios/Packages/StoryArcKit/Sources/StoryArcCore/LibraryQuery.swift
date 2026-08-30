@@ -33,13 +33,22 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
     public var sort: LibrarySort
     public var ascending: Bool
 
+    /// Which source is being shown.
+    ///
+    /// Part of the query rather than transient view state, because `library-browsing` says
+    /// the scope "persists until changed" and the query is the thing that is already saved
+    /// and restored. It also means the scope reaches the search and the filters by the same
+    /// route they reach everything else, which is what that requirement asks for.
+    public var scope: LibraryScope
+
     public init(
         search: String = "",
         readStates: Set<ReadState> = [],
         formats: Set<PublicationFormat> = [],
         languages: Set<String> = [],
         sort: LibrarySort = .title,
-        ascending: Bool = true
+        ascending: Bool = true,
+        scope: LibraryScope = .allSources
     ) {
         self.search = search
         self.readStates = readStates
@@ -47,6 +56,28 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
         self.languages = languages
         self.sort = sort
         self.ascending = ascending
+        self.scope = scope
+    }
+
+    /// Decodes what is there and defaults what is not.
+    ///
+    /// The same forgiveness ``AppSettings`` gives, for the same reason: Swift's synthesised
+    /// decoder fails on a missing key even where the property has a default, so the build
+    /// that added `scope` could not read the query an earlier build wrote — and a reader
+    /// would open the app to find every filter they had set silently gone.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            search: try container.decodeIfPresent(String.self, forKey: .search) ?? "",
+            readStates: try container.decodeIfPresent(Set<ReadState>.self, forKey: .readStates) ?? [],
+            formats: try container.decodeIfPresent(
+                Set<PublicationFormat>.self, forKey: .formats
+            ) ?? [],
+            languages: try container.decodeIfPresent(Set<String>.self, forKey: .languages) ?? [],
+            sort: try container.decodeIfPresent(LibrarySort.self, forKey: .sort) ?? .title,
+            ascending: try container.decodeIfPresent(Bool.self, forKey: .ascending) ?? true,
+            scope: try container.decodeIfPresent(LibraryScope.self, forKey: .scope) ?? .allSources
+        )
     }
 
     /// What the filter control shows as a badge.
@@ -54,6 +85,10 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
     /// A group counts once however many values it holds: three formats is one
     /// decision the user made, and a badge reading "5" for it would misdescribe
     /// how much has to be undone.
+    ///
+    /// The scope is not counted. It has a control of its own that always states which
+    /// source is being shown, and this badge exists for narrowing that is otherwise
+    /// invisible.
     public var activeFilterCount: Int {
         [!readStates.isEmpty, !formats.isEmpty, !languages.isEmpty].count { $0 }
     }
@@ -61,6 +96,10 @@ public struct LibraryQuery: Sendable, Equatable, Codable {
     public var hasFilters: Bool { activeFilterCount > 0 }
 
     /// Whether anything at all is narrowing the view, search included.
+    ///
+    /// Not the scope, again deliberately: this is what hides the continue-reading row, and
+    /// a scoped library is still a library to continue reading in. The row is narrowed to
+    /// the scope instead of being taken away.
     public var isNarrowed: Bool {
         hasFilters || !search.trimmingCharacters(in: .whitespaces).isEmpty
     }
@@ -82,10 +121,13 @@ public enum LibraryLayout: String, Sendable, CaseIterable, Codable {
 /// against the same table in both test suites (ADR-0001). Android's
 /// `LibraryIndex` mirrors it line for line.
 ///
-/// Not here yet, and named rather than silently missing: grouping results by
-/// match kind, merging a server's own search with local results, and the curated
-/// order of a reading list. All three need a second source or a collection to
-/// exist.
+/// The narrowing to one source lives in ``LibraryScope`` and the grouping of search
+/// results by match kind in ``MatchGroup``, both next door rather than here — this file is
+/// already at the length where a reader stops finding things in it.
+///
+/// Not here yet, and named rather than silently missing: merging a server's own search
+/// with local results, and the curated order of a reading list. Both need a request to a
+/// server or a collection with an order of its own.
 public enum LibraryIndex {
 
     /// What the library knows about a publication's progress.
@@ -124,7 +166,10 @@ public enum LibraryIndex {
     ) -> [Publication] {
         let term = query.search.trimmingCharacters(in: .whitespaces).lowercased()
 
-        let kept = publications.filter { publication in
+        // Narrowed to the scope before anything else is asked. `library-browsing`: with a
+        // single source selected "the view, its search, and its filters apply to that
+        // source alone", so nothing outside it should ever reach a filter to be judged.
+        let kept = inScope(publications, query.scope).filter { publication in
             let record = progress(publication)
             return (query.readStates.isEmpty || query.readStates.contains(record.state))
                 && (query.formats.isEmpty || query.formats.contains(publication.format))
@@ -206,7 +251,12 @@ public enum LibraryIndex {
     ///
     /// A title that starts with what was typed is what the user meant far more
     /// often than an author whose name contains it somewhere.
-    private static func rank(_ publication: Publication, matching term: String) -> Int? {
+    ///
+    /// Internal rather than private because ``grouped(_:query:locale:progress:)`` asks the
+    /// same question next door: the group a result lands in *is* the reason it ranked where
+    /// it did, and a second implementation of "why did this match" would drift from this
+    /// one on the first change to either.
+    static func rank(_ publication: Publication, matching term: String) -> Int? {
         func has(_ value: String?) -> Bool { value?.lowercased().contains(term) == true }
         let title = publication.displayTitle.lowercased()
         if title.hasPrefix(term) { return 0 }

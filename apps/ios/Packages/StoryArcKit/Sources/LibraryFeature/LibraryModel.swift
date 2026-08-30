@@ -34,14 +34,21 @@ public final class LibraryModel {
         didSet {
             guard query != oldValue else { return }
             preferences?.save(query)
+            // A new scope brings its own layout with it. `library-browsing` keeps the grid
+            // or list choice per scope, so switching source has to *read* the layout as
+            // well as write it — otherwise whichever scope was open last would quietly
+            // impose its choice on the next one.
+            if query.scope != oldValue.scope, let stored = preferences?.layout(for: query.scope) {
+                layout = stored
+            }
             rebuild()
         }
     }
 
     /// Grid or list. `library-browsing` requires both, and requires the choice to
-    /// persist.
+    /// persist per scope.
     public var layout: LibraryLayout = .grid {
-        didSet { if layout != oldValue { preferences?.save(layout) } }
+        didSet { if layout != oldValue { preferences?.save(layout, for: query.scope) } }
     }
 
     /// The publications on screen: filtered, ranked and sorted.
@@ -50,6 +57,10 @@ public final class LibraryModel {
     /// 10,000 to stay usable, and a computed property would re-sort all of them
     /// on every redraw.
     public private(set) var visible: [Publication] = []
+
+    /// Search results, grouped by why each one matched. Empty when nothing is being
+    /// searched for, and the caller draws the flat shelf then.
+    public private(set) var matchGroups: [MatchGroup] = []
 
     /// In-progress publications, most recently read first. Empty means the row is
     /// not drawn at all, which is what `library-browsing` asks for.
@@ -64,8 +75,10 @@ public final class LibraryModel {
     /// viewport rather than during the scan, so this fills in as cells appear and
     /// never during `scan`.
     private var covers: [String: CGImage] = [:]
+    // Internal, not private: `private` is file-scoped, and adopting a download writes
+    // here from the other half of this type.
     /// Where each publication came from, so a cover can be loaded later.
-    private var locations: [String: URL] = [:]
+    var locations: [String: URL] = [:]
     private var scanTask: Task<Void, Never>?
     let progressStore: ProgressStore?
 
@@ -97,16 +110,21 @@ public final class LibraryModel {
 
     let sourceStore: SourceStore?
     let shelvesStore: ShelvesStore?
+    /// What has been downloaded, so those publications can join the shelf. See
+    /// ``adoptDownloads()``.
+    let downloadStore: DownloadStore?
 
     public init(
         progress: ProgressStore? = nil,
         bookmarks: FolderBookmarks? = nil,
         preferences: LibraryPreferences? = nil,
         sourceStore: SourceStore? = nil,
-        shelvesStore: ShelvesStore? = nil
+        shelvesStore: ShelvesStore? = nil,
+        downloadStore: DownloadStore? = nil
     ) {
         self.sourceStore = sourceStore
         self.shelvesStore = shelvesStore
+        self.downloadStore = downloadStore
         shelves = shelvesStore?.shelves() ?? Shelves()
         self.registry = sourceStore?.registry() ?? SourceRegistry()
         self.progressStore = progress
@@ -116,7 +134,10 @@ public final class LibraryModel {
         // cannot loop back into the save that the observers perform.
         if let preferences {
             self.query = preferences.query()
-            self.layout = preferences.layout()
+            // Resolved against the registry as it was read back, so a scope naming a source
+            // removed in the last session opens the whole library rather than an empty one.
+            self.query.scope = self.query.scope.resolved(in: self.registry)
+            self.layout = preferences.layout(for: self.query.scope)
         }
     }
 
@@ -287,21 +308,49 @@ public final class LibraryModel {
     /// Recomputes what is on screen from the library and the query.
     func rebuild() {
         visible = LibraryIndex.arrange(publications, query: query) { self.state(of: $0) }
-        continueReading = LibraryIndex.continueReading(publications) { self.state(of: $0) }
+        matchGroups = LibraryIndex.grouped(publications, query: query) { self.state(of: $0) }
+        // Narrowed to the scope, not to the whole query: the row is what the reader was in
+        // the middle of, and a filter on format has nothing to say about that.
+        continueReading = LibraryIndex.continueReading(
+            LibraryIndex.inScope(publications, query.scope)
+        ) { self.state(of: $0) }
     }
 
     private func state(of publication: Publication) -> LibraryIndex.Progress {
         .of(progress[publication.id])
     }
 
-    /// Clears every filter, keeping the search and the sort.
+    /// Clears every filter, keeping the search, the sort and the scope.
     ///
     /// `library-browsing`: an empty-looking library must say filters are active
     /// and offer one action to clear them. This is that action.
+    ///
+    /// The scope stays because the same requirement says it "persists until changed", and
+    /// because widening it is offered separately — see ``widenToAllSources()``.
     public func clearFilters() {
         query.readStates = []
         query.formats = []
         query.languages = []
+    }
+
+    /// Shows every source again.
+    ///
+    /// `library-browsing` asks the no-results state to "offer to widen the scope to all
+    /// sources if the search was scoped", which is a different offer from clearing the
+    /// filters: the reader who scoped to one server and found nothing usually wants the
+    /// same words put to the rest of their library, not their filters undone.
+    public func widenToAllSources() {
+        query.scope = .allSources
+    }
+
+    /// What a publication's source is called, or `nil` when saying so would add nothing.
+    ///
+    /// `library-browsing`: a publication "shows its source only when more than one source
+    /// is configured", and a scoped view has already answered the question in its own
+    /// selector — repeating it on every row would be a column of the same word.
+    public func sourceName(of publication: Publication) -> String? {
+        guard registry.attributesPublications, query.scope == .allSources else { return nil }
+        return registry.name(of: publication.sourceID)
     }
 
     /// Formats actually present, so the filter never offers one that would empty

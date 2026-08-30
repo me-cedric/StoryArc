@@ -129,20 +129,32 @@ public struct LibraryView: View {
                             // is a shortcut to what you were reading, and showing
                             // publications the query excluded reads as a bug.
                             continueReading: model.query.isNarrowed ? [] : model.continueReading,
+                            groups: model.matchGroups,
                             model: model,
                             onOpen: open
                         )
                     } else {
-                        CoverList(publications: model.visible, model: model, onOpen: open)
+                        CoverList(
+                            publications: model.visible,
+                            groups: model.matchGroups,
+                            model: model,
+                            onOpen: open
+                        )
                     }
                 } else if !model.publications.isEmpty {
                     // A library that is not empty but looks it. `library-browsing`
                     // forbids showing that silently: say what is narrowing it and
                     // offer one action to undo.
-                    NarrowedToNothing(query: model.query) {
-                        model.clearFilters()
-                        model.query.search = ""
-                    }
+                    NarrowedToNothing(
+                        query: model.query,
+                        clear: {
+                            model.clearFilters()
+                            model.query.search = ""
+                        },
+                        scopeName: model.registry.name(of: model.query.scope.sourceID),
+                        // Offered only when there is somewhere wider to go.
+                        widen: model.query.scope == .allSources ? nil : { model.widenToAllSources() }
+                    )
                 } else if case .scanning = model.scanState {
                     ScanningView(state: model.scanState)
                 } else if model.registry.sources.isEmpty {
@@ -216,10 +228,21 @@ public struct LibraryView: View {
             // cover reflect the page the reader just reached.
             .task {
                 model.restoreFolders()
+                // Before the progress load, so the downloaded rows are on the shelf when
+                // recorded positions are matched against it.
+                await model.adoptDownloads()
                 await model.refreshProgress()
                 await model.probeNetworkSources(credentials: credentials, pins: pins)
             }
             .toolbar {
+                // `library-browsing`: one library over every source, narrowable to one.
+                // Only with a second source to narrow to — a selector whose whole menu is
+                // "All sources" and the one source there is asks nothing.
+                if model.registry.attributesPublications {
+                    ToolbarItem(placement: .primaryAction) {
+                        ScopeMenu(model: model)
+                    }
+                }
                 if !model.publications.isEmpty {
                     ToolbarItem(placement: .primaryAction) {
                         LayoutToggle(model: model)

@@ -278,7 +278,17 @@ class MainActivity : ComponentActivity() {
                 val libraryViewModel = viewModel<LibraryViewModel>(
                     factory = viewModelFactory {
                         initializer {
-                            LibraryViewModel(application, progress, preferences, sourceStore, shelvesStore)
+                            LibraryViewModel(
+                                application,
+                                progress,
+                                preferences,
+                                sourceStore,
+                                shelvesStore,
+                                // So a publication downloaded from a server joins the one
+                                // library, rather than being reachable only by browsing
+                                // back to the server it came from.
+                                downloadStore,
+                            )
                         }
                     },
                 )

@@ -43,11 +43,31 @@ public struct LibraryPreferences {
         defaults.set(data, forKey: queryKey)
     }
 
-    public func layout() -> LibraryLayout {
-        LibraryLayout(rawValue: defaults.string(forKey: layoutKey) ?? "") ?? .grid
+    /// The layout for one scope.
+    ///
+    /// `library-browsing`: the choice "persists per scope, so a dense list for one library
+    /// does not force it everywhere" — a reader who wants covers for their comics and a
+    /// list for their server's catalogue gets both.
+    ///
+    /// One key per scope rather than one dictionary. A scope arrives and leaves with its
+    /// source, and a dictionary would have to be pruned when a source is removed by
+    /// something that currently has no reason to know this file exists.
+    ///
+    /// A scope never set falls back to what was stored before the layout was per scope, so
+    /// a reader who chose the list is not handed the grid again by an upgrade.
+    public func layout(for scope: LibraryScope = .allSources) -> LibraryLayout {
+        if let stored = defaults.string(forKey: key(for: scope)),
+           let layout = LibraryLayout(rawValue: stored) {
+            return layout
+        }
+        return LibraryLayout(rawValue: defaults.string(forKey: layoutKey) ?? "") ?? .grid
     }
 
-    public func save(_ layout: LibraryLayout) {
-        defaults.set(layout.rawValue, forKey: layoutKey)
+    public func save(_ layout: LibraryLayout, for scope: LibraryScope = .allSources) {
+        defaults.set(layout.rawValue, forKey: key(for: scope))
+    }
+
+    private func key(for scope: LibraryScope) -> String {
+        "\(layoutKey).\(scope.storageKey)"
     }
 }

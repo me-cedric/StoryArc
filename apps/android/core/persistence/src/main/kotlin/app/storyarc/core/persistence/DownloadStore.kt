@@ -73,6 +73,23 @@ class DownloadStore internal constructor(
         return File(folder, "$stem.$extension")
     }
 
+    /**
+     * The download a file inside [directory] belongs to.
+     *
+     * Matched on the directory the file sits in, not on the file's own name. The name is the
+     * publication's and has already changed once -- one writer stores the title and another
+     * the identifier -- while the directory is the download's identifier and is what every
+     * writer of this tree agrees on.
+     *
+     * The library asks. `library-browsing` requires one library spanning every source, so a
+     * comic downloaded from a server has to appear on the shelf attributed to that server --
+     * and the file on disk carries no memory of where it came from.
+     */
+    fun download(file: File, library: DownloadLibrary): Download? {
+        val folder = file.parentFile?.name ?: return null
+        return library.downloads.firstOrNull { safe(it.id) == folder }
+    }
+
     /** A name a filesystem will take: no separators, nothing that reads as a path. */
     private fun safe(text: String): String = text.replace(Regex("[^A-Za-z0-9._ -]"), "-")
 

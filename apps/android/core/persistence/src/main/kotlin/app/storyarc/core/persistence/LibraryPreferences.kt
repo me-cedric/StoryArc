@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
+import app.storyarc.core.model.LibraryScope
 import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadState
@@ -37,6 +38,7 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
         private const val FORMATS = "formats"
         private const val LANGUAGES = "languages"
         private const val LAYOUT = "layout"
+        private const val SCOPE = "scope"
     }
 
     /**
@@ -52,6 +54,9 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
         languages = preferences.getStringSet(LANGUAGES, emptySet()).orEmpty(),
         sort = enumOrNull<LibrarySort>(preferences.getString(SORT, null)) ?: LibrarySort.TITLE,
         ascending = preferences.getBoolean(ASCENDING, true),
+        // `library-browsing`: the scope "persists until changed", so it is stored with the
+        // filters rather than forgotten with the session.
+        scope = LibraryScope.of(preferences.getString(SCOPE, null)),
     )
 
     fun save(query: LibraryQuery) {
@@ -61,15 +66,34 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
             .putStringSet(READ_STATES, query.readStates.map { it.name }.toSet())
             .putStringSet(FORMATS, query.formats.map { it.name }.toSet())
             .putStringSet(LANGUAGES, query.languages)
+            .putString(SCOPE, query.scope.storageKey)
             .apply()
     }
 
-    fun layout(): LibraryLayout =
-        enumOrNull<LibraryLayout>(preferences.getString(LAYOUT, null)) ?: LibraryLayout.GRID
+    /**
+     * The layout for one scope.
+     *
+     * `library-browsing`: the choice "persists per scope, so a dense list for one library
+     * does not force it everywhere" — a reader who wants covers for their comics and a list
+     * for their server's catalogue gets both.
+     *
+     * One key per scope rather than one blob. A scope arrives and leaves with its source, and
+     * a blob would have to be pruned when a source is removed by something that currently has
+     * no reason to know this file exists.
+     *
+     * A scope never set falls back to what was stored before the layout was per scope, so a
+     * reader who chose the list is not handed the grid again by an upgrade.
+     */
+    fun layout(scope: LibraryScope = LibraryScope.AllSources): LibraryLayout =
+        enumOrNull<LibraryLayout>(preferences.getString(key(scope), null))
+            ?: enumOrNull<LibraryLayout>(preferences.getString(LAYOUT, null))
+            ?: LibraryLayout.GRID
 
-    fun save(layout: LibraryLayout) {
-        preferences.edit().putString(LAYOUT, layout.name).apply()
+    fun save(layout: LibraryLayout, scope: LibraryScope = LibraryScope.AllSources) {
+        preferences.edit().putString(key(scope), layout.name).apply()
     }
+
+    private fun key(scope: LibraryScope): String = "$LAYOUT.${scope.storageKey}"
 
     private fun readStates(): Set<ReadState> =
         preferences.getStringSet(READ_STATES, emptySet()).orEmpty()

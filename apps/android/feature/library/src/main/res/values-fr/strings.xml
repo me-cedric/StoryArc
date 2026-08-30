@@ -198,4 +198,13 @@
         <item quantity="one">Téléchargement de %1$d publication</item>
         <item quantity="other">Téléchargement de %1$d publications</item>
     </plurals>
+    <string name="library_scope">Source</string>
+    <string name="library_scope_all">Toutes les sources</string>
+    <string name="library_search_widen">Chercher dans toutes les sources</string>
+    <string name="library_empty_scope">Rien de %1$s n’est encore sur cet appareil.</string>
+    <string name="library_cell_source">De %1$s</string>
+    <string name="library_match_series">Séries</string>
+    <string name="library_match_publication">Titres</string>
+    <string name="library_match_person">Personnes</string>
+    <string name="library_match_tag">Étiquettes</string>
 </resources>

@@ -17,6 +17,9 @@ struct CoverGrid: View {
     /// In-progress publications, most recently read first. Empty means the row is
     /// not drawn — `library-browsing` requires it absent rather than shown empty.
     var continueReading: [Publication] = []
+    /// Search results under their own headings. Empty means there is no search running and
+    /// the shelf is drawn as one run of covers.
+    var groups: [MatchGroup] = []
     let model: LibraryModel
     /// What to do when a cover is tapped. The library does not open the reader
     /// itself — a feature module never depends on another feature module, so the
@@ -39,38 +42,54 @@ struct CoverGrid: View {
                 )
             }
 
-            LazyVGrid(
-                columns: [
-                    GridItem(
-                        .adaptive(minimum: minimumWidth, maximum: maximumWidth),
-                        spacing: StoryArcSpace.md,
-                        // Top, not the default centre. A cell is a cover with a
-                        // caption under it, and a caption runs to one, two or three
-                        // lines depending on the title and whether there is a
-                        // series. Centring makes the row as tall as its wordiest
-                        // cell and then floats every *cover* to a different height,
-                        // so a shelf of artwork looks misaligned. Aligning to the
-                        // top puts every cover on one line and lets the captions
-                        // below it end where they end.
-                        alignment: .top
-                    )
-                ],
-                spacing: StoryArcSpace.lg
-            ) {
-                ForEach(publications) { publication in
-                    CoverCell(
-                        publication: publication,
-                        model: model,
-                        onOpen: onOpen,
-                        // Pixels, not points: a cover decoded at point size is
-                        // blurry on every device made since 2010.
-                        maxPixelSize: Int(maximumWidth * displayScale)
-                    )
+            // `library-browsing`: while a search is running, results are "grouped by match
+            // kind". One heading and one grid per group rather than a second screen — the
+            // reader is looking at their library with a word typed over it, not somewhere
+            // else.
+            if groups.isEmpty {
+                grid(publications)
+            } else {
+                ForEach(groups) { group in
+                    MatchHeading(kind: group.kind)
+                    grid(group.publications)
                 }
             }
-            .padding(.horizontal, StoryArcSpace.gutter)
-            .padding(.vertical, StoryArcSpace.md)
         }
+    }
+
+    @ViewBuilder
+    private func grid(_ items: [Publication]) -> some View {
+        LazyVGrid(
+            columns: [
+                GridItem(
+                    .adaptive(minimum: minimumWidth, maximum: maximumWidth),
+                    spacing: StoryArcSpace.md,
+                    // Top, not the default centre. A cell is a cover with a
+                    // caption under it, and a caption runs to one, two or three
+                    // lines depending on the title and whether there is a
+                    // series. Centring makes the row as tall as its wordiest
+                    // cell and then floats every *cover* to a different height,
+                    // so a shelf of artwork looks misaligned. Aligning to the
+                    // top puts every cover on one line and lets the captions
+                    // below it end where they end.
+                    alignment: .top
+                )
+            ],
+            spacing: StoryArcSpace.lg
+        ) {
+            ForEach(items) { publication in
+                CoverCell(
+                    publication: publication,
+                    model: model,
+                    onOpen: onOpen,
+                    // Pixels, not points: a cover decoded at point size is
+                    // blurry on every device made since 2010.
+                    maxPixelSize: Int(maximumWidth * displayScale)
+                )
+            }
+        }
+        .padding(.horizontal, StoryArcSpace.gutter)
+        .padding(.vertical, StoryArcSpace.md)
     }
 }
 
@@ -160,6 +179,16 @@ struct CoverCell: View {
 
                 if let subtitle {
                     Text(subtitle)
+                        .textRole(.caption)
+                        .foregroundStyle(theme.palette.textTertiary)
+                        .lineLimit(1)
+                }
+
+                // `library-browsing`: a publication "shows its source only when more than
+                // one source is configured". A line only some readers ever see, which is
+                // the point — with one source it would be the same word under every cover.
+                if let source = model.sourceName(of: publication) {
+                    Text("library.cell.source \(source)", bundle: .module)
                         .textRole(.caption)
                         .foregroundStyle(theme.palette.textTertiary)
                         .lineLimit(1)
@@ -273,6 +302,11 @@ struct CoverCell: View {
         }
         if let pageCount = publication.pageCount {
             parts.append(String(localized: "library.cell.pages \(pageCount)", bundle: .module, locale: .storyArc))
+        }
+        if let source = model.sourceName(of: publication) {
+            parts.append(
+                String(localized: "library.cell.source \(source)", bundle: .module, locale: .storyArc)
+            )
         }
         return parts.joined(separator: ", ")
     }

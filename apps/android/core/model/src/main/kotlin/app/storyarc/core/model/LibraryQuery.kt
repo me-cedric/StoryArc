@@ -39,6 +39,15 @@ data class LibraryQuery(
     val languages: Set<String> = emptySet(),
     val sort: LibrarySort = LibrarySort.TITLE,
     val ascending: Boolean = true,
+    /**
+     * Which source is being shown.
+     *
+     * Part of the query rather than transient screen state, because `library-browsing` says
+     * the scope "persists until changed" and the query is the thing that is already saved
+     * and restored. It also means the scope reaches the search and the filters by the same
+     * route they reach everything else, which is what that requirement asks for.
+     */
+    val scope: LibraryScope = LibraryScope.AllSources,
 ) {
     /**
      * What the filter control shows as a badge.
@@ -46,13 +55,22 @@ data class LibraryQuery(
      * A group counts once however many values it holds: three formats is one
      * decision the user made, and a badge reading "5" for it would misdescribe
      * how much has to be undone.
+     *
+     * The scope is not counted. It has a control of its own that always states which source
+     * is being shown, and this badge exists for narrowing that is otherwise invisible.
      */
     val activeFilterCount: Int
         get() = listOf(readStates, formats, languages).count { it.isNotEmpty() }
 
     val hasFilters: Boolean get() = activeFilterCount > 0
 
-    /** Whether anything at all is narrowing the view, search included. */
+    /**
+     * Whether anything at all is narrowing the view, search included.
+     *
+     * Not the scope, again deliberately: this is what hides the continue-reading row, and a
+     * scoped library is still a library to continue reading in. The row is narrowed to the
+     * scope instead of being taken away.
+     */
     val isNarrowed: Boolean get() = hasFilters || search.isNotBlank()
 }
 
@@ -75,9 +93,13 @@ enum class LibraryLayout {
  * against the same table in both test suites (ADR-0001). iOS's `LibraryQuery`
  * mirrors it line for line.
  *
- * Not here yet, and named rather than silently missing: grouping results by match
- * kind, merging a server's own search with local results, and the curated order
- * of a reading list. All three need a second source or a collection to exist.
+ * The narrowing to one source lives in [LibraryScope] and the grouping of search results by
+ * match kind in [MatchGroup], both next door rather than here — this file is already at the
+ * length where a reader stops finding things in it.
+ *
+ * Not here yet, and named rather than silently missing: merging a server's own search with
+ * local results, and the curated order of a reading list. Both need a request to a server or
+ * a collection with an order of its own.
  */
 object LibraryIndex {
 
@@ -119,7 +141,10 @@ object LibraryIndex {
         val term = query.search.trim().lowercase(locale)
         val collator = Collator.getInstance(locale).apply { strength = Collator.SECONDARY }
 
-        val kept = publications.filter { publication ->
+        // Narrowed to the scope before anything else is asked. `library-browsing`: with a
+        // single source selected "the view, its search, and its filters apply to that source
+        // alone", so nothing outside it should ever reach a filter to be judged.
+        val kept = inScope(publications, query.scope).filter { publication ->
             val record = progress(publication)
             (query.readStates.isEmpty() || record.state in query.readStates) &&
                 (query.formats.isEmpty() || publication.format in query.formats) &&
@@ -209,8 +234,13 @@ object LibraryIndex {
      *
      * A title that starts with what was typed is what the user meant far more
      * often than an author whose name contains it somewhere.
+     *
+     * Internal rather than private because [grouped] asks the same question next door: the
+     * group a result lands in *is* the reason it ranked where it did, and a second
+     * implementation of "why did this match" would drift from this one on the first change
+     * to either.
      */
-    private fun rank(publication: Publication, term: String, locale: Locale): Int? {
+    internal fun rank(publication: Publication, term: String, locale: Locale): Int? {
         fun has(value: String?) = value?.lowercase(locale)?.contains(term) == true
         val title = publication.displayTitle.lowercase(locale)
         return when {

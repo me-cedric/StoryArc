@@ -14,7 +14,13 @@ import app.storyarc.core.format.ScanEvent
 import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.model.LibraryQuery
+import app.storyarc.core.model.LibraryScope
+import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.attributesPublications
+import app.storyarc.core.model.grouped
+import app.storyarc.core.model.inScope
+import app.storyarc.core.model.nameOf
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.persistence.LibraryPreferences
@@ -23,6 +29,7 @@ import java.util.UUID
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.persistence.CredentialStore
+import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
@@ -58,6 +65,9 @@ class LibraryViewModel(
     private val preferences: LibraryPreferences? = null,
     private val sourceStore: SourceStore? = null,
     private val shelvesStore: ShelvesStore? = null,
+    /** What has been downloaded, so those publications can join the shelf. See
+     * [adoptDownloads]. */
+    private val downloadStore: DownloadStore? = null,
 ) : AndroidViewModel(application) {
 
     /**
@@ -87,20 +97,28 @@ class LibraryViewModel(
     val scanState: StateFlow<LibraryScanState> = _scanState.asStateFlow()
 
     /** What the user is looking at. Setting it re-arranges the shelf. */
-    private val _query = MutableStateFlow(preferences?.query() ?: LibraryQuery())
+    private val _query = MutableStateFlow(
+        // Resolved against the registry as it was read back, so a scope naming a source
+        // removed in the last session opens the whole library rather than an empty one.
+        (preferences?.query() ?: LibraryQuery()).let {
+            it.copy(scope = it.scope.resolved(_registry.value))
+        },
+    )
     val query: StateFlow<LibraryQuery> = _query.asStateFlow()
 
     /**
      * Grid or list. `library-browsing` requires both, and requires the choice to
-     * persist.
+     * persist per scope.
      */
-    private val _layout = MutableStateFlow(preferences?.layout() ?: LibraryLayout.GRID)
+    private val _layout = MutableStateFlow(
+        preferences?.layout(_query.value.scope) ?: LibraryLayout.GRID,
+    )
     val layout: StateFlow<LibraryLayout> = _layout.asStateFlow()
 
     fun setLayout(value: LibraryLayout) {
         if (value == _layout.value) return
         _layout.value = value
-        preferences?.save(value)
+        preferences?.save(value, _query.value.scope)
     }
 
     /**
@@ -119,6 +137,13 @@ class LibraryViewModel(
      */
     private val _continueReading = MutableStateFlow<List<Publication>>(emptyList())
     val continueReading: StateFlow<List<Publication>> = _continueReading.asStateFlow()
+
+    /**
+     * Search results, grouped by why each one matched. Empty when nothing is being searched
+     * for, and the caller draws the flat shelf then.
+     */
+    private val _matchGroups = MutableStateFlow<List<MatchGroup>>(emptyList())
+    val matchGroups: StateFlow<List<MatchGroup>> = _matchGroups.asStateFlow()
 
     /** Folders the user picked, in the order they picked them. */
     private val _folders = MutableStateFlow<List<Uri>>(emptyList())
@@ -446,6 +471,80 @@ class LibraryViewModel(
     }
 
     /**
+     * Brings finished downloads onto the shelf, each attributed to its source.
+     *
+     * `library-browsing`'s first requirement is one library "spanning every source", and a
+     * download is how a publication from a server comes to be on this device. Until this
+     * existed the shelf held what a folder scan found and nothing else: a reader who had
+     * downloaded forty chapters from Kavita saw none of them in their library, and could
+     * only reach them by browsing back to the server they came from -- which is the opposite
+     * of taking a library with you, and made the source selector a list of sources with
+     * nothing behind them.
+     *
+     * The tree is walked rather than each record's path being reconstructed. The record says
+     * what a download is called and the writers have not always agreed on the file's name;
+     * they have always agreed on the *directory*, which is what [DownloadStore.download]
+     * matches on.
+     *
+     * Only finished downloads. A running one is a partial file, and indexing a truncated
+     * archive produces either an error or, worse, a publication with three of its pages.
+     */
+    fun adoptDownloads() {
+        val store = downloadStore ?: return
+        viewModelScope.launch {
+            val downloads = store.library()
+            if (downloads.finished.isEmpty()) return@launch
+
+            var added = false
+            withContext(Dispatchers.IO) {
+                LibraryScanner.scan(store.directory).collect { event ->
+                    val publication = (event as? ScanEvent.Found)?.publication ?: return@collect
+                    val path = publication.identity.normalizedPath ?: return@collect
+                    val record = store.download(File(path), downloads) ?: return@collect
+                    if (!record.state.isFinished) return@collect
+                    if (adopt(publication, record.sourceId, path)) added = true
+                }
+            }
+            if (!added) return@launch
+            rebuild()
+            // Their reading positions too. A chapter downloaded and then read has a position
+            // on this device like any other, and the bar under its cover is how a reader sees
+            // that the library and the reader are talking about the same book.
+            refreshProgress()
+        }
+    }
+
+    /**
+     * Puts one downloaded publication on the shelf.
+     *
+     * Returns whether the shelf actually changed, so a walk that found nothing new does not
+     * trigger a re-sort of the whole library.
+     *
+     * A publication already there is not added twice: identity decides, not the path, so a
+     * comic that lives in a picked folder *and* was downloaded is one row (ADR-0006). The
+     * existing row gains the attribution when it had none, for the same reason a second
+     * folder scan hands one over -- a row that knows where it came from beats one that does
+     * not, whichever found it first.
+     */
+    private fun adopt(publication: Publication, sourceId: UUID?, path: String): Boolean {
+        val seen = _publications.value.indexOfFirst { it.identity.matches(publication.identity) }
+        if (seen >= 0) {
+            if (_publications.value[seen].sourceId == null && sourceId != null) {
+                _publications.update { current ->
+                    current.mapIndexed { index, existing ->
+                        if (index == seen) existing.copy(sourceId = sourceId) else existing
+                    }
+                }
+            }
+            return false
+        }
+
+        locations[publication.id] = path
+        _publications.update { it + publication.copy(sourceId = sourceId) }
+        return true
+    }
+
+    /**
      * How many publications a source holds.
      *
      * `sources` asks a source's detail screen for its "cached item count". Counted from
@@ -542,17 +641,28 @@ class LibraryViewModel(
     }
 
     fun setQuery(value: LibraryQuery) {
-        if (value == _query.value) return
+        val previous = _query.value
+        if (value == previous) return
         _query.value = value
         preferences?.save(value)
+        // A new scope brings its own layout with it. `library-browsing` keeps the grid or
+        // list choice per scope, so switching source has to *read* the layout as well as
+        // write it -- otherwise whichever scope was open last would quietly impose its
+        // choice on the next one.
+        if (value.scope != previous.scope) {
+            preferences?.let { _layout.value = it.layout(value.scope) }
+        }
         rebuild()
     }
 
     /**
-     * Clears every filter, keeping the search and the sort.
+     * Clears every filter, keeping the search, the sort and the scope.
      *
      * `library-browsing`: an empty-looking library must say filters are active and
      * offer one action to clear them. This is that action.
+     *
+     * The scope stays because the same requirement says it "persists until changed", and
+     * because widening it is offered separately -- see [widenToAllSources].
      */
     fun clearFilters() {
         setQuery(
@@ -562,6 +672,31 @@ class LibraryViewModel(
                 languages = emptySet(),
             ),
         )
+    }
+
+    /**
+     * Shows every source again.
+     *
+     * `library-browsing` asks the no-results state to "offer to widen the scope to all
+     * sources if the search was scoped", which is a different offer from clearing the
+     * filters: the reader who scoped to one server and found nothing usually wants the same
+     * words put to the rest of their library, not their filters undone.
+     */
+    fun widenToAllSources() {
+        setQuery(_query.value.copy(scope = LibraryScope.AllSources))
+    }
+
+    /**
+     * What a publication's source is called, or `null` when saying so would add nothing.
+     *
+     * `library-browsing`: a publication "shows its source only when more than one source is
+     * configured", and a scoped view has already answered the question in its own selector --
+     * repeating it on every row would be a column of the same word.
+     */
+    fun sourceName(publication: Publication): String? {
+        if (!_registry.value.attributesPublications) return null
+        if (_query.value.scope != LibraryScope.AllSources) return null
+        return _registry.value.nameOf(publication.sourceId)
     }
 
     /**
@@ -575,7 +710,13 @@ class LibraryViewModel(
     private fun rebuild() {
         val all = _publications.value
         _visible.value = LibraryIndex.arrange(all, _query.value, progress = ::stateOf)
-        _continueReading.value = LibraryIndex.continueReading(all, progress = ::stateOf)
+        _matchGroups.value = LibraryIndex.grouped(all, _query.value, progress = ::stateOf)
+        // Narrowed to the scope, not to the whole query: the row is what the reader was in
+        // the middle of, and a filter on format has nothing to say about that.
+        _continueReading.value = LibraryIndex.continueReading(
+            LibraryIndex.inScope(all, _query.value.scope),
+            progress = ::stateOf,
+        )
     }
 
     private fun stateOf(publication: Publication) = LibraryIndex.Progress.of(progress[publication.id])
