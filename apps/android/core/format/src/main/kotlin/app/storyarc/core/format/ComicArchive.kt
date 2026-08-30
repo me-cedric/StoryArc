@@ -35,6 +35,17 @@ interface ComicArchiveReading : AutoCloseable {
     val coverPage: PageEntry?
         get() = pages.firstOrNull()
 
+    /**
+     * Pages the container declares as double-page spreads.
+     *
+     * `comic-reader` shows such a page alone rather than pairing it, and a declaration
+     * is worth more than a guess from the aspect ratio -- a wide panel scanned with
+     * margins is not a spread, and a spread scanned tight might not measure as one.
+     *
+     * Empty for a container that carries no metadata to declare it with.
+     */
+    val doublePageIndices: List<Int> get() = emptyList()
+
     override fun close() {}
 }
 
@@ -46,6 +57,20 @@ interface ComicArchiveReading : AutoCloseable {
  * place is what stops a CBZ and a CBT disagreeing about which page a reader sees
  * first.
  */
+object PageDeclarations {
+    /**
+     * The declared spreads that actually name a page in this list.
+     *
+     * The same caveat as the cover: [ComicInfo]'s indices count *archive* entries, and
+     * an archive whose non-page entries were filtered out can leave a stale index
+     * behind. An index outside the page list is dropped rather than clamped, because
+     * standing an arbitrary middle page alone would look like a bug in the reader rather
+     * than in the file.
+     */
+    fun spreads(pages: List<PageEntry>, declared: List<Int>): List<Int> =
+        declared.filter { it >= 0 && it < pages.size }
+}
+
 object CoverSelection {
     /**
      * The designated cover, when one is designated and exists; otherwise the first
@@ -117,6 +142,9 @@ class ZipComicArchive private constructor(
 
     override val coverPage: PageEntry?
         get() = CoverSelection.cover(pages, comicInfo?.coverPageIndex)
+
+    override val doublePageIndices: List<Int>
+        get() = PageDeclarations.spreads(pages, comicInfo?.doublePageIndices.orEmpty())
 
     companion object {
         suspend fun open(source: RandomAccessSource): ZipComicArchive {
@@ -226,6 +254,9 @@ class TarComicArchive private constructor(
 
     override val coverPage: PageEntry?
         get() = CoverSelection.cover(pages, comicInfo?.coverPageIndex)
+
+    override val doublePageIndices: List<Int>
+        get() = PageDeclarations.spreads(pages, comicInfo?.doublePageIndices.orEmpty())
 
     companion object {
         suspend fun open(source: RandomAccessSource): TarComicArchive {

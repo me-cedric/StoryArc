@@ -72,6 +72,10 @@ public struct ImageFolderArchive: ComicArchiveReading {
         self.comicInfo = rawComicInfo.flatMap(ComicInfo.init(data:))
     }
 
+    public var doublePageIndices: [Int] {
+        PageDeclarations.spreads(of: pages, declared: comicInfo?.doublePageIndices ?? [])
+    }
+
     public var coverPage: PageEntry? {
         CoverSelection.cover(of: pages, designated: self.comicInfo?.coverPageIndex)
     }

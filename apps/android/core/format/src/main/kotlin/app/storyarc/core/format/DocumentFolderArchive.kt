@@ -26,6 +26,9 @@ class DocumentFolderArchive private constructor(
     override val coverPage: PageEntry?
         get() = CoverSelection.cover(pages, comicInfo?.coverPageIndex)
 
+    override val doublePageIndices: List<Int>
+        get() = PageDeclarations.spreads(pages, comicInfo?.doublePageIndices.orEmpty())
+
     companion object {
         /** Opens the folder [documentId] names, walking its subfolders as chapters. */
         fun open(resolver: ContentResolver, tree: Uri, documentId: String): DocumentFolderArchive {

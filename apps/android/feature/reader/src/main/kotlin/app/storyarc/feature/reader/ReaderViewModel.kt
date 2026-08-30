@@ -18,7 +18,9 @@ import app.storyarc.core.model.CoverColours
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ImageAdjustments
+import app.storyarc.core.model.MemoryPressure
 import app.storyarc.core.model.PageTransition
+import app.storyarc.core.model.PrefetchWindow
 import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.ShelfSettings
@@ -177,6 +179,22 @@ class ReaderViewModel(
     }
 
     /**
+     * Shifts the spread pairing by one, or puts it back, for this shelf from now on.
+     *
+     * `comic-reader` asks for the offset "for publications whose cover throws the pairing
+     * off", and that is a fact about the series rather than about the reader — so it is
+     * remembered where the reading mode is, and issue two opens paired right.
+     */
+    fun chooseSpreadOffset(isOffset: Boolean) {
+        update(_settings.value.copy(offsetsSpreads = isOffset))
+    }
+
+    /** Shows or hides the line between pages in a continuous scroll. */
+    fun choosePageSeparator(isShown: Boolean) {
+        update(_settings.value.copy(showsPageSeparator = isShown))
+    }
+
+    /**
      * Changes what is done to a page before it is shown, for this shelf.
      *
      * `comic-reader` requires an adjustment to apply "to the series and [not be] applied
@@ -219,13 +237,12 @@ class ReaderViewModel(
     /**
      * How many pages to keep decoded, and in which direction.
      *
-     * `comic-reader`: "at least the next three and previous one page are decoded
-     * and held ready". Asymmetric because reading is: three ahead covers a fast run
-     * of turns, one behind covers the glance back, and five pages of a 2000x3000
-     * corpus is a bound `publication-formats` is happy with.
+     * Starts at the window `comic-reader` asks for and narrows when the system asks for
+     * memory back — see [noteMemoryPressure]. A `var` for that reason: the spec's floor
+     * is a floor for normal conditions, not for the moment the system is choosing a
+     * process to end.
      */
-    private val lookAhead = 3
-    private val lookBehind = 1
+    private var prefetch = PrefetchWindow.FULL
 
     /**
      * Decoded pages, in a state map rather than a plain one.
@@ -245,6 +262,29 @@ class ReaderViewModel(
      */
     private val thumbnails = mutableStateMapOf<Int, Bitmap>()
     private val attempted = mutableStateSetOf<Int>()
+
+    /**
+     * Pages that take the width of two.
+     *
+     * `comic-reader` shows such a page alone rather than pairing it with a neighbour. Two
+     * sources, answering different halves of the same question: `ComicInfo` *declares*
+     * spreads and is believed outright, and a page that decoded wider than it is tall is
+     * one whether the file says so or not — most CBZs carry no metadata at all, so a
+     * declaration alone would find nothing in the common case.
+     *
+     * A snapshot set rather than a plain one, for the reason [decoded] is: the screen
+     * regroups its pages when this grows, and Compose does not observe a `mutableSetOf`.
+     */
+    private val wide = mutableStateSetOf<Int>()
+
+    /**
+     * Pages that take the width of two, for the screen to lay out around.
+     *
+     * Grows as pages decode, which means a landscape layout can regroup itself a few
+     * pages ahead of the reader. That is what "detected" means; the screen keeps its
+     * *page* across the regrouping rather than its slot, so nothing moves under it.
+     */
+    val wideIndices: Set<Int> get() = wide
     private var archive: ComicArchiveReading? = null
 
     /**
@@ -295,6 +335,7 @@ class ReaderViewModel(
             }
             archive = opened
             _pages.value = opened.pages
+            wide.addAll(opened.doublePageIndices)
             publication.coverPath?.let { path ->
                 val index = opened.pages.indexOfFirst { it.path == path }
                 if (index >= 0) initialIndex = index
@@ -436,13 +477,36 @@ class ReaderViewModel(
         )
     }
 
+    /**
+     * Narrows or restores the prefetch window, and drops what no longer fits.
+     *
+     * `comic-reader`: "prefetch depth shrinks under memory pressure rather than the app
+     * being terminated". Shrinking has to take effect at once rather than at the next
+     * turn — the pages already held are the ones the system is asking for back, and a
+     * window that only narrowed on the way to the next page would give up nothing while
+     * the reader sat still.
+     *
+     * Thumbnails go entirely under critical pressure: up to sixty-four small pages held
+     * for a strip the reader may not have open, each re-decoded on demand.
+     *
+     * Unlike iOS, Android never says the pressure has lifted — `onTrimMemory` only ever
+     * reports trouble. So the screen calls this with [MemoryPressure.NORMAL] when the
+     * reader comes back to the foreground, which is the nearest thing to an all-clear the
+     * platform offers.
+     */
+    suspend fun noteMemoryPressure(pressure: MemoryPressure, at: Int) {
+        val window = PrefetchWindow.under(pressure)
+        if (window == prefetch) return
+        prefetch = window
+        if (pressure == MemoryPressure.CRITICAL) thumbnails.clear()
+        warm(at)
+    }
+
     /** Decodes the page at [index] and its neighbours, and drops the rest. */
     suspend fun warm(index: Int) {
         record(index)
         val pages = _pages.value
-        val wanted = ((index - lookBehind)..(index + lookAhead))
-            .filter { it in pages.indices }
-            .toSet()
+        val wanted = prefetch.pages(around = index, of = pages.size)
         // Dropped before decoding, so peak memory is the window and not the window
         // plus whatever was there before.
         (decoded.keys - wanted).forEach {
@@ -486,6 +550,9 @@ class ReaderViewModel(
             if (tallestRatio == 0.0 && bitmap.width > 0) {
                 tallestRatio = bitmap.height.toDouble() / bitmap.width
             }
+            // Wider than tall, with no tolerance to tune: a portrait page scanned with a
+            // slight skew is still portrait, and a spread is half again as wide as a page.
+            if (bitmap.width > bitmap.height) wide += index
         }
     }
 
@@ -505,5 +572,6 @@ class ReaderViewModel(
         pdf?.close()
         decoded.clear()
         thumbnails.clear()
+        wide.clear()
     }
 }

@@ -38,6 +38,15 @@ enum class ThemeScope { REFLOWABLE, FIXED_LAYOUT }
  * @property adjustments what to do to a page before it is shown. `comic-reader` requires an
  *   adjustment to apply "to the series and [not be] applied globally", which is what this
  *   store is.
+ * @property offsetsSpreads whether facing pages are paired one page later than they would be
+ *   by default. `comic-reader`: "the user can offset the pairing by one page, for
+ *   publications whose cover throws the pairing off". Per shelf, because whether a series
+ *   prints its cover as part of the pagination is a fact about the series, not about the
+ *   reader — they should not have to say it again for issue two.
+ * @property showsPageSeparator whether a continuous scroll draws a line where one page ends
+ *   and the next begins. `comic-reader`: pages are "stitched with no gap by default, with an
+ *   option to show a separator". Default off, because a webtoon is drawn to be read as one
+ *   strip and a line across it is a seam its author did not put there.
  */
 @Serializable
 data class ShelfSettings(
@@ -47,6 +56,8 @@ data class ShelfSettings(
     val scrollAxis: ScrollAxis? = null,
     val readingDirection: ReadingDirection? = null,
     val adjustments: ImageAdjustments = ImageAdjustments(),
+    val offsetsSpreads: Boolean = false,
+    val showsPageSeparator: Boolean = false,
 )
 
 /**

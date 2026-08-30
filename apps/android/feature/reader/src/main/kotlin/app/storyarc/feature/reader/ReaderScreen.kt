@@ -1,6 +1,8 @@
 package app.storyarc.feature.reader
 
+import android.content.ComponentCallbacks2
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -23,6 +25,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -44,12 +48,15 @@ import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -91,6 +98,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -100,6 +108,8 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.feedback.StoryArcFeedback
 import app.storyarc.core.designsystem.feedback.rememberHaptics
@@ -109,12 +119,14 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PageEntry
 import app.storyarc.core.model.CoverColours
 import app.storyarc.core.model.ImageAdjustments
+import app.storyarc.core.model.MemoryPressure
 import app.storyarc.core.model.PageFit
 import app.storyarc.core.model.PageReturn
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingDirection
 import app.storyarc.core.model.ScrollAxis
+import app.storyarc.core.model.SpreadLayout
 import app.storyarc.core.model.TransitionChoices
 import app.storyarc.core.model.TransitionUnavailability
 import app.storyarc.core.model.scrollAxis
@@ -287,17 +299,55 @@ private fun Pager(
     val direction = viewModel.readingDirection(settings)
     val isRightToLeft = direction == ReadingDirection.RIGHT_TO_LEFT
 
+    val choices = viewModel.transitions(settings)
+
     /**
-     * A display position turned back into the publication's own page number.
+     * Whether two pages can share the screen.
      *
-     * Right-to-left reverses the *display* order and maps the index here, so the
-     * model keeps counting pages the way the publication does and the indicator
-     * says "2 of 4" rather than "3 of 4" for the same page. Mirroring the pager
-     * with a transform instead would fight the paging gesture — iOS learned that
-     * the hard way, and the note is in ReaderView.swift.
+     * `comic-reader` scopes the pairing to landscape itself. Curl is out because the
+     * shader takes one decoded page and compositing two into a single texture is a
+     * different piece of work; a continuous scroll is out because it has no facing pages
+     * to pair — it has a strip.
      */
-    fun modelIndex(display: Int) = direction.position(display, count)
-    fun displayIndex(model: Int) = direction.position(model, count)
+    val isPairing = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE &&
+        (choices.effective == PageTransition.SLIDE || choices.effective == PageTransition.FAST_FADE)
+
+    /**
+     * How the pages are grouped on screen: one slot per screenful, and a slot may hold
+     * two pages. `wideIndices` only ever grows, so its size is enough to notice a change
+     * without hashing the set itself.
+     */
+    val layout = remember(isPairing, count, viewModel.wideIndices.size, settings.offsetsSpreads) {
+        if (isPairing) {
+            SpreadLayout.paired(count, viewModel.wideIndices.toSet(), settings.offsetsSpreads)
+        } else {
+            SpreadLayout.single(count)
+        }
+    }
+    val slotCount = layout.count
+
+    /**
+     * The slot a display position holds.
+     *
+     * Right-to-left reverses the *display* order and maps the index here, so the model
+     * keeps counting pages the way the publication does and the indicator says "2 of 4"
+     * rather than "3 of 4" for the same page. Mirroring the pager with a transform
+     * instead would fight the paging gesture — iOS learned that the hard way, and the
+     * note is in ReaderView.swift.
+     */
+    fun slotIndex(display: Int) = if (isRightToLeft) slotCount - 1 - display else display
+
+    /**
+     * A display position turned back into the publication's own page number: the first
+     * page of the slot in reading order, which is what the counter, the slider and
+     * `reading-progress` all mean.
+     */
+    fun modelIndex(display: Int) = layout.slotAt(slotIndex(display))?.leading ?: 0
+
+    fun displayIndex(model: Int): Int {
+        val slot = layout.slotContaining(model)
+        return if (isRightToLeft) slotCount - 1 - slot else slot
+    }
 
     // `page-transitions`: the mode "applies to the current publication immediately
     // without losing the reading position". Hoisted above the coordinator so a mode
@@ -307,6 +357,13 @@ private fun Pager(
     // `native-experience`: what the cover brings to this publication's own screens.
     // Null until the cover has been read, and for a cover that carries no colour.
     val coverColours by viewModel.coverColours.collectAsStateWithLifecycle()
+
+    /**
+     * The page being read, kept apart from [position] because the two mean different
+     * things when the pages regroup: turning the device changes which slot a page is in,
+     * and a reader who rotates their phone should still be looking at what they were.
+     */
+    var readingPage by remember { mutableIntStateOf(viewModel.initialIndex) }
 
     /** Whether the adjustment controls are open. */
     var isAdjusting by rememberSaveable { mutableStateOf(false) }
@@ -336,8 +393,7 @@ private fun Pager(
         onDispose { activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
     }
 
-    val choices = viewModel.transitions(settings)
-    val paging = rememberPaging(choices.effective, count, position)
+    val paging = rememberPaging(choices.effective, slotCount, position)
     LaunchedEffect(paging) {
         snapshotFlow { paging.current }.collect { position = it }
     }
@@ -367,6 +423,13 @@ private fun Pager(
         val page = previousDirection.position(paging.current, count)
         previousDirection = direction
         paging.goTo(direction.position(page, count), animate = false)
+    }
+
+    // The pages regroup when the device turns, when a wide page decodes, or when the
+    // reader shifts the pairing. The reader keeps its *page* across that.
+    LaunchedEffect(layout) {
+        if (!hasOpened) return@LaunchedEffect
+        paging.goTo(displayIndex(readingPage), animate = false)
     }
     val scope = rememberCoroutineScope()
 
@@ -432,11 +495,39 @@ private fun Pager(
         isChromeVisible = false
     }
 
+    // `comic-reader`: the prefetch window narrows "under memory pressure rather than the
+    // app being terminated". Android reports pressure through the context's component
+    // callbacks and never reports it lifting, so the all-clear is tied to the reader
+    // coming back to the foreground instead — see `noteMemoryPressure`.
+    val context = LocalContext.current
+    DisposableEffect(context, viewModel) {
+        val callbacks = object : ComponentCallbacks2 {
+            override fun onTrimMemory(level: Int) {
+                scope.launch { viewModel.noteMemoryPressure(trimPressure(level), at = readingPage) }
+            }
+
+            override fun onConfigurationChanged(newConfig: Configuration) = Unit
+
+            @Deprecated("Superseded by onTrimMemory, and still called on older systems.")
+            override fun onLowMemory() {
+                scope.launch {
+                    viewModel.noteMemoryPressure(MemoryPressure.CRITICAL, at = readingPage)
+                }
+            }
+        }
+        context.registerComponentCallbacks(callbacks)
+        onDispose { context.unregisterComponentCallbacks(callbacks) }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        scope.launch { viewModel.noteMemoryPressure(MemoryPressure.NORMAL, at = readingPage) }
+    }
+
     // The pager owns its position and the model follows, in one direction only.
     LaunchedEffect(position) {
+        readingPage = modelIndex(position)
         // Reading back to where a jump started retires the offer to go there.
-        pageReturn = pageReturn.moved(modelIndex(position))
-        viewModel.warm(modelIndex(position))
+        pageReturn = pageReturn.moved(readingPage)
+        viewModel.warm(readingPage)
     }
 
     /**
@@ -452,15 +543,16 @@ private fun Pager(
         // still settling, and one built when the page list was empty would carry a
         // count of zero for ever — every turn silently out of range, which looks
         // exactly like taps that do nothing.
-        val total = pages.size
-        if (target in 0 until total) {
+        val slots = layout.count
+        if (target in 0 until slots) {
             scope.launch { paging.goTo(target) }
             return
         }
-        // `comic-reader`: turning past the last page reaches an end screen rather
-        // than nothing. In right-to-left the last *page* is the first display
-        // position, which is why this asks the model index rather than the pager.
-        if (modelIndex(paging.current) == total - 1) {
+        // `comic-reader`: turning past the last page reaches an end screen rather than
+        // nothing. Asked in *slots*: in right-to-left the last slot is the first display
+        // position, and in a landscape spread the last slot holds two pages, so "the
+        // reader is on page count - 1" is false at exactly the moment the end is due.
+        if (slotIndex(paging.current) == slotCount - 1) {
             if (!hasReachedEnd) haptics.play(StoryArcFeedback.COMPLETION)
             hasReachedEnd = true
         } else {
@@ -543,8 +635,7 @@ private fun Pager(
 
     /** One page, however it is being presented. */
     @Composable
-    fun Page(display: Int, stitch: ScrollAxis? = null) {
-        val index = modelIndex(display)
+    fun SinglePage(index: Int, stitch: ScrollAxis?, onTap: (Offset, IntSize) -> Unit) {
         val bitmap = viewModel.image(index)
         val trims = adjustments.cropsBorders && index !in uncropped
         when {
@@ -560,7 +651,7 @@ private fun Pager(
                 contentDescription = stringResource(R.string.reader_page_label, index + 1, pages.size),
                 fit = fit,
                 adjustments = adjustments,
-                onTap = ::handleTap,
+                onTap = onTap,
                 // In a continuous scroll a page takes the height its own proportions
                 // ask for. Fitting each one to the screen instead would put a band of
                 // background between every pair, which is the opposite of the
@@ -587,7 +678,7 @@ private fun Pager(
                             null -> Modifier.fillMaxSize()
                         },
                     )
-                    .tappable(::handleTap),
+                    .tappable(onTap),
                 contentAlignment = Alignment.Center,
             ) {
                 if (viewModel.isUnavailable(index)) {
@@ -596,6 +687,45 @@ private fun Pager(
                     Message(stringResource(R.string.reader_page_unavailable))
                 } else {
                     DelayedProgressIndicator()
+                }
+            }
+        }
+    }
+
+    /**
+     * One slot: a page, or two facing pages.
+     *
+     * `comic-reader`: a pair is shown "side by side in the correct order for the reading
+     * direction". Reading order is the publication's own either way — a manga spread
+     * reads 4 then 5 exactly as a western one does — so only the screen order flips, and
+     * it flips here rather than anywhere the pages are counted.
+     */
+    @Composable
+    fun Page(display: Int, stitch: ScrollAxis? = null) {
+        val spread = layout.slotAt(slotIndex(display))
+        val trailing = spread?.trailing
+        if (trailing == null || stitch != null) {
+            SinglePage(spread?.leading ?: 0, stitch, ::handleTap)
+            return
+        }
+        val onScreen =
+            if (isRightToLeft) listOf(trailing, spread.leading) else listOf(spread.leading, trailing)
+        Row(Modifier.fillMaxSize()) {
+            onScreen.forEachIndexed { half, index ->
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    SinglePage(index, stitch = null) { point, size ->
+                        // The halves are equal, so a tap in one is a tap in the same place
+                        // on a screen twice as wide. Without this the edge zones would be
+                        // measured against half the screen, and the middle of a spread
+                        // would turn the page.
+                        handleTap(
+                            Offset(if (half == 0) point.x else point.x + size.width, point.y),
+                            IntSize(size.width * 2, size.height),
+                        )
+                    }
                 }
             }
         }
@@ -644,11 +774,24 @@ private fun Pager(
 
             is Paging.Scrolled -> if (choices.effective == PageTransition.VERTICAL_SCROLL) {
                 LazyColumn(state = paging.state, modifier = keyboard) {
-                    items(count) { Page(it, stitch = ScrollAxis.VERTICAL) }
+                    items(slotCount) { index ->
+                        // `comic-reader` asks for the separator *between* pages, so the
+                        // first page does not get one — a band above page one is a
+                        // margin, not a separator.
+                        if (settings.showsPageSeparator && index > 0) {
+                            PageSeparator(ScrollAxis.VERTICAL, matte)
+                        }
+                        Page(index, stitch = ScrollAxis.VERTICAL)
+                    }
                 }
             } else {
                 LazyRow(state = paging.state, modifier = keyboard) {
-                    items(count) { Page(it, stitch = ScrollAxis.HORIZONTAL) }
+                    items(slotCount) { index ->
+                        if (settings.showsPageSeparator && index > 0) {
+                            PageSeparator(ScrollAxis.HORIZONTAL, matte)
+                        }
+                        Page(index, stitch = ScrollAxis.HORIZONTAL)
+                    }
                 }
             }
         }
@@ -699,6 +842,8 @@ private fun Pager(
             Row(modifier = Modifier.align(Alignment.TopEnd)) {
                 TransitionMenu(
                     choices = choices,
+                    showsSeparator = settings.showsPageSeparator,
+                    onToggleSeparator = viewModel::choosePageSeparator,
                     // A scroll row is an axis choice: recording it as one is what
                     // makes the override stick, rather than leaving the axis implied
                     // and the mode disagreeing with it.
@@ -713,6 +858,15 @@ private fun Pager(
                     onChange = onFitChange,
                     onOpenChange = { isMenuOpen = it },
                 )
+                // Only where there is a pairing to shift. `comic-reader` offers the
+                // offset "for publications whose cover throws the pairing off", which is
+                // a question that does not arise in portrait or in a scroll.
+                if (layout.hasPairs) {
+                    SpreadOffsetButton(
+                        isOffset = settings.offsetsSpreads,
+                        onToggle = { viewModel.chooseSpreadOffset(!settings.offsetsSpreads) },
+                    )
+                }
                 AdjustButton(isNeutral = adjustments.isNeutral) { isAdjusting = true }
             }
 
@@ -1066,6 +1220,76 @@ private fun ChapterButton(
     }
 }
 
+/**
+ * The break between two pages in a continuous scroll.
+ *
+ * `comic-reader`: pages are "stitched with no gap by default, with an option to show a
+ * separator". A band of the matte with a hairline through it, rather than a hairline on
+ * its own: a black line between two black-bordered pages is invisible and so is a white
+ * one between two white ones, and the matte is the colour the reader has already said
+ * belongs between the artwork and the screen.
+ *
+ * iOS's `PageSeparator` is the same band.
+ */
+@Composable
+private fun PageSeparator(
+    axis: ScrollAxis,
+    /** What shows around the page, which is what shows between two of them. */
+    matte: Color,
+    modifier: Modifier = Modifier,
+) {
+    // Enough to read as a deliberate break at arm's length, and not so much that a
+    // webtoon stops reading as one strip.
+    val band = 10.dp
+    Box(
+        modifier = modifier
+            .then(
+                if (axis == ScrollAxis.VERTICAL) {
+                    Modifier.fillMaxWidth().height(band)
+                } else {
+                    Modifier.fillMaxHeight().width(band)
+                },
+            )
+            .background(matte),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .then(
+                    if (axis == ScrollAxis.VERTICAL) {
+                        Modifier.fillMaxWidth().height(1.dp)
+                    } else {
+                        Modifier.fillMaxHeight().width(1.dp)
+                    },
+                )
+                .background(LocalStoryArcPalette.current.borderSubtle),
+        )
+    }
+}
+
+/**
+ * Shifts which pages are paired, for a publication whose cover throws the pairing off.
+ *
+ * iOS's spread-offset button is the same control.
+ */
+@Composable
+private fun SpreadOffsetButton(
+    isOffset: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(onClick = onToggle, modifier = modifier.padding(StoryArcSpace.md)) {
+        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
+            Icon(
+                imageVector = Icons.Filled.ViewColumn,
+                contentDescription = stringResource(R.string.reader_spreads_offset),
+                tint = if (isOffset) LocalStoryArcPalette.current.accent else Color.White,
+                modifier = Modifier.padding(StoryArcSpace.sm),
+            )
+        }
+    }
+}
+
 /** Opens and closes the page strip. */
 @Composable
 private fun ThumbnailToggle(
@@ -1217,6 +1441,9 @@ private fun TransitionMenu(
     choices: TransitionChoices,
     onChoose: (PageTransition) -> Unit,
     onOpenChange: (Boolean) -> Unit,
+    /** Whether a continuous scroll draws a line where one page ends and the next begins. */
+    showsSeparator: Boolean,
+    onToggleSeparator: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -1260,6 +1487,16 @@ private fun TransitionMenu(
                         onChoose(mode)
                         open = false
                     },
+                )
+            }
+            // Only where there are stitched pages to separate. In a paged mode there is a
+            // whole screen between one page and the next already.
+            if (choices.effective.scrollAxis != null) {
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.reader_separator)) },
+                    leadingIcon = { Checkbox(checked = showsSeparator, onCheckedChange = null) },
+                    onClick = { onToggleSeparator(!showsSeparator) },
                 )
             }
             if (choices.curlIsAbsent) {
@@ -1472,6 +1709,27 @@ internal fun matteColour(hex: String?): Color {
         green = ((value shr 8) and 0xFF) / 255f,
         blue = (value and 0xFF) / 255f,
     )
+}
+
+/**
+ * What one of Android's seven trim levels means in the three states the reader knows.
+ *
+ * `TRIM_MEMORY_RUNNING_CRITICAL` and everything above it — including the levels raised
+ * once the app is no longer in front — are the ones where the system is choosing what to
+ * end. `RUNNING_MODERATE` and `RUNNING_LOW` are a request rather than a threat.
+ *
+ * The running levels are deprecated as of API 35, which stopped delivering them, and are
+ * still what an API 31 to 34 device sends — and ADR-0003 puts the floor at 31. So they
+ * are read rather than ignored, and a device that never sends them simply never narrows
+ * the window until its UI is hidden.
+ *
+ * iOS's `MemoryPressureSource` maps the same three states out of a dispatch source.
+ */
+@Suppress("DEPRECATION")
+internal fun trimPressure(level: Int): MemoryPressure = when {
+    level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> MemoryPressure.CRITICAL
+    level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE -> MemoryPressure.WARNING
+    else -> MemoryPressure.NORMAL
 }
 
 private const val EDGE_ZONE_FRACTION = 0.25f

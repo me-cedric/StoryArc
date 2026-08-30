@@ -1199,36 +1199,6 @@
         }
       }
     },
-    "reader.spreads": {
-      "comment": "Turns on showing two facing pages together in landscape.",
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zwei Seiten nebeneinander"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Two pages side by side"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dos páginas lado a lado"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deux pages côte à côte"
-          }
-        }
-      }
-    },
     "reader.spreads.offset": {
       "comment": "Shifts which pages are paired, for a publication whose cover throws the pairing off.",
       "extractionState": "manual",

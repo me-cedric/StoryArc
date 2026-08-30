@@ -255,6 +255,44 @@ struct StitchedPage: View {
     }
 }
 
+/// The break between two pages in a continuous scroll.
+///
+/// `comic-reader`: pages are "stitched with no gap by default, with an option to show a
+/// separator". A band of the matte with a hairline through it, rather than a hairline on
+/// its own: a black line between two black-bordered pages is invisible and so is a white
+/// one between two white ones, and the matte is the colour the reader has already said
+/// belongs between the artwork and the screen.
+struct PageSeparator: View {
+    @Environment(\.theme) private var theme
+
+    let axis: ScrollAxis
+    /// What shows around the page, which is what shows between two of them.
+    let matte: Color
+
+    /// Enough to read as a deliberate break at arm's length, and not so much that a
+    /// webtoon stops reading as one strip.
+    private static let band: CGFloat = 10
+
+    var body: some View {
+        ZStack {
+            matte
+            Rectangle()
+                .fill(theme.palette.borderSubtle)
+                .frame(
+                    width: axis == .vertical ? nil : 1,
+                    height: axis == .vertical ? 1 : nil
+                )
+        }
+        .frame(
+            width: axis == .vertical ? nil : Self.band,
+            height: axis == .vertical ? Self.band : nil
+        )
+        // Decoration, and named as such: VoiceOver reads the pages either side of it and
+        // has no use for the gap between them.
+        .accessibilityHidden(true)
+    }
+}
+
 /// Fills the axis a scroll does *not* run along.
 private struct FullAcross: ViewModifier {
     let axis: ScrollAxis

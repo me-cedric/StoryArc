@@ -45,6 +45,26 @@ extension ReaderView {
                 .buttonStyle(.glass)
                 .tint(.white)
 
+                // Only where there is a pairing to shift. `comic-reader` offers the
+                // offset "for publications whose cover throws the pairing off", which
+                // is a question that does not arise in portrait or in a scroll.
+                if layout.hasPairs {
+                    Button {
+                        model.chooseSpreadOffset(!model.settings.offsetsSpreads)
+                    } label: {
+                        Label {
+                            Text("reader.spreads.offset", bundle: .module)
+                        } icon: {
+                            Image(systemName: model.settings.offsetsSpreads
+                                ? "rectangle.split.2x1.fill"
+                                : "rectangle.split.2x1")
+                        }
+                        .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.glass)
+                    .tint(.white)
+                }
+
                 if model.pages.count > 1 {
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -161,6 +181,15 @@ extension ReaderView {
                     }
                     .disabled(!choices.isAvailable(mode))
                 }
+
+                // Only where there are stitched pages to separate. In a paged mode there
+                // is a whole screen between one page and the next already.
+                if choices.effective.scrollAxis != nil {
+                    Divider()
+                    Toggle(isOn: separatorBinding) {
+                        Text("reader.separator", bundle: .module)
+                    }
+                }
             } label: {
                 Label {
                     Text(choices.effective.titleKey, bundle: .module)
@@ -252,6 +281,13 @@ extension ReaderView {
     }
     #endif
 
+    /// Whether a continuous scroll draws a line where one page ends and the next begins.
+    var separatorBinding: Binding<Bool> {
+        Binding(
+            get: { model.settings.showsPageSeparator },
+            set: { model.choosePageSeparator($0) }
+        )
+    }
     /// The page-fit picker, without a style.
     ///
     /// The label is a real one rather than `""`: each segment reads its own title to

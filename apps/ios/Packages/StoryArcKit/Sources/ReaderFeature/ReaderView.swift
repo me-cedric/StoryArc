@@ -172,6 +172,22 @@ public struct ReaderView: View {
     /// drag around it and has to move the reader at once.
     @State var isScrubbing = false
 
+    /// How the pages are grouped on screen: one per slot, and a slot may hold two.
+    ///
+    /// Held rather than computed, because every layout pass asks it several times — the
+    /// pager, the counter, the slider and the end check — and rebuilding two hundred
+    /// slots per question is work that never had to happen. ``rebuildLayout()`` is what
+    /// keeps it honest, and ``layoutKey`` is what says when.
+    @State var layout: SpreadLayout = .single(pageCount: 0)
+
+    /// Whether the screen is wider than it is tall.
+    ///
+    /// `comic-reader` pairs facing pages only "when the device is in landscape", so this
+    /// is the switch. Read from the geometry rather than from an orientation
+    /// notification: a split-screen iPad is not in landscape in the way the reader means
+    /// it, and the geometry is the thing the pages actually have to fit into.
+    @State var isLandscape = false
+
     /// What to do to a page before it is shown, for this series.
     @State var adjustments = ImageAdjustments()
 
@@ -207,11 +223,13 @@ public struct ReaderView: View {
 
                 if let failure = model.failure {
                     ReaderFailure(message: failure)
-                } else if model.pages.isEmpty {
+                } else if model.pages.isEmpty || layout.slots.isEmpty {
                     // The pager is not built until there are pages to put in it.
                     // A `TabView` with no tags resolves its selection against
                     // nothing and then lands on whatever appears first, which
-                    // opened every publication on its last page.
+                    // opened every publication on its last page. The layout is in
+                    // the same guard for the same reason: it is rebuilt by an
+                    // effect, so it is empty for the frame in which pages arrive.
                     DelayedProgressView()
                 } else {
                     pages(in: geometry.size)
@@ -252,6 +270,13 @@ public struct ReaderView: View {
             .onChange(of: adjustments) { _, now in
                 rememberAdjustments(now)
             }
+            // The geometry answers this rather than an orientation notification, and it
+            // answers it for a split-screen window too.
+            .onChange(of: geometry.size, initial: true) { _, size in
+                isLandscape = size.width > size.height
+            }
+            // Regrouped when, and only when, one of its inputs moves.
+            .onChange(of: layoutKey, initial: true) { _, _ in rebuildLayout() }
             .task(id: chromeTimerKey) {
                 // The chrome stays up over a failure. It is the only way back to the
                 // library, and hiding it four seconds after an error message left a black
@@ -272,6 +297,15 @@ public struct ReaderView: View {
                 await model.open(
                     maxPixelSize: Int(max(geometry.size.width, geometry.size.height) * displayScale)
                 )
+            }
+            // `comic-reader`: the prefetch window narrows "under memory pressure rather
+            // than the app being terminated", and widens again when the pressure lifts.
+            // For as long as the reader is on screen: leaving cancels the task, which
+            // cancels the source.
+            .task {
+                for await pressure in MemoryPressureSource.pressures() {
+                    await model.noteMemoryPressure(pressure)
+                }
             }
         }
         // `comic-reader`: the mapped keys turn pages. Arrow and page keys only —
@@ -318,67 +352,4 @@ public struct ReaderView: View {
         }
         #endif
     }
-
-    /// The pages themselves, in whichever container the chosen mode calls for.
-    ///
-    /// `page-transitions` treats the mode as a property of the container, and this is
-    /// what that means here: Slide is a `TabView`, Fast fade is one page with a
-    /// dissolve, and Scroll is a `ScrollView` of stitched pages. One `displayIndex`
-    /// drives all three — on iOS `scrollPosition` and `TabView`'s selection speak the
-    /// same language, so there is no coordinator type to write. Android needs one.
-    ///
-    /// Right-to-left reverses the *display* order and maps the index at the
-    /// boundary, so the model keeps counting pages the way the publication does
-    /// and the indicator says "2 of 4" rather than "3 of 4" for the same page.
-    ///
-    /// The obvious alternative — mirroring the pager with a `scaleEffect` of -1 —
-    /// was tried and does not work: `TabView`'s paging gesture is computed before
-    /// the transform, so a swipe pages the wrong way, jumps two at a time, and
-    /// then sticks at an end. Reversing the data is the mechanism that survives
-    /// contact with the gesture recogniser.
-    @ViewBuilder
-    private func pages(in size: CGSize) -> some View {
-        let choices = model.transitions(reduceMotion: reduceMotion)
-        let container = Group {
-            switch choices.effective {
-            case .verticalScroll: stitched(.vertical)
-            case .horizontalScroll: stitched(.horizontal)
-            case .fastFade: faded
-            case .pageCurl: curled
-            case .slide: paged
-            }
-        }
-        container
-            // One direction only: the container moves, the model follows.
-            .onChange(of: displayIndex) { _, new in
-                let index = modelIndex(forDisplay: new)
-                guard model.pages.indices.contains(index) else { return }
-                // Reading back to where a jump started retires the offer to go there.
-                pageReturn = pageReturn.moved(to: index)
-                Task { await model.go(to: index) }
-            }
-            // And once, the other way, when the publication opens on a page that is
-            // not the first — a ComicInfo cover, or a resumed position later.
-            .onAppear { displayIndex = displayIndex(forModel: model.currentIndex) }
-            // `comic-reader`: a direction change "applies immediately without losing the
-            // current page". The run the pager lays out reverses under the reader, so the
-            // position holding the page they are on moves to the other end of it. Asked
-            // again here, or turning a manga around would leave them the same distance
-            // from the other cover.
-            //
-            // Not animated, because this is not a turn: the page in front of the reader
-            // does not change, only where the pager keeps it, and animating that would
-            // fling across the publication to arrive back where it started.
-            .onChange(of: model.readingDirection) { _, _ in
-                var instant = Transaction()
-                instant.disablesAnimations = true
-                withTransaction(instant) {
-                    displayIndex = displayIndex(forModel: model.currentIndex)
-                }
-            }
-            .accessibilityLabel(
-                isRightToLeft ? Text("reader.rightToLeft", bundle: .module) : Text(verbatim: "")
-            )
-    }
-
 }

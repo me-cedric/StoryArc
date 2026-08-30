@@ -65,6 +65,11 @@ extension ReaderView {
     func stitched(_ axis: ScrollAxis) -> some View {
         ScrollView(axis == .vertical ? .vertical : .horizontal) {
             let content = ForEach(displayOrder, id: \.self) { displayIndex in
+                // `comic-reader` asks for the separator between pages, so the first page
+                // does not get one — a band above page one is a margin, not a separator.
+                if model.settings.showsPageSeparator, displayIndex > 0 {
+                    PageSeparator(axis: axis, matte: model.matte)
+                }
                 stitchedPage(at: displayIndex, along: axis)
                     .id(displayIndex)
             }
@@ -90,17 +95,61 @@ extension ReaderView {
         )
     }
 
+    /// One slot: a page, or two facing pages.
+    ///
+    /// `comic-reader`: a pair is shown "side by side in the correct order for the
+    /// reading direction". Reading order is the publication's own either way — a manga
+    /// spread reads 4 then 5 exactly as a western one does — so only the screen order
+    /// flips, and it flips here rather than anywhere the pages are counted.
+    @ViewBuilder
     func page(at displayIndex: Int) -> some View {
-        let index = modelIndex(forDisplay: displayIndex)
-        return PageView(
-            image: model.image(at: index),
-            isUnavailable: model.isUnavailable(at: index),
-            pageID: model.pages[index].path,
-            label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
-            fit: fit,
-            adjustments: trimming(at: index),
-            onTap: { location, size in handleTap(at: location, in: size) }
-        )
+        let spread = layout[slotIndex(forDisplay: displayIndex)]
+        if let spread, let trailing = spread.trailing {
+            let onScreen = isRightToLeft ? [trailing, spread.leading] : [spread.leading, trailing]
+            HStack(spacing: 0) {
+                ForEach(Array(onScreen.enumerated()), id: \.offset) { position, index in
+                    half(at: index, isFirstOnScreen: position == 0)
+                }
+            }
+        } else {
+            singlePage(at: spread?.leading ?? 0) { location, size in
+                handleTap(at: location, in: size)
+            }
+        }
+    }
+
+    /// One half of a spread, with its taps put back into screen terms.
+    ///
+    /// The halves are equal, so a tap in one is a tap in the same place on a screen twice
+    /// as wide. Without this the edge zones would be measured against half the screen and
+    /// the middle of a spread would turn the page.
+    private func half(at index: Int, isFirstOnScreen: Bool) -> some View {
+        singlePage(at: index) { location, size in
+            handleTap(
+                at: CGPoint(x: isFirstOnScreen ? location.x : location.x + size.width, y: location.y),
+                in: CGSize(width: size.width * 2, height: size.height)
+            )
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func singlePage(at index: Int, onTap: @escaping (CGPoint, CGSize) -> Void) -> some View {
+        if model.pages.indices.contains(index) {
+            PageView(
+                image: model.image(at: index),
+                isUnavailable: model.isUnavailable(at: index),
+                pageID: model.pages[index].path,
+                label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
+                fit: fit,
+                adjustments: trimming(at: index),
+                onTap: onTap
+            )
+        } else {
+            // A slot that outlived its pages, for the frame between a publication
+            // closing and the layout being rebuilt. Black, like everything behind a page.
+            Color.black
+        }
     }
 
     /// One page in a continuous scroll: full across, natural along.

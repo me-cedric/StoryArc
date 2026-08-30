@@ -50,7 +50,6 @@
     <string name="reader_chapter_previous">Chapitre précédent</string>
     <string name="reader_chapter_next">Chapitre suivant</string>
     <string name="reader_return">Retour à la page %1$d</string>
-    <string name="reader_spreads">Deux pages côte à côte</string>
     <string name="reader_spreads_offset">Décaler l’appariement d’une page</string>
     <string name="reader_separator">Afficher le séparateur de pages</string>
 </resources>

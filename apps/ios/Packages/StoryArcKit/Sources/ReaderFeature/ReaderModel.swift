@@ -24,16 +24,28 @@ public final class ReaderModel {
     /// Set when the publication could not be opened at all.
     public private(set) var failure: String?
 
+    /// Pages that take the width of two.
+    ///
+    /// `comic-reader` shows such a page alone rather than pairing it with a neighbour.
+    /// Two sources, answering different halves of the same question: `ComicInfo`
+    /// *declares* spreads and is believed outright, and a page that decoded wider than
+    /// it is tall is one whether the file says so or not — most CBZs carry no metadata
+    /// at all, so a declaration alone would find nothing in the common case.
+    ///
+    /// Grows as pages decode, which means a landscape layout can regroup itself a few
+    /// pages ahead of the reader. That is what "detected" means; the reader keeps its
+    /// *page* across the regrouping rather than its slot, so nothing moves under it.
+    public private(set) var wideIndices: Set<Int> = []
+
     /// How many pages to keep decoded, and in which direction.
     ///
-    /// `comic-reader`: "at least the next three and previous one page are decoded
-    /// and held ready". Asymmetric because reading is: three ahead covers a fast
-    /// run of turns, one behind covers the glance back, and five pages of a
-    /// 2000×3000 corpus is a bound `publication-formats` is happy with.
-    private let lookAhead = 3
-    private let lookBehind = 1
+    /// Starts at the window `comic-reader` asks for and narrows when the system says
+    /// memory is short — see ``noteMemoryPressure(_:)``. A `var` for that reason: the
+    /// spec's floor is a floor for normal conditions, not for the moment the system is
+    /// choosing a process to end.
+    var prefetch = PrefetchWindow.full
 
-    private var decoded: [Int: CGImage] = [:]
+    var decoded: [Int: CGImage] = [:]
 
     // Internal, not private, for both of these: the thumbnail half of this type lives in
     // another file, and `private` is file-scoped.
@@ -54,9 +66,9 @@ public final class ReaderModel {
     /// Set instead of [archive] for a PDF, whose pages are drawn rather than
     /// stored. `ebook-reader` requires a several-hundred-megabyte PDF to render
     /// pages as they are needed, so nothing is rasterised until it is asked for.
-    private var pdf: PdfPageRenderer?
+    var pdf: PdfPageRenderer?
     private let url: URL
-    private var maxPixelSize = 2048
+    var maxPixelSize = 2048
     private let progress: ProgressStore?
 
     /// - Parameters:
@@ -160,6 +172,20 @@ public final class ReaderModel {
         remember(settings.settingReadingDirection(direction))
     }
 
+    /// Shifts the spread pairing by one, or puts it back, for this shelf from now on.
+    ///
+    /// `comic-reader` asks for the offset "for publications whose cover throws the
+    /// pairing off", and that is a fact about the series rather than about the reader —
+    /// so it is remembered where the reading mode is, and issue two opens paired right.
+    public func chooseSpreadOffset(_ isOffset: Bool) {
+        remember(settings.settingSpreadOffset(isOffset))
+    }
+
+    /// Shows or hides the line between pages in a continuous scroll.
+    public func choosePageSeparator(_ isShown: Bool) {
+        remember(settings.settingPageSeparator(isShown))
+    }
+
     private func remember(_ new: ShelfSettings) {
         settings = new
         guard let preferences else { return }
@@ -168,10 +194,19 @@ public final class ReaderModel {
         )
     }
 
-    /// Records a decoded page's shape, once, for the implied axis.
-    func noteDecoded(_ image: CGImage) {
-        guard firstPageRatio == 0, image.width > 0 else { return }
-        firstPageRatio = Double(image.height) / Double(image.width)
+    /// Records what a decoded page's shape tells us: the implied axis, and whether the
+    /// page is a spread.
+    ///
+    /// The axis is taken from the first page only — a webtoon rarely declares itself and
+    /// waiting for the tallest page means waiting for the whole publication. Wideness is
+    /// per page, because that is the question being asked about each one.
+    func noteDecoded(_ image: CGImage, at index: Int) {
+        if firstPageRatio == 0, image.width > 0 {
+            firstPageRatio = Double(image.height) / Double(image.width)
+        }
+        // Wider than tall, with no tolerance to tune: a portrait page scanned with a
+        // slight skew is still portrait, and a spread is half again as wide as a page.
+        if image.width > image.height { wideIndices.insert(index) }
     }
 
     /// The direction the reader turns pages in.
@@ -206,6 +241,7 @@ public final class ReaderModel {
             let opened = try await ComicArchiveOpener.open(fileAt: url)
             archive = opened
             pages = opened.pages
+            wideIndices = Set(opened.doublePageIndices)
             // Start at the designated cover when there is one. `publication-formats`
             // lets ComicInfo name a cover that is not page one, and opening on a
             // different page than the library showed would be disorienting.
@@ -281,7 +317,7 @@ public final class ReaderModel {
         attempted.contains(index) && decoded[index] == nil
     }
 
-    private var attempted: Set<Int> = []
+    var attempted: Set<Int> = []
 
     public func go(to index: Int) async {
         guard pages.indices.contains(index) else { return }
@@ -317,84 +353,5 @@ public final class ReaderModel {
 
     public func retreat() async {
         await go(to: currentIndex - 1)
-    }
-
-    /// Decodes the current page and its neighbours, and drops the rest.
-    private func warm(around index: Int) async {
-        let wanted = Set((index - lookBehind)...(index + lookAhead))
-            .filter { pages.indices.contains($0) }
-        // Dropped before decoding, so peak memory is the window and not the window
-        // plus whatever was there before.
-        for key in decoded.keys where !wanted.contains(key) {
-            decoded.removeValue(forKey: key)
-            attempted.remove(key)
-        }
-        // The current page first: a turn should not wait on its neighbours.
-        for target in [index] + wanted.sorted(by: { abs($0 - index) < abs($1 - index) }) {
-            guard decoded[target] == nil, !attempted.contains(target) else { continue }
-            await decode(target)
-        }
-    }
-
-    private func decode(_ index: Int) async {
-        guard pages.indices.contains(index) else { return }
-        attempted.insert(index)
-        let size = maxPixelSize
-
-        if let pdf {
-            if let image = await pdf.image(at: index, maxPixelSize: size) {
-                decoded[index] = image
-                noteDecoded(image)
-            } else {
-                attempted.remove(index)
-            }
-            return
-        }
-
-        guard let archive else { return }
-        let page = pages[index]
-        let image = await Task.detached(priority: .userInitiated) {
-            guard let data = try? await archive.data(for: page) else { return CGImage?.none }
-            return try? PageDecoder.decode(data, maxPixelSize: size)
-        }.value
-        if let image {
-            decoded[index] = image
-            noteDecoded(image)
-        } else {
-            // Forgotten rather than remembered as tried. A page that failed because the
-            // share was away must be readable once it comes back — `network-share` asks the
-            // app to "resume streaming at the current page" after reconnecting, and a page
-            // marked attempted for ever never gets a second chance.
-            attempted.remove(index)
-        }
-    }
-}
-
-/// A PDF, rendered off the main actor.
-///
-/// `PDFDocument` is not `Sendable`, so the reader cannot be handed to a detached
-/// task — Swift 6 rejects that outright, and it would be a real race rather than
-/// a pedantic one. An actor owns the document instead: it is created inside the
-/// actor and never leaves it, and renders serialise, which is what PDFKit wants
-/// anyway.
-private actor PdfPageRenderer {
-    private let reader: PdfDocumentReader
-
-    /// Page count, read once. Cheap, and it saves an `await` per pager layout.
-    nonisolated let pageCount: Int
-
-    init(url: URL) throws {
-        let reader = try PdfDocumentReader(url: url)
-        self.reader = reader
-        self.pageCount = reader.pageCount
-    }
-
-    /// One page, rasterised at the size it will be drawn.
-    ///
-    /// `nil` rather than a throw: the reader shows a named "page unavailable"
-    /// placeholder for a page it cannot produce, and one bad page in a PDF should
-    /// not close the whole document.
-    func image(at index: Int, maxPixelSize: Int) -> CGImage? {
-        try? reader.render(pageAt: index, maxPixelSize: maxPixelSize)
     }
 }

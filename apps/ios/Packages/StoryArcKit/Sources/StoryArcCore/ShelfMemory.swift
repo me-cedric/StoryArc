@@ -39,6 +39,19 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
     /// What to do to a page before it is shown. `comic-reader` requires an adjustment to
     /// apply "to the series and [not be] applied globally", which is what this store is.
     public var adjustments: ImageAdjustments
+    /// Whether facing pages are paired one page later than they would be by default.
+    ///
+    /// `comic-reader`: "the user can offset the pairing by one page, for publications
+    /// whose cover throws the pairing off". Per shelf, because whether a series prints
+    /// its cover as part of the pagination is a fact about the series, not about the
+    /// reader — they should not have to say it again for issue two.
+    public var offsetsSpreads: Bool
+    /// Whether a continuous scroll draws a line where one page ends and the next begins.
+    ///
+    /// `comic-reader`: pages are "stitched with no gap by default, with an option to show
+    /// a separator". Default off, because a webtoon is drawn to be read as one strip and
+    /// a line across it is a seam its author did not put there.
+    public var showsPageSeparator: Bool
 
     /// - Parameter values: the typography. Defaults to the preset's own, which is
     ///   what an unmodified theme means.
@@ -48,7 +61,9 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
         transition: PageTransition = .slide,
         scrollAxis: ScrollAxis? = nil,
         readingDirection: ReadingDirection? = nil,
-        adjustments: ImageAdjustments = ImageAdjustments()
+        adjustments: ImageAdjustments = ImageAdjustments(),
+        offsetsSpreads: Bool = false,
+        showsPageSeparator: Bool = false
     ) {
         self.theme = theme
         self.values = values ?? theme.preset.values
@@ -56,6 +71,8 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
         self.scrollAxis = scrollAxis
         self.readingDirection = readingDirection
         self.adjustments = adjustments
+        self.offsetsSpreads = offsetsSpreads
+        self.showsPageSeparator = showsPageSeparator
     }
 
     /// Decodes what is there and defaults what is not.
@@ -77,7 +94,13 @@ public struct ShelfSettings: Sendable, Equatable, Codable {
                 ReadingDirection.self, forKey: .readingDirection
             ),
             adjustments: try container.decodeIfPresent(ImageAdjustments.self, forKey: .adjustments)
-                ?? ImageAdjustments()
+                ?? ImageAdjustments(),
+            offsetsSpreads: try container.decodeIfPresent(Bool.self, forKey: .offsetsSpreads)
+                ?? false,
+            showsPageSeparator: try container.decodeIfPresent(
+                Bool.self,
+                forKey: .showsPageSeparator
+            ) ?? false
         )
     }
 }
@@ -105,6 +128,20 @@ extension ShelfSettings {
     public func settingReadingDirection(_ direction: ReadingDirection) -> ShelfSettings {
         var copy = self
         copy.readingDirection = direction
+        return copy
+    }
+
+    /// The same settings with the spread pairing shifted, or put back.
+    public func settingSpreadOffset(_ isOffset: Bool) -> ShelfSettings {
+        var copy = self
+        copy.offsetsSpreads = isOffset
+        return copy
+    }
+
+    /// The same settings with the scroll separator shown, or hidden.
+    public func settingPageSeparator(_ isShown: Bool) -> ShelfSettings {
+        var copy = self
+        copy.showsPageSeparator = isShown
         return copy
     }
 

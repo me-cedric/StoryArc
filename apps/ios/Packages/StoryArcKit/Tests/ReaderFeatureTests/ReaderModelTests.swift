@@ -93,6 +93,48 @@ struct ReaderModelTests {
         #expect(model.image(at: 10) == nil)
     }
 
+    @Test("Memory pressure narrows the window and gives back what no longer fits")
+    func pressureShrinksThePrefetch() async {
+        let location = url("comics/natural-sort.cbz")
+        let model = ReaderModel(publication: publication(.cbz, at: location), url: location)
+        await model.open(maxPixelSize: 256)
+        await model.go(to: 6)
+        #expect(model.image(at: 9) != nil)
+
+        // `comic-reader`: "prefetch depth shrinks under memory pressure rather than the
+        // app being terminated". Straight away, not at the next turn — the pages already
+        // held are the ones the system is asking for back.
+        await model.noteMemoryPressure(.warning)
+
+        #expect(model.image(at: 6) != nil)
+        #expect(model.image(at: 7) != nil)
+        #expect(model.image(at: 8) == nil)
+        #expect(model.image(at: 9) == nil)
+
+        // Critical leaves only the page on screen.
+        await model.noteMemoryPressure(.critical)
+        #expect(model.image(at: 6) != nil)
+        #expect(model.image(at: 7) == nil)
+
+        // And the pressure lifting puts the window back where the spec asks for it.
+        await model.noteMemoryPressure(.normal)
+        #expect(model.image(at: 9) != nil)
+        #expect(model.image(at: 5) != nil)
+    }
+
+    @Test("A ComicInfo double page is known as a spread before it has been decoded")
+    func declaredSpreads() async {
+        let location = url("comics/manga-metadata.cbz")
+        let model = ReaderModel(publication: publication(.cbz, at: location), url: location)
+
+        await model.open(maxPixelSize: 256)
+
+        // The fixture declares `<Page Image="2" DoublePage="true">`, and `comic-reader`
+        // shows such a page alone rather than pairing it. Believed over the aspect ratio:
+        // the fixture's pages are all the same shape, so nothing here was measured.
+        #expect(model.wideIndices.contains(2))
+    }
+
     @Test("A publication that cannot be opened says so rather than showing nothing")
     func reportsFailure() async {
         let location = url("comics/refused.cb7")

@@ -21,30 +21,32 @@ public protocol ComicArchiveReading: Sendable {
     /// `ComicInfo.xml` designates a different one. Containers that carry no
     /// metadata get the default from the extension below.
     var coverPage: PageEntry? { get }
+    /// Pages the container declares as double-page spreads.
+    ///
+    /// `comic-reader` shows such a page alone rather than pairing it, and a
+    /// declaration is worth more than a guess from the aspect ratio — a wide panel
+    /// scanned with margins is not a spread, and a spread scanned tight might not
+    /// measure as one.
+    var doublePageIndices: [Int] { get }
 }
 
 extension ComicArchiveReading {
     public var coverPage: PageEntry? { pages.first }
+    /// Nothing, for a container that carries no metadata to declare it with.
+    public var doublePageIndices: [Int] { [] }
 }
 
-/// Resolves which page is the cover.
-///
-/// A free function rather than a method because every container needs the same
-/// rule and only some of them carry the metadata that can change it. Keeping it
-/// in one place is what stops a CBZ and a CBT disagreeing about which page a
-/// reader sees first.
-public enum CoverSelection {
-    /// The designated cover, when one is designated and exists; otherwise the
-    /// first page in reading order.
+/// Resolves what `ComicInfo.xml` says about individual pages.
+public enum PageDeclarations {
+    /// The declared spreads that actually name a page in this list.
     ///
-    /// A designated index that falls outside the page list is ignored rather than
-    /// clamped. `ComicInfo`'s indices count *archive* entries, and an archive whose
-    /// non-page entries were filtered out can leave a stale index behind — showing
-    /// an arbitrary middle page would look like a bug in the reader rather than in
-    /// the file.
-    public static func cover(of pages: [PageEntry], designated index: Int?) -> PageEntry? {
-        guard let index, index >= 0, index < pages.count else { return pages.first }
-        return pages[index]
+    /// The same caveat as the cover: `ComicInfo`'s indices count *archive* entries, and
+    /// an archive whose non-page entries were filtered out can leave a stale index
+    /// behind. An index outside the page list is dropped rather than clamped, because
+    /// standing an arbitrary middle page alone would look like a bug in the reader
+    /// rather than in the file.
+    public static func spreads(of pages: [PageEntry], declared indices: [Int]) -> [Int] {
+        indices.filter { $0 >= 0 && $0 < pages.count }
     }
 }
 
@@ -152,6 +154,10 @@ public struct ZipComicArchive: ComicArchiveReading {
         CoverSelection.cover(of: pages, designated: comicInfo?.coverPageIndex)
     }
 
+    public var doublePageIndices: [Int] {
+        PageDeclarations.spreads(of: pages, declared: comicInfo?.doublePageIndices ?? [])
+    }
+
     public func data(for page: PageEntry) async throws -> Data {
         guard let entry = pathToEntry[page.path] else { throw ComicArchiveError.unreadable }
         return try await reader.data(for: entry)
@@ -226,6 +232,10 @@ public struct TarComicArchive: ComicArchiveReading {
 
     public var coverPage: PageEntry? {
         CoverSelection.cover(of: pages, designated: comicInfo?.coverPageIndex)
+    }
+
+    public var doublePageIndices: [Int] {
+        PageDeclarations.spreads(of: pages, declared: comicInfo?.doublePageIndices ?? [])
     }
 
     public func data(for page: PageEntry) async throws -> Data {
