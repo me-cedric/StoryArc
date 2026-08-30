@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.ScreenLockRotation
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -115,7 +116,7 @@ internal fun ReaderToolCluster(
         if (hasPairs) {
             SpreadOffsetButton(isOffset = isOffset, onToggle = onToggleOffset)
         }
-        AdjustButton(isNeutral = adjustmentsAreNeutral, onOpen = onAdjust)
+        AdjustToolbarButton(isNeutral = adjustmentsAreNeutral, onOpen = onAdjust)
         // Only for a PDF that carries text. `ebook-reader` requires a text-dependent
         // control to be hidden rather than disabled when there is none, and a button that
         // opened a search box over a scan would be exactly the promise the spec forbids.
@@ -151,6 +152,28 @@ internal fun ReaderLayoutCluster(
             onOpenChange = onMenuOpenChange,
         )
         OrientationToggle(isLocked = isOrientationLocked, onToggle = onToggleOrientation)
+    }
+}
+
+/**
+ * Opens the adjustment controls, and shows whether anything is applied.
+ *
+ * `AdjustmentsSheet.kt` has an `AdjustButton` that does the same job, and this is not it:
+ * that one paints its own scrim circle, which inside the toolbar renders as a pill on a
+ * bar and a second scrim over the first. Here the state rides on the icon's tint, the way
+ * it does for the spread offset and the rotation lock beside it. The one in
+ * `AdjustmentsSheet.kt` has no caller left and should be deleted by whoever owns that file.
+ */
+@Composable
+private fun AdjustToolbarButton(isNeutral: Boolean, onOpen: () -> Unit) {
+    IconButton(onClick = onOpen) {
+        Icon(
+            imageVector = Icons.Filled.Tune,
+            contentDescription = stringResource(R.string.reader_adjust),
+            // Marked while something is applied, so a reader who wonders why the page
+            // looks like that can see that they asked for it.
+            tint = if (isNeutral) LocalContentColor.current else LocalStoryArcPalette.current.accent,
+        )
     }
 }
 
