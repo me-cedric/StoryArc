@@ -370,15 +370,96 @@ fun LibraryScreen(
 
             KavitaSearchOffer(registry, query, onSearchOnServer)
 
-            // Above the refreshable area, not inside it: pulling on a search field means
-            // nothing, and an indicator that comes down over the controls hides the two
-            // chips saying what the shelf underneath is narrowed to.
-            if (viewModel != null && publications.isNotEmpty()) {
-                SearchField(
-                    value = query.search,
+            // One bar, above the branch rather than inside it. Held here because the
+            // branch below changes as the reader types -- a term that matches nothing swaps
+            // the shelf for the narrowed-to-nothing state -- and a search bar built inside
+            // it was rebuilt with the branch: it collapsed itself, and every remote answer
+            // that had arrived went with it.
+            if (viewModel != null) {
+                LibrarySearchEntry(
+                    viewModel = viewModel,
+                    query = query,
                     recents = recentSearches,
-                    onChange = { viewModel.setQuery(query.copy(search = it)) },
-                    onClearRecents = viewModel::clearRecentSearches,
+                    onOpen = onOpen,
+                    onFollowToSource = onSearchOnServer,
+                )
+            }
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            val state = scanState
+            when {
+                visible.isNotEmpty() && viewModel != null ->
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        cachedAt?.let { CachedNotice(it) }
+                        val open: (Publication) -> Unit = { publication ->
+                            viewModel.location(publication)?.let { onOpen(publication, it) }
+                        }
+                        val addToShelf: (Publication) -> Unit = { shelving = it }
+                        if (layout == LibraryLayout.GRID) {
+                            CoverGrid(
+                                publications = visible,
+                                viewModel = viewModel,
+                                // Hidden while a search or filter is running: the
+                                // row is a shortcut to what you were reading, and
+                                // showing publications the query excluded reads as
+                                // a bug.
+                                // Hidden while picking as well: the row is a shortcut into
+                                // the reader, and a cover that opened one mid-selection
+                                // would throw away everything the reader had chosen.
+                                continueReading = if (query.isNarrowed || selection.isActive) {
+                                    emptyList()
+                                } else {
+                                    continueReading
+                                },
+                                onOpen = open,
+                                onAddToShelf = addToShelf,
+                                selection = selection.ids.takeIf { selection.isActive },
+                                onToggle = { selection = selection.toggle(it.id) },
+                            )
+                        } else {
+                            CoverList(
+                                publications = visible,
+                                viewModel = viewModel,
+                                onOpen = open,
+                                selection = selection.ids.takeIf { selection.isActive },
+                                onToggle = { selection = selection.toggle(it.id) },
+                                onAddToShelf = addToShelf,
+                                groups = groups,
+                            )
+                        }
+                    }
+
+                // A library that is not empty but looks it. `library-browsing`
+                // forbids showing that silently: say what is narrowing it and
+                // offer one action to undo.
+                publications.isNotEmpty() && viewModel != null ->
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        cachedAt?.let { CachedNotice(it) }
+                        NarrowedToNothing(
+                            query = query,
+                            onClear = {
+                                viewModel.clearFilters()
+                                viewModel.setQuery(viewModel.query.value.copy(search = ""))
+                            },
+                            scopeName = registry.nameOf(query.scope.sourceId),
+                            // Offered only when there is somewhere wider to go.
+                            onWiden = if (query.scope == LibraryScope.AllSources) {
+                                null
+                            } else {
+                                viewModel::widenToAllSources
+                            },
+                        )
+                    }
+
+                state is LibraryScanState.Scanning -> Scanning(state.found)
+                registry.sources.isEmpty() -> EmptyLibrary(onScan = { pickFolder.launch(null) })
+                else -> SourceList(
+                    sources = registry.sources,
+                    itemCount = { viewModel?.itemCount(it.id) ?: 0 },
+                    onRemove = onRemoveSource,
                 )
                 LibraryControls(
                     query = query,

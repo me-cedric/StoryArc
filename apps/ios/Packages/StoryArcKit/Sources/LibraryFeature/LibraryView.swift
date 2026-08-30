@@ -294,7 +294,12 @@ extension LibraryView {
                 // The one place the question is asked. Bound to the model's own term rather
                 // than to a second piece of state, so a recent search chosen from the
                 // suggestions runs exactly as if it had been typed.
-                .onChange(of: model.query.search) { _, term in
+                //
+                // `initial: true` because the term outlives the session: `library-browsing`
+                // keeps the query, so a reader who left mid-search and came back would
+                // otherwise find the shelf narrowed by a term with no results under it and
+                // nothing asked of any server.
+                .onChange(of: model.query.search, initial: true) { _, term in
                     search.ask(term, in: model, credentials: credentials, pins: pins)
                 }
                 .onDisappear { search.clear() }

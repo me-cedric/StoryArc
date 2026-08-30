@@ -90,7 +90,14 @@ internal fun LibrarySearchEntry(
     // The one place the question is asked. Keyed on the term the model holds rather than on a
     // second piece of state, so a recent search chosen from the list runs exactly as if it
     // had been typed.
-    LaunchedEffect(query.search, groups, registry) {
+    //
+    // **Keyed on the term and nothing else, deliberately.** Keying on the local matches too
+    // reads as the more correct thing and is the opposite: the index recomputes when a scan
+    // ticks and when progress reloads, and each of those restarted the fan-out — throwing
+    // away every remote answer that had already arrived, under a reader who had not touched
+    // the keyboard. The local rows are a snapshot taken when the question is asked, which is
+    // what iOS does as well.
+    LaunchedEffect(query.search) {
         search.ask(query.search, groups, registry.sources, credentials, pins)
     }
 
