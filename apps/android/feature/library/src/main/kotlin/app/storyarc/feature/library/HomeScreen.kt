@@ -162,8 +162,8 @@ fun HomeScreen(
  *
  * The carousel masks its items, and `design.md` forbids cropping artwork. Both hold here
  * because the thing being masked is the **card**, not the cover: the focused card shows its
- * cover whole and letterboxed, and what the mask trims at the edges is a container. A
- * carousel of bare covers would have been the cropping the tokens refuse.
+ * cover whole, and what the mask trims at the edges is a container. A carousel of bare
+ * covers would have been the cropping the tokens refuse.
  *
  * With one publication in progress there is no carousel at all — `home-screen` asks for a
  * single large card rather than a carousel of one, and a carousel with nothing to browse

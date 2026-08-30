@@ -171,8 +171,15 @@ internal fun HomeKeepReadingCard(
             modifier = Modifier.fillMaxWidth(),
         )
 
+        // What is left, or — when the book is not reachable — why it will not open. The dim
+        // says *something* is wrong; `home-screen` asks for it to be said "plainly", and a
+        // grey cover on its own is not a sentence.
         Text(
-            text = homeRemainingText(entry),
+            text = if (entry.isReadableNow) {
+                homeRemainingText(entry)
+            } else {
+                stringResource(R.string.home_away)
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = palette.textSecondary,
             maxLines = 2,
