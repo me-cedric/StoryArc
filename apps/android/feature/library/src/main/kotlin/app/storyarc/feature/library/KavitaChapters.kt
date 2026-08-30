@@ -45,6 +45,10 @@ import app.storyarc.core.kavita.KavitaVolume
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.persistence.KavitaOrigin
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import app.storyarc.core.model.ProgressPull
+import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -64,6 +68,8 @@ fun KavitaChapters(
     client: KavitaClient,
     sourceId: String,
     store: KavitaProgressStore,
+    /** Where a pulled position is written. Null in a preview, which has no store to merge into. */
+    progress: ProgressStore? = null,
     /** This server's own reading lists, which its chapters may be added to. */
     lists: List<ServerList> = emptyList(),
     onOpen: (Publication, String) -> Unit,
@@ -78,6 +84,7 @@ fun KavitaChapters(
     var metadata by remember(series.id) { mutableStateOf<KavitaMetadata?>(null) }
     var resume by remember(series.id) { mutableStateOf<KavitaChapter?>(null) }
     var fetching by remember(series.id) { mutableStateOf<Int?>(null) }
+    var conflicts by remember(series.id) { mutableStateOf<List<ProgressPull.Conflict>>(emptyList()) }
 
     LaunchedEffect(series.id) {
         volumes = runCatching { client.volumes(series.id) }.getOrDefault(emptyList())
@@ -85,6 +92,48 @@ fun KavitaChapters(
         // show the other two rather than an empty screen.
         metadata = runCatching { client.metadata(series.id) }.getOrNull()
         resume = runCatching { client.continuePoint(series.id) }.getOrNull()
+        // `reading-progress`: "when a synchronising source refreshes, progress recorded on
+        // other devices is merged into the local store". This is that refresh -- the
+        // chapters have just arrived carrying what the server thinks has been read.
+        progress?.let { store2 ->
+            conflicts = KavitaSync.pull(volumes.flatMap { it.chapters }, store, store2)
+        }
+    }
+
+    // `reading-progress`: a genuine conflict is one the reader "is told once -- naming both
+    // -- with the option to take the other". Once, not per chapter: a server that has moved
+    // on in six places is one thing that happened, and six dialogs about it would be the app
+    // making a reader dismiss its own synchronisation.
+    if (conflicts.isNotEmpty()) {
+        val discarded = conflicts
+        AlertDialog(
+            onDismissRequest = { conflicts = emptyList() },
+            title = { Text(stringResource(R.string.sync_conflict_title)) },
+            text = { Text(stringResource(R.string.sync_conflict_body, discarded.size)) },
+            confirmButton = {
+                TextButton(onClick = { conflicts = emptyList() }) {
+                    Text(stringResource(R.string.sync_conflict_keep))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        conflicts = emptyList()
+                        // Taking the other means writing back what was set aside -- the
+                        // reader saying the further position was not theirs.
+                        scope.launch {
+                            discarded.forEach { conflict ->
+                                progress?.save(
+                                    conflict.resolved.copy(position = conflict.discarded),
+                                )
+                            }
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.sync_conflict_take))
+                }
+            },
+        )
     }
 
     // `kavita-server`: marking read must reach the server so its own UI agrees. A long

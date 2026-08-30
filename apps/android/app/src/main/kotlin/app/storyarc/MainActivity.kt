@@ -487,6 +487,7 @@ class MainActivity : ComponentActivity() {
                         address = server.address,
                         sourceId = server.id,
                         store = kavitaProgress,
+                        progress = progress,
                         lists = serverLists,
                         level = kavitaLevel,
                         onLevel = { kavitaLevel = it },

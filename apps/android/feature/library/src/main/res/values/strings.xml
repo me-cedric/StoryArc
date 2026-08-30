@@ -248,4 +248,8 @@
     <string name="library_import_failed">%1$s could not be copied into StoryArc. It reads CBZ, CBR, CBT, EPUB and PDF.</string>
     <string name="library_import_dismiss">OK</string>
     <string name="source_on_this_device">On this device</string>
+    <string name="sync_conflict_title">Read in two places</string>
+    <string name="sync_conflict_keep">Keep the furthest</string>
+    <string name="sync_conflict_take">Take the other</string>
+    <string name="sync_conflict_body">%1$d publications moved on both this device and the server. The furthest position was kept.</string>
 </resources>

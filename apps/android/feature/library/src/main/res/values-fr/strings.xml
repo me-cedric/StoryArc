@@ -248,4 +248,8 @@
     <string name="library_import_failed">%1$s n’a pas pu être copié dans StoryArc. L’app lit les formats CBZ, CBR, CBT, EPUB et PDF.</string>
     <string name="library_import_dismiss">OK</string>
     <string name="source_on_this_device">Sur cet appareil</string>
+    <string name="sync_conflict_title">Lu à deux endroits</string>
+    <string name="sync_conflict_keep">Garder le plus avancé</string>
+    <string name="sync_conflict_take">Prendre l’autre</string>
+    <string name="sync_conflict_body">%1$d publications ont avancé sur cet appareil et sur le serveur. La position la plus avancée a été conservée.</string>
 </resources>

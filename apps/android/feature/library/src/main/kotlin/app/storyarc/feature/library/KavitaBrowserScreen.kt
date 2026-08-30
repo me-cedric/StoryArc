@@ -43,6 +43,7 @@ import app.storyarc.core.kavita.KavitaLibraryFolder
 import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.model.Publication
 import app.storyarc.core.persistence.KavitaProgressStore
+import app.storyarc.core.persistence.ProgressStore
 
 /**
  * Where the reader is inside a Kavita server.
@@ -75,6 +76,8 @@ fun KavitaBrowserScreen(
     address: KavitaAddress,
     sourceId: String,
     store: KavitaProgressStore,
+    /** Where a pulled position is written. See `KavitaSync.pull`. */
+    progress: ProgressStore? = null,
     /** This server's own reading lists, which its chapters may be added to. */
     lists: List<ServerList> = emptyList(),
     level: KavitaLevel,
@@ -181,6 +184,7 @@ fun KavitaBrowserScreen(
                 client = client,
                 sourceId = sourceId,
                 store = store,
+                progress = progress,
                 lists = lists,
                 onOpen = onOpen,
                 modifier = body,

@@ -156,6 +156,24 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
         withContext(Dispatchers.IO) { existing(identity)?.let(::toDomain) }
 
     /**
+     * The record for a publication named only by its stable id.
+     *
+     * What a source-side pull has to work from: a server reports progress against its own
+     * chapter id, and the only thing linking that to this device is the publication id the
+     * chapter was opened as. Matching on the whole identity is impossible from a string, so
+     * this matches on the one component a string *is*.
+     *
+     * A scan rather than a query, because `stable_id` is not a column -- it is derived from
+     * whichever identity components a row happens to carry. A reader's progress table is
+     * hundreds of rows, not millions, and this runs once per refresh.
+     */
+    suspend fun progressForStableId(id: String): ReadingProgress? =
+        withContext(Dispatchers.IO) {
+            database.progress().recent(Int.MAX_VALUE).map(::toDomain)
+                .firstOrNull { it.identity.stableId == id }
+        }
+
+    /**
      * Records a position, replacing whatever was there.
      *
      * Last write wins *locally* — this is one device, and the interesting conflict

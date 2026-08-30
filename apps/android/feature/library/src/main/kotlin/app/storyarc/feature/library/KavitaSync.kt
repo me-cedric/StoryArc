@@ -4,6 +4,11 @@ import app.storyarc.core.kavita.KavitaAddress
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.kavita.KavitaPosition
 import app.storyarc.core.persistence.KavitaOrigin
+import app.storyarc.core.kavita.KavitaChapter
+import app.storyarc.core.model.ProgressPull
+import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.model.ReadingPosition
+import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.KavitaUnsent
 
@@ -30,6 +35,49 @@ object KavitaSync {
     }
 
     /** Sends one deliberate mark, keeping it for later if the server is not there. */
+    /**
+     * Takes what the server says other devices have read, and merges it in.
+     *
+     * `reading-progress`: "progress recorded on other devices is merged into the local
+     * store". The rules are ADR-0006's and live in [ProgressPull]; what is here is the part
+     * only this source can do -- turning a chapter's `pagesRead` into a position, and
+     * finding which publication on this device that chapter was read as.
+     *
+     * A chapter this device has never opened is skipped rather than adopted. The position is
+     * real and the publication is not: the library holds nothing to attach it to, and
+     * inventing an identity for it would be inventing a reading.
+     *
+     * Returns the conflicts, which are the only part a caller has to say anything about.
+     */
+    suspend fun pull(
+        chapters: List<KavitaChapter>,
+        kavita: KavitaProgressStore,
+        progress: ProgressStore,
+    ): List<ProgressPull.Conflict> {
+        val remote = mutableListOf<ReadingProgress>()
+        val local = mutableMapOf<String, ReadingProgress>()
+
+        for (chapter in chapters) {
+            if (chapter.pages <= 0) continue
+            val publicationId = kavita.publicationForChapter(chapter.id) ?: continue
+            val held = progress.progressForStableId(publicationId) ?: continue
+            local[held.identity.stableId] = held
+            // The server's position, wearing the local record's identity -- which is the
+            // only thing that lets the two be compared at all.
+            remote += held.copy(
+                position = ReadingPosition.Page(
+                    index = maxOf(0, chapter.pagesRead - 1),
+                    total = chapter.pages,
+                ),
+                updatedAtEpochMillis = System.currentTimeMillis(),
+            )
+        }
+
+        val pull = ProgressPull.merging(remote) { local[it.stableId] }
+        pull.toSave.forEach { progress.save(it) }
+        return pull.conflicts
+    }
+
     suspend fun mark(
         store: KavitaProgressStore,
         address: KavitaAddress?,

@@ -76,6 +76,21 @@ class KavitaProgressStore internal constructor(
     /** Where a publication came from, or null when it did not come from a Kavita server. */
     fun origin(publicationId: String): KavitaOrigin? = origins()[publicationId]
 
+    /**
+     * The publication one chapter was read as, if this device has ever opened it.
+     *
+     * The inverse of [remember], and what a pull needs: a server reports progress against a
+     * chapter id, and the local store keys on the publication the reader opened. Without
+     * this the two never meet and a merge silently matches nothing, which is worse than not
+     * merging at all -- it looks like synchronisation and is not.
+     *
+     * Null for a chapter this device has not opened. `reading-progress` still wants that
+     * position, but it belongs to a publication the library does not hold yet, and inventing
+     * an identity for it would be inventing a reading.
+     */
+    fun publicationForChapter(chapterId: Int): String? =
+        origins().entries.firstOrNull { it.value.chapterId == chapterId }?.key
+
     /** Keeps a position that could not be sent. One per chapter: the latest page wins. */
     fun hold(unsent: KavitaUnsent) {
         val kept = unsent().filterNot { it.key == unsent.key } + unsent
