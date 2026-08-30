@@ -340,6 +340,15 @@ public struct EpubReaderView: View {
 
             Spacer()
 
+            // Offered after any long jump, taken once, and never re-armed by its own
+            // use — see ``EpubReaderModel/returnToWhereTheyWere()``. Above the transport
+            // because it is about where the reader just was, and the transport is about
+            // what the voice is doing now.
+            if model.returnPoint != nil {
+                ReturnControl { Task { await model.returnToWhereTheyWere() } }
+                    .padding(.bottom, StoryArcSpace.sm)
+            }
+
             // Above the percentage rather than among the buttons at the top, because it
             // comes and goes and a control that appeared up there would move the four
             // that are always present.

@@ -329,6 +329,24 @@ final class NavigatorObserver: EPUBNavigatorDelegate {
         return false
     }
 
+    /// A link inside the book that is not a note.
+    ///
+    /// Readium asks this only after the note question above has been declined, so anything
+    /// reaching here is a real jump: another chapter, an index entry, a cross-reference.
+    /// Where the reader was is written down before the navigator moves, which is what puts
+    /// ``ReturnControl`` on screen.
+    ///
+    /// Written synchronously rather than in a `Task`. Readium calls this immediately before
+    /// `go(to:)`, so a hop through the scheduler could record the position *after* the jump
+    /// had already moved it — a return control that offered to take the reader back to where
+    /// they now are.
+    ///
+    /// Android's `EpubReaderActivity.shouldFollowInternalLink` makes the same two decisions.
+    func navigator(_ navigator: VisualNavigator, shouldNavigateToLink link: ReadiumShared.Link) -> Bool {
+        model?.markReturnPoint()
+        return true
+    }
+
     /// A link out of the book.
     ///
     /// Handed to the system rather than opened in the reader: a book is not a browser, and
