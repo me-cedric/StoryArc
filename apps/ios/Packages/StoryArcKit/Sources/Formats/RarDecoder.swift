@@ -27,6 +27,8 @@ public enum RarDecoder {
         case entryNotFound(String)
         /// libarchive stopped part-way through the entry's data.
         case truncated(path: String, expected: Int, got: Int)
+        /// The entry claims — or delivers — more than ``RarDecoder/maxEntryBytes``.
+        case tooLarge(path: String, declared: Int, cap: Int)
         /// libarchive's own message, kept verbatim so a bug report can carry it.
         case libarchive(String)
     }
@@ -34,6 +36,18 @@ public enum RarDecoder {
     /// Reading in 64 KB blocks. Large enough that a comic page is a handful of
     /// reads, small enough not to matter on a phone.
     private static let blockSize = 64 * 1024
+
+    /// A ceiling on one entry's unpacked size.
+    ///
+    /// The size in a RAR header is untrusted: without a cap, a crafted archive
+    /// claiming a petabyte drives the loop until jetsam kills the app. 512 MB is
+    /// far past any real comic page.
+    ///
+    /// The same number as Android's `MAX_ENTRY_BYTES` in `rar_decoder.c`, and the
+    /// one `SECURITY.md` publishes — which was true on one platform only until
+    /// this existed, because the declared size seeded the buffer here and never
+    /// bounded the loop.
+    public static let maxEntryBytes = 512 * 1024 * 1024
 
     /// Unpacked bytes for one entry, found by its path inside the archive.
     ///
@@ -138,26 +152,40 @@ public enum RarDecoder {
         return handle
     }
 
-    /// Drains the current entry's data.
+    /// Drains the current entry's data, up to ``maxEntryBytes``.
     ///
-    /// `declaredSize` is a header field, so it is untrusted: it seeds the buffer's
-    /// capacity but never bounds the loop, and a mismatch at the end is reported
-    /// rather than papered over.
+    /// `declaredSize` is a header field, so it is untrusted twice over. It is
+    /// refused outright when it exceeds the cap — before a byte is read, which is
+    /// the whole point: an archive that means to exhaust the device says so in its
+    /// header and never gets to prove it. And it seeds the buffer's capacity but
+    /// does not bound the loop, so the loop carries the same ceiling for the case
+    /// where the header declares nothing at all.
+    ///
+    /// A mismatch at the end is reported rather than papered over, which is also
+    /// what turns a run that hit the ceiling into a failure: `out.count` is then
+    /// the cap rather than the declared size.
+    ///
+    /// Android's `read_entry` in `rar_decoder.c` is the same three checks in the
+    /// same order.
     private static func readCurrentEntry(
         _ handle: OpaquePointer, path: String, declaredSize: Int
     ) throws -> Data {
+        guard declaredSize >= 0, declaredSize <= maxEntryBytes else {
+            throw DecodeError.tooLarge(path: path, declared: declaredSize, cap: maxEntryBytes)
+        }
         var out = Data()
-        if declaredSize > 0, declaredSize < 512 * 1024 * 1024 {
+        if declaredSize > 0 {
             out.reserveCapacity(declaredSize)
         }
         var block = [UInt8](repeating: 0, count: blockSize)
-        while true {
+        while out.count < maxEntryBytes {
             let read = block.withUnsafeMutableBytes { buffer in
                 archive_read_data(handle, buffer.baseAddress, buffer.count)
             }
             if read == 0 { break }
             guard read > 0 else { throw DecodeError.libarchive(message(handle)) }
-            out.append(contentsOf: block[0..<read])
+            let room = min(read, maxEntryBytes - out.count)
+            out.append(contentsOf: block[0..<room])
         }
         // A short read means the archive claimed more than it delivered. Saying so
         // beats handing a truncated page to the decoder and reporting a corrupt
