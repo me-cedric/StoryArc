@@ -97,8 +97,6 @@ views {
     include shared.*
     include ios
     include android
-    include ios.kit.formats
-    include android.coreFormat
 
     autoLayout LeftRight 110 90
   }
@@ -120,6 +118,11 @@ views {
 
     include ios.kit.formats
     include ios.kit.formats.*
+    // `shared` is included alongside its child on purpose. Pulling in
+    // `shared.libarchive` alone from a view scoped this deep parses, resolves
+    // and lays out — and then renders as a blank canvas. Naming the parent as
+    // well is what makes it draw. See the README.
+    include shared
     include shared.libarchive
 
     autoLayout TopBottom 90 80
@@ -141,6 +144,9 @@ views {
 
     include android.coreFormat
     include android.coreFormat.*
+    // Named alongside its child for the same reason as the iOS view above,
+    // and so the two component views stay symmetrical.
+    include shared
     include shared.libarchive
 
     autoLayout TopBottom 90 80

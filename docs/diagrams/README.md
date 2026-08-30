@@ -32,6 +32,19 @@ npx likec4 export png -o out docs/diagrams
 `likec4` is not a project dependency and does not need to be. Nothing in the
 build reads these files.
 
+### `validate` is necessary, not sufficient
+
+`likec4 validate` parses, resolves every reference, and computes a layout for
+every view. All of that passed on two views that then rendered as a **blank
+canvas** in `likec4 start` — no error, no console warning, nothing on screen.
+
+Both failures were the same shape: a view pulled in a lone element from another
+branch of the model without naming its parent. Adding the parent to the
+`include` list fixed both. Whatever the precise rule is, the practical one is:
+
+> **Open every view you changed in `likec4 start` before you commit it.** A view
+> that validates has not been proven to draw.
+
 ## What the model is trying to say
 
 Three facts about this repository are easy to get wrong from the file tree
