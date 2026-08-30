@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Toc
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.TextFormat
@@ -54,11 +55,20 @@ internal fun EpubChrome(
     isPageBookmarked: Boolean,
     /** Whether a jump has left somewhere worth going back to. */
     canReturn: Boolean,
+    /** Whether this publication has any text a voice could say. */
+    canReadAloud: Boolean,
+    /** Whether the transport belongs on screen: speaking, or paused mid-book. */
+    isReadingAloud: Boolean,
+    isSpeaking: Boolean,
     onClose: () -> Unit,
     onReturn: () -> Unit,
     onToggleBookmark: () -> Unit,
     onOpenContents: () -> Unit,
     onOpenTheme: () -> Unit,
+    onStartReadAloud: () -> Unit,
+    onToggleReadAloud: () -> Unit,
+    onSkipSentence: (Boolean) -> Unit,
+    onStopReadAloud: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -162,6 +172,30 @@ internal fun EpubChrome(
                         )
                     }
                 }
+
+                // Absent, not disabled, when the publication has no text a voice could
+                // say. `ebook-reader` says a control a platform cannot honour is "absent
+                // rather than empty", and this app does not ship a button that does
+                // nothing.
+                if (canReadAloud) {
+                    Surface(shape = CircleShape, color = palette.surfaceRaised) {
+                        IconButton(
+                            onClick = if (isReadingAloud) onStopReadAloud else onStartReadAloud,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                contentDescription = stringResource(
+                                    if (isReadingAloud) {
+                                        R.string.readaloud_stop
+                                    } else {
+                                        R.string.readaloud_start
+                                    },
+                                ),
+                                tint = if (isReadingAloud) palette.accent else palette.textPrimary,
+                            )
+                        }
+                    }
+                }
             }
 
             Column(
@@ -190,6 +224,16 @@ internal fun EpubChrome(
                             ),
                         )
                     }
+                }
+
+                if (isReadingAloud) {
+                    ReadAloudBar(
+                        isSpeaking = isSpeaking,
+                        onPrevious = { onSkipSentence(false) },
+                        onToggle = onToggleReadAloud,
+                        onNext = { onSkipSentence(true) },
+                        onStop = onStopReadAloud,
+                    )
                 }
 
                 Surface(

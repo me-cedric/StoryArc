@@ -102,4 +102,11 @@
     <string name="annotations_colour_blue">Blue</string>
     <string name="annotations_colour_pink">Pink</string>
     <string name="annotations_colour_purple">Purple</string>
+    <string name="readaloud_start">Read aloud</string>
+    <string name="readaloud_stop">Stop reading aloud</string>
+    <string name="readaloud_play">Continue reading aloud</string>
+    <string name="readaloud_pause">Pause reading aloud</string>
+    <string name="readaloud_next">Next sentence</string>
+    <string name="readaloud_previous">Previous sentence</string>
+    <string name="readaloud_channel">Reading aloud</string>
 </resources>

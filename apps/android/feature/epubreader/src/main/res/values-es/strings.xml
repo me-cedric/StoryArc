@@ -102,4 +102,11 @@
     <string name="annotations_colour_blue">Azul</string>
     <string name="annotations_colour_pink">Rosa</string>
     <string name="annotations_colour_purple">Morado</string>
+    <string name="readaloud_start">Leer en voz alta</string>
+    <string name="readaloud_stop">Detener la lectura en voz alta</string>
+    <string name="readaloud_play">Continuar la lectura en voz alta</string>
+    <string name="readaloud_pause">Pausar la lectura en voz alta</string>
+    <string name="readaloud_next">Frase siguiente</string>
+    <string name="readaloud_previous">Frase anterior</string>
+    <string name="readaloud_channel">Lectura en voz alta</string>
 </resources>

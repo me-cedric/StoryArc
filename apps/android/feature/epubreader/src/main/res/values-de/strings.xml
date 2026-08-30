@@ -102,4 +102,11 @@
     <string name="annotations_colour_blue">Blau</string>
     <string name="annotations_colour_pink">Rosa</string>
     <string name="annotations_colour_purple">Lila</string>
+    <string name="readaloud_start">Vorlesen</string>
+    <string name="readaloud_stop">Vorlesen beenden</string>
+    <string name="readaloud_play">Vorlesen fortsetzen</string>
+    <string name="readaloud_pause">Vorlesen anhalten</string>
+    <string name="readaloud_next">Nächster Satz</string>
+    <string name="readaloud_previous">Vorheriger Satz</string>
+    <string name="readaloud_channel">Vorlesen</string>
 </resources>
