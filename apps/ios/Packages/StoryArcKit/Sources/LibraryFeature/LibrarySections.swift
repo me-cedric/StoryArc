@@ -37,11 +37,11 @@ enum LibrarySections {
     /// Above how many publications a shelf earns structure.
     ///
     /// "More than a reader can scan" is the requirement's own phrase, and a number is the
-    /// only way to hold it. Twenty-four is four rows on a phone and two on a tablet: enough
-    /// that a wall of covers has begun, few enough that a shelf a reader can take in at a
-    /// glance is left alone. Below it the caller draws one uniform run, which is what the
-    /// requirement's *when* clause asks for.
-    static let threshold = 24
+    /// only way to hold it. A phone shows nine covers at once, so twelve is the first count
+    /// at which the shelf certainly runs off the bottom with more below — the moment a
+    /// reader starts scrolling to look for something rather than seeing it. Below it the
+    /// caller draws one uniform run, which is what the requirement's *when* clause asks for.
+    static let threshold = 12
 
     /// The shelf, divided — or nothing at all when it divides into nothing.
     ///
@@ -53,18 +53,58 @@ enum LibrarySections {
     static func divide(_ publications: [Publication], by sort: LibrarySort) -> [LibrarySection] {
         guard !publications.isEmpty else { return [] }
 
-        // Two passes, because a series is only worth a heading when the shelf holds more
-        // than one of it. A manga library of three hundred one-shots would otherwise become
-        // three hundred headings over one cover each, which is less structure than the wall
-        // it replaced, not more.
-        let shared = sharedSeries(in: publications)
+        // A series is only worth a heading when the shelf holds more than one of it. A manga
+        // library of three hundred one-shots would otherwise become three hundred headings
+        // over one cover each, which is less structure than the wall it replaced, not more.
+        var shared = sharedSeries(in: publications)
+        // And only when the sort keeps it in one place. Sorted by title, *Ashfall #3* is
+        // filed under T and *Ashfall #4* under W, with other books between them — two
+        // headings reading "Ashfall" are two places on the shelf, and the reader would be
+        // right to think the app had lost one of them. So a series the sort scatters is
+        // demoted to the sort's own division, which is what "the sections follow the sort
+        // rather than replacing it" means when the two disagree.
+        shared.subtract(scatteredSeries(publications, sort: sort, sharedSeries: shared))
 
+        let sections = runs(publications, sort: sort, sharedSeries: shared)
+
+        // One section is the whole shelf under a heading, which says nothing the shelf did
+        // not already say. A key of `nil` — a sort that divides into nothing — arrives here
+        // the same way, as one run, and leaves by the same door.
+        guard sections.count > 1 else { return [] }
+        // No heading twice, for any key and not only for a series. Sorted by series, a
+        // library whose standalone titles fall either side of its first series draws
+        // *Other*, then that series, then *Other* again — and a reader reasonably reads the
+        // second one as a different pile. Where the sort scatters a key that has nowhere
+        // left to be demoted to, the division misdescribes the shelf, and no division is the
+        // honest answer.
+        guard Set(sections.map(\.title)).count == sections.count else { return [] }
+        // And a heading has to earn its row. A phone shows three covers across, so a
+        // division averaging fewer than three per heading costs more vertical space in
+        // headings and part-empty rows than the covers it introduces — one dense grid
+        // becomes a tall column of announcements. That was not a hypothesis: the test
+        // corpus, twenty-two unrelated files with a distinct initial each, drew exactly
+        // that on a booted simulator, and it reads worse than the wall it replaced, which
+        // is the failure this whole requirement exists to fix, arrived at from the other
+        // side.
+        guard publications.count >= sections.count * Self.coversPerRow else { return [] }
+        return sections
+    }
+
+    /// How many covers a phone shows across, and so the least a heading may cover.
+    private static let coversPerRow = 3
+
+    /// The shelf cut wherever the key changes, in the order it arrived.
+    private static func runs(
+        _ publications: [Publication],
+        sort: LibrarySort,
+        sharedSeries: Set<String>
+    ) -> [LibrarySection] {
         var sections: [LibrarySection] = []
         var currentKey: String?
         var current: [Publication] = []
 
         for publication in publications {
-            let key = self.key(for: publication, sort: sort, sharedSeries: shared)
+            let key = self.key(for: publication, sort: sort, sharedSeries: sharedSeries)
             if key != currentKey {
                 if let currentKey, !current.isEmpty {
                     sections.append(section(currentKey, current, at: sections.count))
@@ -77,11 +117,7 @@ enum LibrarySections {
         if let currentKey, !current.isEmpty {
             sections.append(section(currentKey, current, at: sections.count))
         }
-
-        // One section is the whole shelf under a heading, which says nothing the shelf did
-        // not already say. A key of `nil` — a sort that divides into nothing — arrives here
-        // the same way, as one run, and leaves by the same door.
-        return sections.count > 1 ? sections : []
+        return sections
     }
 
     private static func section(
@@ -102,6 +138,21 @@ enum LibrarySections {
         return Set(counts.filter { $0.value > 1 }.keys)
     }
 
+    /// The series this sort does not keep together.
+    private static func scatteredSeries(
+        _ publications: [Publication],
+        sort: LibrarySort,
+        sharedSeries: Set<String>
+    ) -> Set<String> {
+        var seen: Set<String> = []
+        var scattered: Set<String> = []
+        for section in runs(publications, sort: sort, sharedSeries: sharedSeries) {
+            guard sharedSeries.contains(section.title) else { continue }
+            if !seen.insert(section.title).inserted { scattered.insert(section.title) }
+        }
+        return scattered
+    }
+
     /// Which heading a publication belongs under, or `nil` when this sort divides into
     /// nothing and the shelf is one run.
     private static func key(
@@ -116,7 +167,13 @@ enum LibrarySections {
             return series
         }
         switch sort {
-        case .title, .series:
+        case .series:
+            // Everything the shelf could not put in a series goes in one place under a sort
+            // that is *about* series. Filing them under their initials instead would answer
+            // a question the reader did not ask, and would scatter the standalone half of a
+            // library across twenty headings that all mean "no series".
+            return unknown
+        case .title:
             return initial(of: publication.displayTitle)
         case .year:
             // The year as the file spells it. A publication with none is not "before

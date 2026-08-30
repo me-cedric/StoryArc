@@ -109,9 +109,13 @@ struct SectionedShelf: View {
 
 /// One heading over its part of the shelf.
 ///
-/// It sits on glass because the covers scroll *under* it: `native-experience` puts floating
-/// chrome on Liquid Glass, and a heading on an opaque bar would cut a hard line across the
-/// artwork every time a section passed behind it.
+/// On `surfaceOverlay` — the token the design system declares for chrome that has to be
+/// opaque — rather than on glass, and that is a correction rather than a preference. Glass
+/// samples what passes beneath it, which is right for a floating pill over artwork and wrong
+/// for a full-width band that a wall of covers slides under: on a booted simulator at the
+/// largest text size, the dark-mode heading came out as pale text on a near-white bar, which
+/// is the one thing a pinned label may not do. The band is chrome, so it takes chrome's
+/// declared fill and a hairline to separate it from the covers below.
 struct SectionHeading: View {
     @Environment(\.theme) private var theme
 
@@ -121,11 +125,18 @@ struct SectionHeading: View {
         Text(title)
             .textRole(.headline)
             .foregroundStyle(theme.palette.textPrimary)
+            // One line, even at the largest text size. A three-line heading pinned to the
+            // top of the shelf would take more of the screen than the section it names.
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, StoryArcSpace.gutter)
             .padding(.vertical, StoryArcSpace.sm)
-            .storyArcGlass(in: Rectangle())
+            .background(theme.palette.surfaceOverlay)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(theme.palette.borderSubtle)
+                    .frame(height: StoryArcSpace.hair)
+            }
             .accessibilityAddTraits(.isHeader)
     }
 }
