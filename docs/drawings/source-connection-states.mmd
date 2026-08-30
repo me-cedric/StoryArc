@@ -1,0 +1,65 @@
+stateDiagram-v2
+%% Source connection states
+%%
+%% The four states the `sources` capability requires, and every move between them.
+%% Board for the `source-lifecycle` change, requirement 3 (Connection state).
+%%
+%% Read from:
+%%   apps/android/core/model/.../Source.kt      SourceConnectionState, ReconnectBackoff
+%%   apps/android/core/model/.../SourceProbe.kt  stateForStatus, stateForFailure, isRemote
+%%
+%% A local folder never enters this machine: SourceProbe.isRemote answers false for
+%% LOCAL_FOLDER, because whether a folder is readable is a question for the filesystem
+%% rather than one to back off from.
+    [*] --> Connecting: source added, or app launched
+
+    Connecting --> Connected: HTTP 200-299
+    Connecting --> Unauthorized: HTTP 401 or 403
+    Connecting --> Unreachable: any other status, or no answer at all
+
+    Connected --> Unreachable: request fails
+    Connected --> Unauthorized: credential refused
+
+    Unreachable --> Connecting: backoff elapsed
+    Unreachable --> Connecting: network regained, or foreground
+
+    Unauthorized --> Connecting: RECONNECT
+
+    note right of Connecting
+        State is never persisted. It describes a network,
+        and a state read back from disk is a claim about
+        the past — so something re-probes after a launch.
+    end note
+
+    note right of Connected
+        canFetch = true. The only state that can serve a
+        title which is not already downloaded.
+    end note
+
+    note right of Unreachable
+        Neutral indicator, never a red error badge:
+        offline is a normal state, not a failure.
+        Downloads stay readable; titles that are not
+        downloaded are dimmed and not openable.
+
+        Backoff starts at 5 s and doubles to a 5 min cap.
+        The retry on network-regained or foreground fires
+        immediately, once.
+
+        404 lands here on purpose rather than in a fifth
+        "gone" state: a catalogue that has moved is, to a
+        reader, a catalogue that is not answering, and a
+        reconnect may still fix it.
+    end note
+
+    note right of Unauthorized
+        needsUserAction = true — the only state the reader
+        has to act on.
+
+        RECONNECT re-opens the sheet the source was added
+        through, address filled in and secret blank. What
+        comes back carries the same identifier, so
+        SourceRegistry.replacing puts it back with its
+        position, its downloads and the reader's own name
+        for it intact. "Remove and re-add" loses all three.
+    end note

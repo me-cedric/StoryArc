@@ -120,6 +120,13 @@ The app SHALL let a user move around a publication and mark places in it.
 - **AND** the destination host is shown and confirmed first, because the reader is leaving the book on a publication's say-so
 - **AND** only `http` and `https` are followed; a link naming any other scheme is dropped rather than handed on
 
+#### Scenario: A publication reaching the network on its own
+- **WHEN** a publication's content references a remote image, font, stylesheet or script, or its scripts try to open a connection
+- **THEN** the request is denied, because a book is a document and a document that phones home was not asked to
+- **AND** the reader is not prompted and no setting is offered, since a publication has no legitimate claim on the network the reader did not make for it
+- **AND** the publication still renders: scripting stays enabled, and only what leaves the device is stopped
+- **AND** a remote resource a publication genuinely wanted is simply absent rather than reported as an error, which is the accepted cost
+
 ### Requirement: PDF rendering
 
 The app SHALL render PDF as a paged publication, over each platform's own PDF

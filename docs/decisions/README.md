@@ -25,9 +25,9 @@ ADR that supersedes it rather than quietly doing something else.
 | [0011](0011-home-screen-widgets.md) | Home-screen widgets wait for a shared snapshot, and for a signing team | Accepted — deferral |
 | [0012](0012-pdf-text-on-android.md) | PDF text on Android comes from the platform's own PDF module | Accepted |
 | [0013](0013-cb7-support.md) | CB7: what a 7-Zip decoder would cost, and three ways to answer it | Accepted — deferral |
-| [0014](0014-unpatchable-zip-in-the-readium-graph.md) | An unpatchable ZIP library ships in the iOS binary, and nothing calls it | **Proposed** — open, awaiting a decision |
-| [0015](0015-epub-webview-network-egress.md) | A publication's own network access: deny it, admit it, or narrow it | **Proposed** — open, awaiting a decision |
-| [0016](0016-ios-smb-response-signing.md) | iOS SMB responses are unsigned and unverified — extends 0010 | **Proposed** — open, awaiting a decision |
+| [0014](0014-unpatchable-zip-in-the-readium-graph.md) | An unpatchable ZIP library ships in the iOS binary, and nothing calls it | Accepted — risk accepted |
+| [0015](0015-epub-webview-network-egress.md) | A publication's own network access: deny it, admit it, or narrow it | Accepted |
+| [0016](0016-ios-smb-response-signing.md) | iOS SMB responses are unsigned and unverified — extends 0010 | Accepted — risk accepted |
 | [0017](0017-android-text-to-speech.md) | Android reads aloud with the platform engine, not a new Readium artifact | Accepted |
 
 ## Considered options

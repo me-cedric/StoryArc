@@ -1,0 +1,57 @@
+flowchart TD
+%% Source removal and the 30-day progress retention
+%%
+%% What removing a source takes with it, what it deliberately leaves behind, and when the
+%% leftovers are collected. Board for the `source-lifecycle` change, requirement 1
+%% (Source registry), scenario "Removing a source".
+%%
+%% Read from:
+%%   apps/android/core/model/.../SourceRegistry.kt  removing, readding, discarding,
+%%                                                  collectingExpiredTombstones, SourceTombstone
+%%   apps/android/feature/library/.../SourceRemoval.kt
+%%
+%% The proposal calls the retention "the hard part", and it is: removal must not cascade to
+%% the progress store, so progress rows outlive the source they belong to and something
+%% else has to decide when they may go. Losing a reading position is the one thing
+%% ADR-0006 says the app must never do by accident.
+    tap["Reader taps Remove on a source"]
+    cost["State the cost before asking:<br/>how many downloaded files,<br/>how many bytes will be freed"]
+    confirm{"Confirmed?"}
+    nothing["Nothing changes"]
+    plan["SourceRemoval.of(source, folders)<br/>decides what goes — no screen and no keystore,<br/>so the order can be asserted in a unit test"]
+
+    secret["1. Delete the secret,<br/>by the reference the registry stored"]
+    cache["2. Drop the cached metadata and covers"]
+    downloads["3. Delete the source's downloads"]
+    registry["4. SourceRegistry.removing(id, now)"]
+
+    gone["Source leaves the ordered list"]
+    stone["Tombstone written:<br/>sourceId + removedAt"]
+    progress[("Reading progress<br/>stays on disk")]
+
+    clock{"Re-added within 30 days?"}
+    restore["SourceRegistry.readding(source)<br/>clears the tombstone.<br/>Reader resumes where they stopped"]
+    collect["collectingExpiredTombstones(now)<br/>returns the expired ids to its caller,<br/>which is what deletes the progress rows"]
+    forget["Progress forgotten"]
+
+    tap --> cost --> confirm
+    confirm -->|No| nothing
+    confirm -->|Yes| plan
+    plan --> secret --> cache --> downloads --> registry
+    registry --> gone
+    registry --> stone
+    stone -.->|"removal does NOT cascade here"| progress
+    stone --> clock
+    clock -->|Yes| restore
+    clock -->|No| collect
+    restore --> progress
+    collect --> forget
+
+    secretWhy["The secret goes first and unconditionally.<br/>The folder lookup used to gate the whole method,<br/>so removing a server or a share did nothing at all<br/>and left its password in the secure store with<br/>nothing left in the app that would look it up.<br/><br/>By the stored reference, never one re-derived from<br/>source.id: a source whose id and reference disagree<br/>would otherwise keep its key for ever."]
+    secret -.- secretWhy
+
+    splitWhy["Separated from removal on purpose. Deciding that<br/>the 30 days are up is a different question from<br/>deciding a source is gone, and the caller that<br/>deletes reading positions should be the one that asks.<br/><br/>Wants a test that advances a clock, not one that waits."]
+    clock -.- splitWhy
+
+    discardWhy["SourceRegistry.discarding(id) is the other exit:<br/>it drops a source and leaves no tombstone.<br/>For a row that should never have existed — one the<br/>app added on the reader's behalf — rather than for a<br/>removal the reader asked for. A tombstone there would<br/>hold 30 days of retention open for nothing."]
+    gone -.- discardWhy
