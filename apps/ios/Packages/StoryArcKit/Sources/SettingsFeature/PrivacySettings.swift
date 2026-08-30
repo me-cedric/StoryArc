@@ -63,18 +63,23 @@ struct PrivacySettings: View {
                     // No confirmation: a cache is by definition rebuildable, and asking
                     // twice for something with no consequence teaches a reader to click
                     // through dialogues.
-                    usage.clearCache()
-                    cacheBytes = usage.cacheBytes()
-                    // The title changes under VoiceOver, which neither moves nor speaks,
-                    // so the reader who tapped Clear was told nothing at all. The row's
-                    // own string, so there is nothing new to translate.
-                    AccessibilityNotification.Announcement(
-                        String(
-                            localized: "privacy.cache \(formattedBytes(cacheBytes))",
-                            bundle: .module,
-                            locale: .storyArc
-                        )
-                    ).post()
+                    //
+                    // Awaited because clearing now includes the web view's cookies and
+                    // origin storage, which WebKit answers for asynchronously.
+                    Task {
+                        await usage.clearCache()
+                        cacheBytes = usage.cacheBytes()
+                        // The title changes under VoiceOver, which neither moves nor
+                        // speaks, so the reader who tapped Clear was told nothing at all.
+                        // The row's own string, so there is nothing new to translate.
+                        AccessibilityNotification.Announcement(
+                            String(
+                                localized: "privacy.cache \(formattedBytes(cacheBytes))",
+                                bundle: .module,
+                                locale: .storyArc
+                            )
+                        ).post()
+                    }
                 }
 
                 clearable(
