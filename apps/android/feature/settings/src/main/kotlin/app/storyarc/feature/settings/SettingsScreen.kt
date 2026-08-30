@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
-import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
@@ -103,14 +102,11 @@ fun SettingsScreen(
      */
     downloads: DownloadLibrary = DownloadLibrary(),
     bytesOnDisk: Long = 0L,
-    onRemoveDownload: (Download) -> Unit = {},
-    /** Moves a queued download one place earlier or later. */
-    onReorderDownload: (Download, Boolean) -> Unit = { _, _ -> },
     /**
      * Removes every download at once, which is what the Privacy screen's "clear downloads"
-     * means. A separate hand from [onRemoveDownload] because clearing is not removing each
-     * one in a loop: the host does it in one write, so a reader is never left with half a
-     * library gone.
+     * means. The only download action left on this screen: removing one at a time belongs to
+     * the Downloads destination now, and clearing is not that in a loop — the host does it in
+     * one write, so a reader is never left with half a library gone.
      */
     onClearDownloads: () -> Unit = {},
 ) {
@@ -179,8 +175,6 @@ fun SettingsScreen(
             onOpenSource = { openSource = it.id },
             downloads = downloads,
             bytesOnDisk = bytesOnDisk,
-            onRemoveDownload = onRemoveDownload,
-            onReorderDownload = onReorderDownload,
             onClearDownloads = onClearDownloads,
         )
     }
@@ -350,8 +344,6 @@ private fun GroupDetail(
     onOpenSource: (Source) -> Unit,
     downloads: DownloadLibrary,
     bytesOnDisk: Long,
-    onRemoveDownload: (Download) -> Unit,
-    onReorderDownload: (Download, Boolean) -> Unit,
     onClearDownloads: () -> Unit,
 ) {
     Scaffold(
@@ -401,11 +393,7 @@ private fun GroupDetail(
                         onReorder = onReorderSource,
                     )
                 SettingsGroup.DOWNLOADS -> DownloadsGroup(
-                    library = downloads,
                     bytesOnDisk = bytesOnDisk,
-                    sourceName = { id -> sources.firstOrNull { it.id == id }?.displayName },
-                    onRemove = onRemoveDownload,
-                    onReorder = onReorderDownload,
                     settings = settings,
                     onChange = onChange,
                     highlight = highlight,

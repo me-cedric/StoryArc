@@ -153,4 +153,6 @@
     <string name="downloads_move_earlier">Avancer « %1$s »</string>
     <string name="downloads_move_later">Reculer « %1$s »</string>
     <string name="downloads_remove_body_imported">Cela supprime la copie de %1$s conservée par StoryArc et libère %2$s. Le fichier d’origine ailleurs sur votre appareil n’est pas touché.</string>
+
+    <string name="downloads_manage_in_destination">Tout ce qui est sur cet appareil, et tout ce qui arrive encore, se trouve dans T\u00e9l\u00e9chargements.</string>
 </resources>

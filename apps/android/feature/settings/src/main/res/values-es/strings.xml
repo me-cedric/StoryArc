@@ -153,4 +153,6 @@
     <string name="downloads_move_earlier">Adelantar «%1$s»</string>
     <string name="downloads_move_later">Retrasar «%1$s»</string>
     <string name="downloads_remove_body_imported">Esto elimina la copia de %1$s que guarda StoryArc y libera %2$s. El archivo original en otro lugar de su dispositivo no se toca.</string>
+
+    <string name="downloads_manage_in_destination">Todo lo que hay en este dispositivo, y todo lo que a\u00fan est\u00e1 llegando, est\u00e1 en Descargas.</string>
 </resources>

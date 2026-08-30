@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.SourceAction
-import app.storyarc.core.persistence.locationOf
 import app.storyarc.feature.settings.SettingsScreen
 import app.storyarc.navigation.AppSheet
 import app.storyarc.navigation.Screen
@@ -70,22 +69,9 @@ internal fun SettingsHost(
         // record, and Settings can be reached without ever having opened a catalogue.
         downloads = host.downloads.value,
         bytesOnDisk = store.bytesOnDisk(),
-        onReorderDownload = { download, later ->
-            host.downloads.value = host.downloads.value.moving(download.id, later)
-            store.save(host.downloads.value)
-        },
-        onRemoveDownload = { download ->
-            // Asked of the store rather than composed here. The file is named after the
-            // publication and filed under its identifier, and composing the path deleted
-            // `<id>/<id>.cbz` — a path nothing has been written to since downloads started
-            // carrying the reader's own title.
-            store.delete(store.locationOf(download))
-            host.downloads.value = host.downloads.value.removing(download.id)
-            store.save(host.downloads.value)
-            // The library holds a row for every imported copy, and a row whose file has
-            // just been deleted is a book that opens onto nothing.
-            host.library.refreshImports()
-        },
+        // Removing one download and reordering the queue left with the files: both are the
+        // Downloads destination's now, which is where a reader looks for them and where
+        // they are one tap away rather than four.
         onClearDownloads = {
             // The bytes behind the ten-second undo are staged *inside* the downloads
             // directory, so clearing already takes them with it. Dropping the pending

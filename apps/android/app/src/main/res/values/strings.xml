@@ -33,4 +33,28 @@
     <string name="downloads_destination_on_device">On this device</string>
     <string name="downloads_destination_in_flight">Coming down now</string>
     <string name="downloads_destination_empty">Nothing is on this device yet. A book you open from an online library is kept here.</string>
+
+    <!-- The downloads destination speaks the vocabulary the settings screen used to. Same
+         words, same four languages; only the module they are drawn from changed. -->
+    <string name="downloads_total">Space used</string>
+    <string name="downloads_stop">Stop</string>
+    <string name="downloads_remove">Remove download</string>
+    <string name="downloads_cancel">Cancel</string>
+    <string name="downloads_remove_title">Remove this download?</string>
+    <string name="downloads_remove_body">This deletes the copy of %1$s on this device. Your reading position is kept, and it can be downloaded again.</string>
+    <string name="downloads_remove_body_imported">This deletes the copy of %1$s that StoryArc keeps, freeing %2$s. The original file elsewhere on your device is not touched.</string>
+    <string name="downloads_remove_action">Remove the download of %1$s</string>
+    <!-- Three attempts is the ceiling `offline-downloads` sets, so one of them is a
+         real case and reads wrong as "1 attempts". -->
+    <plurals name="downloads_failed">
+        <item quantity="one">Failed after %2$d attempt: %1$s</item>
+        <item quantity="other">Failed after %2$d attempts: %1$s</item>
+    </plurals>
+    <string name="downloads_paused_by_reader">Paused</string>
+    <string name="downloads_paused_waiting_for_wifi">Waiting for Wi-Fi</string>
+    <string name="downloads_paused_out_of_space">Not enough space on the device</string>
+    <string name="downloads_move_earlier">Move \u201c%1$s\u201d earlier</string>
+    <string name="downloads_move_later">Move \u201c%1$s\u201d later</string>
+    <string name="downloads_undo">Undo</string>
+    <string name="downloads_removed">\u201c%1$s\u201d removed from this device. Your place is kept.</string>
 </resources>
