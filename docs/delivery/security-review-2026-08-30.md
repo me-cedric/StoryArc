@@ -3,13 +3,19 @@
 A read-only audit of both apps, run while the round-4 feature agents were building.
 This is the backlog, worked through in rank order.
 
-**Ten of the twenty-one are fixed**: ranks 1, 2, 5, 6, 7, 8, 9, 10, 14 and 15, each with a
-regression test confirmed failing against the old code first. Their headings below are
-marked `FIXED`. Rank 5 is marked fixed for iOS and `NOT A DEFECT` for Android, where the
-same overflow wraps silently and is caught downstream — established from source rather
-than assumed by symmetry.
+**Fourteen of the twenty-one are fixed**: ranks 1, 2, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18
+and 19, each with a regression test confirmed failing against the old code first. Their
+headings below are marked `FIXED`. Rank 5 is marked fixed for iOS and `NOT A DEFECT` for
+Android, where the same overflow wraps silently and is caught downstream — established from
+source rather than assumed by symmetry.
 
-The eleven still open are ranks 3, 4, 11, 12, 13, 16, 17, 18, 19, 20 and 21.
+**Two need a human decision and have an ADR rather than a patch**: rank 3
+([ADR-0014](../decisions/0014-epub-webview-network-egress.md), what a publication may fetch)
+and rank 11 ([ADR-0015](../decisions/0015-ios-smb-response-signing.md), unverified SMB
+responses on iOS). Both ADRs establish what each platform's dependencies actually offer and
+recommend; neither decides.
+
+The five still open are ranks 4, 13, 17, 20 and 21.
 
 ## How this was produced, and how much to trust it
 
@@ -154,7 +160,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - docs/openspec/specs/settings-and-about/spec.md:53 — 'data leaves the device only to the sources the user configured'.
 
 
-### 3. A publication's remote subresources and scripts run unrestricted in the EPUB WebView — no CSP, no allow-list, no scripting switch — so a crafted book beacons home on first render with zero interaction
+### 3. NEEDS A DECISION — A publication's remote subresources and scripts run unrestricted in the EPUB WebView — no CSP, no allow-list, no scripting switch — so a crafted book beacons home on first render with zero interaction
 
 **🟠 high** · both · configuration · effort: needs-a-decision · **CONFIRMED**
 
@@ -308,7 +314,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - iOS scopes the identical need narrowly: apps/ios/project.yml:94-99 / Info.plist:69-73 set only `NSAllowsLocalNetworking: true`, so an http URL to a public host fails closed there.
 
 
-### 11. iOS SMB responses are never signature-verified, and the client signs only when the server asks it to
+### 11. NEEDS A DECISION — iOS SMB responses are never signature-verified, and the client signs only when the server asks it to
 
 **🟡 medium** · ios · dependency · effort: needs-a-decision · **CONFIRMED**
 
@@ -327,7 +333,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - Contrast on the other platform: jcifs-ng 2.1.10 ships `jcifs/internal/smb2/Smb2SigningDigest.class` with a `verify` method, so Android does check inbound signatures.
 
 
-### 12. iOS RAR entry decompression has no size ceiling, contradicting the 512 MB cap SECURITY.md publishes and Android enforces
+### 12. FIXED — iOS RAR entry decompression has no size ceiling, contradicting the 512 MB cap SECURITY.md publishes and Android enforces
 
 **⚪ low** · ios · our-code · effort: small · **CONFIRMED**
 
@@ -396,9 +402,17 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - apps/android/core/kavita/.../KavitaClient.kt:23 — `class KavitaClient(val address: KavitaAddress)` takes no pins, and `attempt` (:266-295) opens the connection and sets headers with no `OpdsTrust.install`, unlike OpdsClient.kt:141-145. Android never claims otherwise, but it is the same gap.
 
 
-### 16. Android SMB signing is neither requested nor reported, so a NAS that merely supports signing negotiates an unsigned session
+### 16. FIXED — Android SMB signing is neither requested nor reported, so a NAS that merely supports signing negotiates an unsigned session
 
 **⚪ low** · android · configuration · effort: small · **CONFIRMED**
+
+**Fixed on Android; the iOS counterpart is deliberately not mirrored.**
+`jcifs.smb.client.signingPreferred` is now set, `SmbIdentity` carries `isSigned` read from
+the tree handle's `areSignaturesActive()`, and the connection sheet states it in all four
+languages. `signingEnforced` stays off because `network-share` requires a guest share to
+work and a guest session is unsigned by definition. iOS gets no equivalent line yet: under
+rank 11 it could not truthfully claim a signed session, and the wording of an honest one
+depends on [ADR-0015](../decisions/0015-ios-smb-response-signing.md).
 
 **What goes wrong.** The reader points StoryArc at a consumer NAS that supports signing but does not require it — the common default. Because the app asks for neither preferred nor enforced signing, the session is negotiated unsigned, and an attacker on the LAN can tamper with QUERY_DIRECTORY and READ responses to feed a crafted archive into the format layer. The source detail screen has no field that would let the reader notice: it reports the dialect and `isEncrypted = false` and says nothing about signing.
 
@@ -431,9 +445,21 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - Checked and cleared per-advisory against the same range: CVE-2025-14813 (GOST CTR — no GOST class referenced), CVE-2024-30171 Marvin RSA timing (no RSA key exchange), CVE-2024-30172 Ed25519, CVE-2024-29857 EC certificate parsing, CVE-2024-34447 LDAP endpoint checking, CVE-2026-0636 LDAP injection (no LDAP), CVE-2026-5598 (range is `>= 1.82, < 1.84`, does not apply).
 
 
-### 18. No file-protection class is set on any iOS data the app writes, so downloads, covers and the reader's own highlights and notes are weaker-protected than the credentials that reach them
+### 18. FIXED — No file-protection class is set on any iOS data the app writes, so downloads, covers and the reader's own highlights and notes are weaker-protected than the credentials that reach them
 
 **· informational** · ios · our-code · effort: small · **CONFIRMED**
+
+**Fixed, with one part answered rather than moved.** The downloads directory
+(`DownloadStore.prepare()`) and the covers directory (`CoverCache.store`) are now created
+under `.completeUnlessOpen` — not `.complete`, because a background transfer has to be able
+to create a file in the downloads directory while the device is locked, and
+`offline-downloads` promises those transfers continue. Highlights and notes stay in
+`UserDefaults` at the system default: the only lever that raises a preferences file is the
+`com.apple.developer.default-data-protection` entitlement, which offers `.complete` alone,
+and under `.complete` the app could not read its own download library when the system wakes
+it with the device locked. That trade-off is now recorded in `AnnotationStore`'s header, per
+this finding's own second option. Moving annotations to a protected file of their own
+remains worth doing and needs a migration.
 
 **What goes wrong.** Someone takes a device that is locked but has been unlocked once since boot (threat-model actor 4) and has any filesystem-level read — a jailbreak, a bootrom-class device, a forensic acquisition tool. They recover the reader's highlights and notes verbatim from Library/Preferences, the titles of everything downloaded, and the cover art. The passwords in the keychain are unreadable in the same situation, so the reader's content is currently protected more weakly than the credentials that fetch it.
 
@@ -448,7 +474,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - The credential path does pin its class: apps/ios/Packages/StoryArcKit/Sources/Persistence/CredentialStore.swift:49 `kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly`.
 
 
-### 19. "Clear cache" does not touch web-view cookies or origin storage, and the user-facing string promises "web-view data"
+### 19. FIXED — "Clear cache" does not touch web-view cookies or origin storage, and the user-facing string promises "web-view data"
 
 **· informational** · both · our-code · effort: small · **UNPROVEN**
 
