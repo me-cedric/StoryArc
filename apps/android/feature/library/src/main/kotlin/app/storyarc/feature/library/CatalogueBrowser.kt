@@ -76,9 +76,14 @@ class CatalogueBrowser(
      * The grid *and* every group: an OPDS 2.0 feed can put its whole catalogue in named
      * groups and leave the top level empty, and a search that only looked at [entries] would
      * answer "nothing" for a page full of publications.
+     *
+     * Once each: nothing in OPDS stops a feed from listing the same publication at the top
+     * level and inside a group, and a filtered run that showed it twice would read as two
+     * copies of a book — and would hand the grid two rows under one key.
      */
     val searchable: List<OpdsEntry>
-        get() = _entries.value + _feed.value?.groups.orEmpty().flatMap { it.publications }
+        get() = (_entries.value + _feed.value?.groups.orEmpty().flatMap { it.publications })
+            .distinctBy { it.id }
 
     /** Shared with the cells, which fetch covers through the same credential. */
     val client = OpdsClient(pins, origin)
@@ -191,7 +196,11 @@ class CatalogueBrowser(
          * the other spelling should not find search silently broken.
          */
         fun fill(template: String, term: String): String? {
-            val escaped = java.net.URLEncoder.encode(term, "UTF-8")
+            // `URLEncoder` writes a space as `+`, which is a space only inside a form body.
+            // An OpenSearch template may put the term in a path segment, where `+` is a
+            // literal plus — and iOS writes `%20`, so a term with a space in it was two
+            // different questions put to the same server.
+            val escaped = java.net.URLEncoder.encode(term, "UTF-8").replace("+", "%20")
             var filled = template
             for (placeholder in listOf("{searchTerms}", "{?query}", "{query}", "{?q}", "{q}")) {
                 filled = filled.replace(placeholder, escaped)

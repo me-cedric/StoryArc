@@ -38,8 +38,13 @@ public final class CatalogueBrowser {
     /// The grid *and* every group: an OPDS 2.0 feed can put its whole catalogue in named
     /// groups and leave the top level empty, and a search that only looked at ``entries``
     /// would answer "nothing" for a page full of publications.
+    /// Once each: nothing in OPDS stops a feed from listing the same publication at the top
+    /// level and inside a group, and a filtered run that showed it twice would read as two
+    /// copies of a book.
     public var searchable: [OpdsEntry] {
-        entries + (feed?.groups.flatMap(\.publications) ?? [])
+        var seen = Set<String>()
+        return (entries + (feed?.groups.flatMap(\.publications) ?? []))
+            .filter { seen.insert($0.id).inserted }
     }
 
     public let title: String
@@ -149,7 +154,7 @@ public final class CatalogueBrowser {
     /// `{?query}` or `{q}`. They mean the same thing, and a reader whose server picked the
     /// other spelling should not find search silently broken.
     static func fill(_ template: String, with term: String) -> URL? {
-        let escaped = term.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? term
+        let escaped = term.addingPercentEncoding(withAllowedCharacters: Self.termAllowed) ?? term
         var filled = template
         for placeholder in ["{searchTerms}", "{?query}", "{query}", "{?q}", "{q}"] {
             filled = filled.replacingOccurrences(of: placeholder, with: escaped)
@@ -159,6 +164,15 @@ public final class CatalogueBrowser {
         guard filled != template else { return nil }
         return URL(string: filled)
     }
+
+    /// What may stand unescaped in a search term, and nothing else.
+    ///
+    /// The unreserved set every URL encoder agrees on. Named rather than taken from a
+    /// platform default because Android's `URLEncoder` leaves exactly these four
+    /// punctuation marks alone, and a term the two apps escape differently is the same
+    /// search asking a server two different questions.
+    private static let termAllowed = CharacterSet.alphanumerics
+        .union(CharacterSet(charactersIn: "-._*"))
 
     private func fetch(_ url: URL, appending: Bool) async {
         if !appending { state = .loading }

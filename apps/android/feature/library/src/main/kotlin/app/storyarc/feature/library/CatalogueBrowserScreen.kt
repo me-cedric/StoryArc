@@ -14,16 +14,20 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,10 +37,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -71,6 +77,11 @@ fun CatalogueBrowserScreen(
     val downloads by queue.library.collectAsStateWithLifecycle()
     val onDevice = downloads.finished.map { it.id }.toSet()
     val active = downloads.pending
+
+    // The term as typed, and the result of the last search that was not the server's.
+    var term by rememberSaveable { mutableStateOf("") }
+    var filtered by remember { mutableStateOf<List<OpdsEntry>?>(null) }
+    val shown = filtered ?: entries
 
     LaunchedEffect(browser) { browser.load() }
 
@@ -107,6 +118,30 @@ fun CatalogueBrowserScreen(
         },
     ) { insets ->
         Column(modifier = Modifier.fillMaxSize().padding(insets)) {
+            // `opds-catalog`: "searching within that source queries the server rather than
+            // filtering locally", and a catalogue with no search "falls back to filtering
+            // the cached catalogue, and says so". Both answers came out of
+            // `CatalogueBrowser.search`, which until now nothing on Android called.
+            CatalogueSearchField(
+                value = term,
+                onChange = {
+                    term = it
+                    if (it.isEmpty()) filtered = null
+                },
+                onSubmit = {
+                    when (val outcome = browser.search(term)) {
+                        // A server-answered search opens as its own page, like entering a
+                        // section, so the reader can go back to where they searched from.
+                        is CatalogueBrowser.SearchOutcome.Server -> {
+                            filtered = null
+                            onEnter(term, outcome.url)
+                        }
+
+                        is CatalogueBrowser.SearchOutcome.Local -> filtered = outcome.matches
+                        CatalogueBrowser.SearchOutcome.Cleared -> filtered = null
+                    }
+                },
+            )
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 140.dp),
                 contentPadding = PaddingValues(StoryArcSpace.gutter),
@@ -120,7 +155,19 @@ fun CatalogueBrowserScreen(
                     }
                 }
 
-                itemsIndexed(entries, key = { _, entry -> entry.id }) { index, entry ->
+                if (filtered != null) {
+                    // `opds-catalog`: a catalogue with no search "falls back to filtering
+                    // the cached catalogue, and says so". This is the saying so.
+                    item(span = { GridItemSpan(maxLineSpan) }, key = "local-search") {
+                        Text(
+                            text = stringResource(R.string.catalogue_search_local),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = palette.textSecondary,
+                        )
+                    }
+                }
+
+                itemsIndexed(shown, key = { _, entry -> entry.id }) { index, entry ->
                     CatalogueEntryCell(
                         entry = entry,
                         credential = browser.credential,
@@ -137,16 +184,21 @@ fun CatalogueBrowserScreen(
                         onRemove = { queue.remove(entry.id) },
                     )
                     // The next page arrives because the reader scrolled, not because they
-                    // pressed anything.
-                    LaunchedEffect(index, entries.size) { browser.loadMore(index) }
+                    // pressed anything. Skipped while a local filter is showing: the filter
+                    // is over what is loaded, and loading more would change it underneath.
+                    if (filtered == null) {
+                        LaunchedEffect(index, shown.size) { browser.loadMore(index) }
+                    }
                 }
 
                 // After the feed's own publications, because a group is a named part of the
-                // page and the page's own run of covers is the unnamed rest of it.
+                // page and the page's own run of covers is the unnamed rest of it. Hidden
+                // while a local filter is showing: the filter is over a flat list of
+                // matches, and a match has left the group it was found in.
                 //
                 // Keyed by position rather than by title: nothing in the standard makes a
                 // group's name unique, and two groups sharing one would collapse into a row.
-                feed?.groups?.let { groups ->
+                feed?.groups?.takeIf { filtered == null }?.let { groups ->
                     itemsIndexed(
                         groups,
                         span = { _, _ -> GridItemSpan(maxLineSpan) },
@@ -192,7 +244,7 @@ fun CatalogueBrowserScreen(
                             // The groups count too: a 2.0 feed that puts everything in them
                             // has no top-level anything, and calling that empty told readers
                             // their catalogue was.
-                            if (entries.isEmpty() && feed?.isEmpty != false) {
+                            if (shown.isEmpty() && feed?.isEmpty != false) {
                                 Text(
                                     text = stringResource(R.string.catalogue_empty),
                                     style = MaterialTheme.typography.bodyMedium,
@@ -216,6 +268,35 @@ fun CatalogueBrowserScreen(
             }
         }
     }
+}
+
+/**
+ * Where a catalogue is asked a question.
+ *
+ * Submitted rather than debounced, unlike the library's own field. A keystroke there is a
+ * pass over what is already in memory; a keystroke here can be a request to somebody's home
+ * server, and a server asked once per letter of "sandman" is a server being hammered.
+ * iOS's `.searchable` with `onSubmit(of: .search)` is the same decision.
+ */
+@Composable
+private fun CatalogueSearchField(
+    value: String,
+    onChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        singleLine = true,
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        placeholder = { Text(stringResource(R.string.catalogue_search_prompt)) },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm),
+    )
 }
 
 /**
