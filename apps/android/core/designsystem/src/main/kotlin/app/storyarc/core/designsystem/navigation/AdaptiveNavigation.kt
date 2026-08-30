@@ -120,12 +120,15 @@ fun AdaptiveNavigationShell(
     val windowClass = rememberWindowClass()
     val scope = rememberCoroutineScope()
 
-    // The V2 measurement, not the one the older call reports: that one knows three width
-    // classes and says so itself by being deprecated. This one carries Material's large and
-    // extra-large classes as well, which is the measurement a tablet needs.
+    // Material's own suggestion, from the V2 measurement rather than the deprecated one that
+    // knows only three width classes — but used for the *bar*, not for the choice between a
+    // bar and a rail. That choice is `showsSidebar`'s, because the screens drawn inside this
+    // shell ask `showsSidebar` too, and the two answers have to be the same answer: Material
+    // reads the height as well as the width, so a phone in landscape at 800 x 360 dp got a
+    // bar here while the library dropped Shelves and Settings from its toolbar on the
+    // strength of a rail that was not there.
     val suggested = NavigationSuiteScaffoldDefaults.navigationSuiteType(currentWindowAdaptiveInfoV2())
-    val isRail = suggested == NavigationSuiteType.WideNavigationRailCollapsed ||
-        suggested == NavigationSuiteType.WideNavigationRailExpanded
+    val isRail = windowClass.showsSidebar
 
     // A window that is large to begin with opens the rail itself, because at that width the
     // labels cost the content nothing. The initial value rather than an effect: the rail
@@ -142,9 +145,12 @@ fun AdaptiveNavigationShell(
 
     val type = when {
         !showsNavigation -> NavigationSuiteType.None
-        !isRail -> suggested
-        isOpen -> NavigationSuiteType.WideNavigationRailExpanded
-        else -> NavigationSuiteType.WideNavigationRailCollapsed
+        isRail && isOpen -> NavigationSuiteType.WideNavigationRailExpanded
+        isRail -> NavigationSuiteType.WideNavigationRailCollapsed
+        // A bar, and Material's own choice of which one — it has two, and the wider of them
+        // is the right one on a window that is wide but not wide enough for a rail.
+        suggested == NavigationSuiteType.ShortNavigationBarMedium -> suggested
+        else -> NavigationSuiteType.ShortNavigationBarCompact
     }
 
     NavigationSuiteScaffoldLayout(

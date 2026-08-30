@@ -18,7 +18,7 @@ import org.junit.Test
  * Five classes rather than two since the tablet slice. iOS keeps its two, because SwiftUI
  * publishes two size classes and Material publishes five — divergence #4 in the design
  * direction's register. So these no longer mirror `WindowClassTests` case for case, and
- * the number they still share is 600.
+ * Android's own rail and pane boundary is 840.
  */
 class WindowClassTest {
 
@@ -32,9 +32,9 @@ class WindowClassTest {
 
     @Test
     fun `A window at the rail threshold gets the rail, and one dp below it does not`() {
-        assertFalse(StoryArcWindowClass.of(599).showsSidebar)
-        assertTrue(StoryArcWindowClass.of(600).showsSidebar)
-        assertEquals(StoryArcWindowClass.MEDIUM, StoryArcWindowClass.of(600))
+        assertFalse(StoryArcWindowClass.of(839).showsSidebar)
+        assertTrue(StoryArcWindowClass.of(840).showsSidebar)
+        assertEquals(StoryArcWindowClass.EXPANDED, StoryArcWindowClass.of(840))
     }
 
     @Test
@@ -75,14 +75,26 @@ class WindowClassTest {
     }
 
     @Test
-    fun `A second pane arrives at expanded, not at the rail`() {
-        // The bug the slice exists to fix, stated as an assertion: 600 dp is where the
-        // rail arrives and 840 dp is where a detail can sit beside a list. Conflating the
-        // two is what gave a 1400 dp landscape tablet a phone's layout.
+    fun `The rail and the second pane arrive together, at expanded`() {
+        // The design direction pairs them: "compact and medium: one pane, navigation bar;
+        // expanded and above: two panes and an expanded rail". Stated as one assertion,
+        // because the shell and every screen inside it read these two and must not be able
+        // to disagree about whether a rail is on screen -- a phone in landscape was given a
+        // bar while the library dropped the two toolbar entries the rail was to carry.
         assertFalse(StoryArcWindowClass.of(839).showsTwoPanes)
         assertTrue(StoryArcWindowClass.of(840).showsTwoPanes)
-        assertTrue(StoryArcWindowClass.of(600).showsSidebar)
-        assertFalse(StoryArcWindowClass.of(600).showsTwoPanes)
+        StoryArcWindowClass.entries.forEach {
+            assertEquals(it.showsTwoPanes, it.showsSidebar)
+        }
+    }
+
+    @Test
+    fun `A window with room for a rail but not for two panes gets neither`() {
+        // Material would put a rail beside a medium window; the design direction does not,
+        // because a rail beside a single column of covers costs the covers 96 dp and buys
+        // nothing the bar was not already doing.
+        assertFalse(StoryArcWindowClass.MEDIUM.showsSidebar)
+        assertFalse(StoryArcWindowClass.of(800).showsSidebar)
     }
 
     @Test
@@ -130,11 +142,11 @@ class WindowClassTest {
     }
 
     @Test
-    fun `The rail breakpoint is the number iOS uses`() {
-        // Stated rather than left implicit: iOS keeps two size classes divided at 600 pt,
-        // and that one number staying shared is what stops the two apps changing shape in
-        // different places.
-        assertEquals(600, StoryArcWindowClass.SIDEBAR_WIDTH_THRESHOLD_DP)
+    fun `Android changes shape at its own platform's number`() {
+        // iOS keeps two size classes divided at 600 pt and goes on doing so. Divergence #4
+        // in the design direction's register: SwiftUI publishes two size classes and
+        // Material publishes five, so each app reads its own platform's answer rather than
+        // one app's answer twice.
         assertEquals(840, StoryArcWindowClass.TWO_PANE_WIDTH_THRESHOLD_DP)
     }
 }

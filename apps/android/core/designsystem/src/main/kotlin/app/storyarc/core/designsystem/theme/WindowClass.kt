@@ -40,7 +40,7 @@ enum class StoryArcWindowClass(
     /** A phone, a folded foldable, a narrow multi-window slot. One column, one pane. */
     COMPACT(0),
 
-    /** A portrait tablet, an unfolded foldable. Room for a rail beside one pane. */
+    /** A portrait tablet, an unfolded foldable. One pane still, and a wider grid. */
     MEDIUM(WIDTH_MEDIUM_DP),
 
     /** A landscape tablet. Room for a list and a detail side by side. */
@@ -54,22 +54,33 @@ enum class StoryArcWindowClass(
     ;
 
     /**
-     * Whether this window gets the persistent side navigation rather than a bottom bar.
-     *
-     * Material moves a phone's navigation bar to a rail at its medium boundary, which is
-     * also where `NavigationSuiteScaffoldDefaults.navigationSuiteType` switches — so a
-     * screen that drops its own toolbar duplicates on the strength of this answer and the
-     * shell that actually draws the rail cannot disagree.
-     */
-    val showsSidebar: Boolean get() = this >= MEDIUM
-
-    /**
      * Whether a list and the thing chosen from it are drawn at the same time.
      *
      * Expanded and above, which is Material's own pane rule: below it a detail is a place
      * the reader goes to, at and above it a detail is a place the reader looks at.
      */
     val showsTwoPanes: Boolean get() = this >= EXPANDED
+
+    /**
+     * Whether this window gets the persistent side navigation rather than a bottom bar.
+     *
+     * The same boundary as [showsTwoPanes], and deliberately so: the design direction pairs
+     * them — "compact and medium: one pane, navigation bar; expanded and above: two panes
+     * and an expanded rail". A rail beside a single column of covers costs the covers 96 dp
+     * and buys nothing a bar was not already doing.
+     *
+     * Naming it separately keeps the two questions readable at their call sites, and keeps
+     * one of them free to move without dragging the other with it.
+     *
+     * **This is also the answer the shell obeys**, rather than the one Material's
+     * `navigationSuiteType` would suggest from the window on its own. Material's suggestion
+     * reads the height as well as the width, so an 800 x 360 dp window — a phone in
+     * landscape — was given a navigation bar while every screen that asks this question was
+     * told a rail was there, and dropped the two toolbar entries the rail was supposed to be
+     * carrying. Nothing could reach Shelves or Settings at that size. One answer, asked
+     * once, is what makes that unexpressible.
+     */
+    val showsSidebar: Boolean get() = showsTwoPanes
 
     /**
      * Whether the rail opens already expanded.
@@ -83,13 +94,13 @@ enum class StoryArcWindowClass(
 
     companion object {
         /**
-         * The width, in density-independent pixels, at or above which a rail fits beside
-         * the content without either of them becoming unreadable.
-         */
-        const val SIDEBAR_WIDTH_THRESHOLD_DP = WIDTH_MEDIUM_DP
-
-        /**
-         * The width at or above which a second pane fits beside the first.
+         * The width, in density-independent pixels, at or above which a second pane fits
+         * beside the first — and therefore at which the rail arrives too.
+         *
+         * iOS divides its own two size classes at 600 pt, and keeps doing so. That is
+         * divergence #4 in the design direction's register: SwiftUI publishes two size
+         * classes and Material publishes five, so the number where each app changes shape is
+         * its own platform's.
          */
         const val TWO_PANE_WIDTH_THRESHOLD_DP = WIDTH_EXPANDED_DP
 
