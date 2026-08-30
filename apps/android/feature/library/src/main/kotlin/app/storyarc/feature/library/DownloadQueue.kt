@@ -10,6 +10,7 @@ import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.catalogue.OpdsError
 import app.storyarc.core.catalogue.OpdsOrigin
+import app.storyarc.core.format.IndexException
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
@@ -279,6 +280,21 @@ class DownloadQueue(
             .marking(download.id, Download.State.Finished)
         store.save(_library.value)
         file
+    } catch (error: IndexException) {
+        // Not retryable. Fetching the same bytes again produces the same format.
+        //
+        // Its own branch because `IndexException` extends `Exception` rather than
+        // `IOException`: without it a truncated archive threw straight out of this
+        // coroutine, and the scope it runs in has a `SupervisorJob` and no handler, so a
+        // failed verification took the app down instead of marking the download failed.
+        val reason = when (error) {
+            is IndexException.Unsupported ->
+                context.getString(R.string.catalogue_acquire_unsupported, error.format)
+            is IndexException.Unreadable ->
+                context.getString(R.string.catalogue_acquire_unreadable)
+        }
+        fail(download.id, reason, retryable = false)
+        null
     } catch (error: OpdsError) {
         fail(download.id, CatalogueMessages.describe(context, error), error.isTransient)
         null

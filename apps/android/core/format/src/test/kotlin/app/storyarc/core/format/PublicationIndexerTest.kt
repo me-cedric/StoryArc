@@ -11,6 +11,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.io.IOException
 
 /**
  * The seam between the format layer and the library, so these assert on what a
@@ -198,6 +199,18 @@ class PublicationIndexerTest {
             PublicationIndexer.index(File("/nowhere/at/all.cbz"))
         }.exceptionOrNull()
         assertTrue("expected Unreadable, got $failure", failure is IndexException.Unreadable)
+    }
+
+    @Test
+    fun `a verification failure is not an io failure, so a caller has to name it`() = runTest {
+        // `offline-downloads` verifies a finished download by indexing it, and the queue
+        // that does the verifying has to catch what this throws. It caught `IOException`
+        // and nothing else, and an index failure is not one -- so a truncated archive
+        // threw out of the coroutine and took the app down instead of marking the
+        // download failed. Pinned here because reparenting this type re-opens that.
+        val failure = runCatching { index("comics/refused.cb7") }.exceptionOrNull()
+        assertTrue("expected IndexException, got $failure", failure is IndexException)
+        assertFalse("an index failure must not read as an io failure", failure is IOException)
     }
 
     // Identity.

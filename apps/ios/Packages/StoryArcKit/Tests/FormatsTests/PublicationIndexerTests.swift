@@ -176,6 +176,24 @@ struct PublicationIndexerTests {
         }
     }
 
+    @Test("A verification failure is its own type, so a caller has to name it")
+    func verificationFailureIsItsOwnType() async {
+        // `offline-downloads` verifies a finished download by indexing it, and the queue
+        // that does the verifying has to catch what this throws. Android's caught only
+        // I/O failures, and an index failure is not one -- so a truncated archive threw
+        // out of the coroutine and took the app down instead of marking the download
+        // failed. Pinned on both platforms because reparenting this type re-opens that.
+        var thrown: (any Error)?
+        do {
+            _ = try await index("comics/refused.cb7")
+        } catch {
+            thrown = error
+        }
+        #expect(thrown is PublicationIndexer.IndexError)
+        #expect(!(thrown is URLError))
+        #expect(!(thrown is CocoaError))
+    }
+
     // MARK: - Identity
 
     @Test("Identity is path-keyed during a scan, and matches itself")
