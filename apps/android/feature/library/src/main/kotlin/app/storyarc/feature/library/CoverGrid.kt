@@ -297,9 +297,6 @@ private fun CoverCell(
     }
 
     val subtitle = cellSubtitle(publication)
-    // Spoken as well as drawn: a caption a sighted reader gets is a caption everyone gets.
-    val source = viewModel.sourceName(publication)
-        ?.let { stringResource(R.string.library_cell_source, it) }
 
     Column(
         // One label for the whole cell. Read as three elements it would announce
@@ -326,11 +323,14 @@ private fun CoverCell(
                 },
             )
             .semantics {
+                // No source. `library-browsing`: "nothing on the shelf states which source a
+                // publication came from" — and a fact taken off the artwork but left in the
+                // spoken label is the same leak, read aloud. The publication's own page
+                // carries the one provenance line, for every reader alike.
                 contentDescription = listOfNotNull(
                     publication.displayTitle,
                     subtitle,
                     publication.format.displayName,
-                    source,
                 ).joinToString(", ")
                 // Spoken, because a tick in the corner of a cover is invisible to
                 // TalkBack and "is this one picked" is the only question selection mode
@@ -450,18 +450,12 @@ private fun CoverCell(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            // `library-browsing`: a publication "shows its source only when more than one
-            // source is configured". A line only some readers ever see, which is the point —
-            // with one source it would be the same word under every cover.
-            viewModel.sourceName(publication)?.let { source ->
-                Text(
-                    text = stringResource(R.string.library_cell_source, source),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.textTertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            // No third line naming a server. `library-browsing` now requires that "nothing
+            // on the shelf states which source a publication came from": origin stopped
+            // being how a reader narrows the library, so a grey line under every cover was
+            // the management surface leaking into the discovery one. The publication's own
+            // page carries the one provenance line instead, which is where a reader asks
+            // the question. iOS's `CoverCell` dropped the same line.
         }
     }
 }
@@ -474,6 +468,12 @@ private fun CoverCell(
  * from its neighbour.
  *
  * iOS's `PickMark` sits in the same corner.
+ *
+ * `library-browsing` lets a cover carry "at most two marks: how far the reader has got, and
+ * whether it can be read with no network", and forbids a third "for any reason". This grid
+ * spends one on the progress rail and has no downloaded mark yet, so the tick fits. Whoever
+ * draws that mark here inherits iOS's rule with it: while the reader is picking, the pick
+ * mark takes the downloaded mark's place rather than joining it.
  */
 @Composable
 internal fun PickMark(isPicked: Boolean, modifier: Modifier = Modifier) {
