@@ -104,7 +104,7 @@ The app SHALL render PDF as a paged publication.
 - **WHEN** a PDF contains a text layer
 - **THEN** text selection, in-publication search, and the document outline work
 - **AND** a selection offers the same four things a reflowable selection does — highlight in several colours, add a note, copy, and search-in-publication — stored as the same record and exported by the same document
-- **AND** where a platform's PDF library exposes no document outline, that control is absent rather than empty, which [ADR-0011](../../decisions/0011-pdf-text-on-android.md) records
+- **AND** where a platform's PDF library exposes no document outline, that control is absent rather than empty, which [ADR-0012](../../decisions/0012-pdf-text-on-android.md) records
 
 #### Scenario: Scanned PDF
 - **WHEN** a PDF is images only

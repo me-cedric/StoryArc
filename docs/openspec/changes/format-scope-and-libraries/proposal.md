@@ -22,7 +22,7 @@ nobody has it, not because it is hard.
 
 **PDF text on Android** was written up here as impossible. It is not: the
 platform's own PDF module gained text extraction, search and selection, and
-[ADR-0011](../../../decisions/0011-pdf-text-on-android.md) supersedes what this
+[ADR-0012](../../../decisions/0012-pdf-text-on-android.md) supersedes what this
 proposal originally said. The one part that stays iOS-only is the document
 outline.
 
@@ -63,7 +63,7 @@ Recorded in [ADR-0005](../../../docs/decisions/0005-format-and-rendering-librari
 | CBT (TAR) | **libarchive**, same integration |
 | CB7 (7-Zip) | **Not supported.** The linker drops its reader automatically, since nothing reaches it |
 | PDF, iOS | **PDFKit** — full text layer |
-| PDF, Android | **System `PdfRenderer`** for pages, **`PdfRendererPreV`** for the text layer — no outline (ADR-0011) |
+| PDF, Android | **System `PdfRenderer`** for pages, **`PdfRendererPreV`** for the text layer — no outline (ADR-0012) |
 | Page decoding, iOS | **ImageIO** |
 | Page decoding, Android | **`ImageDecoder`** — no Coil, keeping the two decode paths symmetric |
 
@@ -78,7 +78,7 @@ reasoning still covers this case.
 
 - **CB7.** Named refusal, not silent failure. Cheap to add later if anyone asks.
 - **The PDF outline on Android.** Revisit if `android.graphics.pdf` ever exposes
-  one; nothing else in the text layer is missing. ADR-0011.
+  one; nothing else in the text layer is missing. ADR-0012.
 - **Streaming solid archives.** Physically impossible, not deferred.
 - **Archive passwords.** Already refused by `publication-formats`; unchanged.
 

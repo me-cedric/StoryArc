@@ -10,8 +10,8 @@ Android, where the same overflow wraps silently and is caught downstream — est
 source rather than assumed by symmetry.
 
 **Two need a human decision and have an ADR rather than a patch**: rank 3
-([ADR-0014](../decisions/0014-epub-webview-network-egress.md), what a publication may fetch)
-and rank 11 ([ADR-0015](../decisions/0015-ios-smb-response-signing.md), unverified SMB
+([ADR-0015](../decisions/0015-epub-webview-network-egress.md), what a publication may fetch)
+and rank 11 ([ADR-0016](../decisions/0016-ios-smb-response-signing.md), unverified SMB
 responses on iOS). Both ADRs establish what each platform's dependencies actually offer and
 recommend; neither decides.
 
@@ -412,7 +412,7 @@ the tree handle's `areSignaturesActive()`, and the connection sheet states it in
 languages. `signingEnforced` stays off because `network-share` requires a guest share to
 work and a guest session is unsigned by definition. iOS gets no equivalent line yet: under
 rank 11 it could not truthfully claim a signed session, and the wording of an honest one
-depends on [ADR-0015](../decisions/0015-ios-smb-response-signing.md).
+depends on [ADR-0016](../decisions/0016-ios-smb-response-signing.md).
 
 **What goes wrong.** The reader points StoryArc at a consumer NAS that supports signing but does not require it — the common default. Because the app asks for neither preferred nor enforced signing, the session is negotiated unsigned, and an attacker on the LAN can tamper with QUERY_DIRECTORY and READ responses to feed a crafted archive into the format layer. The source detail screen has no field that would let the reader notice: it reports the dialect and `isEncrypted = false` and says nothing about signing.
 

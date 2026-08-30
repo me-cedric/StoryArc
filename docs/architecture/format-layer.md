@@ -16,11 +16,11 @@ across the two on purpose, so a reviewer can diff them by eye.
 | CBT | `TarReader` | none — ours |
 | CBR | `RarReader` + `RarDecoder` | libarchive, for decompression only |
 | PDF pages | `PdfDocumentReader` | the platform: PDFKit, `PdfRenderer` |
-| PDF text | `PdfTextLayer` / `PdfTextReading` | the platform: PDFKit, `PdfRendererPreV` ([ADR-0011]) |
+| PDF text | `PdfTextLayer` / `PdfTextReading` | the platform: PDFKit, `PdfRendererPreV` ([ADR-0012]) |
 | Plain folder | `ImageFolderArchive` | none |
 | EPUB structure | `EpubReader` | none — ours |
 | EPUB *rendering* | — | Readium, not built yet |
-| CB7 | — | refused by name — the cost of changing that is [ADR-0011](../decisions/0011-cb7-support.md) |
+| CB7 | — | refused by name — the cost of changing that is [ADR-0013](../decisions/0013-cb7-support.md) |
 
 Page bytes are then decoded by `PageDecoder`, which is ImageIO on Apple and
 `ImageDecoder` on Android — the platform in both cases ([ADR-0005]). Bytes the
@@ -244,8 +244,8 @@ Each of these is specified, not accidental:
 
 | Asymmetry | Reason |
 | --- | --- |
-| A PDF's document **outline** is iOS-only | PDFKit reads one; `android.graphics.pdf` exposes links, text and form fields and no outline. `ebook-reader` requires the control to be *absent* rather than empty ([ADR-0011]) |
-| Android's PDF text reader may not exist at all | It is `PdfRendererPreV`, from extension 13 of the `framework-pdf` mainline module. `PdfTextReading.open` returns `null` where the device has none, and the reader then takes the scanned-PDF path ([ADR-0011]) |
+| A PDF's document **outline** is iOS-only | PDFKit reads one; `android.graphics.pdf` exposes links, text and form fields and no outline. `ebook-reader` requires the control to be *absent* rather than empty ([ADR-0012]) |
+| Android's PDF text reader may not exist at all | It is `PdfRendererPreV`, from extension 13 of the `framework-pdf` mainline module. `PdfTextReading.open` returns `null` where the device has none, and the reader then takes the scanned-PDF path ([ADR-0012]) |
 | Android's `PdfDocumentReader` has no `hasTextLayer` at all | That type draws pages and reads no text. `PdfTextReading.hasTextLayer` answers, and a property hard-coded to `false` on the renderer would invite a caller to treat it as an answer |
 | PDF **selection** tests are unit tests on iOS, instrumented on Android | PDFKit runs on the macOS host; the platform's PDF text classes are framework stubs off-device |
 | Page-decoding tests are unit tests on iOS, instrumented on Android | ImageIO runs on the macOS host; `ImageDecoder` and `Bitmap` are framework stubs off-device |
@@ -265,4 +265,4 @@ as evidence that a regex works.
 [ADR-0001]: ../decisions/0001-independent-native-cores.md
 [ADR-0005]: ../decisions/0005-format-and-rendering-libraries.md
 [ADR-0008]: ../decisions/0008-ranged-reads-and-own-zip-reader.md
-[ADR-0011]: ../decisions/0011-pdf-text-on-android.md
+[ADR-0012]: ../decisions/0012-pdf-text-on-android.md

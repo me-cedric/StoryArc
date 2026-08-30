@@ -124,7 +124,7 @@ The app SHALL decode pages without exhausting memory, regardless of source image
   question it was asked: a decoder exists and is permissively licensed, but reaching
   it means vendoring a second C library on both platforms for a format that is rare
   and cannot be streamed. The cost, the three ways to answer it and a recommendation
-  are in [ADR-0011](../../../decisions/0011-cb7-support.md). **Still open**: it is a
+  are in [ADR-0013](../../../decisions/0013-cb7-support.md). **Still open**: it is a
   product decision, not an engineering one. Until it is made a `.cb7` is refused by
   name rather than reported as a broken file, which the *Detecting format* scenario
   already requires.
