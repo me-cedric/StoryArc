@@ -38,16 +38,14 @@ public struct DownloadStore {
     ///
     /// Named by identity rather than title: two catalogues can offer the same title, and a
     /// filename collision would hand the reader the wrong book.
-    /// - Parameter named: what the publication is called, when the caller knows.
     ///
     /// The id is the directory and the name is the file's. It used to be the other way
     /// round, and an OPDS download landed as `urn-storyarc-6.cbz`: the indexer reads a
     /// title and a series out of a filename, so a downloaded comic was called after its
     /// identifier everywhere, and `comic-reader`'s per-series settings keyed on one issue.
     /// The id still makes the path unique; it no longer has to be the name as well.
-    /// The same path, for a caller that knows these three before it has a record to hold them.
     ///
-    /// All three are required. The optional `named` this replaced is the whole bug: a caller
+    /// All three parameters are required. The optional `named` this replaced is the whole bug: a caller
     /// that left it out got `<id>/<id>.cbz` while a caller that passed it got
     /// `<id>/<title>.cbz`, and the two never met until a reader removed a download from
     /// Settings and the bytes stayed — so the storage total on that same screen never moved.

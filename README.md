@@ -273,6 +273,15 @@ cd apps/ios/Packages/StoryArcKit && swift test    # fast loop, no simulator
 
 ### Android
 
+Gradle needs both of these on the environment. `pnpm check` shells out to Gradle, so it
+fails with "Unable to locate a Java Runtime" if `JAVA_HOME` is unset — which is the error,
+not a missing dependency:
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+export ANDROID_HOME=${ANDROID_HOME:-$HOME/Library/Android/sdk}
+```
+
 ```bash
 cd apps/android
 echo "sdk.dir=$ANDROID_HOME" > local.properties
