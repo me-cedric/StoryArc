@@ -68,7 +68,22 @@
         ".claude/skills"
       ],
       "installedAt": "2026-08-24T11:00:05.829Z"
+    },
+    "dimillian-skills": {
+      "repository": "https://github.com/Dimillian/Skills",
+      "commit": "05ba982bfeb0d77d3c97d4542b0ee15034d05f84",
+      "skills": [
+        "swiftui-liquid-glass",
+        "swiftui-performance-audit",
+        "swiftui-ui-patterns",
+        "swiftui-view-refactor"
+      ],
+      "targets": [
+        ".agents/skills",
+        ".claude/skills"
+      ],
+      "installedAt": "2026-08-30T15:59:51.357Z"
     }
   },
-  "updatedAt": "2026-08-24T11:00:07.691Z"
+  "updatedAt": "2026-08-30T15:59:51.357Z"
 }

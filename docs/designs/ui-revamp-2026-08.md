@@ -982,7 +982,35 @@ with a large visual return and they close a documented spec-to-code drift; the
 Android `MaterialTheme.shapes` wiring is one line; and the mislabelled Android empty
 -state button (§4.8) is a genuine defect.
 
-### 7.5 Visual proof — and why this plan cannot currently be finished
+### 7.5 Visual proof — SETTLED, the capture path works
+
+> **Correction, 2026-08-30, after this document was written.** Slice zero has been run and
+> the blocker below is **false**. `xcrun simctl io booted screenshot` works: it captured the
+> iPhone 17 Pro and the iPad Pro 13-inch, both already booted, writing 227 KB and 331 KB
+> PNGs. They are committed at `docs/designs/screenshots/before-2026-08-30/`. The researcher
+> was right about the distinction it drew — the MCP *attach* is what fails, and the capture
+> path is a plain shell command that never needed it. So **every slice in §7.1 can be
+> verified, and none of them may ship `partial` for want of a screenshot.**
+>
+> What the two captures show, which no amount of code reading had established:
+> - **The iPhone has no tab bar at all** — only a floating Search pill. The Home / Library /
+>   Downloads bar this document specifies is not a redesign of something, it is new.
+> - **Cover titles render *behind* that pill.** "The Third Chapter / Fixture Manga #3" and
+>   "Undeclared Direction" are legible through it. The grid has no bottom safe-area inset for
+>   the floating bar. That is a live layout defect, not a taste question.
+> - **Six unlabelled icon buttons** sit in a floating pill at the top of the phone, and seven
+>   on the iPad. No labels, no grouping, no overflow — the single clearest example of the
+>   "management surface stapled to the discovery surface" this document names in §1.
+> - **`Attic NAS` is a primary navigation destination** on both, exactly as §6 predicted —
+>   and it says *NAS* to a reader, which §5 has to fix.
+> - **The iPad wastes most of its width**: phone-sized cells, eight of them, in a 13-inch
+>   window, with no section structure and no use of the space.
+>
+> Android capture is still unproven — `adb devices` reports none attached, so an emulator has
+> to be started before that half can be verified. That is a smaller slice zero, still owed.
+>
+> The rest of this section stands as written, for its reasoning about what proof means.
+
 
 [AGENTS.md §6](../../AGENTS.md) is unambiguous: a change a user can see owes a
 screenshot from a **booted simulator or emulator**, in light and dark, at default

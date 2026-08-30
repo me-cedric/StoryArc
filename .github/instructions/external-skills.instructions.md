@@ -49,3 +49,12 @@ Source: https://github.com/DietrichGebert/ponytail @ `2ed6c52` (MIT)
 - `ponytail-debt` — `.agents/skills/ponytail-debt/SKILL.md`
 - `ponytail-help` — `.agents/skills/ponytail-help/SKILL.md`
 - `ponytail-review` — `.agents/skills/ponytail-review/SKILL.md`
+
+## dimillian-skills
+
+Source: https://github.com/Dimillian/Skills @ `05ba982` (MIT)
+
+- `swiftui-ui-patterns` — `.agents/skills/swiftui-ui-patterns/SKILL.md`
+- `swiftui-liquid-glass` — `.agents/skills/swiftui-liquid-glass/SKILL.md`
+- `swiftui-view-refactor` — `.agents/skills/swiftui-view-refactor/SKILL.md`
+- `swiftui-performance-audit` — `.agents/skills/swiftui-performance-audit/SKILL.md`
