@@ -30,13 +30,22 @@ data class SearchResult(
     val route: SearchRoute? = null,
 ) {
     /**
-     * Stable across answers, and that is the whole point: the same series found in the local
-     * index and again by the server it came from is **one** row, and the merge below keeps
-     * the copy that arrived first. Built from the kind and the title rather than from an
-     * identifier the answerer chose, because two answerers do not share identifiers and a
-     * reader looking at two identical rows does not care that they were keyed differently.
+     * What makes this row *this* row, for a list that must not lose one.
+     *
+     * A publication the device holds is identified by the publication, so two different
+     * books that happen to share a title are two rows. Everything else is identified by what
+     * it says, because that is all a server gave us.
      */
-    val id: String get() = "$kind:${title.lowercase()}"
+    val id: String get() = publicationId?.let { "held:$it" } ?: "away:$foldKey"
+
+    /**
+     * What makes two rows *the same thing to a reader*.
+     *
+     * The kind and the words, and nothing else: two answerers do not share identifiers, and
+     * a reader looking at two identical rows does not care that they were keyed differently.
+     * Used only by the merge, and only ever to drop a remote row — see [SearchAnswers.answered].
+     */
+    val foldKey: String get() = "$kind:${title.lowercase()}"
 
     /**
      * Whether tapping this row leads anywhere.
@@ -45,6 +54,33 @@ data class SearchResult(
      * and did nothing would be worse than a row that plainly is not.
      */
     val isOpenable: Boolean get() = publicationId != null || route != null
+
+    companion object {
+        /**
+         * A publication the device holds, as a row.
+         *
+         * The detail line is the series, or failing that the author: the two things that
+         * tell a reader which "Volume 1" they are looking at. Never the library it came
+         * from, per the requirement this whole type exists to keep.
+         */
+        fun held(publication: Publication, kind: MatchKind): SearchResult = SearchResult(
+            kind = kind,
+            title = publication.displayTitle,
+            detail = publication.series ?: publication.authors.firstOrNull(),
+            publicationId = publication.id,
+        )
+
+        /**
+         * Everything the local index matched, flattened into rows in its own ranked order.
+         *
+         * The grouping is thrown away here and rebuilt by [SearchAnswers.groups], which
+         * sounds wasteful and is the point: the group a row lands in has to be decided the
+         * same way for a local row and a remote one, and two grouping passes is how they
+         * drift.
+         */
+        fun held(groups: List<MatchGroup>): List<SearchResult> =
+            groups.flatMap { group -> group.publications.map { held(it, group.kind) } }
+    }
 }
 
 /**
@@ -178,15 +214,22 @@ data class SearchAnswers(
         /**
          * Rows appended to what is already there, first spelling wins.
          *
-         * Also de-duplicates *within* one answer: a server that matched the same series by
-         * its own name and again through one of its chapters sent two rows for one thing.
+         * **Only a remote row is ever dropped.** A row the device can open is never folded
+         * away, because two books that share a title are two books and losing one of them
+         * from a search is worse than showing a reader two rows that read alike. A remote
+         * row that says the same thing as a row already on screen *is* a duplicate — it is
+         * the copy on the server of the copy in the reader's hand — and folding it is the
+         * whole reason the merge knows about `foldKey` at all.
+         *
+         * The same rule de-duplicates *within* one answer: a server that matched one series
+         * by its own name and again through one of its chapters sent two rows for one thing.
          */
         private fun appending(
             rows: List<SearchResult>,
             existing: List<SearchResult>,
         ): List<SearchResult> {
-            val seen = existing.mapTo(mutableSetOf()) { it.id }
-            return existing + rows.filter { seen.add(it.id) }
+            val seen = existing.mapTo(mutableSetOf()) { it.foldKey }
+            return existing + rows.filter { seen.add(it.foldKey) || it.publicationId != null }
         }
     }
 }

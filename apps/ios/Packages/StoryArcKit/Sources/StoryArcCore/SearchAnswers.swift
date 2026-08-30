@@ -11,13 +11,23 @@ public import Foundation
 ///
 /// Android's `SearchResult` mirrors it field for field.
 public struct SearchResult: Sendable, Equatable, Hashable, Identifiable {
-    /// Stable across answers, and that is the whole point: the same series found in the
-    /// local index and again by the server it came from is **one** row, and the merge below
-    /// keeps the copy that arrived first. Built from the kind and the title rather than
-    /// from an identifier the answerer chose, because two answerers do not share
-    /// identifiers and a reader looking at two identical rows does not care that they were
-    /// keyed differently.
-    public var id: String { "\(kind.rawValue):\(title.lowercased())" }
+    /// What makes this row *this* row, for a list that must not lose one.
+    ///
+    /// A publication the device holds is identified by the publication, so two different
+    /// books that happen to share a title are two rows. Everything else is identified by
+    /// what it says, because that is all a server gave us.
+    public var id: String {
+        if let publicationID { return "held:\(publicationID)" }
+        return "away:\(foldKey)"
+    }
+
+    /// What makes two rows *the same thing to a reader*.
+    ///
+    /// The kind and the words, and nothing else: two answerers do not share identifiers,
+    /// and a reader looking at two identical rows does not care that they were keyed
+    /// differently. Used only by the merge, and only ever to drop a remote row — see
+    /// ``SearchAnswers/answered(_:with:)``.
+    public var foldKey: String { "\(kind.rawValue):\(title.lowercased())" }
 
     /// Which heading this appears under.
     public let kind: MatchKind
@@ -56,6 +66,33 @@ public struct SearchResult: Sendable, Equatable, Hashable, Identifiable {
     /// A person and a tag are names a server matched, not places: a row that looked
     /// tappable and did nothing would be worse than a row that plainly is not.
     public var isOpenable: Bool { publicationID != nil || route != nil }
+}
+
+extension SearchResult {
+    /// A publication the device holds, as a row.
+    ///
+    /// The detail line is the series, or failing that the author: the two things that tell
+    /// a reader which "Volume 1" they are looking at. Never the library it came from, per
+    /// the requirement this whole type exists to keep.
+    public init(_ publication: Publication, kind: MatchKind) {
+        self.init(
+            kind: kind,
+            title: publication.displayTitle,
+            detail: publication.series ?? publication.authors.first,
+            publicationID: publication.id
+        )
+    }
+
+    /// Everything the local index matched, flattened into rows in its own ranked order.
+    ///
+    /// The grouping is thrown away here and rebuilt by ``SearchAnswers/groups``, which
+    /// sounds wasteful and is the point: the group a row lands in has to be decided the same
+    /// way for a local row and a remote one, and two grouping passes is how they drift.
+    public static func held(in groups: [MatchGroup]) -> [SearchResult] {
+        groups.flatMap { group in
+            group.publications.map { SearchResult($0, kind: group.kind) }
+        }
+    }
 }
 
 /// Where a row that is not on this device leads.
@@ -202,15 +239,24 @@ public struct SearchAnswers: Sendable, Equatable {
 
     /// Rows appended to what is already there, first spelling wins.
     ///
-    /// Also de-duplicates *within* one answer: a server that matched the same series by its
-    /// own name and again through one of its chapters sent two rows for one thing.
+    /// **Only a remote row is ever dropped.** A row the device can open is never folded
+    /// away, because two books that share a title are two books and losing one of them from
+    /// a search is worse than showing a reader two rows that read alike. A remote row that
+    /// says the same thing as a row already on screen *is* a duplicate — it is the copy on
+    /// the server of the copy in the reader's hand — and folding it is the whole reason the
+    /// merge knows about `foldKey` at all.
+    ///
+    /// The same rule de-duplicates *within* one answer: a server that matched one series by
+    /// its own name and again through one of its chapters sent two rows for one thing.
     private static func appending(
         _ rows: [SearchResult],
         to existing: [SearchResult]
     ) -> [SearchResult] {
-        var seen = Set(existing.map(\.id))
+        var seen = Set(existing.map(\.foldKey))
         var merged = existing
-        for row in rows where seen.insert(row.id).inserted {
+        for row in rows {
+            let isNew = seen.insert(row.foldKey).inserted
+            guard isNew || row.publicationID != nil else { continue }
             merged.append(row)
         }
         return merged

@@ -61,6 +61,18 @@ class SearchAnswersTest {
     }
 
     @Test
+    fun `two books on the device that share a title are two rows not one`() {
+        val first = SearchResult(MatchKind.PUBLICATION, "Volume 1", publicationId = "a")
+        val second = SearchResult(MatchKind.PUBLICATION, "Volume 1", publicationId = "b")
+        val answers = SearchAnswers.of("volume", listOf(first, second))
+
+        // Folding these would lose a book from the reader's own shelf, which is a worse
+        // failure than two rows that read alike.
+        assertEquals(2, answers.results.size)
+        assertEquals(2, answers.results.map { it.id }.toSet().size)
+    }
+
+    @Test
     fun `a server that matched one series twice sends one row`() {
         val answers = SearchAnswers.of("bone", asking = listOf("server")).answered(
             "server",

@@ -61,6 +61,18 @@ struct SearchAnswersTests {
         #expect(answers.results.first?.publicationID == "Bone")
     }
 
+    @Test("Two books on the device that share a title are two rows, not one")
+    func heldRowsAreNeverFoldedAway() {
+        let first = SearchResult(kind: .publication, title: "Volume 1", publicationID: "a")
+        let second = SearchResult(kind: .publication, title: "Volume 1", publicationID: "b")
+        let answers = SearchAnswers(term: "volume", local: [first, second])
+
+        // Folding these would lose a book from the reader's own shelf, which is a worse
+        // failure than two rows that read alike.
+        #expect(answers.results.count == 2)
+        #expect(answers.results.map(\.id).count == Set(answers.results.map(\.id)).count)
+    }
+
     @Test("A server that matched one series twice sends one row")
     func duplicatesWithinOneAnswerFold() {
         let answers = SearchAnswers(term: "bone", asking: ["server"])
