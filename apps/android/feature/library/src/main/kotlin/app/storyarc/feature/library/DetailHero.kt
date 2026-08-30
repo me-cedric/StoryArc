@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
@@ -19,10 +19,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,8 +35,19 @@ import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
 
-/** The widest the cover is drawn. Beyond this a tablet shows a poster nobody asked for. */
-private val COVER_MAXIMUM = 260.dp
+/** The tallest the cover is drawn. Beyond this a tablet shows a poster nobody asked for. */
+private val COVER_MAXIMUM = 360.dp
+
+/**
+ * How much of the window's height the artwork may take.
+ *
+ * Bounded by height rather than by width, which is what a 2:3 object on a tall phone
+ * actually needs: 260 dp of width is 390 dp of height, and that plus an app bar is the
+ * whole viewport — leaving `publication-detail`'s "one primary action" below the fold on
+ * the screen whose entire point is that action. Two fifths leaves the cover the largest
+ * thing on the page, which the delta requires, and still lands the action above it.
+ */
+private const val COVER_SHARE_OF_WINDOW = 0.4f
 
 /**
  * The cover, over the colour the cover gave the page.
@@ -112,12 +126,20 @@ internal fun DetailHero(
 @Composable
 private fun DetailCover(publication: Publication, cover: Bitmap?) {
     val palette = LocalStoryArcPalette.current
+    val density = LocalDensity.current
+    val windowHeight = LocalWindowInfo.current.containerSize.height
+    val tallest = remember(density, windowHeight) {
+        val available = with(density) { windowHeight.toDp() } * COVER_SHARE_OF_WINDOW
+        minOf(available, COVER_MAXIMUM)
+    }
     Surface(
         color = palette.surfaceSunken,
         shape = RoundedCornerShape(StoryArcRadius.cover),
         modifier = Modifier
-            .widthIn(max = COVER_MAXIMUM)
-            .aspectRatio(2f / 3f)
+            .heightIn(max = tallest)
+            // Height first, so the bound above decides and the width follows the printed
+            // proportion — the other way round the ratio would fight the cap and win.
+            .aspectRatio(2f / 3f, matchHeightConstraintsFirst = true)
             .clearAndSetSemantics {},
     ) {
         if (cover != null) {

@@ -128,7 +128,12 @@ fun PublicationDetailScreen(
     // A stale shortcut, a removed source, a deleted file: the publication the page was
     // opened for is no longer anywhere. The delta refuses an empty page for this, and the
     // page has nothing honest to draw, so it says the one true sentence instead.
-    val isGone = library.none { it.id == publication.id } && !isOnDevice
+    //
+    // An empty library is *not* an absent publication. The list arrives asynchronously and
+    // starts empty, so without this guard every page would claim the book was gone for the
+    // frame before the library loaded — and a reader who reached this page from a cover
+    // came from a library that had at least that one thing in it.
+    val isGone = library.isNotEmpty() && library.none { it.id == publication.id } && !isOnDevice
     if (isGone) {
         DetailGone(onBack = onBack)
         return
