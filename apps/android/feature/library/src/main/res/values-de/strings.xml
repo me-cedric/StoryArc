@@ -213,6 +213,14 @@
     <string name="shelves_server_only_title">Nur von diesem Server</string>
     <string name="shelves_server_only_body">„%1$s“ kann nur Publikationen von diesem Server enthalten.</string>
     <string name="shelves_server_only_local">Stattdessen lokale Liste erstellen</string>
+    <string name="shelves_pending_entry">Wartet auf den Server</string>
+    <plurals name="shelves_pending">
+        <item quantity="one">%1$d Änderung wartet auf den Server</item>
+        <item quantity="other">%1$d Änderungen warten auf den Server</item>
+    </plurals>
+    <string name="shelves_conflict_title">Die Version des Servers wurde behalten</string>
+    <string name="shelves_conflict_body">„%1$s“ hat sich auf dem Server geändert, daher wurde dessen Version behalten. Dies wurde nicht hinzugefügt: %2$s.</string>
+    <string name="shelves_conflict_understood">OK</string>
     <string name="kavita_chapter_actions">Kapitelaktionen</string>
     <string name="kavita_add_to_list">Zu „%1$s“ hinzufügen</string>
     <string name="smb_title">Netzwerkfreigabe</string>

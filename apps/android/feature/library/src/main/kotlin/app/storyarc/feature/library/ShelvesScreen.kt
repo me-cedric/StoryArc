@@ -33,11 +33,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.tokens.StoryArcColor
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import androidx.compose.foundation.lazy.LazyListScope
 import app.storyarc.core.kavita.KavitaClient
@@ -45,7 +47,10 @@ import app.storyarc.core.kavita.KavitaCollection
 import app.storyarc.core.kavita.KavitaReadingList
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.ReadingList
+import app.storyarc.core.model.ShelfEditQueue
 import app.storyarc.core.model.ShelfOrigin
+import app.storyarc.core.persistence.KavitaProgressStore
+import app.storyarc.core.persistence.ShelfEditStore
 import java.util.UUID
 
 /**
@@ -85,6 +90,23 @@ fun ShelvesScreen(
             collections.map { ServerShelf(server, it.id, it.title, isList = false) } +
                 lists.map { ServerShelf(server, it.id, it.title, isList = true) }
         }
+    }
+
+    // Edits owed to a server, so a row can say so and a conflict can be said once. Read into
+    // the screen rather than asked for per row: the badge and the notice come out of the same
+    // reconciliation, and a row that fetched its own would disagree with the dialogue above.
+    val context = LocalContext.current
+    val edits = remember(context) { ShelfEditStore.open(context) }
+    val progress = remember(context) { KavitaProgressStore.open(context) }
+    var queue by remember { mutableStateOf(ShelfEditQueue()) }
+
+    LaunchedEffect(serverShelves) {
+        if (serverShelves.isEmpty()) return@LaunchedEffect
+        // Asks every server list what it holds, settles what has landed, and pushes what has
+        // not -- the "on reconnection" half of the offline rule, driven by the one moment
+        // this screen already knows a server answered.
+        ShelfSync.reconcile(serverShelves.filter { it.isList }, edits, progress)
+        queue = edits.queue()
     }
 
     var creating by remember { mutableStateOf<Boolean?>(null) }
@@ -204,6 +226,7 @@ fun ShelvesScreen(
                         source = shelf.server.title,
                         onOpen = { onOpenServerList(shelf.server, shelf.id, shelf.title) },
                         onDelete = null,
+                        pending = queue.pending(ShelfSync.key(shelf)).size,
                     )
                 }
             }
@@ -249,6 +272,33 @@ fun ShelvesScreen(
             },
         )
     }
+
+    // `collections-and-reading-lists`: on a conflict "the user is told once what changed".
+    // Dismissing it is what makes it once -- the notice is deleted, not hidden, so the next
+    // refresh has nothing left to raise.
+    queue.nextNotice?.let { notice ->
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(stringResource(R.string.shelves_conflict_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.shelves_conflict_body,
+                        notice.shelfName,
+                        notice.discarded.joinToString(", "),
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    edits.update { it.acknowledging(notice.id) }
+                    queue = edits.queue()
+                }) {
+                    Text(stringResource(R.string.shelves_conflict_understood))
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -271,6 +321,8 @@ private fun ShelfRow(
     onDelete: (() -> Unit)?,
     /** The composite, for a local collection. Null for a shelf whose contents are elsewhere. */
     cover: (@Composable () -> Unit)? = null,
+    /** How many edits this shelf still owes its server. */
+    pending: Int = 0,
 ) {
     val palette = LocalStoryArcPalette.current
     val items = count?.let { pluralStringResource(R.plurals.shelves_count, it, it) }
@@ -293,6 +345,16 @@ private fun ShelfRow(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = palette.textSecondary,
+                )
+            }
+            // `collections-and-reading-lists`: "the pending state is visible on the list".
+            // On the row as well as inside it, because a reader looking for what has not
+            // gone out yet should not have to open every list to find it.
+            if (pending > 0) {
+                Text(
+                    text = pluralStringResource(R.plurals.shelves_pending, pending, pending),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = StoryArcColor.Status.offline,
                 )
             }
         }

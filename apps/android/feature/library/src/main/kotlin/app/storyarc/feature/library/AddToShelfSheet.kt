@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,6 +26,8 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.BulkSelection
 import app.storyarc.core.model.Publication
+import app.storyarc.core.persistence.KavitaProgressStore
+import app.storyarc.core.persistence.ShelfEditStore
 import kotlinx.coroutines.launch
 
 /**
@@ -77,6 +80,12 @@ fun AddToShelfSheet(
 
     // Shown when a reader tries to put a publication into a list that cannot hold it.
     var refused by remember { mutableStateOf<String?>(null) }
+
+    // Where an edit the server has not seen is written down, and where the chapter it names
+    // is looked up. Both are read here so the sheet can record what it just did.
+    val context = LocalContext.current
+    val edits = remember(context) { ShelfEditStore.open(context) }
+    val progress = remember(context) { KavitaProgressStore.open(context) }
 
     fun report(kind: BulkUndo.Kind, changed: Set<String>) {
         if (changed.isNotEmpty()) onChange?.invoke(BulkUndo(kind, changed))
@@ -185,9 +194,33 @@ fun AddToShelfSheet(
                             // Refused once rather than once per publication: a selection of
                             // forty from a folder would otherwise raise forty identical
                             // alerts about the same server.
+                            //
+                            // Every accepted publication is written down as a pending edit
+                            // before anything is sent, because
+                            // `collections-and-reading-lists` requires an edit made while
+                            // the server is unreachable to survive and be visible. The
+                            // reconciliation that follows settles the ones that landed, so
+                            // a server that was there marks nothing pending for longer than
+                            // the round trip.
                             var accepted = 0
                             for (publication in publications) {
-                                accepted += if (onAddToServerList(publication, list)) 1 else 0
+                                if (!onAddToServerList(publication, list)) continue
+                                accepted += 1
+                                val chapter = progress.origin(publication.id)?.chapterId
+                                    ?: continue
+                                ShelfSync.note(
+                                    entry = chapter,
+                                    title = publication.displayTitle,
+                                    shelf = ShelfSync.key(list),
+                                    store = edits,
+                                )
+                            }
+                            if (accepted > 0) {
+                                ShelfSync.reconcile(
+                                    listOf(ServerShelf(list.server, list.id, list.title, true)),
+                                    edits,
+                                    progress,
+                                )
                             }
                             if (accepted < publications.size) {
                                 refused = list.server.title

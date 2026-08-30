@@ -213,6 +213,14 @@
     <string name="shelves_server_only_title">Only from this server</string>
     <string name="shelves_server_only_body">“%1$s” can only hold publications from that server.</string>
     <string name="shelves_server_only_local">Create a local list instead</string>
+    <string name="shelves_pending_entry">Waiting for the server</string>
+    <plurals name="shelves_pending">
+        <item quantity="one">%1$d edit waiting for the server</item>
+        <item quantity="other">%1$d edits waiting for the server</item>
+    </plurals>
+    <string name="shelves_conflict_title">The server’s version was kept</string>
+    <string name="shelves_conflict_body">“%1$s” changed on the server, so its version was kept. These were not added: %2$s.</string>
+    <string name="shelves_conflict_understood">OK</string>
     <string name="kavita_chapter_actions">Chapter actions</string>
     <string name="kavita_add_to_list">Add to “%1$s”</string>
     <string name="smb_title">Network share</string>

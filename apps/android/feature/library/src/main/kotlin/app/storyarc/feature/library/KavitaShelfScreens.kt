@@ -13,7 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,12 +37,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.tokens.StoryArcColor
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.kavita.KavitaReadingListItem
 import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.ShelfEntry
+import app.storyarc.core.model.ShelfKey
+import app.storyarc.core.model.ShelfMerge
+import app.storyarc.core.persistence.ShelfEditStore
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -116,6 +121,20 @@ fun KavitaListScreen(
             .sortedBy { it.order }
     }
 
+    // Edits this device has made that the server has not taken yet.
+    //
+    // `collections-and-reading-lists` requires an edit made while the server was unreachable
+    // to be "applied locally" and its pending state to be "visible on the list".
+    val pending = remember(listId, items) {
+        ShelfEditStore.open(context).queue().pending(ShelfKey(server.id, listId))
+    }
+    // The server's entries, with the outstanding ones after them. ShelfMerge decides the
+    // order, so a test can assert it without a server.
+    val rows = ShelfMerge.projecting(
+        remote = items.map { ShelfEntry(it.chapterId.toString(), it.displayName, false) },
+        pending = pending,
+    )
+
     Scaffold(
         containerColor = palette.surfaceCanvas,
         topBar = { ShelfBar(title, onBack) },
@@ -124,8 +143,15 @@ fun KavitaListScreen(
             modifier = Modifier.fillMaxSize().padding(insets),
             contentPadding = PaddingValues(StoryArcSpace.gutter),
         ) {
-            items(items, key = { it.id }) { entry ->
-                EntryRow(entry, isFetching = fetching == entry.chapterId) {
+            itemsIndexed(rows, key = { _, row -> row.id }) { index, row ->
+                val entry = items.firstOrNull { it.chapterId.toString() == row.id }
+                EntryRow(
+                    row = row,
+                    number = index + 1,
+                    series = entry?.seriesName?.takeIf { it != row.title },
+                    isFetching = fetching?.toString() == row.id,
+                ) {
+                    if (entry == null) return@EntryRow
                     scope.launch {
                         fetching = entry.chapterId
                         fetchEntry(context, client, entry)?.let { (publication, path) ->
@@ -158,30 +184,52 @@ private fun ShelfBar(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun EntryRow(entry: KavitaReadingListItem, isFetching: Boolean, onOpen: () -> Unit) {
+private fun EntryRow(
+    row: ShelfEntry,
+    number: Int,
+    series: String?,
+    isFetching: Boolean,
+    onOpen: () -> Unit,
+) {
     val palette = LocalStoryArcPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !isFetching, onClick = onOpen)
+            // A pending entry cannot be opened from here: the server is what would hand the
+            // file over, and it has not heard of this entry yet.
+            .clickable(enabled = !isFetching && !row.isPending, onClick = onOpen)
             .defaultMinSize(minHeight = 48.dp)
             .padding(vertical = StoryArcSpace.xs),
     ) {
         Text(
-            text = "${entry.order + 1}",
+            text = "$number",
             style = MaterialTheme.typography.labelLarge,
             color = palette.textTertiary,
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = entry.displayName,
+                text = row.title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = palette.textPrimary,
             )
-            entry.seriesName?.takeIf { it != entry.displayName }?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = palette.textSecondary)
+            if (row.isPending) {
+                // Grey rather than red: an unsent edit is offline, and `sources` makes
+                // offline a normal state.
+                Text(
+                    text = stringResource(R.string.shelves_pending_entry),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = StoryArcColor.Status.offline,
+                )
+            } else {
+                series?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.textSecondary,
+                    )
+                }
             }
         }
         if (isFetching) {
