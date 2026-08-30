@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -64,10 +63,11 @@ import app.storyarc.core.model.Publication
  *
  * `library-browsing`: "the number of grid columns follows the available width, and
  * cover size stays within the readable range defined in the design tokens".
- * `GridCells.Adaptive` is what does that — a fixed column count would give a phone
- * postage stamps and a tablet a wall of enormous covers.
+ * [BoundedAdaptive] is what does that — a fixed column count would give a phone
+ * postage stamps and a tablet a wall of enormous covers, and the platform's own
+ * `GridCells.Adaptive` takes only the lower bound.
  *
- * iOS's `CoverGrid` uses the same bounds for the same reason.
+ * iOS's `CoverGrid` uses the same two bounds for the same reason.
  */
 @Composable
 internal fun CoverGrid(
@@ -104,6 +104,7 @@ internal fun CoverGrid(
 ) {
     // The readable range. Below the minimum a cover stops being recognisable;
     // above the maximum a phone shows one and a half of them.
+    val minimumWidth = 108.dp
     val maximumWidth = 168.dp
     val density = LocalDensity.current
     // Pixels, not dp: a cover decoded at dp size is blurry on every device made
@@ -122,7 +123,12 @@ internal fun CoverGrid(
     }
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 108.dp),
+        // Both bounds, not just the minimum: `GridCells.Adaptive` has no maximum, so a
+        // narrow window stretched its single column to the full width and a cover filled
+        // the screen. `BoundedAdaptive` is the other half of the scenario.
+        columns = remember(minimumWidth, maximumWidth) {
+            BoundedAdaptive(minimumWidth, maximumWidth)
+        },
         state = gridState,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
