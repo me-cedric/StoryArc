@@ -289,6 +289,11 @@ public struct LibraryView: View {
                 // it again, which is the requirement's other half.
                 await model.retryUnreachableSources(credentials: credentials, pins: pins)
             }
+            // Written, documented and applied to nothing until now, so `local-library`'s
+            // "reconciles ... after files changed" was reachable only from the watcher's
+            // own callback — and a provider notifies nobody while the app is away. Android
+            // does the same on `ON_RESUME`.
+            .watchingFolders(of: model)
             // `sources` names pull-to-refresh: a refresh "re-fetches the catalogue in the
             // background" and updates the view "incrementally rather than clearing it". iOS
             // had no reader-initiated refresh at all; Android has a toolbar button.
