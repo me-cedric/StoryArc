@@ -370,6 +370,38 @@ fun LibraryScreen(
 
             KavitaSearchOffer(registry, query, onSearchOnServer)
 
+            // Above the refreshable area, not inside it: pulling on a search field means
+            // nothing, and an indicator that comes down over the controls hides the two
+            // chips saying what the shelf underneath is narrowed to.
+            if (viewModel != null && publications.isNotEmpty()) {
+                SearchField(
+                    value = query.search,
+                    recents = recentSearches,
+                    onChange = { viewModel.setQuery(query.copy(search = it)) },
+                    onClearRecents = viewModel::clearRecentSearches,
+                )
+                LibraryControls(
+                    query = query,
+                    registry = registry,
+                    layout = layout,
+                    availability = availability,
+                    onAvailabilityChange = { availability = it },
+                    onQueryChange = viewModel::setQuery,
+                    onLayoutChange = viewModel::setLayout,
+                    // One action, everything it undoes. The library filter is cleared
+                    // with the rest of them, so there is no state a reader can be left
+                    // in without noticing.
+                    onClearFilters = {
+                        availability = LibraryAvailability.EVERYTHING
+                        viewModel.setQuery(
+                            query.withoutFilters().copy(scope = LibraryScope.AllSources),
+                        )
+                    },
+                    viewModel = viewModel,
+                )
+                cachedAt?.let { CachedNotice(it) }
+            }
+
             // Pull to refresh, and no refresh button. Android was the only platform
             // carrying both, and the gesture is the one Material names for a shelf that
             // re-reads itself.
@@ -390,14 +422,10 @@ fun LibraryScreen(
                             continueReading = continueReading,
                             groups = groups,
                             query = query,
-                            registry = registry,
                             layout = layout,
                             availability = availability,
                             selection = selection,
-                            onAvailabilityChange = { availability = it },
                             onSelectionChange = { selection = it },
-                            recents = recentSearches,
-                            cachedAt = cachedAt,
                             onOpen = onOpen,
                             onAddToShelf = { shelving = it },
                         )
@@ -406,34 +434,24 @@ fun LibraryScreen(
                         // forbids showing that silently: say what is narrowing it and
                         // offer one action to undo.
                         publications.isNotEmpty() && viewModel != null ->
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                SearchField(
-                                    value = query.search,
-                                    recents = recentSearches,
-                                    onChange = {
-                                        viewModel.setQuery(query.copy(search = it))
-                                    },
-                                    onClearRecents = viewModel::clearRecentSearches,
-                                )
-                                NarrowedToNothing(
-                                    query = query,
-                                    isOnDeviceOnly = availability.isNarrowing &&
-                                        visible.isNotEmpty(),
-                                    onClear = {
-                                        availability = LibraryAvailability.EVERYTHING
-                                        viewModel.setQuery(
-                                            query.withoutFilters()
-                                                .copy(search = "", scope = LibraryScope.AllSources),
-                                        )
-                                    },
-                                    // Offered only when the axis is what is hiding things.
-                                    onWiden = if (availability.isNarrowing) {
-                                        { availability = LibraryAvailability.EVERYTHING }
-                                    } else {
-                                        null
-                                    },
-                                )
-                            }
+                            NarrowedToNothing(
+                                query = query,
+                                isOnDeviceOnly = availability.isNarrowing &&
+                                    visible.isNotEmpty(),
+                                onClear = {
+                                    availability = LibraryAvailability.EVERYTHING
+                                    viewModel.setQuery(
+                                        query.withoutFilters()
+                                            .copy(search = "", scope = LibraryScope.AllSources),
+                                    )
+                                },
+                                // Offered only when the axis is what is hiding things.
+                                onWiden = if (availability.isNarrowing) {
+                                    { availability = LibraryAvailability.EVERYTHING }
+                                } else {
+                                    null
+                                },
+                            )
 
                         state is LibraryScanState.Scanning -> Scanning(state.found)
 
@@ -506,10 +524,12 @@ fun LibraryScreen(
 }
 
 /**
- * The shelf itself: the search field, the controls, and the covers under them.
+ * The covers themselves, as a grid or as a list.
  *
  * Its own composable so the screen above reads as the four states it has, rather than as
- * one of them written out at length inside a `when`.
+ * one of them written out at length inside a `when`. The search field and the controls are
+ * not here: they belong above the refreshable area, and the reader keeps them while the
+ * shelf scrolls.
  */
 @Composable
 private fun Shelf(
@@ -518,44 +538,14 @@ private fun Shelf(
     continueReading: List<Publication>,
     groups: List<MatchGroup>,
     query: LibraryQuery,
-    registry: SourceRegistry,
     layout: LibraryLayout,
     availability: LibraryAvailability,
     selection: LibrarySelection,
-    onAvailabilityChange: (LibraryAvailability) -> Unit,
     onSelectionChange: (LibrarySelection) -> Unit,
-    recents: RecentSearches,
-    cachedAt: Long?,
     onOpen: (Publication, String) -> Unit,
     onAddToShelf: (Publication) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        SearchField(
-            value = query.search,
-            recents = recents,
-            onChange = { viewModel.setQuery(query.copy(search = it)) },
-            onClearRecents = viewModel::clearRecentSearches,
-        )
-        LibraryControls(
-            query = query,
-            registry = registry,
-            layout = layout,
-            availability = availability,
-            onAvailabilityChange = onAvailabilityChange,
-            onQueryChange = viewModel::setQuery,
-            onLayoutChange = viewModel::setLayout,
-            // One action, everything it undoes. The library filter is cleared with the
-            // rest of them, so there is no state a reader can be left in without noticing.
-            onClearFilters = {
-                onAvailabilityChange(LibraryAvailability.EVERYTHING)
-                viewModel.setQuery(
-                    query.withoutFilters().copy(scope = LibraryScope.AllSources),
-                )
-            },
-            viewModel = viewModel,
-        )
-        cachedAt?.let { CachedNotice(it) }
-
         val open: (Publication) -> Unit = { publication ->
             viewModel.location(publication)?.let { onOpen(publication, it) }
         }
