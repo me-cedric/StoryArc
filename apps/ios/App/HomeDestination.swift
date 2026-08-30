@@ -31,15 +31,28 @@ struct HomeDestination: View {
 
     /// The most recent arrivals, newest first.
     ///
-    /// A projection over the library the app already holds, not a second query: `addedAt`
-    /// is on the publication, and a shelf that had to ask a source for this would be a
+    /// A projection over the library the app already holds, not a second query: the dates
+    /// are on the publication, and a shelf that had to ask a source for this would be a
     /// shelf that goes blank on a plane.
+    ///
+    /// Not filtered on having a date. A file system does not always answer *when did this
+    /// arrive* — a folder copied wholesale, a share that reports nothing, an archive
+    /// restored from a backup — and a shelf that emptied itself over that would take the
+    /// library away from a reader whose books are all perfectly present. When nothing has
+    /// a date, the order is the library's own, which is the best answer available and not
+    /// a wrong one.
     private var recentlyAdded: [Publication] {
         model.publications
-            .filter { $0.addedAt != nil }
-            .sorted { ($0.addedAt ?? .distantPast) > ($1.addedAt ?? .distantPast) }
-            .prefix(12)
+            .sorted { arrived($0) > arrived($1) }
+            .prefix(Self.shelfLength)
             .map { $0 }
+    }
+
+    /// How many a Home shelf holds. Home is never exhaustive; the library is.
+    private static let shelfLength = 12
+
+    private func arrived(_ publication: Publication) -> Date {
+        publication.addedAt ?? publication.modifiedAt ?? .distantPast
     }
 
     private var isBare: Bool { model.continueReading.isEmpty && recentlyAdded.isEmpty }

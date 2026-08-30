@@ -100,6 +100,17 @@ struct AppShell: View {
         .onChange(of: tab) { previous, _ in
             if previous == .search { model.query.search = "" }
         }
+        // The library is brought up here rather than by whichever surface happens to be
+        // shown first. It used to be started by the shelf's own `.task`, which was
+        // correct while the shelf *was* the app — and became a bug the moment a reader
+        // could land somewhere else: home opened onto an empty library until they had
+        // visited the library tab at least once. `home-screen` says home is assembled
+        // from what the device already knows, so what the device knows has to be read
+        // before home is drawn.
+        .task {
+            model.restoreFolders()
+            await model.refreshProgress()
+        }
     }
 
     /// One tab's label. Named so the four of them cannot drift apart.
