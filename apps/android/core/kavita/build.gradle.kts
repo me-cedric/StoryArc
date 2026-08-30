@@ -23,6 +23,7 @@ android {
 
 dependencies {
     implementation(project(":core:catalogue"))
+    api(project(":core:model"))
     implementation(libs.kotlinx.coroutines.core)
     api(libs.kotlinx.serialization.json)
 

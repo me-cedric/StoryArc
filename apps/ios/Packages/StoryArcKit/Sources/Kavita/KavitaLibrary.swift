@@ -1,5 +1,7 @@
 public import Foundation
 
+public import StoryArcCore
+
 /// One of a Kavita server's libraries.
 ///
 /// `kavita-server` requires the app to "mirror Kavita's own structure — libraries, series,
@@ -72,12 +74,28 @@ public struct KavitaChapter: Sendable, Equatable, Identifiable, Decodable {
     public let pages: Int
     public let pagesRead: Int
 
-    public init(id: Int, number: String, title: String? = nil, pages: Int = 0, pagesRead: Int = 0) {
+    /// Which series it belongs to, when the answer said.
+    ///
+    /// Zero inside a volume, where the series is the screen the reader is already on. A
+    /// search result is the case that needs it: a chapter found by name is the only kind of
+    /// row that arrives with no series around it, and without this it could be listed and
+    /// not opened.
+    public let seriesId: Int
+
+    public init(
+        id: Int,
+        number: String,
+        title: String? = nil,
+        pages: Int = 0,
+        pagesRead: Int = 0,
+        seriesId: Int = 0
+    ) {
         self.id = id
         self.number = number
         self.title = title
         self.pages = pages
         self.pagesRead = pagesRead
+        self.seriesId = seriesId
     }
 
     /// Counts default to nothing, for the reason ``KavitaSeries`` gives.
@@ -86,12 +104,19 @@ public struct KavitaChapter: Sendable, Equatable, Identifiable, Decodable {
         id = try container.decode(Int.self, forKey: .id)
         number = try container.decodeIfPresent(String.self, forKey: .number) ?? ""
         title = try container.decodeIfPresent(String.self, forKey: .title)
+            ?? container.decodeIfPresent(String.self, forKey: .titleName)
         pages = try container.decodeIfPresent(Int.self, forKey: .pages) ?? 0
         pagesRead = try container.decodeIfPresent(Int.self, forKey: .pagesRead) ?? 0
+        seriesId = try container.decodeIfPresent(Int.self, forKey: .seriesId) ?? 0
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, number, title, pages, pagesRead
+        case id, number, title, pages, pagesRead, seriesId
+
+        /// What a search result calls a chapter's title. Kavita's own search DTO differs
+        /// from its volume DTO here, and a chapter found by name would otherwise be listed
+        /// as a bare number.
+        case titleName
     }
 
     /// What to call it in a list.
@@ -182,16 +207,39 @@ extension KavitaClient {
 
     /// Series matching a query, answered by the server.
     ///
+    /// The narrow half of ``find(_:)``, kept because the series is the only thing a caller
+    /// that already knows which library it is in needs.
+    public func search(_ query: String) async throws -> [KavitaSeries] {
+        try await results(for: query).series
+    }
+
+    /// Everything the server matched, in the five kinds the spec names.
+    ///
     /// `kavita-server`: searching within a Kavita source sends the query to the server,
     /// "returning matches across series, chapters, people, genres, and tags — not only
-    /// titles cached locally". Only the series half is read here; the rest needs screens
-    /// that do not exist yet, and decoding fields nothing shows would be pretending.
-    public func search(_ query: String) async throws -> [KavitaSeries] {
+    /// titles cached locally". The doc comment this replaced said only the series half was
+    /// read because "the rest needs screens that do not exist yet" — the screen exists now,
+    /// so the rest is read.
+    ///
+    /// Genres and tags arrive as one kind, for the reason ``KavitaHit/Kind/subject`` gives.
+    /// A person and a subject carry no series, because Kavita answers them with a name
+    /// alone.
+    public func find(_ query: String) async throws -> [KavitaHit] {
+        let found = try await results(for: query)
+        return found.series.map { KavitaHit(kind: .series, title: $0.name, seriesId: $0.id) }
+            + found.chapters.map {
+                KavitaHit(kind: .chapter, title: $0.displayName, seriesId: $0.seriesId)
+            }
+            + found.persons.map { KavitaHit(kind: .person, title: $0.label) }
+            + (found.genres + found.tags).map { KavitaHit(kind: .subject, title: $0.label) }
+    }
+
+    private func results(for query: String) async throws -> KavitaSearchResults {
         let data = try await get(
             "Search/search",
             query: [URLQueryItem(name: "queryString", value: query)]
         )
-        return try decode(KavitaSearchResults.self, from: data).series
+        return try decode(KavitaSearchResults.self, from: data)
     }
 
     private func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
@@ -217,6 +265,31 @@ public struct KavitaFile: Sendable, Equatable {
 }
 
 /// What `Search/search` returns, of what this app reads.
+///
+/// Every list defaults to empty. Kavita omits the kinds a query matched nothing in, and a
+/// decoder that insisted on all five would turn every narrow search into "unexpected
+/// response".
 struct KavitaSearchResults: Decodable {
     let series: [KavitaSeries]
+    let chapters: [KavitaChapter]
+
+    /// Kavita's own spelling. Renamed on the way out, because `people` is what the rest of
+    /// this app calls them.
+    let persons: [KavitaNamed]
+
+    let genres: [KavitaNamed]
+    let tags: [KavitaNamed]
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        series = try container.decodeIfPresent([KavitaSeries].self, forKey: .series) ?? []
+        chapters = try container.decodeIfPresent([KavitaChapter].self, forKey: .chapters) ?? []
+        persons = try container.decodeIfPresent([KavitaNamed].self, forKey: .persons) ?? []
+        genres = try container.decodeIfPresent([KavitaNamed].self, forKey: .genres) ?? []
+        tags = try container.decodeIfPresent([KavitaNamed].self, forKey: .tags) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case series, chapters, persons, genres, tags
+    }
 }

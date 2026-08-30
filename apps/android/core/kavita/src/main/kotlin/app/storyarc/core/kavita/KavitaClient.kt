@@ -1,5 +1,6 @@
 package app.storyarc.core.kavita
 
+import app.storyarc.core.model.KavitaHit
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -220,12 +221,33 @@ class KavitaClient(val address: KavitaAddress) {
     /**
      * Series matching a query, answered by the server.
      *
-     * Only the series half is read. The rest of what Kavita returns -- chapters, people,
-     * genres, tags -- needs screens that do not exist yet, and decoding fields nothing shows
-     * would be pretending.
+     * The narrow half of [find], kept because the series is the only thing a caller that
+     * already knows which library it is in needs.
      */
-    suspend fun search(query: String): List<KavitaSeries> =
-        decode<KavitaSearchResults>(get("Search/search", mapOf("queryString" to query))).series
+    suspend fun search(query: String): List<KavitaSeries> = results(query).series
+
+    /**
+     * Everything the server matched, in the five kinds the spec names.
+     *
+     * `kavita-server`: searching within a Kavita source sends the query to the server,
+     * "returning matches across series, chapters, people, genres, and tags -- not only titles
+     * cached locally". The comment this replaced said only the series half was read because
+     * the rest "needs screens that do not exist yet" -- the screen exists now, so the rest is
+     * read.
+     *
+     * Genres and tags arrive as one kind, for the reason `KavitaHit.Kind.SUBJECT` gives. A
+     * person and a subject carry no series, because Kavita answers them with a name alone.
+     */
+    suspend fun find(query: String): List<KavitaHit> {
+        val found = results(query)
+        return found.series.map { KavitaHit(KavitaHit.Kind.SERIES, it.name, it.id) } +
+            found.chapters.map { KavitaHit(KavitaHit.Kind.CHAPTER, it.displayName, it.seriesId) } +
+            found.persons.map { KavitaHit(KavitaHit.Kind.PERSON, it.label) } +
+            (found.genres + found.tags).map { KavitaHit(KavitaHit.Kind.SUBJECT, it.label) }
+    }
+
+    private suspend fun results(query: String): KavitaSearchResults =
+        decode(get("Search/search", mapOf("queryString" to query)))
 
     private inline fun <reified T> decode(body: ByteArray): T =
         runCatching { json.decodeFromString<T>(String(body)) }
@@ -395,6 +417,19 @@ internal data class KavitaAccount(val username: String, val token: String)
 @Serializable
 internal data class KavitaServerInfo(val kavitaVersion: String)
 
-/** What `Search/search` returns, of what this app reads. */
+/**
+ * What `Search/search` returns, of what this app reads.
+ *
+ * Every list defaults to empty. Kavita omits the kinds a query matched nothing in, and a
+ * decoder that insisted on all five would turn every narrow search into "unexpected
+ * response".
+ */
 @Serializable
-internal data class KavitaSearchResults(val series: List<KavitaSeries> = emptyList())
+internal data class KavitaSearchResults(
+    val series: List<KavitaSeries> = emptyList(),
+    val chapters: List<KavitaChapter> = emptyList(),
+    /** Kavita's own spelling. Called people everywhere else in this app. */
+    val persons: List<KavitaNamed> = emptyList(),
+    val genres: List<KavitaNamed> = emptyList(),
+    val tags: List<KavitaNamed> = emptyList(),
+)

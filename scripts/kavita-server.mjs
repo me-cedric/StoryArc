@@ -369,16 +369,35 @@ const server = createServer((request, response) => {
     return undefined
   }
 
+  // `kavita-server` asks a server-side search for matches "across series, chapters, people,
+  // genres, and tags". The client reads all five now, so the mock answers with all five --
+  // a mock that only ever returned series could not tell a working reader from a broken one.
   if (url.pathname === '/api/Search/search') {
     const query = (url.searchParams.get('queryString') ?? '').toLowerCase()
+    const matches = (text) => (text ?? '').toLowerCase().includes(query)
+    const chapters = []
+    for (const each of series) {
+      for (const chapter of each.chapters) {
+        if (!matches(chapter.title)) continue
+        chapters.push({
+          id: chapter.id,
+          // A search result names a chapter's title `titleName`, where a volume calls it
+          // `title`. The difference is Kavita's own, and both clients read both spellings.
+          titleName: chapter.title,
+          number: chapter.number,
+          seriesId: each.id,
+        })
+      }
+    }
     return send(response, 200, {
       series: series
-        .filter((each) => each.name.toLowerCase().includes(query))
+        .filter((each) => matches(each.name))
         .map((each) => ({ id: each.id, name: each.name, libraryId: each.libraryId })),
-      chapters: [],
-      persons: [],
-      genres: [],
-      tags: [],
+      chapters,
+      // Kavita spells a person's name `name` and a genre's `title`; both clients take either.
+      persons: [{ id: 1, name: 'Ada Okonkwo' }].filter((each) => matches(each.name)),
+      genres: [{ id: 1, title: 'Adventure' }].filter((each) => matches(each.title)),
+      tags: [{ id: 2, title: 'Ongoing' }].filter((each) => matches(each.title)),
     })
   }
 

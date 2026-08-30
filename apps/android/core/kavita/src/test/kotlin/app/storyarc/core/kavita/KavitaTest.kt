@@ -1,5 +1,6 @@
 package app.storyarc.core.kavita
 
+import app.storyarc.core.model.KavitaHit
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import kotlinx.coroutines.runBlocking
@@ -123,7 +124,11 @@ class KavitaClientTest {
                     body = """[{"id":10,"number":0,"chapters":[{"id":1,"number":"1","pages":8,"pagesRead":8}]},
                               {"id":11,"number":1,"name":"Volume 1","chapters":[]}]"""
                 path.endsWith("/Search/search") ->
-                    body = """{"series":[{"id":2,"name":"Tidal Reach"}]}"""
+                    body = """{"series":[{"id":2,"name":"Tidal Reach"}],
+                              "chapters":[{"id":9,"titleName":"The Harbour","seriesId":2}],
+                              "persons":[{"id":1,"name":"Ada Okonkwo"}],
+                              "genres":[{"id":1,"title":"Adventure"}],
+                              "tags":[{"id":2,"title":"Ongoing"}]}"""
                 else -> {
                     status = 404
                     body = """{"message":"no"}"""
@@ -175,6 +180,45 @@ class KavitaClientTest {
         val found = client().search("tidal")
         assertEquals(listOf("Tidal Reach"), found.map { it.name })
         assertNull(found.first().fraction)
+    }
+
+    @Test
+    fun aSearchReadsAllFiveKindsTheSpecNames() = runBlocking {
+        // `kavita-server`: "matches across series, chapters, people, genres, and tags". A
+        // genre and a tag arrive as one kind, and in that order.
+        val hits = client().find("a")
+        assertEquals(
+            listOf(
+                KavitaHit.Kind.SERIES,
+                KavitaHit.Kind.CHAPTER,
+                KavitaHit.Kind.PERSON,
+                KavitaHit.Kind.SUBJECT,
+                KavitaHit.Kind.SUBJECT,
+            ),
+            hits.map { it.kind },
+        )
+        assertEquals(
+            listOf("Tidal Reach", "The Harbour", "Ada Okonkwo", "Adventure", "Ongoing"),
+            hits.map { it.title },
+        )
+    }
+
+    @Test
+    fun aChapterFoundByNameCarriesTheSeriesItOpens() = runBlocking {
+        // Kavita's search DTO spells a chapter's title `titleName`. Read from the wrong
+        // field, a chapter found by name is listed as a bare number and opens nothing.
+        val chapter = client().find("harbour").first { it.kind == KavitaHit.Kind.CHAPTER }
+        assertEquals("The Harbour", chapter.title)
+        assertTrue(chapter.isOpenable)
+        assertEquals(2, chapter.seriesId)
+    }
+
+    @Test
+    fun aPersonIsANameRatherThanAPlace() = runBlocking {
+        // Kavita answers a person with a name alone, so the row is plainly not tappable
+        // rather than tappable and inert.
+        val person = client().find("okonkwo").first { it.kind == KavitaHit.Kind.PERSON }
+        assertFalse(person.isOpenable)
     }
 
     @Test

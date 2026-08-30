@@ -1,0 +1,128 @@
+package app.storyarc.core.model
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * Searching a Kavita source with the server away.
+ *
+ * `kavita-server`: with the server unreachable "the search falls back to the local cache and
+ * states that results are limited to cached content". These are the cases the fallback has to
+ * get right, in the order iOS's `KavitaFindTests` asserts them.
+ */
+class KavitaFindTest {
+    private fun card(
+        publication: String,
+        series: String,
+        seriesId: Int = 1,
+        chapter: String = "1",
+        people: List<String> = emptyList(),
+        subjects: List<String> = emptyList(),
+    ) = KavitaCard(
+        publicationId = publication,
+        sourceId = "s",
+        seriesId = seriesId,
+        chapterId = 1,
+        seriesName = series,
+        chapterName = chapter,
+        people = people,
+        subjects = subjects,
+    )
+
+    @Test
+    fun `an empty query asks for nothing`() {
+        assertNull(KavitaFind.term(""))
+    }
+
+    @Test
+    fun `a query of only spaces asks for nothing`() {
+        // A server asked for whitespace answers with its whole library, which reads as a
+        // search that matched everything.
+        assertNull(KavitaFind.term("   "))
+        assertTrue(KavitaFind.inCache("  ", listOf(card("a", "Tidal Reach"))).isEmpty())
+    }
+
+    @Test
+    fun `a series name match is a series hit`() {
+        val hits = KavitaFind.inCache("tidal", listOf(card("a", "Tidal Reach", seriesId = 7)))
+        assertEquals(listOf(KavitaHit(KavitaHit.Kind.SERIES, "Tidal Reach", 7)), hits)
+    }
+
+    @Test
+    fun `a chapter name match is a chapter hit`() {
+        val hits = KavitaFind.inCache(
+            "harbour",
+            listOf(card("a", "Tidal Reach", seriesId = 7, chapter = "The Harbour")),
+        )
+        assertEquals(listOf(KavitaHit(KavitaHit.Kind.CHAPTER, "The Harbour", 7)), hits)
+    }
+
+    @Test
+    fun `matching ignores case`() {
+        assertEquals(1, KavitaFind.inCache("TIDAL", listOf(card("a", "Tidal Reach"))).size)
+    }
+
+    @Test
+    fun `a person match is named after the person, not the series`() {
+        val hits = KavitaFind.inCache(
+            "okonkwo",
+            listOf(card("a", "Tidal Reach", people = listOf("Ada Okonkwo"))),
+        )
+        assertEquals(listOf(KavitaHit(KavitaHit.Kind.PERSON, "Ada Okonkwo")), hits)
+        // Nowhere to go: Kavita answers with the name alone.
+        assertFalse(hits.first().isOpenable)
+    }
+
+    @Test
+    fun `a genre or a tag match is one kind of hit, not two`() {
+        val hits = KavitaFind.inCache(
+            "horror",
+            listOf(card("a", "Tidal Reach", subjects = listOf("Horror", "Cosmic Horror"))),
+        )
+        assertEquals(listOf(KavitaHit.Kind.SUBJECT, KavitaHit.Kind.SUBJECT), hits.map { it.kind })
+        assertEquals(listOf("Horror", "Cosmic Horror"), hits.map { it.title })
+    }
+
+    @Test
+    fun `one card matching two ways yields one hit of each kind`() {
+        val hits = KavitaFind.inCache(
+            "reach",
+            listOf(card("a", "Tidal Reach", seriesId = 7, chapter = "Reach for it")),
+        )
+        assertEquals(listOf(KavitaHit.Kind.SERIES, KavitaHit.Kind.CHAPTER), hits.map { it.kind })
+    }
+
+    @Test
+    fun `two chapters of one series are one series row`() {
+        val hits = KavitaFind.inCache(
+            "tidal",
+            listOf(
+                card("a", "Tidal Reach", seriesId = 7, chapter = "1"),
+                card("b", "Tidal Reach", seriesId = 7, chapter = "2"),
+            ),
+        )
+        assertEquals(1, hits.size)
+    }
+
+    @Test
+    fun `a card matching nothing is not a result`() {
+        assertTrue(KavitaFind.inCache("zzz", listOf(card("a", "Tidal Reach"))).isEmpty())
+    }
+
+    @Test
+    fun `headings come back in the spec's own order, and an empty one is left out`() {
+        val hits = KavitaFind.inCache(
+            "a",
+            listOf(
+                card("a", "Tidal Reach", seriesId = 7, chapter = "Harbour", people = listOf("Ada")),
+            ),
+        )
+        assertEquals(
+            listOf(KavitaHit.Kind.SERIES, KavitaHit.Kind.CHAPTER, KavitaHit.Kind.PERSON),
+            KavitaFind.grouped(hits).map { it.first },
+        )
+    }
+}

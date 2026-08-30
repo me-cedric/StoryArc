@@ -84,6 +84,47 @@ struct KavitaLibraryTests {
         #expect(try await client.search("tidal").map(\.name) == ["Tidal Reach"])
     }
 
+    @Test("A search reads all five kinds the spec names")
+    func findsEveryKind() async throws {
+        // `kavita-server`: "matches across series, chapters, people, genres, and tags". A
+        // genre and a tag arrive as one kind, and in that order.
+        let client = try client(everyKind)
+        let hits = try await client.find("a")
+        #expect(hits.map(\.kind) == [.series, .chapter, .person, .subject, .subject])
+        #expect(
+            hits.map(\.title) == ["Tidal Reach", "The Harbour", "Ada Okonkwo", "Adventure", "Ongoing"]
+        )
+    }
+
+    @Test("A chapter found by name carries the series it opens")
+    func foundChapterOpens() async throws {
+        // Kavita's search DTO spells a chapter's title `titleName`. Read from the wrong
+        // field, a chapter found by name is listed as a bare number and opens nothing.
+        let client = try client(everyKind)
+        let chapter = try #require(try await client.find("harbour").first { $0.kind == .chapter })
+        #expect(chapter.title == "The Harbour")
+        #expect(chapter.isOpenable)
+        #expect(chapter.seriesId == 2)
+    }
+
+    @Test("A person is a name rather than a place")
+    func foundPersonOpensNothing() async throws {
+        // Kavita answers a person with a name alone, so the row is plainly not tappable
+        // rather than tappable and inert.
+        let client = try client(everyKind)
+        let person = try #require(try await client.find("okonkwo").first { $0.kind == .person })
+        #expect(!person.isOpenable)
+    }
+
+    /// One answer carrying all five kinds, which the Android suite stubs identically.
+    private let everyKind = """
+    {"series":[{"id":2,"name":"Tidal Reach"}],
+     "chapters":[{"id":9,"titleName":"The Harbour","seriesId":2}],
+     "persons":[{"id":1,"name":"Ada Okonkwo"}],
+     "genres":[{"id":1,"title":"Adventure"}],
+     "tags":[{"id":2,"title":"Ongoing"}]}
+    """
+
     @Test("A response that is not the shape expected is named as such")
     func unexpectedShape() async throws {
         let client = try client(#"{"unexpected":true}"#)

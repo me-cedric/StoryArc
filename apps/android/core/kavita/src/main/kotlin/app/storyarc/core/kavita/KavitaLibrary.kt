@@ -43,8 +43,23 @@ data class KavitaChapter(
     /** Kavita's own chapter number, as a string because it can be `1`, `1.5` or `Special`. */
     val number: String = "",
     val title: String? = null,
+    /**
+     * What a search result calls a chapter's title.
+     *
+     * Kavita's search DTO differs from its volume DTO here, and a chapter found by name
+     * would otherwise be listed as a bare number.
+     */
+    val titleName: String? = null,
     val pages: Int = 0,
     val pagesRead: Int = 0,
+    /**
+     * Which series it belongs to, when the answer said.
+     *
+     * Zero inside a volume, where the series is the screen the reader is already on. A search
+     * result is the case that needs it: a chapter found by name is the only kind of row that
+     * arrives with no series around it, and without this it could be listed and not opened.
+     */
+    val seriesId: Int = 0,
 ) {
     /**
      * What to call it in a list.
@@ -52,7 +67,10 @@ data class KavitaChapter(
      * The title when the server has one, the number when it does not. Kavita leaves the
      * title empty for a plain numbered issue, and "3" beats an empty row.
      */
-    val displayName: String get() = title?.takeIf { it.isNotEmpty() } ?: number
+    val displayName: String
+        get() = title?.takeIf { it.isNotEmpty() }
+            ?: titleName?.takeIf { it.isNotEmpty() }
+            ?: number
 
     val isFinished: Boolean get() = pages > 0 && pagesRead >= pages
 }
