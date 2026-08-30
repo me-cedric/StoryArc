@@ -1,0 +1,137 @@
+internal import SwiftUI
+
+internal import DesignSystem
+internal import StoryArcCore
+
+/// The artwork, at the size the direction asks for: the largest thing on the page.
+///
+/// Shown whole rather than cropped, which is `publication-detail`'s wording and the same
+/// rule the grid cell already follows — a manga volume and a square EPUB cover are not the
+/// comic trim, and cutting their edges off is a worse answer than letterboxing them onto
+/// the sunken surface behind.
+///
+/// The wash is not applied here. It is behind the whole page, and this sits on it: the
+/// delta requires that "the cover itself is not tinted, recoloured or dimmed by it", so the
+/// one thing on the screen that must stay exactly as printed is the one thing the colour
+/// taken from it never touches.
+struct DetailHero: View {
+    @Environment(\.theme) private var theme
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    let publication: Publication
+    /// `nil` until the cover has been decoded, and for a publication that has none.
+    let cover: CGImage?
+
+    var body: some View {
+        artwork
+            .aspectRatio(2.0 / 3.0, contentMode: .fit)
+            .frame(maxWidth: maximumWidth)
+            .clipShape(.rect(cornerRadius: StoryArcRadius.md))
+            .overlay {
+                // The same hairline the grid puts round a cover, for the same reason: a
+                // pale cover on a pale surface has no edge of its own.
+                RoundedRectangle(cornerRadius: StoryArcRadius.md)
+                    .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
+            }
+            .shadow(color: theme.palette.scrim.opacity(0.35), radius: 24, y: 12)
+            .frame(maxWidth: .infinity)
+            .padding(.top, StoryArcSpace.lg)
+            // §3.4: on iPad the art mirrors and blurs under the floating sidebar, so the
+            // page reads as one surface rather than as a card inside a chrome frame. A
+            // phone has nothing for it to extend under, and the modifier is inert there.
+            .backgroundExtensionEffect()
+            // One image with no label. The title is the next thing in the reading order and
+            // it says everything this could; a second announcement of the same words is
+            // noise to anyone listening to the page rather than looking at it.
+            .accessibilityHidden(true)
+    }
+
+    /// How wide the cover is allowed to get.
+    ///
+    /// Capped on a regular width so the artwork does not become a poster with a caption on
+    /// an iPad, and uncapped on a phone where the screen is already the cap.
+    private var maximumWidth: CGFloat? {
+        sizeClass == .regular ? 320 : 260
+    }
+
+    @ViewBuilder
+    private var artwork: some View {
+        if let cover {
+            ZStack {
+                theme.palette.surfaceSunken
+                Image(decorative: cover, scale: 1)
+                    .resizable()
+                    .scaledToFit()
+            }
+        } else {
+            // The app's own placeholder, per the delta: legible, no colour derived from it,
+            // and the title never rendered over an image that failed to load — because
+            // there is no image here at all.
+            ZStack(alignment: .bottom) {
+                theme.palette.surfaceRaised
+                Image(systemName: "book.closed")
+                    .font(.system(size: 56))
+                    .foregroundStyle(theme.palette.textTertiary)
+                    .frame(maxHeight: .infinity)
+                Text(publication.format.displayName)
+                    .textRole(.caption)
+                    .foregroundStyle(theme.palette.textTertiary)
+                    .padding(.bottom, StoryArcSpace.sm)
+            }
+        }
+    }
+}
+
+/// Title, series, number and year, as one object.
+///
+/// §3.4: the title in the editorial face with the metadata in a tight stack at `xs`, so the
+/// three read as one thing rather than as three rows of a table. A line the publication does
+/// not carry is absent rather than empty — the delta refuses a placeholder, and a screen
+/// that says "Year: —" has invented a fact about the book.
+struct DetailTitleBlock: View {
+    @Environment(\.theme) private var theme
+
+    let publication: Publication
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
+            Text(publication.displayTitle)
+                .textRole(.display)
+                .foregroundStyle(theme.palette.textPrimary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let series = seriesLine {
+                Text(series)
+                    .textRole(.headline)
+                    .foregroundStyle(theme.palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let secondary = secondaryLine {
+                Text(secondary)
+                    .textRole(.subheadline)
+                    .foregroundStyle(theme.palette.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The series and the number, when the title is not already both of them.
+    private var seriesLine: String? {
+        guard let series = publication.series, series != publication.displayTitle else {
+            return nil
+        }
+        return publication.number.map { "\(series) #\($0)" } ?? series
+    }
+
+    /// Author and year, joined only where both exist.
+    private var secondaryLine: String? {
+        var parts: [String] = []
+        if let author = publication.authors.first { parts.append(author) }
+        if let year = publication.year { parts.append(String(year)) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}
