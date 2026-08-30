@@ -30,6 +30,13 @@ struct KavitaChapterList: View {
     @State private var resume: KavitaChapter?
     @State private var fetching: Int?
 
+    /// Which chapters this device already has a download of.
+    ///
+    /// Seeded from the cards rather than from the download library: a card names the chapter
+    /// a download came from, and the download record is keyed on a publication identity that
+    /// only exists once the file has been indexed.
+    @State private var kept: Set<Int> = []
+
     var body: some View {
         List {
             if let resume {
@@ -113,6 +120,7 @@ struct KavitaChapterList: View {
         }
         .task {
             guard volumes.isEmpty else { return }
+            kept = Set(KavitaCardStore().all(from: sourceId).map(\.chapterId))
             volumes = (try? await client.volumes(ofSeries: series.id)) ?? []
             // Each on its own, because a server that cannot answer one of the three should
             // still show the other two rather than an empty screen.
@@ -152,37 +160,57 @@ struct KavitaChapterList: View {
         }
         .buttonStyle(.plain)
         .disabled(fetching != nil)
-        // `kavita-server`: marking read must reach the server so its own UI agrees. A
-        // context menu is where iOS puts "what else can I do with this".
-        .contextMenu {
-            Button {
-                Task { await mark(chapter, read: !chapter.isFinished) }
-            } label: {
-                Label(
-                    chapter.isFinished
-                        ? String(localized: "library.mark.unread", bundle: .module, locale: .storyArc)
-                        : String(localized: "library.mark.read", bundle: .module, locale: .storyArc),
-                    systemImage: chapter.isFinished ? "circle" : "checkmark.circle"
-                )
-            }
-            // Only this server's own lists: a Kavita list can hold nothing else, and
-            // offering another server's would be offering a refusal.
-            ForEach(lists.filter { $0.server.id == sourceId }) { list in
-                Button {
-                    Task { await add(chapter, to: list) }
-                } label: {
-                    Label(
-                        String(
-                            format: String(localized: "kavita.addToList %@", bundle: .module, locale: .storyArc),
-                            list.title
-                        ),
-                        systemImage: "text.append"
-                    )
-                }
-            }
-        }
+        .contextMenu { actions(for: chapter) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken(chapter))
+    }
+
+    /// What else can be done with one chapter.
+    ///
+    /// `kavita-server`: marking read must reach the server so its own UI agrees, and a
+    /// context menu is where iOS puts the rest. Its own builder rather than inline, because
+    /// the row it hangs off is already at the length the linter allows.
+    @ViewBuilder
+    private func actions(for chapter: KavitaChapter) -> some View {
+        // `kavita-server` has a scenario about opening "a downloaded Kavita publication"
+        // offline, and until this there was no way to have one: the browser wrote every
+        // chapter to the caches directory. This is the asking.
+        Button {
+            Task { await keep(chapter) }
+        } label: {
+            Label(
+                String(localized: "kavita.keep", bundle: .module, locale: .storyArc),
+                systemImage: "arrow.down.circle"
+            )
+        }
+        .disabled(kept.contains(chapter.id))
+
+        Button {
+            Task { await mark(chapter, read: !chapter.isFinished) }
+        } label: {
+            Label(
+                chapter.isFinished
+                    ? String(localized: "library.mark.unread", bundle: .module, locale: .storyArc)
+                    : String(localized: "library.mark.read", bundle: .module, locale: .storyArc),
+                systemImage: chapter.isFinished ? "circle" : "checkmark.circle"
+            )
+        }
+
+        // Only this server's own lists: a Kavita list can hold nothing else, and offering
+        // another server's would be offering a refusal.
+        ForEach(lists.filter { $0.server.id == sourceId }) { list in
+            Button {
+                Task { await add(chapter, to: list) }
+            } label: {
+                Label(
+                    String(
+                        format: String(localized: "kavita.addToList %@", bundle: .module, locale: .storyArc),
+                        list.title
+                    ),
+                    systemImage: "text.append"
+                )
+            }
+        }
     }
 
     /// What a screen reader hears. The tick and the spinner carry no text of their own.
@@ -203,6 +231,28 @@ struct KavitaChapterList: View {
     /// Into the caches directory, not the download store: `kavita-server` and
     /// `offline-downloads` are different promises, and a chapter opened once is not a
     /// download the reader asked to keep.
+    /// Keeps a chapter on the device, with what the server says about it.
+    ///
+    /// The record and the card, not just the bytes: see ``KavitaKeep``. The chapter is not
+    /// opened afterwards — the reader asked to keep it, which is a different act from asking
+    /// to read it, and jumping into the reader would answer a question nobody put.
+    private func keep(_ chapter: KavitaChapter) async {
+        fetching = chapter.id
+        defer { fetching = nil }
+        let done = await KavitaKeep.keep(
+            KavitaKeep.Subject(
+                chapter: chapter,
+                series: series,
+                metadata: metadata,
+                origin: origin(of: chapter),
+                sourceID: UUID(uuidString: sourceId)
+            ),
+            client: client,
+            progress: store
+        )
+        if done != nil { kept.insert(chapter.id) }
+    }
+
     /// Tells the server the reader has, or has not, read this chapter.
     private func mark(_ chapter: KavitaChapter, read isRead: Bool) async {
         await KavitaSync.mark(

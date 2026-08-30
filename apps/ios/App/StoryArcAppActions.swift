@@ -180,5 +180,9 @@ extension StoryArcApp {
         for download in removed { downloadStore.remove(download) }
         downloads = kept
         downloadStore.save(kept)
+        // What a Kavita server said about those downloads goes with them. A card left behind
+        // describes bytes nobody has: it corrupts nothing, and it would put a row in an
+        // offline search that opens nothing.
+        KavitaCardStore().removeAll(from: source.id.uuidString)
     }
 }

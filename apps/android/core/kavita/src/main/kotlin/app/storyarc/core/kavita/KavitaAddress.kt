@@ -27,6 +27,18 @@ data class KavitaAddress(
         return "$base/api/$path$parameters"
     }
 
+    /**
+     * Where one chapter's bytes come from.
+     *
+     * Named on its own because a download record has to remember where it came from --
+     * `offline-downloads` retries from it without re-browsing. It is safe to write down:
+     * Kavita takes the key as a bearer header on this route, so the URL is a path and a
+     * chapter number and carries no secret. An OPDS acquisition link, which can embed one, is
+     * the reason that distinction is worth making out loud.
+     */
+    fun chapterUrl(chapterId: Int): String =
+        endpoint("Download/chapter", mapOf("chapterId" to chapterId.toString()))
+
     companion object {
         /**
          * Reads an address out of whatever the reader pasted.

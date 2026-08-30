@@ -76,6 +76,16 @@ class KavitaClient(val address: KavitaAddress) {
         get("Series/all-v2", libraryId?.let { mapOf("libraryId" to it.toString()) } ?: emptyMap()),
     )
 
+    /**
+     * One series, asked for by identity.
+     *
+     * A search result names a series and the library it belongs to is not always in the
+     * answer -- and Kavita keys progress by library *and* series, so opening a found series
+     * without asking would report reading against library zero, which the server refuses.
+     * One request on a tap, rather than a wrong write on every page turn afterwards.
+     */
+    suspend fun seriesDetail(id: Int): KavitaSeries = decode(get("Series/$id"))
+
     /** The volumes of one series, each with its chapters. */
     suspend fun volumes(seriesId: Int): List<KavitaVolume> =
         decode(get("Series/volumes", mapOf("seriesId" to seriesId.toString())))

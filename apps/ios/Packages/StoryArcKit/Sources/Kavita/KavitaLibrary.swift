@@ -39,10 +39,14 @@ public struct KavitaSeries: Sendable, Equatable, Identifiable, Decodable {
     ///
     /// Kavita's search results carry a series' identity and not its progress, and a decoder
     /// that insisted would turn every search into "unexpected response". Identity is still
-    /// required, because a series without it is not a series.
+    /// required, because a series without it is not a series — and a search result spells it
+    /// `seriesId` where a library listing spells it `id`, so both are read.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
+        guard let identity = try container.decodeIfPresent(Int.self, forKey: .id)
+            ?? container.decodeIfPresent(Int.self, forKey: .seriesId)
+        else { throw KavitaError.unexpectedResponse }
+        id = identity
         name = try container.decode(String.self, forKey: .name)
         libraryId = try container.decodeIfPresent(Int.self, forKey: .libraryId) ?? 0
         pages = try container.decodeIfPresent(Int.self, forKey: .pages) ?? 0
@@ -51,6 +55,9 @@ public struct KavitaSeries: Sendable, Equatable, Identifiable, Decodable {
 
     private enum CodingKeys: String, CodingKey {
         case id, name, libraryId, pages, pagesRead
+
+        /// What a search result calls a series' identity.
+        case seriesId
     }
 
     /// How far through, for the progress a series row shows.
@@ -177,6 +184,16 @@ extension KavitaClient {
     public func series(inLibrary id: Int? = nil) async throws -> [KavitaSeries] {
         let query = id.map { [URLQueryItem(name: "libraryId", value: String($0))] } ?? []
         return try decode([KavitaSeries].self, from: try await get("Series/all-v2", query: query))
+    }
+
+    /// One series, asked for by identity.
+    ///
+    /// A search result names a series and the library it belongs to is not always in the
+    /// answer — and Kavita keys progress by library *and* series, so opening a found series
+    /// without asking would report reading against library zero, which the server refuses.
+    /// One request on a tap, rather than a wrong write on every page turn afterwards.
+    public func seriesDetail(_ id: Int) async throws -> KavitaSeries {
+        try decode(KavitaSeries.self, from: try await get("Series/\(id)"))
     }
 
     /// The volumes of one series, each with its chapters.

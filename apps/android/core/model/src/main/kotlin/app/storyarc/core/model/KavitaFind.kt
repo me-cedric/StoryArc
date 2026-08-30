@@ -61,6 +61,14 @@ data class KavitaCard(
     val publicationId: String,
     /** Which source it came from, so removing a server can take its cards with it. */
     val sourceId: String,
+    /**
+     * The whole chain Kavita keys its own rows by, not the chapter alone.
+     *
+     * `KavitaOrigin` carries the same four for the same reason: a progress post missing one
+     * of them is refused, and a card that could not rebuild the origin would be a download
+     * that reads offline and never reports what was read.
+     */
+    val libraryId: Int = 0,
     val seriesId: Int,
     val chapterId: Int,
     val seriesName: String,

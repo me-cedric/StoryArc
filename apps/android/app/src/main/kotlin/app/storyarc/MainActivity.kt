@@ -44,6 +44,7 @@ import app.storyarc.core.persistence.locationOf
 import app.storyarc.core.persistence.RemovedDownload
 import app.storyarc.core.persistence.finishedDownload
 import app.storyarc.core.persistence.removeAfterFinishing
+import app.storyarc.core.persistence.KavitaCardStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.ShelvesStore
 import app.storyarc.core.persistence.SourceStore
@@ -230,6 +231,9 @@ class MainActivity : ComponentActivity() {
         val pins = CertificatePins(pinStore.pins())
         val downloadStore = DownloadStore.open(applicationContext)
         val kavitaProgress = KavitaProgressStore.open(applicationContext)
+        // What each Kavita server said about the downloads it produced. Held here because
+        // removing a source removes its downloads, and what was cached about them goes too.
+        val kavitaCards = KavitaCardStore.open(applicationContext)
         // What an interrupted scan wrote down, so the next one picks up rather than starting
         // again. `local-library` requires a scan to be "cancellable and resumable".
         val scanJournal = ScanJournal.open(applicationContext)
@@ -855,7 +859,7 @@ class MainActivity : ComponentActivity() {
                                 // download to a source, so deleting the source before its files
                                 // leaves bytes on disk that nothing in the app can name, let
                                 // alone offer to remove.
-                                downloads = removeDownloads(source, downloads, downloadStore)
+                                downloads = removeDownloads(source, downloads, downloadStore, kavitaCards)
                                 libraryViewModel.removeSource(source, credentials)
                             },
                             onRenameSource = { source, name ->
@@ -881,9 +885,9 @@ class MainActivity : ComponentActivity() {
                                     SourceAction.CLEAR_CACHE ->
                                         libraryViewModel.clearSourceCache(source)
                                     SourceAction.REMOVE_DOWNLOADS ->
-                                        downloads = removeDownloads(source, downloads, downloadStore)
+                                        downloads = removeDownloads(source, downloads, downloadStore, kavitaCards)
                                     SourceAction.REMOVE -> {
-                                        downloads = removeDownloads(source, downloads, downloadStore)
+                                        downloads = removeDownloads(source, downloads, downloadStore, kavitaCards)
                                         libraryViewModel.removeSource(source, credentials)
                                     }
                                 }

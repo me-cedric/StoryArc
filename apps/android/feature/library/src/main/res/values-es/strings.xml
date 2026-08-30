@@ -293,4 +293,20 @@
     <string name="library_match_publication">Títulos</string>
     <string name="library_match_person">Personas</string>
     <string name="library_match_tag">Etiquetas</string>
+    <string name="kavita_keep">Guardar en el dispositivo</string>
+    <string name="kavita_kept">En este dispositivo</string>
+    <string name="kavita_search_prompt">Buscar en este servidor</string>
+    <string name="kavita_search_cached">Este servidor no responde. Los resultados se limitan a lo que hay en este dispositivo.</string>
+    <string name="kavita_search_empty">Sin resultados.</string>
+    <string name="kavita_search_series">Series</string>
+    <string name="kavita_search_chapters">Capítulos</string>
+    <string name="kavita_search_people">Personas</string>
+    <string name="kavita_search_subjects">Géneros y etiquetas</string>
+    <string name="kavita_search_close">Cerrar la búsqueda</string>
+    <string name="kavita_search_open">Buscar</string>
+    <string name="kavita_offline_kept">Lo que este servidor ha dejado en este dispositivo</string>
+    <string name="kavita_offline_none">No se ha guardado nada de este servidor en este dispositivo.</string>
+    <string name="source_unauthorized_title">El acceso ya no está guardado</string>
+    <string name="source_unauthorized_body">Este dispositivo ya no conserva la clave de %1$s. Abra la fuente en Ajustes y vuelva a introducir sus credenciales.</string>
+    <string name="source_unauthorized_refused_body">%1$s rechazó la clave guardada. Abra la fuente en Ajustes e introduzca una nueva.</string>
 </resources>

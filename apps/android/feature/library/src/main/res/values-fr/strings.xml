@@ -293,4 +293,20 @@
     <string name="library_match_publication">Titres</string>
     <string name="library_match_person">Personnes</string>
     <string name="library_match_tag">Étiquettes</string>
+    <string name="kavita_keep">Conserver sur l’appareil</string>
+    <string name="kavita_kept">Sur cet appareil</string>
+    <string name="kavita_search_prompt">Rechercher sur ce serveur</string>
+    <string name="kavita_search_cached">Ce serveur ne répond pas. Les résultats se limitent à ce qui est sur cet appareil.</string>
+    <string name="kavita_search_empty">Aucun résultat.</string>
+    <string name="kavita_search_series">Séries</string>
+    <string name="kavita_search_chapters">Chapitres</string>
+    <string name="kavita_search_people">Personnes</string>
+    <string name="kavita_search_subjects">Genres et étiquettes</string>
+    <string name="kavita_search_close">Fermer la recherche</string>
+    <string name="kavita_search_open">Rechercher</string>
+    <string name="kavita_offline_kept">Ce que ce serveur a laissé sur cet appareil</string>
+    <string name="kavita_offline_none">Rien de ce serveur n’a été conservé sur cet appareil.</string>
+    <string name="source_unauthorized_title">L’identifiant n’est plus enregistré</string>
+    <string name="source_unauthorized_body">Cet appareil ne conserve plus la clé de %1$s. Ouvrez la source dans les Réglages et saisissez à nouveau ses identifiants.</string>
+    <string name="source_unauthorized_refused_body">%1$s a refusé la clé enregistrée. Ouvrez la source dans les Réglages et saisissez-en une nouvelle.</string>
 </resources>

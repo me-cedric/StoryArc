@@ -59,6 +59,13 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
     /// Which source it came from, so removing a server can take its cards with it.
     public let sourceId: String
 
+    /// The whole chain Kavita keys its own rows by, not the chapter alone.
+    ///
+    /// `KavitaOrigin` carries the same four for the same reason: a progress post missing one
+    /// of them is refused, and a card that could not rebuild the origin would be a download
+    /// that reads offline and never reports what was read.
+    public let libraryId: Int
+
     public let seriesId: Int
     public let chapterId: Int
     public let seriesName: String
@@ -77,6 +84,7 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
     public init(
         publicationId: String,
         sourceId: String,
+        libraryId: Int = 0,
         seriesId: Int,
         chapterId: Int,
         seriesName: String,
@@ -88,6 +96,7 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
     ) {
         self.publicationId = publicationId
         self.sourceId = sourceId
+        self.libraryId = libraryId
         self.seriesId = seriesId
         self.chapterId = chapterId
         self.seriesName = seriesName

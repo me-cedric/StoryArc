@@ -293,4 +293,20 @@
     <string name="library_match_publication">Titles</string>
     <string name="library_match_person">People</string>
     <string name="library_match_tag">Tags</string>
+    <string name="kavita_keep">Keep on device</string>
+    <string name="kavita_kept">On this device</string>
+    <string name="kavita_search_prompt">Search this server</string>
+    <string name="kavita_search_cached">This server is not answering. Results are limited to what is on this device.</string>
+    <string name="kavita_search_empty">Nothing matched.</string>
+    <string name="kavita_search_series">Series</string>
+    <string name="kavita_search_chapters">Chapters</string>
+    <string name="kavita_search_people">People</string>
+    <string name="kavita_search_subjects">Genres and tags</string>
+    <string name="kavita_search_close">Close search</string>
+    <string name="kavita_search_open">Search</string>
+    <string name="kavita_offline_kept">What this server has left on this device</string>
+    <string name="kavita_offline_none">Nothing from this server has been kept on this device.</string>
+    <string name="source_unauthorized_title">The sign-in is no longer stored</string>
+    <string name="source_unauthorized_body">This device no longer holds the key for %1$s. Open the source in Settings and re-enter its credentials.</string>
+    <string name="source_unauthorized_refused_body">%1$s refused the stored key. Open the source in Settings and enter a new one.</string>
 </resources>

@@ -293,4 +293,20 @@
     <string name="library_match_publication">Titel</string>
     <string name="library_match_person">Personen</string>
     <string name="library_match_tag">Schlagwörter</string>
+    <string name="kavita_keep">Auf dem Gerät behalten</string>
+    <string name="kavita_kept">Auf diesem Gerät</string>
+    <string name="kavita_search_prompt">Diesen Server durchsuchen</string>
+    <string name="kavita_search_cached">Dieser Server antwortet nicht. Die Ergebnisse beschränken sich auf das, was auf diesem Gerät liegt.</string>
+    <string name="kavita_search_empty">Keine Treffer.</string>
+    <string name="kavita_search_series">Serien</string>
+    <string name="kavita_search_chapters">Kapitel</string>
+    <string name="kavita_search_people">Personen</string>
+    <string name="kavita_search_subjects">Genres und Schlagwörter</string>
+    <string name="kavita_search_close">Suche schließen</string>
+    <string name="kavita_search_open">Suchen</string>
+    <string name="kavita_offline_kept">Was dieser Server auf diesem Gerät hinterlassen hat</string>
+    <string name="kavita_offline_none">Von diesem Server wurde nichts auf diesem Gerät behalten.</string>
+    <string name="source_unauthorized_title">Zugang nicht mehr gespeichert</string>
+    <string name="source_unauthorized_body">Dieses Gerät hat den Schlüssel für %1$s nicht mehr. Öffnen Sie die Quelle in den Einstellungen und geben Sie die Zugangsdaten erneut ein.</string>
+    <string name="source_unauthorized_refused_body">%1$s hat den gespeicherten Schlüssel abgelehnt. Öffnen Sie die Quelle in den Einstellungen und geben Sie einen neuen ein.</string>
 </resources>

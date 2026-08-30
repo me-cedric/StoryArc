@@ -91,4 +91,17 @@ public struct KavitaAddress: Sendable, Equatable {
         if !query.isEmpty { components.queryItems = query }
         return components.url
     }
+
+    /// Where one chapter's bytes come from.
+    ///
+    /// Public where ``endpoint(_:query:)`` is not, because a download record has to remember
+    /// where it came from — `offline-downloads` retries from it without re-browsing. It is
+    /// safe to write down: Kavita takes the key as a bearer header on this route, so the URL
+    /// is a path and a chapter number and carries no secret. An OPDS acquisition link, which
+    /// can embed one, is the reason that distinction is worth making out loud.
+    public func chapterURL(_ chapterId: Int) -> URL? {
+        endpoint("Download/chapter", query: [
+            URLQueryItem(name: "chapterId", value: String(chapterId)),
+        ])
+    }
 }

@@ -1,6 +1,8 @@
 package app.storyarc.core.kavita
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 
 /**
  * One of a Kavita server's libraries.
@@ -15,6 +17,13 @@ data class KavitaLibraryFolder(val id: Int, val name: String)
 /** A series, as the library list shows it. */
 @Serializable
 data class KavitaSeries(
+    /**
+     * A search result spells this `seriesId` where a library listing spells it `id`. Both
+     * are read: decoded through only one of them, a found series comes back as series zero
+     * and opens nothing.
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    @JsonNames("seriesId")
     val id: Int,
     val name: String,
     val libraryId: Int = 0,
@@ -42,14 +51,13 @@ data class KavitaChapter(
     val id: Int,
     /** Kavita's own chapter number, as a string because it can be `1`, `1.5` or `Special`. */
     val number: String = "",
-    val title: String? = null,
     /**
-     * What a search result calls a chapter's title.
-     *
-     * Kavita's search DTO differs from its volume DTO here, and a chapter found by name
-     * would otherwise be listed as a bare number.
+     * A search result spells this `titleName` where a volume spells it `title`. Kavita's two
+     * DTOs differ, and a chapter found by name would otherwise be listed as a bare number.
      */
-    val titleName: String? = null,
+    @OptIn(ExperimentalSerializationApi::class)
+    @JsonNames("titleName")
+    val title: String? = null,
     val pages: Int = 0,
     val pagesRead: Int = 0,
     /**
@@ -67,10 +75,7 @@ data class KavitaChapter(
      * The title when the server has one, the number when it does not. Kavita leaves the
      * title empty for a plain numbered issue, and "3" beats an empty row.
      */
-    val displayName: String
-        get() = title?.takeIf { it.isNotEmpty() }
-            ?: titleName?.takeIf { it.isNotEmpty() }
-            ?: number
+    val displayName: String get() = title?.takeIf { it.isNotEmpty() } ?: number
 
     val isFinished: Boolean get() = pages > 0 && pagesRead >= pages
 }

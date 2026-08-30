@@ -194,6 +194,20 @@ const server = createServer((request, response) => {
     })))
   }
 
+  // One series by identity. A search result names a series without always naming the library
+  // it sits in, and Kavita keys progress by both -- so opening a found series asks here first.
+  if (/^\/api\/Series\/\d+$/.test(url.pathname)) {
+    const found = series.find((each) => each.id === Number(url.pathname.split('/').pop()))
+    if (!found) return send(response, 404, { message: 'no such series' })
+    return send(response, 200, {
+      id: found.id,
+      name: found.name,
+      libraryId: found.libraryId,
+      pages: found.chapters.reduce((total, chapter) => total + chapter.pages, 0),
+      pagesRead: found.chapters.reduce((total, chapter) => total + chapter.pagesRead, 0),
+    })
+  }
+
   if (url.pathname === '/api/Series/metadata') {
     const found = metadata.get(Number(url.searchParams.get('seriesId')))
     if (!found) return send(response, 404, { message: 'no such series' })

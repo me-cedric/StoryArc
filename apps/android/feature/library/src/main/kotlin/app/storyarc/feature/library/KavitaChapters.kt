@@ -44,6 +44,7 @@ import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.kavita.KavitaVolume
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.persistence.KavitaCardStore
 import app.storyarc.core.persistence.KavitaOrigin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -85,6 +86,16 @@ fun KavitaChapters(
     var resume by remember(series.id) { mutableStateOf<KavitaChapter?>(null) }
     var fetching by remember(series.id) { mutableStateOf<Int?>(null) }
     var conflicts by remember(series.id) { mutableStateOf<List<ProgressPull.Conflict>>(emptyList()) }
+
+    // Which chapters this device already has a download of. Seeded from the cards rather than
+    // from the download library: a card names the chapter a download came from, and the
+    // download record is keyed on a publication identity that only exists once the file has
+    // been indexed.
+    var kept by remember(series.id) { mutableStateOf<Set<Int>>(emptySet()) }
+
+    LaunchedEffect(series.id) {
+        kept = KavitaCardStore.open(context).all(sourceId).map { it.chapterId }.toSet()
+    }
 
     LaunchedEffect(series.id) {
         volumes = runCatching { client.volumes(series.id) }.getOrDefault(emptyList())
@@ -155,6 +166,28 @@ fun KavitaChapters(
         }
     }
 
+    // `kavita-server` has a scenario about opening "a downloaded Kavita publication" offline,
+    // and until this there was no way to have one: the browser wrote every chapter to the
+    // cache directory. This is the asking. The chapter is not opened afterwards -- keeping is
+    // a different act from reading, and jumping into the reader would answer a question
+    // nobody put.
+    val keep: (KavitaChapter) -> Unit = { chapter ->
+        scope.launch {
+            fetching = chapter.id
+            val done = KavitaKeep.keep(
+                context = context,
+                chapter = chapter,
+                series = series,
+                metadata = metadata,
+                origin = originOf(chapter),
+                sourceId = runCatching { java.util.UUID.fromString(sourceId) }.getOrNull(),
+                client = client,
+            )
+            if (done != null) kept = kept + chapter.id
+            fetching = null
+        }
+    }
+
     val addTo: (KavitaChapter, ServerList) -> Unit = { chapter, list ->
         scope.launch { KavitaSync.append(store, client.address, originOf(chapter), list.id) }
     }
@@ -217,10 +250,12 @@ fun KavitaChapters(
                 ChapterRow(
                     chapter = chapter,
                     isFetching = fetching == chapter.id,
+                    isKept = chapter.id in kept,
                     // Only this server's own lists: a Kavita list can hold nothing else,
                     // and offering another server's would be offering a refusal.
                     lists = lists.filter { it.server.id == sourceId },
                     onOpen = { open(chapter) },
+                    onKeep = { keep(chapter) },
                     onMark = { mark(chapter, !chapter.isFinished) },
                     onAddTo = { addTo(chapter, it) },
                 )
@@ -259,8 +294,10 @@ private fun KavitaMetadataBlock(metadata: KavitaMetadata) {
 private fun ChapterRow(
     chapter: KavitaChapter,
     isFetching: Boolean,
+    isKept: Boolean,
     lists: List<ServerList>,
     onOpen: () -> Unit,
+    onKeep: () -> Unit,
     onMark: () -> Unit,
     onAddTo: (ServerList) -> Unit,
 ) {
@@ -273,6 +310,7 @@ private fun ChapterRow(
     val state = when {
         isFetching -> stringResource(R.string.kavita_fetching)
         chapter.isFinished -> stringResource(R.string.library_read_state_finished)
+        isKept -> stringResource(R.string.kavita_kept)
         else -> null
     }
     val spoken = state?.let { "${chapter.displayName}, $it" } ?: chapter.displayName
@@ -305,6 +343,14 @@ private fun ChapterRow(
         }
 
         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.kavita_keep)) },
+                enabled = !isKept,
+                onClick = {
+                    menuOpen = false
+                    onKeep()
+                },
+            )
             DropdownMenuItem(
                 text = {
                     Text(

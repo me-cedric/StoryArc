@@ -3,6 +3,7 @@ package app.storyarc
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.DownloadStore
+import app.storyarc.core.persistence.KavitaCardStore
 
 /**
  * Deletes the files one source produced, and the records of them.
@@ -25,10 +26,19 @@ internal fun removeDownloads(
     source: Source,
     downloads: DownloadLibrary,
     store: DownloadStore,
+    /**
+     * What a Kavita server said about those downloads, which goes with them.
+     *
+     * Null for a caller with no context to open one -- the cards are keyed by publication, so
+     * one left behind describes bytes nobody has rather than corrupting anything, but leaving
+     * it behind would put a row in an offline search that opens nothing.
+     */
+    cards: KavitaCardStore? = null,
 ): DownloadLibrary {
     val (kept, removed) = downloads.removingAll(source.id)
     if (removed.isEmpty()) return downloads
     removed.forEach { store.remove(it) }
     store.save(kept)
+    cards?.removeAll(source.id.toString())
     return kept
 }
