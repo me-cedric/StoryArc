@@ -86,7 +86,17 @@ let failed = 0
 
 for (const file of files) {
   const name = relative(here, file)
-  const likec4 = await LikeC4.fromSource(readFileSync(file, 'utf8'))
+  const source = readFileSync(file, 'utf8')
+
+  // An empty file is Konvoy's "New diagram" scaffold, not a diagram. It appears here
+  // whenever someone presses the button and has not written anything yet, and failing the
+  // whole check on it would train a reader to ignore the check.
+  if (source.trim() === '') {
+    console.log(`skip ${name} — empty, nothing to draw yet`)
+    continue
+  }
+
+  const likec4 = await LikeC4.fromSource(source)
 
   // Half one: the file must resolve on its own.
   if (likec4.hasErrors()) {

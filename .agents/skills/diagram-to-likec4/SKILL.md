@@ -36,7 +36,15 @@ Offer `diagram-to-adr` when the user needs to capture a process decision.
 
 ## Output
 
-Write one file per diagram to `docs/diagrams/<name>.c4`, unless the host defines
+Write one **self-contained** diagram per directory: `docs/diagrams/<name>/<name>.c4`,
+each with its own `specification`, `model` and `views`, and its own
+`likec4.config.json` so it is a LikeC4 project in its own right. Konvoy loads a
+diagram with `LikeC4.fromSource(oneFilesText)`, so a model split across files
+resolves nothing and renders blank without erroring. A flat directory of
+self-contained files cannot work either — they collide on duplicate element kinds.
+Verify with `node docs/diagrams/check.mjs`, which fails on both traps.
+
+Unless the host defines
 another diagram path. Never modify the source diagram.
 
 ## Structured formats
@@ -45,7 +53,7 @@ Run the bundled converter for Excalidraw and draw.io inputs:
 
 ```bash
 python3 skills/diagram-to-likec4/scripts/diagram_to_likec4.py \
-  <input> docs/diagrams/<name>.c4
+  <input> docs/diagrams/<name>/<name>.c4
 ```
 
 The converter maps:

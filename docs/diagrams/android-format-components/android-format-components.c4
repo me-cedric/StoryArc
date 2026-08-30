@@ -35,10 +35,6 @@ specification {
     }
   }
 
-  relationship reads {
-    notation 'Reads over a protocol'
-    line dashed
-  }
 
   tag android
   tag mirrored
