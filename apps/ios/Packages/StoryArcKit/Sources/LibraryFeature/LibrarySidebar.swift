@@ -62,6 +62,21 @@ enum SidebarLayout {
 /// header over what the reader made. Settings stays in the toolbar, outside the selection,
 /// as it already is.
 public struct LibrarySidebar<Value: Hashable>: TabContent {
+    /// Whether this window has a sidebar to put the sections in.
+    ///
+    /// The gate, and it is load-bearing rather than tidy. `defaultVisibility(.hidden, for:
+    /// .tabBar)` alone was not enough: it governs the iPad's own tab bar, and a **compact**
+    /// window has a different bar that folds every section it is given into a *More* tab.
+    /// On an iPhone that is `navigation-shell`'s forbidden outcome measured exactly — the
+    /// three destinations "displaced or pushed out of reach" by secondary entries — and it
+    /// was visible on a booted iPhone 17 Pro before this gate existed: Home · Library ·
+    /// Downloads · **More** · search.
+    ///
+    /// So the sections are not merely hidden in a compact window; they are not there. A
+    /// window with no sidebar has nowhere to put them, and the rows they lead to are all
+    /// reachable from Home in a phone's own navigation.
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
     private let model: LibraryModel
     private let onOpen: (Publication, URL) -> Void
     /// How a sidebar entry is spelled in the shell's own selection type.
@@ -89,6 +104,13 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
     private static var inlineShelfLimit: Int { 8 }
 
     public var body: some TabContent<Value> {
+        if sizeClass == .regular {
+            sections
+        }
+    }
+
+    @TabContentBuilder<Value>
+    private var sections: some TabContent<Value> {
         TabSection {
             Tab(value: value(.recentlyAdded)) {
                 NavigationStack {
