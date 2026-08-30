@@ -52,24 +52,6 @@ struct HomeSection<Content: View, Destination: View>: View {
     }
 }
 
-/// A heading over a section that has nowhere further to go.
-///
-/// The finished timeline's months, which are not a filter the library can be put into:
-/// there is no "everything I finished in March" shelf to lead to, and a chevron that led
-/// back to the same list would be a promise the screen cannot keep.
-struct HomeHeading: View {
-    @Environment(\.theme) private var theme
-
-    let title: Text
-
-    var body: some View {
-        title
-            .textRole(.title3)
-            .foregroundStyle(theme.palette.textPrimary)
-            .padding(.horizontal, StoryArcSpace.gutter)
-    }
-}
-
 /// One horizontal run of covers.
 ///
 /// A shelf rather than a grid: Home is never exhaustive, so a section that ran out of
