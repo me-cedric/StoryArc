@@ -176,7 +176,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - Provenance: the swift-toolkit checkout is pristine upstream 3.11.0 (Package.resolved revision d82f44f, git log in the checkout shows only the 3.11.0 tag commit) — this is dependency default behaviour the app fails to configure, not modified vendor code.
 
 
-### 4. Vendored libarchive is pinned at 3.8.1, missing nine upstream RAR/RAR5 memory-safety fixes and a read-framework integer-overflow fix, on the one C parser that sees every CBR the reader opens
+### 4. FIXED — Vendored libarchive is pinned at 3.8.1, missing nine upstream RAR/RAR5 memory-safety fixes and a read-framework integer-overflow fix, on the one C parser that sees every CBR the reader opens
 
 **🟠 high** · both · dependency · effort: medium · **CONFIRMED**
 

@@ -1,0 +1,41 @@
+name: Supply chain
+
+# The alarm the vendored libarchive never had.
+#
+# Copied sources have no package manifest, so Dependabot and every SCA scanner are blind
+# to them: the tree sat at 3.8.1 for two months while nine upstream RAR memory-safety
+# fixes shipped, and nothing anywhere raised a hand. This job is the hand.
+#
+# It runs on a schedule rather than on a pull request on purpose. A new libarchive
+# release is not a reason to block somebody's unrelated change; it is a reason to open
+# a refresh. Failing here files that reminder without stopping anyone.
+on:
+  schedule:
+    # Mondays, early. Weekly is enough — VENDORING.md's own instruction is to treat a
+    # RAR-reader CVE as urgent, and an advisory is watched separately from a release.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  libarchive:
+    name: Vendored libarchive is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Pinned version is the newest libarchive release
+        # Refresh with third_party/libarchive/VENDORING.md when this fails, and read the
+        # release notes for the two RAR readers first.
+        run: pnpm libarchive:upstream

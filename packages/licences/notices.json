@@ -25,7 +25,7 @@
     },
     {
       "name": "libarchive",
-      "version": "3.7.7",
+      "version": "3.8.9",
       "licence": "BSD-2-Clause",
       "url": "https://github.com/libarchive/libarchive",
       "platforms": [

@@ -21,9 +21,9 @@
 #define STORYARC_LIBARCHIVE_CONFIG_H
 
 /* Version reported by archive_version_string(). Keep in step with VENDORING.md. */
-#define ARCHIVE_VERSION_ONLY_STRING "3.8.1"
+#define ARCHIVE_VERSION_ONLY_STRING "3.8.9"
 #define ARCHIVE_VERSION_STRING "libarchive " ARCHIVE_VERSION_ONLY_STRING
-#define ARCHIVE_VERSION_NUMBER 3008001
+#define ARCHIVE_VERSION_NUMBER 3008009
 #define VERSION ARCHIVE_VERSION_ONLY_STRING
 
 /* ── Headers, present on both platforms ─────────────────────────────────── */
@@ -140,6 +140,21 @@
 #define HAVE_WMEMCMP 1
 #define HAVE_WMEMCPY 1
 #define HAVE_WMEMMOVE 1
+
+/*
+ * "Am I running set-uid?", which 3.8.9 added to guard the TMPDIR lookup in
+ * archive_util.c. The two platforms answer it with different calls: Apple has
+ * issetugid(), bionic does not and never has, but it does have the
+ * getresuid()/getresgid() pair the fallback arm uses. Without one of these the
+ * code falls through to a geteuid()/getuid() comparison that misses the
+ * saved-uid case, so each platform gets the accurate call.
+ */
+#ifdef __APPLE__
+#define HAVE_ISSETUGID 1
+#else
+#define HAVE_GETRESUID 1
+#define HAVE_GETRESGID 1
+#endif
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 #define HAVE_INTMAX_T 1

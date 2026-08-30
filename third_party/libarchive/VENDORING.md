@@ -1,7 +1,11 @@
 # libarchive, vendored
 
-**Upstream:** <https://github.com/libarchive/libarchive> · **version 3.8.1** ·
-[release tarball](https://github.com/libarchive/libarchive/releases/tag/v3.8.1)
+**Upstream:** <https://github.com/libarchive/libarchive> · **version 3.8.9** ·
+[release tarball](https://github.com/libarchive/libarchive/releases/tag/v3.8.9)
+
+The machine-readable copy of that pin — version, tarball URL and digest, the key
+the release was signed with, and a digest over every vendored source — is
+[`pin.json`](pin.json). `pnpm libarchive:pin` checks it on every `pnpm lint`.
 
 This is the answer to task 0.5 of the `format-scope-and-libraries` change: *how
 is libarchive vendored, and can a contributor still build the app?*
@@ -95,22 +99,33 @@ chosen over UnrarKit, Unrar.swift or junrar ([ADR-0005]).
 
 ## Refreshing
 
-1. Download the new release tarball and verify its signature.
+1. Download the new release tarball and verify its signature against the key
+   recorded in `pin.json`.
 2. Copy the files in the table above, plus `libarchive/*.h`, plus
-   `contrib/android/include/android_lf.h`.
+   `contrib/android/include/android_lf.h`. A release may add a private header
+   the vendored sources now include — 3.8.9 added `archive_integer.h` and
+   `archive_platform_stat.h` — so copy until nothing is missing, not just the
+   files that were already here.
 3. Re-read `config.h` against the new `config.h.in` for macros that appeared or
    changed meaning.
 4. Compile for macOS and all four Android ABIs before running any test — a
    missing macro shows up as a compile error, not a test failure.
 5. Re-check the per-file licence headers. Upstream has changed them before.
-6. Update the version at the top of this file and `ARCHIVE_VERSION_*` in
-   `config.h`.
+6. Update the version at the top of this file, `ARCHIVE_VERSION_*` in
+   `config.h`, `version`/`tag`/`tarball`/`tarballSha256`/`signingKey` in
+   `pin.json`, and the libarchive row in `packages/licences/notices.json`.
+7. Run `node scripts/libarchive-pin.mjs --write` to re-record the source digest,
+   then `pnpm libarchive:pin` to confirm every one of those places agrees.
 
 Because the sources are copied rather than tracked by a package manager,
-**vulnerability alerts will not find them automatically.** Watch
+**vulnerability alerts will not find them automatically.** That is what
+`pin.json` and `scripts/libarchive-pin.mjs` exist for: `--check` runs offline in
+`pnpm lint` and fails when the five places that state a version disagree or when
+a vendored source has been edited in place, and `--upstream` runs weekly in CI
+and fails when a newer libarchive release exists. Watch
 [libarchive's security advisories](https://github.com/libarchive/libarchive/security/advisories)
-and treat a RAR-reader CVE as urgent: those two files parse untrusted input from
-the internet.
+too, and treat a RAR-reader CVE as urgent: those two files parse untrusted input
+from the internet.
 
 [ADR-0005]: ../../docs/decisions/0005-format-and-rendering-libraries.md
 [ADR-0008]: ../../docs/decisions/0008-ranged-reads-and-own-zip-reader.md

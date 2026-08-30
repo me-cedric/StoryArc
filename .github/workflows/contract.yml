@@ -45,6 +45,15 @@ jobs:
         # a formatting one, and this is the only thing that would notice.
         run: pnpm notices:check
 
+      - name: Vendored libarchive states one version everywhere, and is unpatched
+        # libarchive is copied sources, so it has no lockfile entry and no advisory feed.
+        # This is the only thing that would notice the tree, config.h, VENDORING.md and
+        # the notices inventory drifting apart — which they had.
+        run: pnpm libarchive:pin
+
+      - name: The libarchive pin checker's own checks still fire
+        run: pnpm libarchive:pin:selftest
+
       - name: The accessibility scanner's own checks still fire
         # A scanner that silently stops matching reports a clean screen, which is worse
         # than having no scanner. The device sweep cannot run here; its self-test can.

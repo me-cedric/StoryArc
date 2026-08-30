@@ -1,0 +1,13 @@
+{
+  "version": "3.8.9",
+  "tag": "v3.8.9",
+  "tarball": "https://github.com/libarchive/libarchive/releases/download/v3.8.9/libarchive-3.8.9.tar.xz",
+  "tarballSha256": "888c934f9d95648ecb9163dc8e23ab80a476ecb81a8f1154704a227b5b676dde",
+  "signingKey": "659C84C0E23EA1FA97E0B58CC040B508D63D2B36",
+  "signedBy": "Martin Matuska <mm@FreeBSD.org>",
+  "localFiles": [
+    "config.h",
+    "include/module.modulemap"
+  ],
+  "sourcesSha256": "0a330cd51a16dee2367ec65790eb39f6e163878934d6b84c2305fc77bdd2f6c5"
+}

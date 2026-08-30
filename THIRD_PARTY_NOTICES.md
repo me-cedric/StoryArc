@@ -13,7 +13,7 @@ and the SIL Open Font Licence requires its text to accompany the fonts.
 | --- | --- | --- | --- | --- |
 | [Readium Swift Toolkit 3.11](https://github.com/readium/swift-toolkit) | `BSD-3-Clause` | iOS | Copyright (c) 2017, Readium | Reflowable EPUB rendering. ADR-0005. |
 | [Readium Kotlin Toolkit 3.3](https://github.com/readium/kotlin-toolkit) | `BSD-3-Clause` | Android | Copyright (c) 2017, Readium | Reflowable EPUB rendering. ADR-0005. |
-| [libarchive 3.7.7](https://github.com/libarchive/libarchive) | `BSD-2-Clause` | iOS, Android | The libarchive distribution as a whole is Copyright by Tim Kientzle | Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md. |
+| [libarchive 3.8.9](https://github.com/libarchive/libarchive) | `BSD-2-Clause` | iOS, Android | The libarchive distribution as a whole is Copyright by Tim Kientzle | Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md. |
 | [AndroidX and Jetpack Compose](https://developer.android.com/jetpack/androidx) | `Apache-2.0` | Android | Copyright (C) The Android Open Source Project | The UI toolkit, lifecycle, Room and the activity host. |
 | [Kotlin and kotlinx](https://github.com/JetBrains/kotlin) | `Apache-2.0` | Android | Copyright 2010-2018 JetBrains s.r.o. and Kotlin Programming Language contributors. | The language, coroutines and serialization. |
 | [Literata](https://fonts.google.com/specimen/Literata) | `OFL-1.1` | iOS, Android | Copyright 2017 The Literata Project Authors (https://github.com/googlefonts/literata) | A bundled reading typeface. Designed for screen reading. |
@@ -41,3 +41,10 @@ See [ADR-0005](docs/decisions/0005-format-and-rendering-libraries.md) and
 [`third_party/libarchive/VENDORING.md`](third_party/libarchive/VENDORING.md).
 
 Re-check the per-file headers on every refresh. Upstream has changed them before.
+
+The vendored version, the tarball digest, the key the release was signed with and a
+digest over every copied source are in
+[`third_party/libarchive/pin.json`](third_party/libarchive/pin.json), and
+`pnpm libarchive:pin` fails when any of the places that state a version disagree. Nothing
+else would notice: copied sources have no package manifest, so this table said 3.7.7
+while the tree was at 3.8.1.
