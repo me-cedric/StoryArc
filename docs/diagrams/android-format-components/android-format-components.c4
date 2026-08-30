@@ -1,0 +1,188 @@
+// The Android format layer — C4 level 3, components.
+//
+// SELF-CONTAINED ON PURPOSE. Konvoy renders a diagram by calling
+// `LikeC4.fromSource(<one file's text>)`, which parses this file alone. See
+// ../README.md.
+//
+// Read this beside ../ios-format-components/. The spine is mirrored type for
+// type and test case for test case. Every component below is a type that
+// exists in apps/android/core/format; every edge is a use in code.
+
+specification {
+
+  element module {
+    notation 'Build module'
+    style {
+      shape rectangle
+      color indigo
+    }
+  }
+
+  // A type or file inside one module.
+  element component {
+    notation 'Component'
+    style {
+      shape rectangle
+      color sky
+    }
+  }
+
+  element artefact {
+    notation 'Shared artefact'
+    style {
+      shape storage
+      color green
+    }
+  }
+
+  relationship reads {
+    notation 'Reads over a protocol'
+    line dashed
+  }
+
+  tag android
+  tag mirrored
+  tag shared
+}
+
+model {
+
+  coreFormat = module ':core:format' {
+    #android
+    #mirrored
+    description '''
+      apps/android/core/format. Archive and document parsing: ZIP, TAR, RAR,
+      PDF, EPUB metadata, image folders and SAF trees.
+    '''
+    technology 'Kotlin'
+
+    source = component 'RandomAccessSource' {
+      description 'The same seam, same contract. ADR-0008.'
+    }
+    bytes = component 'ByteReader' 'Bounds-checked little-endian field reads over a buffer.'
+
+    zip = component 'ZipReader' 'The central directory is the only authority. Mirrors the iOS reader case for case.'
+    tar = component 'TarReader' '512-byte headers, no compression.'
+    rar = component 'RarReader' 'RAR4 and RAR5 headers, without a decoder.'
+    rarDecoder = component 'RarDecoder' {
+      description 'The JNI bridge. Loads libstoryarc_rar, which CMake builds from the vendored libarchive sources.'
+      technology 'JNI'
+    }
+    imageFolder = component 'ImageFolderArchive' 'An unpacked comic in a directory reachable by path.'
+
+    comicArchive = component 'ComicArchive' 'Sniffs the container and routes to a reader.'
+
+    ordering = component 'PageOrdering' 'Natural sort over entry names. Asserted case for case against the iOS enum.'
+    codec = component 'PageCodec' 'Which entry names count as a page.'
+    decoder = component 'PageDecoder' {
+      description 'Decodes and downsamples one page.'
+      technology 'BitmapFactory'
+    }
+
+    format = component 'PublicationFormat' 'Decided by content rather than by extension.'
+    comicInfo = component 'ComicInfo' 'ComicInfo.xml metadata.'
+    filenameMetadata = component 'FilenameMetadata' 'Series, volume and issue recovered from a filename.'
+
+    epub = component 'EpubReader' 'Container, OPF and spine parsing for the library. Not the renderer.'
+    epubCover = component 'EpubSpineCover' 'The cover of a fixed-layout EPUB.'
+
+    pdf = component 'PdfDocumentReader' {
+      description 'Page count, page rendering and the text layer.'
+      technology 'android.graphics.pdf.PdfRenderer'
+    }
+
+    indexer = component 'PublicationIndexer' 'Opens one publication and produces the row the library stores.'
+    scanner = component 'LibraryScanner' 'Walks a source and indexes what it finds.'
+    coverLoader = component 'CoverLoader' 'Produces a cover for any publication, whatever its format.'
+    coverCache = component 'CoverCache' 'On-disk cover cache. Read by feature:library, not from inside this module.'
+
+    // The three components with no iOS counterpart. Android does not hand an
+    // app a path for a user-picked folder, so the whole layer had to grow an
+    // adapter for content Uris rather than change its contract.
+    safTree = component 'SafTree' 'A folder picked through the Storage Access Framework, listed through a ContentProvider.'
+    uriSource = component 'UriSource' 'A RandomAccessSource over a content Uri, so a CBZ on a cloud provider indexes with the same ranged reads as one on internal storage.'
+    documentFolder = component 'DocumentFolderArchive' 'The SAF counterpart of ImageFolderArchive. Pages are documents enumerated at open time, so no path can be constructed and none can escape.'
+  }
+
+  shared = artefact 'Shared artefacts' {
+    #shared
+
+    libarchive = artefact 'libarchive (vendored)' {
+      description '''
+        third_party/libarchive — the same 26 sources iOS compiles, built here
+        by CMake and the NDK into libstoryarc_rar (ADR-0005).
+      '''
+      technology 'C, BSD-2-Clause'
+    }
+  }
+
+  // --- Edges ------------------------------------------------------------
+
+  coreFormat.zip -> coreFormat.bytes
+  coreFormat.zip -> coreFormat.source
+  coreFormat.tar -> coreFormat.source
+  coreFormat.rar -> coreFormat.source
+  coreFormat.uriSource -> coreFormat.source 'implements'
+
+  coreFormat.comicArchive -> coreFormat.zip
+  coreFormat.comicArchive -> coreFormat.tar
+  coreFormat.comicArchive -> coreFormat.rar
+  coreFormat.comicArchive -> coreFormat.rarDecoder
+  coreFormat.comicArchive -> coreFormat.imageFolder
+  coreFormat.comicArchive -> coreFormat.ordering
+  coreFormat.comicArchive -> coreFormat.source
+  coreFormat.comicArchive -> coreFormat.safTree
+  coreFormat.comicArchive -> coreFormat.uriSource
+
+  coreFormat.ordering -> coreFormat.codec
+  coreFormat.rarDecoder -> shared.libarchive 'loads, as libstoryarc_rar'
+
+  coreFormat.indexer -> coreFormat.comicArchive
+  coreFormat.indexer -> coreFormat.epub
+  coreFormat.indexer -> coreFormat.epubCover
+  coreFormat.indexer -> coreFormat.pdf
+  coreFormat.indexer -> coreFormat.comicInfo
+  coreFormat.indexer -> coreFormat.filenameMetadata
+  coreFormat.indexer -> coreFormat.format
+  coreFormat.indexer -> coreFormat.imageFolder
+  coreFormat.indexer -> coreFormat.uriSource
+
+  coreFormat.scanner -> coreFormat.indexer
+  coreFormat.scanner -> coreFormat.safTree
+  coreFormat.scanner -> coreFormat.uriSource
+
+  coreFormat.coverLoader -> coreFormat.indexer
+  coreFormat.coverLoader -> coreFormat.comicArchive
+  coreFormat.coverLoader -> coreFormat.epub
+  coreFormat.coverLoader -> coreFormat.epubCover
+  coreFormat.coverLoader -> coreFormat.pdf
+  coreFormat.coverLoader -> coreFormat.decoder
+  coreFormat.coverLoader -> coreFormat.uriSource
+}
+
+views {
+
+  view index {
+    title 'Components — the Android format layer'
+    description '''
+      Hold this beside the iOS view. The spine is mirrored deliberately, type
+      for type and test case for test case, because this layer already produced
+      one silent cross-platform divergence.
+
+      The three components with no iOS counterpart are `SafTree`, `UriSource`
+      and `DocumentFolderArchive`, and they exist for one reason: Android does
+      not hand an app a path for a user-picked folder. Rather than change the
+      contract, the platform difference is absorbed by one adapter behind
+      `RandomAccessSource`, so every reader above it is unchanged.
+    '''
+
+    include coreFormat
+    include coreFormat.*
+    // Named alongside its child for the same reason as the iOS view, and so
+    // the two component views stay symmetrical. See ../README.md.
+    include shared
+    include shared.libarchive
+
+    autoLayout TopBottom 90 80
+  }
+}

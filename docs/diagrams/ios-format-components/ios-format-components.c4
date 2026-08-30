@@ -1,0 +1,173 @@
+// The iOS format layer — C4 level 3, components.
+//
+// SELF-CONTAINED ON PURPOSE. Konvoy renders a diagram by calling
+// `LikeC4.fromSource(<one file's text>)`, which parses this file alone. See
+// ../README.md.
+//
+// Read this beside ../android-format-components/. This is the one layer the
+// project deliberately mirrors rather than merely specifies, because it has
+// already produced a silent cross-platform divergence. Every component below
+// is a type that exists in apps/ios/Packages/StoryArcKit/Sources/Formats;
+// every edge is a use in code, not in a doc comment.
+
+specification {
+
+  element module {
+    notation 'Build module'
+    style {
+      shape rectangle
+      color indigo
+    }
+  }
+
+  // A type or file inside one module.
+  element component {
+    notation 'Component'
+    style {
+      shape rectangle
+      color sky
+    }
+  }
+
+  element artefact {
+    notation 'Shared artefact'
+    style {
+      shape storage
+      color green
+    }
+  }
+
+  relationship reads {
+    notation 'Reads over a protocol'
+    line dashed
+  }
+
+  tag ios
+  tag mirrored
+  tag shared
+}
+
+model {
+
+  formats = module 'Formats' {
+    #ios
+    #mirrored
+    description '''
+      StoryArcKit/Sources/Formats. Archive and document parsing: ZIP, TAR,
+      RAR, PDF, EPUB metadata and image folders.
+    '''
+    technology 'Swift 6'
+
+    source = component 'RandomAccessSource' {
+      description 'The seam. A protocol yielding bytes at an offset, so a reader never learns whether it is on disk, on a share, or behind a provider. ADR-0008.'
+    }
+    bytes = component 'ByteReader' 'Bounds-checked little-endian field reads over a buffer. No length out of a file is ever used to allocate.'
+
+    zip = component 'ZipReader' 'The central directory is the only authority; local headers carry zeros when a data descriptor is used. Inflate comes from Compression.'
+    tar = component 'TarReader' '512-byte headers, no compression. GNU long names and pax path= handled by hand.'
+    rar = component 'RarReader' 'RAR4 and RAR5 headers. Indexing needs no decoder, so a remote CBR is indexed without downloading it.'
+    rarDecoder = component 'RarDecoder' 'The only caller of libarchive, and only to decompress one entry.'
+    imageFolder = component 'ImageFolderArchive' 'An unpacked comic in a directory.'
+
+    comicArchive = component 'ComicArchive' 'Sniffs the container and routes to one of the four readers above.'
+
+    ordering = component 'PageOrdering' 'Natural sort over entry names. The mirrored algorithm; the digit-run overflow bug lived here.'
+    codec = component 'PageCodec' 'Which entry names count as a page.'
+    decoder = component 'PageDecoder' {
+      description 'Decodes and downsamples one page.'
+      technology 'ImageIO / CGImageSource'
+    }
+
+    format = component 'PublicationFormat' 'CBZ, CBR, CBT, EPUB, PDF or folder, decided by content rather than by extension.'
+    comicInfo = component 'ComicInfo' 'ComicInfo.xml metadata.'
+    filenameMetadata = component 'FilenameMetadata' 'Series, volume and issue recovered from a filename when nothing better exists.'
+
+    epub = component 'EpubReader' 'EPUB container, OPF and spine parsing for the library. Not the renderer.'
+    epubCover = component 'EpubSpineCover' 'The cover of a fixed-layout EPUB, which is a page of the spine rather than a manifest item.'
+
+    pdf = component 'PdfDocumentReader' {
+      description 'Page count, page rendering and the text layer.'
+      technology 'PDFKit'
+    }
+
+    indexer = component 'PublicationIndexer' 'Opens one publication and produces the row the library stores.'
+    scanner = component 'LibraryScanner' 'Walks a source and indexes what it finds.'
+    coverLoader = component 'CoverLoader' 'Produces a cover for any publication, whatever its format.'
+    coverCache = component 'CoverCache' 'On-disk cover cache. Read by LibraryFeature, not from inside this module.'
+  }
+
+  shared = artefact 'Shared artefacts' {
+    #shared
+
+    libarchive = artefact 'libarchive (vendored)' {
+      description '''
+        third_party/libarchive — 26 of libarchive 3.8.9 sources. Headers need
+        no decoder, which is why 26 of libarchive's sources are vendored
+        rather than all of them (ADR-0005).
+      '''
+      technology 'C, BSD-2-Clause'
+    }
+  }
+
+  // --- Edges ------------------------------------------------------------
+
+  formats.zip -> formats.bytes
+  formats.zip -> formats.source
+  formats.tar -> formats.source
+  formats.rar -> formats.source
+
+  formats.comicArchive -> formats.zip
+  formats.comicArchive -> formats.tar
+  formats.comicArchive -> formats.rar
+  formats.comicArchive -> formats.rarDecoder
+  formats.comicArchive -> formats.imageFolder
+  formats.comicArchive -> formats.ordering
+  formats.comicArchive -> formats.source
+
+  formats.ordering -> formats.codec
+  formats.rarDecoder -> shared.libarchive 'links'
+
+  formats.indexer -> formats.comicArchive
+  formats.indexer -> formats.epub
+  formats.indexer -> formats.epubCover
+  formats.indexer -> formats.pdf
+  formats.indexer -> formats.comicInfo
+  formats.indexer -> formats.filenameMetadata
+  formats.indexer -> formats.format
+
+  formats.scanner -> formats.indexer
+
+  formats.coverLoader -> formats.indexer
+  formats.coverLoader -> formats.comicArchive
+  formats.coverLoader -> formats.epub
+  formats.coverLoader -> formats.epubCover
+  formats.coverLoader -> formats.pdf
+  formats.coverLoader -> formats.decoder
+}
+
+views {
+
+  view index {
+    title 'Components — the iOS format layer'
+    description '''
+      The drift hotspot. Everything here reads through `RandomAccessSource`,
+      so indexing a CBR on a network share never downloads it (ADR-0008), and
+      every field read is bounds-checked because the input is untrusted.
+
+      `libarchive` has exactly one caller and exactly one job: decompressing a
+      RAR entry. Headers need no decoder, which is why 26 of libarchive 132
+      sources are vendored rather than all of them (ADR-0005).
+    '''
+
+    include formats
+    include formats.*
+    // `shared` is included alongside its child on purpose. Pulling in
+    // `shared.libarchive` alone from a view scoped this deep parses, resolves
+    // and lays out — and then renders as a blank canvas. Naming the parent as
+    // well is what makes it draw. See ../README.md.
+    include shared
+    include shared.libarchive
+
+    autoLayout TopBottom 90 80
+  }
+}
