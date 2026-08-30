@@ -47,13 +47,27 @@ function_body_length:
 
 custom_rules:
   # marmelroy/Zip 2.1.2 is linked into the app because ReadiumShared names it as a
-  # target dependency, and it carries CVE-2023-39135 — a path traversal on crafted
-  # entry names, with no fixed release in existence. Nothing calls it today, in
-  # Readium or here, which is the only reason it is tolerable. This rule is what
-  # keeps that true: the day someone reaches for the already-linked module, the
-  # build stops instead of quietly inheriting the traversal. ADR-0014.
+  # target dependency, and its `Zip` module carries CVE-2023-39135 — a path traversal
+  # on crafted entry names, fixed in the upstream master branch but never released.
+  # Readium uses the package's `Minizip` C target and never the vulnerable `Zip`
+  # module, and neither does anything here; the vulnerable routine is in the binary
+  # with no caller, which is the only reason it is tolerable. This rule is what keeps
+  # that true: the day someone reaches for the already-linked module, the build stops
+  # instead of quietly inheriting the traversal. ADR-0014.
+  #
+  # The first branch matches every import spelling — attributes (`@testable`,
+  # `@_implementationOnly`), access modifiers, submodule forms (`import class
+  # Zip.Zip`) and trailing comments. The second catches a call site reached without a
+  # local import, e.g. through a re-export. `\bZip\b` does not match `ZIPFoundation`
+  # (case) or `ZipArchive` (word boundary), and comments and string literals are
+  # excluded so that writing *about* the ban does not trip it.
   no_marmelroy_zip:
     name: "marmelroy/Zip is unpatched"
-    regex: '^\s*(public |internal |private |fileprivate |package )?import Zip\s*$'
-    message: "Zip 2.1.2 carries an unfixed path traversal (CVE-2023-39135). Use StoryArc's own ZipReader — ADR-0008, ADR-0014."
+    regex: '^[ \t]*(@[A-Za-z_][A-Za-z0-9_]*[ \t]+)*(public|package|internal|fileprivate|private)?[ \t]*import[ \t]+([a-z]+[ \t]+)?Zip\b|\bZip\.(unzipFile|quickUnzipFile|zipFiles|quickZipFiles|zipData|addCustomFileExtension|removeCustomFileExtension|isValidFileExtension)\b'
+    message: "Zip 2.1.2 carries a path traversal (CVE-2023-39135) with no fixed release. Use StoryArc's own ZipReader — ADR-0008, ADR-0014."
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - doccomment.field
+      - string
     severity: error
