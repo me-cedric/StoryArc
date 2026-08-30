@@ -32,11 +32,7 @@ struct DetailProvenanceLine: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if let alsoIn = provenance.alsoIn {
-                Text(
-                    "detail.provenance.alsoIn \(alsoIn)",
-                    tableName: DetailStrings.table,
-                    bundle: .module
-                )
+                Text("detail.provenance.alsoIn \(alsoIn)", bundle: .module)
                 .textRole(.footnote)
                 .foregroundStyle(theme.palette.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -78,25 +74,20 @@ struct DetailProvenanceLine: View {
     }
 }
 
-/// The page's own strings table.
+/// One of this screen's strings, resolved as a `String` rather than as a `Text`.
 ///
-/// A table of its own rather than eleven more keys in `Localizable.xcstrings`, which is the
-/// module's 271-entry shared file. Nothing about this screen's wording belongs to any other
-/// screen, and a separate table keeps this change from touching a file five other slices
-/// are editing at the same time.
+/// The provenance sentence is assembled from two clauses before it is rendered, so both
+/// halves have to be strings first — two `Text`s cannot be joined with a comma.
 ///
-/// Existing keys are still read from `Localizable`: the place clause reuses the words the
-/// catalogue and the grid already say in four languages, because two spellings of "On this
-/// device" in one app is how a vocabulary drifts.
+/// `Locale.storyArc` rather than the device's: `localization` lets a reader run StoryArc in
+/// a language the phone is not set to, and a string resolved against the device would put
+/// one English clause in the middle of a French sentence.
+///
+/// The clauses are new; the *places* reuse what the catalogue and the grid already say in
+/// four languages, because two spellings of "On this device" in one app is how a vocabulary
+/// drifts.
 enum DetailStrings {
-    static let table = "PublicationDetail"
-
-    /// One of this table's strings, in the language the reader chose for the app.
-    ///
-    /// `Locale.storyArc` rather than the device's: `localization` lets a reader run StoryArc
-    /// in a language the phone is not set to, and a string resolved against the device would
-    /// put one English clause in the middle of a French sentence.
     static func text(_ key: String.LocalizationValue) -> String {
-        String(localized: key, table: table, bundle: .module, locale: .storyArc)
+        String(localized: key, bundle: .module, locale: .storyArc)
     }
 }

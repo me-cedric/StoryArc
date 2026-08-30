@@ -19,7 +19,7 @@ struct DetailSeriesShelf: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
-            Text("detail.series.title", tableName: DetailStrings.table, bundle: .module)
+            Text("detail.series.title", bundle: .module)
                 .textRole(.title3)
                 .foregroundStyle(theme.palette.textPrimary)
 

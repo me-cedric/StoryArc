@@ -93,6 +93,12 @@ struct CoverCell: View {
         // One label for the whole cell. Read as three separate elements it would
         // announce the title, then the format, then an unlabelled image.
         .contentShape(.rect)
+        .overlay {
+            NavigationLink(value: PublicationRoute(publication)) {
+                Color.clear.contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+        }
         // A publication that cannot be read is not tappable. Opening it only to
         // show the same refusal a second time wastes the user's tap.
         //

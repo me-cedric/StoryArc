@@ -110,7 +110,7 @@ public struct PublicationDetailPlaceholder: View {
                 Image(systemName: "books.vertical")
             }
         } description: {
-            Text("detail.empty", tableName: DetailStrings.table, bundle: .module)
+            Text("detail.empty", bundle: .module)
         }
     }
 }

@@ -134,6 +134,8 @@ public struct LibraryView: View {
                 .navigationDestination(item: $browsing) { id in
                     if let source = model.registry[id] { browser(for: source) }
                 }
+                .publicationDetail(model: model, onOpen: onOpen)
+                .publicationDetail(model: model, onOpen: onOpen)
         }
         // The shelf, asked for by name.
         .onChange(of: showLibrary) { _, _ in browsing = nil }

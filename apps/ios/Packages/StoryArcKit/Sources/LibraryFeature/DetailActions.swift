@@ -44,7 +44,7 @@ struct DetailActions: View {
                 // would be a fiction.
                 HStack(spacing: StoryArcSpace.sm) {
                     ProgressView()
-                    Text("detail.download.working", tableName: DetailStrings.table, bundle: .module)
+                    Text("detail.download.working", bundle: .module)
                         .textRole(.footnote)
                         .foregroundStyle(theme.palette.textSecondary)
                 }
@@ -55,7 +55,7 @@ struct DetailActions: View {
                     .foregroundStyle(theme.palette.textSecondary)
             } else if file == nil {
                 // The primary action states what it needs rather than failing when taken.
-                Text("detail.unavailable", tableName: DetailStrings.table, bundle: .module)
+                Text("detail.unavailable", bundle: .module)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

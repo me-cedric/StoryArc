@@ -48,10 +48,12 @@ struct DetailHero: View {
 
     /// How wide the cover is allowed to get.
     ///
-    /// Capped on a regular width so the artwork does not become a poster with a caption on
-    /// an iPad, and uncapped on a phone where the screen is already the cap.
-    private var maximumWidth: CGFloat? {
-        sizeClass == .regular ? 320 : 260
+    /// The constraint is the fold rather than the margin. The cover has to lead *and* leave
+    /// the title and the primary action on the first screen: sized to the full width of a
+    /// phone it is 2:3 of 393 pt, which is most of the screen, and what a reader lands on is
+    /// a picture with nothing to do on it. Wider on an iPad, where there is room for both.
+    private var maximumWidth: CGFloat {
+        sizeClass == .regular ? 300 : 220
     }
 
     @ViewBuilder
@@ -91,12 +93,26 @@ struct DetailHero: View {
 struct DetailTitleBlock: View {
     @Environment(\.theme) private var theme
 
+    /// The editorial face, scaled.
+    ///
+    /// `textRole(.display)` is the serif voice this title wants, and it is the one role in
+    /// the scale that takes a **fixed** point size — every other role is built on a text
+    /// style and grows with Dynamic Type. At the accessibility sizes that leaves the title
+    /// *smaller* than the series line under it, which is the hierarchy inverted on the one
+    /// screen `publication-detail` singles out as "where a hero screen breaks first".
+    ///
+    /// So the size is scaled here rather than the role being changed: the design system's
+    /// fixed serif is shared by every screen that uses it, and one screen is not the place
+    /// to decide that for all of them. Reported in the handoff as a systemic finding.
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize = StoryArcType.displaySize
+
     let publication: Publication
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
             Text(publication.displayTitle)
-                .textRole(.display)
+                .font(.system(size: titleSize, weight: .semibold, design: .serif))
+                .tracking(StoryArcType.displayTracking)
                 .foregroundStyle(theme.palette.textPrimary)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
