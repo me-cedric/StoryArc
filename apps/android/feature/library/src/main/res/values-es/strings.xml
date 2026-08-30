@@ -103,7 +103,7 @@
     <string name="catalogue_error_timed_out">El servidor no respondió a tiempo.</string>
     <string name="catalogue_error_unreachable">No se pudo contactar con este servidor.</string>
     <string name="catalogue_error_unauthorized">Este catálogo rechazó el inicio de sesión facilitado.</string>
-    <string name="catalogue_error_changed_certificate">El certificado de %1$s ha cambiado desde que confió en él. Elimine esta fuente y vuelva a añadirla solo si sabe por qué.</string>
+    <string name="catalogue_error_changed_certificate">El certificado de %1$s ha cambiado desde que confió en él. Elimina esta biblioteca y vuelve a añadirla solo si sabe por qué.</string>
     <string name="catalogue_search_prompt">Buscar en esta biblioteca</string>
     <string name="catalogue_search_local">Esta biblioteca no ofrece búsqueda, así que solo se filtró lo que ya se había cargado.</string>
     <string name="catalogue_facets">Filtrar</string>

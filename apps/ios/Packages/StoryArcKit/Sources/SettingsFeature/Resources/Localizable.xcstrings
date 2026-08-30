@@ -2995,25 +2995,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erscheinungsbild, Leseeinstellungen und die Vorgaben für neue Serien gehen auf den Anfangszustand zurück. Ihre Quellen, Downloads, der Lesefortschritt und die beim Lesen gewählten Themen bleiben unberührt."
+            "value": "Erscheinungsbild, Leseeinstellungen und die Vorgaben für neue Serien gehen auf den Anfangszustand zurück. Ihre Bibliotheken, Downloads, der Lesefortschritt und die beim Lesen gewählten Themen bleiben unberührt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Appearance, reading preferences and the defaults for new series go back to how they started. Your sources, downloads, reading progress and the themes you chose while reading are not affected."
+            "value": "Appearance, reading preferences and the defaults for new series go back to how they started. Your libraries, downloads, reading progress and the themes you chose while reading are not affected."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La apariencia, las preferencias de lectura y los ajustes por defecto de series nuevas vuelven a su estado inicial. Sus fuentes, descargas, progreso de lectura y los temas elegidos al leer no se ven afectados."
+            "value": "La apariencia, las preferencias de lectura y los ajustes por defecto de series nuevas vuelven a su estado inicial. Tus bibliotecas, descargas, progreso de lectura y los temas elegidos al leer no se ven afectados."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’apparence, les préférences de lecture et les réglages par défaut des nouvelles séries reviennent à leur état initial. Vos sources, téléchargements, progression de lecture et les thèmes choisis pendant la lecture ne sont pas touchés."
+            "value": "L’apparence, les préférences de lecture et les réglages par défaut des nouvelles séries reviennent à leur état initial. Vos bibliothèques, téléchargements, progression de lecture et les thèmes choisis pendant la lecture ne sont pas touchés."
           }
         }
       }

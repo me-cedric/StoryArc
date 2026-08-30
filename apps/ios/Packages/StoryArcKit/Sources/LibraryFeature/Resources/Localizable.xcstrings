@@ -877,25 +877,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das Zertifikat für %@ hat sich geändert, seit Sie ihm vertraut haben. Entfernen Sie diese Quelle und fügen Sie sie nur wieder hinzu, wenn Sie den Grund kennen."
+            "value": "Das Zertifikat für %@ hat sich geändert, seit Sie ihm vertraut haben. Entfernen Sie diese Bibliothek und fügen Sie sie nur wieder hinzu, wenn Sie den Grund kennen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The certificate for %@ has changed since you trusted it. Remove this source and add it again only if you know why."
+            "value": "The certificate for %@ has changed since you trusted it. Remove this library and add it again only if you know why."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El certificado de %@ ha cambiado desde que confió en él. Elimine esta fuente y vuelva a añadirla solo si sabe por qué."
+            "value": "El certificado de %@ ha cambiado desde que confió en él. Elimina esta biblioteca y vuelve a añadirla solo si sabe por qué."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le certificat de %@ a changé depuis que vous l’avez approuvé. Supprimez cette source et ajoutez-la de nouveau seulement si vous savez pourquoi."
+            "value": "Le certificat de %@ a changé depuis que vous l’avez approuvé. Supprimez cette bibliothèque et ajoutez-la de nouveau seulement si vous savez pourquoi."
           }
         }
       }

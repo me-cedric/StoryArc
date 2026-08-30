@@ -103,7 +103,7 @@
     <string name="catalogue_error_timed_out">Le serveur n’a pas répondu à temps.</string>
     <string name="catalogue_error_unreachable">Ce serveur est injoignable.</string>
     <string name="catalogue_error_unauthorized">Ce catalogue a refusé l’identification fournie.</string>
-    <string name="catalogue_error_changed_certificate">Le certificat de %1$s a changé depuis que vous l’avez approuvé. Supprimez cette source et ajoutez-la de nouveau seulement si vous savez pourquoi.</string>
+    <string name="catalogue_error_changed_certificate">Le certificat de %1$s a changé depuis que vous l’avez approuvé. Supprimez cette bibliothèque et ajoutez-la de nouveau seulement si vous savez pourquoi.</string>
     <string name="catalogue_search_prompt">Chercher dans cette bibliothèque</string>
     <string name="catalogue_search_local">Cette bibliothèque ne propose pas de recherche : seul ce qui est déjà chargé a été filtré.</string>
     <string name="catalogue_facets">Filtrer</string>

@@ -103,7 +103,7 @@
     <string name="catalogue_error_timed_out">Der Server hat nicht rechtzeitig geantwortet.</string>
     <string name="catalogue_error_unreachable">Dieser Server war nicht erreichbar.</string>
     <string name="catalogue_error_unauthorized">Dieser Katalog hat die angegebene Anmeldung abgelehnt.</string>
-    <string name="catalogue_error_changed_certificate">Das Zertifikat für %1$s hat sich geändert, seit Sie ihm vertraut haben. Entfernen Sie diese Quelle und fügen Sie sie nur wieder hinzu, wenn Sie den Grund kennen.</string>
+    <string name="catalogue_error_changed_certificate">Das Zertifikat für %1$s hat sich geändert, seit Sie ihm vertraut haben. Entfernen Sie diese Bibliothek und fügen Sie sie nur wieder hinzu, wenn Sie den Grund kennen.</string>
     <string name="catalogue_search_prompt">In dieser Bibliothek suchen</string>
     <string name="catalogue_search_local">Diese Bibliothek bietet keine Suche, deshalb wurde nur das Geladene gefiltert.</string>
     <string name="catalogue_facets">Filtern</string>

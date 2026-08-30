@@ -54,7 +54,7 @@
     <string name="settings_search">Search settings</string>
     <string name="settings_search_empty">Nothing matches “%1$s”.</string>
     <string name="settings_reset">Reset settings</string>
-    <string name="settings_reset_body">Appearance, reading preferences and the defaults for new series go back to how they started.\n\nYour sources, downloads, reading progress and the themes you chose while reading are not affected.</string>
+    <string name="settings_reset_body">Appearance, reading preferences and the defaults for new series go back to how they started.\n\nYour libraries, downloads, reading progress and the themes you chose while reading are not affected.</string>
     <string name="settings_reset_confirm">Reset</string>
     <string name="settings_cancel">Cancel</string>
     <string name="reading_matte">Colour behind a comic page</string>
