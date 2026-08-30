@@ -47,6 +47,16 @@ internal fun HomeDestination(host: AppHost) {
     // map, which is private to it. A second read of a table of at most a few hundred rows,
     // on the device, is cheaper than widening a view model that six other screens share --
     // and it keeps this slice out of a file other agents are editing.
+    // Home is the destination the app opens on, so it is the first screen with a reason to
+    // ask for the library. Without this the surface was empty until the reader visited the
+    // library once and its own effect ran — which reads exactly like the reading history
+    // being lost, and is the opposite of `home-screen`'s "renders complete and
+    // immediately". Guarded on the library being empty so that coming back to Home does not
+    // restart a walk that has already happened.
+    LaunchedEffect(Unit) {
+        if (host.library.publications.value.isEmpty()) host.library.restoreFolders()
+    }
+
     var records by remember { mutableStateOf<List<ReadingProgress>>(emptyList()) }
     // On resume, not on first composition alone: the comic reader is a composable in this
     // activity and the EPUB reader is an activity of its own, so "the reader closed" reaches

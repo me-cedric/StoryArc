@@ -135,6 +135,11 @@ internal fun HomeKeepReadingCard(
         label = "home-card-dim",
     )
 
+    // The art sits inside the container's padding, so its height follows the width it
+    // actually gets. Taking it from the card's outer width instead leaves a letterbox above
+    // and below every cover — the cell claiming to be 2:3 while the artwork inside it is not.
+    val art = width - StoryArcSpace.md * 2
+
     Column(
         modifier = modifier
             .width(width)
@@ -146,10 +151,10 @@ internal fun HomeKeepReadingCard(
         HomeCoverArt(
             publication = entry.publication,
             cover = cover,
-            width = width,
+            width = art,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(width * HOME_COVER_ASPECT)
+                .height(art * HOME_COVER_ASPECT)
                 .alpha(dim),
         )
 

@@ -207,7 +207,10 @@ private fun LazyListScope.keepReading(
             contentPadding = PaddingValues(horizontal = StoryArcSpace.gutter),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(width * HOME_COVER_ASPECT + homeCaptionHeight(lines = 5) + StoryArcSpace.xxl),
+                .height(
+                    (width - StoryArcSpace.md * 2) * HOME_COVER_ASPECT +
+                        homeCaptionHeight(lines = 5) + StoryArcSpace.xxl,
+                ),
         ) { index ->
             val entry = surface.keepReading[index]
             val label = homeRemainingText(entry)
