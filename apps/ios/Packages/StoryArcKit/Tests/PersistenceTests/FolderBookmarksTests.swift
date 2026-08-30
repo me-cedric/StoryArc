@@ -203,6 +203,32 @@ struct FolderBookmarksTests {
         #expect(bookmarks.restore().files.isEmpty)
     }
 
+    @Test("Remembered files stop at a limit, oldest first, and folders are not counted")
+    func rememberedFilesAreBounded() throws {
+        // Nothing in the app asks a reader whether they meant to keep a file they opened
+        // from a chat, and nothing offers to forget one. Unbounded, that is a shelf slowly
+        // filling with other people's comics and an archive opened for each at every launch.
+        let suite = try fresh()
+        let bookmarks = suite.bookmarks
+        defer { suite.discard() }
+        let folder = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try bookmarks.add(folder)
+
+        let files = try (0...FolderBookmarks.rememberedFileLimit).map { _ in try temporaryFile() }
+        defer { for file in files { try? FileManager.default.removeItem(at: file) } }
+        for file in files { try bookmarks.add(file) }
+
+        let restored = bookmarks.restore()
+        #expect(restored.files.count == FolderBookmarks.rememberedFileLimit)
+        // The one that fell off is the one opened longest ago.
+        let names = restored.files.map(\.lastPathComponent)
+        #expect(!names.contains(files[0].lastPathComponent))
+        #expect(names.contains(files[files.count - 1].lastPathComponent))
+        // The library the reader picked is untouched by any of it.
+        #expect(restored.folders.count == 1)
+    }
+
     @Test("One library's folders do not leak into another's defaults")
     func isolated() throws {
         let firstSuite = try fresh()

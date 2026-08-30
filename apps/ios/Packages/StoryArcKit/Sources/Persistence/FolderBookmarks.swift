@@ -62,8 +62,29 @@ public struct FolderBookmarks {
         )
         let name = url.lastPathComponent
         guard !stored.contains(where: { $0.name == name && $0.data == bookmark }) else { return }
-        stored.append(Entry(name: name, data: bookmark, isFile: !Self.isDirectory(url)))
+        let isFile = !Self.isDirectory(url)
+        stored.append(Entry(name: name, data: bookmark, isFile: isFile))
+        if isFile { stored = Self.trimmingOldestFiles(stored) }
         write(stored)
+    }
+
+    /// How many single files are kept, oldest dropped first.
+    ///
+    /// A folder is a library the reader picked, added deliberately and removed the same way,
+    /// so folders are not counted. A file arrives every time they open a comic from another
+    /// app, and nothing in the app asks them whether they meant to keep it — so the list has
+    /// to end somewhere, or a year of previewing other people's comics is a shelf full of
+    /// them and an archive opened for each one at every launch.
+    ///
+    /// Twenty: enough to hold the books someone is actually reading out of Files or a chat,
+    /// small enough that the oldest falling off is a forgetting the reader would agree with.
+    public static let rememberedFileLimit = 20
+
+    private static func trimmingOldestFiles(_ entries: [Entry]) -> [Entry] {
+        let files = entries.filter(\.wasFile)
+        guard files.count > rememberedFileLimit else { return entries }
+        let dropped = Set(files.prefix(files.count - rememberedFileLimit).map(\.data))
+        return entries.filter { !$0.wasFile || !dropped.contains($0.data) }
     }
 
     /// Every place still reachable, plus the folders that are not.
