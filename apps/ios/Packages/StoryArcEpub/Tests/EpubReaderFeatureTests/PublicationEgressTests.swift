@@ -20,7 +20,20 @@ import WebKit
 /// whole question.
 ///
 /// ``control`` is the half that fails against the code before ADR-0015: every vector
-/// arrives.
+/// arrives. It is also what stops ``denied`` passing for the wrong reason — an empty
+/// result means nothing unless the same page, through the same window, is known to
+/// reach a host when the list is absent.
+///
+/// **Running it.** `pnpm test:ios:epub`, which needs a simulator; `swift test` cannot
+/// build this package at all. That script passes `-collect-test-diagnostics never` on
+/// purpose: a failing test otherwise sends `xcodebuild` off to collect a sysdiagnose
+/// from the simulator, and that collection times out after **600 seconds**. It turns a
+/// thirteen-second answer into an eleven-minute one at exactly the moment someone needs
+/// it quickly — when the egress rule has just broken. Budget for it: the two rendering
+/// tests take eight seconds each and run concurrently, which is what sets the floor for
+/// the whole `StoryArcEpub` suite of 36 tests — nine seconds of testing, inside about
+/// fifteen seconds of `xcodebuild` against a simulator that is already awake and a
+/// minute against one that is not.
 @MainActor
 @Suite("Publication egress")
 struct PublicationEgressTests {
@@ -30,7 +43,8 @@ struct PublicationEgressTests {
         let run = try await render(deny: false)
 
         #expect(run.served.contains { $0.hasSuffix("/style.css") }, "the page never loaded")
-        #expect(run.reached == Vector.reachableNames, "unblocked, these should all arrive")
+        let missing = Vector.mustReach.map(\.rawValue).filter { !run.reached.contains($0) }
+        #expect(missing.isEmpty, "unblocked, every one of these should have arrived")
     }
 
     @Test("The rule list stops every one of them, and serves the book anyway")
@@ -68,19 +82,34 @@ struct PublicationEgressTests {
         case frame
         case navigation
 
-        /// What an unblocked page actually reaches from here.
+        /// The floor an unguarded run has to clear, and only the floor.
         ///
-        /// Not all eight. A frame and a top-level navigation to `https` never reach the
-        /// listener from a `readium://` document in this harness, blocked or not — a
-        /// WebKit behaviour that predates the rule list and one this test therefore
-        /// cannot speak for. They stay in the page because they cost nothing to fire and
-        /// the day WebKit does attempt them, ``denied`` is what has to keep holding.
-        /// Android's mirror of this test does exercise both.
-        static var reachable: [Vector] {
+        /// These six reached their listener on every run measured — six runs, across
+        /// an iOS 26.5 and an iOS 27.0 simulator on Xcode 26.6. ``frame`` and
+        /// ``navigation`` are not among them, and not because they cannot arrive:
+        /// both were seen to arrive, repeatedly, on both simulators. They are absent
+        /// because they arrive only *sometimes*. A subframe load and a top-level
+        /// redirect are slower than the other six — the redirect does not even fire
+        /// until two seconds into an eight-second window — and on a loaded machine
+        /// either can miss it.
+        ///
+        /// So the control asserts a floor rather than an exact set, which is the
+        /// difference between this suite and the version that was red. That one
+        /// asserted equality against these same six, with a comment claiming a frame
+        /// and a navigation *never* arrive from a `readium://` document. They do, most
+        /// runs, so equality failed most runs — and passed on the runs where the
+        /// simulator happened to be slow enough. It was a test that told you about the
+        /// machine's mood, not about the code.
+        ///
+        /// A vector arriving here that is not on this list is not a defect: it is one
+        /// more thing ``denied`` has to block, and does — ``denied`` asserts nothing
+        /// reaches, over all eight, and that is where a frame and a navigation are
+        /// really covered. A vector on this list that stops arriving *is* a defect,
+        /// because the control has then quietly stopped proving that much of
+        /// ``denied``.
+        static var mustReach: [Vector] {
             [.image, .scriptedImage, .fetch, .request, .beacon, .socket]
         }
-
-        static var reachableNames: [String] { reachable.map(\.rawValue).sorted() }
     }
 
     private struct Run {
@@ -116,7 +145,9 @@ struct PublicationEgressTests {
 
         // The beacons fire from a script, and the last of them is a navigation on a
         // timer. A refused connection is quicker than an accepted one, so the wait has
-        // to be long enough that the control cannot pass for being slow.
+        // to be long enough that the control cannot pass for being slow. Both halves
+        // share this window, which is the only thing that makes their two results
+        // comparable — shorten it here and ``denied`` gets easier for free.
         try await Task.sleep(for: .seconds(8))
 
         return Run(
@@ -155,127 +186,4 @@ struct PublicationEgressTests {
             </body></html>
             """
     }
-}
-
-/// Stands in for Readium's `WebViewServer`: serves the publication on the `readium`
-/// scheme and nothing else.
-@MainActor
-private final class Origin: NSObject, WKURLSchemeHandler {
-    private(set) var served: [String] = []
-    private let page: String
-
-    init(page: String) {
-        self.page = page
-        super.init()
-    }
-
-    func webView(_ webView: WKWebView, start task: any WKURLSchemeTask) {
-        guard let url = task.request.url else { return }
-        served.append(url.absoluteString)
-        let isStyle = url.path.hasSuffix(".css")
-        let body = Data((isStyle ? "p{color:red}" : page).utf8)
-        task.didReceive(
-            URLResponse(
-                url: url,
-                mimeType: isStyle ? "text/css" : "text/html",
-                expectedContentLength: body.count,
-                textEncodingName: "utf-8"
-            )
-        )
-        task.didReceive(body)
-        task.didFinish()
-    }
-
-    func webView(_ webView: WKWebView, stop task: any WKURLSchemeTask) {}
-}
-
-/// A socket on loopback that records whether anything connected to it.
-///
-/// It answers nothing. A TCP connection is the whole evidence: the request never gets
-/// as far as a reply, and a reply would only prove the same thing twice.
-///
-/// Plain BSD sockets rather than `NWListener`, which has a state machine to wait on and
-/// hung this test when it never reported ready. `bind` either works or it does not, and
-/// the port is readable the moment it has.
-private final class Beacon: @unchecked Sendable {
-    let name: String
-    let port: UInt16
-
-    private let descriptor: Int32
-    private let lock = NSLock()
-    private var reached = false
-
-    var wasReached: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return reached
-    }
-
-    init(name: String) throws {
-        let handle = socket(AF_INET, SOCK_STREAM, 0)
-        guard handle >= 0 else { throw BeaconFailure.noSocket }
-
-        var reuse: Int32 = 1
-        setsockopt(handle, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size))
-
-        var wanted = sockaddr_in()
-        wanted.sin_family = sa_family_t(AF_INET)
-        wanted.sin_port = 0
-        wanted.sin_addr.s_addr = UInt32(0x7F00_0001).bigEndian
-
-        let bound = withUnsafePointer(to: &wanted) { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                bind(handle, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
-            }
-        }
-        guard bound == 0, listen(handle, 8) == 0 else {
-            close(handle)
-            throw BeaconFailure.noPort
-        }
-
-        var assigned = sockaddr_in()
-        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
-        let named = withUnsafeMutablePointer(to: &assigned) { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                getsockname(handle, $0, &length)
-            }
-        }
-        guard named == 0 else {
-            close(handle)
-            throw BeaconFailure.noPort
-        }
-
-        self.name = name
-        descriptor = handle
-        port = UInt16(bigEndian: assigned.sin_port)
-
-        // Started once every member is set, so the thread may name `self`. Closing the
-        // descriptor is what ends it.
-        let thread = Thread { [weak self] in
-            while true {
-                let connection = accept(handle, nil, nil)
-                if connection < 0 { return }
-                close(connection)
-                self?.mark()
-            }
-        }
-        thread.stackSize = 64 * 1024
-        thread.start()
-    }
-
-    private func mark() {
-        lock.lock()
-        reached = true
-        lock.unlock()
-    }
-
-    /// Closing the descriptor is what ends the accepting thread.
-    func stop() {
-        close(descriptor)
-    }
-}
-
-private enum BeaconFailure: Error {
-    case noSocket
-    case noPort
 }
