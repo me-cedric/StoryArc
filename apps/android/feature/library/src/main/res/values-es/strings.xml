@@ -330,4 +330,25 @@
         <item quantity="one">Queda %1$d p\u00e1gina</item>
         <item quantity="other">Quedan %1$d p\u00e1ginas</item>
     </plurals>
+    <!-- Página de una publicación. El único sitio del recorrido que dice de dónde viene. -->
+    <string name="detail_back">Atrás</string>
+    <string name="detail_more">Más acciones</string>
+    <string name="detail_action_read">Leer</string>
+    <string name="detail_action_continue">Seguir</string>
+    <string name="detail_action_download">Descargarla</string>
+    <string name="detail_action_refused">No se puede abrir</string>
+    <string name="detail_needs_download">Esta tiene que estar en tu dispositivo antes de abrirse.</string>
+    <string name="detail_needs_source">No está en este dispositivo, y la biblioteca donde vive no responde. Se traerá en cuanto vuelva.</string>
+    <string name="detail_refused_body">StoryArc no puede abrir este archivo, ni aquí ni en ningún otro sitio.</string>
+    <string name="detail_provenance_device">En este dispositivo</string>
+    <string name="detail_provenance_library">De %1$s</string>
+    <string name="detail_provenance_not_downloaded">De %1$s — sin descargar</string>
+    <string name="detail_provenance_away">De %1$s — ahora mismo no responde</string>
+    <string name="detail_provenance_also">%1$s · también en otro sitio de tu biblioteca</string>
+    <string name="detail_series_heading">Los otros números de esta serie</string>
+    <string name="detail_downloading">Descargando</string>
+    <string name="detail_add_to_shelf">Ponerla en una estantería</string>
+    <string name="detail_gone_title">Esta ya no está</string>
+    <string name="detail_gone_body">Ya no está en tu biblioteca, y en este dispositivo no queda ninguna copia.</string>
+    <string name="detail_gone_back">Volver a donde estabas</string>
 </resources>

@@ -37,6 +37,10 @@ dependencies {
     // other way to reach a folder the user owns.
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material.icons.extended)
+    // `SupportingPaneScaffold`, for the publication page on a wide window. The `adaptive`
+    // half of the pair already arrives through the design system; the layout half is only
+    // needed where a pane scaffold is actually drawn, which so far is here.
+    implementation(libs.androidx.compose.material3.adaptive.layout)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

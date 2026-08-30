@@ -133,6 +133,22 @@ sealed interface Screen {
         override val hidesNavigation: Boolean = true
     }
 
+    /**
+     * The page a publication has: what it is, what can be done with it, and where it lives.
+     *
+     * Keeps the navigation bar. It is somewhere a reader *is* — the seam between the shelf
+     * and the reader — rather than a task they came back from, so a lateral move out of it
+     * is a move they may legitimately want.
+     *
+     * A different verb from [Reader], and `publication-detail` makes the distinction a
+     * requirement rather than an accident: a cover leads here, and a resume affordance opens
+     * the book with this page not in between.
+     *
+     * `PublicationPage` rather than `Publication`, which would shadow the domain type inside
+     * this interface's own body and silently retype [Reader]'s first parameter.
+     */
+    data class PublicationPage(val publication: Publication) : Screen
+
     /** A publication open in the comic reader, and the decoder path it was opened from. */
     data class Reader(val publication: Publication, val path: String) : Screen {
         override val hidesNavigation: Boolean = true

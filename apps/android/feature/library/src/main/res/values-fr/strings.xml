@@ -330,4 +330,25 @@
         <item quantity="one">%1$d page restante</item>
         <item quantity="other">%1$d pages restantes</item>
     </plurals>
+    <!-- Page d’une publication. Le seul endroit du parcours qui dit d’où vient une publication. -->
+    <string name="detail_back">Retour</string>
+    <string name="detail_more">Autres actions</string>
+    <string name="detail_action_read">Lire</string>
+    <string name="detail_action_continue">Reprendre</string>
+    <string name="detail_action_download">La télécharger</string>
+    <string name="detail_action_refused">Impossible à ouvrir</string>
+    <string name="detail_needs_download">Celle-ci doit être sur votre appareil avant de s’ouvrir.</string>
+    <string name="detail_needs_source">Elle n’est pas sur cet appareil, et la bibliothèque où elle se trouve ne répond pas. Elle sera récupérée dès son retour.</string>
+    <string name="detail_refused_body">StoryArc ne peut pas ouvrir ce fichier, ici ni ailleurs.</string>
+    <string name="detail_provenance_device">Sur cet appareil</string>
+    <string name="detail_provenance_library">De %1$s</string>
+    <string name="detail_provenance_not_downloaded">De %1$s — pas téléchargée</string>
+    <string name="detail_provenance_away">De %1$s — sans réponse pour le moment</string>
+    <string name="detail_provenance_also">%1$s · aussi ailleurs dans votre bibliothèque</string>
+    <string name="detail_series_heading">Les autres numéros de cette série</string>
+    <string name="detail_downloading">Téléchargement</string>
+    <string name="detail_add_to_shelf">Ajouter à une étagère</string>
+    <string name="detail_gone_title">Celle-ci a disparu</string>
+    <string name="detail_gone_body">Elle n’est plus dans votre bibliothèque, et il n’en reste aucune copie sur cet appareil.</string>
+    <string name="detail_gone_back">Revenir où vous étiez</string>
 </resources>

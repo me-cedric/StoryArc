@@ -330,4 +330,25 @@
         <item quantity="one">Noch %1$d Seite</item>
         <item quantity="other">Noch %1$d Seiten</item>
     </plurals>
+    <!-- Seite einer Veröffentlichung. Die einzige Stelle im Blättern, die sagt, woher etwas stammt. -->
+    <string name="detail_back">Zurück</string>
+    <string name="detail_more">Weitere Aktionen</string>
+    <string name="detail_action_read">Lesen</string>
+    <string name="detail_action_continue">Weiterlesen</string>
+    <string name="detail_action_download">Herunterladen</string>
+    <string name="detail_action_refused">Lässt sich nicht öffnen</string>
+    <string name="detail_needs_download">Diese muss erst auf Ihrem Gerät sein, bevor sie sich öffnet.</string>
+    <string name="detail_needs_source">Sie ist nicht auf diesem Gerät, und die Bibliothek, in der sie liegt, antwortet nicht. Sie wird geholt, sobald diese wieder da ist.</string>
+    <string name="detail_refused_body">StoryArc kann diese Datei nicht öffnen, hier so wenig wie anderswo.</string>
+    <string name="detail_provenance_device">Auf diesem Gerät</string>
+    <string name="detail_provenance_library">Aus %1$s</string>
+    <string name="detail_provenance_not_downloaded">Aus %1$s — nicht heruntergeladen</string>
+    <string name="detail_provenance_away">Aus %1$s — antwortet gerade nicht</string>
+    <string name="detail_provenance_also">%1$s · auch anderswo in Ihrer Bibliothek</string>
+    <string name="detail_series_heading">Weitere Ausgaben dieser Reihe</string>
+    <string name="detail_downloading">Wird heruntergeladen</string>
+    <string name="detail_add_to_shelf">Auf ein Regal legen</string>
+    <string name="detail_gone_title">Diese ist weg</string>
+    <string name="detail_gone_body">Sie ist nicht mehr in Ihrer Bibliothek, und auf diesem Gerät liegt keine Kopie.</string>
+    <string name="detail_gone_back">Zurück, wo Sie waren</string>
 </resources>

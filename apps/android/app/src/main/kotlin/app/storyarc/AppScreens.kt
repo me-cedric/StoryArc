@@ -3,9 +3,13 @@ package app.storyarc
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.format.PublicationAccess
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
+import app.storyarc.core.persistence.removeAfterFinishing
 import app.storyarc.feature.library.CatalogueBrowser
 import app.storyarc.feature.library.CatalogueBrowserScreen
 import app.storyarc.feature.library.CatalogueDetailScreen
@@ -19,6 +23,7 @@ import app.storyarc.feature.library.KavitaListScreen
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.ListPromoter
 import app.storyarc.feature.library.OfflineSourceScreen
+import app.storyarc.feature.library.PublicationDetailScreen
 import app.storyarc.feature.library.ReadingListDetailScreen
 import app.storyarc.feature.library.ServerShelf
 import app.storyarc.feature.library.ShelvesScreen
@@ -28,6 +33,7 @@ import app.storyarc.feature.library.promote
 import app.storyarc.feature.library.promotionOf
 import app.storyarc.feature.library.withdrawList
 import app.storyarc.navigation.Screen
+import kotlinx.coroutines.launch
 
 /**
  * The screen on top of the current destination's path.
@@ -175,8 +181,82 @@ internal fun HostedScreen(
             onClose = back,
         )
 
+        is Screen.PublicationPage -> PublicationPage(host = host, screen = screen)
+
         is Screen.Reader -> ReaderHost(host = host, screen = screen, onClose = back)
     }
+}
+
+/**
+ * The seam, wired to the rest of the app.
+ *
+ * The screen is deliberately ignorant of how a publication is fetched or opened — a feature
+ * module never depends on another feature module, and this is the layer that knows a reader,
+ * a download store and a keystore exist. What it hands down is four verbs and two facts.
+ *
+ * Download is offered only where the app can actually perform one: a publication whose
+ * location is a remote address it can read. `publication-detail` asks for an action that
+ * does not apply to be "absent, not shown disabled without explanation", so it arrives as
+ * `null` rather than as a greyed row.
+ */
+@Composable
+private fun PublicationPage(host: AppHost, screen: Screen.PublicationPage) {
+    val publication = screen.publication
+    val downloads by host.downloads
+    val scope = rememberCoroutineScope()
+    val record = downloads[publication.id]
+    val isDownloaded = record?.state == Download.State.Finished
+    // A file in a folder the reader gave the app is already here; only a publication that
+    // came from somewhere else has to be fetched to be on the device.
+    val location = host.library.location(publication)
+    val isRemote = location != null && PublicationAccess.isRemote(location)
+    val isOnDevice = isDownloaded || (location != null && !isRemote)
+
+    PublicationDetailScreen(
+        publication = publication,
+        viewModel = host.library,
+        isOnDevice = isOnDevice,
+        downloadFraction = record?.takeIf { it.state != Download.State.Finished }?.fraction?.toFloat(),
+        onRead = { chosen ->
+            val path = host.library.location(chosen) ?: return@PublicationDetailScreen
+            host.open(chosen, path)
+        },
+        // A cover leads to a page, and a page's series shelf leads to more pages. Pushed
+        // rather than replaced: the reader walked from one book to another and back is the
+        // way they came.
+        onOpenPage = { chosen -> host.navigate { push(Screen.PublicationPage(chosen)) } },
+        onMark = { chosen, isRead -> host.mark(chosen, isRead) },
+        onDownload = if (isRemote && !isDownloaded) {
+            {
+                scope.launch {
+                    keepForOffline(host.dependencies.downloads, publication, location)
+                    host.downloads.value = host.dependencies.downloads.library()
+                }
+            }
+        } else {
+            null
+        },
+        // Reversible, through the same helper the finished-publication sweep uses: the
+        // bytes are moved aside rather than deleted, and the Downloads destination's undo
+        // banner is already watching `host.removed` for exactly this.
+        onRemoveDownload = if (isDownloaded) {
+            {
+                scope.launch {
+                    removeAfterFinishing(
+                        host.dependencies.downloads,
+                        host.downloads.value,
+                        publication.id,
+                    )?.let { (library, removal) ->
+                        host.downloads.value = library
+                        host.removed.value = removal
+                    }
+                }
+            }
+        } else {
+            null
+        },
+        onBack = { host.navigate { back() } },
+    )
 }
 
 /**

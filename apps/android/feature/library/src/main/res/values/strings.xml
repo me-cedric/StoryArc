@@ -330,4 +330,25 @@
         <item quantity="one">%1$d page left</item>
         <item quantity="other">%1$d pages left</item>
     </plurals>
+    <!-- Publication detail. The one page in the browse path that names where a publication came from. -->
+    <string name="detail_back">Back</string>
+    <string name="detail_more">More actions</string>
+    <string name="detail_action_read">Read</string>
+    <string name="detail_action_continue">Continue</string>
+    <string name="detail_action_download">Download it</string>
+    <string name="detail_action_refused">Cannot be opened</string>
+    <string name="detail_needs_download">This one has to be on your device before it opens.</string>
+    <string name="detail_needs_source">It is not on this device, and the library it lives in is not answering. It will be fetched when that library is back.</string>
+    <string name="detail_refused_body">StoryArc cannot open this file, here or anywhere else.</string>
+    <string name="detail_provenance_device">On this device</string>
+    <string name="detail_provenance_library">From %1$s</string>
+    <string name="detail_provenance_not_downloaded">From %1$s — not downloaded</string>
+    <string name="detail_provenance_away">From %1$s — not answering right now</string>
+    <string name="detail_provenance_also">%1$s · also elsewhere in your library</string>
+    <string name="detail_series_heading">Other issues in this series</string>
+    <string name="detail_downloading">Downloading</string>
+    <string name="detail_add_to_shelf">Add to a shelf</string>
+    <string name="detail_gone_title">This one is gone</string>
+    <string name="detail_gone_body">It is no longer in your library, and there is no copy on this device.</string>
+    <string name="detail_gone_back">Back to where you were</string>
 </resources>
