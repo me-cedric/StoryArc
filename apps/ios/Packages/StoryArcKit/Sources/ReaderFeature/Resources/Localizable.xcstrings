@@ -1109,6 +1109,36 @@
         }
       }
     },
+    "reader.pageUnavailable.codec %@": {
+      "comment": "Shown in place of a page whose codec the device has no decoder for, or whose bytes would not decode. The placeholder names the format so a reader can tell an unsupported file from a damaged one. %@ is a format name such as AVIF or JPEG XL.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Seite konnte nicht gelesen werden (%@)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This page could not be read (%@)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer esta página (%@)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette page n’a pas pu être lue (%@)"
+          }
+        }
+      }
+    },
     "reader.return %lld": {
       "comment": "Goes back to the page the reader was on before a slider jump.",
       "extractionState": "manual",
@@ -1195,6 +1225,84 @@
           "stringUnit": {
             "state": "translated",
             "value": "Afficher le séparateur de pages"
+          }
+        }
+      }
+    },
+    "reader.skipped %lld": {
+      "comment": "Shown quietly in the reader's controls when an archive held entries that looked like pages and could not be read. publication-formats requires saying how many were skipped rather than refusing the publication.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Seite übersprungen"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Seiten übersprungen"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld page skipped"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pages skipped"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld página omitida"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld páginas omitidas"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld page ignorée"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pages ignorées"
+                }
+              }
+            }
           }
         }
       }

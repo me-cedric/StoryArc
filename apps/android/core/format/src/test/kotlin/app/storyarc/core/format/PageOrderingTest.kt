@@ -91,4 +91,13 @@ class PageOrderingTest {
             assertTrue("rejected .$ext", PageOrdering.isPage("page.$ext"))
         }
     }
+
+    @Test
+    fun `a codec neither platform decodes is still a page, so it can be refused by name`() {
+        // `publication-formats` requires an unsupported codec to show "a placeholder
+        // naming the codec" without breaking pagination. A page excluded from the list is
+        // a page nobody can be told about, so it stays in and the reader names it.
+        assertTrue(PageOrdering.isPage("page.jxl"))
+        assertEquals("JPEG XL", PageCodec.nameOf(null, "page.jxl"))
+    }
 }

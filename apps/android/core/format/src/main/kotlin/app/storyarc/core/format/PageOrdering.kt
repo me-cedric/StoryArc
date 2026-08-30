@@ -20,9 +20,16 @@ object PageOrdering {
      * Image extensions StoryArc will attempt to decode. A file outside this set
      * is never a page — `publication-formats` requires `ComicInfo.xml`,
      * `Thumbs.db` and resource forks to be excluded rather than shown blank.
+     *
+     * `jxl` is in the list although neither platform's decoder reads it, and that is
+     * deliberate: `publication-formats` requires an unsupported codec to show "a
+     * placeholder naming the codec" without breaking pagination, and a page excluded
+     * from the list is a page nobody can be told about. It is listed so it can be
+     * refused by name — see [PageCodec].
      */
     val IMAGE_EXTENSIONS = setOf(
         "jpg", "jpeg", "png", "webp", "avif", "gif", "heic", "heif", "bmp", "tif", "tiff",
+        "jxl",
     )
 
     /** True when an entry is a page candidate. */

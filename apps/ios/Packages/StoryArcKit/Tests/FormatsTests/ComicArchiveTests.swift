@@ -52,6 +52,31 @@ struct ComicArchiveTests {
         #expect(archive.skippedPageCount == 0)
     }
 
+    @Test("An entry with nothing in it is counted as skipped rather than listed as a page")
+    func emptyEntriesAreCounted() async throws {
+        // `publication-formats`: a damaged archive opens "whatever pages it can read and
+        // states how many were skipped". The count is the stating.
+        let fixture = FixtureCorpus.comic("unsupported-codec.cbz")
+        let archive = try await open("unsupported-codec.cbz")
+
+        #expect(archive.skippedPageCount == fixture.expectedSkippedPageCount)
+        #expect(archive.pages.map(\.path) == fixture.expectedPageOrder)
+    }
+
+    @Test("A page in a codec nothing decodes is still a page, and is named")
+    func undecodablePageIsNamed() async throws {
+        // The whole of the requirement: the page stays in the list, "does not break
+        // pagination", and the placeholder that stands in for it names the codec.
+        // Excluding it would be the easy fix and the wrong one — a page nobody can be
+        // told about is a page the reader silently loses.
+        let fixture = FixtureCorpus.comic("unsupported-codec.cbz")
+        let archive = try await open("unsupported-codec.cbz")
+
+        let page = try #require(archive.pages.first { $0.path.hasSuffix(".jxl") })
+        let data = try await archive.data(for: page)
+        #expect(PageCodec.name(of: data, path: page.path) == fixture.expectedUndecodableCodec)
+    }
+
     @Test("A truncated archive opens the pages that survived")
     func truncatedArchive() async throws {
         // `publication-formats` requires opening whatever can be read rather than

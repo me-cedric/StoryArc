@@ -5,6 +5,7 @@
     <string name="reader_page_label">Página %1$d de %2$d</string>
     <string name="reader_page_slider">Control de páginas</string>
     <string name="reader_page_unavailable">No se pudo leer esta página</string>
+    <string name="reader_page_unavailable_codec">No se pudo leer esta página (%1$s)</string>
     <string name="reader_right_to_left">De derecha a izquierda</string>
     <string name="reader_left_to_right">De izquierda a derecha</string>
     <string name="reader_direction">Dirección de lectura</string>
@@ -52,4 +53,8 @@
     <string name="reader_return">Volver a la página %1$d</string>
     <string name="reader_spreads_offset">Desplazar el emparejamiento una página</string>
     <string name="reader_separator">Mostrar separador de páginas</string>
+    <plurals name="reader_skipped">
+        <item quantity="one">%1$d página omitida</item>
+        <item quantity="other">%1$d páginas omitidas</item>
+    </plurals>
 </resources>

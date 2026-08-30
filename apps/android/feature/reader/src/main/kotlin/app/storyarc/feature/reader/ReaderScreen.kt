@@ -101,6 +101,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -294,6 +295,7 @@ private fun Pager(
     matte: Color,
 ) {
     val count = pages.size
+    val skipped by viewModel.skippedPageCount.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val adjustments = settings.adjustments
     val direction = viewModel.readingDirection(settings)
@@ -636,7 +638,8 @@ private fun Pager(
     /** One page, however it is being presented. */
     @Composable
     fun SinglePage(index: Int, stitch: ScrollAxis?, onTap: (Offset, IntSize) -> Unit) {
-        val bitmap = viewModel.image(index)
+        // The zoom-resolution copy when one is held, the display one otherwise.
+        val bitmap = viewModel.displayImage(index)
         val trims = adjustments.cropsBorders && index !in uncropped
         when {
             bitmap != null -> ZoomablePage(
@@ -645,6 +648,7 @@ private fun Pager(
                 bitmap = remember(bitmap, trims) {
                     bitmap.cropped(trims).asImageBitmap()
                 },
+                pageId = pages.getOrNull(index)?.path ?: index.toString(),
                 // The page number, not the archive entry's path. TalkBack read
                 // "page10.png" aloud, which names a file inside a CBZ rather than a
                 // page — and the reader never chose that name.
@@ -657,6 +661,7 @@ private fun Pager(
                 // background between every pair, which is the opposite of the
                 // "stitched with no gap" `comic-reader` asks for.
                 stitch = stitch,
+                onZoom = { scale -> viewModel.holdZoom(scale, index) },
             )
             // A page that is not drawn still has to accept a tap: a reader who lands
             // on a skipped page must be able to turn away from it.
@@ -682,9 +687,20 @@ private fun Pager(
                 contentAlignment = Alignment.Center,
             ) {
                 if (viewModel.isUnavailable(index)) {
-                    // Said, not blank. `publication-formats` requires an archive to
-                    // report what it skipped, and this is where a skipped page is met.
-                    Message(stringResource(R.string.reader_page_unavailable))
+                    // Said, not blank, and named. `publication-formats` requires an
+                    // undecodable page to show "a placeholder naming the codec": one
+                    // page saying JPEG among ninety-nine that drew is a damaged entry in
+                    // the file, and every page saying JPEG XL is a format this device
+                    // has no decoder for. With no name the two look identical, and the
+                    // only thing a reader could conclude was that the app was broken.
+                    val codec = viewModel.codecName(index)
+                    Message(
+                        if (codec != null) {
+                            stringResource(R.string.reader_page_unavailable_codec, codec)
+                        } else {
+                            stringResource(R.string.reader_page_unavailable)
+                        },
+                    )
                 } else {
                     DelayedProgressIndicator()
                 }
@@ -997,8 +1013,46 @@ private fun Pager(
                         Text(stringResource(R.string.reader_return, mark + 1))
                     }
                 }
+
+                SkippedNotice(skipped)
             }
         }
+    }
+}
+
+/**
+ * How many entries the archive could not give us, when any.
+ *
+ * `publication-formats`: a damaged archive opens "whatever pages it can read and states
+ * how many were skipped, rather than refusing the whole publication". The opening half
+ * was already true and the *stating* half was not — the count reached the view model and
+ * stopped there, so a reader met a comic that was quietly eight pages short and had
+ * nothing to tell them why.
+ *
+ * In the chrome rather than over the artwork: it is a fact about the file, not about the
+ * page in front of the reader, and the non-negotiable is that chrome recedes. So it
+ * arrives with the controls, sits under the page counter it qualifies, and leaves with
+ * them four seconds later.
+ *
+ * iOS's `skippedNotice` is the same line in the same place.
+ */
+@Composable
+private fun SkippedNotice(count: Int) {
+    if (count <= 0) return
+    Surface(
+        color = Color.White.copy(alpha = 0.2f),
+        shape = RoundedCornerShape(percent = 50),
+        modifier = Modifier.padding(top = StoryArcSpace.xs),
+    ) {
+        Text(
+            text = pluralStringResource(R.plurals.reader_skipped, count, count),
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White,
+            modifier = Modifier.padding(
+                horizontal = StoryArcSpace.md,
+                vertical = StoryArcSpace.xs,
+            ),
+        )
     }
 }
 
@@ -1015,10 +1069,30 @@ private fun Pager(
 @Composable
 private fun ZoomablePage(
     bitmap: ImageBitmap,
+    /**
+     * What page this is, as distinct from which decode of it is in hand.
+     *
+     * The zoom is keyed on this rather than on [bitmap] because one page now has two
+     * decodes — the display-resolution one and the copy re-decoded for a held zoom — and
+     * keying the zoom on the bitmap would put the page back to fit the instant the
+     * sharper copy arrived, which drops the zoom that asked for it and flips the two
+     * decodes against each other for ever.
+     */
+    pageId: String,
     contentDescription: String?,
     fit: PageFit,
     adjustments: ImageAdjustments,
     onTap: (Offset, IntSize) -> Unit,
+    /**
+     * How far the reader has magnified the page, reported once a pinch settles.
+     *
+     * `publication-formats` asks for a page to be "re-decoded at higher resolution when
+     * the user zooms", and this composable is the only thing that knows how far. Sent
+     * after the scale has held still rather than on every frame: a pinch produces dozens
+     * of changes a second, and a full-page decode per frame would be the opposite of
+     * making the page feel sharp.
+     */
+    onZoom: suspend (Float) -> Unit,
     modifier: Modifier = Modifier,
     /**
      * The axis this page is stitched along, or null when it is a page on its own.
@@ -1048,6 +1122,8 @@ private fun ZoomablePage(
     // carrying the mode does — the next page opens at its own top, magnified the
     // same way, rather than at whatever corner of the last page was on screen.
     //
+    // The page, not the bitmap: see [pageId].
+    //
     // `size` belongs in that key for a second reason, and dropping it to keep a pinch
     // across a rotation would cost more than it bought: the first composition happens
     // before the layout has measured anything, so the fit taken there is against a
@@ -1055,10 +1131,19 @@ private fun ZoomablePage(
     // and re-taken the moment `onSizeChanged` reports a real one. iOS had to be told
     // this explicitly — see `AppliedFit` there — because UIKit is asked once and does
     // not ask again.
-    var zoom by remember(bitmap, fit, size) { mutableStateOf(PageZoom.fitting(fit, page)) }
+    var zoom by remember(pageId, fit, size) { mutableStateOf(PageZoom.fitting(fit, page)) }
 
     val transform = rememberTransformableState { centroid, zoomChange, panChange, _ ->
         zoom = zoom.pinched(centroid, zoomChange, panChange, page)
+    }
+
+    // The debounce, and the whole of it: keying the effect on the scale cancels the
+    // pending decode every time the pinch moves, so only the magnification the reader
+    // stopped at is ever asked for. iOS gets the same restraint from UIKit, which
+    // reports `scrollViewDidEndZooming` once at the end of the gesture.
+    LaunchedEffect(pageId, zoom.scale) {
+        delay(ZOOM_SETTLE_MILLIS)
+        onZoom(zoom.scale)
     }
 
     if (stitch != null) {
@@ -1749,6 +1834,16 @@ private const val EDGE_ZONE_FRACTION = 0.25f
  * changed height by a factor of one and a half is.
  */
 private const val PAGE_RATIO = 2f / 3f
+
+/**
+ * How long a pinch has to hold still before the page behind it is re-decoded.
+ *
+ * Short enough that a reader who stops to look does not wait for the sharpening, long
+ * enough that crossing four magnifications on the way to the one they wanted costs one
+ * decode rather than four. iOS needs no equivalent: UIKit reports the end of the gesture
+ * rather than every frame of it.
+ */
+private const val ZOOM_SETTLE_MILLIS = 180L
 
 private const val FADE_MILLIS = 140
 

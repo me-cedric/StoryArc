@@ -5,6 +5,7 @@
     <string name="reader_page_label">Page %1$d of %2$d</string>
     <string name="reader_page_slider">Page slider</string>
     <string name="reader_page_unavailable">This page could not be read</string>
+    <string name="reader_page_unavailable_codec">This page could not be read (%1$s)</string>
     <string name="reader_right_to_left">Right to left</string>
     <string name="reader_left_to_right">Left to right</string>
     <string name="reader_direction">Reading direction</string>
@@ -52,4 +53,8 @@
     <string name="reader_return">Back to page %1$d</string>
     <string name="reader_spreads_offset">Shift the pairing by one</string>
     <string name="reader_separator">Show page separator</string>
+    <plurals name="reader_skipped">
+        <item quantity="one">%1$d page skipped</item>
+        <item quantity="other">%1$d pages skipped</item>
+    </plurals>
 </resources>

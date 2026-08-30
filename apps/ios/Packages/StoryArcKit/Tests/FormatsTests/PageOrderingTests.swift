@@ -99,4 +99,13 @@ struct PageExclusionTests {
             #expect(PageOrdering.isPage(path: "page.\(ext)"), "rejected .\(ext)")
         }
     }
+
+    @Test("A codec neither platform decodes is still a page, so it can be refused by name")
+    func acceptsAnUndecodableCodec() {
+        // `publication-formats` requires an unsupported codec to show "a placeholder
+        // naming the codec" without breaking pagination. A page excluded from the list
+        // is a page nobody can be told about, so it stays in and the reader names it.
+        #expect(PageOrdering.isPage(path: "page.jxl"))
+        #expect(PageCodec.name(of: nil, path: "page.jxl") == "JPEG XL")
+    }
 }

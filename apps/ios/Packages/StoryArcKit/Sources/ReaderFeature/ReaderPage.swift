@@ -12,6 +12,8 @@ public import StoryArcCore
 struct PageView: View {
     let image: CGImage?
     let isUnavailable: Bool
+    /// What the page turned out to be, when it could not be decoded. See ``PageProblem``.
+    let codecName: String?
     /// The archive entry, used to tell one page from the next so zoom resets on a turn.
     let pageID: String
     /// What VoiceOver says. Separate from `pageID` because the two were the same value
@@ -21,6 +23,11 @@ struct PageView: View {
     let fit: PageFit
     let adjustments: ImageAdjustments
     let onTap: (CGPoint, CGSize) -> Void
+    /// How far the reader has magnified the page, reported when a pinch settles.
+    ///
+    /// `publication-formats` asks for a page to be "re-decoded at higher resolution
+    /// when the user zooms", and the scroll view is the only thing that knows how far.
+    let onZoom: (Double) -> Void
 
     var body: some View {
         if let image {
@@ -31,7 +38,8 @@ struct PageView: View {
                 image: sharpened(cropped(image, when: adjustments.cropsBorders), by: adjustments.sharpness),
                 pageID: pageID,
                 fit: fit,
-                onTap: onTap
+                onTap: onTap,
+                onZoom: onZoom
             )
             .adjusted(adjustments)
             .accessibilityLabel(label)
@@ -43,16 +51,7 @@ struct PageView: View {
                 ZStack {
                     Color.black
                     if isUnavailable {
-                        // Said, not blank. `publication-formats` requires an
-                        // archive to report what it skipped, and this is where a
-                        // skipped page is met.
-                        VStack(spacing: StoryArcSpace.sm) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 28, weight: .light))
-                            Text("reader.pageUnavailable", bundle: .module)
-                                .textRole(.footnote)
-                        }
-                        .foregroundStyle(.white.opacity(0.7))
+                        PageProblem(codecName: codecName)
                     } else {
                         DelayedProgressView()
                     }
@@ -203,6 +202,8 @@ struct EndOfPublication: View {
 struct StitchedPage: View {
     let image: CGImage?
     let isUnavailable: Bool
+    /// What the page turned out to be, when it could not be decoded. See ``PageProblem``.
+    let codecName: String?
     /// What VoiceOver says. See ``PageView/label`` for why this is not the entry path.
     let label: Text
     let axis: ScrollAxis
@@ -234,9 +235,7 @@ struct StitchedPage: View {
                         .adjusted(adjustments)
                         .accessibilityLabel(label)
                 } else if isUnavailable {
-                    // Said, not blank. `publication-formats` requires an archive to
-                    // report what it skipped, and this is where a skipped page is met.
-                    PageProblem()
+                    PageProblem(codecName: codecName)
                 } else {
                     DelayedProgressView()
                 }
@@ -307,13 +306,31 @@ private struct FullAcross: ViewModifier {
 }
 
 /// A page the archive could not give us, said rather than left blank.
-private struct PageProblem: View {
+///
+/// `publication-formats`: an undecodable page "displays a placeholder naming the codec,
+/// and does not break pagination". Naming it is what lets a reader tell the two cases
+/// apart: one page saying JPEG among ninety-nine that drew is a damaged entry in the
+/// file, and every page saying JPEG XL is a format this device has no decoder for. With
+/// no name the two look identical, and the only thing a reader could conclude was that
+/// the app was broken.
+///
+/// The name is absent when nothing could be read at all, and then the shorter sentence
+/// is the honest one.
+struct PageProblem: View {
+    let codecName: String?
+
     var body: some View {
         VStack(spacing: StoryArcSpace.sm) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 28, weight: .light))
-            Text("reader.pageUnavailable", bundle: .module)
-                .textRole(.footnote)
+            if let codecName {
+                Text("reader.pageUnavailable.codec \(codecName)", bundle: .module)
+                    .textRole(.footnote)
+                    .multilineTextAlignment(.center)
+            } else {
+                Text("reader.pageUnavailable", bundle: .module)
+                    .textRole(.footnote)
+            }
         }
         .foregroundStyle(.white.opacity(0.7))
     }

@@ -1,7 +1,10 @@
 package app.storyarc.feature.reader
 
 import android.graphics.Bitmap
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.lifecycle.ViewModel
@@ -9,6 +12,7 @@ import android.content.ContentResolver
 import android.os.Build
 import android.provider.Settings
 import app.storyarc.core.format.ComicArchiveReading
+import app.storyarc.core.format.PageCodec
 import app.storyarc.core.format.PageDecoder
 import app.storyarc.core.format.PageEntry
 import app.storyarc.core.format.PdfDocumentReader
@@ -216,6 +220,17 @@ class ReaderViewModel(
     private val _failure = MutableStateFlow<String?>(null)
     val failure: StateFlow<String?> = _failure.asStateFlow()
 
+    private val _skippedPageCount = MutableStateFlow(0)
+
+    /**
+     * Entries that looked like pages and could not be read at all.
+     *
+     * `publication-formats`: a corrupt archive opens "whatever pages it can read and
+     * states how many were skipped, rather than refusing the whole publication". The
+     * archive counts them; this is where the reader can say so.
+     */
+    val skippedPageCount: StateFlow<Int> = _skippedPageCount.asStateFlow()
+
     private val _coverColours = MutableStateFlow<CoverColours?>(null)
 
     /** What this publication's cover brings to its own screens, or null when it brings none. */
@@ -262,6 +277,28 @@ class ReaderViewModel(
      */
     private val thumbnails = mutableStateMapOf<Int, Bitmap>()
     private val attempted = mutableStateSetOf<Int>()
+
+    /**
+     * The codec of each page that was attempted and refused. See [codecName].
+     *
+     * A snapshot map for the reason [decoded] is one: the placeholder is drawn from it,
+     * and Compose does not observe a `mutableMapOf`.
+     */
+    private val refusedCodecs = mutableStateMapOf<Int, String>()
+
+    /**
+     * A page held at the resolution a zoom asked for.
+     *
+     * One page at a time, on purpose: the reader is looking at one, and a second copy of
+     * a 2000x3000 scan is 24 MB that the prefetch window has already budgeted for
+     * something else.
+     *
+     * @property pixelSize what it was decoded at, so an unchanged pinch does not decode
+     *   it again.
+     */
+    private data class ZoomedPage(val index: Int, val pixelSize: Int, val bitmap: Bitmap)
+
+    private var zoomed by mutableStateOf<ZoomedPage?>(null)
 
     /**
      * Pages that take the width of two.
@@ -335,6 +372,7 @@ class ReaderViewModel(
             }
             archive = opened
             _pages.value = opened.pages
+            _skippedPageCount.value = opened.skippedPageCount
             wide.addAll(opened.doublePageIndices)
             publication.coverPath?.let { path ->
                 val index = opened.pages.indexOfFirst { it.path == path }
@@ -417,6 +455,64 @@ class ReaderViewModel(
     fun image(index: Int): Bitmap? = decoded[index]
 
     /**
+     * What to draw for a page: the copy re-decoded for a held zoom when there is one,
+     * and the display-resolution copy otherwise.
+     *
+     * The one call a page composable should make. `publication-formats` requires a page
+     * to be "downsampled to the display's needs for viewing and re-decoded at higher
+     * resolution when the user zooms", and which of the two is in hand is not a
+     * distinction a composable should have to carry.
+     */
+    fun displayImage(index: Int): Bitmap? {
+        zoomed?.let { if (it.index == index) return it.bitmap }
+        return decoded[index]
+    }
+
+    /**
+     * What a page that would not decode turned out to be, when its bytes said.
+     *
+     * `publication-formats`: an undecodable page "displays a placeholder naming the
+     * codec". Null when nothing could be read at all, in which case there is no codec to
+     * name and the placeholder says only that the page could not be read.
+     */
+    fun codecName(index: Int): String? = refusedCodecs[index]
+
+    /**
+     * Re-decodes the page under a held zoom at the resolution the zoom asks for.
+     *
+     * `publication-formats`: a page too large for the device is "downsampled to the
+     * display's needs for viewing and re-decoded at higher resolution when the user
+     * zooms". Decoding to the *display* is what makes a comic readable on a phone at
+     * all; it is also what makes a magnified page soft, because the pixels that would
+     * have carried the lettering were thrown away before the reader asked for them.
+     *
+     * Held, not permanent: [releaseZoom] drops the larger copy and the page falls back
+     * to the display-resolution one, which is still decoded and still in the window. So
+     * the cost is one extra page for as long as a finger is on the screen.
+     *
+     * Nothing happens when [PrefetchWindow.zoomedPixelSize] declines — a pinch too small
+     * to see, or a window narrowed by memory pressure.
+     */
+    suspend fun holdZoom(scale: Float, index: Int) {
+        val target = prefetch.zoomedPixelSize(maxPixelSize, scale)
+        if (target == null) {
+            releaseZoom()
+            return
+        }
+        val page = _pages.value.getOrNull(index) ?: return
+        // Already at this size, or larger: a pinch that wanders inside one step of the
+        // ceiling should not decode the page again on every settle.
+        zoomed?.let { if (it.index == index && it.pixelSize >= target) return }
+        val bitmap = decodeBitmap(index, page, target) ?: return
+        zoomed = ZoomedPage(index, target, bitmap)
+    }
+
+    /** Drops the page held for a zoom. The display-resolution copy takes over again. */
+    fun releaseZoom() {
+        zoomed = null
+    }
+
+    /**
      * A small version of a page, decoded on demand.
      *
      * `comic-reader`: the thumbnail browser shows "every page ... in a scrollable
@@ -497,6 +593,11 @@ class ReaderViewModel(
     suspend fun noteMemoryPressure(pressure: MemoryPressure, at: Int) {
         val window = PrefetchWindow.under(pressure)
         if (window == prefetch) return
+        // A page held at three times the display's resolution is the largest single
+        // thing this reader owns, so it goes first when the window narrows — before the
+        // neighbours, which are the pages a turn is waiting on. The next settle of the
+        // pinch asks again, against the narrower ceiling.
+        if (window.zoomCeiling < prefetch.zoomCeiling) zoomed = null
         prefetch = window
         if (pressure == MemoryPressure.CRITICAL) thumbnails.clear()
         warm(at)
@@ -512,7 +613,11 @@ class ReaderViewModel(
         (decoded.keys - wanted).forEach {
             decoded.remove(it)
             attempted.remove(it)
+            refusedCodecs.remove(it)
         }
+        // A zoom held on a page the reader has moved away from is the same waste as a
+        // decoded page outside the window, only three times the size.
+        zoomed?.let { if (it.index !in wanted) zoomed = null }
         // The current page first: a turn should not wait on its neighbours.
         for (target in listOf(index) + wanted.sortedBy { kotlin.math.abs(it - index) }) {
             if (target !in pages.indices || target in attempted) continue
@@ -521,40 +626,89 @@ class ReaderViewModel(
         }
     }
 
+    /**
+     * One decode of one page, and what it settled.
+     *
+     * The distinction between the last two cases is the reason this exists. Both used to
+     * be "no bitmap", and treating a refusal as a missing read left the reader spinning
+     * for ever on a page nothing was ever going to produce.
+     */
+    private sealed interface PageOutcome {
+        data class Decoded(val bitmap: Bitmap) : PageOutcome
+
+        /**
+         * The bytes arrived and the decoder would not have them. Permanent for this
+         * file, and [codec] is what `publication-formats` wants named in the placeholder
+         * — null when the bytes say nothing recognisable at all.
+         */
+        data class Refused(val codec: String?) : PageOutcome
+
+        /**
+         * The bytes could not be read. Usually the source is away, so it is worth asking
+         * again.
+         */
+        data object Unread : PageOutcome
+    }
+
     private suspend fun decode(index: Int, page: PageEntry) {
-        val reader = pdf
-        val bitmap = if (reader != null) {
-            withContext(Dispatchers.IO) {
-                pdfLock.withLock {
-                    runCatching { reader.render(index, maxPixelSize) }.getOrNull()
+        when (val result = outcome(index, page, maxPixelSize)) {
+            is PageOutcome.Decoded -> {
+                val bitmap = result.bitmap
+                decoded[index] = bitmap
+                refusedCodecs.remove(index)
+                // The first page that decodes settles the implied scroll axis. First
+                // rather than tallest: a webtoon's pages are all strips, and waiting for
+                // the tallest would mean waiting for the whole publication.
+                if (tallestRatio == 0.0 && bitmap.width > 0) {
+                    tallestRatio = bitmap.height.toDouble() / bitmap.width
                 }
+                // Wider than tall, with no tolerance to tune: a portrait page scanned
+                // with a slight skew is still portrait, and a spread is half again as
+                // wide as a page.
+                if (bitmap.width > bitmap.height) wide += index
             }
-        } else {
-            val opened = archive ?: return
-            withContext(Dispatchers.IO) {
-                runCatching { PageDecoder.decode(opened.data(page), maxPixelSize) }.getOrNull()
-            }
-        }
-        if (bitmap == null) {
-            // Forgotten rather than remembered as tried. A page that failed because the
-            // share was away must be readable once it comes back -- `network-share` asks
-            // the app to "resume streaming at the current page" after reconnecting, and a
-            // page marked attempted for ever never gets a second chance.
-            attempted.remove(index)
-        }
-        if (bitmap != null) {
-            decoded[index] = bitmap
-            // The first page that decodes settles the implied scroll axis. First
-            // rather than tallest: a webtoon's pages are all strips, and waiting for
-            // the tallest would mean waiting for the whole publication.
-            if (tallestRatio == 0.0 && bitmap.width > 0) {
-                tallestRatio = bitmap.height.toDouble() / bitmap.width
-            }
-            // Wider than tall, with no tolerance to tune: a portrait page scanned with a
-            // slight skew is still portrait, and a spread is half again as wide as a page.
-            if (bitmap.width > bitmap.height) wide += index
+
+            is PageOutcome.Refused ->
+                // Remembered as tried, which is what makes the placeholder appear: the
+                // bytes are here and the decoder will say the same thing about them next
+                // time.
+                result.codec?.let { refusedCodecs[index] = it }
+
+            PageOutcome.Unread ->
+                // Forgotten rather than remembered as tried. A page that failed because
+                // the share was away must be readable once it comes back --
+                // `network-share` asks the app to "resume streaming at the current page"
+                // after reconnecting, and a page marked attempted for ever never gets a
+                // second chance.
+                attempted.remove(index)
         }
     }
+
+    private suspend fun outcome(index: Int, page: PageEntry, size: Int): PageOutcome {
+        val reader = pdf
+        if (reader != null) {
+            val rendered = withContext(Dispatchers.IO) {
+                pdfLock.withLock { runCatching { reader.render(index, size) }.getOrNull() }
+            }
+            // A PDF page is drawn rather than stored, so there are no codec bytes to
+            // sniff. The format is still what was refused, and naming it is the point:
+            // `publication-formats` asks for "the codec or format".
+            return rendered?.let { PageOutcome.Decoded(it) }
+                ?: PageOutcome.Refused(PublicationFormat.PDF.displayName)
+        }
+        val opened = archive ?: return PageOutcome.Unread
+        return withContext(Dispatchers.IO) {
+            val data = runCatching { opened.data(page) }.getOrNull()
+                ?: return@withContext PageOutcome.Unread
+            runCatching { PageDecoder.decode(data, size) }.getOrNull()
+                ?.let { PageOutcome.Decoded(it) }
+                ?: PageOutcome.Refused(PageCodec.nameOf(data, page.path))
+        }
+    }
+
+    /** The same decode, without the bookkeeping, for a zoom that wants one page larger. */
+    private suspend fun decodeBitmap(index: Int, page: PageEntry, size: Int): Bitmap? =
+        (outcome(index, page, size) as? PageOutcome.Decoded)?.bitmap
 
     private companion object {
         /** Enough to recognise a page by its composition, not to read it. */
@@ -573,5 +727,7 @@ class ReaderViewModel(
         decoded.clear()
         thumbnails.clear()
         wide.clear()
+        refusedCodecs.clear()
+        zoomed = null
     }
 }

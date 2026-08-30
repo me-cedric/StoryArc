@@ -137,13 +137,18 @@ extension ReaderView {
     private func singlePage(at index: Int, onTap: @escaping (CGPoint, CGSize) -> Void) -> some View {
         if model.pages.indices.contains(index) {
             PageView(
-                image: model.image(at: index),
+                // The zoom-resolution copy when one is held, the display one otherwise.
+                image: model.displayImage(at: index),
                 isUnavailable: model.isUnavailable(at: index),
+                codecName: model.codecName(at: index),
                 pageID: model.pages[index].path,
                 label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
                 fit: fit,
                 adjustments: trimming(at: index),
-                onTap: onTap
+                onTap: onTap,
+                onZoom: { scale in
+                    Task { await model.holdZoom(scale, at: index) }
+                }
             )
         } else {
             // A slot that outlived its pages, for the frame between a publication
@@ -161,6 +166,7 @@ extension ReaderView {
         return StitchedPage(
             image: model.image(at: index),
             isUnavailable: model.isUnavailable(at: index),
+            codecName: model.codecName(at: index),
             label: Text("reader.pageLabel \(index + 1) \(model.pages.count)", bundle: .module),
             axis: axis,
             adjustments: trimming(at: index),

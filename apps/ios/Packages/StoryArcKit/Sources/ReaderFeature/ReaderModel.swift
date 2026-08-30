@@ -24,6 +24,13 @@ public final class ReaderModel {
     /// Set when the publication could not be opened at all.
     public private(set) var failure: String?
 
+    /// Entries that looked like pages and could not be read at all.
+    ///
+    /// `publication-formats`: a corrupt archive opens "whatever pages it can read and
+    /// states how many were skipped, rather than refusing the whole publication". The
+    /// archive counts them; this is where the reader can say so.
+    public private(set) var skippedPageCount = 0
+
     /// Pages that take the width of two.
     ///
     /// `comic-reader` shows such a page alone rather than pairing it with a neighbour.
@@ -241,6 +248,7 @@ public final class ReaderModel {
             let opened = try await ComicArchiveOpener.open(fileAt: url)
             archive = opened
             pages = opened.pages
+            skippedPageCount = opened.skippedPageCount
             wideIndices = Set(opened.doublePageIndices)
             // Start at the designated cover when there is one. `publication-formats`
             // lets ComicInfo name a cover that is not page one, and opening on a
@@ -318,6 +326,23 @@ public final class ReaderModel {
     }
 
     var attempted: Set<Int> = []
+
+    /// The codec of each page that was attempted and refused. See ``codecName(at:)``.
+    var refusedCodecs: [Int: String] = [:]
+
+    /// A page held at the resolution a zoom asked for.
+    ///
+    /// One page at a time, on purpose: the reader is looking at one, and a second copy
+    /// of a 2000×3000 scan is 24 MB that the prefetch window has already budgeted for
+    /// something else.
+    struct ZoomedPage {
+        let index: Int
+        /// What it was decoded at, so an unchanged pinch does not decode it again.
+        let pixelSize: Int
+        let image: CGImage
+    }
+
+    var zoomed: ZoomedPage?
 
     public func go(to index: Int) async {
         guard pages.indices.contains(index) else { return }

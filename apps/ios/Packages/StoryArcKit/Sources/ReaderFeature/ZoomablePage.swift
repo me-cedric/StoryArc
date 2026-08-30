@@ -34,6 +34,14 @@ struct ZoomablePage: View {
     /// Where the tap landed, in the page's own coordinates, and how big the page
     /// was — the caller decides whether that is an edge or the centre.
     let onTap: (CGPoint, CGSize) -> Void
+    /// How far the page is magnified, reported when a pinch or a double-tap settles.
+    ///
+    /// `publication-formats` asks for a page to be "re-decoded at higher resolution when
+    /// the user zooms", and the scroll view is the only thing that knows how far. Sent
+    /// on the *end* of a zoom rather than on every frame: a pinch produces dozens of
+    /// changes a second, and a full-page decode per frame would be the opposite of
+    /// making the page feel sharp.
+    let onZoom: (Double) -> Void
 
     var body: some View {
         #if os(iOS)
@@ -48,12 +56,14 @@ struct ZoomablePage: View {
                 pageID: pageID,
                 fit: fit,
                 viewport: geometry.size,
-                onTap: onTap
+                onTap: onTap,
+                onZoom: onZoom
             )
         }
         #else
         // The package builds for macOS so the pure-Swift targets can be tested on
         // the host. Zoom is a touch feature; there is no Mac reader yet (ADR-0004).
+        // No pinch to report on the host build, so `onZoom` is never called there.
         Image(decorative: image, scale: 1)
             .resizable()
             .scaledToFit()
@@ -68,6 +78,7 @@ private struct ScrollingPage: UIViewRepresentable {
     let fit: PageFit
     let viewport: CGSize
     let onTap: (CGPoint, CGSize) -> Void
+    let onZoom: (Double) -> Void
 
     /// How far a double-tap zooms in. Enough to read the lettering on a dense
     /// page, not so far that the reader loses the panel they tapped.
@@ -98,8 +109,10 @@ private struct ScrollingPage: UIViewRepresentable {
         scrollView.addSubview(imageView)
 
         context.coordinator.imageView = imageView
+        context.coordinator.shownImage = image
         context.coordinator.zoomedScale = zoomedScale
         context.coordinator.onTap = onTap
+        context.coordinator.onZoom = onZoom
 
         let doubleTap = UITapGestureRecognizer(
             target: context.coordinator,
@@ -138,9 +151,21 @@ private struct ScrollingPage: UIViewRepresentable {
 
     func updateUIView(_ scrollView: UIScrollView, context: Context) {
         context.coordinator.onTap = onTap
+        context.coordinator.onZoom = onZoom
 
         if context.coordinator.pageID != pageID {
             context.coordinator.pageID = pageID
+            context.coordinator.shownImage = image
+            context.coordinator.imageView?.image = UIImage(cgImage: image)
+        } else if context.coordinator.shownImage !== image {
+            // The same page at a different resolution — the copy re-decoded for a held
+            // zoom, or the display one coming back when the zoom ends. Swapped without
+            // touching `pageID`, because that is what resets the zoom, and a reader who
+            // held a pinch to see the lettering did not ask to be zoomed back out.
+            //
+            // The aspect ratio is unchanged, so the fit, the offset and the insets all
+            // still describe the same page and nothing has to be recomputed.
+            context.coordinator.shownImage = image
             context.coordinator.imageView?.image = UIImage(cgImage: image)
         }
         context.coordinator.layout(scrollView)
@@ -168,9 +193,13 @@ private struct ScrollingPage: UIViewRepresentable {
         /// Which fit the zoom was actually set from.
         var applied = AppliedFit()
         var imageView: UIImageView?
+        /// Which decode is on screen, so a re-decode at a different resolution is
+        /// recognised as the same page rather than as a turn.
+        var shownImage: CGImage?
         var pageID: String
         var zoomedScale: CGFloat = 2.5
         var onTap: (CGPoint, CGSize) -> Void = { _, _ in }
+        var onZoom: (Double) -> Void = { _ in }
 
         init(pageID: String) {
             self.pageID = pageID
@@ -195,6 +224,17 @@ private struct ScrollingPage: UIViewRepresentable {
         func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
 
         func scrollViewDidZoom(_ scrollView: UIScrollView) { layout(scrollView) }
+
+        /// The end of a pinch, and of an animated double-tap zoom.
+        ///
+        /// The only place the scale is reported from. `scrollViewDidZoom` fires on every
+        /// frame of the gesture, and re-decoding a page there would decode it sixty
+        /// times on the way to the magnification the reader actually wanted.
+        func scrollViewDidEndZooming(
+            _ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat
+        ) {
+            onZoom(Double(scale))
+        }
 
         /// Keeps the page centred while it is smaller than the screen.
         ///

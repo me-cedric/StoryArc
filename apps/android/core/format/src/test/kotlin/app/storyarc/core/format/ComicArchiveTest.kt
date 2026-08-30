@@ -63,6 +63,35 @@ class ComicArchiveTest {
     }
 
     @Test
+    fun `an entry with nothing in it is counted as skipped rather than listed as a page`() =
+        runTest {
+            // `publication-formats`: a damaged archive opens "whatever pages it can read
+            // and states how many were skipped". The count is the stating.
+            val fixture = FixtureCorpus.comic("unsupported-codec.cbz")
+            open("unsupported-codec.cbz").use { archive ->
+                assertEquals(fixture.expectedSkippedPageCount, archive.skippedPageCount)
+                assertEquals(fixture.expectedPageOrder, archive.pages.map { it.path })
+            }
+        }
+
+    @Test
+    fun `a page in a codec nothing decodes is still a page, and is named`() = runTest {
+        // The whole of the requirement: the page stays in the list, "does not break
+        // pagination", and the placeholder that stands in for it names the codec.
+        // Excluding it would be the easy fix and the wrong one — a page nobody can be
+        // told about is a page the reader silently loses.
+        val fixture = FixtureCorpus.comic("unsupported-codec.cbz")
+        open("unsupported-codec.cbz").use { archive ->
+            val page = archive.pages.first { it.path.endsWith(".jxl") }
+            val data = archive.data(page)
+            assertEquals(
+                fixture.expectedUndecodableCodec,
+                PageCodec.nameOf(data, page.path),
+            )
+        }
+    }
+
+    @Test
     fun `a truncated archive opens the pages that survived`() = runTest {
         // `publication-formats` requires opening whatever can be read rather than
         // refusing the publication, and ADR-0008's own reader is what makes

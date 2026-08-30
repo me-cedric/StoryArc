@@ -49,4 +49,37 @@ struct PrefetchWindowTests {
     func outsideThePublication() {
         #expect(PrefetchWindow.full.pages(around: 0, of: 0).isEmpty)
     }
+
+    // `publication-formats`: a page too large for the device is "downsampled to the
+    // display's needs for viewing and re-decoded at higher resolution when the user
+    // zooms". The second decode is memory, so the same window that holds the neighbours
+    // is what says how much of it there is to spend.
+
+    @Test("A held zoom re-decodes the page at the magnification asked for")
+    func zoomFollowsTheScale() {
+        #expect(PrefetchWindow.full.zoomedPixelSize(display: 1000, scale: 2) == 2000)
+    }
+
+    @Test("A pinch too small to see is not worth a second decode")
+    func smallPinchesAreDeclined() {
+        #expect(PrefetchWindow.full.zoomedPixelSize(display: 1000, scale: 1) == nil)
+        #expect(PrefetchWindow.full.zoomedPixelSize(display: 1000, scale: 1.1) == nil)
+    }
+
+    @Test("The ceiling caps a deep zoom rather than decoding whatever was asked for")
+    func ceilingCaps() {
+        #expect(PrefetchWindow.full.zoomedPixelSize(display: 1000, scale: 6) == 3000)
+    }
+
+    @Test("Memory pressure lowers the ceiling, and critical pressure removes it")
+    func pressureLowersTheCeiling() {
+        let warned = PrefetchWindow.under(.warning)
+        #expect(warned.zoomedPixelSize(display: 1000, scale: 6) == 2000)
+        #expect(PrefetchWindow.under(.critical).zoomedPixelSize(display: 1000, scale: 6) == nil)
+    }
+
+    @Test("A page with no size decodes to no size")
+    func noDisplaySize() {
+        #expect(PrefetchWindow.full.zoomedPixelSize(display: 0, scale: 4) == nil)
+    }
 }

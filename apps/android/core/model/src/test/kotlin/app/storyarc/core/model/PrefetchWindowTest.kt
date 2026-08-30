@@ -55,4 +55,41 @@ class PrefetchWindowTest {
     fun `a window around a page that does not exist holds nothing`() {
         assertTrue(PrefetchWindow.FULL.pages(around = 0, of = 0).isEmpty())
     }
+
+    // `publication-formats`: a page too large for the device is "downsampled to the
+    // display's needs for viewing and re-decoded at higher resolution when the user
+    // zooms". The second decode is memory, so the same window that holds the neighbours
+    // is what says how much of it there is to spend.
+
+    @Test
+    fun `a held zoom re-decodes the page at the magnification asked for`() {
+        assertEquals(2000, PrefetchWindow.FULL.zoomedPixelSize(display = 1000, scale = 2f))
+    }
+
+    @Test
+    fun `a pinch too small to see is not worth a second decode`() {
+        assertEquals(null, PrefetchWindow.FULL.zoomedPixelSize(display = 1000, scale = 1f))
+        assertEquals(null, PrefetchWindow.FULL.zoomedPixelSize(display = 1000, scale = 1.1f))
+    }
+
+    @Test
+    fun `the ceiling caps a deep zoom rather than decoding whatever was asked for`() {
+        assertEquals(3000, PrefetchWindow.FULL.zoomedPixelSize(display = 1000, scale = 6f))
+    }
+
+    @Test
+    fun `memory pressure lowers the ceiling, and critical pressure removes it`() {
+        val warned = PrefetchWindow.under(MemoryPressure.WARNING)
+        assertEquals(2000, warned.zoomedPixelSize(display = 1000, scale = 6f))
+        assertEquals(
+            null,
+            PrefetchWindow.under(MemoryPressure.CRITICAL)
+                .zoomedPixelSize(display = 1000, scale = 6f),
+        )
+    }
+
+    @Test
+    fun `a page with no size decodes to no size`() {
+        assertEquals(null, PrefetchWindow.FULL.zoomedPixelSize(display = 0, scale = 4f))
+    }
 }

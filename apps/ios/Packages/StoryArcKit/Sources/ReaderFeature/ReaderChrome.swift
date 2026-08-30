@@ -136,11 +136,37 @@ extension ReaderView {
                 } else if !model.pages.isEmpty {
                     pageCount
                 }
+
+                skippedNotice
             }
             .padding(.horizontal, StoryArcSpace.md)
             .padding(.bottom, StoryArcSpace.lg)
         }
         .transition(.opacity)
+    }
+
+    /// How many entries the archive could not give us, when any.
+    ///
+    /// `publication-formats`: a damaged archive opens "whatever pages it can read and
+    /// states how many were skipped, rather than refusing the whole publication". The
+    /// opening half was already true and the *stating* half was not — the count reached
+    /// the model and stopped there, so a reader met a comic that was quietly eight pages
+    /// short and had nothing to tell them why.
+    ///
+    /// In the chrome rather than over the artwork: it is a fact about the file, not
+    /// about the page in front of the reader, and the non-negotiable is that chrome
+    /// recedes. So it arrives with the controls, sits under the page counter it
+    /// qualifies, and leaves with them four seconds later.
+    @ViewBuilder
+    var skippedNotice: some View {
+        if model.skippedPageCount > 0 {
+            Text("reader.skipped \(model.skippedPageCount)", bundle: .module)
+                .textRole(.caption)
+                .foregroundStyle(.white)
+                .padding(.horizontal, StoryArcSpace.sm)
+                .padding(.vertical, StoryArcSpace.xs)
+                .storyArcGlass(in: RoundedRectangle(cornerRadius: StoryArcRadius.sm))
+        }
     }
 
     /// The page-transition picker.
