@@ -58,6 +58,13 @@ metadata embedded in the file.
 - **WHEN** a publication's `ComicInfo.xml` disagrees with Kavita's metadata
 - **THEN** the app displays Kavita's values, because the server is the curated source
 
+#### Scenario: Keeping a chapter on the device
+- **WHEN** a user keeps a chapter from a Kavita source
+- **THEN** it becomes a download like any other — listed in the library, attributed to that
+  source, counted in the storage total, and removed when the source is removed
+- **AND** what the server says about it is cached with it, so it can be read with the server
+  unreachable
+
 #### Scenario: Reading a downloaded Kavita title offline
 - **WHEN** a downloaded Kavita publication is opened with the server unreachable
 - **THEN** the cached server metadata is displayed, not the file's embedded metadata
@@ -105,6 +112,12 @@ The app SHALL use Kavita's search when searching within a Kavita source.
 - **WHEN** a user searches within a Kavita source
 - **THEN** the query is sent to the server, returning matches across series, chapters, people, genres, and tags — not only titles cached locally
 
+#### Scenario: Searching from the library, scoped to one server
+- **WHEN** the library is narrowed to a Kavita source and the user searches
+- **THEN** the local matches are shown, and one action offers to put the same query to that
+  server, which answers with matches the local index cannot hold
+
 #### Scenario: Searching while the server is unreachable
 - **WHEN** the server is unreachable
 - **THEN** the search falls back to the local cache and states that results are limited to cached content
+- **AND** a result the device holds opens, rather than pointing at a series the server cannot serve
