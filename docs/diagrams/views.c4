@@ -28,6 +28,15 @@ views {
     include kavitaServer
     include noBackend
 
+    // Five separate relations collapse into one edge here; name it, rather
+    // than letting the renderer print an ellipsis.
+    include ios -> shared with {
+      title 'implements, and generates from'
+    }
+    include android -> shared with {
+      title 'implements, and generates from'
+    }
+
     autoLayout TopBottom 110 100
   }
 
