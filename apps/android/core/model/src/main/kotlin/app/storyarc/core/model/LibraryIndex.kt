@@ -226,14 +226,36 @@ object LibraryIndex {
         LibrarySort.TITLE ->
             collator.compare(sortKey(left.displayTitle, locale), sortKey(right.displayTitle, locale))
 
+        // A publication that names no series belongs after every publication that names
+        // one, not among the series names its own title happens to fall between. Ordering
+        // it among them is what cut the standalone pile in two — "Zephyr" landing between
+        // "Ashfall" and "Blackwater" makes *Other* two piles rather than one, and a
+        // sectioned shelf that refuses to draw one heading twice then declines to divide
+        // the shelf at all.
         LibrarySort.SERIES -> {
-            val bySeries = collator.compare(
-                sortKey(left.series ?: left.displayTitle, locale),
-                sortKey(right.series ?: right.displayTitle, locale),
-            )
-            // Within a series, the issue number decides — and numerically, so #10
-            // follows #9 rather than #1.
-            if (bySeries != 0) bySeries else numberOf(left).compareTo(numberOf(right))
+            val leftSeries = seriesName(left)
+            val rightSeries = seriesName(right)
+            when {
+                // One pile, alphabetical inside it, and reversing with the sort direction
+                // like every other key so the pile stays a single contiguous run.
+                leftSeries == null && rightSeries == null -> collator.compare(
+                    sortKey(left.displayTitle, locale),
+                    sortKey(right.displayTitle, locale),
+                )
+
+                leftSeries == null -> 1
+                rightSeries == null -> -1
+
+                else -> {
+                    val bySeries = collator.compare(
+                        sortKey(leftSeries, locale),
+                        sortKey(rightSeries, locale),
+                    )
+                    // Within a series, the issue number decides — and numerically, so #10
+                    // follows #9 rather than #1.
+                    if (bySeries != 0) bySeries else numberOf(left).compareTo(numberOf(right))
+                }
+            }
         }
 
         // Never read sorts last whichever way the list runs: a row with no date is
@@ -254,6 +276,22 @@ object LibraryIndex {
         // Largest first, for the same reason PROGRESS puts the most-read first: the
         // reason to sort by size is to find what is taking up the disk.
         LibrarySort.FILE_SIZE -> -(left.fileSize ?: 0L).compareTo(right.fileSize ?: 0L)
+    }
+
+    /**
+     * The series a publication actually names, or `null` when it names none.
+     *
+     * `null`, `""` and `"   "` are one answer, not three. A real `ComicInfo.xml` writes all
+     * three for a book that belongs to no series, and a rule that told them apart would file
+     * identical shelves in different places.
+     *
+     * Public because the sectioned shelf has to divide on the same answer this sorts on:
+     * were the two to disagree about a blank name, a heading would open where the order never
+     * changed.
+     */
+    fun seriesName(publication: Publication): String? {
+        val trimmed = publication.series?.trim()
+        return if (trimmed.isNullOrEmpty()) null else trimmed
     }
 
     private fun numberOf(publication: Publication): Double =

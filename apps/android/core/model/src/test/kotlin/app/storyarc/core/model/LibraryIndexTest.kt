@@ -109,6 +109,56 @@ class LibraryIndexTest {
     }
 
     @Test
+    fun `a publication with no series sorts after every publication that has one`() {
+        // "Zephyr" used to sort by its title *among* the series names, landing between
+        // "Ashfall" and "Blackwater" — which splits the standalone pile in two and stops a
+        // sectioned shelf from dividing at all.
+        val library = listOf(
+            publication("Blackwater #1", series = "Blackwater", number = "1"),
+            publication("Zephyr"),
+            publication("Ashfall #2", series = "Ashfall", number = "2"),
+            publication("Ashfall #1", series = "Ashfall", number = "1"),
+            publication("Almanac"),
+        )
+        val sorted = LibraryIndex.arrange(library, LibraryQuery(sort = LibrarySort.SERIES), Locale.ENGLISH)
+        assertEquals(
+            listOf("Ashfall #1", "Ashfall #2", "Blackwater #1", "Almanac", "Zephyr"),
+            titles(sorted),
+        )
+    }
+
+    @Test
+    fun `an empty series and a whitespace series are both no series`() {
+        // A real `ComicInfo.xml` writes all three for a book that belongs to no series.
+        val library = listOf(
+            publication("Blank", series = ""),
+            publication("Ashfall #1", series = "Ashfall", number = "1"),
+            publication("Spaces", series = "   "),
+            publication("Absent"),
+        )
+        val sorted = LibraryIndex.arrange(library, LibraryQuery(sort = LibrarySort.SERIES), Locale.ENGLISH)
+        assertEquals(listOf("Ashfall #1", "Absent", "Blank", "Spaces"), titles(sorted))
+    }
+
+    @Test
+    fun `descending keeps the standalones together, at the other end`() {
+        // The pile has to stay one contiguous run whichever way the shelf runs, because
+        // that is what lets it be drawn under a single heading.
+        val library = listOf(
+            publication("Ashfall #1", series = "Ashfall", number = "1"),
+            publication("Zephyr"),
+            publication("Blackwater #1", series = "Blackwater", number = "1"),
+            publication("Almanac"),
+        )
+        val sorted = LibraryIndex.arrange(
+            library,
+            LibraryQuery(sort = LibrarySort.SERIES, ascending = false),
+            Locale.ENGLISH,
+        )
+        assertEquals(listOf("Zephyr", "Almanac", "Blackwater #1", "Ashfall #1"), titles(sorted))
+    }
+
+    @Test
     fun `date added puts the newest first, and never-dated last`() {
         val library = listOf(
             publication("Maus"),
