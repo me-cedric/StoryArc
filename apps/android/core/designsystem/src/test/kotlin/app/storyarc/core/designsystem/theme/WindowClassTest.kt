@@ -1,5 +1,6 @@
 package app.storyarc.core.designsystem.theme
 
+import androidx.window.core.layout.WindowSizeClass
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,7 +15,10 @@ import org.junit.Test
  * only input is the window's width, and three different questions if a device check or a
  * posture check creeps in. These tests exist to keep it the first kind.
  *
- * iOS's `WindowClassTests` asserts the same table against the same number.
+ * Five classes rather than two since the tablet slice. iOS keeps its two, because SwiftUI
+ * publishes two size classes and Material publishes five — divergence #4 in the design
+ * direction's register. So these no longer mirror `WindowClassTests` case for case, and
+ * the number they still share is 600.
  */
 class WindowClassTest {
 
@@ -27,19 +31,67 @@ class WindowClassTest {
     }
 
     @Test
-    fun `A window at the threshold gets the rail, and one dp below it does not`() {
+    fun `A window at the rail threshold gets the rail, and one dp below it does not`() {
         assertFalse(StoryArcWindowClass.of(599).showsSidebar)
         assertTrue(StoryArcWindowClass.of(600).showsSidebar)
-        assertEquals(StoryArcWindowClass.EXPANDED, StoryArcWindowClass.of(600))
+        assertEquals(StoryArcWindowClass.MEDIUM, StoryArcWindowClass.of(600))
     }
 
     @Test
-    fun `A tablet-width window gets the rail`() {
-        // 673 dp is a Pixel Fold unfolded, 800 a Pixel Tablet in portrait, 1280 in
-        // landscape.
-        assertEquals(StoryArcWindowClass.EXPANDED, StoryArcWindowClass.of(673))
-        assertEquals(StoryArcWindowClass.EXPANDED, StoryArcWindowClass.of(800))
-        assertEquals(StoryArcWindowClass.EXPANDED, StoryArcWindowClass.of(1280))
+    fun `Every one of Material's five breakpoints is a class of its own`() {
+        // The whole point of the slice. Before it, all four of these were one answer, so
+        // a portrait tablet and a landscape one laid out identically.
+        assertEquals(StoryArcWindowClass.MEDIUM, StoryArcWindowClass.of(800))
+        assertEquals(StoryArcWindowClass.EXPANDED, StoryArcWindowClass.of(840))
+        assertEquals(StoryArcWindowClass.EXPANDED, StoryArcWindowClass.of(1199))
+        assertEquals(StoryArcWindowClass.LARGE, StoryArcWindowClass.of(1200))
+        assertEquals(StoryArcWindowClass.LARGE, StoryArcWindowClass.of(1599))
+        assertEquals(StoryArcWindowClass.EXTRA_LARGE, StoryArcWindowClass.of(1600))
+        assertEquals(StoryArcWindowClass.EXTRA_LARGE, StoryArcWindowClass.of(3840))
+    }
+
+    @Test
+    fun `The five bounds are Material's own, not four numbers that look like them`() {
+        // Read from `WindowSizeClass` rather than restated, so a breakpoint Material moved
+        // fails here instead of drifting silently. `of` stays a pure function of an
+        // integer, which is what keeps the ladder testable on a plain JVM.
+        assertEquals(0, StoryArcWindowClass.COMPACT.lowerBoundDp)
+        assertEquals(
+            WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND,
+            StoryArcWindowClass.MEDIUM.lowerBoundDp,
+        )
+        assertEquals(
+            WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND,
+            StoryArcWindowClass.EXPANDED.lowerBoundDp,
+        )
+        assertEquals(
+            WindowSizeClass.WIDTH_DP_LARGE_LOWER_BOUND,
+            StoryArcWindowClass.LARGE.lowerBoundDp,
+        )
+        assertEquals(
+            WindowSizeClass.WIDTH_DP_EXTRA_LARGE_LOWER_BOUND,
+            StoryArcWindowClass.EXTRA_LARGE.lowerBoundDp,
+        )
+    }
+
+    @Test
+    fun `A second pane arrives at expanded, not at the rail`() {
+        // The bug the slice exists to fix, stated as an assertion: 600 dp is where the
+        // rail arrives and 840 dp is where a detail can sit beside a list. Conflating the
+        // two is what gave a 1400 dp landscape tablet a phone's layout.
+        assertFalse(StoryArcWindowClass.of(839).showsTwoPanes)
+        assertTrue(StoryArcWindowClass.of(840).showsTwoPanes)
+        assertTrue(StoryArcWindowClass.of(600).showsSidebar)
+        assertFalse(StoryArcWindowClass.of(600).showsTwoPanes)
+    }
+
+    @Test
+    fun `The rail opens itself only where opening it costs the panes nothing`() {
+        // The reader can open it at any width it is drawn at; this is only where it
+        // starts open.
+        assertFalse(StoryArcWindowClass.of(840).expandsRailByDefault)
+        assertTrue(StoryArcWindowClass.of(1200).expandsRailByDefault)
+        assertTrue(StoryArcWindowClass.of(1600).expandsRailByDefault)
     }
 
     @Test
@@ -58,7 +110,7 @@ class WindowClassTest {
         val folded = StoryArcWindowClass.of(374)
         val unfolded = StoryArcWindowClass.of(673)
         assertEquals(StoryArcWindowClass.COMPACT, folded)
-        assertEquals(StoryArcWindowClass.EXPANDED, unfolded)
+        assertEquals(StoryArcWindowClass.MEDIUM, unfolded)
         // And the same width always answers the same thing, whichever direction it
         // arrived from: unfolding then folding again lands back on the phone layout.
         assertEquals(folded, StoryArcWindowClass.of(374))
@@ -66,20 +118,23 @@ class WindowClassTest {
     }
 
     @Test
-    fun `Exactly two classes, because there is exactly one layout decision`() {
-        // A third class would need a third layout to justify it, and there is not one: a
-        // window either has room for the rail or it does not.
-        assertEquals(2, StoryArcWindowClass.entries.size)
-        assertEquals(
-            listOf(StoryArcWindowClass.EXPANDED),
-            StoryArcWindowClass.entries.filter { it.showsSidebar },
-        )
+    fun `The ladder only ever climbs`() {
+        // Each of the three answers is monotone in the width. A layout that switched on
+        // and off again as a reader dragged a multi-window divider would be the defect
+        // this shape is chosen to make unexpressible.
+        val widths = (0..2000 step 7).toList()
+        val classes = widths.map { StoryArcWindowClass.of(it) }
+        assertEquals(classes.sorted(), classes)
+        assertEquals(classes.map { it.showsSidebar }.sortedBy { it }, classes.map { it.showsSidebar })
+        assertEquals(classes.map { it.showsTwoPanes }.sortedBy { it }, classes.map { it.showsTwoPanes })
     }
 
     @Test
-    fun `The breakpoint is the number iOS uses`() {
-        // Stated rather than left implicit: the two apps are mirrors, and a threshold
-        // that drifted on one of them would be a divergence nothing else would catch.
+    fun `The rail breakpoint is the number iOS uses`() {
+        // Stated rather than left implicit: iOS keeps two size classes divided at 600 pt,
+        // and that one number staying shared is what stops the two apps changing shape in
+        // different places.
         assertEquals(600, StoryArcWindowClass.SIDEBAR_WIDTH_THRESHOLD_DP)
+        assertEquals(840, StoryArcWindowClass.TWO_PANE_WIDTH_THRESHOLD_DP)
     }
 }
