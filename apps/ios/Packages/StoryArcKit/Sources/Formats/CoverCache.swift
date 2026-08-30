@@ -29,6 +29,17 @@ public struct CoverCache: Sendable {
     /// that the compression is not the reason a cover looks soft.
     private static let quality: CGFloat = 0.85
 
+    /// The data-protection class the covers directory is written under.
+    ///
+    /// A cover is a cache, and it is also the title of a book on a reader's shelf.
+    /// The system default leaves both readable off a device taken while locked, so
+    /// this directory carries the same class the downloads do — `.completeUnlessOpen`
+    /// rather than `.complete`, because the app is woken to finish a background
+    /// transfer while the device is locked and the publication indexed at that
+    /// moment writes its cover here. See ``DownloadStore/fileProtection`` for the
+    /// full argument; the two are deliberately the same value.
+    public static let fileProtection: FileProtectionType = .completeUnlessOpen
+
     private let directory: URL
 
     public init(directory: URL? = nil) {
@@ -63,7 +74,18 @@ public struct CoverCache: Sendable {
     /// Failure is silent and correct: this is a cache. A device with no room left should
     /// draw the library, not refuse to.
     public func store(_ image: CGImage, for id: String, maxPixelSize: Int) {
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true,
+            attributes: [.protectionKey: Self.fileProtection]
+        )
+        // Set again rather than only at creation: the attribute above applies only
+        // when this call is the one that makes the directory, and a covers
+        // directory made before the class was chosen would otherwise keep the
+        // system default until the reader cleared their cache.
+        try? FileManager.default.setAttributes(
+            [.protectionKey: Self.fileProtection], ofItemAtPath: directory.path
+        )
         let url = file(for: id, maxPixelSize: maxPixelSize)
         guard let destination = CGImageDestinationCreateWithURL(
             url as CFURL,

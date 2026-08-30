@@ -11,6 +11,22 @@ public import StoryArcCore
 /// Not in the caches directory. What a reader wrote is the least replaceable thing this app
 /// holds — a lost highlight is not a rescan, it is a passage they will not find again.
 ///
+/// **Its protection class is the app's default, and that is a decision rather than an
+/// inheritance.** `UserDefaults` writes to `Library/Preferences/<bundle>.plist`, which takes
+/// the app-wide default class; the only lever that raises it is the
+/// `com.apple.developer.default-data-protection` entitlement, and that lever only offers
+/// `NSFileProtectionComplete`. Under `.complete` the preferences file is unreadable while
+/// the device is locked — and the app is woken with the device locked, to take delivery of a
+/// finished background download, at which point it reads the download library out of the
+/// same file. Raising the class here would break `offline-downloads` to protect a highlight.
+///
+/// So: highlights and notes sit at `CompleteUntilFirstUserAuthentication`, weaker than the
+/// downloads beside them (``DownloadStore/fileProtection``) and weaker than the credentials
+/// in ``CredentialStore``. Moving them to a file of their own, written with
+/// `.completeUnlessOpen`, is the fix that costs a migration; it is worth doing and it is not
+/// worth smuggling into a security pass. Recorded here so the next reader of this file finds
+/// a choice rather than an oversight.
+///
 /// Android's `AnnotationStore` writes the same shape.
 public struct AnnotationStore {
     private let defaults: UserDefaults

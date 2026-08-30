@@ -12,6 +12,33 @@ public struct DownloadStore {
     private let defaults: UserDefaults
     private let key = "app.storyarc.downloads"
 
+    /// The data-protection class every downloaded file is written under.
+    ///
+    /// Set on the directory, so it applies to every file put in it rather than to
+    /// whichever ones remembered to ask — the same argument that puts the backup
+    /// exclusion there.
+    ///
+    /// **Why not `.complete`.** `offline-downloads` promises a backgrounded
+    /// download "continues under the platform's background transfer mechanism as
+    /// far as the platform allows", and the system hands a finished transfer back
+    /// by waking the app — which it will do whether or not the device has been
+    /// unlocked since. Under `.complete` a file cannot be *created* in this
+    /// directory while the device is locked, so the transfer would be lost at its
+    /// last step, and lost quietly.
+    ///
+    /// **Why not the default.** The system default,
+    /// `CompleteUntilFirstUserAuthentication`, keeps a file readable from the
+    /// moment the device is first unlocked after boot until it is next powered
+    /// off. A device taken while locked is exactly that state, so the default
+    /// protects a downloaded publication less than ``CredentialStore`` protects
+    /// the password that fetched it.
+    ///
+    /// `.completeUnlessOpen` is the class that satisfies both: a file may be
+    /// created and written while the device is locked, and once closed it cannot
+    /// be opened again until the reader unlocks — which is all a reader ever does
+    /// with a book anyway.
+    public static let fileProtection: FileProtectionType = .completeUnlessOpen
+
     /// Where the files live.
     public let directory: URL
 
@@ -114,14 +141,26 @@ public struct DownloadStore {
         return cleaned
     }
 
-    /// Makes the directory, and keeps it out of backups.
+    /// Makes the directory, keeps it out of backups, and pins its protection class.
     ///
     /// `offline-downloads`: downloads "are excluded from device backups, because they are
     /// re-downloadable and would otherwise dominate a backup". Set on the directory, so it
     /// applies to every file put in it rather than to whichever ones remembered to ask.
+    ///
+    /// ``fileProtection`` is set the same way and for the same reason, and set twice: the
+    /// attribute passed to `createDirectory` only applies when this call is the one that
+    /// makes the directory, and a directory made by an earlier build would otherwise keep
+    /// the system default for ever.
     public func prepare() throws {
         var directory = directory
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true,
+            attributes: [.protectionKey: Self.fileProtection]
+        )
+        try FileManager.default.setAttributes(
+            [.protectionKey: Self.fileProtection], ofItemAtPath: directory.path
+        )
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try directory.setResourceValues(values)
