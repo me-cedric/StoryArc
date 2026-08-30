@@ -353,4 +353,7 @@
     <string name="detail_gone_title">Celle-ci a disparu</string>
     <string name="detail_gone_body">Elle n’est plus dans votre bibliothèque, et il n’en reste aucune copie sur cet appareil.</string>
     <string name="detail_gone_back">Revenir où vous étiez</string>
+    <string name="search_waiting">Recherche en cours…</string>
+    <string name="search_silent">%1$s n\u2019a pas répondu</string>
+    <string name="search_retry">Réessayer</string>
 </resources>

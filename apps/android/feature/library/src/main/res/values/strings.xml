@@ -353,4 +353,7 @@
     <string name="detail_gone_title">This one is gone</string>
     <string name="detail_gone_body">It is no longer in your library, and there is no copy on this device.</string>
     <string name="detail_gone_back">Back to where you were</string>
+    <string name="search_waiting">Still looking…</string>
+    <string name="search_silent">%1$s didn\u2019t answer</string>
+    <string name="search_retry">Try again</string>
 </resources>

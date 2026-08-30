@@ -353,4 +353,7 @@
     <string name="detail_gone_title">Esta ya no está</string>
     <string name="detail_gone_body">Ya no está en tu biblioteca, y en este dispositivo no queda ninguna copia.</string>
     <string name="detail_gone_back">Volver a donde estabas</string>
+    <string name="search_waiting">Sigue buscando…</string>
+    <string name="search_silent">%1$s no ha respondido</string>
+    <string name="search_retry">Reintentar</string>
 </resources>

@@ -1,117 +1,155 @@
 package app.storyarc.feature.library
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.res.stringResource
-import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
-import app.storyarc.core.designsystem.tokens.StoryArcSpace
-import app.storyarc.core.model.RecentSearches
+import app.storyarc.core.catalogue.CertificatePins
+import app.storyarc.core.model.MatchGroup
+import app.storyarc.core.model.SearchAnswers
+import app.storyarc.core.model.SearchResult
+import app.storyarc.core.model.Source
+import app.storyarc.core.persistence.CredentialStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
- * `library-browsing`: results update as the user types, debounced, with no submit
- * action. Arranging is a sort of what is already in memory, so a keystroke costs
- * one pass rather than a request.
- */
-@Composable
-internal fun SearchField(
-    value: String,
-    recents: RecentSearches,
-    onChange: (String) -> Unit,
-    onClearRecents: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var isFocused by remember { mutableStateOf(false) }
-
-    Column(modifier = modifier) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onChange,
-            singleLine = true,
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            placeholder = { Text(stringResource(R.string.library_search)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm)
-                .onFocusChanged { isFocused = it.isFocused },
-        )
-        // Offered only while nothing has been typed — once there is a term, the
-        // results below are the better answer, and a list of old searches on top of
-        // them would hide what was just found.
-        if (isFocused && value.isBlank() && !recents.isEmpty) {
-            RecentSearchList(recents.terms, onUse = onChange, onClear = onClearRecents)
-        }
-    }
-}
-
-/**
- * What the reader searched for lately, under an open search field.
+ * One search, across everything the reader has, answered at whatever speed each part of it
+ * can manage.
  *
- * `library-browsing`: "when a user opens search, recent queries are offered, and
- * can be cleared". Choosing one puts the term in the field, which runs the search:
- * a recent query is a shortcut to the search, not to whatever it found last time.
+ * **What this is for, in one sentence: the reader asks once.** Before it, the library's field
+ * filtered the local index and never asked a server; a catalogue's search lived inside the
+ * catalogue; and a Kavita server's search was reached from a field on the Kavita screens.
+ * Three fields, three answers, and a reader who had to know which of their books lived where
+ * before they could look for one.
+ *
+ * The shape of the answer follows from one line of `library-browsing`: "locally held results
+ * render immediately and remote results fill in as they arrive". So:
+ *
+ * - **The local answer is not awaited.** It is taken from the index the view model already
+ *   holds and is on screen in the frame the reader typed in.
+ * - **Nothing is awaited *together*.** Each library is asked in its own coroutine and each
+ *   answer is folded in as it lands, so one slow server delays itself and nothing else.
+ * - **A failure is not an error state.** It is a line under the results naming that library
+ *   once, with a way to ask again. The rows already on screen are untouched, per the
+ *   requirement's own words: "never replaced by an error".
+ *
+ * The merge itself is [SearchAnswers] — pure, mirrored, and where the no-reordering promise
+ * is actually kept. This type is the part that has a clock and a network in it, and
+ * deliberately has nothing else. iOS's `LibrarySearch` is the same object.
  */
-@Composable
-private fun RecentSearchList(
-    terms: List<String>,
-    onUse: (String) -> Unit,
-    onClear: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val palette = LocalStoryArcPalette.current
+internal class LibrarySearch(private val scope: CoroutineScope) {
 
-    Column(modifier = modifier.padding(horizontal = StoryArcSpace.gutter)) {
-        Text(
-            text = stringResource(R.string.library_search_recent),
-            style = MaterialTheme.typography.labelLarge,
-            color = palette.textTertiary,
-            modifier = Modifier.padding(vertical = StoryArcSpace.xs),
+    private val _answers = MutableStateFlow(SearchAnswers.of(""))
+
+    /** Everything known about the question currently being asked. */
+    val answers: StateFlow<SearchAnswers> = _answers.asStateFlow()
+
+    /** The fan-out for the term now in the field. Cancelled when the term changes. */
+    private var remote: Job? = null
+
+    /**
+     * The reader typed.
+     *
+     * Local rows are in [answers] by the time this returns. The rest arrives later, or does
+     * not arrive, and either way the screen already has something on it.
+     */
+    fun ask(
+        raw: String,
+        groups: List<MatchGroup>,
+        sources: List<Source>,
+        credentials: CredentialStore?,
+        pins: CertificatePins,
+    ) {
+        remote?.cancel()
+        remote = null
+
+        val term = raw.trim()
+        if (term.isEmpty()) {
+            _answers.value = SearchAnswers.of("")
+            return
+        }
+
+        val asked = sources.filter(RemoteSearch::answers)
+        _answers.value = SearchAnswers.of(
+            term = term,
+            local = SearchResult.held(groups),
+            asking = asked.map { it.id.toString() },
         )
-        terms.forEach { term ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onUse(term) }
-                    // Material's 48 dp touch-target floor, per `native-experience`.
-                    .heightIn(min = StoryArcSpace.xxl + StoryArcSpace.lg)
-                    .padding(vertical = StoryArcSpace.xs),
-                horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.History,
-                    contentDescription = null,
-                    tint = palette.textTertiary,
-                )
-                Text(
-                    text = term,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.textPrimary,
-                )
+
+        if (asked.isEmpty() || credentials == null) return
+        remote = scope.launch {
+            // `library-browsing` asks for results that "update as they type, debounced". The
+            // local half needs no debounce — it is a filter over a list in memory. This is
+            // for the other half: a term typed at speed would otherwise put eight questions
+            // to a server and throw seven of the answers away.
+            delay(SETTLE_BEFORE_ASKING_MS)
+            // A coroutine each rather than a loop of awaits: a loop would make the second
+            // server wait for the first, and a reader with one slow server would experience
+            // all of them as slow.
+            asked.forEach { source ->
+                launch { ask(source, term, credentials, pins) }
             }
         }
-        TextButton(onClick = onClear) {
-            Text(stringResource(R.string.library_search_recent_clear))
+    }
+
+    /** The reader gave up on the search. */
+    fun clear() {
+        remote?.cancel()
+        remote = null
+        _answers.value = SearchAnswers.of("")
+    }
+
+    /**
+     * The reader asked a library that went quiet to try once more.
+     *
+     * `library-browsing`: the library that could not answer is named "with a way to try it
+     * again". One library, not all of them — a reader whose home server is off does not want
+     * their other three asked a second time to find that out.
+     */
+    fun retry(
+        sourceId: String,
+        sources: List<Source>,
+        credentials: CredentialStore?,
+        pins: CertificatePins,
+    ) {
+        val source = sources.firstOrNull { it.id.toString() == sourceId } ?: return
+        if (credentials == null) return
+        val term = _answers.value.term
+        _answers.value = _answers.value.askingAgain(sourceId)
+        scope.launch { ask(source, term, credentials, pins) }
+    }
+
+    /** One library asked, and its answer folded in — unless the reader has moved on. */
+    private suspend fun ask(
+        source: Source,
+        term: String,
+        credentials: CredentialStore,
+        pins: CertificatePins,
+    ) {
+        val id = source.id.toString()
+        val rows = try {
+            RemoteSearch.rows(source, term, credentials, pins)
+        } catch (failure: Exception) {
+            // Every way a library can fail to answer is the same fact to a reader: it did
+            // not. Narrowing this to the four exception types the three clients can throw
+            // would be four branches that all do one thing, and a fifth escaping as a crash.
+            if (failure is kotlinx.coroutines.CancellationException) throw failure
+            if (_answers.value.term == term) {
+                _answers.value = _answers.value.couldNotAnswer(id, source.displayName)
+            }
+            return
         }
+        // The reader has typed on, so this answer is to a question nobody is asking any more.
+        // Dropped rather than merged: rows for "bon" appearing under a field that says "bone"
+        // is the one way a late answer *can* still surprise someone.
+        if (_answers.value.term != term) return
+        _answers.value = _answers.value.answered(id, rows)
+    }
+
+    private companion object {
+        /** How long a reader has to stop typing before a server is troubled. */
+        const val SETTLE_BEFORE_ASKING_MS = 350L
     }
 }

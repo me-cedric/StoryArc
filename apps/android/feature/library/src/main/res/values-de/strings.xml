@@ -353,4 +353,7 @@
     <string name="detail_gone_title">Diese ist weg</string>
     <string name="detail_gone_body">Sie ist nicht mehr in Ihrer Bibliothek, und auf diesem Gerät liegt keine Kopie.</string>
     <string name="detail_gone_back">Zurück, wo Sie waren</string>
+    <string name="search_waiting">Suche läuft…</string>
+    <string name="search_silent">%1$s hat nicht geantwortet</string>
+    <string name="search_retry">Erneut versuchen</string>
 </resources>
