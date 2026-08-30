@@ -18,7 +18,7 @@ public struct KavitaLibraryFolder: Sendable, Equatable, Identifiable, Decodable 
 }
 
 /// A series, as the library list shows it.
-public struct KavitaSeries: Sendable, Equatable, Identifiable, Decodable {
+public struct KavitaSeries: Sendable, Equatable, Hashable, Identifiable, Decodable {
     public let id: Int
     public let name: String
     public let libraryId: Int

@@ -48,7 +48,7 @@ class KavitaFindTest {
     @Test
     fun `a series name match is a series hit`() {
         val hits = KavitaFind.inCache("tidal", listOf(card("a", "Tidal Reach", seriesId = 7)))
-        assertEquals(listOf(KavitaHit(KavitaHit.Kind.SERIES, "Tidal Reach", 7)), hits)
+        assertEquals(listOf(KavitaHit(KavitaHit.Kind.SERIES, "Tidal Reach", 7, "a")), hits)
     }
 
     @Test
@@ -57,7 +57,7 @@ class KavitaFindTest {
             "harbour",
             listOf(card("a", "Tidal Reach", seriesId = 7, chapter = "The Harbour")),
         )
-        assertEquals(listOf(KavitaHit(KavitaHit.Kind.CHAPTER, "The Harbour", 7)), hits)
+        assertEquals(listOf(KavitaHit(KavitaHit.Kind.CHAPTER, "The Harbour", 7, "a")), hits)
     }
 
     @Test
@@ -105,6 +105,13 @@ class KavitaFindTest {
             ),
         )
         assertEquals(1, hits.size)
+    }
+
+    @Test
+    fun `a cached row names the publication it opens`() {
+        // Offline a row that cannot be opened is a row that is only there to disappoint.
+        val hits = KavitaFind.inCache("tidal", listOf(card("p1", "Tidal Reach")))
+        assertEquals("p1", hits.first().publicationId)
     }
 
     @Test

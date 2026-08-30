@@ -15,6 +15,8 @@ struct KavitaSeriesList: View {
 
     let client: KavitaClient
     let library: KavitaLibraryFolder
+    /// The server's one search, carried down from the browser above. See ``KavitaFinder``.
+    let finder: KavitaFinder
     let sourceId: String
     let store: KavitaProgressStore
     /// Where a pulled position is written. See `KavitaSync.pull`.
@@ -29,6 +31,34 @@ struct KavitaSeriesList: View {
     private let columns = [GridItem(.adaptive(minimum: 120), spacing: StoryArcSpace.md)]
 
     var body: some View {
+        Group {
+            if finder.isShowing {
+                KavitaHits(
+                    finder: finder,
+                    client: client,
+                    sourceId: sourceId,
+                    store: store,
+                    progress: progress,
+                    lists: lists,
+                    onOpen: onOpen
+                )
+            } else {
+                covers
+            }
+        }
+        .navigationTitle(library.name)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .kavitaSearchable(finder) { await finder.run(client, sourceId: sourceId) }
+        .task {
+            guard !hasLoaded else { return }
+            series = (try? await client.series(inLibrary: library.id)) ?? []
+            hasLoaded = true
+        }
+    }
+
+    private var covers: some View {
         ScrollView {
             if hasLoaded, series.isEmpty {
                 Text("kavita.empty", bundle: .module)
@@ -57,15 +87,6 @@ struct KavitaSeriesList: View {
             .padding(StoryArcSpace.gutter)
         }
         .background(theme.palette.surfaceCanvas)
-        .navigationTitle(library.name)
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .task {
-            guard !hasLoaded else { return }
-            series = (try? await client.series(inLibrary: library.id)) ?? []
-            hasLoaded = true
-        }
     }
 }
 

@@ -33,6 +33,13 @@ public struct KavitaBrowserView: View {
     @State private var libraries: [KavitaLibraryFolder] = []
     @State private var failure: String?
 
+    /// The one search across this whole server.
+    ///
+    /// Owned here and handed down, so the field on the series grid and the field on the
+    /// chapter list are the same field: `kavita-server` asks for a search of the *source*,
+    /// not of whichever list happens to be on screen.
+    @State private var finder = KavitaFinder()
+
     public init(
         title: String,
         address: KavitaAddress,
@@ -53,6 +60,43 @@ public struct KavitaBrowserView: View {
     }
 
     public var body: some View {
+        Group {
+            if finder.isShowing {
+                hits
+            } else {
+                folders
+            }
+        }
+        .navigationTitle(title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .kavitaSearchable(finder) { await finder.run(client, sourceId: sourceId) }
+        .task {
+            guard libraries.isEmpty, failure == nil else { return }
+            do {
+                libraries = try await client.libraries()
+                // Reaching the server is the "next successful connection" the spec retries on.
+                await KavitaSync.flush(sourceId, to: address, in: store)
+            } catch {
+                failure = KavitaMessage.of(error, source: title)
+            }
+        }
+    }
+
+    private var hits: some View {
+        KavitaHits(
+            finder: finder,
+            client: client,
+            sourceId: sourceId,
+            store: store,
+            progress: progress,
+            lists: lists,
+            onOpen: onOpen
+        )
+    }
+
+    private var folders: some View {
         List {
             if let failure {
                 Text(failure)
@@ -64,6 +108,7 @@ public struct KavitaBrowserView: View {
                     KavitaSeriesList(
                         client: client,
                         library: library,
+                        finder: finder,
                         sourceId: sourceId,
                         store: store,
                         progress: progress,
@@ -73,20 +118,6 @@ public struct KavitaBrowserView: View {
                 } label: {
                     Text(library.name)
                 }
-            }
-        }
-        .navigationTitle(title)
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .task {
-            guard libraries.isEmpty, failure == nil else { return }
-            do {
-                libraries = try await client.libraries()
-                // Reaching the server is the "next successful connection" the spec retries on.
-                await KavitaSync.flush(sourceId, to: address, in: store)
-            } catch {
-                failure = String(describing: error)
             }
         }
     }

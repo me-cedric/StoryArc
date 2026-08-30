@@ -66,6 +66,7 @@ import app.storyarc.feature.library.KavitaLevel
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.KavitaSheet
 import app.storyarc.feature.library.OfflineSourceScreen
+import app.storyarc.feature.library.UnauthorizedSourceScreen
 import app.storyarc.feature.library.SmbBrowserScreen
 import app.storyarc.feature.library.SmbConnection
 import app.storyarc.core.format.PublicationAccess
@@ -372,6 +373,9 @@ class MainActivity : ComponentActivity() {
                 // cached contents stay browsable; a server's are not cached, so this is the
                 // screen that says so rather than an empty list that does not.
                 var offlineSource by remember { mutableStateOf<Source?>(null) }
+                // A source whose stored credential the server no longer accepts, which is a
+                // different thing to say and a different screen from one that is merely away.
+                var refusedSource by remember { mutableStateOf<Source?>(null) }
                 var share by remember { mutableStateOf<SmbPage?>(null) }
                 // A stack of folders, like the catalogue's: the browser leaves the
                 // composition while a publication is open, so its position lives here.
@@ -525,6 +529,13 @@ class MainActivity : ComponentActivity() {
                     // honest thing besides.
                     if (source.state is SourceConnectionState.Unreachable) {
                         offlineSource = source
+                    } else if (source.state is SourceConnectionState.Unauthorized) {
+                        // `kavita-server`: a revoked key marks the source `unauthorized` "with
+                        // an explanation and an action to enter a new key". The marking and
+                        // the action both existed; this branch is the explanation, which did
+                        // not -- the key is still in the keystore, so a page could be built,
+                        // so the browser opened and every request in it failed in silence.
+                        refusedSource = source
                     } else {
                         CataloguePage.of(source, credentials)?.let {
                             chosen = null
@@ -539,6 +550,16 @@ class MainActivity : ComponentActivity() {
                             sharePath = emptyList()
                         }
                     }
+                }
+
+                refusedSource?.let { source ->
+                    BackHandler { refusedSource = null }
+                    UnauthorizedSourceScreen(
+                        name = source.displayName,
+                        isRefused = true,
+                        onBack = { refusedSource = null },
+                    )
+                    return@StoryArcTheme
                 }
 
                 offlineSource?.let { source ->

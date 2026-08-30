@@ -27,10 +27,19 @@ public struct KavitaHit: Sendable, Equatable, Hashable, Identifiable {
     /// row that plainly is not.
     public let seriesId: Int
 
-    public init(kind: Kind, title: String, seriesId: Int = 0) {
+    /// The publication on this device this row is, when the row came from the cache.
+    ///
+    /// Nil for everything the server answered: the server knows about publications this
+    /// device has never held. Set for a cached row, which is the difference that matters —
+    /// with the server away, a row that cannot be opened is a row that is only there to
+    /// disappoint.
+    public let publicationId: String?
+
+    public init(kind: Kind, title: String, seriesId: Int = 0, publicationId: String? = nil) {
         self.kind = kind
         self.title = title
         self.seriesId = seriesId
+        self.publicationId = publicationId
     }
 
     /// Identity is what the row *is*, not where it came from: the same series found twice —
@@ -155,11 +164,24 @@ public enum KavitaFind {
 
         func matches(_ text: String) -> Bool { text.lowercased().contains(needle) }
 
+        // A series row opens the first chapter of it this device holds. Offline there is
+        // nothing else it could open — the series itself lives on a server that is not
+        // answering, and the reader asked for something they can read now.
         for card in cards where matches(card.seriesName) {
-            add(KavitaHit(kind: .series, title: card.seriesName, seriesId: card.seriesId))
+            add(KavitaHit(
+                kind: .series,
+                title: card.seriesName,
+                seriesId: card.seriesId,
+                publicationId: card.publicationId
+            ))
         }
         for card in cards where matches(card.chapterName) {
-            add(KavitaHit(kind: .chapter, title: card.chapterName, seriesId: card.seriesId))
+            add(KavitaHit(
+                kind: .chapter,
+                title: card.chapterName,
+                seriesId: card.seriesId,
+                publicationId: card.publicationId
+            ))
         }
         for card in cards {
             for person in card.people where matches(person) {

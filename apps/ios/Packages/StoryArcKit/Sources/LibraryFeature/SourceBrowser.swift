@@ -31,6 +31,14 @@ struct SourceBrowser: View {
         // saying so is the amended scenario, and the honest thing besides.
         if case .unreachable = source.state {
             OfflineSource(name: source.displayName, onRetry: onRetry)
+        } else if case .unauthorized = source.state {
+            // `kavita-server`: a revoked key marks the source `unauthorized` "with an
+            // explanation and an action to enter a new key". The marking and the action both
+            // existed -- `SourceDiagnosis` offers `reconnect`, and it re-opens the sheet the
+            // source was added through -- and this branch is the explanation, which did not:
+            // the key is still in the keychain, so a page could be built, so the browser was
+            // opened and every request in it failed one after another.
+            UnreachableSource(name: source.displayName, isRefused: true)
         } else if let page = CataloguePage(source: source, credentials: credentials) {
             CatalogueBrowserView(
                 title: page.title,

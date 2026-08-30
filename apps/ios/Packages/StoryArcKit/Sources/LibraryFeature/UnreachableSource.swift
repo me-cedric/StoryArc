@@ -17,11 +17,23 @@ struct UnreachableSource: View {
 
     let name: String
 
+    /// Whether the server refused the key rather than the device having lost it.
+    ///
+    /// Two different facts and two different sentences. `kavita-server`'s revoked-key
+    /// scenario is the first: the key is still in the keychain and the server no longer
+    /// accepts it, so "this device no longer holds the key" would be telling the reader
+    /// something untrue about their own device. Both lead to the same action.
+    var isRefused = false
+
     var body: some View {
         ContentUnavailableView {
             Text("source.unauthorized.title", bundle: .module)
         } description: {
-            Text("source.unauthorized.body \(name)", bundle: .module)
+            if isRefused {
+                Text("source.unauthorized.refused.body \(name)", bundle: .module)
+            } else {
+                Text("source.unauthorized.body \(name)", bundle: .module)
+            }
         }
         .background(theme.palette.surfaceCanvas)
     }

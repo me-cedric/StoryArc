@@ -21,6 +21,15 @@ data class KavitaHit(
      * row that plainly is not.
      */
     val seriesId: Int = 0,
+    /**
+     * The publication on this device this row is, when the row came from the cache.
+     *
+     * Null for everything the server answered: the server knows about publications this
+     * device has never held. Set for a cached row, which is the difference that matters --
+     * with the server away, a row that cannot be opened is a row that is only there to
+     * disappoint.
+     */
+    val publicationId: String? = null,
 ) {
     /** Which of the spec's five a match is, and therefore which heading it appears under. */
     enum class Kind {
@@ -129,10 +138,15 @@ object KavitaFind {
 
         fun matches(text: String) = text.lowercase().contains(needle)
 
-        cards.filter { matches(it.seriesName) }
-            .forEach { add(KavitaHit(KavitaHit.Kind.SERIES, it.seriesName, it.seriesId)) }
-        cards.filter { matches(it.chapterName) }
-            .forEach { add(KavitaHit(KavitaHit.Kind.CHAPTER, it.chapterName, it.seriesId)) }
+        // A series row opens the first chapter of it this device holds. Offline there is
+        // nothing else it could open -- the series itself lives on a server that is not
+        // answering, and the reader asked for something they can read now.
+        cards.filter { matches(it.seriesName) }.forEach {
+            add(KavitaHit(KavitaHit.Kind.SERIES, it.seriesName, it.seriesId, it.publicationId))
+        }
+        cards.filter { matches(it.chapterName) }.forEach {
+            add(KavitaHit(KavitaHit.Kind.CHAPTER, it.chapterName, it.seriesId, it.publicationId))
+        }
         cards.forEach { card ->
             card.people.filter(::matches).forEach { add(KavitaHit(KavitaHit.Kind.PERSON, it)) }
         }

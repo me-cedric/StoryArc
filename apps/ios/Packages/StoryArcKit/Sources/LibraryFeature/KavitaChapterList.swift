@@ -18,6 +18,11 @@ struct KavitaChapterList: View {
     let series: KavitaSeries
     let sourceId: String
     let store: KavitaProgressStore
+    /// The server's one search, carried down from the browser above. See ``KavitaFinder``.
+    ///
+    /// Nil for a chapter list reached *from* a search result, which is already inside one:
+    /// that screen gets a finder of its own so a second search does not rewrite the first.
+    var finder: KavitaFinder?
     /// Where a pulled position is written. Nil in a preview, which has no store to merge into.
     var progress: ProgressStore?
     /// This server's own reading lists, which its chapters may be added to.
@@ -37,55 +42,32 @@ struct KavitaChapterList: View {
     /// only exists once the file has been indexed.
     @State private var kept: Set<Int> = []
 
+    /// The finder this screen uses when it was not handed one.
+    @State private var ownFinder = KavitaFinder()
+
+    private var search: KavitaFinder { finder ?? ownFinder }
+
     var body: some View {
-        List {
-            if let resume {
-                Button {
-                    Task { await open(resume) }
-                } label: {
-                    Text("kavita.continue \(resume.displayName)", bundle: .module)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(fetching != nil)
-                .listRowSeparator(.hidden)
-            }
-
-            if let metadata {
-                VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
-                    if let summary = metadata.summary, !summary.isEmpty {
-                        Text(summary)
-                            .textRole(.body)
-                            .foregroundStyle(theme.palette.textPrimary)
-                    }
-                    if !metadata.facts.isEmpty {
-                        Text(metadata.facts.joined(separator: " · "))
-                            .textRole(.caption)
-                            .foregroundStyle(theme.palette.textSecondary)
-                    }
-                }
-            }
-
-            ForEach(volumes) { volume in
-                Section {
-                    ForEach(volume.chapters) { chapter in
-                        row(chapter)
-                    }
-                } header: {
-                    // Loose chapters are not a volume, and labelling them as one would
-                    // invent a "Volume 0" the server never had.
-                    Text(
-                        volume.isLooseChapters
-                            ? String(localized: "kavita.looseChapters", bundle: .module, locale: .storyArc)
-                            : (volume.name ?? "\(volume.number)")
-                    )
-                }
+        Group {
+            if search.isShowing {
+                KavitaHits(
+                    finder: search,
+                    client: client,
+                    sourceId: sourceId,
+                    store: store,
+                    progress: progress,
+                    lists: lists,
+                    onOpen: onOpen
+                )
+            } else {
+                chapters
             }
         }
         .navigationTitle(series.name)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .kavitaSearchable(search) { await search.run(client, sourceId: sourceId) }
         // `reading-progress`: a genuine conflict is one the reader "is told once — naming
         // both — with the option to take the other". Once, not per chapter: a server that
         // has moved on in six places is one thing that happened, and six alerts about it
@@ -135,6 +117,54 @@ struct KavitaChapterList: View {
                     in: store,
                     into: progress
                 )
+            }
+        }
+    }
+
+    /// The series' own screen: where to resume, what the server says, and every chapter.
+    private var chapters: some View {
+        List {
+            if let resume {
+                Button {
+                    Task { await open(resume) }
+                } label: {
+                    Text("kavita.continue \(resume.displayName)", bundle: .module)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(fetching != nil)
+                .listRowSeparator(.hidden)
+            }
+
+            if let metadata {
+                VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
+                    if let summary = metadata.summary, !summary.isEmpty {
+                        Text(summary)
+                            .textRole(.body)
+                            .foregroundStyle(theme.palette.textPrimary)
+                    }
+                    if !metadata.facts.isEmpty {
+                        Text(metadata.facts.joined(separator: " · "))
+                            .textRole(.caption)
+                            .foregroundStyle(theme.palette.textSecondary)
+                    }
+                }
+            }
+
+            ForEach(volumes) { volume in
+                Section {
+                    ForEach(volume.chapters) { chapter in
+                        row(chapter)
+                    }
+                } header: {
+                    // Loose chapters are not a volume, and labelling them as one would
+                    // invent a "Volume 0" the server never had.
+                    Text(
+                        volume.isLooseChapters
+                            ? String(localized: "kavita.looseChapters", bundle: .module, locale: .storyArc)
+                            : (volume.name ?? "\(volume.number)")
+                    )
+                }
             }
         }
     }

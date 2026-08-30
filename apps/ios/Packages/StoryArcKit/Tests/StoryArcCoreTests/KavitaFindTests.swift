@@ -44,7 +44,7 @@ struct KavitaFindTests {
     @Test("A series name match is a series hit")
     func seriesMatch() {
         let hits = KavitaFind.inCache("tidal", [card("a", series: "Tidal Reach", seriesId: 7)])
-        #expect(hits == [KavitaHit(kind: .series, title: "Tidal Reach", seriesId: 7)])
+        #expect(hits == [KavitaHit(kind: .series, title: "Tidal Reach", seriesId: 7, publicationId: "a")])
     }
 
     @Test("A chapter name match is a chapter hit")
@@ -53,7 +53,7 @@ struct KavitaFindTests {
             "harbour",
             [card("a", series: "Tidal Reach", seriesId: 7, chapter: "The Harbour")]
         )
-        #expect(hits == [KavitaHit(kind: .chapter, title: "The Harbour", seriesId: 7)])
+        #expect(hits == [KavitaHit(kind: .chapter, title: "The Harbour", seriesId: 7, publicationId: "a")])
     }
 
     @Test("Matching ignores case")
@@ -98,6 +98,13 @@ struct KavitaFindTests {
             card("b", series: "Tidal Reach", seriesId: 7, chapter: "2"),
         ])
         #expect(hits.count == 1)
+    }
+
+    @Test("A cached row names the publication it opens")
+    func cachedRowOpens() {
+        // Offline a row that cannot be opened is a row that is only there to disappoint.
+        let hits = KavitaFind.inCache("tidal", [card("p1", series: "Tidal Reach")])
+        #expect(hits.first?.publicationId == "p1")
     }
 
     @Test("A card matching nothing is not a result")

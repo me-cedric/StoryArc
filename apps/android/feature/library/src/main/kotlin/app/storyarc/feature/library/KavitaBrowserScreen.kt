@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,9 +29,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -44,6 +48,7 @@ import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.model.Publication
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.ProgressStore
+import kotlinx.coroutines.launch
 
 /**
  * Where the reader is inside a Kavita server.
@@ -94,10 +99,26 @@ fun KavitaBrowserScreen(
     var libraries by remember(address) { mutableStateOf<List<KavitaLibraryFolder>>(emptyList()) }
     var series by remember(address) { mutableStateOf<List<KavitaSeries>>(emptyList()) }
 
+    // One search for the whole server rather than one per level: `kavita-server` asks for a
+    // search of the *source*, not of whichever list happens to be on screen.
+    val finder = remember(address) { KavitaFinder() }
+    var isSearching by remember(address) { mutableStateOf(false) }
+    var failure by remember(address) { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(client) {
-        libraries = runCatching { client.libraries() }.getOrDefault(emptyList())
-        // Reaching the server is the "next successful connection" the spec retries on.
-        KavitaSync.flush(store, sourceId, address)
+        runCatching { client.libraries() }
+            .onSuccess {
+                libraries = it
+                failure = null
+                // Reaching the server is the "next successful connection" the spec retries on.
+                KavitaSync.flush(store, sourceId, address)
+            }
+            // Said rather than swallowed. This used to fall back to an empty list, so a reader
+            // whose key had been revoked saw a server with no libraries in it and nothing at
+            // all to say why. `kavita-server` asks for an explanation, and this is it.
+            .onFailure { failure = KavitaMessage.of(context, it, title) }
     }
 
     val current = level
@@ -112,15 +133,42 @@ fun KavitaBrowserScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = when (current) {
-                            is KavitaLevel.Libraries -> title
-                            is KavitaLevel.Series -> current.library.name
-                            is KavitaLevel.Chapters -> current.series.name
-                        },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    if (isSearching) {
+                        KavitaSearchField(
+                            finder = finder,
+                            onSubmit = {
+                                scope.launch { finder.run(context, client, sourceId) }
+                            },
+                        )
+                    } else {
+                        Text(
+                            text = when (current) {
+                                is KavitaLevel.Libraries -> title
+                                is KavitaLevel.Series -> current.library.name
+                                is KavitaLevel.Chapters -> current.series.name
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        isSearching = !isSearching
+                        if (!isSearching) finder.clear()
+                    }) {
+                        Icon(
+                            imageVector = if (isSearching) Icons.Filled.Close else Icons.Filled.Search,
+                            contentDescription = stringResource(
+                                if (isSearching) {
+                                    R.string.kavita_search_close
+                                } else {
+                                    R.string.kavita_search_open
+                                },
+                            ),
+                            tint = palette.accent,
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = {
@@ -149,8 +197,46 @@ fun KavitaBrowserScreen(
     ) { insets ->
         val body = Modifier.fillMaxSize().padding(insets)
         val edges = PaddingValues(StoryArcSpace.gutter)
+        if (finder.isShowing) {
+            KavitaHits(
+                finder = finder,
+                onOpenSeries = { id ->
+                    scope.launch {
+                        // Asked for by identity rather than built from the row. Kavita keys
+                        // progress by library *and* series and a search result does not always
+                        // carry the library, so a series built from the row alone would report
+                        // reading against library zero for as long as the reader stayed in it.
+                        runCatching { client.seriesDetail(id) }.getOrNull()?.let {
+                            finder.clear()
+                            isSearching = false
+                            onLevel(KavitaLevel.Chapters(it))
+                        }
+                    }
+                },
+                onOpenKept = { publicationId ->
+                    scope.launch {
+                        openKeptPublication(context, publicationId)?.let { (publication, path) ->
+                            onOpen(publication, path)
+                        }
+                    }
+                },
+                modifier = body,
+                contentPadding = edges,
+            )
+            return@Scaffold
+        }
         when (current) {
             is KavitaLevel.Libraries -> LazyColumn(modifier = body, contentPadding = edges) {
+                failure?.let { message ->
+                    item(key = "failure") {
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = palette.textPrimary,
+                            modifier = Modifier.padding(bottom = StoryArcSpace.md),
+                        )
+                    }
+                }
                 items(libraries, key = { it.id }) { library ->
                     LibraryRow(library.name) { onLevel(KavitaLevel.Series(library)) }
                 }
