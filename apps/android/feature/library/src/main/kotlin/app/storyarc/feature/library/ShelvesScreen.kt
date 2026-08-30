@@ -176,9 +176,7 @@ fun ShelvesScreen(
             val serverCollections = serverShelves.filterNot { it.isList }
             heading(R.string.shelves_collections, R.string.shelves_collections_about)
 
-            if (shelves.collections.isEmpty() && serverCollections.isEmpty()) {
-                blurb(R.string.shelves_collections_none)
-            } else {
+            if (shelves.collections.isNotEmpty() || serverCollections.isNotEmpty()) {
                 items(shelves.collections, key = { it.id }) { collection ->
                     // `collections-and-reading-lists` gives a collection with contents a
                     // cover "composite of its first four member covers", and the artwork is
@@ -202,9 +200,7 @@ fun ShelvesScreen(
             val serverLists = serverShelves.filter { it.isList }
             heading(R.string.shelves_lists, R.string.shelves_lists_about)
 
-            if (shelves.lists.isEmpty() && serverLists.isEmpty()) {
-                blurb(R.string.shelves_lists_none)
-            } else {
+            if (shelves.lists.isNotEmpty() || serverLists.isNotEmpty()) {
                 items(shelves.lists, key = { it.id }) { list ->
                     // A list's tiles are its first four entries in *its* order, and its rail
                     // is how far through that order the reader is -- the two things that make
@@ -215,7 +211,7 @@ fun ShelvesScreen(
                         subtitle = caption(list.origin, list.entries.size, registry.sources),
                         tiles = shelfTiles(list),
                         onOpen = { onOpenList(list.id) },
-                        progress = fraction(list, finished),
+                        progress = shelfFraction(list, finished),
                         onDelete = { viewModel.deleteList(list.id) },
                     )
                 }
@@ -311,7 +307,9 @@ private val SHELF_MAXIMUM_WIDTH = 220.dp
  *
  * §3.6 asks for Komga's metaphor in the copy -- a collection groups what you like, a reading
  * list is a playlist for books. Above the shelf rather than only in the empty state, because
- * the reader who has never met the word is not always the reader who has none of them.
+ * the reader who has never met the word is not always the reader who has none of them --
+ * and it *is* the empty state, because a second sentence saying there are none of something
+ * the line above has just defined tells the reader nothing the blank space below it does not.
  */
 private fun LazyGridScope.heading(title: Int, about: Int) {
     item(span = { GridItemSpan(maxLineSpan) }) {
@@ -327,16 +325,6 @@ private fun LazyGridScope.heading(title: Int, about: Int) {
                 color = LocalStoryArcPalette.current.textSecondary,
             )
         }
-    }
-}
-
-private fun LazyGridScope.blurb(text: Int) {
-    item(span = { GridItemSpan(maxLineSpan) }) {
-        Text(
-            text = stringResource(text),
-            style = MaterialTheme.typography.bodySmall,
-            color = LocalStoryArcPalette.current.textTertiary,
-        )
     }
 }
 
@@ -378,7 +366,7 @@ private fun caption(origin: ShelfOrigin, count: Int, sources: List<Source>): Str
  * [ReadingList.position] counts it, so the rail on the card and the line inside the list can
  * never disagree about where the reader is.
  */
-private fun fraction(list: ReadingList, finished: Set<String>): Float {
+internal fun shelfFraction(list: ReadingList, finished: Set<String>): Float {
     if (list.entries.isEmpty()) return 0f
     return list.position { it in finished }.toFloat() / list.entries.size
 }
