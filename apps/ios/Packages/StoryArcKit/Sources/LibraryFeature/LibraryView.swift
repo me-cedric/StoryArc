@@ -49,6 +49,13 @@ public struct LibraryView: View {
     /// The term to hand a server's own search when one is opened from the library.
     @State var serverSearch = ""
 
+    /// One search, put to the whole library at once.
+    ///
+    /// Held here rather than in the model because it is a question in progress rather than a
+    /// fact about the library: leaving the search surface ends it, and the answers a server
+    /// gave to a term nobody is typing any more are not worth keeping.
+    @State var search = LibrarySearch()
+
     /// Which face of the library this is.
     let surface: LibrarySurface
 
@@ -266,10 +273,16 @@ extension LibraryView {
     /// destinations, expanding into a field and taking the rest of the bar with it. A
     /// second field on the shelf was the floating pill that cover titles were rendering
     /// behind, and `navigation-shell` asks for search to be reached one way, not two.
+    ///
+    /// What the field is *over* changed with it. It used to be the shelf, narrowed — which
+    /// made search a filter over what this device happens to hold, and left a reader's
+    /// servers out of the only question they were being asked. Now a term puts the shelf
+    /// away and puts up ``SearchResultsView``, which is one answer from every library the
+    /// reader has.
     @ViewBuilder
     func searching(_ inner: some View) -> some View {
         if surface == .search {
-            inner
+            searchSurface(inner)
                 .searchable(
                     text: searchBinding,
                     prompt: Text("library.search.prompt", bundle: .module)
@@ -278,6 +291,41 @@ extension LibraryView {
                 // offered". Written and translated on both platforms; this modifier was
                 // the missing half, so no iOS reader had ever seen one.
                 .searchSuggestions { RecentSearchSuggestions(model: model) }
+                // The one place the question is asked. Bound to the model's own term rather
+                // than to a second piece of state, so a recent search chosen from the
+                // suggestions runs exactly as if it had been typed.
+                .onChange(of: model.query.search) { _, term in
+                    search.ask(term, in: model, credentials: credentials, pins: pins)
+                }
+                .onDisappear { search.clear() }
+        } else {
+            inner
+        }
+    }
+
+    /// The shelf, or the answer to what was typed over it.
+    @ViewBuilder
+    private func searchSurface(_ inner: some View) -> some View {
+        if search.isSearching {
+            SearchResultsView(
+                answers: search.answers,
+                onOpenHeld: { id in
+                    if let publication = model.publications.first(where: { $0.id == id }) {
+                        open(publication)
+                    }
+                },
+                // A row a server answered leads to that server, opened on the question
+                // rather than at its front door. The reader is not told which server it was
+                // until they are standing in it, which is the difference between routing a
+                // tap and labelling a result.
+                onFollow: { route in
+                    serverSearch = search.answers.term
+                    browsing = UUID(uuidString: route.sourceID)
+                },
+                onRetry: { id in
+                    search.retry(id, in: model, credentials: credentials, pins: pins)
+                }
+            )
         } else {
             inner
         }
