@@ -109,29 +109,45 @@ struct ShelfBulkActions: ViewModifier {
         .disabled(members.isEmpty)
     }
 
-    /// The offer to put this list on a server, and the reason when there is none to put it on.
+    /// The offer to put this list in an online library, and the reason when there is none
+    /// to put it in.
     ///
-    /// `collections-and-reading-lists` offers to copy a local list to a server. Disabled with
-    /// the reason beside it rather than hidden: a reader who cannot find the action does not
-    /// learn that their server is unreachable, they learn that the app cannot do it.
+    /// `collections-and-reading-lists` offers to copy a local list to a server, and when
+    /// none is reachable "the offer to copy is disabled and says why, rather than failing
+    /// after the user has confirmed it". So it is never hidden — but §3.6 of the revamp
+    /// demotes it: it is a thing a reader does occasionally, not one of the things this
+    /// menu is for. Hence a section of its own below the two everyday actions, and the
+    /// reason as the item's own subtitle rather than as a paragraph sitting in the menu
+    /// above it for every reader who has no online library at all.
     @ViewBuilder
     private var promote: some View {
         if let promoting, promoting.origin == .local {
-            Divider()
-            Button {
-                isPromoting = true
-            } label: {
-                Label {
-                    Text("shelves.promote", bundle: .module)
-                } icon: {
-                    Image(systemName: "arrow.up.circle")
+            Section {
+                Button {
+                    isPromoting = true
+                } label: {
+                    promoteLabel
+                    if model.listCapableServers.isEmpty {
+                        Text("shelves.promote.unavailable", bundle: .module)
+                    }
                 }
+                .disabled(model.listCapableServers.isEmpty)
             }
-            .disabled(model.listCapableServers.isEmpty)
+        }
+    }
 
-            if model.listCapableServers.isEmpty {
-                Text("shelves.promote.unavailable", bundle: .module)
-            }
+    /// What the action calls itself.
+    ///
+    /// Named when there is one online library to name, which is the ordinary case: "Copy to
+    /// Attic Kavita…" is a specific errand, where "Copy to an online library…" is a feature
+    /// announcing itself. With two or more the generic wording is the honest one, because
+    /// the choice is the next screen's.
+    @ViewBuilder
+    private var promoteLabel: some View {
+        if model.listCapableServers.count == 1, let only = model.listCapableServers.first {
+            Text("shelves.promote.named \(only.title)", bundle: .module)
+        } else {
+            Text("shelves.promote", bundle: .module)
         }
     }
 

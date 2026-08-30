@@ -1,7 +1,7 @@
 public import SwiftUI
 
 internal import DesignSystem
-public import Persistence
+internal import Persistence
 public import StoryArcCore
 
 /// Collections and reading lists, in one place.
@@ -9,6 +9,11 @@ public import StoryArcCore
 /// `collections-and-reading-lists` requires local and server groupings to appear "in one
 /// list, each labelled with its source" rather than segregated. Two sections here because
 /// they are two different ideas, not two different origins — the origin is a label on a row.
+///
+/// Drawn as two shelves of covers rather than two lists of names. §3.6 of the revamp: "a
+/// collection with no artwork is a folder listing", and a folder listing is the one thing
+/// this app is not. Each section leads with the sentence that says what its shelves *are*,
+/// because *collection* and *reading list* are words a reader has to be taught once.
 public struct ShelvesView: View {
     @Environment(\.theme) private var theme
 
@@ -25,10 +30,10 @@ public struct ShelvesView: View {
     /// from rows that each fetch their own.
     @State private var serverShelves: [ServerShelf] = []
 
-    /// Edits owed to a server, so a row can say so and a conflict can be said once.
+    /// Edits owed to a server, so a shelf can say so and a conflict can be said once.
     ///
-    /// Read into the view rather than asked for per row: the badge and the notice come out
-    /// of the same reconciliation, and a row that fetched its own would disagree with the
+    /// Read into the view rather than asked for per card: the badge and the notice come out
+    /// of the same reconciliation, and a card that fetched its own would disagree with the
     /// alert above it.
     @State private var edits = ShelfEditQueue()
 
@@ -45,97 +50,30 @@ public struct ShelvesView: View {
         self.onOpen = onOpen
     }
 
+    /// The shelf lattice.
+    ///
+    /// Adaptive rather than a column count, for the reason ``CoverGrid`` gives: a fixed
+    /// count gives a phone postage stamps and an iPad a wall. The minimum is wider than a
+    /// publication's because a shelf is a composite of four covers, and four covers below
+    /// about 150 pt stop being four covers.
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: StoryArcSpace.lg, alignment: .top)]
+    }
+
     public var body: some View {
         let shelves = model.shelves
+        let serverCollections = serverShelves.filter { !$0.isList }
+        let serverLists = serverShelves.filter(\.isList)
 
-        List {
-            let serverCollections = serverShelves.filter { !$0.isList }
-            let serverLists = serverShelves.filter(\.isList)
-
-            Section {
-                // Empty only when neither half has anything: a server's collections make
-                // this section not-empty just as a local one does.
-                if shelves.collections.isEmpty, serverCollections.isEmpty {
-                    Text("shelves.collections.none", bundle: .module)
-                        .textRole(.footnote)
-                        .foregroundStyle(theme.palette.textSecondary)
-                } else {
-                    ForEach(shelves.collections) { collection in
-                        NavigationLink {
-                            CollectionDetail(model: model, id: collection.id, onOpen: onOpen)
-                        } label: {
-                            HStack(spacing: StoryArcSpace.md) {
-                                // `collections-and-reading-lists` gives a collection with
-                                // contents a cover "composite of its first four member
-                                // covers", and the artwork is the interface: a shelf of
-                                // collections is a shelf of covers, not a list of names.
-                                ShelfCover(model: model, collection: collection)
-                                row(
-                                    name: collection.name,
-                                    count: collection.members.count,
-                                    origin: collection.origin
-                                )
-                            }
-                        }
-                    }
-                    .onDelete { offsets in
-                        for index in offsets {
-                            model.delete(collection: shelves.collections[index].id)
-                        }
-                    }
-                }
-                ForEach(serverCollections) { shelf in
-                    NavigationLink {
-                        KavitaCollectionView(
-                            server: shelf.server,
-                            collectionID: shelf.id,
-                            title: shelf.title,
-                            onOpen: onOpen
-                        )
-                    } label: {
-                        serverRow(shelf)
-                    }
-                }
-            } header: {
-                Text("shelves.collections", bundle: .module)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: StoryArcSpace.xxl) {
+                collections(shelves.collections, server: serverCollections)
+                lists(shelves.lists, server: serverLists)
             }
-
-            Section {
-                if shelves.lists.isEmpty, serverLists.isEmpty {
-                    Text("shelves.lists.none", bundle: .module)
-                        .textRole(.footnote)
-                        .foregroundStyle(theme.palette.textSecondary)
-                } else {
-                    ForEach(shelves.lists) { list in
-                        NavigationLink {
-                            ReadingListDetail(model: model, id: list.id, onOpen: onOpen)
-                        } label: {
-                            row(name: list.name, count: list.entries.count, origin: list.origin)
-                        }
-                    }
-                    .onDelete { offsets in
-                        for index in offsets {
-                            model.delete(list: shelves.lists[index].id)
-                        }
-                    }
-                }
-                ForEach(serverLists) { shelf in
-                    NavigationLink {
-                        KavitaListView(
-                            server: shelf.server,
-                            listID: shelf.id,
-                            title: shelf.title,
-                            pending: edits.pending(for: ShelfSync.key(shelf)),
-                            onOpen: onOpen
-                        )
-                    } label: {
-                        serverRow(shelf, pending: edits.pending(for: ShelfSync.key(shelf)).count)
-                    }
-                }
-            } header: {
-                Text("shelves.lists", bundle: .module)
-            }
+            .padding(.horizontal, StoryArcSpace.gutter)
+            .padding(.vertical, StoryArcSpace.lg)
         }
+        .background(theme.palette.surfaceCanvas)
         .task {
             if serverShelves.isEmpty {
                 serverShelves = await ServerShelf.all(
@@ -148,30 +86,7 @@ public struct ShelvesView: View {
             await reconcile()
         }
         .navigationTitle(Text("shelves.title", bundle: .module))
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button {
-                        draftName = ""
-                        creating = .collection
-                    } label: {
-                        Text("shelves.new.collection", bundle: .module)
-                    }
-                    Button {
-                        draftName = ""
-                        creating = .list
-                    } label: {
-                        Text("shelves.new.list", bundle: .module)
-                    }
-                } label: {
-                    Label {
-                        Text("shelves.new", bundle: .module)
-                    } icon: {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
-        }
+        .toolbar { ToolbarItem(placement: .primaryAction) { newMenu } }
         .alert(
             Text(creating == .list ? "shelves.new.list" : "shelves.new.collection", bundle: .module),
             isPresented: Binding(get: { creating != nil }, set: { if !$0 { creating = nil } }),
@@ -216,6 +131,186 @@ public struct ShelvesView: View {
         }
     }
 
+    // MARK: Sections
+
+    @ViewBuilder
+    private func collections(
+        _ local: [PublicationCollection],
+        server: [ServerShelf]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.md) {
+            heading("shelves.collections", about: "shelves.collections.about")
+
+            if local.isEmpty, server.isEmpty {
+                blurb("shelves.collections.none")
+            } else {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: StoryArcSpace.xl) {
+                    ForEach(local) { collection in
+                        NavigationLink {
+                            CollectionDetail(model: model, id: collection.id, onOpen: onOpen)
+                        } label: {
+                            // `collections-and-reading-lists` gives a collection with
+                            // contents a cover "composite of its first four member covers",
+                            // and the artwork is the interface.
+                            ShelfCard(
+                                model: model,
+                                title: collection.name,
+                                subtitle: subtitle(count: collection.members.count, origin: collection.origin),
+                                tiles: CompositeCover.tiles(of: collection)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu { deleteButton { model.delete(collection: collection.id) } }
+                    }
+                    ForEach(server) { shelf in
+                        NavigationLink {
+                            KavitaCollectionView(
+                                server: shelf.server,
+                                collectionID: shelf.id,
+                                title: shelf.title,
+                                onOpen: onOpen
+                            )
+                        } label: {
+                            serverCard(shelf)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func lists(_ local: [ReadingList], server: [ServerShelf]) -> some View {
+        let finished = model.finishedPublications
+
+        VStack(alignment: .leading, spacing: StoryArcSpace.md) {
+            heading("shelves.lists", about: "shelves.lists.about")
+
+            if local.isEmpty, server.isEmpty {
+                blurb("shelves.lists.none")
+            } else {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: StoryArcSpace.xl) {
+                    ForEach(local) { list in
+                        NavigationLink {
+                            ReadingListDetail(model: model, id: list.id, onOpen: onOpen)
+                        } label: {
+                            // A list's tiles are its first four entries in *its* order, and
+                            // its rail is how far through that order the reader is — the
+                            // two things that make it a list rather than a bag.
+                            ShelfCard(
+                                model: model,
+                                title: list.name,
+                                subtitle: subtitle(count: list.entries.count, origin: list.origin),
+                                tiles: ShelfCover.tiles(of: list),
+                                progress: ShelfProgress(
+                                    done: list.position { finished.contains($0) },
+                                    total: list.entries.count
+                                )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu { deleteButton { model.delete(list: list.id) } }
+                    }
+                    ForEach(server) { shelf in
+                        NavigationLink {
+                            KavitaListView(
+                                server: shelf.server,
+                                listID: shelf.id,
+                                title: shelf.title,
+                                pending: edits.pending(for: ShelfSync.key(shelf)),
+                                onOpen: onOpen
+                            )
+                        } label: {
+                            serverCard(shelf, pending: edits.pending(for: ShelfSync.key(shelf)).count)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: Pieces
+
+    /// A section's name and the one sentence that says what its shelves are.
+    ///
+    /// §3.6 asks for Komga's metaphor in the copy — a collection groups what you like, a
+    /// reading list is a playlist for books. Above the shelf rather than only in the empty
+    /// state, because the reader who has never met the word is not always the reader who
+    /// has none of them.
+    @ViewBuilder
+    private func heading(_ title: LocalizedStringKey, about: LocalizedStringKey) -> some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+            Text(title, bundle: .module)
+                .textRole(.title3)
+                .foregroundStyle(theme.palette.textPrimary)
+            Text(about, bundle: .module)
+                .textRole(.footnote)
+                .foregroundStyle(theme.palette.textSecondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    @ViewBuilder
+    private func blurb(_ key: LocalizedStringKey) -> some View {
+        Text(key, bundle: .module)
+            .textRole(.footnote)
+            .foregroundStyle(theme.palette.textTertiary)
+    }
+
+    /// A shelf that lives in an online library.
+    ///
+    /// No composite: its members are chapters on a server this device has not necessarily
+    /// opened, so there is no local artwork to compose from and a half-loaded mosaic would
+    /// be worse than a clean blank.
+    @ViewBuilder
+    private func serverCard(_ shelf: ServerShelf, pending: Int = 0) -> some View {
+        ShelfCard(
+            model: model,
+            title: shelf.title,
+            subtitle: shelf.server.title,
+            tiles: [],
+            pending: pending
+        )
+    }
+
+    @ViewBuilder
+    private func deleteButton(_ action: @escaping () -> Void) -> some View {
+        Button(role: .destructive, action: action) {
+            Label {
+                Text("shelves.delete", bundle: .module)
+            } icon: {
+                Image(systemName: "trash")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var newMenu: some View {
+        Menu {
+            Button {
+                draftName = ""
+                creating = .collection
+            } label: {
+                Text("shelves.new.collection", bundle: .module)
+            }
+            Button {
+                draftName = ""
+                creating = .list
+            } label: {
+                Text("shelves.new.list", bundle: .module)
+            }
+        } label: {
+            Label {
+                Text("shelves.new", bundle: .module)
+            } icon: {
+                Image(systemName: "plus")
+            }
+        }
+    }
+
     /// Asks every server list what it holds, settles what has landed, and pushes what has
     /// not — the "on reconnection" half of the offline rule, driven by the one moment this
     /// screen already knows a server answered.
@@ -227,38 +322,6 @@ public struct ShelvesView: View {
             progress: KavitaProgressStore()
         )
         edits = store.queue()
-    }
-
-    @ViewBuilder
-    private func serverRow(_ shelf: ServerShelf, pending: Int = 0) -> some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-            Text(shelf.title)
-                .foregroundStyle(theme.palette.textPrimary)
-            Text(shelf.server.title)
-                .textRole(.footnote)
-                .foregroundStyle(theme.palette.textSecondary)
-
-            // `collections-and-reading-lists`: "the pending state is visible on the list".
-            // On the row as well as inside it, because a reader looking for what has not
-            // gone out yet should not have to open every list to find it.
-            if pending > 0 {
-                Text("shelves.pending \(pending)", bundle: .module)
-                    .textRole(.footnote)
-                    .foregroundStyle(StoryArcColor.Status.offline)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func row(name: String, count: Int, origin: ShelfOrigin) -> some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-            Text(name)
-                .foregroundStyle(theme.palette.textPrimary)
-
-            Text(subtitle(count: count, origin: origin))
-                .textRole(.footnote)
-                .foregroundStyle(theme.palette.textSecondary)
-        }
     }
 
     /// The count, and where the grouping came from.

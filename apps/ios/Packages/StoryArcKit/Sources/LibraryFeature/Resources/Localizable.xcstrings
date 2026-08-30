@@ -6386,6 +6386,35 @@
         }
       }
     },
+    "shelves.collections.about": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bücher und Comics, die Sie selbst gruppieren, ohne bestimmte Reihenfolge."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Books and comics you group yourself, in no particular order."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Libros y cómics que agrupa usted, sin un orden concreto."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Des livres et des bandes dessinées que vous regroupez vous-même, sans ordre particulier."
+          }
+        }
+      }
+    },
     "shelves.collections.none": {
       "extractionState": "manual",
       "localizations": {
@@ -6608,6 +6637,35 @@
         }
       }
     },
+    "shelves.delete": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer"
+          }
+        }
+      }
+    },
     "shelves.list.empty": {
       "extractionState": "manual",
       "localizations": {
@@ -6720,6 +6778,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Listes de lecture"
+          }
+        }
+      }
+    },
+    "shelves.lists.about": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlists zum Lesen. Alles, von überall, in der Reihenfolge, die Sie wählen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlists for books. Anything, from anywhere, in the order you choose."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listas de reproducción para leer. Lo que sea, venga de donde venga, en el orden que elija."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Des playlists pour la lecture. N’importe quoi, d’où que ce soit, dans l’ordre que vous choisissez."
           }
         }
       }
@@ -7299,6 +7386,35 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "shelves.promote.named %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach %@ kopieren…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy to %@…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar en %@…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copier vers %@…"
           }
         }
       }

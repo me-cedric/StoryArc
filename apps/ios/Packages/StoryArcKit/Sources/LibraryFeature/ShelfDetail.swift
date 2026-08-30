@@ -1,7 +1,7 @@
-public import SwiftUI
+internal import SwiftUI
 
 internal import DesignSystem
-public import StoryArcCore
+internal import StoryArcCore
 
 /// What is in a collection.
 ///
