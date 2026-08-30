@@ -24,6 +24,20 @@ public struct LibraryView: View {
     /// `Hashable`, and a source carries a connection state that changes while the reader is
     /// inside it — which would pop the screen they are reading.
     @State private var browsing: Source.ID?
+
+    /// How wide the window is, and nothing about what device it belongs to.
+    ///
+    /// `native-experience` wants the layout to follow the window through Split View,
+    /// Slide Over, a rotation and — on the Android side of the mirror — a fold. All of
+    /// those are one event: the width changed. Measured rather than taken from
+    /// `horizontalSizeClass`, which is coarse where the spec asks for a layout that
+    /// "reflows continuously", and which has no counterpart Android could agree with.
+    @State private var width: CGFloat = 0
+
+    /// Which sidebar row is showing, in a window wide enough to have one. Optional
+    /// because `List` on iOS takes an optional selection: nothing selected is a state
+    /// the platform allows, and the library is what the detail column then shows.
+    @State private var sidebar: SidebarDestination? = .library
     /// Owned by the app layer, not by this view.
     ///
     /// The app is what knows the reader was just dismissed, and a `.task` on this
@@ -104,218 +118,27 @@ public struct LibraryView: View {
         if let url = model.location(of: publication) { onOpen(publication, url) }
     }
 
-    /// Every server the reader has added, in registry order.
+    /// Every catalogue, server and share the reader has added, in registry order.
     ///
-    /// Catalogues and Kavita servers together: both are places to browse rather than
-    /// shelves of local publications, and a reader with one of each should not have to
-    /// learn two ways in.
+    /// All three together: each is a place to browse rather than a shelf of local
+    /// publications, and a reader with one of each should not have to learn three ways
+    /// in. The sidebar lists exactly this set, for exactly this reason.
     private var catalogues: [Source] {
-        // Catalogues, servers and shares together: all three are places to browse rather
-        // than shelves of local publications, and a reader with one of each should not have
-        // to learn three ways in.
-        model.registry.sources.filter {
-            $0.kind == .opdsCatalog || $0.kind == .kavitaServer || $0.kind == .networkShare
-        }
+        model.registry.sources.filter { $0.kind.isBrowsable }
     }
 
+    /// Whether this window has room for the platform's split navigation.
+    private var windowClass: StoryArcWindowClass { .of(width: width) }
+
     public var body: some View {
-        NavigationStack {
-            Group {
-                if !model.visible.isEmpty {
-                    if model.layout == .grid {
-                        CoverGrid(
-                            publications: model.visible,
-                            // Hidden while a search or filter is running: the row
-                            // is a shortcut to what you were reading, and showing
-                            // publications the query excluded reads as a bug.
-                            continueReading: model.query.isNarrowed ? [] : model.continueReading,
-                            model: model,
-                            onOpen: open
-                        )
-                    } else {
-                        CoverList(publications: model.visible, model: model, onOpen: open)
-                    }
-                } else if !model.publications.isEmpty {
-                    // A library that is not empty but looks it. `library-browsing`
-                    // forbids showing that silently: say what is narrowing it and
-                    // offer one action to undo.
-                    NarrowedToNothing(query: model.query) {
-                        model.clearFilters()
-                        model.query.search = ""
-                    }
-                } else if case .scanning = model.scanState {
-                    ScanningView(state: model.scanState)
-                } else if model.registry.sources.isEmpty {
-                    EmptyLibraryView(
-                        addFolder: { isPickingFolder = true },
-                        addCatalogue: { isAddingCatalogue = true },
-                        addKavita: { isAddingKavita = true }
-                    )
-                } else {
-                    SourceList(
-                        sources: model.registry.sources,
-                        itemCount: { model.itemCount(of: $0) },
-                        onRemove: { model.remove($0) }
-                    )
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(theme.palette.surfaceCanvas)
-            // Above the grid rather than inside it. A catalogue is not a shelf of local
-            // publications — nothing in it is on the device yet — and mixing the two would
-            // make "what can I read on the train" unanswerable.
-            .safeAreaInset(edge: .top, spacing: 0) {
-                if !catalogues.isEmpty { CatalogueStrip(sources: catalogues) { open($0) } }
-            }
-            .navigationDestination(item: $browsing) { id in
-                if let source = model.registry[id] {
-                    // Two kinds of server, two browsers, one door out: whatever is opened
-                    // goes to the same reader a local publication does.
-                    if let page = CataloguePage(source: source, credentials: credentials) {
-                        CatalogueBrowserView(
-                            title: page.title,
-                            url: page.url,
-                            credential: page.credential,
-                            pins: pins,
-                            onOpen: onOpen
-                        )
-                    } else if let page = SmbPage(source: source, credentials: credentials) {
-                        SmbBrowserView(
-                            title: page.title,
-                            address: page.address,
-                            path: page.address.path,
-                            onOpen: onOpen
-                        )
-                    } else if let page = KavitaPage(source: source, credentials: credentials) {
-                        KavitaBrowserView(
-                            title: page.title,
-                            address: page.address,
-                            sourceId: page.id,
-                            store: kavitaProgress,
-                            lists: model.serverLists,
-                            onOpen: onOpen
-                        )
-                    } else {
-                        // Neither page could be built, which means the secret this source
-                        // needs is not in the keychain any more. Saying so beats the blank
-                        // screen this used to push -- a screen with nothing on it and no way
-                        // to tell whether the server was slow or the app was broken.
-                        UnreachableSource(name: source.displayName)
-                    }
-                }
-            }
-            .navigationTitle(Text("library.title", bundle: .module))
-            // `library-browsing`: results update as the user types, debounced, with
-            // no submit action. SwiftUI's own field already debounces per keystroke
-            // through the binding, and the arrange is a sort of what is in memory.
-            .searchable(
-                text: searchBinding,
-                prompt: Text("library.search.prompt", bundle: .module)
-            )
-            // Reloaded on every appearance, which is what makes the bar under a
-            // cover reflect the page the reader just reached.
-            .task {
-                model.restoreFolders()
-                await model.refreshProgress()
-                await model.probeNetworkSources(credentials: credentials, pins: pins)
-            }
-            .toolbar {
-                if !model.publications.isEmpty {
-                    ToolbarItem(placement: .primaryAction) {
-                        LayoutToggle(model: model)
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        SortMenu(model: model)
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        FilterMenu(model: model)
-                    }
-                }
-                // A menu rather than a second button. There are two ways to add a
-                // source now and there will be four; a toolbar with one button per kind
-                // would crowd out the controls a reader uses every day.
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Button {
-                            isPickingFolder = true
-                        } label: {
-                            Label {
-                                Text("library.addFolder", bundle: .module)
-                            } icon: {
-                                Image(systemName: "folder.badge.plus")
-                            }
-                        }
-                        Button {
-                            isAddingCatalogue = true
-                        } label: {
-                            Label {
-                                Text("catalogue.title", bundle: .module)
-                            } icon: {
-                                Image(systemName: "dot.radiowaves.up.forward")
-                            }
-                        }
-                        Button {
-                            isAddingKavita = true
-                        } label: {
-                            Label {
-                                Text("kavita.title", bundle: .module)
-                            } icon: {
-                                Image(systemName: "externaldrive.connected.to.line.below")
-                            }
-                        }
-                        Button {
-                            isAddingShare = true
-                        } label: {
-                            Label {
-                                Text("smb.title", bundle: .module)
-                            } icon: {
-                                Image(systemName: "externaldrive.badge.wifi")
-                            }
-                        }
-                    } label: {
-                        Label {
-                            Text("library.addSource", bundle: .module)
-                        } icon: {
-                            Image(systemName: "plus")
-                        }
-                    }
-                }
-                // Last, and always present. A reader with an empty library still needs
-                // to reach About, and `settings-and-about` puts the licences there.
-                ToolbarItem(placement: .primaryAction) {
-                    NavigationLink {
-                        ShelvesView(model: model, onOpen: onOpen)
-                    } label: {
-                        Label {
-                            Text("shelves.title", bundle: .module)
-                        } icon: {
-                            Image(systemName: "square.stack")
-                        }
-                    }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: onOpenSettings) {
-                        Label {
-                            Text("library.settings", bundle: .module)
-                        } icon: {
-                            Image(systemName: "gearshape")
-                        }
-                    }
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                if let missing = model.unavailableFolders.first {
-                    // Named, per `local-library`. "A folder is no longer available"
-                    // sends someone hunting through four of them.
-                    UnavailableFolderNotice(name: missing) { isPickingFolder = true }
-                } else if case let .finished(found, skipped) = model.scanState, skipped > 0 {
-                    // Stated once, at the end, rather than per file — a messy
-                    // folder would otherwise be a wall of notices. But stated:
-                    // a count that silently omits what it could not read is a lie.
-                    ScanSummary(found: found, skipped: skipped)
-                }
-            }
+        Group {
+            if windowClass.showsSidebar { split } else { stacked }
         }
+        // The one input to the layout, and it is the window's own. Measured on the
+        // outermost view so it is the window being measured and not a column of it,
+        // which is what keeps a Split View drag, a rotation and — on the mirror side —
+        // an Android fold the same event.
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         // `local-library`: a folder picked here is reachable again after a restart,
         // which is what the security-scoped bookmark in the model is for.
         .fileImporter(
@@ -337,35 +160,240 @@ public struct LibraryView: View {
             SmbSheet(connection: smb) { model.add($0) }
         }
     }
-}
 
-/// A folder that was remembered and can no longer be read.
-///
-/// `local-library`: "the source is marked `unauthorized` with a plain-language
-/// explanation naming the folder", and "a single action re-picks the folder,
-/// preserving reading progress for everything inside it". Progress survives
-/// because ADR-0006 keys it on the publication, not on the folder.
-struct UnavailableFolderNotice: View {
-    @Environment(\.theme) private var theme
+    /// The narrow window: one column, and everything else behind chrome.
+    private var stacked: some View {
+        NavigationStack {
+            libraryColumn
+                // Above the grid rather than inside it: a catalogue holds nothing that is
+                // on the device, and mixing the two would make "what can I read on the
+                // train" unanswerable. A bar rather than a plain inset, because
+                // `safeAreaBar` is what tells the scroll beneath it that there is chrome
+                // here — which is the scroll edge effect `native-experience` asks for at
+                // a content boundary. An inset only reserved space, and the covers slid
+                // under a hard edge.
+                .safeAreaBar(edge: .top, spacing: 0) {
+                    if !catalogues.isEmpty { CatalogueStrip(sources: catalogues) { open($0) } }
+                }
+                .navigationDestination(item: $browsing) { id in
+                    if let source = model.registry[id] { browser(for: source) }
+                }
+        }
+    }
 
-    let name: String
-    let repick: () -> Void
-
-    var body: some View {
-        HStack(spacing: StoryArcSpace.sm) {
-            Text("library.folderUnavailable \(name)", bundle: .module)
-                .textRole(.footnote)
-                .foregroundStyle(theme.palette.textSecondary)
-
-            Spacer(minLength: 0)
-
-            Button(action: repick) {
-                Text("library.repick", bundle: .module)
-                    .textRole(.footnote)
+    /// The wide window: the platform's own split navigation.
+    ///
+    /// `native-experience`: a large screen "uses a multi-column layout with a persistent
+    /// sidebar, not a stretched phone layout". `NavigationSplitView` is that layout, and
+    /// brings the column widths, the collapse behaviour and the toggle with it.
+    private var split: some View {
+        NavigationSplitView {
+            LibrarySidebar(
+                sources: model.registry.sources,
+                selection: $sidebar,
+                onOpenSettings: onOpenSettings
+            )
+        } detail: {
+            NavigationStack {
+                switch sidebar ?? .library {
+                case .library:
+                    libraryColumn
+                case let .source(id):
+                    if let source = model.registry[id] { browser(for: source) }
+                case .shelves:
+                    ShelvesView(model: model, onOpen: onOpen)
+                }
             }
         }
-        .padding(.horizontal, StoryArcSpace.gutter)
-        .padding(.vertical, StoryArcSpace.sm)
-        .storyArcGlass(in: Rectangle())
+    }
+
+    /// The way in to one source, wherever it is being shown from.
+    private func browser(for source: Source) -> some View {
+        SourceBrowser(
+            source: source,
+            pins: pins,
+            credentials: credentials,
+            kavitaProgress: kavitaProgress,
+            lists: model.serverLists,
+            onOpen: onOpen
+        )
+    }
+
+    /// The library itself: the grid or the list, and the chrome that belongs to it.
+    ///
+    /// One property, not one per layout: it is the same screen either way, and only the
+    /// column it is handed to changes.
+    private var libraryColumn: some View {
+        content
+            .navigationTitle(Text("library.title", bundle: .module))
+            // `library-browsing`: results update as the user types, debounced, with
+            // no submit action. SwiftUI's own field already debounces per keystroke
+            // through the binding, and the arrange is a sort of what is in memory.
+            .searchable(
+                text: searchBinding,
+                prompt: Text("library.search.prompt", bundle: .module)
+            )
+            // Reloaded on every appearance, which is what makes the bar under a
+            // cover reflect the page the reader just reached.
+            .task {
+                model.restoreFolders()
+                await model.refreshProgress()
+                await model.probeNetworkSources(credentials: credentials, pins: pins)
+            }
+            .toolbar { toolbarItems }
+            // A bar, so the notice floats on glass and the shelf fades out beneath it
+            // rather than being clipped by it.
+            .safeAreaBar(edge: .bottom) {
+                if let missing = model.unavailableFolders.first {
+                    // Named, per `local-library`. "A folder is no longer available"
+                    // sends someone hunting through four of them.
+                    UnavailableFolderNotice(name: missing) { isPickingFolder = true }
+                } else if case let .finished(found, skipped) = model.scanState, skipped > 0 {
+                    // Stated once, at the end, rather than per file — a messy
+                    // folder would otherwise be a wall of notices. But stated:
+                    // a count that silently omits what it could not read is a lie.
+                    ScanSummary(found: found, skipped: skipped)
+                }
+            }
+    }
+
+    private var content: some View {
+        Group {
+            if !model.visible.isEmpty {
+                if model.layout == .grid {
+                    CoverGrid(
+                        publications: model.visible,
+                        // Hidden while a search or filter is running: the row
+                        // is a shortcut to what you were reading, and showing
+                        // publications the query excluded reads as a bug.
+                        continueReading: model.query.isNarrowed ? [] : model.continueReading,
+                        model: model,
+                        onOpen: open
+                    )
+                } else {
+                    CoverList(publications: model.visible, model: model, onOpen: open)
+                }
+            } else if !model.publications.isEmpty {
+                // A library that is not empty but looks it. `library-browsing`
+                // forbids showing that silently: say what is narrowing it and
+                // offer one action to undo.
+                NarrowedToNothing(query: model.query) {
+                    model.clearFilters()
+                    model.query.search = ""
+                }
+            } else if case .scanning = model.scanState {
+                ScanningView(state: model.scanState)
+            } else if model.registry.sources.isEmpty {
+                EmptyLibraryView(
+                    addFolder: { isPickingFolder = true },
+                    addCatalogue: { isAddingCatalogue = true },
+                    addKavita: { isAddingKavita = true }
+                )
+            } else {
+                SourceList(
+                    sources: model.registry.sources,
+                    itemCount: { model.itemCount(of: $0) },
+                    onRemove: { model.remove($0) }
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.palette.surfaceCanvas)
+        // `native-experience`: "floating chrome uses Liquid Glass, with scroll edge
+        // effects at content boundaries". Soft rather than the default, because what
+        // passes under this app's chrome is artwork — a hard cut across a cover looks
+        // like a rendering fault, and a soft one reads as depth.
+        .scrollEdgeEffectStyle(.soft, for: .all)
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarItems: some ToolbarContent {
+        if !model.publications.isEmpty {
+            ToolbarItem(placement: .primaryAction) {
+                LayoutToggle(model: model)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                SortMenu(model: model)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                FilterMenu(model: model)
+            }
+        }
+        // A menu rather than a second button. There are two ways to add a
+        // source now and there will be four; a toolbar with one button per kind
+        // would crowd out the controls a reader uses every day.
+        ToolbarItem(placement: .primaryAction) {
+            Menu {
+                Button {
+                    isPickingFolder = true
+                } label: {
+                    Label {
+                        Text("library.addFolder", bundle: .module)
+                    } icon: {
+                        Image(systemName: "folder.badge.plus")
+                    }
+                }
+                Button {
+                    isAddingCatalogue = true
+                } label: {
+                    Label {
+                        Text("catalogue.title", bundle: .module)
+                    } icon: {
+                        Image(systemName: "dot.radiowaves.up.forward")
+                    }
+                }
+                Button {
+                    isAddingKavita = true
+                } label: {
+                    Label {
+                        Text("kavita.title", bundle: .module)
+                    } icon: {
+                        Image(systemName: "externaldrive.connected.to.line.below")
+                    }
+                }
+                Button {
+                    isAddingShare = true
+                } label: {
+                    Label {
+                        Text("smb.title", bundle: .module)
+                    } icon: {
+                        Image(systemName: "externaldrive.badge.wifi")
+                    }
+                }
+            } label: {
+                Label {
+                    Text("library.addSource", bundle: .module)
+                } icon: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        // Last, and only where there is no sidebar. A reader with an empty
+        // library still needs to reach About, and `settings-and-about` puts the
+        // licences there — but a wide window already shows both of these as
+        // rows, and a toolbar that repeated them would be two buttons for one
+        // place.
+        if !windowClass.showsSidebar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink {
+                    ShelvesView(model: model, onOpen: onOpen)
+                } label: {
+                    Label {
+                        Text("shelves.title", bundle: .module)
+                    } icon: {
+                        Image(systemName: "square.stack")
+                    }
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: onOpenSettings) {
+                    Label {
+                        Text("library.settings", bundle: .module)
+                    } icon: {
+                        Image(systemName: "gearshape")
+                    }
+                }
+            }
+        }
     }
 }

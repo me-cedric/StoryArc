@@ -158,6 +158,11 @@ private fun ContinueReadingRow(
                     viewModel,
                     onOpen,
                     maxPixelSize,
+                    // The same long press the shelf below answers. A publication does not
+                    // stop having collections because it is the one you were last
+                    // reading, and until this was passed through, the row was the only
+                    // cover in the app whose long press did nothing.
+                    onAddToShelf = onAddToShelf,
                     modifier = Modifier.width(128.dp),
                 )
             }

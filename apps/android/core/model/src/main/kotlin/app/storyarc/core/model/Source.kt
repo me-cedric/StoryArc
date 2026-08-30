@@ -3,7 +3,34 @@ package app.storyarc.core.model
 import java.util.UUID
 
 /** Where publications come from. See `docs/openspec/specs/sources`. */
-enum class SourceKind { LOCAL_FOLDER, NETWORK_SHARE, OPDS_CATALOG, KAVITA_SERVER }
+enum class SourceKind {
+    LOCAL_FOLDER,
+    NETWORK_SHARE,
+    OPDS_CATALOG,
+    KAVITA_SERVER,
+    ;
+
+    /**
+     * Whether this is a place a reader travels *to*, rather than a shelf already folded
+     * into the library.
+     *
+     * A local folder's publications are scanned and land in the grid, so a way in to it
+     * would lead back to where the reader already is. The other three hold content that
+     * is not on the device and each needs its own browser.
+     *
+     * One property rather than the same three-way comparison in the catalogue strip, the
+     * navigation rail and iOS's screen: three copies is how one of them ends up wrong. A
+     * `when` rather than `!= LOCAL_FOLDER` so a fifth kind cannot be quietly assumed to
+     * be browsable — it has to be answered here.
+     *
+     * iOS's `SourceKind.isBrowsable` answers the same four the same way.
+     */
+    val isBrowsable: Boolean
+        get() = when (this) {
+            LOCAL_FOLDER -> false
+            NETWORK_SHARE, OPDS_CATALOG, KAVITA_SERVER -> true
+        }
+}
 
 /**
  * `sources` requires exactly these four states, and requires that none of them

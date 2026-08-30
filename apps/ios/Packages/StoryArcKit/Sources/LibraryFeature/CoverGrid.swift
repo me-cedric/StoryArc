@@ -179,29 +179,7 @@ struct CoverCell: View {
         .contextMenu {
             AddToShelfMenu(model: model, publication: publication) { refusedServer = $0 }
         }
-        .alert(
-            Text("shelves.serverOnly.title", bundle: .module),
-            isPresented: Binding(
-                get: { refusedServer != nil },
-                set: { if !$0 { refusedServer = nil } }
-            )
-        ) {
-            Button {
-                // The offer the spec asks for: a local list can hold anything.
-                model.create(list: publication.displayTitle)
-                if let made = model.shelves.lists.last {
-                    model.append([publication.id], toList: made.id)
-                }
-                refusedServer = nil
-            } label: {
-                Text("shelves.serverOnly.local", bundle: .module)
-            }
-            Button(role: .cancel) { refusedServer = nil } label: {
-                Text("shelves.cancel", bundle: .module)
-            }
-        } message: {
-            Text("shelves.serverOnly.body \(refusedServer ?? "")", bundle: .module)
-        }
+        .refusedByServer($refusedServer, model: model, publication: publication)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(publication.isOpenable ? .isButton : [])

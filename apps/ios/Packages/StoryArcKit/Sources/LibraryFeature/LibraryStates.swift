@@ -239,3 +239,34 @@ struct SourceList: View {
         }
     }
 }
+
+/// A folder that was remembered and can no longer be read.
+///
+/// `local-library`: "the source is marked `unauthorized` with a plain-language
+/// explanation naming the folder", and "a single action re-picks the folder,
+/// preserving reading progress for everything inside it". Progress survives
+/// because ADR-0006 keys it on the publication, not on the folder.
+struct UnavailableFolderNotice: View {
+    @Environment(\.theme) private var theme
+
+    let name: String
+    let repick: () -> Void
+
+    var body: some View {
+        HStack(spacing: StoryArcSpace.sm) {
+            Text("library.folderUnavailable \(name)", bundle: .module)
+                .textRole(.footnote)
+                .foregroundStyle(theme.palette.textSecondary)
+
+            Spacer(minLength: 0)
+
+            Button(action: repick) {
+                Text("library.repick", bundle: .module)
+                    .textRole(.footnote)
+            }
+        }
+        .padding(.horizontal, StoryArcSpace.gutter)
+        .padding(.vertical, StoryArcSpace.sm)
+        .storyArcGlass(in: Rectangle())
+    }
+}

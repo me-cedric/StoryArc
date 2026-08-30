@@ -1,9 +1,10 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +55,8 @@ internal fun CoverList(
     publications: List<Publication>,
     viewModel: LibraryViewModel,
     onOpen: (Publication) -> Unit,
+    /** A long press, where a publication is put on a shelf. Null where nothing hosts it. */
+    onAddToShelf: ((Publication) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val thumbnailWidth = 44.dp
@@ -65,19 +68,21 @@ internal fun CoverList(
         contentPadding = PaddingValues(vertical = StoryArcSpace.sm),
     ) {
         items(publications, key = { it.id }) { publication ->
-            ListRow(publication, viewModel, onOpen, thumbnailWidth, maxPixelSize)
+            ListRow(publication, viewModel, onOpen, thumbnailWidth, maxPixelSize, onAddToShelf)
             HorizontalDivider()
         }
     }
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun ListRow(
     publication: Publication,
     viewModel: LibraryViewModel,
     onOpen: (Publication) -> Unit,
     thumbnailWidth: androidx.compose.ui.unit.Dp,
     maxPixelSize: Int,
+    onAddToShelf: ((Publication) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -92,7 +97,17 @@ private fun ListRow(
             .fillMaxWidth()
             // A publication that cannot be read is not tappable. Opening it only
             // to show the same refusal a second time wastes the user's tap.
-            .clickable(enabled = publication.isOpenable) { onOpen(publication) }
+            //
+            // The long press is the same one the grid answers. `native-experience` asks
+            // for the system's context gesture wherever the app needs one, and a
+            // publication does not stop having collections because the reader switched to
+            // the list layout — until this was here, marking something read was a thing
+            // you could only do in the grid, which is a rule no reader could have guessed.
+            .combinedClickable(
+                enabled = publication.isOpenable,
+                onClick = { onOpen(publication) },
+                onLongClick = { onAddToShelf?.invoke(publication) },
+            )
             // Material's 48 dp touch-target floor, per `native-experience`.
             .heightIn(min = StoryArcSpace.xxl + StoryArcSpace.lg)
             .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm),
