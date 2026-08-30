@@ -39,6 +39,7 @@ struct SearchResultsView: View {
                 Text("library.empty.search \(answers.term)", bundle: .module)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
+                    .listRowBackground(theme.palette.surfaceCanvas)
             }
 
             ForEach(answers.groups) { group in
@@ -49,6 +50,10 @@ struct SearchResultsView: View {
                 } header: {
                     Text(group.kind.titleKey, bundle: .module)
                 }
+                // On the section, not on the list: a row paints its own background over the
+                // scroll view's, so hiding the scroll view's alone left the headings on the
+                // app's canvas and the rows on the system's white.
+                .listRowBackground(theme.palette.surfaceCanvas)
             }
 
             // Last, under everything, and quiet. Both of these are the app talking about
@@ -63,6 +68,7 @@ struct SearchResultsView: View {
                 .textRole(.footnote)
                 .foregroundStyle(theme.palette.textSecondary)
                 .listRowSeparator(.hidden)
+                .listRowBackground(theme.palette.surfaceCanvas)
             }
 
             ForEach(answers.silent) { source in
@@ -70,6 +76,10 @@ struct SearchResultsView: View {
             }
         }
         .listStyle(.plain)
+        // The scroll view's own material, hidden so the app's canvas is what results sit on.
+        // `native-experience` asks for the app's own surfaces, and the direction asks for a
+        // room, not a form.
+        .scrollContentBackground(.hidden)
         .background(theme.palette.surfaceCanvas)
     }
 
@@ -126,5 +136,6 @@ struct SearchResultsView: View {
             .foregroundStyle(theme.palette.accent)
         }
         .listRowSeparator(.hidden)
+        .listRowBackground(theme.palette.surfaceCanvas)
     }
 }
