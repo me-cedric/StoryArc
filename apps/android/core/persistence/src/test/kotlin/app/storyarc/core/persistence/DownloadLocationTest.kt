@@ -89,4 +89,38 @@ class DownloadLocationTest {
 
         assertEquals("urn-storyarc-6.cbz", store.location(download(title = "  ")).name)
     }
+
+    // A catalogue names the directory, so a catalogue can try to escape it.
+    // Mirrors iOS's `dotsCannotEscape` / `removeCannotReachOutside`, case for case.
+
+    @Test
+    fun `an id of dots alone cannot name the directory above`() {
+        val store = store()
+        for (hostile in listOf("..", ".", "...", ".....")) {
+            val file = store.location(download(id = hostile))
+            // The download's own directory, not its parent. An OPDS feed supplies the id
+            // verbatim, so this is the one place that can refuse a hostile one.
+            assertFalse(hostile, file.path.contains("${File.separator}..${File.separator}"))
+            assertTrue(hostile, file.canonicalPath.startsWith(directory.canonicalPath + File.separator))
+        }
+    }
+
+    @Test
+    fun `removing a download named dot dot leaves everything above it alone`() {
+        val store = store()
+        directory.mkdirs()
+        // A sibling of the downloads directory, which nothing about this download owns.
+        val sibling = File(directory.parentFile, "elsewhere-${System.nanoTime()}")
+        sibling.mkdirs()
+        val bystander = File(sibling, "progress.db")
+        bystander.writeText("reading progress")
+        try {
+            store.remove(download(id = ".."))
+
+            assertTrue(bystander.exists())
+            assertTrue(directory.exists())
+        } finally {
+            sibling.deleteRecursively()
+        }
+    }
 }

@@ -69,9 +69,13 @@ public struct DownloadStore {
     /// called — including one written by a build that named it differently. A delete that
     /// does not depend on the stem cannot disagree with the write about it.
     public func remove(_ download: Download) {
-        try? FileManager.default.removeItem(
-            at: directory.appending(path: Self.safe(download.id), directoryHint: .isDirectory)
-        )
+        let target = directory.appending(path: Self.safe(download.id), directoryHint: .isDirectory)
+        // Belt as well as braces. `safe` is the rule; this is the check that the rule held,
+        // standing between any future gap in it and a recursive delete. A path that does not
+        // resolve back inside `directory` is not this download's, whatever it is.
+        guard target.standardizedFileURL.path.hasPrefix(directory.standardizedFileURL.path + "/")
+        else { return }
+        try? FileManager.default.removeItem(at: target)
     }
 
     /// The download a file inside ``directory`` belongs to.
@@ -89,8 +93,25 @@ public struct DownloadStore {
     }
 
     /// A name a filesystem will take: no separators, nothing that reads as a path.
+    ///
+    /// The character class permits `.`, because a title may contain one. That alone is not
+    /// enough: `..` is made entirely of permitted characters, needs no separator, and means
+    /// *the parent directory* to every filesystem there is. An id is not ours — an OPDS feed
+    /// supplies it verbatim — so a catalogue could name an entry `..` and this would hand a
+    /// recursive delete the directory above the one it was given.
+    ///
+    /// A name that is nothing but dots is therefore refused outright rather than trimmed.
+    /// Trimming is what invites `....//` and the rest of that family; a name with no
+    /// meaning to a filesystem has no safe repair, only a replacement.
     private static func safe(_ text: String) -> String {
-        text.replacing(#/[^A-Za-z0-9._ -]/#, with: "-")
+        let cleaned = text.replacing(#/[^A-Za-z0-9._ -]/#, with: "-")
+        // Empty stays empty: a caller that asked about a blank title is relying on that to
+        // fall back to the id, and `remove`'s containment check refuses a blank id anyway.
+        guard !cleaned.isEmpty else { return "" }
+        // `.`, `..`, and any longer run of dots — every one of them names a directory that
+        // is not this download's.
+        guard cleaned.contains(where: { $0 != "." }) else { return "id" }
+        return cleaned
     }
 
     /// Makes the directory, and keeps it out of backups.

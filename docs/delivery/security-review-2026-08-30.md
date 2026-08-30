@@ -1,8 +1,10 @@
 # Security review — 30 August 2026
 
 A read-only audit of both apps, run while the round-4 feature agents were building.
-Nothing here has been fixed yet: this is the backlog, written down to work through after
-the round-4 branches are merged.
+This is the backlog, worked through in rank order.
+
+**Rank 1 is fixed** — see the commit that follows this document. Every other finding
+below is still open.
 
 ## How this was produced, and how much to trust it
 
@@ -100,7 +102,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 
 ## Detail
 
-### 1. A catalogue-supplied download id of ".." escapes the downloads directory: the failure path then recursively deletes every offline publication, and the success path writes attacker bytes outside the managed tree
+### 1. FIXED — A catalogue-supplied download id of ".." escapes the downloads directory: the failure path then recursively deletes every offline publication, and the success path writes attacker bytes outside the managed tree
 
 **🔴 critical** · both · our-code · effort: small · **CONFIRMED**
 

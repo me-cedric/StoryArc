@@ -94,8 +94,17 @@ class DownloadStore internal constructor(
      * closes was one stem disagreeing with another; a delete that does not depend on the
      * stem at all cannot have it again.
      */
-    fun remove(download: Download): Boolean =
-        File(directory, safe(download.id)).deleteRecursively()
+    fun remove(download: Download): Boolean {
+        val target = File(directory, safe(download.id))
+        // Belt as well as braces. `safe` is the rule; this is the check that the rule held,
+        // standing between any future gap in it and a recursive delete. A path that does not
+        // resolve back inside `directory` is not this download's, whatever it is.
+        val root = directory.canonicalPath
+        if (target.canonicalPath != root && !target.canonicalPath.startsWith(root + File.separator)) {
+            return false
+        }
+        return target.deleteRecursively()
+    }
 
     /**
      * The download a file inside [directory] belongs to.
@@ -114,8 +123,28 @@ class DownloadStore internal constructor(
         return library.downloads.firstOrNull { safe(it.id) == folder }
     }
 
-    /** A name a filesystem will take: no separators, nothing that reads as a path. */
-    private fun safe(text: String): String = text.replace(Regex("[^A-Za-z0-9._ -]"), "-")
+    /**
+     * A name a filesystem will take: no separators, nothing that reads as a path.
+     *
+     * The character class permits `.`, because a title may contain one. That alone is not
+     * enough: `..` is made entirely of permitted characters, needs no separator, and means
+     * *the parent directory* to every filesystem there is. An id is not ours — an OPDS feed
+     * supplies it verbatim — so a catalogue could name an entry `..` and this would hand a
+     * recursive delete the directory above the one it was given.
+     *
+     * A name that is nothing but dots is therefore refused outright rather than trimmed.
+     * Trimming is what invites `....//` and the rest of that family; a name with no meaning
+     * to a filesystem has no safe repair, only a replacement.
+     */
+    private fun safe(text: String): String {
+        val cleaned = text.replace(Regex("[^A-Za-z0-9._ -]"), "-")
+        // Empty stays empty: a caller that asked about a blank title is relying on that to
+        // fall back to the id, and `remove`'s containment check refuses a blank id anyway.
+        if (cleaned.isEmpty()) return ""
+        // `.`, `..`, and any longer run of dots — every one of them names a directory that
+        // is not this download's.
+        return if (cleaned.any { it != '.' }) cleaned else "id"
+    }
 
     /** Makes the directory. */
     fun prepare() {

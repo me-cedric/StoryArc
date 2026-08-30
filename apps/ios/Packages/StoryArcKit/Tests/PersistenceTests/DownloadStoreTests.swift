@@ -174,4 +174,44 @@ struct DownloadStoreTests {
         let stray = store.directory.appending(path: "elsewhere/Akira.cbz")
         #expect(store.download(forFileAt: stray, in: DownloadLibrary()) == nil)
     }
+
+    // MARK: - A catalogue names the directory, so a catalogue can try to escape it
+
+    @Test("An id of dots alone cannot name the directory above", arguments: ["..", ".", "...", "....."])
+    func dotsCannotEscape(id: String) throws {
+        let store = try fixture().store
+        let file = store.location(for: id, mediaType: "application/vnd.comicbook+zip", title: "Akira")
+        // The download's own directory, not its parent. An OPDS feed supplies the id
+        // verbatim, so this is the one place that can refuse a hostile one.
+        #expect(!file.path.contains("/../"))
+        #expect(!file.deletingLastPathComponent().path.hasSuffix("/.."))
+        #expect(file.path.hasPrefix(store.directory.path))
+    }
+
+    @Test("Removing a download named `..` leaves everything above it alone")
+    func removeCannotReachOutside() throws {
+        // A root this test owns, with the store one level inside it, so that the escape
+        // this asserts against is one the filesystem would genuinely permit.
+        let root = URL.temporaryDirectory.appending(path: "escape-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let downloads = root.appending(path: "Downloads", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: downloads, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let bystander = root.appending(path: "progress.sqlite")
+        try Data("reading progress".utf8).write(to: bystander)
+        let defaults = try #require(UserDefaults(suiteName: UUID().uuidString))
+        let store = DownloadStore(defaults: defaults, directory: downloads)
+
+        store.remove(Download(
+            id: "..",
+            sourceID: UUID(),
+            title: "Akira",
+            remote: URL(fileURLWithPath: "/tmp/x.cbz"),
+            mediaType: "application/vnd.comicbook+zip"
+        ))
+
+        #expect(FileManager.default.fileExists(atPath: bystander.path))
+        #expect(FileManager.default.fileExists(atPath: downloads.path))
+    }
+
 }
