@@ -40,7 +40,9 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
 import app.storyarc.core.persistence.removeAfterFinishing
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Everything readable with no network at all, and whatever is still on its way.
@@ -82,7 +84,9 @@ internal fun DownloadsDestination(host: AppHost) {
     // number that makes a reader distrust the whole screen.
     LaunchedEffect(library) {
         host.library.adoptDownloads()
-        bytesOnDisk = host.dependencies.downloads.bytesOnDisk()
+        // Off the main thread: the total is a walk of the download tree, and a shelf that
+        // stutters while it is counted is a shelf that reads as slow.
+        bytesOnDisk = withContext(Dispatchers.IO) { host.dependencies.downloads.bytesOnDisk() }
     }
 
     // The same question the library's availability axis asks — *can I open this with no
@@ -242,7 +246,7 @@ private suspend fun remove(host: AppHost, download: Download) {
  * `smb://…`, and a shared folder is precisely the thing that stops working on a plane —
  * which is the one promise this destination makes.
  */
-private fun isOnDevice(location: String?): Boolean = when {
+internal fun isOnDevice(location: String?): Boolean = when {
     location == null -> false
     location.startsWith("/") -> true
     location.startsWith("file://") -> true
