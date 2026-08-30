@@ -19,8 +19,6 @@
     <string name="destination_shelves">Étagères</string>
     <string name="destination_settings">Réglages</string>
 
-    <string name="home_keep_reading">Reprendre la lecture</string>
-    <string name="home_empty">Rien n’est commencé pour l’instant. Ouvrez quelque chose et vous le retrouverez ici.</string>
 
     <string name="downloads_destination_on_device">Sur cet appareil</string>
     <string name="downloads_destination_in_flight">En cours de réception</string>

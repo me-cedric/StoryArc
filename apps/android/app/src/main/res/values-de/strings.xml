@@ -19,8 +19,6 @@
     <string name="destination_shelves">Regale</string>
     <string name="destination_settings">Einstellungen</string>
 
-    <string name="home_keep_reading">Weiterlesen</string>
-    <string name="home_empty">Noch nichts angefangen. Öffnen Sie etwas, und es wartet hier auf Sie.</string>
 
     <string name="downloads_destination_on_device">Auf diesem Gerät</string>
     <string name="downloads_destination_in_flight">Kommt gerade an</string>

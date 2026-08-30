@@ -19,8 +19,6 @@
     <string name="destination_shelves">Estanterías</string>
     <string name="destination_settings">Ajustes</string>
 
-    <string name="home_keep_reading">Seguir leyendo</string>
-    <string name="home_empty">Aún no has empezado nada. Abre algo y te esperará aquí.</string>
 
     <string name="downloads_destination_on_device">En este dispositivo</string>
     <string name="downloads_destination_in_flight">Llegando ahora</string>

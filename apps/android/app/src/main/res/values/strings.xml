@@ -29,8 +29,6 @@
     <string name="destination_shelves">Shelves</string>
     <string name="destination_settings">Settings</string>
 
-    <string name="home_keep_reading">Keep reading</string>
-    <string name="home_empty">Nothing is part-read yet. Open something and it will be waiting here.</string>
 
     <string name="downloads_destination_on_device">On this device</string>
     <string name="downloads_destination_in_flight">Coming down now</string>
