@@ -8,6 +8,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -117,6 +118,7 @@ internal class ReadAloudController(
         }
         sentences.restart(from)
         _session.value = _session.value.started()
+        announce()
         withEngine { speakNext(forward = true) }
     }
 
@@ -150,6 +152,7 @@ internal class ReadAloudController(
     /** Stops, clears the highlight, and hands the lock screen back. */
     fun stop() {
         val wasActive = _session.value.isActive
+        walking?.cancel()
         _session.value = _session.value.stopped()
         current = null
         engine?.stop()
@@ -230,8 +233,19 @@ internal class ReadAloudController(
         }
     }
 
+    /**
+     * The walk in progress.
+     *
+     * Cancelled before another starts. [SpokenSentences] holds a cursor and reads from disk
+     * off the main thread, so two skips in quick succession would otherwise be two
+     * coroutines moving the same cursor past each other -- and the sentence that arrived
+     * second would not be the one the reader asked for.
+     */
+    private var walking: Job? = null
+
     private fun speakNext(forward: Boolean) {
-        scope.launch {
+        walking?.cancel()
+        walking = scope.launch {
             val sentence = withContext(Dispatchers.IO) {
                 if (forward) sentences.next() else sentences.previous()
             }
