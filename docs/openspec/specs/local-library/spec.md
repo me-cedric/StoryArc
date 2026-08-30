@@ -52,7 +52,18 @@ requiring the user to configure a source first.
 #### Scenario: Open-in from another app
 - **WHEN** a user chooses StoryArc from a share sheet, an "Open with" intent, or a file manager
 - **THEN** the publication opens directly in the reader
-- **AND** the app offers, once and unobtrusively, to remember it in the library
+- **AND** the app keeps it, once and unobtrusively, wherever the system's own hand-over grant outlives the app being closed
+
+#### Scenario: Remembering an opened file on iOS
+- **WHEN** StoryArc has opened a publication another app handed over
+- **THEN** it stores a security-scoped bookmark to that file, and the next launch lists it as a single publication rather than as a folder library
+- **AND** the publication belongs to no source, because there is nothing here for the user to rename, reconnect, refresh or remove
+- **AND** at most the twenty most recently opened files are kept, and one that has since been moved or deleted is forgotten without being reported as an unavailable folder
+
+#### Scenario: Remembering an opened file on Android
+- **WHEN** StoryArc has opened a publication handed over by an `ACTION_VIEW` or `ACTION_SEND` intent
+- **THEN** the publication is not kept, because the access that came with the intent ends with the process unless the sending app chose to make it persistable, and there is no way to ask for it afterwards
+- **AND** the user keeps such a publication by importing it, which copies it into app storage
 
 #### Scenario: File type registration
 - **WHEN** the operating system lists apps that can open `.cbz`, `.cbr`, `.cb7`, `.cbt`, `.epub`, or `.pdf`

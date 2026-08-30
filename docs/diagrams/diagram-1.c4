@@ -1,0 +1,19 @@
+specification {
+  element system
+  element container
+}
+
+model {
+  sys = system 'My System' {
+    api = container 'API'
+    db = container 'Database'
+    api -> db 'reads / writes'
+  }
+}
+
+views {
+  view index {
+    title 'Landscape'
+    include *
+  }
+}
