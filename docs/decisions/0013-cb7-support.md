@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted — deferral
 date: 2026-08-30
 deciders:
 ---
@@ -160,7 +160,40 @@ own storage, then treat the result as any other publication.
 
 ## Decision Outcome
 
-**Open. Left to the user of this repository to decide.**
+**Option A, deferred. CB7 will be read one day; it is not being built now.**
+
+The owner chose A over B on 2026-08-30 — the format should open rather than be
+refused for ever — and then, on seeing what A's first step actually was, deferred
+the work rather than take it on now. Both halves of that are recorded here because
+the second is not a reversal of the first: the direction is settled, the timing is
+not.
+
+What stopped it at the threshold was the vendoring, not the decoder. libarchive
+already sits in `third_party/`, but the 7-Zip reader and LZMA are not among its 26
+vendored sources, so A begins by taking on **xz-utils as a second upstream** — and
+xz is the project that shipped [CVE-2024-3094](https://nvd.nist.gov/vuln/detail/CVE-2024-3094),
+a backdoor present in the release tarballs of 5.6.0 and 5.6.1 and absent from the
+git tree. That is a real cost with a real precedent, not a hypothetical one, and it
+is not worth paying in the same afternoon as the decision.
+
+**Until it is built, option B's behaviour stands** — the named refusal, which the
+code and `comics/refused.cb7` already satisfy — so nothing regresses and no promise
+is made that is not kept. The spec keeps its CB7 row saying the format is not
+opened, and `STATUS.md` keeps naming CB7 as outstanding under
+`publication-formats`. Neither should be quietly tidied away: this is deferred
+work, not closed work.
+
+**When it is picked up**, the sequencing below still holds, and the additional
+constraint is the vendoring one: pin a known-clean liblzma line (5.4.x is the
+widely-trusted one), verify the signature and record the key fingerprint the way
+`VENDORING.md` already requires for libarchive, prefer the git tree over the
+release tarball, and extend the pin checker so a stale liblzma is caught the way a
+stale libarchive now is. No scanner will report when it goes out of date.
+
+---
+
+The original recommendation, now overruled on direction and deferred on timing, was
+**option B**:
 
 The recommendation, to be accepted or overruled: **option B**, with the
 verification in *What it actually costs* run first so that the decision is made
