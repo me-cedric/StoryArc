@@ -1,0 +1,133 @@
+// What the two apps actually share — C4 level 2.
+//
+// SELF-CONTAINED ON PURPOSE. Konvoy renders a diagram by calling
+// `LikeC4.fromSource(<one file's text>)`, which parses this file alone. See
+// ../README.md.
+//
+// Every artefact below is a committed directory: docs/openspec/specs,
+// packages/design-tokens, packages/test-fixtures, packages/fonts,
+// packages/licences and third_party/libarchive.
+
+specification {
+
+  element app {
+    notation 'Native application'
+    style {
+      shape mobile
+      color primary
+    }
+  }
+
+  element artefact {
+    notation 'Shared artefact'
+    style {
+      shape storage
+      color green
+    }
+  }
+
+  relationship dependsOn {
+    notation 'Build dependency'
+  }
+
+  tag ios
+  tag android
+  tag shared
+}
+
+model {
+
+  ios = app 'StoryArc for iOS' {
+    #ios
+    description 'Swift and SwiftUI. Depends on nothing in apps/android.'
+    technology 'Swift 6, SwiftUI'
+  }
+
+  android = app 'StoryArc for Android' {
+    #android
+    description 'Kotlin and Compose. Depends on nothing in apps/ios.'
+    technology 'Kotlin, Jetpack Compose'
+  }
+
+  shared = artefact 'Shared artefacts' {
+    #shared
+    description '''
+      Committed files both builds read. No compiled artefact crosses between
+      the apps; nothing here is a library either app links against, except the
+      vendored C sources, which are compiled twice from one copy.
+    '''
+
+    specs = artefact 'Capability specs' {
+      description 'docs/openspec/specs — 17 capability specifications. The behaviour contract, and the only definition of what "the same app" means.'
+      technology 'Markdown, validated by pnpm spec:validate'
+    }
+
+    tokens = artefact 'Design tokens' {
+      description 'packages/design-tokens — OKLCH token source, generated into Swift and Kotlin. A contrast gate fails the build on a pair below its WCAG floor.'
+      technology 'JSON, generated'
+    }
+
+    fixtures = artefact 'Test fixtures' {
+      description 'packages/test-fixtures — a generated publication corpus, committed. Both test suites read the same manifest.json and assert the same expectations.'
+      technology 'Generated corpus'
+    }
+
+    fonts = artefact 'Bundled typefaces' {
+      description 'packages/fonts — one copy on disk, read as an SPM resource by iOS and as an asset source by Android.'
+    }
+
+    licences = artefact 'Licence inventory' {
+      description 'packages/licences — the third-party licence list rendered in the About screen on both platforms.'
+    }
+
+    libarchive = artefact 'libarchive (vendored)' {
+      description '''
+        third_party/libarchive — 26 of libarchive 3.8.9 sources, vendored once
+        and compiled by two build systems: SwiftPM on iOS, CMake and the NDK on
+        Android, against one hand-authored config.h. It exists for exactly one
+        job, decompressing a RAR entry. This is the only C the two apps have in
+        common, and the only place a build-level divergence could hide.
+      '''
+      technology 'C, BSD-2-Clause'
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Both apps read all five declarative artefacts, and both compile the one
+  // C library. The two edge sets are identical on purpose.
+  // ---------------------------------------------------------------------
+
+  ios -> shared.specs 'implements'
+  ios -> shared.tokens 'generates from'
+  ios -> shared.fixtures 'asserts against'
+  ios -> shared.fonts 'bundles'
+  ios -> shared.licences 'renders'
+  ios -[dependsOn]-> shared.libarchive 'compiles, via SwiftPM'
+
+  android -> shared.specs 'implements'
+  android -> shared.tokens 'generates from'
+  android -> shared.fixtures 'asserts against'
+  android -> shared.fonts 'bundles'
+  android -> shared.licences 'renders'
+  android -[dependsOn]-> shared.libarchive 'compiles, via CMake and the NDK'
+}
+
+views {
+
+  view index {
+    title 'What the two apps actually share'
+    description '''
+      Five declarative artefacts and one C library. Nothing here is a runtime
+      either app links against, except the vendored libarchive sources, which
+      are compiled twice from a single copy — by SwiftPM on iOS and by CMake
+      and the NDK on Android, against one hand-authored `config.h`.
+    '''
+
+    include shared
+    include shared.*
+    include ios
+    include android
+
+    autoLayout LeftRight 110 90
+  }
+}

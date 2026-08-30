@@ -1,0 +1,214 @@
+// StoryArc for Android — C4 level 2, containers.
+//
+// SELF-CONTAINED ON PURPOSE. Konvoy renders a diagram by calling
+// `LikeC4.fromSource(<one file's text>)`, which parses this file alone. See
+// ../README.md.
+//
+// The module list is transcribed from apps/android/settings.gradle.kts; the
+// edges from the `dependencies` blocks of the build.gradle.kts files.
+
+specification {
+
+  element app {
+    notation 'Native application'
+    style {
+      shape mobile
+      color primary
+    }
+  }
+
+  // A build module: a Gradle module.
+  element module {
+    notation 'Build module'
+    style {
+      shape rectangle
+      color indigo
+    }
+  }
+
+  element artefact {
+    notation 'Shared artefact'
+    style {
+      shape storage
+      color green
+    }
+  }
+
+  element externalSystem {
+    notation 'External system'
+    style {
+      shape rectangle
+      color slate
+    }
+  }
+
+  relationship dependsOn {
+    notation 'Build dependency'
+  }
+
+  relationship reads {
+    notation 'Reads over a protocol'
+    line dashed
+  }
+
+  tag android
+  tag shared
+}
+
+model {
+
+  android = app 'StoryArc for Android' {
+    #android
+    description '''
+      Kotlin and Compose, API 31 floor. Flat Gradle modules under a single
+      settings.gradle.kts. Depends on nothing in apps/ios.
+    '''
+    technology 'Kotlin, Jetpack Compose'
+
+    androidApp = module ':app' 'The application module. Composes every feature.'
+
+    coreModel = module ':core:model' 'The domain types. Depends on nothing.'
+
+    coreDesignSystem = module ':core:designsystem' 'Generated tokens, typography and the shared Compose chrome.'
+
+    coreFormat = module ':core:format' {
+      description 'Archive and document parsing: ZIP, TAR, RAR, PDF, EPUB metadata, image folders, SAF trees.'
+    }
+
+    corePersistence = module ':core:persistence' {
+      description 'The library index, reading progress, downloads, and the credential store.'
+      technology 'Room, Android Keystore'
+    }
+
+    coreCatalogue = module ':core:catalogue' 'OPDS 1.2 and 2.0 feed parsing.'
+
+    coreKavita = module ':core:kavita' 'The Kavita REST client, layered on core:catalogue.'
+
+    coreSmb = module ':core:smb' {
+      description 'The SMB seam, mirroring the iOS one.'
+      technology 'jcifs-ng'
+    }
+
+    featureLibrary = module ':feature:library' 'Library browsing, source management, downloads.'
+
+    featureReader = module ':feature:reader' 'The comic and PDF reader.'
+
+    featureEpubReader = module ':feature:epubreader' {
+      description 'Reflowable and fixed-layout EPUB rendering. A feature module here, because Android has no platform floor forcing a separate package.'
+      technology 'Readium Kotlin toolkit'
+    }
+
+    featureSettings = module ':feature:settings' 'Settings and about.'
+  }
+
+  // Only the shared artefact this build compiles.
+  shared = artefact 'Shared artefacts' {
+    #shared
+
+    libarchive = artefact 'libarchive (vendored)' {
+      description '''
+        third_party/libarchive — 26 of libarchive 3.8.9 sources, vendored once
+        and compiled by two build systems. Here, by CMake and the NDK, against
+        the same hand-authored config.h iOS uses. One job: decompressing a RAR
+        entry (ADR-0005).
+      '''
+      technology 'C, BSD-2-Clause'
+    }
+  }
+
+  deviceStorage = externalSystem 'Device storage' {
+    description 'Files on the device or in a document provider.'
+    technology 'Storage Access Framework'
+  }
+
+  smbShare = externalSystem 'SMB share' {
+    description 'A network share the reader configured.'
+    technology 'SMB 2/3'
+  }
+
+  opdsCatalogue = externalSystem 'OPDS catalogue' {
+    description 'Any OPDS 1.2 or 2.0 feed the reader points the app at.'
+    technology 'OPDS over HTTPS'
+  }
+
+  kavitaServer = externalSystem 'Kavita server' {
+    description 'A self-hosted Kavita instance the reader configured.'
+    technology 'Kavita REST API'
+  }
+
+  // ---------------------------------------------------------------------
+  // The build graph. Mirrors the iOS one module for module, reached a
+  // different way: flat Gradle modules rather than targets in a package.
+  // ---------------------------------------------------------------------
+
+  android.androidApp -[dependsOn]-> android.coreDesignSystem
+  android.androidApp -[dependsOn]-> android.coreModel
+  android.androidApp -[dependsOn]-> android.coreFormat
+  android.androidApp -[dependsOn]-> android.corePersistence
+  android.androidApp -[dependsOn]-> android.coreCatalogue
+  android.androidApp -[dependsOn]-> android.coreKavita
+  android.androidApp -[dependsOn]-> android.coreSmb
+  android.androidApp -[dependsOn]-> android.featureLibrary
+  android.androidApp -[dependsOn]-> android.featureReader
+  android.androidApp -[dependsOn]-> android.featureEpubReader
+  android.androidApp -[dependsOn]-> android.featureSettings
+
+  android.coreDesignSystem -[dependsOn]-> android.coreModel
+  android.coreFormat -[dependsOn]-> android.coreModel
+  android.corePersistence -[dependsOn]-> android.coreModel
+  android.coreCatalogue -[dependsOn]-> android.coreModel
+  android.coreKavita -[dependsOn]-> android.coreModel
+  android.coreKavita -[dependsOn]-> android.coreCatalogue
+  android.coreSmb -[dependsOn]-> android.coreFormat
+
+  android.featureLibrary -[dependsOn]-> android.coreDesignSystem
+  android.featureLibrary -[dependsOn]-> android.coreModel
+  android.featureLibrary -[dependsOn]-> android.coreFormat
+  android.featureLibrary -[dependsOn]-> android.corePersistence
+  android.featureLibrary -[dependsOn]-> android.coreCatalogue
+  android.featureLibrary -[dependsOn]-> android.coreKavita
+  android.featureLibrary -[dependsOn]-> android.coreSmb
+
+  android.featureReader -[dependsOn]-> android.coreDesignSystem
+  android.featureReader -[dependsOn]-> android.coreModel
+  android.featureReader -[dependsOn]-> android.coreFormat
+  android.featureReader -[dependsOn]-> android.corePersistence
+
+  android.featureEpubReader -[dependsOn]-> android.coreDesignSystem
+  android.featureEpubReader -[dependsOn]-> android.coreModel
+  android.featureEpubReader -[dependsOn]-> android.corePersistence
+
+  android.featureSettings -[dependsOn]-> android.coreDesignSystem
+  android.featureSettings -[dependsOn]-> android.coreModel
+  android.featureSettings -[dependsOn]-> android.corePersistence
+
+  android.coreFormat -[dependsOn]-> shared.libarchive 'compiles, via CMake and the NDK'
+
+  // What reaches outside.
+  android.coreFormat -[reads]-> deviceStorage 'ranged reads'
+  android.coreSmb -[reads]-> smbShare 'ranged reads over SMB 2/3'
+  android.coreCatalogue -[reads]-> opdsCatalogue 'fetches feeds'
+  android.coreKavita -[reads]-> kavitaServer 'calls the REST API'
+}
+
+views {
+
+  view index {
+    title 'Android containers — flat Gradle modules'
+    description '''
+      The same shape reached a different way: flat Gradle modules under one
+      `settings.gradle.kts`, with EPUB rendering as an ordinary feature module
+      because no platform floor forces it out. Compare the module names against
+      `:core:*` and `:feature:*` in the settings file.
+    '''
+
+    include android
+    include android.*
+    // The parent is named alongside its child on purpose. See ../README.md.
+    include shared
+    include shared.*
+    include deviceStorage, smbShare, opdsCatalogue, kavitaServer
+
+    autoLayout TopBottom 100 90
+  }
+}

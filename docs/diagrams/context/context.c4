@@ -1,0 +1,196 @@
+// StoryArc — C4 level 1, system context.
+//
+// SELF-CONTAINED ON PURPOSE. Konvoy renders a diagram by calling
+// `LikeC4.fromSource(<one file's text>)`, which parses this file alone. A model
+// split across files resolves nothing and draws a blank canvas without raising
+// an error. So every `.c4` file here repeats its own specification. See
+// ../README.md.
+
+specification {
+
+  element person {
+    notation 'Person'
+    style {
+      shape person
+      color secondary
+    }
+  }
+
+  // A shipped application: one of the two independent native apps.
+  element app {
+    notation 'Native application'
+    style {
+      shape mobile
+      color primary
+    }
+  }
+
+  // A committed, declarative artefact both apps read. Not code.
+  element artefact {
+    notation 'Shared artefact'
+    style {
+      shape storage
+      color green
+    }
+  }
+
+  // Something outside the app, reached over a network or the file system.
+  element externalSystem {
+    notation 'External system'
+    style {
+      shape rectangle
+      color slate
+    }
+  }
+
+  // A capability the product deliberately does not have. Drawn so the absence
+  // is stated rather than assumed. Nothing of this kind exists in the code.
+  element absent {
+    notation 'Deliberately absent'
+    style {
+      shape rectangle
+      color muted
+      border dashed
+      opacity 5%
+    }
+  }
+
+  relationship reads {
+    notation 'Reads over a protocol'
+    line dashed
+  }
+
+  tag ios
+  tag android
+  tag shared
+  tag absence
+}
+
+model {
+
+  reader = person 'Reader' 'Reads comics and ebooks from sources they configured themselves.'
+
+  // ---------------------------------------------------------------------
+  // The single most important fact: two applications, no shared runtime.
+  // ADR-0001. There is deliberately no edge between them.
+  // ---------------------------------------------------------------------
+
+  ios = app 'StoryArc for iOS' {
+    #ios
+    description '''
+      Swift and SwiftUI, iOS 26 floor. One Xcode app target composing two
+      local SPM packages. Depends on nothing in apps/android.
+    '''
+    technology 'Swift 6, SwiftUI'
+  }
+
+  android = app 'StoryArc for Android' {
+    #android
+    description '''
+      Kotlin and Compose, API 31 floor. Flat Gradle modules under a single
+      settings.gradle.kts. Depends on nothing in apps/ios.
+    '''
+    technology 'Kotlin, Jetpack Compose'
+  }
+
+  shared = artefact 'Shared artefacts' {
+    #shared
+    description '''
+      Committed files both builds read: 17 capability specs, the design
+      tokens, the test-fixture corpus, the bundled typefaces, the licence
+      inventory, and one vendored copy of libarchive. No compiled artefact
+      crosses between the apps.
+    '''
+  }
+
+  // ---------------------------------------------------------------------
+  // The outside world. Four source types, and nothing the project operates.
+  // ---------------------------------------------------------------------
+
+  deviceStorage = externalSystem 'Device storage' {
+    description 'Files on the device or in a document provider. The zero-configuration source: open a file or folder and read it.'
+    technology 'Files app / Storage Access Framework'
+  }
+
+  smbShare = externalSystem 'SMB share' {
+    description 'A network share the reader configured. Read with ranged requests so a publication streams without a full download.'
+    technology 'SMB 2/3'
+  }
+
+  opdsCatalogue = externalSystem 'OPDS catalogue' {
+    description 'Any OPDS 1.2 or 2.0 feed the reader points the app at.'
+    technology 'OPDS over HTTPS'
+  }
+
+  kavitaServer = externalSystem 'Kavita server' {
+    description 'A self-hosted Kavita instance the reader configured, with its own account and API key.'
+    technology 'Kavita REST API'
+  }
+
+  noBackend = absent 'No StoryArc service' {
+    #absence
+    description '''
+      There is no such component, and that is the design. StoryArc has no
+      backend, no account system, no analytics, no crash reporting and no
+      telemetry endpoint. Data leaves the device only to a source the reader
+      configured, which is why every arrow out of the two apps lands on
+      something the reader owns or chose.
+    '''
+  }
+
+  // ---------------------------------------------------------------------
+  // Edges. Note which one is missing: there is none between ios and android.
+  // ---------------------------------------------------------------------
+
+  reader -> ios 'reads on'
+  reader -> android 'reads on'
+
+  reader -> deviceStorage 'owns files on'
+  reader -> smbShare 'operates'
+  reader -> opdsCatalogue 'chooses'
+  reader -> kavitaServer 'self-hosts'
+
+  ios -> shared 'implements, and generates from'
+  android -> shared 'implements, and generates from'
+
+  ios -[reads]-> deviceStorage 'ranged reads'
+  ios -[reads]-> smbShare 'ranged reads over SMB 2/3'
+  ios -[reads]-> opdsCatalogue 'fetches feeds'
+  ios -[reads]-> kavitaServer 'calls the REST API'
+
+  android -[reads]-> deviceStorage 'ranged reads'
+  android -[reads]-> smbShare 'ranged reads over SMB 2/3'
+  android -[reads]-> opdsCatalogue 'fetches feeds'
+  android -[reads]-> kavitaServer 'calls the REST API'
+}
+
+views {
+
+  view index {
+    title 'Context — two apps, one contract, no server'
+    description '''
+      The thing a newcomer gets wrong first: StoryArc is **two products**, not
+      one product with two front ends. `apps/ios` and `apps/android` share no
+      code and no runtime. There is no edge between them on purpose — what
+      keeps them the same app is the declarative artefacts they both read, and
+      nothing else. ADR-0001.
+
+      Note what is missing. There is no StoryArc service anywhere on this
+      diagram, because there is none in the product: no backend, no accounts,
+      no analytics, no crash reporting. Every arrow leaving an app lands on
+      something the reader owns or chose.
+    '''
+
+    include reader
+    include ios
+    include android
+    include shared
+    include deviceStorage
+    include smbShare
+    include opdsCatalogue
+    include kavitaServer
+    include noBackend
+
+    autoLayout TopBottom 110 100
+  }
+}

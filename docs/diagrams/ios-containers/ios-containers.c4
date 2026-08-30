@@ -1,0 +1,258 @@
+// StoryArc for iOS — C4 level 2, containers.
+//
+// SELF-CONTAINED ON PURPOSE. Konvoy renders a diagram by calling
+// `LikeC4.fromSource(<one file's text>)`, which parses this file alone. See
+// ../README.md.
+//
+// The module list is transcribed from apps/ios/Packages/*/Package.swift and
+// apps/ios/project.yml; the edges from the `dependencies` sections of those
+// same files.
+
+specification {
+
+  element app {
+    notation 'Native application'
+    style {
+      shape mobile
+      color primary
+    }
+  }
+
+  // A Swift Package Manager package. Only iOS has these.
+  element package {
+    notation 'SPM package'
+    style {
+      color indigo
+      opacity 10%
+    }
+  }
+
+  // A build module: an SPM target.
+  element module {
+    notation 'Build module'
+    style {
+      shape rectangle
+      color indigo
+    }
+  }
+
+  element artefact {
+    notation 'Shared artefact'
+    style {
+      shape storage
+      color green
+    }
+  }
+
+  element externalSystem {
+    notation 'External system'
+    style {
+      shape rectangle
+      color slate
+    }
+  }
+
+  relationship dependsOn {
+    notation 'Build dependency'
+  }
+
+  relationship reads {
+    notation 'Reads over a protocol'
+    line dashed
+  }
+
+  tag ios
+  tag shared
+}
+
+model {
+
+  ios = app 'StoryArc for iOS' {
+    #ios
+    description '''
+      Swift and SwiftUI, iOS 26 floor. One Xcode app target composing two
+      local SPM packages. Depends on nothing in apps/android.
+    '''
+    technology 'Swift 6, SwiftUI'
+
+    iosApp = module 'StoryArc' {
+      description 'The app target. Generated from project.yml by XcodeGen; the .xcodeproj is not committed.'
+      technology 'SwiftUI App'
+    }
+
+    kit = package 'StoryArcKit' {
+      description '''
+        One package, one dependency graph. Every feature is a target here
+        rather than a separate package, so the module boundaries stay visible
+        in a single manifest. Also builds for macOS so the pure-Swift targets
+        are host-testable without a simulator.
+      '''
+
+      core = module 'StoryArcCore' 'The domain types. Depends on nothing.'
+
+      designSystem = module 'DesignSystem' 'Generated tokens, typography and the shared SwiftUI chrome.'
+
+      formats = module 'Formats' {
+        description 'Archive and document parsing: ZIP, TAR, RAR, PDF, EPUB metadata, image folders.'
+      }
+
+      persistence = module 'Persistence' {
+        description 'The library index, reading progress, downloads, and the credential store.'
+        technology 'SwiftData, Keychain'
+      }
+
+      catalogue = module 'Catalogue' 'OPDS 1.2 and 2.0 feed parsing.'
+
+      kavita = module 'Kavita' 'The Kavita REST client, layered on Catalogue.'
+
+      smb = module 'Smb' {
+        description 'The SMB seam. Everything above it works against RandomAccessSource and learns nothing about the protocol.'
+        technology 'SMBClient 0.3.1 (ADR-0010)'
+      }
+
+      libraryFeature = module 'LibraryFeature' 'Library browsing, source management, downloads.'
+
+      readerFeature = module 'ReaderFeature' 'The comic and PDF reader.'
+
+      settingsFeature = module 'SettingsFeature' 'Settings and about.'
+    }
+
+    epubPackage = package 'StoryArcEpub' {
+      description '''
+        A second package, and only because of a platform floor: the Readium
+        Swift toolkit declares iOS support only, and StoryArcKit also builds
+        for macOS. SwiftPM validates the dependency graph for every declared
+        platform, so Readium cannot live in StoryArcKit.
+      '''
+
+      epubReaderFeature = module 'EpubReaderFeature' {
+        description 'Reflowable and fixed-layout EPUB rendering.'
+        technology 'Readium Swift toolkit 3.11.0'
+      }
+    }
+  }
+
+  // Only the shared artefacts this build actually reads.
+  shared = artefact 'Shared artefacts' {
+    #shared
+
+    libarchive = artefact 'libarchive (vendored)' {
+      description '''
+        third_party/libarchive — 26 of libarchive 3.8.9 sources, vendored once
+        and compiled by two build systems. Here, by SwiftPM. It exists for
+        exactly one job, decompressing a RAR entry (ADR-0005).
+      '''
+      technology 'C, BSD-2-Clause'
+    }
+
+    fonts = artefact 'Bundled typefaces' {
+      description 'packages/fonts — one copy on disk, read as an SPM resource by iOS.'
+    }
+
+    licences = artefact 'Licence inventory' {
+      description 'packages/licences — the third-party licence list rendered in the About screen.'
+    }
+  }
+
+  deviceStorage = externalSystem 'Device storage' {
+    description 'Files on the device or in a document provider.'
+    technology 'Files app'
+  }
+
+  smbShare = externalSystem 'SMB share' {
+    description 'A network share the reader configured.'
+    technology 'SMB 2/3'
+  }
+
+  opdsCatalogue = externalSystem 'OPDS catalogue' {
+    description 'Any OPDS 1.2 or 2.0 feed the reader points the app at.'
+    technology 'OPDS over HTTPS'
+  }
+
+  kavitaServer = externalSystem 'Kavita server' {
+    description 'A self-hosted Kavita instance the reader configured.'
+    technology 'Kavita REST API'
+  }
+
+  // ---------------------------------------------------------------------
+  // The build graph. No feature target depends on another: the library opens
+  // the reader through the app layer.
+  // ---------------------------------------------------------------------
+
+  ios.iosApp -[dependsOn]-> ios.kit.designSystem
+  ios.iosApp -[dependsOn]-> ios.kit.core
+  ios.iosApp -[dependsOn]-> ios.kit.libraryFeature
+  ios.iosApp -[dependsOn]-> ios.kit.readerFeature
+  ios.iosApp -[dependsOn]-> ios.kit.settingsFeature
+  ios.iosApp -[dependsOn]-> ios.kit.persistence
+  ios.iosApp -[dependsOn]-> ios.epubPackage.epubReaderFeature
+
+  ios.kit.designSystem -[dependsOn]-> ios.kit.core
+  ios.kit.formats -[dependsOn]-> ios.kit.core
+  ios.kit.persistence -[dependsOn]-> ios.kit.core
+  ios.kit.catalogue -[dependsOn]-> ios.kit.core
+  ios.kit.kavita -[dependsOn]-> ios.kit.core
+  ios.kit.kavita -[dependsOn]-> ios.kit.catalogue
+  ios.kit.smb -[dependsOn]-> ios.kit.core
+  ios.kit.smb -[dependsOn]-> ios.kit.formats
+
+  ios.kit.libraryFeature -[dependsOn]-> ios.kit.designSystem
+  ios.kit.libraryFeature -[dependsOn]-> ios.kit.core
+  ios.kit.libraryFeature -[dependsOn]-> ios.kit.formats
+  ios.kit.libraryFeature -[dependsOn]-> ios.kit.persistence
+  ios.kit.libraryFeature -[dependsOn]-> ios.kit.catalogue
+  ios.kit.libraryFeature -[dependsOn]-> ios.kit.kavita
+  ios.kit.libraryFeature -[dependsOn]-> ios.kit.smb
+
+  ios.kit.readerFeature -[dependsOn]-> ios.kit.designSystem
+  ios.kit.readerFeature -[dependsOn]-> ios.kit.core
+  ios.kit.readerFeature -[dependsOn]-> ios.kit.formats
+  ios.kit.readerFeature -[dependsOn]-> ios.kit.persistence
+
+  ios.kit.settingsFeature -[dependsOn]-> ios.kit.designSystem
+  ios.kit.settingsFeature -[dependsOn]-> ios.kit.core
+  ios.kit.settingsFeature -[dependsOn]-> ios.kit.persistence
+  ios.kit.settingsFeature -[dependsOn]-> shared.licences
+
+  ios.epubPackage.epubReaderFeature -[dependsOn]-> ios.kit.designSystem
+  ios.epubPackage.epubReaderFeature -[dependsOn]-> ios.kit.core
+  ios.epubPackage.epubReaderFeature -[dependsOn]-> ios.kit.persistence
+  ios.epubPackage.epubReaderFeature -[dependsOn]-> shared.fonts
+
+  ios.kit.formats -[dependsOn]-> shared.libarchive 'compiles, via SwiftPM'
+
+  // What reaches outside.
+  ios.kit.formats -[reads]-> deviceStorage 'ranged reads'
+  ios.kit.smb -[reads]-> smbShare 'ranged reads over SMB 2/3'
+  ios.kit.catalogue -[reads]-> opdsCatalogue 'fetches feeds'
+  ios.kit.kavita -[reads]-> kavitaServer 'calls the REST API'
+}
+
+views {
+
+  view index {
+    title 'iOS containers — StoryArcKit, StoryArcEpub and the app target'
+    description '''
+      One app target and two local SPM packages. `StoryArcEpub` exists only
+      because the Readium Swift toolkit declares iOS support alone while
+      `StoryArcKit` also builds for macOS, so its pure-Swift targets can be
+      tested on the host without a simulator.
+
+      No feature target depends on another: the library opens the reader
+      through the app layer.
+    '''
+
+    include ios
+    include ios.*
+    include ios.kit.*
+    include ios.epubPackage.*
+    // The parent is named alongside its children on purpose: a view that
+    // pulls in a lone element from another branch of the model without its
+    // parent lays out and then renders blank. See ../README.md.
+    include shared
+    include shared.*
+    include deviceStorage, smbShare, opdsCatalogue, kavitaServer
+
+    autoLayout TopBottom 100 90
+  }
+}
