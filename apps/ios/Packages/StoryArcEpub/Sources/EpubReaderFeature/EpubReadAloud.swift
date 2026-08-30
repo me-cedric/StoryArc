@@ -185,12 +185,17 @@ extension EpubReaderModel {
     ///
     /// No duration and no elapsed time: a book has no seconds, and a scrubber that
     /// pretended otherwise would be a control the reader could drag to a place this
-    /// reader cannot honour. Progress goes in as the fraction it actually is.
+    /// reader cannot honour.
+    ///
+    /// Deliberately **not** `MPNowPlayingInfoPropertyIsLiveStream`. It is the obvious
+    /// flag for something with no duration, and on a locked simulator it drew the title
+    /// and the chapter over a "LIVE" bar with no transport at all — iOS reads a live
+    /// stream as something with no next and no previous, which is exactly the sentence
+    /// skip `ebook-reader` asks the lock screen for.
     func publishNowPlaying() {
         let label = spokenLabel
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: label.title,
-            MPNowPlayingInfoPropertyIsLiveStream: true,
             MPNowPlayingInfoPropertyPlaybackRate: readAloud.isSpeaking ? 1.0 : 0.0,
         ]
         if let detail = label.detail {

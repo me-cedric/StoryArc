@@ -13,6 +13,12 @@ internal import DesignSystem
 /// reason: it comes and goes, and a control that appeared among the ones at the top would
 /// move them.
 ///
+/// Four glass buttons and no glass behind them. The first version put the row on a
+/// `storyArcGlass()` surface and the four on top of it, and on a simulator three of the
+/// four glyphs vanished: glass over glass lightens twice, and a tinted symbol on the
+/// result is not a symbol any more. These sit directly in the chrome's own
+/// `GlassEffectContainer`, exactly as the four at the top of the screen do.
+///
 /// Android's `ReadAloudBar` is the same five decisions in Compose.
 struct ReadAloudBar: View {
     @Environment(\.theme) private var theme
@@ -35,9 +41,6 @@ struct ReadAloudBar: View {
             control("forward.end", "readaloud.next", action: onNext)
             control("stop.fill", "readaloud.stop", action: onStop)
         }
-        .padding(.horizontal, StoryArcSpace.sm)
-        .padding(.vertical, StoryArcSpace.xs)
-        .storyArcGlass()
     }
 
     private func control(
