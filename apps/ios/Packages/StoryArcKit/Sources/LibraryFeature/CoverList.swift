@@ -63,6 +63,9 @@ struct ListRow: View {
 
     @State private var cover: CGImage?
 
+    /// The server whose list just refused this publication, if one did.
+    @State private var refusedServer: String?
+
     var body: some View {
         HStack(spacing: StoryArcSpace.md) {
             if let isPicked { PickMark(isPicked: isPicked) }
@@ -108,6 +111,20 @@ struct ListRow: View {
                 onOpen(publication)
             }
         }
+        // The same long press the grid answers. `native-experience` asks for the system's
+        // context menu wherever the app needs one, and a publication does not stop having
+        // shelves because the reader switched to the list layout — until this was here,
+        // marking something read was a thing you could only do in the grid, which is a rule
+        // no reader could have guessed.
+        //
+        // Absent while picking, for the reason the grid's is: the bar below is already
+        // offering the same actions for everything that is picked.
+        .contextMenu {
+            if isPicked == nil {
+                AddToShelfMenu(model: model, publications: [publication]) { refusedServer = $0 }
+            }
+        }
+        .refusedByServer($refusedServer, model: model, publication: publication)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
         .accessibilityAddTraits(isPicked == true ? .isSelected : [])

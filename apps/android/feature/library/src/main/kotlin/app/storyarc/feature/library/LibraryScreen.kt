@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarHostState
@@ -71,7 +72,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.rememberWindowClass
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -153,6 +156,21 @@ fun LibraryScreen(
 ) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
+
+    // The one input to the layout, and it is the window's own: no device check, no
+    // posture check. When it says there is room, the app layer is drawing a navigation
+    // rail beside this screen, and the two ways in that the rail already shows -- the
+    // catalogue strip and the collections and settings icons -- come off the top bar
+    // rather than being offered twice.
+    val windowClass = rememberWindowClass()
+
+    // What Android does at a content boundary. `native-experience` asks for a scroll edge
+    // effect where content meets chrome; on Material that is the top bar taking its
+    // scrolled container colour as the shelf passes under it, and it is pinned rather
+    // than collapsing because the sort, filter and layout controls have to stay reachable
+    // while a reader is deep in a long library. The stretch at the far end of a scroll is
+    // Compose's own and needs nothing declared.
+    val topBarScroll = TopAppBarDefaults.pinnedScrollBehavior()
 
     /** The publication whose add-to-shelf sheet is open, if any. */
     var shelving by remember { mutableStateOf<Publication?>(null) }
@@ -285,12 +303,13 @@ fun LibraryScreen(
     BulkUndoEffect(undo, snackbars, viewModel, publications, onMark) { undo = null }
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.nestedScroll(topBarScroll.nestedScrollConnection),
         containerColor = palette.surfaceCanvas,
         snackbarHost = { SnackbarHost(snackbars) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.library_title)) },
+                scrollBehavior = topBarScroll,
                 actions = {
                     if (viewModel != null && publications.isNotEmpty()) {
                         // The way in. The way out is in the bar the selection puts up, so
@@ -330,22 +349,26 @@ fun LibraryScreen(
                             )
                         }
                     }
-                    // Last, and always present. A reader with an empty library still
-                    // needs to reach About, and `settings-and-about` puts the licences
-                    // there.
-                    IconButton(onClick = onOpenShelves) {
-                        Icon(
-                            imageVector = Icons.Filled.Inventory2,
-                            contentDescription = stringResource(R.string.shelves_title),
-                            tint = palette.accent,
-                        )
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Filled.Settings,
-                            contentDescription = stringResource(R.string.library_settings),
-                            tint = palette.accent,
-                        )
+                    // Last, and only where there is no rail. A reader with an empty
+                    // library still needs to reach About, and `settings-and-about` puts
+                    // the licences there -- but a wide window already shows both of these
+                    // as rail items, and a top bar that repeated them would be two
+                    // buttons for one place.
+                    if (!windowClass.showsSidebar) {
+                        IconButton(onClick = onOpenShelves) {
+                            Icon(
+                                imageVector = Icons.Filled.Inventory2,
+                                contentDescription = stringResource(R.string.shelves_title),
+                                tint = palette.accent,
+                            )
+                        }
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(
+                                imageVector = Icons.Filled.Settings,
+                                contentDescription = stringResource(R.string.library_settings),
+                                tint = palette.accent,
+                            )
+                        }
                     }
                 },
             )
@@ -398,12 +421,8 @@ fun LibraryScreen(
             // Catalogues, servers and shares together: all three are places to browse
             // rather than shelves of local publications, and a reader with one of each
             // should not have to learn three ways in.
-            val catalogues = registry.sources.filter {
-                it.kind == SourceKind.OPDS_CATALOG ||
-                    it.kind == SourceKind.KAVITA_SERVER ||
-                    it.kind == SourceKind.NETWORK_SHARE
-            }
-            if (catalogues.isNotEmpty()) {
+            val catalogues = registry.sources.filter { it.kind.isBrowsable }
+            if (catalogues.isNotEmpty() && !windowClass.showsSidebar) {
                 CatalogueStrip(sources = catalogues, onOpen = onBrowse)
             }
 
@@ -454,6 +473,7 @@ fun LibraryScreen(
                                 onOpen = open,
                                 selection = selection.ids.takeIf { selection.isActive },
                                 onToggle = { selection = selection.toggle(it.id) },
+                                onAddToShelf = addToShelf,
                             )
                         }
                     }

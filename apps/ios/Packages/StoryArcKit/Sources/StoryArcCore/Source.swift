@@ -6,6 +6,24 @@ public enum SourceKind: String, Sendable, Codable, CaseIterable {
     case networkShare
     case opdsCatalog
     case kavitaServer
+
+    /// Whether this is a place a reader travels *to*, rather than a shelf already
+    /// folded into the library.
+    ///
+    /// A local folder's publications are scanned and land in the grid, so a way in to
+    /// it would lead back to where the reader already is. The other three hold content
+    /// that is not on the device and each needs its own browser.
+    ///
+    /// One property rather than the same three-way comparison in the catalogue strip,
+    /// the sidebar and Android's screen: three copies is how one of them ends up wrong.
+    /// A `switch` rather than `!= .localFolder` so a fifth kind cannot be quietly
+    /// assumed to be browsable — it has to be answered here.
+    public var isBrowsable: Bool {
+        switch self {
+        case .localFolder: false
+        case .networkShare, .opdsCatalog, .kavitaServer: true
+        }
+    }
 }
 
 /// `sources` requires exactly these four states, and requires that none of them

@@ -148,3 +148,41 @@ struct AddToShelfMenu: View {
         onChange?(BulkUndo(kind: kind, ids: changed))
     }
 }
+
+extension View {
+    /// The alert a server's refusal raises, and the local list it offers instead.
+    ///
+    /// A modifier rather than a copy per cell: the grid, the continue row and the list
+    /// all present `AddToShelfMenu`, a context menu cannot raise an alert of its own,
+    /// and three copies of the same alert is how two of them end up saying different
+    /// things.
+    func refusedByServer(
+        _ server: Binding<String?>,
+        model: LibraryModel,
+        publication: Publication
+    ) -> some View {
+        alert(
+            Text("shelves.serverOnly.title", bundle: .module),
+            isPresented: Binding(
+                get: { server.wrappedValue != nil },
+                set: { if !$0 { server.wrappedValue = nil } }
+            )
+        ) {
+            Button {
+                // The offer the spec asks for: a local list can hold anything.
+                model.create(list: publication.displayTitle)
+                if let made = model.shelves.lists.last {
+                    model.append([publication.id], toList: made.id)
+                }
+                server.wrappedValue = nil
+            } label: {
+                Text("shelves.serverOnly.local", bundle: .module)
+            }
+            Button(role: .cancel) { server.wrappedValue = nil } label: {
+                Text("shelves.cancel", bundle: .module)
+            }
+        } message: {
+            Text("shelves.serverOnly.body \(server.wrappedValue ?? "")", bundle: .module)
+        }
+    }
+}

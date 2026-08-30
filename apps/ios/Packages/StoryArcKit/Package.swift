@@ -102,6 +102,9 @@ let package = Package(
         .testTarget(name: "KavitaTests", dependencies: ["Kavita"]),
         .testTarget(name: "ReaderFeatureTests", dependencies: ["ReaderFeature"]),
         .testTarget(name: "SettingsFeatureTests", dependencies: ["SettingsFeature"]),
+        // The adaptive layout decides what a sidebar holds, and there is no simulator in
+        // this repository's loop. What can be asserted without one is asserted here.
+        .testTarget(name: "LibraryFeatureTests", dependencies: ["LibraryFeature"]),
     ]
 )
 

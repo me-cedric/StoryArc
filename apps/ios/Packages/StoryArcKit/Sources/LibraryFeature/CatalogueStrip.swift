@@ -49,6 +49,12 @@ struct CatalogueStrip: View {
             .padding(.vertical, StoryArcSpace.sm)
         }
         .scrollIndicators(.hidden)
-        .background(.bar)
+        // Liquid Glass rather than `.bar`. `native-experience` asks for floating chrome
+        // on glass "with an opaque fallback declared for Reduce Transparency", and a
+        // plain material gives neither: it does not pick up the covers moving beneath
+        // it, and it has no fallback of its own to declare. The strip is carried as a
+        // `safeAreaBar` by the library, so the content behind it fades at the boundary
+        // rather than sliding under a hard edge.
+        .storyArcGlass(in: Rectangle())
     }
 }

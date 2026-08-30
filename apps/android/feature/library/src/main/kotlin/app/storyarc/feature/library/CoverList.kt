@@ -1,9 +1,10 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +66,8 @@ internal fun CoverList(
      */
     selection: Set<String>? = null,
     onToggle: (Publication) -> Unit = {},
+    /** A long press, where a publication is put on a shelf. Null where nothing hosts it. */
+    onAddToShelf: ((Publication) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val thumbnailWidth = 44.dp
@@ -84,6 +87,7 @@ internal fun CoverList(
                 maxPixelSize,
                 isPicked = selection?.contains(publication.id),
                 onToggle = onToggle,
+                onAddToShelf = onAddToShelf,
             )
             HorizontalDivider()
         }
@@ -91,6 +95,7 @@ internal fun CoverList(
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun ListRow(
     publication: Publication,
     viewModel: LibraryViewModel,
@@ -100,6 +105,7 @@ private fun ListRow(
     /** Whether this one is picked, or null when the library is not in selection mode. */
     isPicked: Boolean? = null,
     onToggle: (Publication) -> Unit = {},
+    onAddToShelf: ((Publication) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -116,10 +122,19 @@ private fun ListRow(
             // to show the same refusal a second time wastes the user's tap.
             //
             // While the reader is picking, a tap picks -- even one that cannot be opened,
-            // which can still be shelved and marked read.
-            .clickable(enabled = isPicked != null || publication.isOpenable) {
-                if (isPicked != null) onToggle(publication) else onOpen(publication)
-            }
+            // which can still be shelved and marked read. The long press is the same one
+            // the grid answers: `native-experience` asks for the system's context gesture
+            // wherever the app needs one, and a publication does not stop having
+            // collections because the reader switched to the list layout. It is off while
+            // picking, because the bar below is already offering the same actions for
+            // everything that is picked.
+            .combinedClickable(
+                enabled = isPicked != null || publication.isOpenable,
+                onClick = { if (isPicked != null) onToggle(publication) else onOpen(publication) },
+                onLongClick = {
+                    if (isPicked == null) onAddToShelf?.invoke(publication)
+                },
+            )
             .semantics { if (isPicked != null) selected = isPicked }
             // Material's 48 dp touch-target floor, per `native-experience`.
             .heightIn(min = StoryArcSpace.xxl + StoryArcSpace.lg)
