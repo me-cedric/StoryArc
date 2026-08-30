@@ -23,11 +23,17 @@
     <string name="destination_downloads">Downloads</string>
     <string name="destination_open_library">Go to your library</string>
 
-    <!-- Secondary entries, drawn only where the window is wide enough for a rail. The
-         library's own top bar carries both on a narrow window and drops them on a wide one,
-         so these are what stops a tablet reader reaching neither. -->
+    <!-- Sections, revealed by opening the rail on a wide window. The library's own top bar
+         carries both on a narrow window and drops them on a wide one, so these are what
+         stops a tablet reader reaching neither. -->
     <string name="destination_shelves">Shelves</string>
     <string name="destination_settings">Settings</string>
+
+    <!-- The rail's menu button. The glyph is the whole control, so its name is the
+         description a screen reader reads out, and it says what pressing it will do rather
+         than what the rail currently is. -->
+    <string name="rail_expand">Show more places</string>
+    <string name="rail_collapse">Show fewer places</string>
 
 
     <string name="downloads_destination_on_device">On this device</string>

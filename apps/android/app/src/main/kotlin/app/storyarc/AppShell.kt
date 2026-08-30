@@ -24,6 +24,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.storyarc.core.designsystem.navigation.AdaptiveNavigationShell
 import app.storyarc.core.designsystem.navigation.NavigationEntry
+import app.storyarc.core.designsystem.navigation.RailMenuLabels
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.QuickActionRequest
@@ -202,9 +203,14 @@ internal fun AppShell(
                 onSelect = { navigation = navigation.select(destination) },
             )
         },
-        // Only a rail draws these. The library's own top bar carries Shelves and Settings on
-        // a narrow window and deliberately drops both once the window is wide enough for
-        // side navigation — so without them here, a tablet reader could reach neither.
+        menu = RailMenuLabels(
+            expand = stringResource(R.string.rail_expand),
+            collapse = stringResource(R.string.rail_collapse),
+        ),
+        // Only the opened rail draws these. The library's own top bar carries Shelves and
+        // Settings on a narrow window and deliberately drops both once the window is wide
+        // enough for side navigation — so without them here, a tablet reader could reach
+        // neither.
         secondaryEntries = listOf(
             NavigationEntry(
                 label = stringResource(R.string.destination_shelves),

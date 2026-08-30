@@ -19,6 +19,9 @@
     <string name="destination_shelves">Estanterías</string>
     <string name="destination_settings">Ajustes</string>
 
+    <string name="rail_expand">Mostrar más lugares</string>
+    <string name="rail_collapse">Mostrar menos lugares</string>
+
 
     <string name="downloads_destination_on_device">En este dispositivo</string>
     <string name="downloads_destination_in_flight">Llegando ahora</string>

@@ -43,6 +43,10 @@ dependencies {
     // the adaptive shell names one.
     api(libs.androidx.compose.material3.adaptive.navigation.suite)
     api(libs.androidx.compose.material3.adaptive)
+    // Two glyphs, both this module's own: the rail's menu button, open and shut. A
+    // destination's icon still arrives from the app — what a destination *is* belongs
+    // there — but the control that opens the rail is chrome, and chrome is this module's.
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
