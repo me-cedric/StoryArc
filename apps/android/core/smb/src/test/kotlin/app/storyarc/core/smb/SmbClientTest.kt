@@ -41,6 +41,11 @@ class SmbClientTest {
         SmbClient(address).use { client ->
             val identity = client.connect()
             assertTrue(identity.dialect.startsWith("SMB "))
+            // The server runs with `server signing = mandatory`, so a session that reports
+            // itself unsigned here means the client stopped asking -- which is exactly the
+            // regression `SmbSigningTest` guards the configuration against, seen from the
+            // wire instead of from a property file.
+            assertTrue("the session is signed", identity.isSigned)
         }
     }
 

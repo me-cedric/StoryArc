@@ -203,10 +203,19 @@ private fun ColumnScope.Chooser(
 
     // `network-share`: the detail screen states whether the connection is encrypted. Said
     // here too, because this is the moment a reader decides whether to trust it.
+    //
+    // Signing is said in the same breath, and it is the half that is usually true: neither
+    // client encrypts (ADR-0010), but a server that can sign now signs, and an unsigned
+    // session is one an attacker on the same network can rewrite. Composed rather than
+    // concatenated, so the separator stays inside the translated string.
+    val transport = stringResource(
+        if (step.identity.isEncrypted) R.string.smb_encrypted else R.string.smb_not_encrypted,
+        step.identity.dialect,
+    )
     Text(
         text = stringResource(
-            if (step.identity.isEncrypted) R.string.smb_encrypted else R.string.smb_not_encrypted,
-            step.identity.dialect,
+            if (step.identity.isSigned) R.string.smb_signed else R.string.smb_not_signed,
+            transport,
         ),
         style = MaterialTheme.typography.bodySmall,
         color = palette.textSecondary,

@@ -120,6 +120,16 @@ data class SmbIdentity(
      * be a fact about *this* connection rather than about what the app supports.
      */
     val isEncrypted: Boolean,
+    /**
+     * Whether this session's messages are signed, as the two ends actually negotiated it.
+     *
+     * A fact about *this* connection, like [isEncrypted]: the client now asks for signing
+     * on every session, but a guest share cannot sign at all, so asking is not the same as
+     * getting. Unsigned means an attacker on the same network can rewrite a directory
+     * listing or a page read on its way here, and a reader deciding whether to trust a
+     * share is entitled to know that before they save it.
+     */
+    val isSigned: Boolean,
 )
 
 /**

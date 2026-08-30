@@ -224,6 +224,8 @@
     <string name="smb_root">Tout le partage</string>
     <string name="smb_encrypted">%1$s · chiffré</string>
     <string name="smb_not_encrypted">%1$s · non chiffré</string>
+    <string name="smb_signed">%1$s · signé</string>
+    <string name="smb_not_signed">%1$s · non signé</string>
     <string name="smb_error_not_an_address">Saisissez un hôte et un nom de partage.</string>
     <string name="smb_error_host_unreachable">Cet hôte n’a pas répondu. Vérifiez le nom et que l’appareil est sur le même réseau.</string>
     <string name="smb_error_share_not_found">Ce partage n’existe pas sur cet hôte.</string>

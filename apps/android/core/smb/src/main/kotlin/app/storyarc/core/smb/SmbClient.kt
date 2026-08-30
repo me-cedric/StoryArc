@@ -11,6 +11,7 @@ import jcifs.smb.SmbAuthException
 import jcifs.smb.SmbException
 import jcifs.smb.SmbFile
 import jcifs.smb.SmbRandomAccessFile
+import jcifs.smb.SmbTreeHandleInternal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -23,9 +24,37 @@ import kotlinx.coroutines.withContext
  */
 class SmbClient(private val address: SmbAddress) : AutoCloseable {
 
-    private companion object {
+    internal companion object {
         const val SMB2_OR_LATER = "SMB 2 or later"
         const val SMB1 = "SMB 1"
+
+        /**
+         * How this client is configured, before any credentials are attached.
+         *
+         * Its own function so a test can read it back: what it holds is a set of decisions
+         * that are invisible at every other layer, and the one that was missing --
+         * `signingPreferred` -- cost nothing to leave out and could only be noticed by
+         * asking a server.
+         */
+        internal fun clientProperties(): Properties {
+            val properties = Properties()
+            // SMB 1 is off at both ends. `network-share` requires the app to refuse it
+            // rather than fall back to it, and a client that can still speak it would
+            // refuse only by accident.
+            properties["jcifs.smb.client.minVersion"] = "SMB202"
+            properties["jcifs.smb.client.maxVersion"] = "SMB311"
+            properties["jcifs.smb.client.encryptionEnabled"] = "true"
+            // Sign wherever the server can, rather than only where it insists. jcifs signs
+            // on demand by default, and a consumer NAS that merely *supports* signing --
+            // the common default -- demands nothing, so the session was unsigned and an
+            // attacker on the LAN could rewrite a directory listing or a read into the
+            // format layer. Preferred, not enforced: `network-share` requires a guest share
+            // to work, and a guest session is unsigned by definition.
+            properties["jcifs.smb.client.signingPreferred"] = "true"
+            properties["jcifs.smb.client.responseTimeout"] = "20000"
+            properties["jcifs.smb.client.connTimeout"] = "10000"
+            return properties
+        }
     }
 
 
@@ -76,6 +105,13 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
                     // claimed encryption the transport does not have would be worse than
                     // one that admits it.
                     isEncrypted = false,
+                    // What the session negotiated, not what was asked for. The client now
+                    // prefers signing on every session, but a guest share cannot sign, so
+                    // the answer still has to come from the handle. `areSignaturesActive`
+                    // is on jcifs' internal tree-handle interface -- public, but not on
+                    // `SmbTreeHandle` -- so a handle that is not one answers "no" rather
+                    // than claiming a guarantee nothing checked.
+                    isSigned = (handle as? SmbTreeHandleInternal)?.areSignaturesActive() == true,
                 )
             }
         }
@@ -121,18 +157,7 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
 
     private fun file(path: String) = SmbFile(address.url(path), context)
 
-    private fun base(): CIFSContext {
-        val properties = Properties()
-        // SMB 1 is off at both ends. `network-share` requires the app to refuse it rather
-        // than fall back to it, and a client that can still speak it would refuse only by
-        // accident.
-        properties["jcifs.smb.client.minVersion"] = "SMB202"
-        properties["jcifs.smb.client.maxVersion"] = "SMB311"
-        properties["jcifs.smb.client.encryptionEnabled"] = "true"
-        properties["jcifs.smb.client.responseTimeout"] = "20000"
-        properties["jcifs.smb.client.connTimeout"] = "10000"
-        return BaseContext(PropertyConfiguration(properties))
-    }
+    private fun base(): CIFSContext = BaseContext(PropertyConfiguration(clientProperties()))
 
     /**
      * Turns jcifs' one exception type into the four failures the spec names.

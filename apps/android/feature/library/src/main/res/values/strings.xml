@@ -224,6 +224,8 @@
     <string name="smb_root">The whole share</string>
     <string name="smb_encrypted">%1$s · encrypted</string>
     <string name="smb_not_encrypted">%1$s · not encrypted</string>
+    <string name="smb_signed">%1$s · signed</string>
+    <string name="smb_not_signed">%1$s · not signed</string>
     <string name="smb_error_not_an_address">Enter a host and a share name.</string>
     <string name="smb_error_host_unreachable">That host did not answer. Check the name and that the device is on the same network.</string>
     <string name="smb_error_share_not_found">That share is not on this host.</string>
