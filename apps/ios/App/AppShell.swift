@@ -59,7 +59,7 @@ struct AppShell: View {
     var body: some View {
         TabView(selection: $tab) {
             Tab(value: .destination(.home)) {
-                HomeDestination(
+                HomeScreen(
                     model: model,
                     onOpen: onOpen,
                     onOpenSettings: onOpenSettings
