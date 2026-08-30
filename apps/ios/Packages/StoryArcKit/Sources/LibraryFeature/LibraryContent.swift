@@ -67,6 +67,17 @@ extension LibraryView {
         if isNarrowedToDevice { return { availability = .everywhere } }
         if model.query.scope == .allSources { return nil }
         return { model.widenToAllSources() }
+
+    /// Asks every source again, and walks the folders again.
+    ///
+    /// `sources` already retries on a backoff while the library is on screen; this is the
+    /// reader asking now, because a state with no way out of it is a dead end however
+    /// patient the timer behind it is.
+    func retrySources() {
+        Task {
+            await model.probeNetworkSources(credentials: credentials, pins: pins)
+            await model.rescan()
+        }
     }
 
     var content: some View {
@@ -144,15 +155,22 @@ extension LibraryView {
                 ScanningView(state: model.scanState)
             } else if model.registry.sources.isEmpty {
                 EmptyLibraryView(
+                    openComic: { isImporting = true },
                     addFolder: { isPickingFolder = true },
                     addCatalogue: { isAddingCatalogue = true },
-                    addKavita: { isAddingKavita = true }
+                    addKavita: { isAddingKavita = true },
+                    addShare: { isAddingShare = true }
                 )
             } else {
-                SourceList(
-                    sources: model.registry.sources,
-                    itemCount: { model.itemCount(of: $0) },
-                    onRemove: { model.remove($0, credentials: credentials) }
+                // Sources are configured and the shelf is bare. This used to be
+                // ``SourceList`` — connection states and a coloured dot each, which is
+                // configuration on the browse path, and §6.2 of the design direction puts
+                // configuration in Settings and nowhere else. Settings › Your libraries
+                // still holds it, removal and all.
+                LibraryAway(
+                    isEverythingAway: LibraryAway.everythingAway(in: model.registry),
+                    retry: retrySources,
+                    openComic: { isImporting = true }
                 )
             }
         }

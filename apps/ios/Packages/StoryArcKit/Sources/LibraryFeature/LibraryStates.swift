@@ -50,123 +50,132 @@ struct ScanSummary: View {
     }
 }
 
-/// `sources`: an empty library names the four source types with a one-line
-/// explanation of each, and offers to open a file without configuring anything.
-/// Never an illustration with no action — see DESIGN.md §9.
+/// The first thing a reader ever sees when they own nothing.
+///
+/// `sources`, the *Adding the first source* scenario, states the whole of it: "one sentence
+/// in plain language, one primary action that opens a comic from the device with nothing to
+/// configure first, and one plain secondary action that leads to connecting a library", and
+/// "the four source types are named only after that secondary action is taken".
+///
+/// What stood here was the opposite of every clause of that: four rows, one per transport,
+/// three of them meaningless to the person reading them, two of them inert because the
+/// feature behind them was not built — a taxonomy of protocols on a brand-new reader's very
+/// first screen. Apple's onboarding guidance is essential information only, and not forcing
+/// setup before the core function; opening a comic is two taps to a readable page and
+/// configures nothing.
+///
+/// The four kinds live one level down, in ``AddSourceMenu``, where choosing between them is
+/// the question actually being asked. That menu was written and translated and had no
+/// caller anywhere in the app — the audit counted its strings among the nine that shipped
+/// unreachable. This is its caller.
+///
+/// The sentence is `home.empty.*` rather than a second copy of its own, because Home *is*
+/// this state when the library is empty (`home-screen`), and two surfaces describing one
+/// situation in two sets of words is how a four-language app drifts.
 struct EmptyLibraryView: View {
-    @Environment(\.theme) private var theme
+    /// The primary, and deliberately not a source: a file picker configures nothing and
+    /// remembers nothing beyond the copy the app keeps.
+    var openComic: () -> Void = {}
 
-    /// Offered here as well as in the toolbar. `sources` requires the empty state
-    /// to offer an action rather than only describe one — see DESIGN.md §9.
     var addFolder: () -> Void = {}
-
-    /// The other kinds that are built. Nil for a kind that is not, which is what keeps a
-    /// row from looking like a button that does nothing.
-    var addCatalogue: (() -> Void)?
-    var addKavita: (() -> Void)?
-
-    /// What tapping a kind does, when that kind exists.
-    ///
-    /// The rows describe every source `sources` specifies, and two of the four are built.
-    /// A row with no action stays a description — the alternative is four identical rows of
-    /// which two do nothing, which is worse than saying less.
-    private func action(for kind: SourceKind) -> (() -> Void)? {
-        switch kind {
-        case .localFolder: addFolder
-        case .opdsCatalog: addCatalogue
-        case .kavitaServer: addKavita
-        case .networkShare: nil
-        }
-    }
+    var addCatalogue: () -> Void = {}
+    var addKavita: () -> Void = {}
+    var addShare: () -> Void = {}
 
     var body: some View {
-        VStack(spacing: StoryArcSpace.xl) {
-            Image(systemName: "books.vertical")
-                .font(.system(size: 48, weight: .light))
-                .foregroundStyle(theme.palette.textTertiary)
-
-            VStack(spacing: StoryArcSpace.sm) {
-                Text("library.empty.title", bundle: .module)
-                    .textRole(.title2)
-                    .foregroundStyle(theme.palette.textPrimary)
-
-                Text("library.empty.subtitle", bundle: .module)
-                    .textRole(.subheadline)
-                    .foregroundStyle(theme.palette.textSecondary)
-                    .multilineTextAlignment(.center)
+        ContentUnavailableView {
+            Label {
+                Text("home.empty.title", bundle: .module)
+            } icon: {
+                Image(systemName: "book.closed")
             }
-
-            VStack(spacing: StoryArcSpace.sm) {
-                ForEach(SourceKind.allCases, id: \.self) { kind in
-                    SourceKindRow(kind: kind, action: action(for: kind))
-                }
-            }
-            .padding(.top, StoryArcSpace.xs)
-
-            Button(action: addFolder) {
-                Label {
-                    Text("library.addFolder", bundle: .module)
-                } icon: {
-                    Image(systemName: "folder.badge.plus")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, StoryArcSpace.sm)
+        } description: {
+            Text("home.empty.body", bundle: .module)
+        } actions: {
+            Button(action: openComic) {
+                Text("library.openComic", bundle: .module)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, StoryArcSpace.xs)
             }
             .buttonStyle(.borderedProminent)
+
+            // Plain, and second: a reader who has just installed a comic app wants to read
+            // a comic, and the shelf full of them can wait until they know the app opens
+            // one. `sources` calls this "one plain secondary action".
+            AddSourceMenu(
+                addFolder: addFolder,
+                importFile: openComic,
+                addCatalogue: addCatalogue,
+                addKavita: addKavita,
+                addShare: addShare
+            )
         }
-        .padding(.horizontal, StoryArcSpace.gutter)
         .frame(maxWidth: StoryArcSpace.huge * 8)
     }
 }
 
-struct SourceKindRow: View {
-    @Environment(\.theme) private var theme
-
-    let kind: SourceKind
-
-    /// Nil for a kind that is described but not built.
-    var action: (() -> Void)?
-
-    var body: some View {
-        if let action {
-            Button(action: action) { row }
-                .buttonStyle(.plain)
-        } else {
-            row
-        }
+/// Sources are configured, and the shelf still has nothing on it.
+///
+/// Two ways to arrive, and they are not the same fact, so they do not get the same
+/// sentence: either nothing the reader added can be reached, or the places are answering
+/// and have sent nothing to this device yet. Telling a reader on a train that their library
+/// is empty would be a lie about their books; telling a reader with a fresh, reachable
+/// server that nothing can be reached would be a lie about their network.
+///
+/// What stood here was ``SourceList`` — the configured sources, their connection states and
+/// a coloured dot each. That is the plumbing wearing the shelf's clothes, and §6.2 of the
+/// design direction puts connections in Settings and nowhere else on the browse path. They
+/// are still there, under Settings › Your libraries, with the same removal flow.
+///
+/// Never a dead end: one action asks every source again, one opens a comic that needs no
+/// source at all. Offline is a normal state, so neither sentence is an error and neither is
+/// red — see AGENTS.md §2.
+struct LibraryAway: View {
+    /// Whether nothing the reader added can be reached.
+    ///
+    /// Static and pure so the branch can be asserted without a window: which of the two
+    /// sentences a reader is shown is the whole substance of this view, and a view is where
+    /// a test cannot reach it. A local folder is marked `connected` the moment it is added,
+    /// so a configured folder makes this false — which is right, because a folder with
+    /// nothing in it has not gone away, it is empty, and those are two different sentences.
+    nonisolated static func everythingAway(in registry: SourceRegistry) -> Bool {
+        !registry.sources.isEmpty && registry.sources.allSatisfy { !$0.state.canFetch }
     }
 
-    private var row: some View {
-        HStack(spacing: StoryArcSpace.md) {
-            Image(systemName: kind.symbolName)
-                .font(.system(size: 18))
-                .foregroundStyle(theme.accent)
-                .frame(width: StoryArcSpace.xl)
+    /// Whether *nothing* the reader added can be reached, as opposed to nothing having
+    /// arrived yet from what can be.
+    let isEverythingAway: Bool
 
-            // Tight stack: title and explanation read as one object, per the
-            // uneven-rhythm rule in DESIGN.md §4.
-            VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                Text(kind.titleKey, bundle: .module)
-                    .textRole(.headline)
-                    .foregroundStyle(theme.palette.textPrimary)
-                Text(kind.explanationKey, bundle: .module)
-                    .textRole(.footnote)
-                    .foregroundStyle(theme.palette.textSecondary)
+    let retry: () -> Void
+    let openComic: () -> Void
+
+    var body: some View {
+        ContentUnavailableView {
+            Label {
+                Text("library.empty.title", bundle: .module)
+            } icon: {
+                Image(systemName: isEverythingAway ? "wifi.slash" : "books.vertical")
             }
-
-            Spacer(minLength: 0)
-
-            // The affordance, only where there is something to tap. Two rows that look
-            // identical and behave differently is the defect this avoids.
-            if action != nil {
-                Image(systemName: "chevron.right")
-                    .textRole(.footnote)
-                    .foregroundStyle(theme.palette.textTertiary)
+        } description: {
+            if isEverythingAway {
+                Text("library.away.body", bundle: .module)
+            } else {
+                Text("library.pending.body", bundle: .module)
             }
+        } actions: {
+            Button(action: retry) {
+                Text("source.offline.retry", bundle: .module)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, StoryArcSpace.xs)
+            }
+            .buttonStyle(.borderedProminent)
+
+            Button(action: openComic) {
+                Text("library.openComic", bundle: .module)
+            }
+            .buttonStyle(.plain)
         }
-        .padding(StoryArcSpace.md)
-        .frame(minHeight: StoryArcSpace.xxl + StoryArcSpace.md)
-        .background(theme.palette.surfaceRaised, in: .rect(cornerRadius: StoryArcRadius.lg))
+        .frame(maxWidth: StoryArcSpace.huge * 8)
     }
 }
 

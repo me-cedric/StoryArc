@@ -3875,6 +3875,35 @@
         }
       }
     },
+    "library.away.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keiner der Orte, die Sie hinzugefügt haben, ist gerade erreichbar. Alles, was schon auf diesem Gerät liegt, bleibt lesbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None of the places you added can be reached right now. Anything already on this device is still here to read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahora mismo no se puede acceder a ninguno de los sitios que has añadido. Lo que ya está en este dispositivo se puede seguir leyendo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun des endroits que vous avez ajoutés n’est joignable pour le moment. Tout ce qui est déjà sur cet appareil reste lisible."
+          }
+        }
+      }
+    },
     "library.bulk.changed %lld": {
       "extractionState": "manual",
       "localizations": {
@@ -5374,6 +5403,64 @@
           "stringUnit": {
             "state": "translated",
             "value": "Étiquettes"
+          }
+        }
+      }
+    },
+    "library.openComic": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comic öffnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open a comic"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir un cómic"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir une bande dessinée"
+          }
+        }
+      }
+    },
+    "library.pending.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von den Orten, die Sie hinzugefügt haben, ist noch nichts eingetroffen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing has arrived from the places you added yet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todavía no ha llegado nada de los sitios que has añadido."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien n’est encore arrivé des endroits que vous avez ajoutés."
           }
         }
       }

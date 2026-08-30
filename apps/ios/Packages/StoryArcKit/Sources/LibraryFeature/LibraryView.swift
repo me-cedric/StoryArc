@@ -39,6 +39,15 @@ public struct LibraryView: View {
     @AppStorage(LibraryAvailability.storageKey)
     var availability: LibraryAvailability = .everywhere
 
+    /// Whether the file picker is open for an import.
+    ///
+    /// The empty states offer "Open a comic" as their primary action — two taps to a
+    /// readable page with nothing configured — and until this existed the library had no
+    /// way to present the picker that does it. Home had one; the shelf did not, so the same
+    /// offer could not be made on the destination a reader lands on when the library is
+    /// what is empty.
+    @State var isImporting = false
+
     /// The catalogue being browsed, by identifier.
     ///
     /// The identifier rather than the `Source`: a navigation destination needs something
@@ -179,6 +188,10 @@ public struct LibraryView: View {
         .sheet(isPresented: $isAddingShare) {
             SmbSheet(connection: smb) { model.add($0) }
         }
+        // `local-library`: an imported file is copied into storage the app owns, so it
+        // outlives the original being moved or deleted. The picker and its refusal come
+        // together, which is why they are one modifier.
+        .importingPublications(into: model, isPresented: $isImporting)
     }
 
     /// The way in to one source, wherever it is being shown from.

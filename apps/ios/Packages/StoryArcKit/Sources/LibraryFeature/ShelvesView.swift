@@ -141,6 +141,13 @@ public struct ShelvesView: View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
             heading("shelves.collections", about: "shelves.collections.about")
 
+            if local.isEmpty && server.isEmpty {
+                makeShelfButton("shelves.new.collection") {
+                    draftName = ""
+                    creating = .collection
+                }
+            }
+
             if !local.isEmpty || !server.isEmpty {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: StoryArcSpace.xl) {
                     ForEach(local) { collection in
@@ -184,6 +191,13 @@ public struct ShelvesView: View {
 
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
             heading("shelves.lists", about: "shelves.lists.about")
+
+            if local.isEmpty && server.isEmpty {
+                makeShelfButton("shelves.new.list") {
+                    draftName = ""
+                    creating = .list
+                }
+            }
 
             if !local.isEmpty || !server.isEmpty {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: StoryArcSpace.xl) {
@@ -249,6 +263,29 @@ public struct ShelvesView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+    }
+
+    /// What an empty section offers instead of blank space.
+    ///
+    /// The sentence stays where ``heading(_:about:)`` puts it — repeating "no collections
+    /// yet" under a line that has just explained what a collection is tells the reader
+    /// nothing the blank space does not. What the blank space *was* missing is the way out:
+    /// the only way to make a shelf was the `+` in the navigation bar, which is a control a
+    /// reader has to already know about on the one screen where they demonstrably do not.
+    @ViewBuilder
+    private func makeShelfButton(
+        _ title: LocalizedStringKey,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label {
+                Text(title, bundle: .module)
+            } icon: {
+                Image(systemName: "plus")
+            }
+        }
+        .buttonStyle(.bordered)
+        .padding(.top, StoryArcSpace.xs)
     }
 
     /// A shelf that lives in an online library.

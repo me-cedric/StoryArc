@@ -27,8 +27,12 @@ struct HomeEmpty: View {
         } description: {
             Text("home.empty.body", bundle: .module)
         } actions: {
+            // "Open a comic", not "Open a file". The design direction names the action in
+            // the reader's terms, and the library's own empty state — the same situation on
+            // the next destination along — now says exactly this. Two surfaces describing
+            // one situation in two sets of words is how a four-language app drifts.
             Button(action: onOpenFile) {
-                Text("library.import", bundle: .module)
+                Text("library.openComic", bundle: .module)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, StoryArcSpace.xs)
             }
