@@ -10,8 +10,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
@@ -43,10 +43,6 @@ internal fun HomeDestination(host: AppHost) {
     val registry by host.library.registry.collectAsStateWithLifecycle()
     val downloads = host.downloads.value
 
-    // Read straight from the local store rather than through the library's own progress
-    // map, which is private to it. A second read of a table of at most a few hundred rows,
-    // on the device, is cheaper than widening a view model that six other screens share --
-    // and it keeps this slice out of a file other agents are editing.
     // Home is the destination the app opens on, so it is the first screen with a reason to
     // ask for the library. Without this the surface was empty until the reader visited the
     // library once and its own effect ran — which reads exactly like the reading history
@@ -57,6 +53,9 @@ internal fun HomeDestination(host: AppHost) {
         if (host.library.publications.value.isEmpty()) host.library.restoreFolders()
     }
 
+    // Read straight from the local store rather than through the library's own progress map,
+    // which is private to it. A second read of a table of at most a few hundred rows, on the
+    // device, is cheaper than widening a view model that six other screens share.
     var records by remember { mutableStateOf<List<ReadingProgress>>(emptyList()) }
     // On resume, not on first composition alone: the comic reader is a composable in this
     // activity and the EPUB reader is an activity of its own, so "the reader closed" reaches
