@@ -22,6 +22,19 @@ apps/ios/
 `StoryArc.xcodeproj` is **generated and gitignored**. Never edit it by hand —
 change `project.yml` and regenerate.
 
+One file inside it is the exception: `project.xcworkspace/xcshareddata/swiftpm/`
+`Package.resolved`, **committed on purpose**. It is the app binary's only
+lockfile — the two `Package.resolved` files under `Packages/` cover those
+packages when SwiftPM builds them directly, and Xcode does not consult them for
+a local path dependency. Without the committed one, a clean checkout re-resolved
+Readium's eight transitive packages to whatever tags existed that day, with no
+diff to review; two builds of one commit shipped two different SwiftSoup
+revisions. `.gitignore` carries the narrow re-include, `xcodegen generate` leaves
+the file alone (verified against a fresh-clone layout), and `pnpm lockfile:ios`
+fails if it stops being tracked or stops matching the manifests. When a
+dependency really should move, change the `exact:` requirement, rebuild, and
+commit the new resolution in the same change.
+
 ## Modules
 
 | Target | Contains | Depends on |

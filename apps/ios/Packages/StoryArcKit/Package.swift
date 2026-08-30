@@ -35,9 +35,12 @@ let package = Package(
         .package(path: "../../../../packages/licences"),
         // `network-share` needs SMB 2/3, which iOS has no API for. Pure Swift and
         // MIT, so no FFI boundary and no licence to argue about. ADR-0010.
+        // Exact, not `from:`. A pre-1.0 package is free to change behaviour in a
+        // patch release, and this one speaks a protocol to a server the reader
+        // configured. The version moves in a reviewed diff or it does not move.
         .package(
             url: "https://github.com/kishikawakatsumi/SMBClient.git",
-            from: "0.3.1"
+            exact: "0.3.1"
         )
     ],
     targets: [

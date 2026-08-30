@@ -19,7 +19,7 @@
     "tokens:verify": "node scripts/verify-tokens-in-sync.mjs",
     "spec:validate": "cd docs && openspec validate --all",
     "spec:list": "cd docs && openspec list --specs",
-    "lint": "pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm corpus:check && pnpm strings:ios",
+    "lint": "pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm strings:ios",
     "lint:ios": "swiftlint lint --strict",
     "lint:android": "cd apps/android && ./gradlew lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test",
@@ -41,6 +41,8 @@
     "notices:check": "node scripts/notices.mjs --check",
     "strings:ios": "node scripts/ios-strings.mjs",
     "strings:ios:check": "node scripts/ios-strings.mjs --self-test",
+    "lockfile:ios": "node scripts/ios-lockfile.mjs --check",
+    "lockfile:ios:selftest": "node scripts/ios-lockfile.mjs --self-test",
     "libarchive:pin": "node scripts/libarchive-pin.mjs --check",
     "libarchive:pin:selftest": "node scripts/libarchive-pin.mjs --self-test",
     "libarchive:upstream": "node scripts/libarchive-pin.mjs --upstream"

@@ -111,7 +111,10 @@ the identical screenshots *are* the proof.
 - **iOS:** `StoryArcKit` builds with `InternalImportsByDefault`. Public API that
   exposes a Foundation or SwiftUI type needs `public import`, not `import`.
 - **iOS:** `StoryArc.xcodeproj` is generated and gitignored. Edit `project.yml`
-  and run `xcodegen generate`. Never hand-edit the project.
+  and run `xcodegen generate`. Never hand-edit the project. One file inside it
+  *is* committed — `project.xcworkspace/xcshareddata/swiftpm/Package.resolved`,
+  the app binary's only lockfile. Commit the new resolution whenever a
+  dependency moves; `pnpm lockfile:ios` fails if you do not.
 - **Android:** AGP 9 compiles Kotlin itself. Do **not** apply
   `org.jetbrains.kotlin.android`; Kotlin options live in
   `android { kotlin { compilerOptions { } } }`. The Compose compiler is still a

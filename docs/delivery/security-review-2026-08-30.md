@@ -344,7 +344,7 @@ download-naming fix — read `safe()`, and did not spot it. The audit did.
 - Reachability bounded: apps/ios/Packages/StoryArcKit/Sources/Formats/ComicArchive.swift:331 and :342 are the only callers of RarDecoder; PublicationIndexer.swift:220-258 reads header-derived fields only.
 
 
-### 13. No committed lockfile governs the iOS app binary — the only Package.resolved covering the app target is gitignored, and every upstream edge is a floating `from:` minimum
+### 13. FIXED — No committed lockfile governs the iOS app binary — the only Package.resolved covering the app target is gitignored, and every upstream edge is a floating `from:` minimum
 
 **🟡 medium** · ios · process · effort: small · **CONFIRMED**
 

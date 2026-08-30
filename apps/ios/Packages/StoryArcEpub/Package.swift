@@ -25,7 +25,12 @@ let package = Package(
         // The bundled typefaces. A path dependency because Android reads the same
         // directory as an asset source — see packages/fonts/README.md.
         .package(path: "../../../../packages/fonts"),
-        .package(url: "https://github.com/readium/swift-toolkit.git", from: "3.11.0"),
+        // Exact, not `from:`. Readium pulls in eight transitive packages of its
+        // own, every one of them on a floating minimum, and the app target has
+        // no lockfile of its own until one is committed alongside it. An exact
+        // requirement is the half of that a package manifest can state: the
+        // version moves in a reviewed diff or it does not move.
+        .package(url: "https://github.com/readium/swift-toolkit.git", exact: "3.11.0"),
     ],
     targets: [
         .target(

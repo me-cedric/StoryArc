@@ -54,6 +54,15 @@ jobs:
       - name: The libarchive pin checker's own checks still fire
         run: pnpm libarchive:pin:selftest
 
+      - name: The iOS app's dependency graph is committed and exactly pinned
+        # StoryArc.xcodeproj is generated and ignored, so the app binary's lockfile is
+        # the one file inside it that has to survive review. Cheap here, invisible
+        # everywhere else.
+        run: pnpm lockfile:ios
+
+      - name: The iOS lockfile checker's own checks still fire
+        run: pnpm lockfile:ios:selftest
+
       - name: The accessibility scanner's own checks still fire
         # A scanner that silently stops matching reports a clean screen, which is worse
         # than having no scanner. The device sweep cannot run here; its self-test can.
