@@ -39,16 +39,31 @@ struct LayoutToggle: View {
 /// and a strip of six of them would take the space the artwork is for.
 ///
 /// Absent with fewer than two sources: a selector offering "All sources" and the one source
-/// there is asks a question with a single answer.
+/// there is asks a question with a single answer. ``offered(in:)`` is that rule, and
+/// `LibraryToolbar` asks it rather than deciding again.
 struct ScopeMenu: View {
     let model: LibraryModel
+
+    /// The scopes worth putting in front of a reader, or nothing at all.
+    ///
+    /// Empty below two sources, which is what makes the control *absent* rather than
+    /// present and pointless. Android gates its own selector on `attributesPublications`
+    /// in `LibraryScreen.kt`; this is the same gate, and keeping it here — beside the menu
+    /// it governs — is what lets the toolbar and this view agree without either restating
+    /// the rule.
+    ///
+    /// The registry's own order, because ``SourceRegistry/scopes`` makes that order
+    /// meaningful and a selector that reshuffled it would undo an arrangement the reader
+    /// made by hand.
+    static func offered(in registry: SourceRegistry) -> [LibraryScope] {
+        registry.attributesPublications ? registry.scopes : []
+    }
 
     var body: some View {
         Menu {
             Picker(selection: scopeBinding) {
-                Text("library.scope.all", bundle: .module).tag(LibraryScope.allSources)
-                ForEach(model.registry.sources) { source in
-                    Text(source.displayName).tag(LibraryScope.source(source.id))
+                ForEach(Self.offered(in: model.registry), id: \.self) { scope in
+                    name(of: scope).tag(scope)
                 }
             } label: {
                 Text("library.scope", bundle: .module)
@@ -66,15 +81,19 @@ struct ScopeMenu: View {
         }
         // Which source, spoken. The icon says that a scope is set and cannot say which one,
         // and DESIGN.md forbids a state carried by appearance alone.
-        .accessibilityValue(scopeName)
+        .accessibilityValue(name(of: model.query.scope))
     }
 
     private var scopeBinding: Binding<LibraryScope> {
         Binding(get: { model.query.scope }, set: { model.query.scope = $0 })
     }
 
-    private var scopeName: Text {
-        guard let name = model.registry.name(of: model.query.scope.sourceID) else {
+    /// What one scope is called: the source's own name, or "All sources".
+    ///
+    /// One function for the row and for the spoken value, so the menu and VoiceOver can
+    /// never name the same scope two different ways.
+    private func name(of scope: LibraryScope) -> Text {
+        guard let name = model.registry.name(of: scope.sourceID) else {
             return Text("library.scope.all", bundle: .module)
         }
         return Text(name)

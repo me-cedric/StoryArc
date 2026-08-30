@@ -12,21 +12,24 @@ extension LibraryView {
 
     @ToolbarContentBuilder
     var toolbarItems: some ToolbarContent {
-        // `ScopeMenu` belongs here, and putting it here segfaults.
+        // `library-browsing`: one library over every configured source, "and a way to narrow
+        // it to one". First in the bar, where Android puts its own selector
+        // (`LibraryScreen.kt`), and gated on the same rule — below two sources there is
+        // nothing to choose between.
         //
-        // Android mounts its own scope selector first in the bar (`LibraryScreen.kt`), gated
-        // on a second source to narrow to. iOS's `ScopeMenu` is written, translated and
-        // mounted by nothing, so an iOS reader cannot leave "all sources" — the scope
-        // persists, narrows the shelf, the search, the filters and the continue row, and has
-        // no control. Adding `ToolbarItem { ScopeMenu(model: model) }` to this builder
-        // compiles, lints and passes every test, and then crashes the app on first layout:
-        // `EXC_BAD_ACCESS` inside `ToolbarContentBuilder.buildExpression`, reached from this
-        // property, with a second thread faulting in AttributeGraph's layout-descriptor
-        // walk. Reverted rather than shipped, because a crash is worse than the gap.
-        //
-        // Not investigated further here: the suspect is the `Picker` inside `ScopeMenu`
-        // whose tag is `LibraryScope`, an enum carrying a `UUID`, where `SortMenu`'s tag is
-        // a plain enum and works. That is its own piece of work.
+        // This item was left out of an earlier round, which reported that adding it
+        // segfaulted on first layout — `EXC_BAD_ACCESS` in `ToolbarContentBuilder`
+        // — and suspected the `Picker` tag, `LibraryScope` being an enum that carries a
+        // `UUID` where `SortMenu`'s tag is a plain enum. That does not reproduce. The item
+        // was mounted verbatim as described, built with `pnpm build:ios`, installed on a
+        // booted iPhone 17 Pro with two sources configured, and the menu opens, selects and
+        // persists. The `UUID`-carrying tag is fine: `LibraryScope` is `Hashable` and its
+        // hash is the `UUID`'s, which is exactly what a `Picker` tag needs.
+        if !ScopeMenu.offered(in: model.registry).isEmpty {
+            ToolbarItem(placement: .primaryAction) {
+                ScopeMenu(model: model)
+            }
+        }
         if !model.publications.isEmpty {
             // The way in. The way out is in the bar the selection puts up, so the toolbar
             // does not gain a control that is only ever half useful.
