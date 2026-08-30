@@ -15,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -238,25 +237,15 @@ internal fun AppShell(
         ),
         showsNavigation = navigation.showsNavigation,
     ) {
-        // What each position on each destination's path remembered — a scroll offset, an
-        // open filter, a text field. Keyed on the position rather than on the screen, so
-        // leaving a destination and coming back is "a return rather than a reset", and
-        // popping a screen forgets what only that screen knew.
-        val remembered = rememberSaveableStateHolder()
-        remembered.SaveableStateProvider(navigation.stateKey) {
-            val screen = navigation.current
-            if (screen == null) {
-                Destination(host = host, destination = navigation.destination)
-            } else {
-                HostedScreen(
-                    host = host,
-                    screen = screen,
-                    settings = settings,
-                    onSettingsChange = onSettingsChange,
-                    onResetSettings = onResetSettings,
-                )
-            }
-        }
+        // One column, or a shelf and a page side by side where the window has room for
+        // both. Which of the two is derived from this same navigation — see `AppPanes`.
+        AppContent(
+            host = host,
+            navigation = navigation,
+            settings = settings,
+            onSettingsChange = onSettingsChange,
+            onResetSettings = onResetSettings,
+        )
     }
 
     AppSheets(host = host, sheet = sheet)

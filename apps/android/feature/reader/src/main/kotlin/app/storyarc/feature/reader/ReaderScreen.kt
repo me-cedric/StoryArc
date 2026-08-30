@@ -110,7 +110,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.feedback.StoryArcFeedback
 import app.storyarc.core.designsystem.feedback.rememberHaptics
+import app.storyarc.core.designsystem.navigation.StoryArcSupportingPanes
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.rememberWindowClass
 import app.storyarc.core.designsystem.theme.LocalVolumeTurns
 import app.storyarc.core.designsystem.theme.swatch
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -501,8 +503,18 @@ private fun Pager(
     // those, and a buzz on each is a defect.
     val haptics = rememberHaptics()
 
-    /** Whether the thumbnail strip is open. */
+    /** Whether the browser of every page is open. */
     var isBrowsingThumbnails by remember { mutableStateOf(false) }
+
+    /**
+     * Whether that browser is a pane beside the page rather than a strip over it.
+     *
+     * The window's own answer, at Material's expanded boundary: below it there is only room
+     * for one thing at a time, and covering the foot of the artwork is the honest way to
+     * show a second; at and above it the artwork keeps the room it had and the pages sit
+     * next to it.
+     */
+    val usesThumbnailPane = rememberWindowClass().showsTwoPanes
 
     /**
      * Where a jump came from, so `comic-reader`'s "control to return to the previous
@@ -820,70 +832,286 @@ private fun Pager(
         }
     }
 
-    // One container per mode, over one page body. `page-transitions` treats the mode
-    // as a property of the container, which is exactly what this is: the pager brings
-    // its own gesture and edge resistance, the fade has no container at all, the scroll
-    // is a lazy list, and the curl is a shader over two decoded pages.
-    if (choices.effective == PageTransition.PAGE_CURL) {
-        CurledPages(
-            page = viewModel.image(modelIndex(paging.current)),
-            // The page underneath is the next *display* position, not the next page
-            // number: in right-to-left the two run opposite ways, and a curl that
-            // revealed the wrong side would be worse than no curl.
-            beneath = viewModel.image(modelIndex(paging.current + 1)),
-            isRightToLeft = isRightToLeft,
-            matte = matte,
-            onTurned = { turn(paging.current + 1) },
-            onTap = ::handleTap,
-            modifier = keyboard,
+    /**
+     * The page itself, and whatever container the transition asks for.
+     *
+     * A composable of its own so that it can be handed to a pane scaffold as a slot on a
+     * wide window and drawn plainly on a narrow one, without either branch owning a second
+     * copy of it.
+     */
+    @Composable
+    fun PageSurface() {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            // One container per mode, over one page body. `page-transitions` treats the mode
+            // as a property of the container, which is exactly what this is: the pager brings
+            // its own gesture and edge resistance, the fade has no container at all, the scroll
+            // is a lazy list, and the curl is a shader over two decoded pages.
+            if (choices.effective == PageTransition.PAGE_CURL) {
+                CurledPages(
+                    page = viewModel.image(modelIndex(paging.current)),
+                    // The page underneath is the next *display* position, not the next page
+                    // number: in right-to-left the two run opposite ways, and a curl that
+                    // revealed the wrong side would be worse than no curl.
+                    beneath = viewModel.image(modelIndex(paging.current + 1)),
+                    isRightToLeft = isRightToLeft,
+                    matte = matte,
+                    onTurned = { turn(paging.current + 1) },
+                    onTap = ::handleTap,
+                    modifier = keyboard,
+                )
+            } else {
+                when (paging) {
+                    is Paging.Paged -> HorizontalPager(state = paging.state, modifier = keyboard) { page ->
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Page(page)
+                        }
+                    }
+
+                    is Paging.Indexed -> AnimatedContent(
+                    targetState = paging.index.intValue,
+                    modifier = keyboard,
+                    // Short enough not to read as an animation, which is the whole point of
+                    // the name. `page-transitions` uses this as the Reduce Motion substitute,
+                    // so it must not become the thing it replaces.
+                    transitionSpec = {
+                        fadeIn(tween(FADE_MILLIS)) togetherWith fadeOut(tween(FADE_MILLIS))
+                    },
+                    label = "page",
+                ) { page ->
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Page(page)
+                    }
+                }
+
+                    is Paging.Scrolled -> if (choices.effective == PageTransition.VERTICAL_SCROLL) {
+                        LazyColumn(state = paging.state, modifier = keyboard) {
+                            items(slotCount) { index ->
+                                // `comic-reader` asks for the separator *between* pages, so the
+                                // first page does not get one — a band above page one is a
+                                // margin, not a separator.
+                                if (settings.showsPageSeparator && index > 0) {
+                                    PageSeparator(ScrollAxis.VERTICAL, matte)
+                                }
+                                Page(index, stitch = ScrollAxis.VERTICAL)
+                            }
+                        }
+                    } else {
+                        LazyRow(state = paging.state, modifier = keyboard) {
+                            items(slotCount) { index ->
+                                if (settings.showsPageSeparator && index > 0) {
+                                    PageSeparator(ScrollAxis.HORIZONTAL, matte)
+                                }
+                                Page(index, stitch = ScrollAxis.HORIZONTAL)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Inside the pane, not over the window. On a wide window the browser of
+            // every page sits beside this, and chrome spanning the whole window would
+            // lay the reading controls across the thumbnails.
+            // Never over the end screen, which is a screen of its own and answers for itself.
+            AnimatedVisibility(
+                visible = isChromeVisible && !hasReachedEnd,
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
+                // Inside the system bars. The reader draws edge to edge so the page fills the
+                // screen, and without this the top row sat under the status bar's own gesture
+                // strip: the system took the touch and the buttons were all but unreachable.
+                // Measured on an emulator, where only the lowest sliver of each button worked.
+                Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+                    CloseButton(onClose)
+                    if (count > 1) {
+                        ThumbnailToggle(
+                            isOpen = isBrowsingThumbnails,
+                            onToggle = { isBrowsingThumbnails = !isBrowsingThumbnails },
+                            modifier = Modifier.align(Alignment.TopCenter),
+                        )
+                    }
+                    ReaderToolCluster(
+                        choices = choices,
+                        showsSeparator = settings.showsPageSeparator,
+                        onToggleSeparator = viewModel::choosePageSeparator,
+                        // A scroll row is an axis choice: recording it as one is what makes the
+                        // override stick, rather than leaving the axis implied and the mode
+                        // disagreeing with it.
+                        onChooseTransition = { mode ->
+                            val axis = mode.scrollAxis
+                            if (axis != null) viewModel.choose(axis) else viewModel.choose(mode)
+                        },
+                        fit = fit,
+                        onChooseFit = onFitChange,
+                        hasPairs = layout.hasPairs,
+                        isOffset = settings.offsetsSpreads,
+                        onToggleOffset = { viewModel.chooseSpreadOffset(!settings.offsetsSpreads) },
+                        adjustmentsAreNeutral = adjustments.isNeutral,
+                        onAdjust = { isAdjusting = true },
+                        hasPdfText = pdfText != null,
+                        onFindText = { isFindingText = true },
+                        onMenuOpenChange = { isMenuOpen = it },
+                        modifier = Modifier.align(Alignment.TopEnd),
+                    )
+
+                    Column(
+                        // A band, for the same reason the pills carry a scrim: the page number
+                        // and the slider thumb are white and the page under them can be white.
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .background(LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f))
+                            .padding(horizontal = StoryArcSpace.md, vertical = StoryArcSpace.lg),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        // Only where there is no pane to hold it. On a wide window the same pages
+                        // are already beside the artwork, and drawing both would be the browser
+                        // twice.
+                        if (isBrowsingThumbnails && !usesThumbnailPane) {
+                            ThumbnailStrip(
+                                viewModel = viewModel,
+                                pageCount = count,
+                                currentIndex = modelIndex(paging.current),
+                                onSelect = { index ->
+                                    isBrowsingThumbnails = false
+                                    // A jump, like the slider's: it leaves the same mark, so the
+                                    // way back from a mis-tap in a three-hundred-page strip is
+                                    // one control.
+                                    jump(index)
+                                },
+                                modifier = Modifier.padding(bottom = StoryArcSpace.sm),
+                            )
+                        }
+
+                        // Down here with the page count rather than in the top row, which on a
+                        // phone is already the way out of the reader and three controls wide.
+                        ReaderLayoutCluster(
+                            direction = direction,
+                            onChooseDirection = viewModel::choose,
+                            isOrientationLocked = isOrientationLocked,
+                            onToggleOrientation = { isOrientationLocked = !isOrientationLocked },
+                            onMenuOpenChange = { isMenuOpen = it },
+                        )
+
+                        ChapterRow(
+                            previous = previousInSeries,
+                            next = nextInSeries,
+                            onOpen = onOpen,
+                        )
+
+                        // The scrub target while a drag is in progress, and where the reader
+                        // actually is otherwise. `comic-reader` asks for "the page number and
+                        // total" beside the thumbnail, and during a drag the number a reader
+                        // wants is the one they are heading for.
+                        val sliderIndex = scrubbing ?: modelIndex(paging.current)
+
+                        scrubbing?.let { target ->
+                            ScrubThumbnail(
+                                viewModel = viewModel,
+                                index = target,
+                                modifier = Modifier.padding(bottom = StoryArcSpace.xs),
+                            )
+                        }
+
+                        Surface(
+                            color = Color.White.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(percent = 50),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.reader_page, sliderIndex + 1, count),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White,
+                                modifier = Modifier.padding(
+                                    horizontal = StoryArcSpace.md,
+                                    vertical = StoryArcSpace.xs,
+                                ),
+                            )
+                        }
+
+                        if (count > 1) {
+                            val sliderName = stringResource(R.string.reader_page_slider)
+                            val pageLabel = stringResource(R.string.reader_page, sliderIndex + 1, count)
+                            // Bound to the *publication's* page number, not the pager's
+                            // position. In right-to-left the two run opposite ways, and a
+                            // slider whose left end is the last page would be a puzzle.
+                            //
+                            // The drag writes to `scrubbing` and the release moves the reader,
+                            // which is what `comic-reader` asks for and also what stops a scrub
+                            // across a long comic asking the archive for every page on the way.
+                            // TalkBack's own adjustment lands here too: Compose calls the
+                            // finished callback after an accessibility action, so a stepped
+                            // slider still turns the page.
+                            Slider(
+                                value = sliderIndex.toFloat(),
+                                onValueChange = { value -> scrubbing = value.roundToInt() },
+                                onValueChangeFinished = {
+                                    scrubbing?.let(::jump)
+                                    scrubbing = null
+                                },
+                                valueRange = 0f..(count - 1).toFloat(),
+                                steps = (count - 2).coerceAtLeast(0),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f),
+                                ),
+                                // Named, and reading the page rather than the range percent
+                                // Compose announces by default.
+                                modifier = Modifier.fillMaxWidth().semantics {
+                                    contentDescription = sliderName
+                                    stateDescription = pageLabel
+                                },
+                            )
+                        }
+
+                        // The way back from a jump. It names the page rather than saying "Back",
+                        // because by the time a reader notices they have lost their place they no
+                        // longer remember what it was.
+                        pageReturn.mark?.let { mark ->
+                            TextButton(
+                                onClick = ::returnFromJump,
+                                colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                                    contentDescription = null,
+                                    modifier = Modifier.padding(end = StoryArcSpace.xs),
+                                )
+                                Text(stringResource(R.string.reader_return, mark + 1))
+                            }
+                        }
+
+                        SkippedNotice(skipped)
+                    }
+            }
+            }
+        }
+    }
+
+    if (usesThumbnailPane) {
+        // `comic-reader` asks for a browser of every page; a window this wide can put it
+        // *beside* the artwork rather than over it, which is what a supporting pane is for —
+        // a second view of the same publication, not a second place. Below this width the
+        // strip stays where it was, over the foot of the page.
+        StoryArcSupportingPanes(
+            showsSupporting = isBrowsingThumbnails,
+            mainPane = { PageSurface() },
+            supportingPane = {
+                ThumbnailColumn(
+                    viewModel = viewModel,
+                    pageCount = count,
+                    currentIndex = modelIndex(paging.current),
+                    // The same jump the strip and the slider make, so the way back from a
+                    // mis-tap in a three-hundred-page comic is the one control.
+                    onSelect = ::jump,
+                    // The page may go under the status bar because the artwork is the
+                    // point; a list of numbered cells has no such claim.
+                    modifier = Modifier.safeDrawingPadding(),
+                )
+            },
         )
     } else {
-        when (paging) {
-            is Paging.Paged -> HorizontalPager(state = paging.state, modifier = keyboard) { page ->
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Page(page)
-                }
-            }
-
-            is Paging.Indexed -> AnimatedContent(
-            targetState = paging.index.intValue,
-            modifier = keyboard,
-            // Short enough not to read as an animation, which is the whole point of
-            // the name. `page-transitions` uses this as the Reduce Motion substitute,
-            // so it must not become the thing it replaces.
-            transitionSpec = {
-                fadeIn(tween(FADE_MILLIS)) togetherWith fadeOut(tween(FADE_MILLIS))
-            },
-            label = "page",
-        ) { page ->
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Page(page)
-            }
-        }
-
-            is Paging.Scrolled -> if (choices.effective == PageTransition.VERTICAL_SCROLL) {
-                LazyColumn(state = paging.state, modifier = keyboard) {
-                    items(slotCount) { index ->
-                        // `comic-reader` asks for the separator *between* pages, so the
-                        // first page does not get one — a band above page one is a
-                        // margin, not a separator.
-                        if (settings.showsPageSeparator && index > 0) {
-                            PageSeparator(ScrollAxis.VERTICAL, matte)
-                        }
-                        Page(index, stitch = ScrollAxis.VERTICAL)
-                    }
-                }
-            } else {
-                LazyRow(state = paging.state, modifier = keyboard) {
-                    items(slotCount) { index ->
-                        if (settings.showsPageSeparator && index > 0) {
-                            PageSeparator(ScrollAxis.HORIZONTAL, matte)
-                        }
-                        Page(index, stitch = ScrollAxis.HORIZONTAL)
-                    }
-                }
-            }
-        }
+        PageSurface()
     }
 
     if (hasReachedEnd) {
@@ -912,173 +1140,6 @@ private fun Pager(
             onChange = viewModel::choose,
             onDismiss = { isAdjusting = false },
         )
-    }
-
-    AnimatedVisibility(visible = isChromeVisible, enter = fadeIn(), exit = fadeOut()) {
-        // Inside the system bars. The reader draws edge to edge so the page fills the
-        // screen, and without this the top row sat under the status bar's own gesture
-        // strip: the system took the touch and the buttons were all but unreachable.
-        // Measured on an emulator, where only the lowest sliver of each button worked.
-        Box(Modifier.fillMaxSize().safeDrawingPadding()) {
-            CloseButton(onClose)
-            if (count > 1) {
-                ThumbnailToggle(
-                    isOpen = isBrowsingThumbnails,
-                    onToggle = { isBrowsingThumbnails = !isBrowsingThumbnails },
-                    modifier = Modifier.align(Alignment.TopCenter),
-                )
-            }
-            ReaderToolCluster(
-                choices = choices,
-                showsSeparator = settings.showsPageSeparator,
-                onToggleSeparator = viewModel::choosePageSeparator,
-                // A scroll row is an axis choice: recording it as one is what makes the
-                // override stick, rather than leaving the axis implied and the mode
-                // disagreeing with it.
-                onChooseTransition = { mode ->
-                    val axis = mode.scrollAxis
-                    if (axis != null) viewModel.choose(axis) else viewModel.choose(mode)
-                },
-                fit = fit,
-                onChooseFit = onFitChange,
-                hasPairs = layout.hasPairs,
-                isOffset = settings.offsetsSpreads,
-                onToggleOffset = { viewModel.chooseSpreadOffset(!settings.offsetsSpreads) },
-                adjustmentsAreNeutral = adjustments.isNeutral,
-                onAdjust = { isAdjusting = true },
-                hasPdfText = pdfText != null,
-                onFindText = { isFindingText = true },
-                onMenuOpenChange = { isMenuOpen = it },
-                modifier = Modifier.align(Alignment.TopEnd),
-            )
-
-            Column(
-                // A band, for the same reason the pills carry a scrim: the page number
-                // and the slider thumb are white and the page under them can be white.
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .background(LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f))
-                    .padding(horizontal = StoryArcSpace.md, vertical = StoryArcSpace.lg),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                if (isBrowsingThumbnails) {
-                    ThumbnailStrip(
-                        viewModel = viewModel,
-                        pageCount = count,
-                        currentIndex = modelIndex(paging.current),
-                        onSelect = { index ->
-                            isBrowsingThumbnails = false
-                            // A jump, like the slider's: it leaves the same mark, so the
-                            // way back from a mis-tap in a three-hundred-page strip is
-                            // one control.
-                            jump(index)
-                        },
-                        modifier = Modifier.padding(bottom = StoryArcSpace.sm),
-                    )
-                }
-
-                // Down here with the page count rather than in the top row, which on a
-                // phone is already the way out of the reader and three controls wide.
-                ReaderLayoutCluster(
-                    direction = direction,
-                    onChooseDirection = viewModel::choose,
-                    isOrientationLocked = isOrientationLocked,
-                    onToggleOrientation = { isOrientationLocked = !isOrientationLocked },
-                    onMenuOpenChange = { isMenuOpen = it },
-                )
-
-                ChapterRow(
-                    previous = previousInSeries,
-                    next = nextInSeries,
-                    onOpen = onOpen,
-                )
-
-                // The scrub target while a drag is in progress, and where the reader
-                // actually is otherwise. `comic-reader` asks for "the page number and
-                // total" beside the thumbnail, and during a drag the number a reader
-                // wants is the one they are heading for.
-                val sliderIndex = scrubbing ?: modelIndex(paging.current)
-
-                scrubbing?.let { target ->
-                    ScrubThumbnail(
-                        viewModel = viewModel,
-                        index = target,
-                        modifier = Modifier.padding(bottom = StoryArcSpace.xs),
-                    )
-                }
-
-                Surface(
-                    color = Color.White.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(percent = 50),
-                ) {
-                    Text(
-                        text = stringResource(R.string.reader_page, sliderIndex + 1, count),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color.White,
-                        modifier = Modifier.padding(
-                            horizontal = StoryArcSpace.md,
-                            vertical = StoryArcSpace.xs,
-                        ),
-                    )
-                }
-
-                if (count > 1) {
-                    val sliderName = stringResource(R.string.reader_page_slider)
-                    val pageLabel = stringResource(R.string.reader_page, sliderIndex + 1, count)
-                    // Bound to the *publication's* page number, not the pager's
-                    // position. In right-to-left the two run opposite ways, and a
-                    // slider whose left end is the last page would be a puzzle.
-                    //
-                    // The drag writes to `scrubbing` and the release moves the reader,
-                    // which is what `comic-reader` asks for and also what stops a scrub
-                    // across a long comic asking the archive for every page on the way.
-                    // TalkBack's own adjustment lands here too: Compose calls the
-                    // finished callback after an accessibility action, so a stepped
-                    // slider still turns the page.
-                    Slider(
-                        value = sliderIndex.toFloat(),
-                        onValueChange = { value -> scrubbing = value.roundToInt() },
-                        onValueChangeFinished = {
-                            scrubbing?.let(::jump)
-                            scrubbing = null
-                        },
-                        valueRange = 0f..(count - 1).toFloat(),
-                        steps = (count - 2).coerceAtLeast(0),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
-                            activeTrackColor = Color.White,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.3f),
-                        ),
-                        // Named, and reading the page rather than the range percent
-                        // Compose announces by default.
-                        modifier = Modifier.fillMaxWidth().semantics {
-                            contentDescription = sliderName
-                            stateDescription = pageLabel
-                        },
-                    )
-                }
-
-                // The way back from a jump. It names the page rather than saying "Back",
-                // because by the time a reader notices they have lost their place they no
-                // longer remember what it was.
-                pageReturn.mark?.let { mark ->
-                    TextButton(
-                        onClick = ::returnFromJump,
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Undo,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = StoryArcSpace.xs),
-                        )
-                        Text(stringResource(R.string.reader_return, mark + 1))
-                    }
-                }
-
-                SkippedNotice(skipped)
-            }
-        }
     }
 
     // The selection menu, the find sheet, the note editor, and the one sentence a PDF with no

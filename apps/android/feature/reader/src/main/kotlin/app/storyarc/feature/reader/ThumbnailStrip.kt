@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
@@ -82,6 +85,59 @@ internal fun ThumbnailStrip(
                 index = index,
                 isCurrent = index == currentIndex,
                 width = cellWidth,
+                onSelect = onSelect,
+            )
+        }
+    }
+}
+
+/**
+ * Every page, small, in a column beside the one being read.
+ *
+ * The same requirement as [ThumbnailStrip] — `comic-reader`'s "every page ... in a
+ * scrollable strip with the current page marked" — answered for a window that has room to
+ * show it *beside* the artwork rather than over it. A row would be the wrong shape there: a
+ * pane is tall and narrow, and a single line of thumbnails scrolling sideways inside it
+ * would show four pages where a grid shows twenty.
+ *
+ * Lazy for the same reason as the strip: a three-hundred-page comic would otherwise read
+ * three hundred archive entries to open, and the model keeps a bounded number of the
+ * thumbnails the cells ask for.
+ *
+ * The same dark ground as the strip, for the same reason: the page numbers under the cells
+ * are light, and the reader's own matte behind them may be any colour a reading theme set.
+ */
+@Composable
+internal fun ThumbnailColumn(
+    viewModel: ReaderViewModel,
+    pageCount: Int,
+    /** The page the reader is on, in the publication's own numbering. */
+    currentIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val state = rememberLazyGridState()
+
+    // Opens on the page being read rather than at page one, which is the only position a
+    // reader forty pages in would have to scroll away from.
+    LaunchedEffect(currentIndex) { state.animateScrollToItem(currentIndex.coerceAtLeast(0)) }
+
+    LazyVerticalGrid(
+        // Adaptive rather than a fixed count: the pane is as wide as the window can spare,
+        // and a fixed two columns would be cramped at 840 dp and wasteful at 1600.
+        columns = GridCells.Adaptive(88.dp),
+        state = state,
+        modifier = modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)),
+        contentPadding = PaddingValues(StoryArcSpace.md),
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
+    ) {
+        items(pageCount) { index ->
+            ThumbnailCell(
+                viewModel = viewModel,
+                index = index,
+                isCurrent = index == currentIndex,
+                width = 88.dp,
                 onSelect = onSelect,
             )
         }

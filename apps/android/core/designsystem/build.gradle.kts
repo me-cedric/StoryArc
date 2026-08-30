@@ -43,6 +43,9 @@ dependencies {
     // the adaptive shell names one.
     api(libs.androidx.compose.material3.adaptive.navigation.suite)
     api(libs.androidx.compose.material3.adaptive)
+    // The pane scaffolds. `api`, because `PaneAdaptedValue` and the scaffold's own scope
+    // appear in this module's surface: a caller drawing two panes names them.
+    api(libs.androidx.compose.material3.adaptive.layout)
     // Two glyphs, both this module's own: the rail's menu button, open and shut. A
     // destination's icon still arrives from the app — what a destination *is* belongs
     // there — but the control that opens the rail is chrome, and chrome is this module's.
