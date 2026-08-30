@@ -135,6 +135,74 @@ struct FolderBookmarksTests {
         #expect(bookmarks.restore().folders.isEmpty)
     }
 
+    // MARK: - Files
+
+    private func temporaryFile() throws -> URL {
+        let url = URL.temporaryDirectory.appending(path: "bm-\(UUID().uuidString).cbz")
+        try Data("not really a comic".utf8).write(to: url)
+        return url
+    }
+
+    @Test("A file the system handed over is not a folder library")
+    func fileIsNotAFolder() throws {
+        // The defect this test exists for: a handed-over file was stored here and came back
+        // in `folders`, so the library registered a local-folder source named after the
+        // comic and walked a regular file, which lists nothing. The reader got an empty
+        // shelf named after their book.
+        let suite = try fresh()
+        let bookmarks = suite.bookmarks
+        defer { suite.discard() }
+        let file = try temporaryFile()
+        defer { try? FileManager.default.removeItem(at: file) }
+
+        try bookmarks.add(file)
+
+        let restored = FolderBookmarks(defaults: suite.defaults).restore()
+        #expect(restored.folders.isEmpty)
+        #expect(restored.files.map(\.lastPathComponent) == [file.lastPathComponent])
+        #expect(restored.stale.isEmpty)
+    }
+
+    @Test("A folder and a file are told apart in the same store")
+    func foldersAndFilesCoexist() throws {
+        let suite = try fresh()
+        let bookmarks = suite.bookmarks
+        defer { suite.discard() }
+        let folder = try temporaryFolder()
+        let file = try temporaryFile()
+        defer {
+            try? FileManager.default.removeItem(at: folder)
+            try? FileManager.default.removeItem(at: file)
+        }
+
+        try bookmarks.add(folder)
+        try bookmarks.add(file)
+
+        let restored = bookmarks.restore()
+        #expect(restored.folders.map(\.lastPathComponent) == [folder.lastPathComponent])
+        #expect(restored.files.map(\.lastPathComponent) == [file.lastPathComponent])
+    }
+
+    @Test("A remembered file that has gone is forgotten, not reported as a folder")
+    func staleFileIsNotAnUnavailableFolder() throws {
+        // `local-library` reports an unavailable *folder* by name and offers to re-pick it.
+        // A file another app handed over was never a library the reader configured, so
+        // asking them to re-pick it as one would be asking for something that does not
+        // exist. It is dropped instead.
+        let suite = try fresh()
+        let bookmarks = suite.bookmarks
+        defer { suite.discard() }
+        let file = try temporaryFile()
+
+        try bookmarks.add(file)
+        try FileManager.default.removeItem(at: file)
+
+        let restored = bookmarks.restore()
+        #expect(restored.stale.isEmpty)
+        #expect(restored.files.isEmpty)
+        #expect(bookmarks.restore().files.isEmpty)
+    }
+
     @Test("One library's folders do not leak into another's defaults")
     func isolated() throws {
         let firstSuite = try fresh()

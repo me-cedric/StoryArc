@@ -147,11 +147,13 @@ public final class LibraryModel {
     var progress: [String: ReadingProgress] = [:]
 
     let bookmarks: FolderBookmarks?
+    // `internal(set)`, not `private(set)`: the restore that fills this lives in another
+    // file, and `private` is file-scoped.
     /// Folders that were remembered and can no longer be reached.
     ///
     /// `local-library` requires naming the folder and offering a single action to
     /// re-pick it, so the names are kept rather than the count.
-    public private(set) var unavailableFolders: [String] = []
+    public internal(set) var unavailableFolders: [String] = []
 
     private let preferences: LibraryPreferences?
 
@@ -186,6 +188,7 @@ public final class LibraryModel {
     public init(
         progress: ProgressStore? = nil,
         bookmarks: FolderBookmarks? = nil,
+        documents: URL = .documentsDirectory,
         preferences: LibraryPreferences? = nil,
         sourceStore: SourceStore? = nil,
         shelvesStore: ShelvesStore? = nil,
@@ -193,6 +196,7 @@ public final class LibraryModel {
         journal: ScanJournal? = nil
     ) {
         self.journal = journal
+        self.documentsFolder = documents
         self.downloadStore = downloadStore
         self.sourceStore = sourceStore
         self.shelvesStore = shelvesStore
@@ -213,26 +217,8 @@ public final class LibraryModel {
         }
     }
 
-    /// Re-opens the folders from a previous launch and scans them.
-    ///
-    /// `local-library`: a picked folder is reachable again "after a device restart
-    /// without asking again". Called once, when the library first appears.
-    public func restoreFolders() {
-        guard folders.isEmpty else { return }
-        restoreCachedLibrary()
-        if let bookmarks {
-            let restored = bookmarks.restore()
-            unavailableFolders = restored.stale.map(\.name)
-            for folder in restored.folders {
-                folders.append(folder)
-                register(folder)
-                scan(folder)
-            }
-            startWatching()
-        }
-        if folders.isEmpty { scan(documentsFolder) }
-    }
-
+    // Internal, not private: the restore half of this type lives in another file, and
+    // `private` is file-scoped.
     /// Puts last session's shelf back before anything is walked.
     ///
     /// `sources` asks the cached catalogue to be shown "within 500 ms of the library view
@@ -242,7 +228,7 @@ public final class LibraryModel {
     /// What follows is a scan, which now appends to this rather than replacing it, and
     /// removes only what it can prove is gone. So the reader sees their library at once and
     /// watches it correct itself, instead of watching it appear.
-    private func restoreCachedLibrary() {
+    func restoreCachedLibrary() {
         guard publications.isEmpty, let snapshot = libraryCache.read() else { return }
         publications = snapshot.publications
         locations = snapshot.locations.reduce(into: [:]) { result, pair in
@@ -280,9 +266,11 @@ public final class LibraryModel {
     /// is what that means on iOS. Android scans `getExternalFilesDir` for the same
     /// reason. It is scanned, deliberately not added to `folders`: there is no
     /// bookmark to keep and nothing for the user to remove.
-    var documentsFolder: URL {
-        URL.documentsDirectory
-    }
+    ///
+    /// Held rather than computed so a test can point it somewhere it owns. A restore that
+    /// reached `URL.documentsDirectory` from a host test process walked the machine's own
+    /// home folder, which is slow, unrepeatable, and none of a test's business.
+    let documentsFolder: URL
 
     /// The fraction read, for a cover's progress indicator.
     ///

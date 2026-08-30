@@ -4,7 +4,11 @@ internal import Formats
 internal import Persistence
 internal import StoryArcCore
 
-/// Walking a folder, and picking up a walk that was interrupted.
+/// Walking the places the library knows about, and picking up a walk that was interrupted.
+///
+/// A place is a folder the reader picked or a single publication another app handed over.
+/// They are walked by one task, one after another, because the model holds one scan and a
+/// second scan used to cancel the first.
 ///
 /// `local-library`: a scan "is cancellable and resumable, and does not block browsing what
 /// it has already found". The first and the third were free — the stream stops when nothing
@@ -15,10 +19,75 @@ internal import StoryArcCore
 /// Split out of ``LibraryModel`` for the same reason ``LibrarySources`` was: the file is at
 /// its line cap, and this is a seam that was already there.
 extension LibraryModel {
-    /// Scans a folder, picking up where an interrupted scan of it stopped.
+    /// Scans one folder, picking up where an interrupted scan of it stopped.
     func scan(_ folder: URL) {
-        scanTask?.cancel()
+        scan([folder])
+    }
 
+    /// Scans several places, one after another, under a single cancellable task.
+    ///
+    /// The model holds one scan task, and the version of this that took one folder opened
+    /// with `scanTask?.cancel()`. Every caller with more than one place to walk therefore
+    /// cancelled its own previous walk: a reader with two libraries got the second one, and
+    /// a reader who had opened a comic from another app got neither, because the remembered
+    /// file went round the loop last and cancelled the folder they had actually picked.
+    ///
+    /// One task over a list rather than a task per place, so that cancelling still cancels
+    /// everything — `local-library` requires the scan to be cancellable, and a reader who
+    /// stops a scan means all of it. Android's `rescan` has always walked its trees this
+    /// way, inside one job; this is iOS catching up to its mirror.
+    func scan(_ places: [URL]) {
+        scanTask?.cancel()
+        scanTask = Task { [weak self] in
+            for place in places {
+                guard !Task.isCancelled else { return }
+                await self?.walk(place)
+            }
+        }
+    }
+
+    /// Walks one place to the end: a folder, or a single remembered publication.
+    ///
+    /// Decided here rather than by the caller, from the filesystem rather than from the
+    /// URL's spelling, so that a bookmark that resolves to something other than what was
+    /// remembered still lands in the right half.
+    private func walk(_ place: URL) async {
+        let isDirectory = (try? place.resourceValues(forKeys: [.isDirectoryKey]))?
+            .isDirectory ?? false
+        if isDirectory {
+            await walkFolder(place)
+        } else {
+            await adoptRememberedFile(place)
+        }
+    }
+
+    /// Puts a publication another app handed over back on the shelf.
+    ///
+    /// `local-library`: the app "offers, once and unobtrusively, to remember it in the
+    /// library". This is what remembering it comes to on the next launch — the book is
+    /// there, opening reads the reader's own file where they left it, and nothing was
+    /// copied.
+    ///
+    /// Attributed to no source, for the same reason the app's own Documents folder is not
+    /// one: there is nothing here to remove, rename, reconnect or refresh, and a row in the
+    /// source list named after a single comic would be a source the reader never added.
+    /// `sources` orders a title found twice by the source the reader put higher, and no
+    /// source ranks last — so the same book later found inside a picked folder is that
+    /// folder's copy, which is the right answer.
+    private func adoptRememberedFile(_ file: URL) async {
+        for await event in LibraryScanner.scan(fileAt: file) {
+            guard !Task.isCancelled else { return }
+            guard case let .found(publication) = event else { continue }
+            adopt(publication, from: nil)
+            // Set again rather than left to ``adopt``: a PDF or an EPUB carries a content
+            // digest instead of a path, and the reader still has to be handed the file.
+            locations[publication.id] = file
+            rebuild()
+        }
+    }
+
+    /// Walks a folder, picking up where an interrupted scan of it stopped.
+    private func walkFolder(_ folder: URL) async {
         // Put back before the walk starts, so a reader who left mid-scan comes back to the
         // library they had rather than to an empty grid filling up again.
         let resumed = journal?.indexed(inFolder: folder.path) ?? []
@@ -33,24 +102,22 @@ extension LibraryModel {
         // identity is a content digest is still filed under the file it came out of.
         let done = Set(resumed.compactMap(\.identity.normalizedPath))
 
-        scanTask = Task { [weak self] in
-            for await event in LibraryScanner.scan(folderAt: folder, skipping: done) {
-                guard let self, !Task.isCancelled else { return }
-                switch event {
-                case let .found(publication):
-                    self.append(publication, in: folder)
-                case .skipped:
-                    // Counted in the finished event. Not surfaced per-file: a scan
-                    // of a messy folder would otherwise be a wall of notices.
-                    break
-                case let .finished(found, skipped):
-                    self.finish(folder, found: found + resumed.count, skipped: skipped)
-                    // Progress is loaded here rather than only when the view
-                    // appears. The view appears before the scan produces anything,
-                    // so a load at that point matches recorded positions against an
-                    // empty library and the continue row never fills.
-                    await self.refreshProgress()
-                }
+        for await event in LibraryScanner.scan(folderAt: folder, skipping: done) {
+            guard !Task.isCancelled else { return }
+            switch event {
+            case let .found(publication):
+                append(publication, in: folder)
+            case .skipped:
+                // Counted in the finished event. Not surfaced per-file: a scan
+                // of a messy folder would otherwise be a wall of notices.
+                break
+            case let .finished(found, skipped):
+                finish(folder, found: found + resumed.count, skipped: skipped)
+                // Progress is loaded here rather than only when the view
+                // appears. The view appears before the scan produces anything,
+                // so a load at that point matches recorded positions against an
+                // empty library and the continue row never fills.
+                await refreshProgress()
             }
         }
     }
@@ -58,20 +125,16 @@ extension LibraryModel {
     /// Walks every folder again, without emptying the shelf first.
     ///
     /// `sources`: a refresh "re-fetches the catalogue in the background" and updates the view
-    /// "incrementally rather than clearing it and re-populating". ``scan(_:)`` already
-    /// appends to what is there and removes only what it can prove is gone, so this is only
-    /// the loop over the folders — and the loop has to wait, because the model holds one
-    /// scan task and starting a second cancels the first.
+    /// "incrementally rather than clearing it and re-populating". ``scan(_:)-(URL)`` already
+    /// appends to what is there and removes only what it can prove is gone, so all this adds
+    /// is which places to walk and the wait for the last of them.
     ///
     /// Nothing here for a server: a catalogue's contents are browsed rather than folded into
     /// the shelf, so what a refresh means for one is asking whether it answers —
     /// ``refresh(_:)`` on a single source does that.
     public func rescan() async {
-        let targets = folders.isEmpty ? [documentsFolder] : folders
-        for folder in targets {
-            scan(folder)
-            await scanTask?.value
-        }
+        scan(folders.isEmpty ? [documentsFolder] : folders)
+        await scanTask?.value
         await refreshProgress()
     }
 
@@ -134,8 +197,15 @@ extension LibraryModel {
         // is, and the library is the only thing that knows which source it was reached
         // through. `sources` needs this for a source's item count, and
         // `library-browsing` for the order two sources holding one title appear in.
-        guard adopt(publication, from: source(of: folder)) else { return }
+        let isNew = adopt(publication, from: source(of: folder))
+        // Met either way, and recorded before the early return. Whether the row was already
+        // on the shelf says nothing about whether the file is still on disk, and the
+        // reconcile below drops exactly the rows this walk did not meet — so a publication
+        // the walk found but did not have to add would otherwise be treated as gone. A
+        // remembered file that also lives inside a picked folder is met that way every
+        // launch.
         seenInThisScan.insert(publication.id)
+        guard isNew else { return }
         scanned.append(publication)
         if case let .scanning(found) = scanState {
             scanState = .scanning(found: found + 1)

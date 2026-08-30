@@ -1,11 +1,16 @@
 public import Foundation
 
-/// Folders the user has added, remembered across launches.
+/// The places the app was granted access to, remembered across launches.
 ///
 /// `local-library`: "the app stores a security-scoped bookmark and can re-open the
 /// folder after a device restart without asking again". A plain path cannot do
 /// that — the sandbox grants access to the *picked* URL, and that grant is what a
 /// bookmark preserves.
+///
+/// Two kinds of place, one store, because a bookmark is a bookmark: folders the reader
+/// picked, and single files another app handed over. ``Restored`` keeps them apart, and
+/// keeping them apart is the whole point — a file filed among the folders became a
+/// local-folder source named after the comic, whose walk listed nothing.
 ///
 /// `UserDefaults` rather than the SwiftData store: this is a handful of small
 /// blobs read once at launch, and putting them in the progress database would mean
@@ -31,12 +36,23 @@ public struct FolderBookmarks {
 
     public struct Restored: Sendable {
         public let folders: [URL]
+        /// Single publications another app handed over, in the order they arrived.
+        ///
+        /// Separate from ``folders`` rather than merged into it: a folder is a library the
+        /// reader configured — it is a source, it is watched, it can be removed — and a
+        /// handed-over file is none of those things. It is one book.
+        public let files: [URL]
         /// Folders whose bookmarks no longer resolve: deleted, unmounted, or a
         /// permission the user revoked.
         public let stale: [Stale]
     }
 
-    /// Remembers a folder. Adding one already remembered is a no-op.
+    /// Remembers a folder, or a file another app handed over. Adding one already
+    /// remembered is a no-op.
+    ///
+    /// Which of the two it is is recorded here, while the URL still exists to be asked. A
+    /// bookmark that no longer resolves cannot say what it once pointed at, and the answer
+    /// decides whether the reader is told a library of theirs has gone.
     public func add(_ url: URL) throws {
         var stored = raw()
         let bookmark = try url.bookmarkData(
@@ -46,17 +62,23 @@ public struct FolderBookmarks {
         )
         let name = url.lastPathComponent
         guard !stored.contains(where: { $0.name == name && $0.data == bookmark }) else { return }
-        stored.append(Entry(name: name, data: bookmark))
+        stored.append(Entry(name: name, data: bookmark, isFile: !Self.isDirectory(url)))
         write(stored)
     }
 
-    /// Every folder still reachable, plus the ones that are not.
+    /// Every place still reachable, plus the folders that are not.
     ///
     /// Resolving *starts* the security-scoped access and deliberately does not stop
     /// it: the library reads pages out of these folders for as long as it is open,
     /// and balancing the call here would revoke access before the first cover loads.
+    ///
+    /// A file that has gone is dropped rather than reported. `local-library` names an
+    /// unavailable *folder* and offers a single action to re-pick it; a file another app
+    /// handed over was never a library the reader configured, so there is no library for
+    /// them to pick again and nothing they could do with the notice.
     public func restore() -> Restored {
         var folders: [URL] = []
+        var files: [URL] = []
         var stale: [Stale] = []
         var survivors: [Entry] = []
 
@@ -68,7 +90,7 @@ public struct FolderBookmarks {
                 relativeTo: nil,
                 bookmarkDataIsStale: &isStale
             ) else {
-                stale.append(Stale(name: entry.name))
+                if !entry.wasFile { stale.append(Stale(name: entry.name)) }
                 continue
             }
             guard url.startAccessingSecurityScopedResource() else {
@@ -76,14 +98,19 @@ public struct FolderBookmarks {
                 // path is still valid, which is what a revoked permission looks
                 // like. Reported rather than silently dropped, because
                 // `local-library` requires a single action to re-pick it.
-                stale.append(Stale(name: entry.name))
+                if !entry.wasFile { stale.append(Stale(name: entry.name)) }
                 continue
             }
-            folders.append(url)
+            // Asked of the filesystem rather than read back from the entry, so a bookmark
+            // written before this store told the two apart still lands in the right list —
+            // and so does one whose folder has since become a file, or the reverse.
+            if Self.isDirectory(url) { folders.append(url) } else { files.append(url) }
             // A stale bookmark still resolved, so it is refreshed rather than
             // reported: the folder moved and the system found it anyway.
             if isStale, let refreshed = try? url.bookmarkData(options: .minimalBookmark) {
-                survivors.append(Entry(name: url.lastPathComponent, data: refreshed))
+                survivors.append(
+                    Entry(name: url.lastPathComponent, data: refreshed, isFile: entry.wasFile)
+                )
             } else {
                 survivors.append(entry)
             }
@@ -92,7 +119,15 @@ public struct FolderBookmarks {
         // Unresolvable entries are dropped, so a folder that has gone for good does
         // not report itself every launch for ever.
         if survivors.count != raw().count { write(survivors) }
-        return Restored(folders: folders, stale: stale)
+        return Restored(folders: folders, files: files, stale: stale)
+    }
+
+    /// Whether a URL is a directory, according to the filesystem rather than to its spelling.
+    ///
+    /// `hasDirectoryPath` reads the trailing slash, and a URL resolved from a bookmark or
+    /// handed over by another app does not reliably carry one.
+    private static func isDirectory(_ url: URL) -> Bool {
+        (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
     }
 
     /// Forgets a folder. Reading progress for what was inside it is untouched —
@@ -110,6 +145,15 @@ public struct FolderBookmarks {
     private struct Entry: Codable {
         let name: String
         let data: Data
+        /// Whether this was a single file when it was remembered.
+        ///
+        /// Optional so an entry written before the distinction existed still decodes. It is
+        /// only consulted for an entry whose bookmark no longer resolves, and there the
+        /// missing value reads as "a folder", which is what every entry written by those
+        /// builds was meant to be.
+        let isFile: Bool?
+
+        var wasFile: Bool { isFile ?? false }
     }
 
     private func raw() -> [Entry] {

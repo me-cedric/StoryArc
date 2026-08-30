@@ -57,7 +57,20 @@ enum OpenedFile {
     /// A bookmark to the file itself rather than a copy of it. `local-library` has a
     /// separate requirement for imported copies, and this is the cheaper half of the
     /// promise: the reader keeps the file where it is and StoryArc can reach it again.
+    ///
+    /// The file, not the folder above it. A grant on a document says nothing about its
+    /// directory — a share sheet may hand over a file whose parent this app is not entitled
+    /// to read, or which has no reachable parent at all — so bookmarking the containing
+    /// folder would fail on the cases this exists for. ``FolderBookmarks`` keeps the two
+    /// kinds of place apart, and the library puts a remembered file on the shelf as one
+    /// publication rather than as a library to walk.
+    ///
+    /// Inside its own security scope. ``index(_:)`` stops the scope it started, and a
+    /// bookmark made outside the scope of a URL another app owns is refused — which is what
+    /// happened here: the call returned `false` and the file was quietly not remembered.
     static func remember(_ url: URL, in bookmarks: FolderBookmarks) -> Bool {
-        (try? bookmarks.add(url)) != nil
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        return (try? bookmarks.add(url)) != nil
     }
 }
