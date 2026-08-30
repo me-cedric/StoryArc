@@ -30,11 +30,16 @@ emulator** — light and dark, default and largest text size — per
 
 ## Phase 1 — The shells
 
-- [ ] **1.1** **[C] Android navigation rewrite.** Replace the boolean cascade in
+- [x] **1.1** **[C] Android navigation rewrite.** Replace the boolean cascade in
       `MainActivity.kt` with a typed navigation graph and `NavigationSuiteScaffold`
       carrying the three destinations. Per-destination back history, per-destination
       state restoration, predictive back preserved. `MainActivity.kt` ends under
       800 lines. Screenshot: each destination, phone and tablet.
+      *Done. `MainActivity.kt` 1168 → 170 lines; the state is one `AppNavigation`
+      value with one back rule, covered by 17 host tests. Predictive back is
+      untouched — the screens that hand-roll it keep their own handler, and the
+      shell's single `BackHandler` is the fallback under them. Screenshots in
+      `docs/designs/screenshots/after-2026-08-30/android-shell-*.png`.*
 - [ ] **1.2** **[D] iOS shell.** `TabView` with three `Tab`s, the search role,
       `.tabViewStyle(.sidebarAdaptable)` and the minimize behaviour, around the
       existing library view. Settings and add-source leave the library toolbar.
