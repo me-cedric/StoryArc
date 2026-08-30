@@ -28,6 +28,7 @@ ADR that supersedes it rather than quietly doing something else.
 | [0014](0014-unpatchable-zip-in-the-readium-graph.md) | An unpatchable ZIP library ships in the iOS binary, and nothing calls it | **Proposed** — open, awaiting a decision |
 | [0015](0015-epub-webview-network-egress.md) | A publication's own network access: deny it, admit it, or narrow it | **Proposed** — open, awaiting a decision |
 | [0016](0016-ios-smb-response-signing.md) | iOS SMB responses are unsigned and unverified — extends 0010 | **Proposed** — open, awaiting a decision |
+| [0017](0017-android-text-to-speech.md) | Android reads aloud with the platform engine, not a new Readium artifact | Accepted |
 
 ## Considered options
 
