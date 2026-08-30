@@ -1,24 +1,26 @@
 internal import SwiftUI
 
-internal import DesignSystem
-
 // What the library's toolbar holds — and, as much, what it no longer holds.
 //
-// It held seven `.primaryAction` items on an iPhone, in one undifferentiated pill:
-// scope, select, layout, sort, filter, add-books, shelves and settings, six of them
-// drawn as an unlabelled glyph with nothing to say which of them belonged together.
-// Apple's own rule is to group items that affect the same part of the interface, so
-// there are three groups now, separated by `ToolbarSpacer`:
+// It held seven `.primaryAction` items on an iPhone, in one undifferentiated pill: scope,
+// select, layout, sort, filter, add-books, shelves and settings, six of them drawn as an
+// unlabelled glyph with nothing to say which of them belonged together. Apple's own rule is
+// to group items that affect the same part of the interface, so there are three groups now,
+// separated by `ToolbarSpacer`:
 //
-//   [Select]  ·  [Layout · Sort · Filter · Scope]  ·  [Add books]
+//   [Select]  ·  [Show · Layout · Sort · Filter]  ·  [Add books]
 //
-// **Settings and Shelves left the toolbar.** Neither is something done *to* the shelf,
-// which is the only thing this bar is for. Settings is the trailing item of the home
-// destination's navigation bar; Shelves is a row on the same surface. Add-books stays,
-// for now and against the direction's end state: it is the only way to add a source on
-// iOS, the two places the direction moves it to — the rebuilt empty state and Settings'
-// connected-libraries screen — are later slices, and moving it before they exist would
-// leave a reader with a populated library no way to add a second source at all.
+// **Settings and Shelves left the toolbar.** Neither is something done *to* the shelf, which
+// is the only thing this bar is for. Settings is the trailing item of the home destination's
+// navigation bar; Shelves is a row on the same surface. Add-books stays, for now and against
+// the direction's end state: it is the only way to add somewhere to read from on iOS, the
+// two places the direction moves it to — the rebuilt empty state and Settings' connected-
+// libraries screen — are later slices, and moving it before they exist would leave a reader
+// with a populated library no way to add a second one at all.
+//
+// *Show* leads the middle group rather than trailing it. It is the shelf's primary axis now
+// — everything, or only what opens with no network — and the axis a reader chooses first
+// should not be the control they find last.
 
 extension LibraryView {
 
@@ -40,11 +42,16 @@ extension LibraryView {
                 .disabled(selection.isActive)
             }
 
-            // Selecting is a mode you enter; the three below change what the shelf shows
+            // Selecting is a mode you enter; the four below change what the shelf shows
             // while you stay where you are. Two different parts of the interface, so two
             // capsules rather than one row of six glyphs.
             ToolbarSpacer(.fixed, placement: .primaryAction)
 
+            // Always offered, unlike the source selector it replaced: availability is a
+            // question every library can answer, including one with a single folder in it.
+            ToolbarItem(placement: .primaryAction) {
+                ScopeMenu(model: model, availability: $availability)
+            }
             ToolbarItem(placement: .primaryAction) {
                 LayoutToggle(model: model)
             }
@@ -54,68 +61,21 @@ extension LibraryView {
             ToolbarItem(placement: .primaryAction) {
                 FilterMenu(model: model)
             }
-            // `library-browsing`: one library over every configured source, "and a way to
-            // narrow it to one". Beside the filters rather than first in the bar, because
-            // that is what it is — the last per-source control on the shelf, and the slice
-            // that turns the scope axis from origin into availability is where it stops
-            // being a mode and becomes one filter among the others.
-            if !ScopeMenu.offered(in: model.registry).isEmpty {
-                ToolbarItem(placement: .primaryAction) {
-                    ScopeMenu(model: model)
-                }
-            }
 
             ToolbarSpacer(.fixed, placement: .primaryAction)
         }
 
-        // A menu rather than a button per kind: there are four ways to add a source, and
-        // a toolbar with one button each would crowd out the controls a reader uses every
-        // day.
+        // `AddSourceMenu` rather than a menu hand-built here. There were two of them, and
+        // the one mounted was a row short: it omitted the import, so the only way a file
+        // reached StoryArc on iOS was the system's own Open-in handler.
         ToolbarItem(placement: .primaryAction) {
-            Menu {
-                Button {
-                    isPickingFolder = true
-                } label: {
-                    Label {
-                        Text("library.addFolder", bundle: .module)
-                    } icon: {
-                        Image(systemName: "folder.badge.plus")
-                    }
-                }
-                Button {
-                    isAddingCatalogue = true
-                } label: {
-                    Label {
-                        Text("catalogue.title", bundle: .module)
-                    } icon: {
-                        Image(systemName: "dot.radiowaves.up.forward")
-                    }
-                }
-                Button {
-                    isAddingKavita = true
-                } label: {
-                    Label {
-                        Text("kavita.title", bundle: .module)
-                    } icon: {
-                        Image(systemName: "externaldrive.connected.to.line.below")
-                    }
-                }
-                Button {
-                    isAddingShare = true
-                } label: {
-                    Label {
-                        Text("smb.title", bundle: .module)
-                    } icon: {
-                        Image(systemName: "externaldrive.badge.wifi")
-                    }
-                }
-            } label: {
-                Label {
-                    Text("library.addSource", bundle: .module)
-                } icon: {
-                    Image(systemName: "plus")
-                }
-            }
+            AddSourceMenu(
+                addFolder: { isPickingFolder = true },
+                importFile: { isImporting = true },
+                addCatalogue: { isAddingCatalogue = true },
+                addKavita: { isAddingKavita = true },
+                addShare: { isAddingShare = true }
+            )
         }
     }
 }

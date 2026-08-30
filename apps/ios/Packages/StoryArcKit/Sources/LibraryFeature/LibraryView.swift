@@ -24,9 +24,20 @@ public struct LibraryView: View {
     // Internal, not public: nothing outside this module can see them.
     @Environment(\.theme) var theme
     @State var isPickingFolder = false
+    @State var isImporting = false
     @State var isAddingCatalogue = false
     @State var isAddingKavita = false
     @State var isAddingShare = false
+
+    /// What the shelf is narrowed to: everything, or only what opens with no network.
+    ///
+    /// `library-browsing` makes availability the library's primary axis and demands that the
+    /// choice "persists until changed". `@AppStorage` rather than a field on `LibraryQuery`:
+    /// the query is the value both platforms share and both encode, and this is one shelf
+    /// choice that belongs to the iOS screen. It lands in the same `UserDefaults` the rest of
+    /// the library's preferences use, under a key of its own, so nothing has to be migrated.
+    @AppStorage(LibraryAvailability.storageKey)
+    var availability: LibraryAvailability = .everywhere
 
     /// The catalogue being browsed, by identifier.
     ///
@@ -148,6 +159,10 @@ public struct LibraryView: View {
                 model.addFolder(folder)
             }
         }
+        // `local-library`: a file brought in from elsewhere is copied into storage the app
+        // owns, and a refusal names the file. Written, translated, and reachable from
+        // nothing until the add menu that offers it was finally the one on screen.
+        .importingPublications(into: model, isPresented: $isImporting)
         .sheet(isPresented: $isAddingCatalogue) {
             CatalogueSheet(connection: catalogue) { model.add($0) }
         }
@@ -221,6 +236,14 @@ public struct LibraryView: View {
                     // folder would otherwise be a wall of notices. But stated:
                     // a count that silently omits what it could not read is a lie.
                     ScanSummary(found: found, skipped: skipped)
+                } else if let cachedAt = model.cachedAt {
+                    // Last, because it is the quietest thing this strip has to say: a
+                    // selection in progress or a folder that has gone missing both need the
+                    // space more. `sources` asks for the indicator to be single and
+                    // unobtrusive, and it leaves of its own accord — `cachedAt` goes back to
+                    // `nil` the moment a walk finishes, at which point the shelf is current
+                    // and a notice still claiming otherwise would be lying in the corner.
+                    CachedNotice(refreshedAt: cachedAt)
                 }
             }
     }

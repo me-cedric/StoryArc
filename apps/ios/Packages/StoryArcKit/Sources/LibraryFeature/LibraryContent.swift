@@ -22,8 +22,51 @@ extension LibraryView {
     var shown: [Publication] {
         switch surface {
         case .onDevice: model.visible.filter { model.location(of: $0)?.isFileURL == true }
-        case .shelf, .search: model.visible
+        // The shelf's primary axis, applied here rather than inside the query: it narrows
+        // what this surface lists and nothing else, which is what keeps it from becoming the
+        // mode `library-browsing` removed origin for being.
+        case .shelf: model.visible.filter { availability.keeps(model.location(of: $0)) }
+        case .search: model.visible
         }
+    }
+
+    /// Whether a publication can be opened right now. The rule itself lives beside the
+    /// availability axis it belongs to; this is the shelf asking it.
+    func isReadableNow(_ publication: Publication) -> Bool {
+        LibraryAvailability.isReadableNow(
+            publication,
+            location: model.location(of: publication),
+            registry: model.registry
+        )
+    }
+
+    /// How this shelf divides, or nothing when it is short enough to take in at a glance.
+    ///
+    /// Never while a search is running: the results are already grouped by why they matched,
+    /// and a second set of headings cutting across the first would be two answers to one
+    /// question.
+    var sections: [LibrarySection] {
+        guard surface == .shelf, model.matchGroups.isEmpty, shown.count > LibrarySections.threshold
+        else { return [] }
+        return LibrarySections.divide(shown, by: model.query.sort)
+    }
+
+    /// Whether it is the device axis that is hiding the library, rather than a filter.
+    ///
+    /// Only when the library *has* something to show at the wider setting: a reader whose
+    /// filters would empty the shelf either way is not helped by being told to look
+    /// elsewhere first.
+    var isNarrowedToDevice: Bool {
+        surface == .shelf && availability == .onThisDevice && !model.visible.isEmpty
+    }
+
+    /// The one action that puts the shelf back, or `nil` when it is already as wide as it
+    /// goes. The device axis is undone before the library filter, because it is the one the
+    /// reader set most recently and the one that hides the most.
+    var widening: (() -> Void)? {
+        if isNarrowedToDevice { return { availability = .everywhere } }
+        if model.query.scope == .allSources { return nil }
+        return { model.widenToAllSources() }
     }
 
     var content: some View {
@@ -33,7 +76,19 @@ extension LibraryView {
                 browsing = source.id
             }
             if !shown.isEmpty {
-                if model.layout == .grid {
+                if model.layout == .grid, !sections.isEmpty {
+                    // `library-browsing`: a long shelf "is divided by series where a
+                    // publication declares one, and otherwise by the active sort key, with
+                    // headings that stay visible while their section is on screen".
+                    SectionedShelf(
+                        sections: sections,
+                        model: model,
+                        onOpen: open,
+                        selection: selection.isActive ? selection.ids : nil,
+                        onToggle: { selection.toggle($0.id) },
+                        isReadableNow: isReadableNow
+                    )
+                } else if model.layout == .grid {
                     CoverGrid(
                         publications: shown,
                         // Empty, always. What the reader is in the middle of is the hero of
@@ -78,10 +133,12 @@ extension LibraryView {
                         model.query.search = ""
                     },
                     scopeName: model.registry.name(of: model.query.scope.sourceID),
+                    // The device axis wins the sentence when it is the thing narrowing the
+                    // shelf: a reader who asked for what works on a plane and got nothing
+                    // needs to be told that, not that their filters match nothing.
+                    isNarrowedToDevice: isNarrowedToDevice,
                     // Offered only when there is somewhere wider to go.
-                    widen: model.query.scope == .allSources
-                        ? nil
-                        : { model.widenToAllSources() }
+                    widen: widening
                 )
             } else if case .scanning = model.scanState {
                 ScanningView(state: model.scanState)
