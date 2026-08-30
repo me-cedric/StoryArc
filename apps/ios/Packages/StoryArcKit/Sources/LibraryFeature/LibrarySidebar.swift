@@ -240,27 +240,75 @@ struct SidebarSeriesList: View {
                 } description: {
                     Text("sidebar.series.empty", bundle: .module)
                 }
+                // Centred on its own, because the frame below leaves the *list* at the
+                // leading edge and a sentence pinned to the top-left corner of a 13-inch
+                // window is not an empty state, it is a stray line.
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(series, id: \.name) { entry in
-                    NavigationLink {
-                        HomeMore(
-                            title: Text(entry.name),
-                            publications: entry.issues,
-                            model: model,
-                            onOpen: onOpen
-                        )
-                    } label: {
-                        Text(entry.name)
-                            .textRole(.body)
-                            .foregroundStyle(theme.palette.textPrimary)
+                // A `ScrollView` of rows rather than a `List`, and the reason is the measure.
+                // A plain `List` paints its own rows in the system's white; constrained to
+                // the measure on a 13-inch window that leaves a hard vertical seam down the
+                // middle, white inside the column and the app's canvas outside it — a screen
+                // that looks like it failed to finish drawing. `scrollContentBackground` does
+                // not reach the row backgrounds. Every other surface in this app composes its
+                // rows this way for the same reason.
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(series, id: \.name) { entry in
+                            row(entry)
+                        }
                     }
+                    // The measure, and this screen needed it as much as Home did:
+                    // unconstrained, every row put its chevron a foot from the name it
+                    // belonged to, which is the defect this slice exists to end. Leading
+                    // rather than centred, so the names start on the same gutter every other
+                    // surface starts on.
+                    .frame(maxWidth: SidebarLayout.maxContentWidth, alignment: .leading)
                 }
-                .listStyle(.plain)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(theme.palette.surfaceCanvas)
         .scrollEdgeEffectStyle(.soft, for: .all)
         .navigationTitle(Text("library.match.series", bundle: .module))
+    }
+
+    /// One series, and the way into it.
+    ///
+    /// The rule under the row rather than around it, so a run of them reads as a list
+    /// without either a card each or a box round the lot.
+    private func row(_ entry: (name: String, issues: [Publication])) -> some View {
+        NavigationLink {
+            HomeMore(
+                title: Text(entry.name),
+                publications: entry.issues,
+                model: model,
+                onOpen: onOpen
+            )
+        } label: {
+            VStack(spacing: 0) {
+                HStack(spacing: StoryArcSpace.sm) {
+                    Text(entry.name)
+                        .textRole(.body)
+                        .foregroundStyle(theme.palette.textPrimary)
+                        .multilineTextAlignment(.leading)
+
+                    Spacer(minLength: StoryArcSpace.md)
+
+                    Image(systemName: "chevron.right")
+                        .textRole(.footnote)
+                        .foregroundStyle(theme.palette.textTertiary)
+                }
+                .padding(.horizontal, StoryArcSpace.gutter)
+                .frame(minHeight: StoryArcSpace.xxl)
+
+                Rectangle()
+                    .fill(theme.palette.borderSubtle)
+                    .frame(height: 1)
+                    .padding(.leading, StoryArcSpace.gutter)
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
     }
 }
