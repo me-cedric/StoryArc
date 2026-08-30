@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Test-only. `PublicationEgressTest` has to prove that a publication which tries
+    to reach the network is stopped, and the only honest way to prove that is to
+    let an unblocked web view succeed first. Without this permission the control
+    half of the test would pass for the wrong reason: no request leaves because the
+    test APK may not make one, rather than because the block worked.
+
+    The shipped library declares no such permission — `:app` does, which is what
+    makes the finding this test guards real.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

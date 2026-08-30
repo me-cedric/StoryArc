@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.graphics.Color as AndroidColor
@@ -28,7 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.readium.r2.navigator.Decoration
 import org.readium.r2.navigator.HyperlinkNavigator
@@ -266,6 +269,22 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         if (savedInstanceState != null) {
             supportFragmentManager.fragmentFactory = EpubNavigatorFragment.createDummyFactory()
         }
+        // Before anything is committed, so no page fragment can be created without it.
+        // ADR-0015: a publication may not reach the network, and the earliest the app can
+        // reach a page's web view is the callback that follows the fragment's own
+        // `onCreateView`. Recursive, because the pages live in the navigator's child
+        // fragment manager rather than this one.
+        supportFragmentManager.registerFragmentLifecycleCallbacks(
+            object : FragmentManager.FragmentLifecycleCallbacks() {
+                override fun onFragmentViewCreated(
+                    fragmentManager: FragmentManager,
+                    fragment: Fragment,
+                    view: View,
+                    savedInstanceState: Bundle?,
+                ) = PublicationEgress.deny(view)
+            },
+            true,
+        )
         super.onCreate(savedInstanceState)
 
         // `comic-reader`'s rule, and it reads the same for a book: a long look at
