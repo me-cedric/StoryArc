@@ -224,6 +224,11 @@ public struct EpubReaderView: View {
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
+            // The voice does not outlive the book it is reading. Backgrounding keeps it —
+            // that is the whole point — but closing the reader takes the lock-screen
+            // controls down with it, because a transport for a book nobody has open is a
+            // control that cannot be honoured.
+            model.endReadAloud()
             // `reading-themes`: the system brightness "is not permanently
             // modified". iOS's brightness is global, so leaving has to put it back
             // — Android's is a window attribute and reverts by itself.
@@ -294,6 +299,33 @@ public struct EpubReaderView: View {
                 .buttonStyle(.glass)
                 .tint(theme.palette.textPrimary)
 
+                // Absent, not disabled, when the publication has no text Readium can
+                // extract. `ebook-reader` says a control a platform cannot honour is
+                // "absent rather than empty", and this app does not ship a button that
+                // does nothing.
+                if model.canReadAloud {
+                    Button {
+                        if model.readAloud.isActive {
+                            model.stopReadAloud()
+                        } else {
+                            model.startReadAloud()
+                        }
+                    } label: {
+                        Label {
+                            Text(model.readAloud.isActive
+                                ? "readaloud.stop"
+                                : "readaloud.start", bundle: .module)
+                        } icon: {
+                            Image(systemName: model.readAloud.isActive
+                                ? "speaker.wave.2.fill"
+                                : "speaker.wave.2")
+                        }
+                        .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.glass)
+                    .tint(model.readAloud.isActive ? theme.accent : theme.palette.textPrimary)
+                }
+
                 if let chapter = model.chapterTitle {
                     Text(chapter)
                         .textRole(.footnote)
@@ -308,6 +340,20 @@ public struct EpubReaderView: View {
 
             Spacer()
 
+            // Above the percentage rather than among the buttons at the top, because it
+            // comes and goes and a control that appeared up there would move the four
+            // that are always present.
+            if model.readAloud.isActive {
+                ReadAloudBar(
+                    isSpeaking: model.readAloud.isSpeaking,
+                    onPrevious: { model.skipSentence(forward: false) },
+                    onToggle: { model.toggleReadAloud() },
+                    onNext: { model.skipSentence(forward: true) },
+                    onStop: { model.stopReadAloud() }
+                )
+                .padding(.bottom, StoryArcSpace.sm)
+            }
+
             // A percentage, never a page number. `ebook-reader` is explicit that a
             // reflowable page count is a function of the type size and must not be
             // presented as an identity.
@@ -321,58 +367,5 @@ public struct EpubReaderView: View {
                 .padding(.bottom, StoryArcSpace.lg)
         }
         .transition(.opacity)
-    }
-}
-
-/// The navigator, in a SwiftUI hierarchy.
-///
-/// The tap is registered through Readium's own input observer rather than a
-/// SwiftUI gesture: a gesture layered over the web view swallows the taps the
-/// reader needs to turn pages and follow links.
-private struct NavigatorHost: UIViewControllerRepresentable {
-    let navigator: EPUBNavigatorViewController
-    /// Non-nil when StoryArc draws the turn. See ``EpubReaderModel/ownsTheTurn``.
-    let turn: ((Bool) -> Void)?
-    let onTap: () -> Void
-
-    func makeUIViewController(context: Context) -> EPUBNavigatorViewController {
-        // Readium's own tap, which reveals the chrome. Registered once and left alone:
-        // when StoryArc owns the turn its own recogniser decides whether a tap is a turn
-        // or a reveal, and calls this same closure for a reveal.
-        navigator.addObserver(.tap { _ in
-            onTap()
-            return true
-        })
-        return navigator
-    }
-
-    func makeCoordinator() -> TurnGestures { TurnGestures() }
-
-    /// Where the turn changes hands.
-    ///
-    /// Not `makeUIViewController`: that runs once, when the reader opens, and the reader
-    /// picks a page turn afterwards. Installing there meant the gestures were only ever
-    /// set up for whatever mode the book happened to open in — so choosing Fast fade did
-    /// nothing at all, which is exactly how this was found.
-    func updateUIViewController(_ controller: EPUBNavigatorViewController, context: Context) {
-        context.coordinator.apply(turn: turn, reveal: onTap, on: controller.view)
-    }
-}
-
-private struct Failure: View {
-    @Environment(\.theme) private var theme
-
-    let message: String
-
-    var body: some View {
-        VStack(spacing: StoryArcSpace.sm) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 32, weight: .light))
-            Text(message)
-                .textRole(.footnote)
-                .multilineTextAlignment(.center)
-        }
-        .foregroundStyle(theme.palette.textSecondary)
-        .padding(StoryArcSpace.gutter)
     }
 }

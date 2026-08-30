@@ -81,6 +81,9 @@ extension EpubReaderModel {
             // decoration applied to a navigator that is not on screen yet is a decoration
             // Readium has nowhere to put.
             await drawAnnotations()
+            // Built here rather than on the first press, because whether this book can be
+            // read aloud at all decides whether the control appears.
+            prepareReadAloud(opened)
         } catch {
             failure = String(localized: "epub.failure.unreadable", bundle: .module)
         }

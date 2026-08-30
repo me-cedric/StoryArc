@@ -136,6 +136,39 @@ public final class EpubReaderModel {
     /// reader can only press once at a time.
     nonisolated(unsafe) var opened: ReadiumShared.Publication?
 
+    /// Whether the voice is running, and what silenced it if it is not.
+    ///
+    /// `ebook-reader`'s reading-aloud requirement. The transitions are
+    /// ``ReadAloudSession``'s, so the one decision in this that is not the platform's is
+    /// asserted without a speaker.
+    var readAloud = ReadAloudSession()
+
+    /// The sentence being spoken, or `nil` when nothing is.
+    ///
+    /// Kept because the highlight and the page both follow it, and because Readium
+    /// reports it once per utterance rather than continuously.
+    var spoken: Locator?
+
+    /// Whether this book can be spoken at all, and therefore whether the control appears.
+    ///
+    /// A stored, observed answer rather than `speech != nil`: the synthesizer is held
+    /// outside observation — it is a reference to a Readium object, not view state — so a
+    /// view asking it directly would never be told when it arrived, and the control would
+    /// appear only when something else happened to redraw the chrome.
+    public internal(set) var canReadAloud = false
+
+    /// Readium's synthesizer, or `nil` when this publication has no content to speak.
+    ///
+    /// Built at open time rather than on the first press: the control has to know whether
+    /// to appear at all before anyone touches it.
+    @ObservationIgnored var speech: PublicationSpeechSynthesizer?
+
+    /// The synthesizer's delegate, held for the reason the navigator's observer is.
+    @ObservationIgnored var speechObserver: SpeechObserver?
+
+    /// The audio-interruption observation, so it can be taken down with the screen.
+    @ObservationIgnored var interruptions: (any NSObjectProtocol)?
+
     /// The navigator's delegate, held separately.
     ///
     /// Readium's delegate protocols come from a module this package imports

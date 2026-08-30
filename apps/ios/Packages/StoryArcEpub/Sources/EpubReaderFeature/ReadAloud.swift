@@ -95,6 +95,21 @@ struct ReadAloudSession: Equatable {
     func stopped() -> ReadAloudSession { ReadAloudSession() }
 }
 
+/// The colour the sentence being spoken is drawn in.
+///
+/// Deliberately not one of the five a reader can highlight with, and deliberately not the
+/// accent: a mark the reader made is something they can come back to, and the voice's
+/// place is not. A neutral at the same weight reads as "the voice is here" without
+/// offering itself as a mark — and it stays legible under every reading theme, which a
+/// hue would not.
+///
+/// Android draws the same colour from the same three numbers in `ReadAloud.kt`.
+enum SpokenHighlight {
+    static let red = 0.55
+    static let green = 0.55
+    static let blue = 0.58
+}
+
 /// What the lock screen says while a book is being read.
 ///
 /// `ebook-reader` requires the publication title, and a second line is what every media
