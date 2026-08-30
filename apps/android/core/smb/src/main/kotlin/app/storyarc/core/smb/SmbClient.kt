@@ -193,7 +193,7 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
  * Neither carries an NT status: a dialect mismatch and a demand for encryption both fail
  * before the server ever answers with one.
  */
-private fun fromMessage(
+internal fun fromMessage(
     message: String,
     fallback: SmbError = SmbError.Unexpected(message.ifEmpty { "unsuccessful" }),
 ): SmbError = when {

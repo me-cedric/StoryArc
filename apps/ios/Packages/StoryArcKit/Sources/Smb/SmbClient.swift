@@ -38,7 +38,7 @@ public actor SmbClient {
     /// host, share and credentials at once.
     @discardableResult
     public func connect() async throws -> SmbIdentity {
-        try await translating {
+        try await translating(isHandshake: true) {
             // `login` negotiates and sets up the session in one call. Reaching into
             // `client.session` to learn the exact dialect would send a non-Sendable value
             // out of this actor, so the dialect is reported as the range this client offers
@@ -112,7 +112,14 @@ public actor SmbClient {
     ///
     /// A reader who typed the wrong password and a reader whose NAS is asleep need different
     /// sentences, and one error type does not tell them apart.
-    private func translating<T>(_ body: () async throws -> T) async throws -> T {
+    ///
+    /// `isHandshake` is set only by ``connect()``. Two of the statuses below mean "no
+    /// dialect in common" while the two ends are still agreeing on one, and mean something
+    /// far narrower afterwards, so the reading is scoped to the step that can produce it.
+    private func translating<T>(
+        isHandshake: Bool = false,
+        _ body: () async throws -> T
+    ) async throws -> T {
         do {
             return try await body()
         } catch let error as SmbError {
@@ -120,9 +127,9 @@ public actor SmbClient {
         } catch let error as ErrorResponse {
             // The library reports a refusal as the server's own NT status, wrapped in the
             // response header it arrived in.
-            throw Self.meaning(of: error.header.status)
+            throw Self.meaning(of: error.header.status, isHandshake: isHandshake)
         } catch let error as NTStatus {
-            throw Self.meaning(of: error.rawValue)
+            throw Self.meaning(of: error.rawValue, isHandshake: isHandshake)
         } catch let error as URLError {
             throw error.code == .userAuthenticationRequired
                 ? SmbError.authenticationRejected
@@ -135,7 +142,18 @@ public actor SmbClient {
     }
 
     /// The four failures `network-share` names, read out of the server's NT status.
-    private static func meaning(of status: UInt32) -> SmbError {
+    static func meaning(of status: UInt32, isHandshake: Bool = false) -> SmbError {
+        // A server that offers only SMB 1 answers this client's SMB 2 NEGOTIATE one of two
+        // ways, and both of them arrive here. MS-SMB2 tells a server with no dialect in
+        // common to fail the request with STATUS_NOT_SUPPORTED; an older server answers in
+        // the CIFS error classes instead, whose statuses all end in `0002` and which an
+        // SMB 2 server never sends. Read only while the two ends are still agreeing on a
+        // dialect, because STATUS_NOT_SUPPORTED means something much narrower afterwards.
+        //
+        // It says the server offers only SMB 1 and where to turn SMB 2 on. It does not say
+        // why SMB 1 is not spoken here -- that is a sentence for the ADR, not for a reader
+        // trying to reach their NAS.
+        if isHandshake, Self.dialectRefusals.contains(status) { return .protocolUnsupported }
         // ACCESS_DENIED from a server that has agreed a dialect usually means a refused
         // password, but a share with `smb encrypt = required` answers the same way to a
         // client that cannot encrypt. This one cannot, so the two are indistinguishable
@@ -151,6 +169,15 @@ public actor SmbClient {
         default: return .unexpected(detail: NTStatus(status).description)
         }
     }
+
+    /// Statuses that can only mean the server would not agree a dialect this client speaks.
+    ///
+    /// `STATUS_NOT_SUPPORTED`, then the CIFS error-class statuses: `STATUS_INVALID_SMB`,
+    /// `STATUS_SMB_BAD_COMMAND`, `STATUS_SMB_BAD_TID`, `STATUS_SMB_BAD_UID` and
+    /// `STATUS_SMB_USE_STANDARD`. An SMB 2 server has no way to send the last five.
+    private static let dialectRefusals: Set<UInt32> = [
+        0xC000_00BB, 0x0001_0002, 0x0016_0002, 0x0005_0002, 0x005B_0002, 0x00FB_0002,
+    ]
 
     /// What this client offers. The library negotiates SMB 2.0.2 and 2.1 and no more.
     private static let offeredDialects = "SMB 2"
