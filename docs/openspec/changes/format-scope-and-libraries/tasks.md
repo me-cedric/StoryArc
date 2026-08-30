@@ -493,11 +493,33 @@ Three consequences:
       measurement and the AMSMB2 linkage check — both belong to sources that are
       not built.
 - [ ] **6.5** `/opsx:sync` to merge the delta specs into the main specs.
-      **Held until remote sources exist — decided, not undecided.** The change
-      validates and every task in Phases 0 to 4 and 6 is done. What is open is 5.2
-      and 5.3, both of which need a remote source to download from. Splitting them
-      into their own change so this one could be synced was considered and
-      rejected: the streaming-honesty tasks belong with the format work that
-      produced `StreamingCapability`, and a change archived with its own findings
-      unfinished is worth less than one that waits. Sync this when the first remote
-      source lands.
+      **Partly done: everything that shipped is merged, two scenarios are held.**
+
+      The original note here held the *whole* sync until a remote source existed,
+      reasoning that 5.2 and 5.3 needed one. Remote sources landed since — SMB, OPDS
+      and Kavita are all built — and holding the sync anyway was costing more than it
+      saved: the main `publication-formats` spec still listed CB7 as a supported
+      format months after the app started refusing it by name, so anyone reading the
+      contract alone read a format table the code contradicts.
+
+      **Merged into `docs/openspec/specs/`:** the six-row format table with the solid
+      RAR4 note, the named-refusal scenario, the solid-RAR4 refusal, the damaged-versus-
+      unsupported distinction, the `Streaming capability per format` requirement with
+      its three-state table, and all four new PDF scenarios in `ebook-reader`.
+
+      **Held back, because 5.2 and 5.3 are still open:** the two scenarios of
+      `Streaming capability per format` that describe the download-instead-of-stream
+      flow — *Opening a solid archive from a remote source* and *A solid archive
+      already downloaded*. They stay in this change's delta spec, which is where
+      unbuilt behaviour belongs. The requirement's own sentence still says the app
+      "SHALL be honest when one cannot" stream; that half of it has no scenario in the
+      live spec yet and no code behind it.
+
+      **Not merged, and not because it is unbuilt:** the delta asserts "CB7 is **not**
+      supported" as a settled product decision. [ADR-0013](../../../decisions/0013-cb7-support.md)
+      is still `proposed` with no deciders, so the decision has not been made. The
+      *behaviour* — a `.cb7` refused by name — did ship and is merged. The live spec
+      says that, and keeps the Open Question about whether to add CB7 rather than
+      recording an answer nobody gave.
+
+      Tick this when 5.2 and 5.3 land and the last two scenarios go in.
