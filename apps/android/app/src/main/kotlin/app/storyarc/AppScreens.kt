@@ -1,0 +1,247 @@
+package app.storyarc
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.Publication
+import app.storyarc.feature.library.CatalogueBrowser
+import app.storyarc.feature.library.CatalogueBrowserScreen
+import app.storyarc.feature.library.CatalogueDetailScreen
+import app.storyarc.feature.library.CataloguePage
+import app.storyarc.feature.library.CollectionDetailScreen
+import app.storyarc.feature.library.DownloadQueue
+import app.storyarc.feature.library.KavitaBrowserScreen
+import app.storyarc.feature.library.KavitaCollectionScreen
+import app.storyarc.feature.library.KavitaLevel
+import app.storyarc.feature.library.KavitaListScreen
+import app.storyarc.feature.library.KavitaPage
+import app.storyarc.feature.library.ListPromoter
+import app.storyarc.feature.library.OfflineSourceScreen
+import app.storyarc.feature.library.ReadingListDetailScreen
+import app.storyarc.feature.library.ServerShelf
+import app.storyarc.feature.library.ShelvesScreen
+import app.storyarc.feature.library.SmbBrowserScreen
+import app.storyarc.feature.library.UnauthorizedSourceScreen
+import app.storyarc.feature.library.promote
+import app.storyarc.feature.library.promotionOf
+import app.storyarc.feature.library.withdrawList
+import app.storyarc.navigation.Screen
+
+/**
+ * The screen on top of the current destination's path.
+ *
+ * One `when` over a sealed type, exhaustive by construction, with no `BackHandler` anywhere
+ * in it: back is [app.storyarc.navigation.AppNavigation.back]'s answer alone, and every
+ * screen's own back control is the same single call. That is the whole point of the
+ * rewrite — a fifteenth screen cannot forget to answer a gesture it is never asked about.
+ */
+@Composable
+internal fun HostedScreen(
+    host: AppHost,
+    screen: Screen,
+    settings: AppSettings,
+    onSettingsChange: (AppSettings) -> Unit,
+    onResetSettings: () -> Unit,
+) {
+    val dependencies = host.dependencies
+    // Every screen's own back control is the same call the system gesture makes. Not "the
+    // same behaviour" — the same rule, so the two cannot drift apart.
+    val back = { host.navigate { back() } }
+    when (screen) {
+        is Screen.Catalogue -> CatalogueScreen(host, screen)
+
+        is Screen.Kavita -> KavitaBrowserScreen(
+            title = screen.page.title,
+            address = screen.page.address,
+            sourceId = screen.page.id,
+            store = dependencies.kavitaProgress,
+            progress = dependencies.progress,
+            lists = host.library.serverLists.collectAsStateWithLifecycle().value,
+            level = screen.level,
+            // Each level is its own step on the path, so back walks chapters → series →
+            // libraries → out, rather than leaving the server from whatever depth.
+            onLevel = { level -> host.navigate { push(screen.copy(level = level)) } },
+            searching = screen.search,
+            onOpen = host.open,
+            onBack = back,
+        )
+
+        is Screen.Share -> SmbBrowserScreen(
+            title = screen.page.title,
+            address = screen.page.address,
+            path = screen.folder ?: screen.page.address.path,
+            onEnter = { folder -> host.navigate { push(screen.copy(folder = folder)) } },
+            onOpen = host.open,
+            onBack = back,
+        )
+
+        is Screen.SourceAway -> OfflineSourceScreen(
+            name = screen.source.displayName,
+            onRetry = {
+                host.library.testSource(screen.source, dependencies.credentials, dependencies.pins)
+                back()
+            },
+            onBack = back,
+        )
+
+        is Screen.SourceRefused -> UnauthorizedSourceScreen(
+            name = screen.source.displayName,
+            isRefused = true,
+            onBack = back,
+        )
+
+        Screen.Shelves -> {
+            val registry by host.library.registry.collectAsStateWithLifecycle()
+            ShelvesScreen(
+                viewModel = host.library,
+                onOpenCollection = { id -> host.navigate { push(Screen.Collection(id)) } },
+                onOpenList = { id -> host.navigate { push(Screen.ReadingList(id)) } },
+                onBack = back,
+                servers = registry.sources.mapNotNull {
+                    KavitaPage.of(it, dependencies.credentials)
+                },
+                onOpenServerCollection = { server, id, title ->
+                    host.navigate {
+                        push(Screen.ServerShelfPage(ServerShelf(server, id, title, isList = false)))
+                    }
+                },
+                onOpenServerList = { server, id, title ->
+                    host.navigate {
+                        push(Screen.ServerShelfPage(ServerShelf(server, id, title, isList = true)))
+                    }
+                },
+            )
+        }
+
+        is Screen.Collection -> CollectionDetailScreen(
+            viewModel = host.library,
+            id = screen.id,
+            onOpen = host.open,
+            onBack = back,
+            onMark = { publication, isRead -> host.mark(publication, isRead) },
+        )
+
+        is Screen.ReadingList -> ReadingListDetailScreen(
+            viewModel = host.library,
+            id = screen.id,
+            onOpen = host.open,
+            onBack = back,
+            onMark = { publication, isRead -> host.mark(publication, isRead) },
+            // `collections-and-reading-lists` offers to copy a local list onto a server.
+            // The secrets a server asks for are the app layer's, so what the screen gets is
+            // what it can call.
+            promoter = ListPromoter(
+                plan = { list, server -> promotionOf(list, server, dependencies.kavitaProgress) },
+                copy = { list, server -> promote(list, server, dependencies.kavitaProgress) },
+                withdraw = { sourceId, listId ->
+                    host.library.withdrawList(sourceId, listId, dependencies.credentials)
+                },
+            ),
+        )
+
+        is Screen.ServerShelfPage -> if (screen.shelf.isList) {
+            KavitaListScreen(
+                server = screen.shelf.server,
+                listId = screen.shelf.id,
+                title = screen.shelf.title,
+                onOpen = host.open,
+                onBack = back,
+            )
+        } else {
+            KavitaCollectionScreen(
+                server = screen.shelf.server,
+                collectionId = screen.shelf.id,
+                title = screen.shelf.title,
+                onOpenSeries = { series ->
+                    // Into the server browser, at that series: a collection is a way in,
+                    // not a separate place to read from — so it takes the shelf's place on
+                    // the path rather than stacking on top of it.
+                    host.navigate {
+                        replace(Screen.Kavita(screen.shelf.server, KavitaLevel.Chapters(series)))
+                    }
+                },
+                onBack = back,
+            )
+        }
+
+        is Screen.Settings -> SettingsHost(
+            host = host,
+            screen = screen,
+            settings = settings,
+            onSettingsChange = onSettingsChange,
+            onResetSettings = onResetSettings,
+            onClose = back,
+        )
+
+        is Screen.Reader -> ReaderHost(host = host, screen = screen, onClose = back)
+    }
+}
+
+/**
+ * Marking read or unread. The app layer owns the secrets a server may ask for, so a screen
+ * reports the reader's choice and this is what can carry it across.
+ */
+private fun AppHost.mark(publication: Publication, isRead: Boolean) {
+    library.mark(publication, isRead, dependencies.kavitaProgress, dependencies.credentials)
+}
+
+/**
+ * A page of an online library, and the publication chosen from it.
+ *
+ * The browser and its download queue are remembered on the page's address, and the chosen
+ * publication rides on the same screen value — so opening one and closing it again returns
+ * to a page that still holds its entries and its scroll, without a second HTTP client being
+ * built for the same catalogue.
+ */
+@Composable
+private fun CatalogueScreen(host: AppHost, screen: Screen.Catalogue) {
+    val page: CataloguePage = screen.page
+    val dependencies = host.dependencies
+    val context = host.activity.applicationContext
+    // Keyed on the address so entering a section builds a fresh browser rather than showing
+    // the previous page's entries.
+    val browser = remember(page.url) {
+        CatalogueBrowser(context, page.title, page.url, page.credential, dependencies.pins, page.origin)
+    }
+    val queue = remember(page.url) {
+        DownloadQueue(
+            context,
+            dependencies.pins,
+            dependencies.downloads,
+            credential = { page.credential },
+            origin = page.origin,
+        )
+    }
+    val entry = screen.entry
+    if (entry != null) {
+        CatalogueDetailScreen(
+            entry = entry,
+            credential = page.credential,
+            client = browser.client,
+            queue = queue,
+            // The same door a local publication goes through. A book fetched from an online
+            // library is a book.
+            onOpen = host.open,
+            onBack = { host.navigate { back() } },
+        )
+    } else {
+        CatalogueBrowserScreen(
+            browser = browser,
+            queue = queue,
+            onEnter = { title, url ->
+                // The origin travels down, not the section's own address: a section URL is
+                // one the server chose.
+                host.navigate {
+                    push(Screen.Catalogue(CataloguePage(title, url, page.credential, page.origin)))
+                }
+            },
+            // Replaced rather than pushed: the chosen publication is a state of this page,
+            // not a position of its own. `Screen.Catalogue.previous` is what makes back out
+            // of it land here, with the browser still holding its entries.
+            onSelect = { chosen -> host.navigate { replace(screen.copy(entry = chosen)) } },
+            onBack = { host.navigate { back() } },
+        )
+    }
+}

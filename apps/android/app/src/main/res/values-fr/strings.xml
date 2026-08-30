@@ -11,4 +11,16 @@
     <string name="shortcut_continue_named">Reprendre %1$s</string>
     <string name="shortcut_library">Bibliothèque</string>
     <string name="shortcut_downloads">Téléchargements</string>
+
+    <string name="destination_home">Accueil</string>
+    <string name="destination_library">Bibliothèque</string>
+    <string name="destination_downloads">Téléchargements</string>
+    <string name="destination_open_library">Aller à votre bibliothèque</string>
+
+    <string name="home_keep_reading">Reprendre la lecture</string>
+    <string name="home_empty">Rien n’est commencé pour l’instant. Ouvrez quelque chose et vous le retrouverez ici.</string>
+
+    <string name="downloads_destination_on_device">Sur cet appareil</string>
+    <string name="downloads_destination_in_flight">En cours de réception</string>
+    <string name="downloads_destination_empty">Rien n’est encore sur cet appareil. Un livre ouvert depuis une bibliothèque en ligne est conservé ici.</string>
 </resources>

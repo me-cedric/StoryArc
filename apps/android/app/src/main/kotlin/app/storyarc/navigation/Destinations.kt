@@ -68,13 +68,29 @@ sealed interface Screen {
     val hidesNavigation: Boolean get() = false
 
     /**
+     * The state this screen returns to when it is backed out of, or `null` when backing out
+     * of it leaves it altogether.
+     *
+     * A screen may **name** its own previous state. It may not **handle** the gesture: there
+     * is one back rule, in [AppNavigation.back], and a screen that installed its own
+     * handler is a fifteenth answer to a question that must only have one. This exists for
+     * the one honest case — a screen with something open on top of it that is not worth a
+     * position of its own.
+     */
+    val previous: Screen? get() = null
+
+    /**
      * A page of an online library, and optionally the publication chosen from it.
      *
-     * The entry rides on the page rather than being a screen of its own so that the browser
-     * and its download queue are remembered across opening and closing a publication — two
-     * screens would build a second HTTP client for the same catalogue.
+     * The chosen publication rides on the page rather than taking a position of its own, so
+     * that the browser and its download queue survive being opened and closed: two
+     * positions would discard what was remembered at the first and build a second HTTP
+     * client for the same catalogue, and the page behind would come back re-fetched and
+     * scrolled to the top.
      */
-    data class Catalogue(val page: CataloguePage, val entry: OpdsEntry? = null) : Screen
+    data class Catalogue(val page: CataloguePage, val entry: OpdsEntry? = null) : Screen {
+        override val previous: Screen? get() = if (entry == null) null else copy(entry = null)
+    }
 
     /**
      * A Kavita server at one of its three levels.

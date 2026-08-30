@@ -104,6 +104,9 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+    // The three destinations' own glyphs. Already in the APK by way of :feature:library;
+    // the app needs the compile dependency to name them.
+    implementation(libs.androidx.compose.material.icons.extended)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

@@ -86,15 +86,20 @@ data class AppNavigation(
     /**
      * The one back rule.
      *
-     * Pop this destination's stack; at its root, fall back to the destination the app opens
-     * on; at that root, hand the gesture to the system. Three lines, one place, and no
-     * screen may hold an opinion about it — which is what stops the fourteenth branch from
-     * being the one that forgets.
+     * Take the step the screen on top names, if it names one; otherwise pop this
+     * destination's stack; at its root, fall back to the destination the app opens on; at
+     * that root, hand the gesture to the system. Four lines, one place. A screen may say
+     * what it returns to ([Screen.previous]) and may not answer the gesture itself — which
+     * is what stops the fourteenth branch from being the one that forgets.
      */
-    fun back(): AppNavigation = when {
-        stack.isNotEmpty() -> pop()
-        destination != AppDestination.start -> copy(destination = AppDestination.start)
-        else -> this
+    fun back(): AppNavigation {
+        val step = current?.previous
+        return when {
+            step != null -> replace(step)
+            stack.isNotEmpty() -> pop()
+            destination != AppDestination.start -> copy(destination = AppDestination.start)
+            else -> this
+        }
     }
 
     /**
