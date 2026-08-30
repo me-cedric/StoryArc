@@ -20,8 +20,13 @@ struct ShelfBulkActions: ViewModifier {
     /// Everything the shelf holds. An entry whose publication has gone is simply not in it.
     let members: Set<String>
 
+    /// The list this shelf is, when it is a local reading list that could go on a server.
+    /// Nil for a collection, and for a list a server already holds.
+    var promoting: ReadingList?
+
     @State private var undo: BulkUndo?
     @State private var isAllOnDevice = false
+    @State private var isPromoting = false
 
     /// What the download would copy and what it weighs, once the reader has asked.
     ///
@@ -38,6 +43,11 @@ struct ShelfBulkActions: ViewModifier {
                 }
             }
             .toolbar { ToolbarItem(placement: .primaryAction) { menu } }
+            .sheet(isPresented: $isPromoting) {
+                if let promoting {
+                    PromoteListSheet(model: model, list: promoting) { undo = $0 }
+                }
+            }
             .alert(
                 Text("library.bulk.download.none", bundle: .module),
                 isPresented: $isAllOnDevice
@@ -88,6 +98,7 @@ struct ShelfBulkActions: ViewModifier {
                     Image(systemName: "arrow.down.circle")
                 }
             }
+            promote
         } label: {
             Label {
                 Text("shelves.bulk", bundle: .module)
@@ -96,6 +107,32 @@ struct ShelfBulkActions: ViewModifier {
             }
         }
         .disabled(members.isEmpty)
+    }
+
+    /// The offer to put this list on a server, and the reason when there is none to put it on.
+    ///
+    /// `collections-and-reading-lists` offers to copy a local list to a server. Disabled with
+    /// the reason beside it rather than hidden: a reader who cannot find the action does not
+    /// learn that their server is unreachable, they learn that the app cannot do it.
+    @ViewBuilder
+    private var promote: some View {
+        if let promoting, promoting.origin == .local {
+            Divider()
+            Button {
+                isPromoting = true
+            } label: {
+                Label {
+                    Text("shelves.promote", bundle: .module)
+                } icon: {
+                    Image(systemName: "arrow.up.circle")
+                }
+            }
+            .disabled(model.listCapableServers.isEmpty)
+
+            if model.listCapableServers.isEmpty {
+                Text("shelves.promote.unavailable", bundle: .module)
+            }
+        }
     }
 
     /// Works out what a download would copy, and either asks or says there is nothing to do.
@@ -113,8 +150,13 @@ struct ShelfBulkActions: ViewModifier {
 }
 
 extension View {
-    /// Download and mark-read, for everything a shelf holds.
-    func shelfBulkActions(model: LibraryModel, members: Set<String>) -> some View {
-        modifier(ShelfBulkActions(model: model, members: members))
+    /// Download and mark-read, for everything a shelf holds — and, for a local reading list,
+    /// the offer to copy it onto a server.
+    func shelfBulkActions(
+        model: LibraryModel,
+        members: Set<String>,
+        promoting: ReadingList? = nil
+    ) -> some View {
+        modifier(ShelfBulkActions(model: model, members: members, promoting: promoting))
     }
 }

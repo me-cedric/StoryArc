@@ -104,7 +104,10 @@ struct ReadingListDetail: View {
         // The whole list at once, per `collections-and-reading-lists`. Its entries rather
         // than the publications behind them: an entry whose source dropped the publication
         // is skipped by the action itself rather than left out of what the reader asked for.
-        .shelfBulkActions(model: model, members: Set(entries))
+        //
+        // The list itself goes too: the same requirement offers to copy a local one onto a
+        // server, and the offer belongs where the reader is looking at the list.
+        .shelfBulkActions(model: model, members: Set(entries), promoting: list)
     }
 
     @ViewBuilder

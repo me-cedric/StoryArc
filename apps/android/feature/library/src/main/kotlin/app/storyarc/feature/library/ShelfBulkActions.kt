@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -7,6 +8,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -22,9 +24,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.model.BulkSelection
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.ReadingList
+import app.storyarc.core.model.ShelfOrigin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -48,14 +53,23 @@ internal fun ShelfBulkMenu(
     publications: List<Publication>,
     onMark: (Publication, Boolean) -> Unit,
     onChange: (BulkUndo) -> Unit,
+    /**
+     * The list this shelf is, when it is a local reading list that could go on a server.
+     * Null for a collection, and for a list a server already holds.
+     */
+    promoting: ReadingList? = null,
+    /** What a copy needs from the app layer. Null on a screen that cannot offer one. */
+    promoter: ListPromoter? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val listServers by viewModel.listServers.collectAsStateWithLifecycle()
 
     var isOpen by remember { mutableStateOf(false) }
     var pending by remember { mutableStateOf<Pair<Set<String>, Long>?>(null) }
     var isAllOnDevice by remember { mutableStateOf(false) }
+    var isPromoting by remember { mutableStateOf(false) }
 
     IconButton(onClick = { isOpen = true }, enabled = members.isNotEmpty()) {
         Icon(
@@ -83,6 +97,41 @@ internal fun ShelfBulkMenu(
                 val ids = BulkSelection.downloading(members, viewModel.keptOffline())
                 if (ids.isEmpty()) isAllOnDevice = true else pending = ids to viewModel.bytesOnDisk(ids)
             },
+        )
+        // `collections-and-reading-lists` offers to copy a local list to a server. Disabled
+        // with the reason under it rather than hidden: a reader who cannot find the action
+        // does not learn that their server is unreachable, they learn that the app cannot
+        // do it.
+        if (promoting != null && promoter != null && promoting.origin == ShelfOrigin.Local) {
+            DropdownMenuItem(
+                enabled = listServers.isNotEmpty(),
+                text = {
+                    Column {
+                        Text(stringResource(R.string.shelves_promote))
+                        if (listServers.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.shelves_promote_unavailable),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = palette.textSecondary,
+                            )
+                        }
+                    }
+                },
+                onClick = {
+                    isOpen = false
+                    isPromoting = true
+                },
+            )
+        }
+    }
+
+    if (isPromoting && promoting != null && promoter != null) {
+        PromoteListSheet(
+            viewModel = viewModel,
+            list = promoting,
+            promoter = promoter,
+            onDismiss = { isPromoting = false },
+            onCopied = onChange,
         )
     }
 
@@ -151,6 +200,11 @@ internal fun BulkUndoEffect(
     viewModel: LibraryViewModel?,
     publications: List<Publication>,
     onMark: (Publication, Boolean) -> Unit,
+    /**
+     * Takes a copied list back off its server. Null on a screen that cannot copy one there,
+     * which is every screen but a local reading list's.
+     */
+    promoter: ListPromoter? = null,
     onSettle: () -> Unit,
 ) {
     val message = undo?.let {
@@ -179,6 +233,8 @@ internal fun BulkUndoEffect(
                     .forEach { onMark(it, !kind.wasRead) }
 
                 BulkUndo.Kind.Kept -> viewModel.forgetKept(record.ids)
+
+                is BulkUndo.Kind.Promoted -> promoter?.withdraw(kind.sourceId, kind.listId)
             }
         }
         onSettle()

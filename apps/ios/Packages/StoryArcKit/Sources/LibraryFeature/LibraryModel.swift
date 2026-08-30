@@ -140,6 +140,8 @@ public final class LibraryModel {
 
     /// The reading lists every known Kavita server holds, once they have been asked.
     var serverLists: [ServerShelf] = []
+    /// The servers that answered that question: reachable, and able to hold a list.
+    var listCapableServers: [KavitaPage] = []
     // Internal, not private: the shelves half of this type lives in another file.
     /// How far through each publication the reader got, keyed by publication id.
     var progress: [String: ReadingProgress] = [:]

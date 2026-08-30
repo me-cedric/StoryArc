@@ -46,3 +46,7 @@ data class KavitaListAppend(
     val seriesId: Int,
     val chapterIds: List<Int>,
 )
+
+/** What `create` wants: a name, and nothing else. Kavita fills in the rest. */
+@Serializable
+data class KavitaListDraft(val title: String)

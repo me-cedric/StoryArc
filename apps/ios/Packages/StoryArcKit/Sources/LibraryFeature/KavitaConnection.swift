@@ -130,7 +130,11 @@ public final class KavitaConnection {
 }
 
 /// What is needed to open a saved Kavita source.
-public struct KavitaPage: Sendable {
+///
+/// `Identifiable` on the source's own id, so a screen that offers a choice of servers — the
+/// one `collections-and-reading-lists` needs before it can copy a list onto one — can list
+/// them without inventing a second identity for each.
+public struct KavitaPage: Sendable, Identifiable {
     public let id: String
     public let title: String
     public let address: KavitaAddress

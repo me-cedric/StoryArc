@@ -51,5 +51,13 @@ data class BulkUndo(val kind: Kind, val ids: Set<String>) {
         data class Listing(val id: UUID) : Kind
         data class Read(val wasRead: Boolean) : Kind
         data object Kept : Kind
+
+        /**
+         * A local reading list copied onto a server, and the list the server made of it.
+         *
+         * The source rather than its address: an undo resolves the key out of the secure
+         * store when it runs, so a record waiting out its ten seconds holds no secret.
+         */
+        data class Promoted(val sourceId: String, val listId: Int) : Kind
     }
 }

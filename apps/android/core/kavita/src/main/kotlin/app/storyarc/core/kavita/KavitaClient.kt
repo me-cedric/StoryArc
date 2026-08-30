@@ -188,6 +188,36 @@ class KavitaClient(val address: KavitaAddress) {
     }
 
     /**
+     * Makes a new, empty reading list on the server and answers with what it became.
+     *
+     * `collections-and-reading-lists` lets a reader put a local list "on a server" so it
+     * syncs and is visible elsewhere. The server mints the id, which is why this answers with
+     * the list rather than with nothing: everything that follows -- the entries, and the
+     * undo -- is addressed by it.
+     */
+    suspend fun createList(title: String): KavitaReadingList = decode(
+        request(
+            address.endpoint("ReadingList/create"),
+            method = "POST",
+            body = Json.encodeToString(KavitaListDraft.serializer(), KavitaListDraft(title)),
+        ),
+    )
+
+    /**
+     * Removes a reading list from the server.
+     *
+     * Here so the copy is reversible: `collections-and-reading-lists` makes every action of
+     * this shape "undoable for 10 seconds", and the only way to take back a list the server
+     * now holds is to ask the server to drop it again.
+     */
+    suspend fun deleteList(id: Int) {
+        request(
+            address.endpoint("ReadingList", mapOf("readingListId" to id.toString())),
+            method = "DELETE",
+        )
+    }
+
+    /**
      * Series matching a query, answered by the server.
      *
      * Only the series half is read. The rest of what Kavita returns -- chapters, people,

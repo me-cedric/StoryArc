@@ -77,6 +77,11 @@ struct KavitaListAppend: Encodable {
     let chapterIds: [Int]
 }
 
+/// What `create` wants: a name, and nothing else. Kavita fills in the rest.
+struct KavitaListDraft: Encodable {
+    let title: String
+}
+
 extension KavitaClient {
     /// The collections this server holds.
     public func collections() async throws -> [KavitaCollection] {
@@ -124,6 +129,36 @@ extension KavitaClient {
         request.httpBody = try JSONEncoder().encode(
             KavitaListAppend(readingListId: listId, seriesId: seriesId, chapterIds: chapterIds)
         )
+        _ = try await send(request)
+    }
+
+    /// Makes a new, empty reading list on the server and answers with what it became.
+    ///
+    /// `collections-and-reading-lists` lets a reader put a local list "on a server" so it
+    /// syncs and is visible elsewhere. The server mints the id, which is why this answers
+    /// with the list rather than with nothing: everything that follows — the entries, and
+    /// the undo — is addressed by it.
+    public func createList(named title: String) async throws -> KavitaReadingList {
+        guard let url = address.endpoint("ReadingList/create") else { throw KavitaError.badAddress }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(KavitaListDraft(title: title))
+        return try decode(KavitaReadingList.self, from: try await send(request))
+    }
+
+    /// Removes a reading list from the server.
+    ///
+    /// Here so the copy is reversible: `collections-and-reading-lists` makes every action of
+    /// this shape "undoable for 10 seconds", and the only way to take back a list the server
+    /// now holds is to ask the server to drop it again.
+    public func deleteList(_ id: Int) async throws {
+        guard let url = address.endpoint(
+            "ReadingList",
+            query: [URLQueryItem(name: "readingListId", value: String(id))]
+        ) else { throw KavitaError.badAddress }
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
         _ = try await send(request)
     }
 

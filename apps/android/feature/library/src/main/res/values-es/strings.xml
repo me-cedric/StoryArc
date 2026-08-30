@@ -161,6 +161,24 @@
         <item quantity="one">%1$d publicación</item>
         <item quantity="other">%1$d publicaciones</item>
     </plurals>
+    <string name="shelves_promote">Copiar a un servidor…</string>
+    <string name="shelves_promote_unavailable">Ningún servidor accesible puede alojar una lista de lectura.</string>
+    <string name="shelves_promote_title">Copiar a un servidor</string>
+    <string name="shelves_promote_choose">Elegir un servidor</string>
+    <string name="shelves_promote_plan">Lo que va a ocurrir</string>
+    <string name="shelves_promote_copy">Copiar</string>
+    <string name="shelves_promote_entries">%1$d de %2$d entradas</string>
+    <string name="shelves_promote_why">%1$s no las tiene, y StoryArc nunca sube un archivo a un servidor. Se quedan en la lista local.</string>
+    <string name="shelves_promote_none">%1$s no tiene ninguna de estas entradas, así que no hay nada que copiar.</string>
+    <string name="shelves_promote_failed">No se copió nada. El servidor no aceptó la lista.</string>
+    <plurals name="shelves_promote_copying">
+        <item quantity="one">Se copiará %1$d entrada</item>
+        <item quantity="other">Se copiarán %1$d entradas</item>
+    </plurals>
+    <plurals name="shelves_promote_left_behind">
+        <item quantity="one">%1$d entrada no se puede copiar</item>
+        <item quantity="other">%1$d entradas no se pueden copiar</item>
+    </plurals>
     <string name="kavita_title">Servidor Kavita</string>
     <string name="kavita_address_label">Dirección</string>
     <string name="kavita_address_prompt">kavita.example.com</string>

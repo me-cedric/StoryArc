@@ -75,6 +75,14 @@ separate screens.
 #### Scenario: Converting a local list
 - **WHEN** a user wants a local list on a server
 - **THEN** the app offers to copy it, and states which entries cannot be included because they do not exist on that server
+- **AND** only servers that are reachable and hold reading lists are offered
+- **AND** the count, what the chosen server already has, and what it cannot take are all stated before anything is sent
+- **AND** an entry the server does not hold is left out rather than uploaded, and the local list keeps it
+- **AND** the copy is undoable for 10 seconds, which removes the list from the server again
+
+#### Scenario: Converting a local list while every server is away
+- **WHEN** no server is reachable, or none of them holds reading lists
+- **THEN** the offer to copy is disabled and says why, rather than failing after the user has confirmed it
 
 ### Requirement: Bulk actions
 

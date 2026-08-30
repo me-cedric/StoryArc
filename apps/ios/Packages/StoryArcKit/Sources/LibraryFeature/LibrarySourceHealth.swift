@@ -35,8 +35,13 @@ extension LibraryModel {
         // Asked at the same moment, because it is the same question — what does this server
         // have — and the add-to menu cannot fetch it for itself without opening a connection
         // every time a reader long-presses a cover.
-        serverLists = await ServerShelf.all(in: registry, credentials: credentials)
-            .filter(\.isList)
+        let fetched = await ServerShelf.fetch(in: registry, credentials: credentials)
+        serverLists = fetched.shelves.filter(\.isList)
+        // `collections-and-reading-lists` offers to copy a local list onto a server, and the
+        // offer has to be honest before it is taken: only a server that just answered can
+        // take one, so an unreachable one leaves the offer disabled rather than failing after
+        // the reader has already confirmed it.
+        listCapableServers = fetched.listCapable
     }
 
     /// Keeps asking, while any source is still away.

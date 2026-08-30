@@ -56,6 +56,12 @@ struct BulkUndo: Identifiable, Equatable {
         case list(UUID)
         case read(Bool)
         case kept
+
+        /// A local reading list copied onto a server, and the list the server made of it.
+        ///
+        /// The source rather than its address: an undo resolves the key out of the secure
+        /// store when it runs, so a record waiting out its ten seconds holds no secret.
+        case promoted(sourceID: String, listID: Int)
     }
 }
 
@@ -118,6 +124,8 @@ extension LibraryModel {
             _ = await mark(selection: record.ids, read: !wasRead)
         case .kept:
             forgetKept(record.ids)
+        case let .promoted(sourceID, listID):
+            await withdraw(listID, from: sourceID)
         }
     }
 }

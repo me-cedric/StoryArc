@@ -309,6 +309,34 @@ const server = createServer((request, response) => {
     })))
   }
 
+  // A local list copied onto the server, per `collections-and-reading-lists`. The server
+  // mints the id, which is what the client then addresses the entries and the undo by.
+  if (url.pathname === '/api/ReadingList/create' && request.method === 'POST') {
+    let body = ''
+    request.on('data', (chunk) => { body += chunk })
+    request.on('end', () => {
+      const posted = JSON.parse(body || '{}')
+      const made = {
+        id: Math.max(0, ...readingLists.map((each) => each.id)) + 1,
+        title: posted.title ?? '',
+        summary: null,
+        items: [],
+      }
+      readingLists.push(made)
+      send(response, 200, { id: made.id, title: made.title, summary: made.summary })
+    })
+    return undefined
+  }
+
+  // The other half of that copy: an undo inside its ten seconds asks the server to drop the
+  // list again, so a mistake leaves nothing behind for other Kavita clients to see.
+  if (url.pathname === '/api/ReadingList' && request.method === 'DELETE') {
+    const at = readingLists.findIndex((each) => each.id === Number(url.searchParams.get('readingListId')))
+    if (at < 0) return send(response, 404, { message: 'no such list' })
+    readingLists.splice(at, 1)
+    return send(response, 200, true)
+  }
+
   if (url.pathname === '/api/ReadingList/items') {
     const found = readingLists.find((each) => each.id === Number(url.searchParams.get('readingListId')))
     if (!found) return send(response, 404, { message: 'no such list' })

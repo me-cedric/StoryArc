@@ -107,6 +107,17 @@ class LibraryViewModel(
 
     /** The reading lists every known Kavita server holds, once they have been asked. */
     val serverLists: StateFlow<List<ServerList>> = _serverLists.asStateFlow()
+
+    private val _listServers = MutableStateFlow<List<KavitaPage>>(emptyList())
+
+    /**
+     * The servers that answered that question: reachable, and able to hold a list.
+     *
+     * Answered rather than non-empty. A server with no reading lists yet still supports them,
+     * and is exactly the one a reader is most likely to want to copy their first list onto;
+     * a server that did not answer supports nothing this app can see, and is not offered.
+     */
+    val listServers: StateFlow<List<KavitaPage>> = _listServers.asStateFlow()
     val registry: StateFlow<SourceRegistry> = _registry.asStateFlow()
 
     private val _shelves = MutableStateFlow(shelvesStore?.shelves() ?: Shelves())
@@ -341,12 +352,19 @@ class LibraryViewModel(
             // Asked at the same moment, because it is the same question -- what does this
             // server have -- and the add-to sheet cannot fetch it for itself without
             // opening a connection every time a reader long-presses a cover.
+            val answered = mutableListOf<KavitaPage>()
             _serverLists.value = _registry.value.sources.flatMap { source ->
                 val page = KavitaPage.of(source, credentials) ?: return@flatMap emptyList()
-                runCatching { KavitaClient(page.address).readingLists() }
-                    .getOrDefault(emptyList())
-                    .map { ServerList(page, it.id, it.title) }
+                val lists = runCatching { KavitaClient(page.address).readingLists() }
+                    .getOrNull() ?: return@flatMap emptyList()
+                answered += page
+                lists.map { ServerList(page, it.id, it.title) }
             }
+            // `collections-and-reading-lists` offers to copy a local list onto a server, and
+            // the offer has to be honest before it is taken: only a server that just answered
+            // can take one, so an unreachable one leaves the offer disabled rather than
+            // failing after the reader has already confirmed it.
+            _listServers.value = answered
         }
     }
 

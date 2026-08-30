@@ -69,8 +69,12 @@ import app.storyarc.feature.library.SmbLocator
 import app.storyarc.feature.library.SmbPage
 import app.storyarc.feature.library.SmbSheet
 import app.storyarc.feature.library.KavitaSync
+import app.storyarc.feature.library.ListPromoter
 import app.storyarc.feature.library.ReadingListDetailScreen
 import app.storyarc.feature.library.ShelvesScreen
+import app.storyarc.feature.library.promote
+import app.storyarc.feature.library.promotionOf
+import app.storyarc.feature.library.withdrawList
 import app.storyarc.feature.settings.SettingsScreen
 import app.storyarc.feature.settings.BuildInfo
 import app.storyarc.feature.library.SidebarDestination
@@ -662,6 +666,20 @@ class MainActivity : ComponentActivity() {
                             onMark = { publication, isRead ->
                                 libraryViewModel.mark(publication, isRead, kavitaProgress, credentials)
                             },
+                            // `collections-and-reading-lists` offers to copy a local list
+                            // onto a server. The secrets a server asks for are the app
+                            // layer's, so what the screen gets is what it can call.
+                            promoter = ListPromoter(
+                                plan = { list, server ->
+                                    promotionOf(list, server, kavitaProgress)
+                                },
+                                copy = { list, server ->
+                                    promote(list, server, kavitaProgress)
+                                },
+                                withdraw = { sourceId, listId ->
+                                    libraryViewModel.withdrawList(sourceId, listId, credentials)
+                                },
+                            ),
                         )
                     } else if (isShowingShelves && selection == null) {
                         BackHandler { isShowingShelves = false }

@@ -128,6 +128,11 @@ fun ReadingListDetailScreen(
     onBack: () -> Unit,
     /** Marks a publication read. The app layer owns the secrets the server may need. */
     onMark: (Publication, Boolean) -> Unit = { _, _ -> },
+    /**
+     * What a copy onto a server needs from the app layer, which owns the secrets. Null on a
+     * screen wired without one, which then does not offer the action at all.
+     */
+    promoter: ListPromoter? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val shelves by viewModel.shelves.collectAsStateWithLifecycle()
@@ -140,7 +145,7 @@ fun ReadingListDetailScreen(
 
     val snackbars = remember { SnackbarHostState() }
     var undo by remember { mutableStateOf<BulkUndo?>(null) }
-    BulkUndoEffect(undo, snackbars, viewModel, publications, onMark) { undo = null }
+    BulkUndoEffect(undo, snackbars, viewModel, publications, onMark, promoter) { undo = null }
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
@@ -150,12 +155,18 @@ fun ReadingListDetailScreen(
                 // The whole list at once. Its entries rather than the publications behind
                 // them: an entry whose source dropped the publication is skipped by the
                 // action itself rather than left out of what the reader asked for.
+                //
+                // The list itself goes too: `collections-and-reading-lists` offers to copy a
+                // local one onto a server, and the offer belongs where the reader is looking
+                // at the list.
                 ShelfBulkMenu(
                     viewModel = viewModel,
                     members = entries.toSet(),
                     publications = publications,
                     onMark = onMark,
                     onChange = { undo = it },
+                    promoting = list,
+                    promoter = promoter,
                 )
             }
         },

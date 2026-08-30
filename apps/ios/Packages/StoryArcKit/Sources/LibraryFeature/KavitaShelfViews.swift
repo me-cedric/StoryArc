@@ -22,21 +22,47 @@ public struct ServerShelf: Identifiable, Sendable {
         in registry: SourceRegistry,
         credentials: CredentialStore?
     ) async -> [ServerShelf] {
+        await fetch(in: registry, credentials: credentials).shelves
+    }
+
+    /// The shelves, and the servers that could be asked for them at all.
+    ///
+    /// Both come out of the same round of requests because they are the same question asked
+    /// once. Keeping them apart matters: a server with no reading lists yet still *supports*
+    /// them, and one that did not answer does not — a distinction an empty array cannot make,
+    /// and the one `collections-and-reading-lists` needs before it offers to copy a list.
+    static func fetch(
+        in registry: SourceRegistry,
+        credentials: CredentialStore?
+    ) async -> ServerShelves {
         var found: [ServerShelf] = []
+        var listCapable: [KavitaPage] = []
         for source in registry.sources {
             guard let page = KavitaPage(source: source, credentials: credentials) else { continue }
             let client = KavitaClient(address: page.address)
             let collections = (try? await client.collections()) ?? []
-            let lists = (try? await client.readingLists()) ?? []
             found += collections.map {
                 ServerShelf(server: page, id: $0.id, title: $0.title, isList: false)
             }
+            // Answered rather than non-empty: a server that has no lists yet is exactly the
+            // one a reader is most likely to want to copy their first list onto.
+            guard let lists = try? await client.readingLists() else { continue }
+            listCapable.append(page)
             found += lists.map {
                 ServerShelf(server: page, id: $0.id, title: $0.title, isList: true)
             }
         }
-        return found
+        return ServerShelves(shelves: found, listCapable: listCapable)
     }
+}
+
+/// What one round of asking every server produced.
+struct ServerShelves: Sendable {
+    let shelves: [ServerShelf]
+
+    /// The servers that answered when asked for their reading lists — reachable, and able to
+    /// hold one. A server that did not answer is simply not offered.
+    let listCapable: [KavitaPage]
 }
 
 /// The series in one of a server's collections.
