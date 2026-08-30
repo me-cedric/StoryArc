@@ -153,3 +153,41 @@ Conventional commits, scoped by area: `feat(ios):`, `fix(android):`,
 equivalent, in commits, PR titles or bodies, reviews, or issues.
 
 Do not commit, push, tag, or open a PR unless explicitly asked.
+
+## 9. Working in a worktree
+
+Parallel agents each get their own git worktree and a branch. The worktree is a full
+checkout, and once Gradle and SwiftPM have built in it, roughly **700 MB** — four agents is
+three gigabytes. So the cycle has an end, and the end is part of the task.
+
+**While you are working in one:**
+
+- **Commit each coherent piece as you finish it.** A mirrored pure type with its tests is a
+  commit; wiring it into both UIs is another. Do not save one perfect commit for the end — a
+  session that dies with nothing committed loses everything, and that has happened here.
+- **Stay inside the files your task names.** Parallel agents rebase cleanly onto each other
+  only if their file sets are disjoint. If you need a file another agent owns, say so in your
+  report rather than editing it.
+- Do not merge, push, or rebase. The parent session does that.
+
+**When the work is done, the parent closes the loop, per branch, in this order:**
+
+1. **Rebase onto `main`**, which has usually moved — other agents merge while you work.
+   Rebase, do not merge-commit: it keeps one readable line of history.
+   `git rebase main <branch>`
+2. **Run the gates on the rebased branch**, not on what the agent tested. A rebase can break
+   what passed in isolation, and §5 applies to the merged result, not the agent's snapshot.
+3. **Fast-forward onto `main`.** `git merge --ff-only <branch>`
+4. **Remove the worktree and *both* branches.** `git worktree remove` leaves behind the
+   `worktree-wf_*` branch it was created from — `git worktree list` then looks clean while a
+   git client shows dozens of stale branches. Sweep both:
+   ```
+   git branch -d <branch>
+   git worktree remove --force .claude/worktrees/<dir>
+   git branch -D worktree-<dir>
+   git worktree prune
+   ```
+
+**Never remove a worktree whose agent is still running** — `git worktree list` marks those
+`locked`, and removing one destroys uncommitted work. Confirm a branch is merged
+(`git log --oneline main..<branch>` is empty) before deleting it.
