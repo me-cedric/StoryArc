@@ -137,8 +137,14 @@ public struct ShelvesView: View {
             }
         }
         .task {
-            guard serverShelves.isEmpty else { return }
-            serverShelves = await ServerShelf.all(in: model.registry, credentials: CredentialStore())
+            if serverShelves.isEmpty {
+                serverShelves = await ServerShelf.all(
+                    in: model.registry,
+                    credentials: CredentialStore()
+                )
+            }
+            // Outside the guard: what is owed, and what is still to be said about a conflict,
+            // are worth reading every time this screen appears, not only the first.
             await reconcile()
         }
         .navigationTitle(Text("shelves.title", bundle: .module))
