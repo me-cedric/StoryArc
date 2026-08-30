@@ -336,6 +336,37 @@ EPUB_PACKAGE = b"""<?xml version="1.0" encoding="UTF-8"?>
 </package>
 """
 
+# `publication-formats` asks for a publication's publisher, description, series and series
+# index to be read. EPUB states the first two plainly and the series two ways: EPUB 3 defines
+# `belongs-to-collection` refined by `group-position`, and EPUB 2 defines nothing at all, so
+# Calibre's `calibre:series` became the convention by weight of use. A parser has to read
+# both, and this fixture carries both — disagreeing on purpose, so a test can say which wins.
+EPUB_SERIES_PACKAGE = b"""<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="pub-id">urn:uuid:storyarc-fixture-series</dc:identifier>
+    <dc:title>The Second Volume</dc:title>
+    <dc:language>en</dc:language>
+    <dc:creator>StoryArc Fixtures</dc:creator>
+    <dc:publisher>Fixture Press</dc:publisher>
+    <dc:description>A book that states its series twice, and differently.</dc:description>
+    <meta property="belongs-to-collection" id="c01">The Declared Series</meta>
+    <meta refines="#c01" property="collection-type">series</meta>
+    <meta refines="#c01" property="group-position">2</meta>
+    <meta name="calibre:series" content="The Calibre Series"/>
+    <meta name="calibre:series_index" content="7"/>
+    <meta property="dcterms:modified">2026-01-01T00:00:00Z</meta>
+  </metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>
+"""
+
 EPUB_NAV = b"""<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
 <head><title>Contents</title></head>
@@ -467,6 +498,16 @@ epub(
     ],
 )
 
+epub(
+    "series.epub",
+    [
+        ("META-INF/container.xml", EPUB_CONTAINER),
+        ("OEBPS/package.opf", EPUB_SERIES_PACKAGE),
+        ("OEBPS/nav.xhtml", EPUB_NAV),
+        ("OEBPS/ch1.xhtml", chapter(1, "Chapter One", 12)),
+    ],
+)
+
 FIXED_PACKAGE = b"""<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id"
          prefix="rendition: http://www.idpf.org/vocab/rendition/#">
@@ -568,6 +609,26 @@ ebooks: list[dict] = [
         "hasCoverImage": True,
         "isFixedLayout": False,
         "note": "The two cover conventions and the two table-of-contents formats are the things an EPUB parser most often gets wrong, so both are pinned.",
+    },
+    {
+        "file": "ebooks/series.epub",
+        "pins": "a publication's publisher, description and series, stated both the way EPUB 3 defines and the way Calibre made conventional — disagreeing on purpose, so the defined form can be seen to win",
+        "epubVersion": 3,
+        "expectedSpineCount": 1,
+        "expectedTitle": "The Second Volume",
+        "expectedAuthor": "StoryArc Fixtures",
+        "expectedLanguage": "en",
+        "expectedIdentifier": "urn:uuid:storyarc-fixture-series",
+        "expectedPublisher": "Fixture Press",
+        "expectedDescription": "A book that states its series twice, and differently.",
+        "expectedSeries": "The Declared Series",
+        "expectedSeriesIndex": "2",
+        "expectedSpineHrefs": ["OEBPS/ch1.xhtml"],
+        "expectedTocTitles": ["Chapter One", "Chapter Two"],
+        "hasNavDocument": True,
+        "hasCoverImage": False,
+        "isFixedLayout": False,
+        "note": "`belongs-to-collection` is what the format defines and `calibre:series` is what most files carry; a file with both is a file whose publisher knew better than its converter, so the defined one wins.",
     },
     {
         "file": "ebooks/fixed-layout.epub",

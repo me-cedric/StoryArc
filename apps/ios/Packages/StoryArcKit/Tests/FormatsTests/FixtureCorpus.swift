@@ -68,6 +68,10 @@ enum FixtureCorpus {
         let expectedAuthor: String?
         let expectedLanguage: String?
         let expectedIdentifier: String?
+        let expectedPublisher: String?
+        let expectedDescription: String?
+        let expectedSeries: String?
+        let expectedSeriesIndex: String?
         let expectedSpineHrefs: [String]?
         let expectedTocTitles: [String]?
         let expectedCoverHref: String?

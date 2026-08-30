@@ -22,6 +22,20 @@ data class EpubMetadata(
     val author: String?,
     val language: String?,
     val identifier: String?,
+    /** Who published it, which `publication-formats` asks to be read like any other field. */
+    val publisher: String? = null,
+    /** The publisher's own blurb, shown on a publication's detail screen. */
+    val description: String? = null,
+    /**
+     * The series it belongs to, and where in it.
+     *
+     * EPUB 3 states this as a `belongs-to-collection` refined by `collection-type="series"`
+     * and `group-position`. EPUB 2 has no such thing, and Calibre's `calibre:series` meta
+     * became the convention instead -- so both are read, and the EPUB 3 form wins where a
+     * file carries both, because it is the one the format actually defines.
+     */
+    val series: String? = null,
+    val seriesIndex: String? = null,
 )
 
 sealed class EpubException(message: String) : Exception(message) {
@@ -170,6 +184,12 @@ class EpubReader private constructor(
                     language = textOf(packageXml, "dc:language") ?: textOf(packageXml, "language"),
                     identifier = textOf(packageXml, "dc:identifier")
                         ?: textOf(packageXml, "identifier"),
+                    publisher = textOf(packageXml, "dc:publisher")
+                        ?: textOf(packageXml, "publisher"),
+                    description = textOf(packageXml, "dc:description")
+                        ?: textOf(packageXml, "description"),
+                    series = seriesOf(packageXml)?.first,
+                    seriesIndex = seriesOf(packageXml)?.second,
                 ),
                 spine = spine,
                 toc = toc,
@@ -179,6 +199,39 @@ class EpubReader private constructor(
         }
 
         /** The EPUB 3 nav document: the `<nav epub:type="toc">` list. */
+        /**
+         * The series a publication belongs to, from whichever of the two conventions it uses.
+         *
+         * EPUB 3 states it as `<meta property="belongs-to-collection">`, refined elsewhere in
+         * the document by `collection-type` and `group-position` keyed on the collection's
+         * id. EPUB 2 states nothing, and Calibre's `<meta name="calibre:series">` filled the
+         * gap so widely that a reader's library is mostly that. The defined form wins where
+         * both are present; a file carrying both and disagreeing is a file whose publisher
+         * knew better than its converter.
+         */
+        private fun seriesOf(xml: String): Pair<String, String?>? {
+            val metas = elements(xml, "meta")
+
+            val collection = metas.firstOrNull { it["property"] == "belongs-to-collection" }
+            val declared = collection?.get("#text")?.trim()
+            if (collection != null && !declared.isNullOrEmpty()) {
+                val refines = collection["id"]?.let { "#$it" }
+                val position = metas.firstOrNull {
+                    it["property"] == "group-position" &&
+                        (refines == null || it["refines"] == refines)
+                }?.get("#text")?.trim()
+                return declared to position?.takeIf { it.isNotEmpty() }
+            }
+
+            val calibre = metas.firstOrNull { it["name"] == "calibre:series" }
+                ?.get("content")?.trim()
+                ?: return null
+            if (calibre.isEmpty()) return null
+            val index = metas.firstOrNull { it["name"] == "calibre:series_index" }
+                ?.get("content")?.trim()
+            return calibre to index?.takeIf { it.isNotEmpty() }
+        }
+
         private fun parseNav(xml: String, base: String): List<EpubTocEntry> {
             // Only anchors inside the toc nav count. A nav document may also carry
             // a landmarks or page-list nav, and treating those as chapters would

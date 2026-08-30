@@ -381,6 +381,31 @@
       "note": "The two cover conventions and the two table-of-contents formats are the things an EPUB parser most often gets wrong, so both are pinned."
     },
     {
+      "file": "ebooks/series.epub",
+      "pins": "a publication's publisher, description and series, stated both the way EPUB 3 defines and the way Calibre made conventional \u2014 disagreeing on purpose, so the defined form can be seen to win",
+      "epubVersion": 3,
+      "expectedSpineCount": 1,
+      "expectedTitle": "The Second Volume",
+      "expectedAuthor": "StoryArc Fixtures",
+      "expectedLanguage": "en",
+      "expectedIdentifier": "urn:uuid:storyarc-fixture-series",
+      "expectedPublisher": "Fixture Press",
+      "expectedDescription": "A book that states its series twice, and differently.",
+      "expectedSeries": "The Declared Series",
+      "expectedSeriesIndex": "2",
+      "expectedSpineHrefs": [
+        "OEBPS/ch1.xhtml"
+      ],
+      "expectedTocTitles": [
+        "Chapter One",
+        "Chapter Two"
+      ],
+      "hasNavDocument": true,
+      "hasCoverImage": false,
+      "isFixedLayout": false,
+      "note": "`belongs-to-collection` is what the format defines and `calibre:series` is what most files carry; a file with both is a file whose publisher knew better than its converter, so the defined one wins."
+    },
+    {
       "file": "ebooks/fixed-layout.epub",
       "pins": "a fixed-layout EPUB declares rendition:layout, so it is read with the image reader and not offered font controls",
       "epubVersion": 3,

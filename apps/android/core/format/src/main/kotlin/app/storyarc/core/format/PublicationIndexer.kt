@@ -307,12 +307,19 @@ object PublicationIndexer {
         identity = identity,
         format = PublicationFormat.EPUB,
         displayTitle = epub.metadata.title ?: fallback.series ?: filename,
-        series = epub.metadata.title ?: fallback.series,
-        number = fallback.number,
+        // The series the file declares, not its own title. This used to be
+        // `metadata.title`, which made every book a series of one named after itself -- and
+        // `reading-themes` scopes a theme to the series, so two volumes of one work could
+        // not share a setting. A book that declares no series still gets its own shelf,
+        // because `ShelfMemory` falls back to the publication's identity.
+        series = epub.metadata.series ?: fallback.series,
+        number = epub.metadata.seriesIndex ?: fallback.number,
         volume = fallback.volume,
         authors = epub.metadata.author?.let { listOf(it) } ?: emptyList(),
+        publisher = epub.metadata.publisher,
         year = fallback.year,
         language = epub.metadata.language,
+        summary = epub.metadata.description,
         origin = if (epub.metadata.title == null) MetadataOrigin.INFERRED else MetadataOrigin.EMBEDDED,
         // The spine, not a page count: an EPUB's pages depend on the type size the
         // reader is set to, so there is no number to record here.

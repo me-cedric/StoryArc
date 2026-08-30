@@ -17,13 +17,6 @@ public struct EpubTocEntry: Sendable, Equatable {
 }
 
 /// What a publication says about itself.
-public struct EpubMetadata: Sendable, Equatable {
-    public let title: String?
-    public let author: String?
-    public let language: String?
-    public let identifier: String?
-}
-
 public enum EpubError: Error, Equatable {
     /// Not an EPUB: the `mimetype` entry is missing or says something else.
     case notEpub
@@ -216,7 +209,12 @@ public struct EpubReader: Sendable {
                 title: elements.text(of: "dc:title") ?? elements.text(of: "title"),
                 author: elements.text(of: "dc:creator") ?? elements.text(of: "creator"),
                 language: elements.text(of: "dc:language") ?? elements.text(of: "language"),
-                identifier: elements.text(of: "dc:identifier") ?? elements.text(of: "identifier")
+                identifier: elements.text(of: "dc:identifier") ?? elements.text(of: "identifier"),
+                publisher: elements.text(of: "dc:publisher") ?? elements.text(of: "publisher"),
+                description: elements.text(of: "dc:description")
+                    ?? elements.text(of: "description"),
+                series: series(in: elements)?.name,
+                seriesIndex: series(in: elements)?.position
             ),
             spine: spine,
             coverHref: coverHref,
@@ -288,7 +286,10 @@ public struct EpubReader: Sendable {
     // of contents, say), switch to `XMLParser` rather than growing this.
 
     /// Every element with a given local name, and its attributes.
-    private struct Elements {
+    /// Not `private`: the metadata half of this type lives in `EpubMetadata.swift`, and
+    /// Swift's `private` is file-scoped, so the split that keeps this file under the line
+    /// cap is what widens it.
+    struct Elements {
         private let text: String
 
         init(_ data: Data) {

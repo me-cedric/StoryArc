@@ -276,12 +276,19 @@ public enum PublicationIndexer {
             identity: identity(forPath: url.path),
             format: .epub,
             displayTitle: metadata.title ?? fallback.series ?? filename,
-            series: metadata.title ?? fallback.series,
-            number: fallback.number,
+            // The series the file declares, not its own title. This used to be
+            // `metadata.title`, which made every book a series of one named after itself —
+            // and `reading-themes` scopes a theme to the series, so two volumes of one work
+            // could not share a setting. A book that declares no series still gets its own
+            // shelf, because `ShelfMemory` falls back to the publication's identity.
+            series: metadata.series ?? fallback.series,
+            number: metadata.seriesIndex ?? fallback.number,
             volume: fallback.volume,
             authors: metadata.author.map { [$0] } ?? [],
+            publisher: metadata.publisher,
             year: fallback.year,
             language: metadata.language,
+            summary: metadata.description,
             origin: metadata.title == nil ? .inferred : .embedded,
             // The spine, not a page count: an EPUB's pages depend on the type size
             // the reader is set to, so there is no number to record here.

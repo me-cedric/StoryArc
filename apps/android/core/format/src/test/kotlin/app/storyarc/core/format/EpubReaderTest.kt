@@ -3,6 +3,7 @@ package app.storyarc.core.format
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -149,5 +150,29 @@ class EpubReaderTest {
             "expected NoPackageDocument, got $failure",
             failure is EpubException.NoPackageDocument,
         )
+    }
+
+    @Test
+    fun `a publication's publisher, description and series are read`() = runTest {
+        val fixture = requireNotNull(FixtureCorpus.ebook("series.epub"))
+        val reader = reader("series.epub")
+
+        assertEquals(fixture.expectedPublisher, reader.metadata.publisher)
+        assertEquals(fixture.expectedDescription, reader.metadata.description)
+        // The fixture declares a series twice and differently. EPUB 3 defines
+        // `belongs-to-collection`; Calibre's `calibre:series` is only convention, however
+        // common, so the defined one wins.
+        assertEquals(fixture.expectedSeries, reader.metadata.series)
+        assertEquals(fixture.expectedSeriesIndex, reader.metadata.seriesIndex)
+    }
+
+    @Test
+    fun `a publication that declares none of them says so, rather than inventing them`() = runTest {
+        val reader = reader("fixture.epub")
+
+        assertNull(reader.metadata.publisher)
+        assertNull(reader.metadata.description)
+        assertNull(reader.metadata.series)
+        assertNull(reader.metadata.seriesIndex)
     }
 }

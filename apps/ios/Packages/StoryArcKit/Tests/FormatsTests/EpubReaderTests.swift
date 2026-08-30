@@ -28,6 +28,30 @@ struct EpubReaderTests {
         #expect(reader.metadata.identifier == fixture.expectedIdentifier, "\(name)")
     }
 
+    @Test("A publication's publisher, description and series are read")
+    func extendedMetadata() async throws {
+        let fixture = try #require(FixtureCorpus.ebook("series.epub"))
+        let reader = try await reader("series.epub")
+
+        #expect(reader.metadata.publisher == fixture.expectedPublisher)
+        #expect(reader.metadata.description == fixture.expectedDescription)
+        // The fixture declares a series twice and differently. EPUB 3 defines
+        // `belongs-to-collection`; Calibre's `calibre:series` is only convention, however
+        // common, so the defined one wins.
+        #expect(reader.metadata.series == fixture.expectedSeries)
+        #expect(reader.metadata.seriesIndex == fixture.expectedSeriesIndex)
+    }
+
+    @Test("A publication that declares none of them says so, rather than inventing them")
+    func absentMetadataStaysAbsent() async throws {
+        let reader = try await reader("fixture.epub")
+
+        #expect(reader.metadata.publisher == nil)
+        #expect(reader.metadata.description == nil)
+        #expect(reader.metadata.series == nil)
+        #expect(reader.metadata.seriesIndex == nil)
+    }
+
     @Test("The version is read from the package, not guessed", arguments: [
         "fixture.epub", "epub2.epub", "fixed-layout.epub",
     ])
