@@ -13,45 +13,44 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AppBarWithSearch
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExpandedDockedSearchBarWithGap
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBarDefaults
-import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.AppBarWithSearch
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.catalogue.CertificatePins
-import app.storyarc.core.model.LibraryQuery
-import app.storyarc.core.model.Publication
-import app.storyarc.core.model.Source
-import app.storyarc.core.persistence.CertificatePinStore
-import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
-import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.designsystem.theme.rememberWindowClass
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.MatchKind
+import app.storyarc.core.model.Publication
 import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.model.SearchAnswers
 import app.storyarc.core.model.SearchResult
 import app.storyarc.core.model.SearchRoute
+import app.storyarc.core.model.Source
+import app.storyarc.core.persistence.CertificatePinStore
+import app.storyarc.core.persistence.CredentialStore
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
@@ -130,8 +129,10 @@ internal fun LibrarySearchEntry(
  * [ExpandedFullScreenContainedSearchBar] on a phone and [ExpandedDockedSearchBarWithGap]
  * where there is room. The design direction names the collapsed control `TopSearchBar`,
  * which is what it was called until material3 1.5.0-alpha26 renamed it and deprecated the
- * old spelling; same control, same slot. Both platforms are being asked for the same behaviour — search is one
- * tap away and takes over the screen — and each says it in its own words.
+ * old spelling; same control, same slot.
+ *
+ * Both platforms are being asked for the same behaviour — search is one tap away and takes
+ * over the screen — and each says it in its own words.
  *
  * What is *inside* the expanded bar is the part that matters, and it is the same on both:
  * one list, headed by what the match is, with nothing on it naming the library that answered.
@@ -192,15 +193,6 @@ internal fun LibrarySearchBar(
     } else {
         ExpandedFullScreenContainedSearchBar(state = state, inputField = inputField) {
             results()
-        }
-    }
-
-    // A term that survived a rotation should still have its results up. Collapsing on an
-    // empty field is not done here: the reader closes the bar, the bar does not close itself
-    // out from under a search they are still reading.
-    LaunchedEffect(Unit) {
-        if (query.isNotBlank() && state.currentValue == SearchBarValue.Collapsed) {
-            state.animateToExpanded()
         }
     }
 }
