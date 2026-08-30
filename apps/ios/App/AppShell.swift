@@ -74,8 +74,16 @@ struct AppShell: View {
                 label(Text("tab.library"), LibraryDestination.library.symbolName)
             }
 
+            // Not `library(.onDevice)` any more. That drew the right *set* of covers and
+            // nothing else — no queue, no idea what the files weigh, no way to remove one
+            // — with the rest of it three taps inside the Settings modal. The destination
+            // owns all of it now; see ``DownloadsDestination``.
             Tab(value: .destination(.onDevice)) {
-                library(.onDevice)
+                DownloadsDestination(
+                    model: model,
+                    onOpen: onOpen,
+                    onShowLibrary: { tab = .destination(.library) }
+                )
             } label: {
                 label(Text("tab.downloads"), LibraryDestination.onDevice.symbolName)
             }

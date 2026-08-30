@@ -639,6 +639,36 @@
         }
       }
     },
+    "downloads.manageInDestination": {
+      "extractionState": "manual",
+      "comment": "Where the files went when they left this screen for their own destination.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles auf diesem Gerät, und alles, was noch ankommt, finden Sie unter Downloads."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everything on this device, and anything still arriving, is in Downloads."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo lo que hay en este dispositivo, y todo lo que aún está llegando, está en Descargas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout ce qui est sur cet appareil, et tout ce qui arrive encore, se trouve dans Téléchargements."
+          }
+        }
+      }
+    },
     "downloads.moveEarlier %@": {
       "extractionState": "manual",
       "localizations": {

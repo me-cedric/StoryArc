@@ -185,16 +185,9 @@ struct StoryArcApp: App {
                     // opened a catalogue.
                     downloads: downloads,
                     bytesOnDisk: downloadStore.bytesOnDisk(),
-                    onRemoveDownload: { download in
-                        downloads = downloadStore.removing(download.id, from: downloads)
-                        // The library holds a row for every imported copy, and a row whose
-                        // file has just been deleted is a book that opens onto nothing.
-                        Task { await library.refreshImports() }
-                    },
-                    onReorderDownload: { download, later in
-                        downloads = downloads.moving(download.id, later: later)
-                        downloadStore.save(downloads)
-                    },
+                    // Removing one download and reordering the queue left with the files:
+                    // both are the Downloads destination's now, which is where a reader
+                    // looks for them and where they are one tap away rather than four.
                     onClearDownloads: {
                         // The bytes behind the undo are staged *inside* the downloads
                         // directory, so clearing already takes them with it. Dropping the

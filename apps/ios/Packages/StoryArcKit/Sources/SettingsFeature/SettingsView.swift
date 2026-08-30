@@ -53,13 +53,11 @@ public struct SettingsView: View {
     /// are: the downloads belong to the library that fetched them.
     private let downloads: DownloadLibrary
     private let bytesOnDisk: Int64
-    private let onRemoveDownload: (Download) -> Void
-    private let onReorderDownload: (Download, Bool) -> Void
 
     /// Removes every download at once, which is what the Privacy screen's "clear
-    /// downloads" means. A separate hand from ``onRemoveDownload`` because clearing is not
-    /// removing each one in a loop: the host does it in one write, so a reader is never
-    /// left with half a library gone.
+    /// downloads" means. The only download action left on this screen: removing one at a
+    /// time belongs to the Downloads destination now, and clearing is not that in a loop —
+    /// the host does it in one write, so a reader is never left with half a library gone.
     private let onClearDownloads: () -> Void
 
     /// What the summary rows state, so Sources and Downloads describe themselves.
@@ -91,8 +89,6 @@ public struct SettingsView: View {
         onSourceAction: @escaping (Source, SourceAction) async -> Void = { _, _ in },
         downloads: DownloadLibrary = DownloadLibrary(),
         bytesOnDisk: Int64 = 0,
-        onRemoveDownload: @escaping (Download) -> Void = { _ in },
-        onReorderDownload: @escaping (Download, Bool) -> Void = { _, _ in },
         onClearDownloads: @escaping () -> Void = {}
     ) {
         _settings = settings
@@ -107,8 +103,6 @@ public struct SettingsView: View {
         self.onSourceAction = onSourceAction
         self.downloads = downloads
         self.bytesOnDisk = bytesOnDisk
-        self.onRemoveDownload = onRemoveDownload
-        self.onReorderDownload = onReorderDownload
         self.onClearDownloads = onClearDownloads
     }
 
@@ -213,12 +207,8 @@ public struct SettingsView: View {
             )
         case .downloads:
             DownloadsSettings(
-                library: downloads,
                 bytesOnDisk: bytesOnDisk,
                 settings: $settings,
-                sourceName: { id in sources.first { $0.id == id }?.displayName },
-                onRemove: onRemoveDownload,
-                onReorder: onReorderDownload,
                 highlight: highlight
             )
         case .language:
