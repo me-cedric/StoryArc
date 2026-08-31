@@ -1387,42 +1387,6 @@ class LibraryViewModel(
         return _registry.value.nameOf(publication.sourceId)
     }
 
-    /**
-     * Formats actually present, so the filter never offers one that would empty
-     * the library.
-     */
-    fun availableFormats(): List<PublicationFormat> =
-        _publications.value.map { it.format }.distinct().sortedBy { it.displayName }
-
-    /** Languages actually present, as codes. The screen names them for the reader. */
-    fun availableLanguages(): List<String> =
-        _publications.value.mapNotNull { it.language }.distinct().sorted()
-
-    /** Publishers actually present, as the files spell them. */
-    fun availablePublishers(): List<String> =
-        _publications.value.mapNotNull { it.publisher }.distinct().sorted()
-
-    /** Genres actually present, gathered from every publication's list. */
-    fun availableGenres(): List<String> =
-        _publications.value.flatMap { it.genres }.distinct().sorted()
-
-    /** Tags actually present. Kept apart from [availableGenres] because the files do. */
-    fun availableTags(): List<String> =
-        _publications.value.flatMap { it.tags }.distinct().sorted()
-
-    /**
-     * The decades the library spans, newest first.
-     *
-     * `library-browsing` asks for a year *range*, and [LibraryQuery.years] carries
-     * an arbitrary one — which is what the tests assert and what a future control
-     * will set. What the menu offers is decades, because a menu cannot ask for two
-     * numbers without becoming a form, and a decade is a range a reader picks in one
-     * tap. Derived from the years actually present, so the filter never offers a
-     * decade the library has nothing in.
-     */
-    fun availableDecades(): List<Int> =
-        _publications.value.mapNotNull { it.year }.map { it - it % 10 }.distinct().sortedDescending()
-
     /** Recomputes what is on screen from the library and the query. */
     private fun rebuild() {
         val all = _publications.value
@@ -1437,6 +1401,17 @@ class LibraryViewModel(
     }
 
     internal fun stateOf(publication: Publication) = LibraryIndex.Progress.of(progress[publication.id])
+
+    /**
+     * The local reading record for a publication, or null when it has never been opened.
+     *
+     * The record itself rather than [stateOf]'s summary, because [SearchSuggestions] needs the
+     * position to say how many pages are left — the same question `HomeShelves.pagesRemaining`
+     * answers, and it takes the record. Home reads the store a second time instead, because it
+     * lives in `:app` and this map is private here. A snapshot-map read, so a composition that
+     * asks recomposes when progress reloads.
+     */
+    internal fun recordOf(publication: Publication): ReadingProgress? = progress[publication.id]
 
     fun readFraction(publication: Publication): Float? {
         val record = progress[publication.id] ?: return null

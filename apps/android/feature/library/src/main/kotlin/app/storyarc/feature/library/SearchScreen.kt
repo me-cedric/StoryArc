@@ -1,14 +1,19 @@
 package app.storyarc.feature.library
 
-import androidx.compose.foundation.layout.Box
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -52,6 +57,7 @@ fun SearchScreen(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
+    val context = LocalContext.current
     val query by viewModel.query.collectAsStateWithLifecycle()
     val recents by viewModel.recentSearches.collectAsStateWithLifecycle()
 
@@ -71,6 +77,61 @@ fun SearchScreen(
     // the two apart the same way, under a second `@AppStorage` key.
     val scope by viewModel.searchScope.collectAsStateWithLifecycle()
 
+    val publications by viewModel.publications.collectAsStateWithLifecycle()
+    val registry by viewModel.registry.collectAsStateWithLifecycle()
+
+    /**
+     * What the page offers before a letter is typed.
+     *
+     * `derivedStateOf` rather than a plain `remember`, and the difference is a defect either
+     * way round. The offer is a function of three things: the library, the registry, and the
+     * reading records — and the records are a snapshot map the model writes into as they
+     * reload, which no `remember` key can name. A keyed `remember` would hold the first answer
+     * for ever and a reader back from the reader would find *Pick up where you left off*
+     * unchanged; no `remember` at all would recompute the whole offer on every frame of a
+     * scroll. The derived state reads the map, so it recomputes exactly when it moves.
+     *
+     * The keys are still the library and the registry, so the derived state itself is rebuilt
+     * when a scan replaces the list.
+     *
+     * `isReadableNow` is the library's own answer and not this screen's. Home asked it
+     * itself once and got both of the two mistakes the shared rule was written to prevent —
+     * see `HomeDestination`, which photographed the result on an emulator.
+     */
+    val suggestions by remember(publications, registry) {
+        derivedStateOf {
+            SearchSuggestions.of(
+                publications = publications,
+                progress = viewModel::recordOf,
+                isReadableNow = viewModel::isReadableNow,
+            )
+        }
+    }
+
+    // The two ways in that need nothing but a system picker, for the page with nothing to
+    // suggest. `sources` makes opening a comic the primary action — it "opens a comic from the
+    // device with nothing to configure first" — and a folder is the one kind of library that
+    // needs no address and no credentials. `LibraryScreen` builds the identical pair for the
+    // shelf's own empty state; the persistable grant can only be taken here, with the result
+    // in hand.
+    val importFile = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { file -> if (file != null) viewModel.importFile(file) }
+
+    val pickFolder = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { tree ->
+        if (tree != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    tree,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            viewModel.addFolder(tree)
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = palette.surfaceCanvas,
@@ -87,15 +148,18 @@ fun SearchScreen(
             )
         },
     ) { padding ->
-        // **Deliberately empty, and named as unfinished rather than filled with a stub.**
-        // What belongs here is the at-rest offer — something to continue, something never
-        // opened, a next volume — which iOS's `SearchAtRest` already draws and which this side
-        // has not been given yet. Section 1 moved search onto a page and section 2 built the
-        // bar on it; the page's own content is the piece still outstanding, and saying so here
-        // is better than a placeholder that reads as finished.
-        //
-        // The screen is usable meanwhile: the bar above expands to full screen on a tap and
-        // carries the scope chips, recent searches and results.
-        Box(modifier = Modifier.fillMaxSize().padding(padding))
+        SearchAtRest(
+            suggestions = suggestions,
+            scope = scope,
+            onScopeChange = viewModel::setSearchScope,
+            cover = viewModel::cover,
+            // A cover leads to the publication's own page, never straight into the reader:
+            // `publication-detail` makes the two different verbs, and a suggestion is a cover
+            // like any other. Home's Keep reading card is the one place that resumes.
+            onOpenPage = onOpenPage,
+            onOpenComic = { importFile.launch(arrayOf("*/*")) },
+            onAddFolder = { pickFolder.launch(null) },
+            modifier = Modifier.fillMaxSize().padding(padding),
+        )
     }
 }

@@ -3,6 +3,8 @@ package app.storyarc.feature.library
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -478,11 +480,22 @@ private fun SearchAnswerList(
  * `library-browsing` asks the screen to state what it is searching, not only to let it be
  * changed.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ScopeChips(scope: LibraryAvailability, onScopeChange: (LibraryAvailability) -> Unit) {
-    Row(
+internal fun ScopeChips(scope: LibraryAvailability, onScopeChange: (LibraryAvailability) -> Unit) {
+    // **A wrapping row, and the `Row` it replaced is why.** A `Row` measures its children in
+    // order and gives the second whatever width the first left, so at the largest text size in
+    // a 320 dp window *On this device* was drawn over four lines with a lone "e" on the last
+    // one — photographed on an emulator, in `docs/designs/screenshots/before-2026-08-31d/`.
+    // Wrapping gives the second chip its own line at its natural width instead. `ListOrderChips`
+    // reached the same layout from the same failure, and `design.md` §3 rule 3 makes surviving
+    // that text size a requirement.
+    FlowRow(
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-        modifier = Modifier.padding(StoryArcSpace.gutter, StoryArcSpace.sm),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(StoryArcSpace.gutter, StoryArcSpace.sm),
     ) {
         LibraryAvailability.entries.forEach { option ->
             FilterChip(
@@ -501,7 +514,7 @@ private fun ScopeChips(scope: LibraryAvailability, onScopeChange: (LibraryAvaila
  * "On this device" in one app is how a vocabulary drifts, and `originLabel` a few lines down
  * makes the same point about the same words.
  */
-private val LibraryAvailability.searchScopeLabel: Int
+internal val LibraryAvailability.searchScopeLabel: Int
     get() = when (this) {
         LibraryAvailability.EVERYTHING -> R.string.library_scope_all
         LibraryAvailability.ON_THIS_DEVICE -> R.string.source_on_this_device

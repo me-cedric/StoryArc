@@ -29,6 +29,15 @@
     <string name="library_search">Search</string>
     <string name="library_search_recent">Recent searches</string>
     <string name="library_search_recent_clear">Clear recent searches</string>
+    <!-- The search page before a letter is typed. A product choice, not a Material pattern:
+         Material knows only historical suggestions before typing. `navigation-shell` asks for
+         these three by name. The words are iOS's, because one situation described twice in a
+         four-language app is how a vocabulary comes apart. -->
+    <string name="search_suggestions_in_progress">Pick up where you left off</string>
+    <string name="search_suggestions_next_in_series">Next in a series you have read</string>
+    <string name="search_suggestions_never_opened">You have never opened these</string>
+    <string name="search_empty_title">Nothing to suggest yet</string>
+    <string name="search_empty_subtitle">Search looks across everything you have added. Add a library and there will be something here.</string>
     <string name="library_search_back">Close search</string>
     <string name="library_search_clear">Clear the search</string>
     <string name="library_sort">Sort</string>

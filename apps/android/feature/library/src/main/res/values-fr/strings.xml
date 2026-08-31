@@ -29,6 +29,11 @@
     <string name="library_search">Rechercher</string>
     <string name="library_search_recent">Recherches récentes</string>
     <string name="library_search_recent_clear">Effacer les recherches récentes</string>
+    <string name="search_suggestions_in_progress">Reprendre où vous en étiez</string>
+    <string name="search_suggestions_next_in_series">La suite d’une série que vous avez lue</string>
+    <string name="search_suggestions_never_opened">Vous n’avez jamais ouvert ceux-ci</string>
+    <string name="search_empty_title">Rien à suggérer pour l’instant</string>
+    <string name="search_empty_subtitle">La recherche couvre tout ce que vous avez ajouté. Ajoutez une bibliothèque et il y aura quelque chose ici.</string>
     <string name="library_search_back">Fermer la recherche</string>
     <string name="library_search_clear">Effacer la recherche</string>
     <string name="library_sort">Trier</string>

@@ -457,7 +457,7 @@ internal fun homeHeroWidth(windowWidthDp: Int, fontScale: Float): Dp {
  * container size is the only input that reports all three.
  */
 @Composable
-private fun homeWindowWidthDp(): Int {
+internal fun homeWindowWidthDp(): Int {
     val density = LocalDensity.current
     val size = LocalWindowInfo.current.containerSize
     return with(density) { size.width.toDp() }.value.toInt()

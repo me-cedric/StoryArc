@@ -32,6 +32,9 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 - [x] 1.9 Both: `pnpm capture:ios` / `pnpm capture:android home` before and after,
       into `docs/designs/screenshots/`, at default and largest text size. §6 owes a
       control shot for a visible change.
+- [x] 1.10 Android: `pnpm capture:android` gains a `Search` route. The table had none —
+      before section 1 there was no destination to walk to — and the previous batch took its
+      search shots by hand and said adding one was worth doing.
 
 ## 2. The search screen
 
@@ -68,6 +71,15 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       screen that says so in one sentence. Its own type over `HomeEntry`, **not** a port of
       iOS's `SearchSuggestions` — that one is a composition over its own home shelves and
       hands the screen bare publications.
+- [x] 2.11c Android: `SearchAtRest` draws them — the scope stated before a letter is typed,
+      a heading only over a section that has something, and one sentence with the two ways in
+      that need only a system picker when there is nothing to suggest. `SearchAtRestTest`
+      (Robolectric) asserts which headings exist, which no pure test can. The three network
+      transports need one line each in `SearchDestination`; `:app` is another agent's this
+      round and they are absent rather than drawn dead.
+- [x] 2.11d Android: the scope chips wrap. At `font_scale 2.0` in a 320 dp window a plain
+      `Row` drew *On this device* over four lines with a lone "e" on the last —
+      photographed, fixed, photographed again.
 - [x] 2.12 Android: the scope chips reach the fan-out. `SearchScopeTest` — narrowing asks
       nobody, drops what cannot be read with no network, empties no heading over it, and
       leaves `waiting` and `silent` empty; `LibraryPreferencesTest` — the choice is written

@@ -264,4 +264,4 @@ internal fun everythingAway(registry: SourceRegistry): Boolean =
  * A tablet would otherwise set one line across the whole window, which is the measure this
  * app spends the rest of its effort avoiding.
  */
-private val FIRST_RUN_MEASURE = 520.dp
+internal val FIRST_RUN_MEASURE = 520.dp

@@ -1,39 +1,54 @@
-# The fourth batch of 2026-08-31, before
+# Android's search page, before section 2's second half
 
-About as it stood before `quiet-shell-and-search` section 3 — no way to what changed in a
-version, because there was nothing to reach. The app had shipped page curl, five typefaces,
-six reading themes, OPDS, Kavita, SMB and a reading position that survives a rename, and had
-never told anybody.
+Android's search page as it stood after `quiet-shell-and-search` sections 1 and 2's *bar*:
+a bar at the top, the navigation below, and **nothing in between**. The source said so where
+the space was left, and the previous batch's README said so too — "the Android search page has
+nothing under its bar yet".
 
-## How these were taken
+## Device and setup
 
-Both trees were at `fc38d4f2`, whose only working change was the what's-new **model** — a
-value, its store and their tests, wired to nothing. Neither About screen had changed, which
-is what makes these a real "before": what is in them is what the previous release drew.
+`storyarc-api36`, started with `-gpu host`. **Not `storyarc-j6`**: another emulator was already
+running that AVD when this work started, and the emulator refuses a second instance of one AVD
+without `-read-only`. Installing a build onto a device somebody else is using would have
+replaced the app under them, so a second AVD was booted instead. Same app, same 320 × 640 dp at
+160 dpi, and every shot in both folders comes from it.
+
+The library is seven CBZ files generated for these captures and pushed into the app's own
+external files directory, which the launch scan walks when no folder has been picked. They are
+**not** the committed corpus and are not committed anywhere: the corpus in
+`packages/test-fixtures/` holds format edge cases — a truncated archive, a data descriptor, a
+password-protected file — and none of it is a series with a finished volume and an unread one
+after it, which is exactly what *Next in a series you have read* needs to have something to
+say. One volume was marked read from the publication page and one standalone was read two pages
+into, both by hand on the device, to produce the two reading states the page draws.
 
 ```bash
-pnpm capture:ios --out docs/designs/screenshots/before-2026-08-31d --only testCaptureAbout
-ANDROID_SERIAL=emulator-5554 pnpm gradle :app:assembleDebug   # then adb install -r
-ANDROID_SERIAL=emulator-5554 pnpm capture:android "Settings > About" --out …/android-about.png
+pnpm build:android
+adb -s emulator-5556 install -r -t apps/android/app/build/outputs/apk/debug/app-debug.apk
+pnpm capture:android Search --out …/android-search-at-rest-light.png
+pnpm capture:android Search --out …/android-search-at-rest-dark.png  --dark
+pnpm capture:android Search --out …/android-search-at-rest-scale2-light.png --font-scale 2.0
 ```
 
-Devices: `StoryArc-iPhone17Pro` (11DFC984), and the `storyarc-j6` emulator started with
-`-gpu host`. **Two emulators were attached**, so every `adb` call carried `ANDROID_SERIAL`;
-without it `adb` refuses, and `pnpm capture:android` inherits the variable.
+`pnpm capture:android` gained a `Search` route in this change — the route table had none,
+because until section 1 there was no search destination to walk to. The previous batch took its
+two search shots by hand with `adb input tap` and said adding a route was worth doing.
 
-`ScreenshotTests.testCaptureAbout` is new in this change and walks Home → Settings → About.
-It was added and compiled *before* the About screens were touched, so the picture below is
-of the old screen taken by the new walk rather than of a new screen.
-
-## What each one shows
+## What is in them
 
 | Shot | What is in it |
 | --- | --- |
-| `ios-about.png` | The version, the author, the free-and-open sentence, five links, and the acknowledgements. **No what's-new row**, between the free sentence and Repository, is the absence this batch exists to record. |
-| `android-about.png` | The same screen and the same absence, drawn Material's way. |
+| `android-search-at-rest-light` | The page with a seeded library behind it and nothing on it. The bar works, the navigation works, and the body is empty — which is the whole defect. |
+| `android-search-at-rest-dark` | The same, dark, so the "after" pair is not proving a theme change by accident. |
+| `android-search-at-rest-scale2-light` | The same at the largest accessibility text size. Empty at every size. |
+| `android-search-scope-chips-squeezed-scale2` | **Not the same "before".** This one is the page *with* the suggestions built and the scope chips still in a plain `Row`, which is the state that revealed a defect nobody had seen: at `font_scale 2.0` in a 320 dp window, *On this device* is drawn over four lines with a lone "e" on the last. It was taken by reverting the one-line layout change, rebuilding, capturing, and restoring — because a fix with no picture of what it fixed is a claim. |
 
-## The caveat worth stating, again
+## What these do not show
 
-`pnpm capture:android` drives whatever APK is installed; it does not build or install one.
-The APK was rebuilt and installed by hand before this shot, because the previous batch's
-"after" photographed a stale build and read exactly like a change that did not work.
+The **expanded** search bar, which is a second surface reached by tapping the field and which
+this change does not touch. Recent searches, the clear affordance, the results and the
+could-not-answer line all live there and were photographed in
+[`after-2026-08-31c/`](../after-2026-08-31c/README.md).
+
+Neither folder shows iOS. Its half of section 2 landed in the previous batch and nothing here
+changes it.
