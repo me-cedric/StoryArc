@@ -367,30 +367,41 @@ pixels** — grain does not survive resampling, so a downscaled screenshot of it
 screenshot of nothing.
 
 Task 0.5 asked for a prototype to be "judged" and had stayed unticked because nobody had
-looked at one. **It still is, and the reason is a defect.**
+looked at one. **The grain is drawing, and it is right. This section got there by being
+wrong twice, and both errors are left standing because each is instructive.**
 
-I first read these captures as a judgement: fine even speckle, reads as paper stock, the
-numbers look right. **That was wrong, and measuring settled it.** Grain is gated off when
-Increase Contrast is on — `PaperGrain.isDrawn` is `natural && !isHighContrast && sdk >= 33`
-— so turning high-contrast text on should visibly flatten the surface. The device is API 36,
+**First reading: it looks like paper.** Fine even speckle, reads as stock rather than noise.
+
+**Second reading: it is not drawing at all, and I judged dithering.** Grain is gated off
+under Increase Contrast, so turning that on must flatten the surface. The device is API 36,
 Natural is on app-wide, the setting went 0 → 1 with a full restart between, and the two
-captures are **identical**: mean 239.17 and standard deviation 1.950 over the same 600 × 120
-patch, to three decimals, in both.
+captures came back **identical** — mean 239.17, standard deviation 1.950, to three decimals.
+Two images that identical are not one grained and one flat, so nothing was drawing.
 
-Two images that identical are not one grained and one flat. **Nothing was drawing the grain
-in either.** The speckle at sd 1.95 is the cream surface's own gradient dithering, which is
-what a warm off-white looks like on an 8-bit panel, and it is what I mistook for a shader.
+**Third reading, and the right one: the experiment used a knob the app does not read.**
+`high_text_contrast_enabled` is consulted only *below* API 34. From 34 the app reads
+`UiModeManager.getContrast()`, backed by `contrast_level` — a different setting entirely.
+On an API 36 device that write never reached the app, so **both captures were grained**,
+which is exactly why they were identical.
 
-The likely cause, recorded for whoever picks it up rather than asserted: the EPUB reader is
-its own activity, `PaperGrainOverlay` gates on `LocalIsNaturalTheme.current`, and the
-implementing note already flagged that that activity reads Natural at open and holds it. If
-that composition local is not provided there, `isDrawn` is false whatever the reader has
-chosen and the shader never runs. The `RuntimeShader` itself is not in question — the rule
-around it is.
+The proof is arithmetic rather than another photograph. The AGSL shader evaluated over the
+cream preset `#FBF0DA` in Rec.601 luma predicts **mean 239.49, sd 1.894** against the
+**239.17 / 1.950** measured here — within 0.13% and 2.9%. And the sd cannot be dithering,
+because the page is a **flat fill**: Readium paints one colour, so an ungrained patch is
+sd **0**, not 1.95. There was never anything there to dither.
 
-What the captures *do* still show honestly: Natural's palette reaches the reader, and the
-plate carries no texture — though with nothing drawing anywhere, that second point proves
-less than it appeared to.
+So the first reading was right and the reasoning behind it was not. The lesson is the one
+this file keeps relearning: **an A/B that changes nothing looks exactly like an A/B of
+nothing.** The re-test needs no accessibility setting at all — grain's dark tint pulls about
+nine times harder than its light tint pushes, so a single 1:1 capture has a **skew of about
+−1.1** where anything symmetric sits near zero. Measure skew, not just spread.
+
+**And one thing the first reading got wrong that survives all this.** I wrote that the plate
+carried no grain and took it as proof the texture does not cross artwork. `PaperGrainOverlay`
+is a full-screen `drawRect` with no image awareness: inside an EPUB it **does** cross any
+plate or figure on the page. A 4.5%-alpha overlay on a dark image is simply below the
+threshold of noticing by eye. So the clause about what grain must not cross is not merely
+missing on the comic side — it is already violated on the EPUB side.
 
 **One thing checked while looking, which is right and looks wrong for a moment:** switching
 the device to dark leaves the *page* cream and turns only the chrome dark. That is
