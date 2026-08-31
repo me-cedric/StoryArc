@@ -163,6 +163,89 @@ struct ReadAloudSessionTests {
         #expect(SessionHandover.opening("the-peregrine", whileSpeaking: "sea-room") == .displace)
     }
 
+    // MARK: - The transport outside the reader
+
+    private var book: SpokenBook {
+        SpokenBook(
+            publication: Publication(
+                identity: identity,
+                format: .epub,
+                displayTitle: "Sea Room",
+                authors: ["Adam Nicolson"],
+                origin: .embedded
+            ),
+            url: URL(fileURLWithPath: "/books/sea-room.epub"),
+            chapter: "Chapter Two"
+        )
+    }
+
+    /// The hard constraint of the docked transport, as a value: absence is not a hidden
+    /// view or an empty one, it is nothing at all, so the accessory slot the shell holds
+    /// stays closed and the tab bar keeps its ordinary height.
+    @Test("No session, no transport")
+    func noTransportWithoutASession() {
+        #expect(ReadAloudTransport.of(idle, speaking: book) == nil)
+        #expect(ReadAloudTransport.of(speaking, speaking: nil) == nil)
+        #expect(ReadAloudTransport.of(idle, speaking: nil) == nil)
+    }
+
+    @Test("A running session has a transport")
+    func transportWhileRunning() {
+        #expect(ReadAloudTransport.of(speaking, speaking: book)?.isSpeaking == true)
+    }
+
+    /// A pause is not an ending. The listener who paused still needs the play button, and
+    /// a transport that vanished on pause would leave them with a session and no way to
+    /// resume it outside the book.
+    @Test("A paused session keeps its transport, and its play button")
+    func transportWhilePaused() {
+        let paused = ReadAloudTransport.of(speaking.pausedByReader(), speaking: book)
+        #expect(paused != nil)
+        #expect(paused?.isSpeaking == false)
+    }
+
+    /// Every way a session can end, and all three withdraw the transport: the listener
+    /// stopped it, the audio was taken for good, and the book ran out of words. `ebook-reader`
+    /// names each one, and they share a single answer because they share a single state.
+    @Test("Every ending withdraws the transport")
+    func transportGoesWithTheSession() {
+        #expect(ReadAloudTransport.of(speaking.stopped(), speaking: book) == nil)
+        #expect(ReadAloudTransport.of(speaking.lostAudio(), speaking: book) == nil)
+        #expect(ReadAloudTransport.of(speaking.interrupted().stopped(), speaking: book) == nil)
+    }
+
+    /// The transport and the lock screen say the same two things, from the same value —
+    /// `ebook-reader` requires them to match, and one source is how they cannot drift.
+    @Test("The transport says what the media controls say")
+    func transportSaysWhatTheLockScreenSays() {
+        let transport = ReadAloudTransport.of(speaking, speaking: book)
+        #expect(transport?.label == book.label)
+        #expect(transport?.label.title == "Sea Room")
+        #expect(transport?.label.detail == "Chapter Two")
+    }
+
+    /// The way back carries the publication and its bytes, so choosing the transport opens
+    /// the same file rather than searching a library for something that looks like it — the
+    /// listener may be three screens away from wherever the book was found.
+    @Test("The way back carries the book's own bytes")
+    func transportCarriesTheWayBack() {
+        let transport = ReadAloudTransport.of(speaking, speaking: book)
+        #expect(transport?.book.url == book.url)
+        #expect(transport?.book.publication.identity == identity)
+    }
+
+    /// The two halves of *getting back to the book*, composed: the transport hands the
+    /// shell the publication it is speaking, and opening that publication is the case
+    /// ``SessionHandover`` already answers with `adopt`. That is why the return does not
+    /// stop the voice — there is no second session to start, and no restart to repeat a
+    /// sentence with.
+    @Test("Choosing the transport reopens the book the voice is on, and adopts it")
+    func returningAdoptsRatherThanRestarts() throws {
+        let transport = try #require(ReadAloudTransport.of(speaking, speaking: book))
+        let opened = transport.book.publication.id
+        #expect(SessionHandover.opening(opened, whileSpeaking: book.id) == .adopt)
+    }
+
     // MARK: - Where the listening got to
 
     private let sentence = #"{"href":"/chapter-4.xhtml","type":"text/html"}"#

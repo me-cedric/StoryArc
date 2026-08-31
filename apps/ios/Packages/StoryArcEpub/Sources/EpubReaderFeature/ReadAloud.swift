@@ -205,6 +205,43 @@ public struct SpokenBook: Equatable, Sendable, Identifiable {
     }
 }
 
+/// What the transport outside the reader shows — and whether there is one at all.
+///
+/// **`nil` is the requirement, not a convenience.** `ebook-reader`: when no session is
+/// running "no transport is present anywhere in the app, and no space is reserved for one".
+/// Absent is not hidden, not disabled and not empty: there is no value, so the shell has
+/// nothing to put in its accessory slot and the slot does not open. Holding that as a value
+/// rather than as an `if` inside a view body is what lets a test assert it — the rule is the
+/// one a later layout change breaks most easily, and a tab bar cannot be unit-tested.
+///
+/// Its words come from ``SpokenBook/label`` — the same value the lock screen is given —
+/// because the spec requires the transport to name "the publication being spoken and the
+/// chapter, matching what the platform's own media controls show". One source, so the two
+/// cannot drift apart.
+///
+/// Android has no equivalent and needs none: its transport is the media notification the
+/// session already posts, and adding an in-app bar there would be inventing a control the
+/// platform does not have.
+public struct ReadAloudTransport: Equatable, Sendable {
+    /// The book being spoken, carried whole because the way back has to open the same bytes
+    /// without asking a reader that has gone. See ``SpokenBook/url``.
+    public let book: SpokenBook
+    /// Whether the voice is speaking, which is the only question the play button asks.
+    public let isSpeaking: Bool
+
+    /// What the transport says, which is what the media controls say.
+    public var label: SpokenLabel { book.label }
+
+    /// - Returns: `nil` when there is no session to control — including a session that has
+    ///   just ended, whether the listener ended it, the audio was taken for good, or the
+    ///   publication ran out of words. All three leave an inactive session, and all three
+    ///   are required to withdraw the transport.
+    static func of(_ session: ReadAloudSession, speaking book: SpokenBook?) -> ReadAloudTransport? {
+        guard session.isActive, let book else { return nil }
+        return ReadAloudTransport(book: book, isSpeaking: session.isSpeaking)
+    }
+}
+
 /// Where the voice got to, in the form the progress store takes.
 ///
 /// The handoff, as a value. The reader used to be the only thing that wrote a position: it

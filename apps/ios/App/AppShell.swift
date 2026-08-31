@@ -1,5 +1,6 @@
 import SwiftUI
 
+import EpubReaderFeature
 import LibraryFeature
 import Persistence
 import StoryArcCore
@@ -28,11 +29,13 @@ import StoryArcCore
 ///   the foot of the grid rendered *behind* it. A real tab bar insets its content.
 ///
 /// The docked-transport slot below the tabs — `tabViewBottomAccessory`, the mini player in
-/// the reference the owner supplied — is **reserved and deliberately empty**. The only
-/// transport this app has is EPUB read-aloud, it lives inside a reader presented as a
-/// full-screen cover, and speech ends when that cover is dismissed: making it outlive the
-/// reader is a capability change with a proposal of its own, not a layout change that can
-/// ride along here. Nothing else is put at that edge, so the slot stays free for it.
+/// the reference the owner supplied — held this comment's predecessor open and empty for a
+/// reason it stated honestly: the only transport this app had was EPUB read-aloud, it lived
+/// inside a reader presented as a full-screen cover, and speech ended when that cover was
+/// dismissed, so there was no navigation behind it to dock to. `read-aloud-beyond-the-reader`
+/// moved the session out of the screen — it belongs to ``ReadAloudCentre`` now — and the
+/// slot carries ``ReadAloudDock``. Nothing else is put at that edge; it is the app's one
+/// persistent transport, because the platform already offers the rest on the lock screen.
 struct AppShell: View {
     /// What a tab is worth as a selection.
     ///
@@ -60,6 +63,12 @@ struct AppShell: View {
     let showLibrary: Int
 
     var body: some View {
+        // Read in `body`, where Observation registers the dependency, rather than inside
+        // the accessory's own builder, which SwiftUI may run later. The narrow question —
+        // is a session running — and not the book, whose chapter is rewritten on every
+        // sentence: the shell has no business redrawing three times a minute for hours.
+        let isReadingAloud = ReadAloudCentre.shared.isRunning
+
         TabView(selection: $tab) {
             Tab(value: .destination(.home)) {
                 HomeScreen(
@@ -108,6 +117,26 @@ struct AppShell: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
+        // The docked transport, and the whole of "it reserves no space when absent":
+        // without a session the builder produces no content at all, so there is no
+        // accessory for the slot to make room for — rather than an empty one, or a hidden
+        // one, or a bar of zero height that still insets the destination above it.
+        //
+        // The `if` is here and not inside ``ReadAloudDock`` deliberately. A view that
+        // rendered `EmptyView` would still be *a view* handed to the slot, and whether the
+        // system collapses that is the system's business rather than a promise this app
+        // can make. `ebook-reader` states the promise, so the app makes it structurally.
+        //
+        // The way back is `onOpen` — the same seam the shelf uses to open a cover, taking
+        // the publication and its URL. Opening the book that is already being spoken is
+        // what `SessionHandover` answers with `adopt`: the reader picks up the sentence
+        // the voice is on and the voice never notices. There is no second path back, and
+        // that is the point — the one that exists is the one Phase 1 tested.
+        .tabViewBottomAccessory {
+            if isReadingAloud {
+                ReadAloudDock(onReturn: onOpen)
+            }
+        }
         // `navigation-shell`: leaving search returns the reader to the destination they
         // were on "with its scroll position and filters intact". The query narrows the one
         // library, so a term left behind would follow them onto the shelf and leave it

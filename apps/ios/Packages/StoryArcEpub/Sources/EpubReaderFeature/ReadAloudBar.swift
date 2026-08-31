@@ -19,6 +19,11 @@ internal import DesignSystem
 /// result is not a symbol any more. These sit directly in the chrome's own
 /// `GlassEffectContainer`, exactly as the four at the top of the screen do.
 ///
+/// The same session is drawn outside the reader by ``ReadAloudDock``, and that one is
+/// plain rather than glass for the same reason in reverse: the slot it sits in is already
+/// the material. Two views, because that difference is real; one ``ReadAloudControl``, so
+/// the verbs behind them cannot drift.
+///
 /// Android's `ReadAloudBar` is the same five decisions in Compose.
 struct ReadAloudBar: View {
     @Environment(\.theme) private var theme
@@ -31,29 +36,23 @@ struct ReadAloudBar: View {
 
     var body: some View {
         HStack(spacing: StoryArcSpace.sm) {
-            control("backward.end", "readaloud.previous", action: onPrevious)
-            control(
-                isSpeaking ? "pause.fill" : "play.fill",
-                isSpeaking ? "readaloud.pause" : "readaloud.play",
-                tint: theme.accent,
-                action: onToggle
-            )
-            control("forward.end", "readaloud.next", action: onNext)
-            control("stop.fill", "readaloud.stop", action: onStop)
+            control(.previous, action: onPrevious)
+            control(.toggle(isSpeaking: isSpeaking), tint: theme.accent, action: onToggle)
+            control(.next, action: onNext)
+            control(.stop, action: onStop)
         }
     }
 
     private func control(
-        _ symbol: String,
-        _ label: LocalizedStringKey,
+        _ control: ReadAloudControl,
         tint: Color? = nil,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Label {
-                Text(label, bundle: .module)
+                Text(control.label, bundle: .module)
             } icon: {
-                Image(systemName: symbol)
+                Image(systemName: control.symbol)
             }
             .labelStyle(.iconOnly)
         }

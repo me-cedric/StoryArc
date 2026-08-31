@@ -59,10 +59,24 @@ public final class ReadAloudCentre {
     public private(set) var book: SpokenBook?
 
     /// Whether a transport belongs on screen at all.
+    ///
+    /// The narrow question, kept apart from ``transport`` on purpose. A shell that decides
+    /// whether to open its accessory slot should depend on the *session*, which changes
+    /// when a listener starts, pauses or ends one — not on the book, whose chapter is
+    /// rewritten on every sentence. Reading the wrong one redraws the whole navigation
+    /// three times a minute for hours.
     public var isRunning: Bool { session.isActive }
 
     /// Whether a sentence is being spoken right now.
     public var isSpeaking: Bool { session.isSpeaking }
+
+    /// Everything a docked transport draws, or `nil` when there is nothing to draw.
+    ///
+    /// The transport reads this; the shell reads ``isRunning``. See ``ReadAloudTransport``
+    /// for why absence is a value rather than a hidden view.
+    public var transport: ReadAloudTransport? {
+        ReadAloudTransport.of(session, speaking: book)
+    }
 
     // MARK: - What it holds
 
