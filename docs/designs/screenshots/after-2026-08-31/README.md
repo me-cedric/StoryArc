@@ -380,6 +380,15 @@ It also stops where it should. The plate in the capture above carries **no** gra
 texture is on the reading surface around it and does not cross the artwork, which is what
 "reading surfaces only" has to mean in a reader whose pages are sometimes pictures.
 
-**Not yet judged:** the same two with Reduce Transparency on, where the texture must vanish
-and the palette must stay; and dark, where a light-on-dark speck is a different judgement
-from a dark-on-light one.
+**One thing checked while looking, which is right and looks wrong for a moment:** switching
+the device to dark leaves the *page* cream and turns only the chrome dark. That is
+deliberate — a reading surface follows the reading theme, not the app's appearance, and the
+toggle that links them is off by default with its own sentence saying why: "A dark app with
+a paper-white page is a legitimate preference." The capture proves that sentence is honest
+rather than aspirational.
+
+**Not yet judged:** the same view with Reduce Transparency on, where the texture must vanish
+and the palette must stay; Natural's own dark variant, reached by linking the reading theme
+or choosing a dark preset, where a light speck on a dark ground is a different judgement
+from a dark speck on a light one; and **iOS entirely** — its `PaperGrain.metal` compiles and
+is present in the built metallib, and has never been executed.
