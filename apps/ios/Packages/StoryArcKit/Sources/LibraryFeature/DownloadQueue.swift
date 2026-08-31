@@ -18,13 +18,13 @@ public import StoryArcCore
 @MainActor
 public final class DownloadQueue {
     /// What has been downloaded and what is on its way.
-    public private(set) var library: DownloadLibrary
+    public internal(set) var library: DownloadLibrary
 
     /// The most recent failure, for a screen that wants to say something about it.
     public private(set) var lastFailure: String?
 
     private let client: OpdsClient
-    private let store: DownloadStore?
+    let store: DownloadStore?
     private let credential: (Download.ID) -> OpdsCredential?
 
     /// The origin of the catalogue this queue is downloading from.
@@ -36,13 +36,13 @@ public final class DownloadQueue {
     private let origin: OpdsOrigin?
 
     /// The transfer for each running download, so it can be cancelled.
-    private var running: [Download.ID: Task<Void, Never>] = [:]
+    var running: [Download.ID: Task<Void, Never>] = [:]
 
     /// Callers waiting for a particular download to land, because they mean to open it.
     private var waiting: [Download.ID: [CheckedContinuation<URL?, Never>]] = [:]
 
     /// How the app decides whether the connection is one to be careful with.
-    private let network = NetworkCost()
+    let network = NetworkCost()
 
     public init(
         pins: CertificatePins = CertificatePins(),
@@ -105,7 +105,7 @@ public final class DownloadQueue {
     /// lowering the bound — Low Data Mode and a personal hotspot both land here.
     public var concurrency: Int { network.isCareful ? 1 : 2 }
 
-    private let settings: () -> AppSettings
+    let settings: () -> AppSettings
 
     /// Where the bytes actually come from, so a backgrounded app keeps downloading.
     private let transfers: BackgroundTransfers
@@ -113,31 +113,22 @@ public final class DownloadQueue {
     /// Handed to the app so it can give the system its completion handler back.
     public var backgroundEvents: BackgroundTransfers { transfers }
 
-    /// What is stopping the queue.
-    public enum Held: Sendable, Equatable {
-        case waitingForWifi
-        case storageFull
-    }
-
-    /// Why the queue is not starting anything, if it is not.
+    /// Whether the volume was short of room the last time it was asked.
     ///
-    /// Nil when it may run. `offline-downloads` requires a held queue to *say* what it is
-    /// waiting for — "waiting for Wi-Fi" and "the storage limit is reached" are different
-    /// situations with different remedies, and a stalled list that explains neither is the
-    /// worst of the three.
-    public var held: Held? {
-        let current = settings()
-        if current.downloadOverWifiOnly, network.isCellular { return .waitingForWifi }
-        guard let limit = current.maximumDownloadBytes else { return nil }
-        return library.bytesOnDisk >= limit ? .storageFull : nil
-    }
-
-    /// Re-examines a held queue.
+    /// Cached rather than asked on demand: ``held`` is read from a view body, and a
+    /// filesystem stat per render is a cost a screen should not pay. Refreshed wherever the
+    /// queue is about to act — which is the only moment the answer changes anything.
     ///
-    /// Called when the network or the settings change. `offline-downloads` promises
-    /// downloads "resume automatically when [Wi-Fi] returns", and automatically means
-    /// without the reader going back to the screen.
-    public func reconsider() { pump() }
+    /// Here rather than beside the rest of the shortage in ``DownloadQueueHolds``, because
+    /// a stored property cannot be declared in an extension.
+    var spaceIsLow = false
+
+    /// Whether the cover cache has already been given up for this shortage.
+    ///
+    /// `offline-downloads` evicts it "before any downloaded publication", and once is
+    /// enough: re-clearing an empty cache on every pump would be work that frees nothing
+    /// and hides the fact that the eviction did not help.
+    var coversEvicted = false
 
     /// Which publications are recorded as being on the device.
     public var onDevice: Set<String> { Set(library.finished.map(\.id)) }
@@ -223,7 +214,13 @@ public final class DownloadQueue {
     private var titles: [Download.ID: OpdsEntry] = [:]
 
     /// Starts whatever should be running and is not.
-    private func pump() {
+    func pump() {
+        refreshHeadroom()
+        if spaceIsLow {
+            holdForSpace()
+            return
+        }
+        releaseSpaceHolds()
         // Held rather than cancelled: the queue keeps its order and its progress, and
         // starts again by itself the next time this is asked.
         guard held == nil else { return }

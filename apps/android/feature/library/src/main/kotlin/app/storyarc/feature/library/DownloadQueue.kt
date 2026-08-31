@@ -10,12 +10,14 @@ import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.catalogue.OpdsError
 import app.storyarc.core.catalogue.OpdsOrigin
+import app.storyarc.core.format.CoverCache
 import app.storyarc.core.format.IndexException
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
 import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.StorageHeadroom
 import app.storyarc.core.persistence.DownloadStore
 import java.io.File
 import java.io.IOException
@@ -188,6 +190,7 @@ class DownloadQueue(
      * worst of the three.
      */
     fun held(): Held? {
+        if (spaceIsLow) return Held.OutOfSpace
         val current = settings()
         if (current.downloadOverWifiOnly && !isOnWifi()) return Held.WaitingForWifi
         val limit = current.maximumDownloadBytes ?: return null
@@ -195,7 +198,71 @@ class DownloadQueue(
     }
 
     /** What is stopping the queue. */
-    enum class Held { WaitingForWifi, StorageFull }
+    enum class Held {
+        WaitingForWifi,
+        StorageFull,
+
+        /** The device itself is short of room, whatever the reader's own limit says. */
+        OutOfSpace,
+    }
+
+    /**
+     * Whether the volume was short of room the last time it was asked.
+     *
+     * Cached rather than asked on demand: [held] is read from a composable, and a filesystem
+     * stat per recomposition is a cost a screen should not pay. Refreshed wherever the queue
+     * is about to act -- which is the only moment the answer changes anything.
+     */
+    private var spaceIsLow = false
+
+    /**
+     * Whether the cover cache has already been given up for this shortage.
+     *
+     * `offline-downloads` evicts it "before any downloaded publication", and once is enough:
+     * re-clearing an empty cache on every pump would be work that frees nothing and hides the
+     * fact that the eviction did not help.
+     */
+    private var coversEvicted = false
+
+    /** Asks the volume how much room is left, and remembers the answer. */
+    private fun refreshHeadroom() {
+        spaceIsLow = StorageHeadroom.isLow(store?.availableBytes())
+    }
+
+    /**
+     * Stops the queue because the device is full, and says so on every row.
+     *
+     * `offline-downloads`' *Device storage is low*, all three clauses:
+     *
+     * - **"pauses downloads"** -- every queued and running transfer becomes
+     *   [Download.Pause.OUT_OF_SPACE], which is the state and the sentence that have been in
+     *   the app, translated, and unreachable since the queue was written.
+     * - **"evicts the cover cache before any downloaded publication"** -- the cache goes,
+     *   once. It is the only thing here the app may throw away without asking, because every
+     *   byte of it can be drawn again from a file the reader still has.
+     * - **"never deletes a download without asking"** -- nothing below deletes anything. The
+     *   bytes already fetched stay where they are and the transfer resumes from them when
+     *   there is room, which is the whole point of pausing rather than cancelling.
+     */
+    private fun holdForSpace() {
+        running.values.forEach { it.cancel() }
+        running.clear()
+        follow()
+        _library.value = _library.value.pausingForSpace()
+        store?.save(_library.value)
+        if (coversEvicted) return
+        coversEvicted = true
+        CoverCache(File(context.cacheDir, "covers")).clear()
+    }
+
+    /** Puts back what was only waiting for room, once there is some. */
+    private fun releaseSpaceHolds() {
+        coversEvicted = false
+        val waiting = _library.value.resumingAfterSpace()
+        if (waiting == _library.value) return
+        _library.value = waiting
+        store?.save(waiting)
+    }
 
     private fun isOnWifi(): Boolean {
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return false
@@ -215,6 +282,12 @@ class DownloadQueue(
 
     /** Starts whatever should be running and is not. */
     private fun pump() {
+        refreshHeadroom()
+        if (spaceIsLow) {
+            holdForSpace()
+            return
+        }
+        releaseSpaceHolds()
         // Held rather than cancelled: the queue keeps its order and its progress, and
         // starts again by itself the next time this is asked.
         if (held() != null) return

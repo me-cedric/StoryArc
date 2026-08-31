@@ -170,6 +170,29 @@ class DownloadStore internal constructor(
     fun bytesOnDisk(): Long = directory.walkTopDown().filter { it.isFile }.sumOf { it.length() }
 
     /**
+     * What the volume holding the downloads says is left, or null when it will not say.
+     *
+     * The question `offline-downloads`' *Device storage is low* turns on, and the one nothing
+     * in either app has ever asked -- which is why [Download.Pause.OUT_OF_SPACE] and its four
+     * translations have been unreachable since the queue was written. The rule about what the
+     * answer *means* is [app.storyarc.core.model.StorageHeadroom]'s and is shared with iOS;
+     * only the asking is platform-shaped, and this is the platform half.
+     *
+     * `usableSpace` rather than `freeSpace`: the free figure counts blocks this process is
+     * not permitted to have, and the usable one is what a write from here can actually claim.
+     *
+     * Asked of the first ancestor that exists. The downloads directory is made lazily by
+     * [prepare], and `usableSpace` answers zero for a path that is not there -- so a
+     * first-ever download would have been held for want of a directory rather than for want
+     * of space. Zero from a directory that *does* exist is a real answer and is kept.
+     */
+    fun availableBytes(): Long? {
+        var candidate: File? = directory.absoluteFile
+        while (candidate != null && !candidate.exists()) candidate = candidate.parentFile
+        return candidate?.usableSpace
+    }
+
+    /**
      * Deletes every downloaded file, forgets every record, and leaves the directory ready
      * for the next download.
      *

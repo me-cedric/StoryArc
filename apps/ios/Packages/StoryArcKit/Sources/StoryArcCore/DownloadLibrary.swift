@@ -78,6 +78,34 @@ public struct DownloadLibrary: Sendable, Equatable {
             .reduce(self) { $0.marking($1.id, as: .queued) }
     }
 
+    /// Holds everything still to do, because the device is out of room.
+    ///
+    /// `offline-downloads`' *Device storage is low*: "the app pauses downloads". Pauses,
+    /// with the reason on every row — not a queue that quietly stops, which is what a
+    /// global hold on its own looks like from the downloads screen.
+    ///
+    /// Only the queued and the running. A finished download has nothing to pause, and a
+    /// download the reader paused is left exactly as they left it: overwriting
+    /// ``Download/Pause/byReader`` here would resume it the moment space returned, which is
+    /// not what they asked for.
+    public func pausingForSpace() -> DownloadLibrary {
+        downloads
+            .filter { $0.state == .queued || $0.state == .running }
+            .reduce(self) { $0.marking($1.id, as: .paused(.outOfSpace)) }
+    }
+
+    /// Puts back everything that was only waiting for room.
+    ///
+    /// The exact inverse of ``pausingForSpace()``, and deliberately narrower than "resume
+    /// everything": a download the reader paused stays paused, and a failed one stays
+    /// failed with its reason and its count. Space returning answers one question, and this
+    /// un-asks only that one.
+    public func resumingAfterSpace() -> DownloadLibrary {
+        downloads
+            .filter { $0.state == .paused(.outOfSpace) }
+            .reduce(self) { $0.marking($1.id, as: .queued) }
+    }
+
     public func moving(_ id: Download.ID, to destination: Int) -> DownloadLibrary {
         guard let from = downloads.firstIndex(where: { $0.id == id }) else { return self }
         var moved = downloads

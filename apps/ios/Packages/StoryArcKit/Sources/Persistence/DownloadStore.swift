@@ -215,6 +215,38 @@ public struct DownloadStore {
         return total
     }
 
+    /// What the volume holding the downloads says is left, or `nil` when it will not say.
+    ///
+    /// The question `offline-downloads`' *Device storage is low* turns on, and the one
+    /// nothing in either app has ever asked — which is why ``Download/Pause/outOfSpace`` and
+    /// its four translations have been unreachable since the queue was written. The rule
+    /// about what the answer *means* is ``StorageHeadroom``'s and is shared with Android;
+    /// only the asking is platform-shaped, and this is the platform half.
+    ///
+    /// `volumeAvailableCapacityForImportantUsage` rather than
+    /// `volumeAvailableCapacityKey`. The plain capacity is what is free right now; the
+    /// important-usage figure is what the system will actually let an app have for
+    /// something the user asked for, counting the purgeable space it would reclaim first. A
+    /// download the reader requested is precisely that, and the plain figure would refuse
+    /// on a device whose only shortage is a cache the system was going to evict anyway.
+    ///
+    /// Asked of the first ancestor that exists. The downloads directory is made lazily by
+    /// ``prepare()``, and a volume query against a path that is not there yet answers
+    /// nothing — so a first-ever download would have been held for want of a directory
+    /// rather than for want of space.
+    public func availableBytes() -> Int64? {
+        var candidate = directory.standardizedFileURL
+        while !FileManager.default.fileExists(atPath: candidate.path) {
+            let parent = candidate.deletingLastPathComponent().standardizedFileURL
+            guard parent.path != candidate.path else { return nil }
+            candidate = parent
+        }
+        let values = try? candidate.resourceValues(
+            forKeys: [.volumeAvailableCapacityForImportantUsageKey]
+        )
+        return values?.volumeAvailableCapacityForImportantUsage
+    }
+
     /// Deletes every downloaded file, forgets every record, and leaves the directory ready
     /// for the next download.
     ///

@@ -166,6 +166,38 @@ data class DownloadLibrary(val downloads: List<Download> = emptyList()) {
         downloads.filter { it.state == Download.State.Running && it.id !in carried }
             .fold(this) { library, download -> library.marking(download.id, Download.State.Queued) }
 
+    /**
+     * Holds everything still to do, because the device is out of room.
+     *
+     * `offline-downloads`' *Device storage is low*: "the app pauses downloads". Pauses, with
+     * the reason on every row -- not a queue that quietly stops, which is what a global hold
+     * on its own looks like from the downloads screen.
+     *
+     * Only the queued and the running. A finished download has nothing to pause, and a
+     * download the reader paused is left exactly as they left it: overwriting
+     * [Download.Pause.BY_READER] here would resume it the moment space returned, which is
+     * not what they asked for.
+     */
+    fun pausingForSpace(): DownloadLibrary =
+        downloads.filter { it.state == Download.State.Queued || it.state == Download.State.Running }
+            .fold(this) { library, download ->
+                library.marking(download.id, Download.State.Paused(Download.Pause.OUT_OF_SPACE))
+            }
+
+    /**
+     * Puts back everything that was only waiting for room.
+     *
+     * The exact inverse of [pausingForSpace], and deliberately narrower than "resume
+     * everything": a download the reader paused stays paused, and a failed one stays failed
+     * with its reason and its count. Space returning answers one question, and this un-asks
+     * only that one.
+     */
+    fun resumingAfterSpace(): DownloadLibrary =
+        downloads.filter { it.state == Download.State.Paused(Download.Pause.OUT_OF_SPACE) }
+            .fold(this) { library, download ->
+                library.marking(download.id, Download.State.Queued)
+            }
+
     fun moving(id: String, destination: Int): DownloadLibrary {
         val from = downloads.indexOfFirst { it.id == id }
         if (from < 0) return this
