@@ -56,6 +56,12 @@ let package = Package(
             name: "Formats",
             dependencies: [
                 "StoryArcCore",
+                // `AudiobookPart` and `Audiobook` live in `Playback` for the reason
+                // `PublicationFormat` lives in `StoryArcCore`: the player draws parts,
+                // seeks between them and names them, and none of that should require a ZIP
+                // reader. This target produces them; it does not own them. The edge carries
+                // value types only, and `Playback` depends on nothing here.
+                "Playback",
                 .product(name: "CLibarchive", package: "libarchive"),
             ]
         ),

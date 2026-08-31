@@ -117,11 +117,31 @@ creep — see [`design.md`](design.md).
 
 ## 3. The platform session
 
-- [ ] 3.1 iOS: `AVAudioSession` category `.playback`, mode **`.spokenAudio`**.
-- [ ] 3.2 iOS: extend the existing `MPNowPlayingInfoCenter` / `MPRemoteCommandCenter`
+- [x] 3.1 iOS: `AVAudioSession` category `.playback`, mode **`.spokenAudio`**.
+      `PlaybackAudioSession`, which also carries the interruption and route-change
+      observation — **one copy for both sources**, which is what `design.md` asks for. The
+      read-aloud session had these rules and a narrated book now reuses them rather than
+      growing a second set that can drift. Not asserted by a host test: an audio session
+      cannot be interrupted from one. Everything downstream of it is — see 3.8 and 3.9.
+- [x] 3.2 iOS: extend the existing `MPNowPlayingInfoCenter` / `MPRemoteCommandCenter`
       wiring to the narrated source, so both feed the same lock screen.
-- [ ] 3.3 iOS: speed without pitch — `AVPlayer.rate` with
+      `NowPlaying`, driven by `PlayerCentre`, so both sources publish through one object.
+      Which buttons are enabled follows what the source can *do* rather than which source
+      it is: skip-by-seconds and a scrubber where there is a duration, sentence skip where
+      there is not — `audio-playback`'s "present and refusing" rule applied to the lock
+      screen. The elapsed/total pair is published only where a total exists, because a zero
+      duration there is not a blank, it is a scrubber pinned at the end.
+      Publishing lives inside `PlayerCentre`, at the end of all eleven methods that change
+      it, and `everyChangePublishes` asserts each path reaches the platform.
+      Mutation-checked: dropping the publish from `setSpeed` alone fails that test.
+- [x] 3.3 iOS: speed without pitch — `AVPlayer.rate` with
       `audioTimePitchAlgorithm = .timeDomain`.
+      `NarratedSource`. The algorithm is set on **every `AVPlayerItem`**, not once on the
+      player: it is the item's property, and a folder makes a new item at every part
+      boundary — the one place this would regress into chipmunk narration with nothing in a
+      build saying so. `setSpeed` while paused records the number instead of applying it,
+      because `rate` is also what starts an `AVPlayer`.
+      **Not heard.** Nothing here has been listened to on a device; see §9.
 - [ ] 3.4 Android: a real `MediaSessionService` with
       `foregroundServiceType="mediaPlayback"` and both `FOREGROUND_SERVICE`
       permissions. Assert the service is declared in the merged manifest.
@@ -130,11 +150,21 @@ creep — see [`design.md`](design.md).
 - [ ] 3.6 Android: `MediaSession.Callback.onPlaybackResumption` returning the saved
       position, so the shade carousel works after process death.
 - [ ] 3.7 Android: `MediaLibraryService` and `automotive_app_desc.xml`.
-- [ ] 3.8 Both: interruption tests — audio taken and returned with the resume hint
+- [~] 3.8 Both: interruption tests — audio taken and returned with the resume hint
       resumes; a pause the listener made is never undone; audio taken for good ends
       the session and records the position.
-- [ ] 3.9 Both: route-change test — headphones removed pauses, and reconnecting does
+      **iOS done.** All three, over both source kinds, in `PlayerInterruptionTests` —
+      plus the transitions themselves in `PlaybackTransitionTests`, which now run on the
+      host in `pnpm test:ios` rather than in a suite no gate ran.
+      *The Android half is not started.*
+- [~] 3.9 Both: route-change test — headphones removed pauses, and reconnecting does
       **not** resume.
+      **iOS done.** `PlayerCentre.routeLost` records the pause as the *listener's*, which is
+      the mechanism that makes "does not resume by itself" true rather than a promise —
+      nothing the platform sends afterwards can undo a listener's pause. Asserted over both
+      source kinds. `PlaybackAudioSession` acts only on `.oldDeviceUnavailable`, because
+      the notification also fires when headphones are plugged *in*.
+      *The Android half is not started.*
 
 ## 4. The surfaces
 

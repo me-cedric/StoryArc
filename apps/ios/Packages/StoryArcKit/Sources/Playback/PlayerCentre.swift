@@ -104,6 +104,22 @@ public final class PlayerCentre {
     /// A speed the listener chose, to be remembered against this publication.
     public var onRememberSpeed: (@MainActor (Publication, PlaybackSpeed) -> Void)?
 
+    /// What one press of a skip control moves here.
+    ///
+    /// Read by the surfaces and by the lock screen so each states the right thing — seconds
+    /// for a narrated file, a sentence for a voice. It is data about the source, not the
+    /// source's identity: nothing may branch on *which* implementation is behind it, and
+    /// this is the honest way to ask the one question that genuinely differs.
+    public var skipUnit: SkipUnit { source?.skipUnit ?? .time }
+
+    /// The platform's own half of a session: the audio session, and the lock screen.
+    ///
+    /// Optional, and `nil` in every host test — an audio session cannot be interrupted from
+    /// one, and a `MPNowPlayingInfoCenter` does not exist there. Held here rather than
+    /// wired by the app so that publishing cannot be forgotten at one of the eleven places
+    /// this object changes: every one of them ends in ``published()``.
+    @ObservationIgnored public var platform: (any PlaybackPlatform)?
+
     @ObservationIgnored private var source: (any PlaybackSource)?
 
     public init() {}
@@ -131,6 +147,8 @@ public final class PlayerCentre {
 
         session = session.started()
         source.play()
+        platform?.sessionBegan()
+        published()
     }
 
     /// What opening a publication should do to the session already running.
@@ -153,6 +171,7 @@ public final class PlayerCentre {
             session = session.resumed()
             source.play()
         }
+        published()
     }
 
     /// Move by the listener's configured interval, or by one sentence.
@@ -164,6 +183,7 @@ public final class PlayerCentre {
         session = session.started()
         source.skip(direction, by: skipIntervals.interval(direction))
         source.play()
+        published()
     }
 
     /// Move to a point inside the part being played.
@@ -182,6 +202,7 @@ public final class PlayerCentre {
         session = session.started()
         source.seek(toPart: index, offset: 0)
         source.play()
+        published()
     }
 
     /// Change speed without changing pitch — the pitch half is the engine's, in
@@ -190,6 +211,7 @@ public final class PlayerCentre {
         self.speed = speed
         source?.setSpeed(speed)
         if let book { onRememberSpeed?(book.publication, speed) }
+        published()
     }
 
     // MARK: - The sleep timer
@@ -215,6 +237,7 @@ public final class PlayerCentre {
         sleep = nil
         session = session.pausedByListener()
         source?.pause()
+        published()
     }
 
     private func remaining(of timer: SleepTimer) -> TimeInterval? {
@@ -239,6 +262,7 @@ public final class PlayerCentre {
         guard session.isPlaying else { return }
         session = session.interrupted()
         source?.pause()
+        published()
     }
 
     /// The audio came back, and the platform said playback may carry on.
@@ -247,6 +271,7 @@ public final class PlayerCentre {
         guard next != session else { return }
         session = next
         source?.play()
+        published()
     }
 
     /// Headphones were pulled out, so the audio would come out of the speaker.
@@ -260,6 +285,7 @@ public final class PlayerCentre {
         guard session.isPlaying else { return }
         session = session.pausedByListener()
         source?.pause()
+        published()
     }
 
     /// Ends the session because the audio was taken and not given back.
@@ -282,6 +308,7 @@ public final class PlayerCentre {
             self.sleep = SleepCountdown(timer: .endOfChapter, remaining: remaining(of: .endOfChapter))
         }
         recordReached()
+        published()
     }
 
     /// The one way a session stops.
@@ -302,6 +329,16 @@ public final class PlayerCentre {
         place = .start
         sleep = nil
         unreadablePartCount = 0
+        platform?.sessionEnded()
+    }
+
+    /// Says that something the lock screen shows has changed.
+    ///
+    /// Called at the end of every method that changes this object. A publish that lives at
+    /// the call sites instead is a publish somebody forgets at one of them, and the symptom
+    /// — a lock screen a few seconds behind the app — is the kind nobody reports.
+    private func published() {
+        platform?.published()
     }
 
     /// Writes down where the audio got to.
