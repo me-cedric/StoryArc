@@ -46,7 +46,17 @@ public struct KavitaMetadata: Sendable, Equatable, Decodable {
     /// at the point where the only honest answer is "nothing", and a failed decode would cost
     /// the whole series' metadata rather than one line of it.
     public let ageRating: Int
-    public let publicationStatus: Int
+
+    /// A position in Kavita's own `PublicationStatus` enum, or `nil` when the answer stated
+    /// none.
+    ///
+    /// **Optional rather than a number with a default, because Kavita's range starts at a
+    /// state.** Zero is `OnGoing` — a state a curator chose — so a field defaulted to zero
+    /// makes an answer that omits `publicationStatus` indistinguishable from one that says
+    /// the series is running, and the app would say it is running on the server's behalf.
+    /// `ageRating` needs no such shape: Kavita's own zero there is `Unknown`, which already
+    /// is the absence.
+    public let publicationStatus: Int?
 
     /// The people worth naming on a detail screen, in the order a reader looks for them.
     public var people: [String] {
@@ -77,7 +87,7 @@ public struct KavitaMetadata: Sendable, Equatable, Decodable {
         // the status — so an absent field and a server that never set one read alike, which
         // is what they are.
         ageRating = try container.decodeIfPresent(Int.self, forKey: .ageRating) ?? 0
-        publicationStatus = try container.decodeIfPresent(Int.self, forKey: .publicationStatus) ?? 0
+        publicationStatus = try container.decodeIfPresent(Int.self, forKey: .publicationStatus)
     }
 
     private enum CodingKeys: String, CodingKey {

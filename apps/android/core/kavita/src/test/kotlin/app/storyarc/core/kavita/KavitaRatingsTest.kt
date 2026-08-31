@@ -90,6 +90,26 @@ class KavitaRatingsTest {
     }
 
     @Test
+    fun `an answer that states no status leaves the series in none`() {
+        // The realistic case, and the one this field cannot have a default for. Kavita omits
+        // what a series does not have, so an answer without `publicationStatus` is ordinary
+        // -- and zero in this enum is `OnGoing`, a state a curator chose. Read as zero, a
+        // keep from this answer would tell a reader the series is running on the server's
+        // behalf, which is the one thing the whole sentinel exists to prevent.
+        val answers = listOf(
+            """{"seriesId":3,"ageRating":10,"releaseYear":2020}""",
+            """{"seriesId":3,"ageRating":10,"publicationStatus":null}""",
+        )
+        answers.forEach { answer ->
+            val decoded = json.decodeFromString(KavitaMetadata.serializer(), answer)
+            assertNull(decoded.publicationStatus)
+            assertNull(decoded.status)
+            // The rating is there, so what is absent is the status and not the answer.
+            assertEquals(KavitaAgeRating.MATURE_17_PLUS, decoded.rating)
+        }
+    }
+
+    @Test
     fun `an unrecognised status is left unsaid rather than guessed`() {
         assertNull(KavitaPublicationStatus.of(5))
         assertNull(metadata(publicationStatus = 5).status)

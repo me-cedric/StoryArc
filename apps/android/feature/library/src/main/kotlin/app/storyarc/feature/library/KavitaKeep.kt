@@ -147,8 +147,17 @@ object KavitaKeep {
      * did not state has no number of its own -- zero is `OnGoing`, a real state -- so the
      * card carries -1, outside Kavita's table, rather than telling a reader a series is
      * running on a server's behalf.
+     *
+     * Both absences reach the -1, and that is why [KavitaMetadata.publicationStatus] is
+     * nullable: the server not answering at all, and the server answering without the field.
+     * The second is the ordinary one -- Kavita omits what a series does not have -- and a
+     * non-nullable field defaulted to zero would have turned it into *OnGoing* here.
+     *
+     * Internal rather than private because these two lines are the whole feature: hardcode
+     * them to the two absences and every screen in the app still composes.
+     * `KavitaKeepCardTest` is the test that fails.
      */
-    private fun card(
+    internal fun card(
         publicationId: String,
         downloadId: String,
         chapter: KavitaChapter,

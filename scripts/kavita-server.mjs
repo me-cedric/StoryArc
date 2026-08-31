@@ -35,7 +35,14 @@ const port = selfTest ? 0 : portFlag >= 0 ? Number(args[portFlag + 1]) : 5000
  */
 const scratchCorpus = () => {
   const at = mkdtempSync(join(tmpdir(), 'storyarc-kavita-test-'))
-  for (const name of ['Tidal Reach 01.cbz', 'Tidal Reach 02.cbz', 'Winter Field.epub']) {
+  // Four series, and the order matters twice: `Tidal Reach` sorts first so `series[0]` is the
+  // one with two chapters the continue-point checks need, and the fourth exists so the corpus
+  // holds a series that states no publication status at all.
+  const names = [
+    'Tidal Reach 01.cbz', 'Tidal Reach 02.cbz', 'Undertow 01.cbz', 'Vale.pdf',
+    'Winter Field.epub',
+  ]
+  for (const name of names) {
     writeFileSync(join(at, name), Buffer.from('not a real publication'))
   }
   return at
@@ -119,19 +126,28 @@ const AGE_RATINGS = [0, 3, 8, 10, 13]
  * Deliberately disagrees with what `ComicInfo.xml` in the corpus says, so a client that
  * quietly prefers the file is visible rather than merely unproven.
  */
-const metadata = new Map(series.map((each, index) => [each.id, {
-  seriesId: each.id,
-  summary: `${each.name} is a fixture series held by the StoryArc Kavita mock. ` +
-    'The server is the curated source, so this text wins over anything in the file.',
-  genres: [{ id: 1, title: 'Fixture' }, { id: 2, title: index % 2 ? 'Drama' : 'Adventure' }],
-  tags: [{ id: 3, title: 'test-corpus' }],
-  writers: [{ id: 4, name: 'Ada Lovelace' }],
-  publishers: [{ id: 5, name: 'StoryArc Press' }],
-  ageRating: AGE_RATINGS[index % AGE_RATINGS.length],
-  releaseYear: 2020 + (index % 5),
+const metadata = new Map(series.map((each, index) => {
+  const held = {
+    seriesId: each.id,
+    summary: `${each.name} is a fixture series held by the StoryArc Kavita mock. ` +
+      'The server is the curated source, so this text wins over anything in the file.',
+    genres: [{ id: 1, title: 'Fixture' }, { id: 2, title: index % 2 ? 'Drama' : 'Adventure' }],
+    tags: [{ id: 3, title: 'test-corpus' }],
+    writers: [{ id: 4, name: 'Ada Lovelace' }],
+    publishers: [{ id: 5, name: 'StoryArc Press' }],
+    ageRating: AGE_RATINGS[index % AGE_RATINGS.length],
+    releaseYear: 2020 + (index % 5),
+  }
+  // One series in four states no status at all, which is what a real Kavita does: it omits
+  // what a series does not have. The corpus needs that case because zero in this enum is
+  // `OnGoing` -- a client that read an absent field as zero would state that a series is
+  // running on the server's behalf, and against a corpus where every series states one it
+  // would look exactly like a client that read the field correctly.
+  //
   // 0 `OnGoing`, 1 `Hiatus`, 2 `Completed`, from Kavita's `PublicationStatus`.
-  publicationStatus: index % 3,
-}]))
+  if (index % 4 !== 3) held.publicationStatus = index % 3
+  return [each.id, held]
+}))
 
 /**
  * Collections and reading lists the server holds.
@@ -560,18 +576,28 @@ const drive = async () => {
     series.map(async (each) =>
       (await get(`/api/Series/metadata?seriesId=${each.id}`, token)).json())
   )
-  check('the metadata route states an age rating and a publication status',
-    held.every((each) =>
-      typeof each.ageRating === 'number' && typeof each.publicationStatus === 'number'))
+  check('the metadata route states an age rating on every series',
+    held.every((each) => typeof each.ageRating === 'number'))
 
   // Kavita's own tables, from `Kavita.Models/Entities/Enums`. A number outside them would be
   // one no client could name, and the corpus would be asking for a guess.
   check('every age rating is one Kavita defines',
     held.every((each) => each.ageRating >= -1 && each.ageRating <= 14),
     held.map((each) => each.ageRating))
-  check('every publication status is one Kavita defines',
-    held.every((each) => each.publicationStatus >= 0 && each.publicationStatus <= 4),
-    held.map((each) => each.publicationStatus))
+  const statuses = held
+    .filter((each) => each.publicationStatus !== undefined)
+    .map((each) => each.publicationStatus)
+  check('every publication status the server states is one Kavita defines',
+    statuses.every((each) => typeof each === 'number' && each >= 0 && each <= 4),
+    statuses)
+
+  // The two halves of the status rule. Zero in Kavita's `PublicationStatus` is `OnGoing`, so
+  // "stated nothing" cannot be a number -- and a corpus in which every series states one is
+  // a corpus where reading an absent field as zero is invisible.
+  check('at least one series states no publication status at all',
+    held.some((each) => each.publicationStatus === undefined),
+    held.length - statuses.length)
+  check('at least one series states a publication status', statuses.length > 0)
 
   // The two halves of the rating rule, both of which have to be reachable: a series nobody
   // rated, which must not be drawn as a rating, and a series with a real one, which must.
@@ -584,7 +610,7 @@ const drive = async () => {
   check('the corpus holds more than one age rating',
     new Set(held.map((each) => each.ageRating)).size > 1)
   check('the corpus holds more than one publication status',
-    new Set(held.map((each) => each.publicationStatus)).size > 1)
+    new Set(statuses).size > 1, statuses)
 
   server.close()
   if (failures.length) {

@@ -174,7 +174,16 @@ enum KavitaKeep {
     /// it did not state has no number of its own — zero is `OnGoing`, a real state — so the
     /// card carries -1, outside Kavita's table, rather than telling a reader a series is
     /// running on a server's behalf.
-    private static func card(
+    ///
+    /// Both absences reach the -1, and that is why ``KavitaMetadata/publicationStatus`` is
+    /// optional: the server not answering at all, and the server answering without the
+    /// field. The second is the ordinary one — Kavita omits what a series does not have —
+    /// and a non-optional field defaulted to zero would have turned it into *OnGoing* here.
+    ///
+    /// Internal rather than private because these two lines are the whole feature: hardcode
+    /// them to the two absences and every screen in the app still composes.
+    /// ``KavitaKeepCardTests`` is the test that fails.
+    static func card(
         _ publicationId: String,
         downloadId: String,
         _ subject: Subject

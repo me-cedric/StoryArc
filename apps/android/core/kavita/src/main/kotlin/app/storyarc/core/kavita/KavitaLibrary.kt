@@ -125,9 +125,22 @@ data class KavitaMetadata(
     val tags: List<KavitaNamed> = emptyList(),
     val writers: List<KavitaNamed> = emptyList(),
     val publishers: List<KavitaNamed> = emptyList(),
+    /**
+     * A position in Kavita's own `AgeRating` enum. Zero is Kavita's own `Unknown`, which is
+     * what a series nobody rated carries -- so the absence needs no shape of its own here.
+     */
     val ageRating: Int = 0,
     val releaseYear: Int = 0,
-    val publicationStatus: Int = 0,
+    /**
+     * A position in Kavita's own `PublicationStatus` enum, or `null` when the answer stated
+     * none.
+     *
+     * **Nullable rather than a number with a default, because Kavita's range starts at a
+     * state.** Zero is `OnGoing` -- a state a curator chose -- so a field defaulted to zero
+     * makes an answer that omits `publicationStatus` indistinguishable from an answer that
+     * says the series is running, and the app would say it is running on the server's behalf.
+     */
+    val publicationStatus: Int? = null,
 ) {
     /** The people worth naming on a detail screen, in the order a reader looks for them. */
     val people: List<String> get() = (writers + publishers).map { it.label }.filter { it.isNotEmpty() }

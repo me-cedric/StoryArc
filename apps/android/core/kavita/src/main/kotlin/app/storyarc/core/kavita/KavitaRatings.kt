@@ -60,9 +60,11 @@ enum class KavitaAgeRating(val number: Int, val label: String) {
 /**
  * Where a series is in its own life, as Kavita records it.
  *
- * Unlike the age rating there is no "unknown" here: Kavita's default is `OnGoing` and every
- * one of the five is a real state a curator chose or accepted. So the line is drawn whenever
- * the number is one this app knows, and omitted only when it is not.
+ * Unlike the age rating there is no "unknown" here: every one of the five is a real state a
+ * curator chose or accepted, and *zero is `OnGoing`* rather than an absence. So the absence
+ * has to be carried outside the table -- `null` on [KavitaMetadata.publicationStatus] for an
+ * answer that stated none, -1 on [KavitaCard.publicationStatus] for a card that recorded none
+ * -- and the line is drawn only when the number is one this app knows.
  *
  * `library-browsing` records why this cannot be a filter over the whole library — no local
  * file states it, so filtering on it would narrow a folder's shelf to nothing. Showing what
@@ -95,9 +97,14 @@ enum class KavitaPublicationStatus(val number: Int) {
 val KavitaMetadata.rating: KavitaAgeRating?
     get() = KavitaAgeRating.of(ageRating)?.takeIf { it.isStated }
 
-/** The state this metadata puts the series in, or `null` when the number is unrecognised. */
+/**
+ * The state this metadata puts the series in, or `null` when it puts it in none.
+ *
+ * Null covers two things and has to: an answer that did not state the field at all, and a
+ * number Kavita has never defined. Neither may fall back to zero, which is `OnGoing`.
+ */
 val KavitaMetadata.status: KavitaPublicationStatus?
-    get() = KavitaPublicationStatus.of(publicationStatus)
+    get() = publicationStatus?.let { KavitaPublicationStatus.of(it) }
 
 /**
  * The rating the card kept, or `null` when it kept none.

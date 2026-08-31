@@ -109,7 +109,7 @@ extension KavitaMetadata {
 
     /// The state this metadata puts the series in, or `nil` when the number is unrecognised.
     public var status: KavitaPublicationStatus? {
-        KavitaPublicationStatus(rawValue: publicationStatus)
+        publicationStatus.flatMap(KavitaPublicationStatus.init(rawValue:))
     }
 }
 
@@ -120,17 +120,17 @@ extension KavitaCard {
     /// That is the whole shape of *Reading a downloaded Kavita title offline*: the offline
     /// path is the live path with the card in place of the response.
     public var rating: KavitaAgeRating? {
-        guard let stated = KavitaAgeRating.of(ageRating), stated.isStated else { return nil }
-        return stated
+        KavitaAgeRating(rawValue: ageRating).flatMap { $0.isStated ? $0 : nil }
     }
 
     /// The state the card kept, or `nil` when it kept none.
     ///
-    /// Nil covers two things and has to: a number Kavita has never defined, and the -1
+    /// Nil covers two things and has to: a number Kavita has never defined, and the `-1`
     /// ``KavitaCard/publicationStatus`` carries for a card written before the field existed.
     /// Zero is *OnGoing*, so a card that fell back to it would state that the series is
-    /// running on a server's behalf.
+    /// running on a server's behalf — which is the same trap ``KavitaMetadata`` avoids by
+    /// holding its own status optionally.
     public var status: KavitaPublicationStatus? {
-        KavitaPublicationStatus.of(publicationStatus)
+        KavitaPublicationStatus(rawValue: publicationStatus)
     }
 }
