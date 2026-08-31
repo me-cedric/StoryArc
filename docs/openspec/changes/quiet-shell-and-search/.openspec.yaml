@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-08-31
+goal: One bottom bar with search as a destination, a search page that suggests
+  before it is typed into, and a what's-new screen on first open after an update
