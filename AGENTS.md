@@ -106,14 +106,30 @@ neither exercises real data, real insets, real system materials, or a real
 Dynamic Type setting.
 
 ```bash
-xcrun simctl io booted screenshot shot.png     # iOS
-adb exec-out screencap -p > shot.png           # Android
+xcrun simctl io booted screenshot shot.png     # iOS, whatever is on screen
+adb exec-out screencap -p > shot.png           # Android, whatever is on screen
+```
+
+On Android, prefer the harness — it walks to the screen, sets the condition, and
+**puts the device back**, which the raw command cannot do and which a person
+forgets:
+
+```bash
+pnpm capture:android --list                                        # the routes
+pnpm capture:android Downloads --out shot.png --dark --font-scale 2.0
 ```
 
 Capture **light and dark**, at default and largest text size. Two exceptions,
 and the handoff must name which one applies: code behind a flag that nothing
 renders yet, and a pure refactor whose screenshots are byte-identical — where
 the identical screenshots *are* the proof.
+
+**A screenshot that could look the same for a boring reason needs a control.**
+The EPUB reader's chrome photographed in cream proves nothing on its own — the
+app might simply not have been set to a dark appearance. The same device, at the
+same moment, with the library drawn true black beside it, is what turns the first
+picture into evidence. Capture the control whenever the claim is *this screen
+disagrees with the rest of the app*.
 
 ## 7. Things that will bite you
 
