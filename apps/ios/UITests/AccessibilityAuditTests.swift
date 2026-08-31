@@ -328,7 +328,8 @@ final class AccessibilityAuditTests: XCTestCase {
         }
         try XCTSkipUnless(!covers.isEmpty, "This device's library has no cover to open.")
 
-        let action = app.buttons.matching(NSPredicate(format: "label IN {'Read', 'Continue'}")).firstMatch
+        let opens = NSPredicate(format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue'")
+        let action = app.buttons.matching(opens).firstMatch
         for cover in covers.prefix(3) {
             cover.tap()
             if action.waitForExistence(timeout: 5) { return action }
