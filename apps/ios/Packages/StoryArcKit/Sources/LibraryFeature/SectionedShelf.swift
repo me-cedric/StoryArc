@@ -30,14 +30,10 @@ struct SectionedShelf: View {
     var selection: Set<String>?
     var onToggle: (Publication) -> Void = { _ in }
 
-    /// Whether a publication can be opened right now.
-    ///
-    /// `library-browsing`: one that is neither on the device nor currently reachable "is
-    /// dimmed and still selectable, so it can be inspected, downloaded later, or added to a
-    /// shelf", and "dimming is the only difference — it is not moved, grouped apart, or
-    /// badged as an error". A library that shrank when the Wi-Fi dropped would read as data
-    /// loss, which is the whole reason this is opacity and not a filter.
-    var isReadableNow: (Publication) -> Bool = { _ in true }
+    // No `isReadableNow`. It used to be handed in here, and this shelf was its only caller —
+    // which is how the dim came to reach a grid of more than twelve items and nothing else.
+    // ``CoverCell`` asks the rule itself now, so a short library, the search results and the
+    // list layout all draw an unreachable publication the same way. See ``LibraryMarks``.
 
     /// How much room the shelf itself has. Measured for the reason `CoverGrid` measures it:
     /// a size class is coarse, and a shelf pushed into a narrower column is not a phone.
@@ -84,7 +80,6 @@ struct SectionedShelf: View {
             spacing: StoryArcSpace.lg
         ) {
             ForEach(items) { publication in
-                let readable = isReadableNow(publication)
                 CoverCell(
                     publication: publication,
                     model: model,
@@ -94,10 +89,6 @@ struct SectionedShelf: View {
                     isPicked: selection?.contains(publication.id),
                     onToggle: onToggle
                 )
-                .opacity(readable ? 1 : 0.45)
-                // Dimming is invisible to VoiceOver, and "why can I not open this" is the
-                // only question it raises. Said rather than shown as well as shown.
-                .accessibilityHint(readable ? Text("") : Text("library.cell.unavailable", bundle: .module))
             }
         }
         .padding(.horizontal, StoryArcSpace.gutter)

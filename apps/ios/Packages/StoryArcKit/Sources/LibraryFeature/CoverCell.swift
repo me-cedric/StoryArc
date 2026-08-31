@@ -19,6 +19,9 @@ struct CoverCell: View {
     /// How large the reader has asked for text to be. Read for the coverless well only —
     /// see ``coverlessWellDrawsTitle(at:)``; the column width is the grid's question.
     @Environment(\.dynamicTypeSize) private var textSize
+    /// A source coming back should not make a cover flick to full brightness — but a reader
+    /// who asked for less motion gets the change with no crossfade at all.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let publication: Publication
     let model: LibraryModel
@@ -144,6 +147,26 @@ struct CoverCell: View {
                 .overlay(alignment: .bottomTrailing) {
                     if showsOnDeviceMark { OnDeviceMark() }
                 }
+                // `library-browsing`: a publication that is neither on the device nor
+                // currently reachable "is dimmed and still selectable", and "dimming is the
+                // only difference — it is not moved, grouped apart, or badged as an error".
+                //
+                // On the artwork and its marks, and not on the caption below: a publication a
+                // reader cannot open right now is still one whose title they have to be able
+                // to read in order to shelve it or queue it. Android dims the same block.
+                //
+                // Here rather than on the shelf above, which is the whole of the fix. The dim
+                // was applied by ``SectionedShelf``, whose one call site is gated on a grid of
+                // more than twelve items — so a short library, every search result and the
+                // entire list layout drew unreachable publications at full brightness. A rule
+                // that lives in a layout reaches one layout.
+                .opacity(isReachableNow ? 1 : LibraryMarks.awayOpacity)
+                // A source coming back should not make a cover flick to full brightness.
+                // Android animates the same change on its own motion scheme.
+                .animation(
+                    reduceMotion ? nil : .easeInOut(duration: StoryArcDuration.fast),
+                    value: isReachableNow
+                )
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                 Text(publication.displayTitle)
@@ -220,6 +243,14 @@ struct CoverCell: View {
         isPicked == nil && model.isOnDevice(publication)
     }
 
+    /// Whether this cover is drawn at full brightness.
+    ///
+    /// Asked by the cell rather than handed to it, which is the point: the shelf above no
+    /// longer decides whether the rule applies, so every grid — sectioned, plain and search
+    /// results alike — answers it the same way. Internal so it can be asserted without a
+    /// window, like ``showsOnDeviceMark`` beside it.
+    var isReachableNow: Bool { model.isReachableNow(publication) }
+
     /// The second line: what distinguishes this row from its neighbours.
     ///
     /// Internal rather than private so the fall-through can be asserted without a window:
@@ -236,36 +267,35 @@ struct CoverCell: View {
         return seriesLine(for: publication) ?? publication.authors.first
     }
 
+    /// What the whole cell says out loud.
+    ///
+    /// The two marks are appended by ``LibraryMarks/spoken(_:isOnDevice:isReadableNow:)``
+    /// rather than here, so the list layout speaks the same two sentences from the same
+    /// rule — and so the unavailability fact rides the **label** rather than the
+    /// `accessibilityHint` it used to, which VoiceOver announces last and, for a reader who
+    /// has turned hints off, not at all.
+    ///
+    /// No source. `library-browsing`: "nothing on the shelf states which source a
+    /// publication came from" — and a fact removed from the artwork but left in the spoken
+    /// label is the same leak, read aloud. The publication's own page carries the one
+    /// provenance line, for every reader alike.
     private var accessibilityLabel: String {
-        var parts = [publication.displayTitle]
-        if let subtitle { parts.append(subtitle) }
-        parts.append(publication.format.displayName)
-        // Progress is spoken, because a bar at the foot of a cover is invisible to
-        // anyone using VoiceOver and "how far in am I" is the whole point of it.
-        if let fraction = model.readFraction(of: publication) {
-            parts.append(
-                String(
-                    localized: "library.cell.progress \(Int(fraction * 100))",
-                    bundle: .module
-                )
-            )
-        }
-        // Spoken for the same reason the progress is: a mark in the corner of a cover
-        // is invisible to VoiceOver, and "can I read this on the train" is the whole
-        // question the mark answers. The wording is the one the catalogue already uses
-        // for the same state, in the four languages it is already translated into.
-        if model.isOnDevice(publication) {
-            parts.append(
-                String(localized: "catalogue.entry.downloaded", bundle: .module, locale: .storyArc)
-            )
-        }
-        if let pageCount = publication.pageCount {
-            parts.append(String(localized: "library.cell.pages \(pageCount)", bundle: .module, locale: .storyArc))
-        }
-        // No source. `library-browsing`: "nothing on the shelf states which source a
-        // publication came from" — and a fact removed from the artwork but left in the
-        // spoken label is the same leak, read aloud. The publication's own page carries
-        // the one provenance line, for every reader alike.
-        return parts.joined(separator: ", ")
+        LibraryMarks.spoken(
+            [
+                publication.displayTitle,
+                subtitle,
+                publication.format.displayName,
+                // Progress is spoken, because a bar at the foot of a cover is invisible to
+                // anyone using VoiceOver and "how far in am I" is the whole point of it.
+                model.readFraction(of: publication).map {
+                    String(localized: "library.cell.progress \(Int($0 * 100))", bundle: .module)
+                },
+                publication.pageCount.map {
+                    String(localized: "library.cell.pages \($0)", bundle: .module, locale: .storyArc)
+                },
+            ],
+            isOnDevice: model.isOnDevice(publication),
+            isReadableNow: isReachableNow
+        )
     }
 }

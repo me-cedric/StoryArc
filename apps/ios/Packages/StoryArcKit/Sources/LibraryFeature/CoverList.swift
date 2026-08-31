@@ -71,6 +71,9 @@ struct CoverList: View {
 
 struct ListRow: View {
     @Environment(\.theme) private var theme
+    /// A source coming back should not make a thumbnail flick to full brightness — but a
+    /// reader who asked for less motion gets the change with no crossfade at all.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let publication: Publication
     let model: LibraryModel
@@ -141,6 +144,12 @@ struct ListRow: View {
         .restartConfirmation($restarting, model: model)
         .refusedByServer($refusedServer, model: model, publication: publication)
         .accessibilityElement(children: .combine)
+        // Spelled out rather than left to `.combine`. The row draws two facts a screen
+        // reader cannot see — a mark in the corner of a thumbnail and an opacity — and
+        // combining children announces only what is written on screen. It is the grid's own
+        // composition, from the grid's own rule, so a reader who switches layouts hears the
+        // same sentence about the same book.
+        .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
         .accessibilityAddTraits(isPicked == true ? .isSelected : [])
         .task(id: publication.id) {
@@ -162,6 +171,25 @@ struct ListRow: View {
                     RoundedRectangle(cornerRadius: StoryArcRadius.sm)
                         .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
                 }
+                // The grid's mark, on the row. `design.md` asks for "downloaded state as a
+                // small filled mark in one corner" and the list drew none, so switching
+                // layout took away the one thing on the shelf that answers "can I read this
+                // on a train". Not gated on the pick mark the way the grid's is: that cap is
+                // on marks *over the artwork*, and here the tick is a separate element
+                // leading the row rather than a third glyph on the cover. Android's list
+                // row draws it on the same terms.
+                .overlay(alignment: .bottomTrailing) {
+                    if model.isOnDevice(publication) { OnDeviceMark() }
+                }
+                // `library-browsing` does not make dimming a property of a layout: a reader
+                // who prefers rows does not stop needing to know which of their books will
+                // open on a train. On the thumbnail alone, as in the grid — the title beside
+                // it stays legible.
+                .opacity(isReachableNow ? 1 : LibraryMarks.awayOpacity)
+                .animation(
+                    reduceMotion ? nil : .easeInOut(duration: StoryArcDuration.fast),
+                    value: isReachableNow
+                )
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                 Text(publication.displayTitle)
@@ -195,6 +223,30 @@ struct ListRow: View {
         } else {
             theme.palette.surfaceRaised
         }
+    }
+
+    /// Whether this row is drawn at full brightness.
+    ///
+    /// The grid's rule, asked by the row. Internal so it can be asserted without a window.
+    var isReachableNow: Bool { model.isReachableNow(publication) }
+
+    /// What the whole row says out loud, its two marks included.
+    ///
+    /// ``LibraryMarks/spoken(_:isOnDevice:isReadableNow:)`` rather than a second composition
+    /// here: the grid and the list drew this shelf's two marks differently for exactly as
+    /// long as each layout answered the question for itself.
+    private var accessibilityLabel: String {
+        LibraryMarks.spoken(
+            [
+                publication.displayTitle,
+                subtitle,
+                model.readFraction(of: publication).map {
+                    String(localized: "library.cell.progress \(Int($0 * 100))", bundle: .module)
+                },
+            ],
+            isOnDevice: model.isOnDevice(publication),
+            isReadableNow: isReachableNow
+        )
     }
 
     /// What distinguishes this row from its neighbours, format included: in a list

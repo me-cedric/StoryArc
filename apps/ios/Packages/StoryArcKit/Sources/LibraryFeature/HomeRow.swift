@@ -164,7 +164,11 @@ private struct HomeShelfCard: View {
         // Dimmed, never dropped: `home-screen` keeps what cannot be opened right now on
         // the shelf and says so, because a shelf that shrinks with the Wi-Fi reads as data
         // loss to a reader who did not lose anything.
-        .opacity(isReadable ? 1 : 0.55)
+        //
+        // ``LibraryMarks/awayOpacity``, not a number of its own: Home dimmed to 0.55 and the
+        // shelf to 0.45, so the same unreachable book was two brightnesses depending on which
+        // screen a reader was looking at. Android has carried one constant for both.
+        .opacity(isReadable ? 1 : LibraryMarks.awayOpacity)
         .contentShape(.rect)
     }
 

@@ -40,15 +40,9 @@ extension LibraryView {
         }
     }
 
-    /// Whether a publication can be opened right now. The rule itself lives beside the
-    /// availability axis it belongs to; this is the shelf asking it.
-    func isReadableNow(_ publication: Publication) -> Bool {
-        LibraryAvailability.isReadableNow(
-            publication,
-            location: model.location(of: publication),
-            registry: model.registry
-        )
-    }
+    // `isReadableNow` used to be here, handed down to ``SectionedShelf`` and to nothing else,
+    // which is how one of the app's three shelves came to dim and the other two not.
+    // ``LibraryModel/isReachableNow(_:)`` is the same rule, asked by the cell that draws it.
 
     /// How this shelf divides, or nothing when it is short enough to take in at a glance.
     ///
@@ -106,8 +100,7 @@ extension LibraryView {
                         sections: sections,
                         model: model,
                         selection: selection.isActive ? selection.ids : nil,
-                        onToggle: { selection.toggle($0.id) },
-                        isReadableNow: isReadableNow
+                        onToggle: { selection.toggle($0.id) }
                     )
                 } else if model.layout == .grid {
                     CoverGrid(

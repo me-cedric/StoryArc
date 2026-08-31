@@ -158,7 +158,8 @@ private struct HomeHeroCard: View {
                 RoundedRectangle(cornerRadius: StoryArcRadius.lg)
                     .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
             }
-            .opacity(isReadable ? 1 : 0.55)
+            // One constant for Home and the shelf alike — see ``LibraryMarks/awayOpacity``.
+            .opacity(isReadable ? 1 : LibraryMarks.awayOpacity)
             .contentShape(.rect)
             .onTapGesture { if isReadable { onOpen(publication) } }
             .accessibilityElement(children: .combine)
