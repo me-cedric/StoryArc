@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -93,6 +94,33 @@ class SettingsSemanticsTest {
         row.assertIsOff()
         row.performClick()
         row.assertIsOn()
+    }
+
+    @Test
+    fun theWallpaperSwitchCarriesItsNameAndStartsOn() {
+        showSettings()
+        open(R.string.settings_appearance)
+        // `native-experience`: the wallpaper scheme is the default, and the setting is the
+        // way back to StoryArc's own palette. One node, so a screen reader hears the name
+        // and the state together rather than a bare on/off beside a paragraph.
+        val row = compose.onNodeWithText(context.getString(R.string.appearance_dynamic_colour))
+        row.assertIsOn()
+        row.performClick()
+        row.assertIsOff()
+    }
+
+    @Test
+    fun theWallpaperSwitchGoesQuietUnderOledDarkAndSaysWhy() {
+        showSettings()
+        open(R.string.settings_appearance)
+        compose.onNodeWithText(context.getString(R.string.appearance_oled_dark)).performClick()
+        // True black and a wallpaper-derived wash are incompatible asks and `StoryArcTheme`
+        // has always let true black win. So the row stops offering a choice it cannot honour
+        // -- rather than leaving a switch that silently does nothing -- and says why instead.
+        compose.onNodeWithText(context.getString(R.string.appearance_dynamic_colour))
+            .assertIsNotEnabled()
+        compose.onNodeWithText(context.getString(R.string.appearance_dynamic_colour_oled_note))
+            .assertIsDisplayed()
     }
 
     @Test

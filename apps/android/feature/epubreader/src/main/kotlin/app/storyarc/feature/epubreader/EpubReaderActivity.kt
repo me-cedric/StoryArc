@@ -268,8 +268,11 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * composition would reach the page and none of the menus over it. Without this the whole
      * of the reader -- 109 string keys across 94 `stringResource` call sites -- stayed in the
      * system language the moment a book opened, while every screen behind it was in the
-     * reader's. Nothing recreates this activity on a language change and nothing needs to:
-     * it is started fresh from a library that has already been rebuilt in the new language.
+     * reader's.
+     *
+     * Nothing recreates this activity on a language change, so a book left open across a trip
+     * to Settings keeps the language it was opened in until it is closed and reopened. See
+     * the note on `useDynamicColor` in `onCreate` for why that trade was taken.
      */
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase.speaking(newBase.chosenLanguage()))
@@ -315,9 +318,17 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             )
         }
 
-        // `native-experience`'s Material You opt-out, read once. Nothing can change it while
-        // a book is open -- settings live in the other activity -- and this screen is started
-        // fresh from a library that has already been rebuilt against the new answer.
+        // `native-experience`'s Material You opt-out, read once when the book opens.
+        //
+        // **There is one route by which this goes stale, and it is not fixed here.** A reader
+        // can leave an open book by the home button, change the setting in the other
+        // activity, and come back to this one still alive: nothing recreates it, so it draws
+        // the scheme it was built with until the book is closed and reopened. The same is
+        // true of the interface language above. `MainActivity` recreates itself on a change
+        // and this does not, deliberately -- recreating the reader re-parses the publication,
+        // and doing that under a reader who only switched away for a moment is a worse defect
+        // than a colour scheme that lags until the next open. Worth revisiting with an
+        // emulator, which is the only place the trade can honestly be judged.
         val useDynamicColor = SettingsStore.open(applicationContext).settings().useDynamicColor
 
         val chrome = ComposeView(this).apply {

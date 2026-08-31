@@ -178,7 +178,7 @@ fun AdaptiveNavigationShell(
                             selected = entry.selected,
                             onClick = entry.onSelect,
                             icon = { Icon(entry.icon, contentDescription = null) },
-                            label = { EntryLabel(entry) },
+                            label = { EntryLabel(entry, type.pinsLabelFontScale) },
                             railExpanded = isOpen,
                         )
                     }
@@ -190,7 +190,7 @@ fun AdaptiveNavigationShell(
                             selected = entry.selected,
                             onClick = entry.onSelect,
                             icon = { Icon(entry.icon, contentDescription = null) },
-                            label = { EntryLabel(entry) },
+                            label = { EntryLabel(entry, type.pinsLabelFontScale) },
                         )
                     }
                 }
@@ -247,20 +247,36 @@ private fun RailMenuButton(isOpen: Boolean, labels: RailMenuLabels, onToggle: ()
  * be an unlabelled icon. What is left is the label not growing in the first place.
  *
  * So this is a deliberate exception to `design.md`'s "all scale with the Android font scale",
- * scoped to the eight or so words in the navigation control and to nothing else in the app.
- * A screen reader is unaffected: the label is the item's name and TalkBack reads it whatever
- * size it is drawn at.
+ * scoped to the eight or so words in the navigation control, and only where the arithmetic
+ * above applies -- see [NavigationSuiteType.pinsLabelFontScale]. A screen reader is
+ * unaffected everywhere: the label is the item's name and TalkBack reads it whatever size it
+ * is drawn at.
  */
 private const val NavigationLabelFontScale = 1f
 
 /**
+ * Whether this control is one whose labels have to be held to their design size.
+ *
+ * The bar and the collapsed rail are: both split a fixed, narrow measure between a fixed
+ * number of destinations, and neither can give a label more room than that share. The
+ * **expanded rail is not** -- it is as wide as its own open state and it is the only control
+ * that draws the secondary entries at all, so there is nothing there for the pin to prevent
+ * and taking a reader's text size away would be a cost with no purchase.
+ *
+ * A branch rather than one blanket rule, because the reason for the rule genuinely stops at
+ * this boundary. `NavigationSuiteType.None` draws no label to pin.
+ */
+internal val NavigationSuiteType.pinsLabelFontScale: Boolean
+    get() = this != NavigationSuiteType.WideNavigationRailExpanded
+
+/**
  * The density a navigation label measures against.
  *
- * Its own function so the one rule above can be asserted without a device, and so the
+ * Its own function so the rule above can be asserted without a device, and so the
  * substitution is a value rather than a lambda buried in a composition local.
  */
-internal fun navigationLabelDensity(density: Density): Density =
-    if (density.fontScale == NavigationLabelFontScale) {
+internal fun navigationLabelDensity(density: Density, isPinned: Boolean): Density =
+    if (!isPinned || density.fontScale == NavigationLabelFontScale) {
         density
     } else {
         Density(density.density, NavigationLabelFontScale)
@@ -275,8 +291,9 @@ internal fun navigationLabelDensity(density: Density): Density =
  * shortened word rather than one cut off at the glass.
  */
 @Composable
-private fun EntryLabel(entry: NavigationEntry) {
-    CompositionLocalProvider(LocalDensity provides navigationLabelDensity(LocalDensity.current)) {
+private fun EntryLabel(entry: NavigationEntry, isPinned: Boolean) {
+    val density = navigationLabelDensity(LocalDensity.current, isPinned)
+    CompositionLocalProvider(LocalDensity provides density) {
         Text(text = entry.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

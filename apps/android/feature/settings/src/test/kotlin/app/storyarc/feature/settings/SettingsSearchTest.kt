@@ -9,9 +9,11 @@ import org.junit.Test
  * The settings index, which is a hand-written list and therefore the kind of thing that
  * rots quietly.
  *
- * Mirrored case for case by iOS's `SettingsSearchTests`. The two indexes are the one place
- * a reader can tell the platforms apart without opening a screen, so they are asserted
- * against the same expectations rather than merely written to the same spec.
+ * Mirrored case for case by iOS's `SettingsSearchTests`, bar one entry. The two indexes are
+ * the one place a reader can tell the platforms apart without opening a screen, so they are
+ * asserted against the same expectations rather than merely written to the same spec. The
+ * exception is `DYNAMIC_COLOUR`: Material You is Android's, so iOS has no such setting and
+ * no such row to assert.
  */
 class SettingsSearchTest {
     @Test

@@ -1,8 +1,11 @@
 package app.storyarc.core.designsystem.navigation
 
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.ui.unit.Density
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -26,19 +29,19 @@ class NavigationLabelTest {
     private val screen = 2.75f
 
     @Test
-    fun `the largest accessibility text size does not reach a navigation label`() {
+    fun `the largest accessibility text size does not reach a pinned label`() {
         val reader = Density(density = screen, fontScale = 2f)
 
-        assertEquals(1f, navigationLabelDensity(reader).fontScale, 0f)
+        assertEquals(1f, navigationLabelDensity(reader, isPinned = true).fontScale, 0f)
     }
 
     @Test
-    fun `a reader who asked for smaller text does not get a smaller label either`() {
+    fun `a reader who asked for smaller text does not get a smaller pinned label either`() {
         // One rule, in both directions. Material removes the scaling rather than bounding
         // it, and a bar whose labels shrank but never grew would be a rule with a side.
         val reader = Density(density = screen, fontScale = 0.85f)
 
-        assertEquals(1f, navigationLabelDensity(reader).fontScale, 0f)
+        assertEquals(1f, navigationLabelDensity(reader, isPinned = true).fontScale, 0f)
     }
 
     @Test
@@ -47,13 +50,41 @@ class NavigationLabelTest {
         // must keep measuring against the screen they are drawn on.
         val reader = Density(density = screen, fontScale = 2f)
 
-        assertEquals(screen, navigationLabelDensity(reader).density, 0f)
+        assertEquals(screen, navigationLabelDensity(reader, isPinned = true).density, 0f)
     }
 
     @Test
     fun `a reader already at the default is handed back what they came with`() {
         val reader = Density(density = screen, fontScale = 1f)
 
-        assertSame(reader, navigationLabelDensity(reader))
+        assertSame(reader, navigationLabelDensity(reader, isPinned = true))
+    }
+
+    @Test
+    fun `where the label has room, the reader's own text size survives`() {
+        val reader = Density(density = screen, fontScale = 2f)
+
+        assertSame(reader, navigationLabelDensity(reader, isPinned = false))
+    }
+
+    /**
+     * The boundary the rule stops at, and the reason it stops there.
+     *
+     * The bar and the collapsed rail split a fixed, narrow measure between a fixed number of
+     * destinations. The expanded rail does not, and it is the only control that draws the
+     * secondary entries at all -- so pinning there would take a reader's text size away with
+     * no clipping to prevent.
+     */
+    @Test
+    fun `only the controls that ration their width hold the label to its design size`() {
+        assertFalse(NavigationSuiteType.WideNavigationRailExpanded.pinsLabelFontScale)
+
+        listOf(
+            NavigationSuiteType.ShortNavigationBarCompact,
+            NavigationSuiteType.ShortNavigationBarMedium,
+            NavigationSuiteType.WideNavigationRailCollapsed,
+        ).forEach { type ->
+            assertTrue(type.toString(), type.pinsLabelFontScale)
+        }
     }
 }

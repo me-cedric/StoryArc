@@ -26,11 +26,15 @@ class DynamicColourSettingTest {
     }
 
     @Test
-    fun `a reset puts the wallpaper back`() {
-        val chosen = AppSettings.Defaults.copy(useDynamicColor = false)
+    fun `turning it off changes nothing else, and a reset undoes only it`() {
+        // `SettingsStore.reset()` writes `Defaults`, so what a reset restores is decided
+        // here rather than there. The two assertions are the two halves that matter: the
+        // opt-out is the only field the switch moves, and `Defaults` is the state it
+        // returns to.
+        val opted = AppSettings.Defaults.copy(useDynamicColor = false)
 
-        assertNotEquals(chosen, AppSettings.Defaults)
-        assertTrue(AppSettings.Defaults.useDynamicColor)
+        assertNotEquals(AppSettings.Defaults, opted)
+        assertEquals(AppSettings.Defaults, opted.copy(useDynamicColor = true))
     }
 
     @Test

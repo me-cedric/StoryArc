@@ -174,9 +174,11 @@ internal fun SettingsGroup.Companion.search(query: String): List<SettingMatch> {
  * Terms rather than one label, so "night" finds Appearance and "licence" finds About —
  * a reader searches for the thing they want, not for what the screen calls it.
  *
- * Mirrored term for term with iOS's `searchable`. The two indexes are the one place a
- * reader can tell the platforms apart without opening a screen, and they have already
- * drifted once: "cache" pointed at Downloads there and at Privacy here.
+ * Mirrored term for term with iOS's `searchable`, bar one entry. The two indexes are the
+ * one place a reader can tell the platforms apart without opening a screen, and they have
+ * already drifted once: "cache" pointed at Downloads there and at Privacy here. The
+ * exception is `DYNAMIC_COLOUR`, which has no iOS row because Material You is Android's
+ * and there is nothing there to opt out of.
  */
 internal val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
     listOf("sources", "folder", "share", "opds", "kavita", "server") to

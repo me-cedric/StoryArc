@@ -28,6 +28,16 @@ class InterfaceLanguageTest {
     }
 
     @Test
+    fun `a tag nothing can parse is no choice either`() {
+        // Same trap, one step along: `forLanguageTag` answers ROOT for anything malformed
+        // rather than refusing, so guarding the input against blankness caught one case out
+        // of many. The guard is on the answer, which catches all of them.
+        listOf("!!", "??-??", "1234", "a".repeat(64)).forEach { tag ->
+            assertNull(tag, interfaceLocale(tag))
+        }
+    }
+
+    @Test
     fun `the four shipped languages resolve to themselves`() {
         // The four `localization` requires. A tag that resolved to something else here would
         // put the whole interface, both activities, in the wrong language.
