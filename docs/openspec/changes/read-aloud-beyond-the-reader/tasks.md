@@ -109,22 +109,100 @@ says so and names what is left to watch.
       at the displacement. **Ticking this needs the vocabulary slice's wording and a
       surface to show it on — which on iOS is Phase 2's transport.**
 
+      *Phase 2:* the surface exists now. `ReadAloudDock` is where a listener would be
+      told, and it is the right place — they are looking at the navigation, not at a
+      book. Still no wording, so still not ticked.
+
 ## Phase 2 — The iOS transport
 
-- [ ] **2.1** The docked control in the shell's accessory slot, with the inline
+- [x] **2.1** The docked control in the shell's accessory slot, with the inline
       form when the navigation is minimised. **Plain controls inside it** — the
       slot is already glass, and this codebase has a comment recording what
       glass-on-glass did to three glyphs.
-- [ ] **2.2** Choosing it returns to the publication at the spoken sentence,
+
+      **`ReadAloudDock`, in the slot `AppShell` has been holding open.** It names the
+      publication and the chapter, carries the four verbs the lock screen carries,
+      and the whole of its title area is the way back. Placement is read from
+      `tabViewBottomAccessoryPlacement`: expanded keeps the chapter and all four
+      controls, inline drops to the title, play and stop — that placement *is* the
+      minimised tab bar, three destinations and a search button wide, and four more
+      glyphs there would leave the title nothing.
+
+      **Two transports, deliberately, and one vocabulary.** `ReadAloudBar` stays in
+      the reader with `.glass` buttons inside the reader's own
+      `GlassEffectContainer`; the dock uses plain controls because the slot is
+      already the material — §3.0's budget, and the device evidence in
+      `ReadAloudBar`'s own header. That difference cannot be parameterised honestly,
+      so they are two views. What they shared and could drift — five glyphs, five
+      labels — is now `ReadAloudControl`, and both read it.
+
+      The dock is `public` and lives in `EpubReaderFeature` for the reason
+      `ReadAloudCentre` does, plus one more: the `readaloud.*` keys live in that
+      module's catalogue, and a copy in the app target's would be the same five
+      strings in two places for a fifth locale to keep in step. See 5.5.
+- [x] **2.2** Choosing it returns to the publication at the spoken sentence,
       without the voice stopping, from every destination and from any depth.
+
+      **The way back is `onOpen`, the same seam a cover on the shelf uses.** The dock
+      hands the shell the publication and its URL — carried on `SpokenBook` since
+      Phase 1, so the return opens the same bytes rather than searching a library for
+      something that looks like them — and the app layer presents the reader it
+      already presents. No second path, and no locator to carry: opening the book
+      that is already being spoken is the case `SessionHandover` answers with
+      `adopt`, so the reader picks up the sentence the voice is on and the voice
+      never notices. `ReadAloudSessionTests` composes the two ends of that in
+      *"Choosing the transport reopens the book the voice is on, and adopts it"*.
+
+      Every destination and any depth come from where the two things are attached:
+      the accessory belongs to the `TabView`, so it survives a push inside a tab, and
+      the reader's `fullScreenCover` belongs to the window's root, so it covers
+      whatever the listener had descended to. Neither is a new mechanism.
 - [ ] **2.3** It appears when a session starts, goes when it ends, and reserves no
       space when absent. Screenshot: with a session and without, on each
       destination.
+
+      **Written and asserted as a value; the pixels are unwatched.** Absence is
+      `ReadAloudTransport.of(_:speaking:)` returning `nil`, and the shell's accessory
+      builder then produces no content at all rather than an empty view — the `if` is
+      in `AppShell` and not inside the dock precisely so the slot is never handed a
+      view to decide about. Five tests cover it: no session, a paused session that
+      keeps its transport, and each of the three endings (the listener stopped it,
+      the audio was taken for good, the book ran out of words).
+
+      What no test here can reach is whether the platform reserves the slot anyway.
+      **The screenshot that settles it is the shell with no session, next to one from
+      before this change: the tab bar must be the same height.** If it is not, the
+      answer is `tabViewBottomAccessory(isEnabled:)`, which is iOS 26.1 against a
+      26.0 floor and would cost an availability branch — `AppShell` carries the note.
 - [ ] **2.4** Accessibility: reachable in the reading order, labelled per action,
       and it does not take focus when it appears. Verified with the screen reader
       on, not by reading the code.
+
+      **Built for it; not yet heard.** The dock is one `accessibilityElement(children:
+      .contain)` group labelled `readaloud.start`, holding the book as a button and
+      each verb labelled from `ReadAloudControl` — the labels ride on `Label` titles
+      that `.labelStyle(.iconOnly)` hides visually and VoiceOver keeps, which is how
+      `ReadAloudBar` has always done it. Each glyph gets a 44pt target. Nothing in
+      the file moves focus, and that absence is the requirement: no
+      `accessibilityFocused`, no screen-changed announcement.
+
+      **One gap, named rather than papered over.** The way back is labelled with the
+      publication and the chapter — what is playing — and not with what tapping does.
+      Saying that needs a word this change may not ship (5.5), so the vocabulary
+      slice should be asked for a `readaloud.return`; until then VoiceOver reads
+      *"Read aloud, Sea Room, Chapter Two, button"*, which is what the platform's own
+      mini players read and is short of the delta's *"each of its actions is labelled
+      by what it does"*.
 - [ ] **2.5** Screenshot at the largest text size, where a compact transport
       truncates first.
+
+      **The words scale and the glyphs do not.** The control row is capped at
+      `DynamicTypeSize.xxLarge` and the title and chapter are `lineLimit(1)` with tail
+      truncation, so at an accessibility size the capsule spends its width on the
+      book's name and the four controls stay hittable — a transport whose buttons grew
+      until the title was three characters and an ellipsis would be worse for the
+      reader who chose that size than for anyone else. **Unwatched: this is the
+      screenshot that shows whether the trade lands.**
 
 ## Phase 3 — Android, which adds no bar
 
@@ -236,6 +314,16 @@ test target without booting anything, but **its tests were not run and
 `pnpm build:ios` was not run** — both need a simulator this session did not have.
 No new user-facing string ships from what has landed so far (5.5).
 
+**Phase 2 added one gate the last slice could not reach: `corepack pnpm build:ios`
+passed.** It is the only one that compiles the app target, which is where the
+accessory slot is wired, and it had been outstanding since Phase 1. Also passed
+this slice: `corepack pnpm lint`, `swiftlint lint --strict` over 459 files,
+`swift test` in `StoryArcKit` (1180 tests), and `xcodebuild build-for-testing` for
+`StoryArcEpub`. **`pnpm test:ios:epub` was still not run** — it boots a simulator,
+and the 31 read-aloud tests in `StoryArcEpub` are compiled but unexecuted. Running
+them is still the first thing to do with a simulator, and Phase 2 added six of
+them to the count.
+
 - [ ] **5.1** `corepack pnpm spec:validate`.
 - [ ] **5.2** iOS: `swiftlint lint --strict`, `swift build`, `swift test`,
       `pnpm test:ios:epub`, `pnpm build:ios` — this change touches what the app
@@ -246,6 +334,19 @@ No new user-facing string ships from what has landed so far (5.5).
 - [ ] **5.4** `corepack pnpm lint`.
 - [ ] **5.5** No new user-facing string ships from this change. If the iOS
       transport needs a label, hand it to the vocabulary slice.
+
+      **Held on iOS: the transport ships no new string.** Every word in
+      `ReadAloudDock` is an existing `readaloud.*` key or the publication's own
+      metadata, and `node scripts/ios-strings.mjs` passes in all four languages.
+      That is also why the dock lives in `EpubReaderFeature` — the keys are in that
+      module's catalogue, and a copy in the app target's would be five strings in two
+      places.
+
+      **Two words the vocabulary slice should be asked for**, neither invented here:
+      `readaloud.return`, so the way back is labelled by what it does rather than only
+      by what is playing (2.4), and the sentence that tells a listener their voice
+      stopped because they opened another book (1.4). The second has a surface now —
+      this transport — and still no wording.
 - [ ] **5.6** Screenshots complete and referenced in the handoff, including the
       Android notification, which is a screen a reader sees even though it is not
       a screen the app draws.

@@ -127,6 +127,12 @@ struct AppShell: View {
         // system collapses that is the system's business rather than a promise this app
         // can make. `ebook-reader` states the promise, so the app makes it structurally.
         //
+        // If a screenshot with no session ever shows the tab bar sitting higher than it
+        // does without this modifier, the platform reserves the slot regardless and the
+        // answer is `tabViewBottomAccessory(isEnabled:)` — which exists, and is iOS 26.1
+        // against a 26.0 floor (ADR-0003), so it would cost an availability branch this
+        // app does not otherwise have. Not taken on speculation.
+        //
         // The way back is `onOpen` — the same seam the shelf uses to open a cover, taking
         // the publication and its URL. Opening the book that is already being spoken is
         // what `SessionHandover` answers with `adopt`: the reader picks up the sentence
