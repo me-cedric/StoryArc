@@ -13,6 +13,33 @@ struct KavitaCardStoreTests {
         return KavitaCardStore(defaults: defaults)
     }
 
+    /// The store's own key, restated so a rename has to be deliberate.
+    private let key = "app.storyarc.kavita.cards"
+
+    @Test("A card written by an older build still reads")
+    func olderCardStillReads() throws {
+        // Not a `KavitaCard` re-encoded: the actual bytes an older build left in the
+        // defaults, with none of the keys the fields added since carry. Swift's derived
+        // decoder throws `keyNotFound` for an absent key rather than taking the property's
+        // default, and the store decodes every card as one dictionary — so one undecodable
+        // card does not lose two fields, it loses the reader's whole offline library.
+        let defaults = try #require(UserDefaults(suiteName: "cards-\(UUID().uuidString)"))
+        let legacy = """
+        {"p1":{"publicationId":"p1","sourceId":"s","seriesId":7,"chapterId":1,\
+        "seriesName":"Tidal Reach","chapterName":"The Harbour",\
+        "people":["Ada Okonkwo"],"subjects":["Adventure"],"releaseYear":1998}}
+        """
+        defaults.set(Data(legacy.utf8), forKey: key)
+
+        let store = KavitaCardStore(defaults: defaults)
+        let read = try #require(store.card(of: "p1"))
+        #expect(read.seriesName == "Tidal Reach")
+        #expect(read.facts == ["1998", "Ada Okonkwo", "Adventure"])
+        // The fields that row never had, at the defaults the memberwise initialiser gives.
+        #expect(read.downloadId == "")
+        #expect(read.libraryId == 0)
+    }
+
     private func card(
         _ publication: String,
         source: String = "s",

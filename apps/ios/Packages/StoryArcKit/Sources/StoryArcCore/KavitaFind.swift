@@ -130,6 +130,42 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
         self.releaseYear = releaseYear
     }
 
+    /// Reads a card that was written by an older build of this app.
+    ///
+    /// **Written by hand because the synthesised one loses the whole cache.** A card is
+    /// persisted, and Swift's derived `init(from:)` does not fall back to a property's
+    /// default when the key is absent — it throws `keyNotFound`. ``KavitaCardStore`` decodes
+    /// the cards as one dictionary with `try?`, so one card that a new field made
+    /// undecodable does not degrade to five fields out of seven: it takes *every* card on the
+    /// device with it, and the reader's whole offline library loses the server's word at
+    /// once.
+    ///
+    /// So every field that has a default in the memberwise initialiser has the same default
+    /// here, and only the four a card cannot mean anything without are required. Android
+    /// gets this for free — a `@Serializable` property with a default is filled in when the
+    /// key is missing — which is why the two platforms need different amounts of code to
+    /// make the same promise.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        publicationId = try container.decode(String.self, forKey: .publicationId)
+        sourceId = try container.decode(String.self, forKey: .sourceId)
+        seriesId = try container.decode(Int.self, forKey: .seriesId)
+        chapterId = try container.decode(Int.self, forKey: .chapterId)
+        downloadId = try container.decodeIfPresent(String.self, forKey: .downloadId) ?? ""
+        libraryId = try container.decodeIfPresent(Int.self, forKey: .libraryId) ?? 0
+        seriesName = try container.decodeIfPresent(String.self, forKey: .seriesName) ?? ""
+        chapterName = try container.decodeIfPresent(String.self, forKey: .chapterName) ?? ""
+        summary = try container.decodeIfPresent(String.self, forKey: .summary)
+        people = try container.decodeIfPresent([String].self, forKey: .people) ?? []
+        subjects = try container.decodeIfPresent([String].self, forKey: .subjects) ?? []
+        releaseYear = try container.decodeIfPresent(Int.self, forKey: .releaseYear) ?? 0
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case publicationId, downloadId, sourceId, libraryId, seriesId, chapterId
+        case seriesName, chapterName, summary, people, subjects, releaseYear
+    }
+
     /// Everything a one-line summary row shows, already in order.
     ///
     /// The same line `KavitaMetadata.facts` builds from a live answer, so a series read
