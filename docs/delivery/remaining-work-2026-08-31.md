@@ -13,6 +13,35 @@ most rather than the item that is easiest to find.
 
 ---
 
+## Superseded in part, later the same day
+
+The owner set a new direction after this was written: follow Apple Books and Apple
+Music *per screen where it helps*, answer the Android half from Material You 3 rather
+than by translating iOS, and be deliberately different rather than a copy. Three
+changes carry it, all four artifacts complete:
+
+| Change | What it moves |
+| --- | --- |
+| [`quiet-shell-and-search`](../openspec/changes/quiet-shell-and-search/proposal.md) | one bar with search as a destination, a search page that suggests before it is typed into, and a what's-new screen |
+| [`quiet-reader`](../openspec/changes/quiet-reader/proposal.md) | two controls over the page instead of eleven, progress sized to the format, and a theme surface with two levels and a named reset |
+| [`audiobooks-and-playback`](../openspec/changes/audiobooks-and-playback/proposal.md) | audiobooks open, and one player that both a narrator and the read-aloud voice drive |
+
+**What that does to the list below.** Nothing is deleted from it — every gap named
+here is still a gap. But the shell, reader-chrome and theme-sheet items are now
+answered by a planned change rather than by an unowned to-do, so read those in the
+task lists above rather than here. The audits' findings about *documents lying* stand
+unchanged and are still the first thing to fix.
+
+**Two of this document's own findings are now closed**, both on 2026-08-31:
+
+- The encrypted-archive scenario, asserted by no test on either platform and with no
+  fixture to assert against, has a real ZipCrypto fixture and a mutation-checked test
+  on each side.
+- The audio corpus that `audiobooks-and-playback` needs exists: seven fixtures,
+  100 kB, byte-deterministic.
+
+---
+
 ## 0. First, the two things that had gone wrong with the documents themselves
 
 **The task lists lied by omission.** `one-library-three-destinations` showed 1 of 25 tasks
