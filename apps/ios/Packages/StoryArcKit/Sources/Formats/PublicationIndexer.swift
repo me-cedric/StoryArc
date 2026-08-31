@@ -21,6 +21,18 @@ public enum PublicationIndexer {
         case unsupported(format: String)
         /// Recognised, supported, and this particular file cannot be read.
         case unreadable(reason: String)
+        /// Audio behind a store's content protection — an Audible `.aax` or `.aaxc`.
+        ///
+        /// **Its own case, and `publication-formats` requires it to be**: "the refusal is
+        /// distinct from an unsupported container, because the format itself is supported
+        /// and this particular file is locked". MPEG-4 audio *is* read; this file is not
+        /// readable by anyone without the store's key.
+        ///
+        /// It carries nothing. There is no key to ask for, no account to name and no
+        /// activation code to prompt for, and a payload here would be an invitation to
+        /// build one. StoryArc does not implement, circumvent or advise on removing a
+        /// content protection, so this refusal will not change.
+        case contentProtected
     }
 
     /// Indexes one local publication.
@@ -54,17 +66,7 @@ public enum PublicationIndexer {
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
         guard exists else { throw IndexError.unreadable(reason: "the file is not there") }
 
-        if isDirectory.boolValue {
-            let folder = try ImageFolderArchive(directory: url)
-            return comic(
-                folder,
-                format: .imageFolder,
-                // No file, so no digest. A folder of images keys on its path alone.
-                identity: identity(forPath: url.path, digest: nil),
-                filename: url.lastPathComponent,
-                fallback: FilenameMetadata(filename: url.lastPathComponent)
-            )
-        }
+        if isDirectory.boolValue { return try await folderPublication(at: url) }
 
         let source = try FileSource(url: url)
         // Taken from the handle the sniff below is about to use, so both reads land on
@@ -98,8 +100,16 @@ public enum PublicationIndexer {
             )
         case .sevenZip:
             throw IndexError.unsupported(format: PublicationFormat.cb7.displayName)
-        case .mp4, .mp3, .flac, .ogg, .protectedAudiobook:
-            throw IndexError.unsupported(format: container.displayName) // see `Container.isAudio`
+        case .mp4, .mp3, .flac, .ogg:
+            return await audiobook(
+                at: url, identity: found, format: .audiobook, fallback: fallback
+            )
+        case .protectedAudiobook:
+            // Refused for being locked, not for being the wrong kind of file. The brand at
+            // offset 8 said so before a decoder was ever asked — and `protected.aax` in the
+            // corpus still holds a decodable stream on purpose, so a decoder that merely
+            // choked would not have satisfied this.
+            throw IndexError.contentProtected
         }
     }
 
@@ -135,6 +145,41 @@ public enum PublicationIndexer {
             throw IndexError.unreadable(reason: "the format was not recognised")
         }
 
+        return try await remote(
+            container,
+            source: source,
+            decoderPath: decoderPath,
+            naming: Naming(name: name, identity: found, fallback: fallback)
+        )
+    }
+
+    /// The three facts every builder needs about a publication before its container is open.
+    ///
+    /// They have always travelled together — what it is called, what it *is*, and what its
+    /// filename implies — and passing them as one is what keeps the switch below inside the
+    /// parameter count the linter allows.
+    struct Naming: Sendable {
+        let name: String
+        let identity: PublicationIdentity
+        let fallback: FilenameMetadata
+    }
+
+    /// Which reader a sniffed remote container gets.
+    ///
+    /// Split from its caller only because the switch and the preamble together crossed the
+    /// complexity limit once audio stopped being one refusal and became two outcomes. The
+    /// cut is where the file path already cuts: above it is identity and sniffing, below it
+    /// is what the container turns into.
+    private static func remote(
+        _ container: FormatSniffer.Container,
+        source: any RandomAccessSource,
+        decoderPath: URL?,
+        naming: Naming
+    ) async throws -> Publication {
+        let name = naming.name
+        let found = naming.identity
+        let fallback = naming.fallback
+
         switch container {
         case .pdf:
             guard let decoderPath else { return record(.pdf, found, name, fallback) }
@@ -165,8 +210,19 @@ public enum PublicationIndexer {
         case .sevenZip:
             throw IndexError.unsupported(format: PublicationFormat.cb7.displayName)
 
-        case .mp4, .mp3, .flac, .ogg, .protectedAudiobook:
-            throw IndexError.unsupported(format: container.displayName) // see `Container.isAudio`
+        case .mp4, .mp3, .flac, .ogg:
+            // `AVURLAsset` wants a file, so without a local copy this is a record: the
+            // library lists it, says what it is and offers the download, rather than
+            // dropping it — the same honest degradation a PDF and a RAR already get here.
+            guard let decoderPath else { return record(.audiobook, found, name, fallback) }
+            return await audiobook(
+                at: decoderPath, identity: found, format: .audiobook, fallback: fallback
+            )
+
+        case .protectedAudiobook:
+            // See the file path's own case: the brand at offset 8 decides this, not a
+            // decoder, and the refusal is distinct from an unsupported container.
+            throw IndexError.contentProtected
 
         }
     }

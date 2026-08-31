@@ -40,6 +40,20 @@ public enum LibraryScanner {
         "jpg", "jpeg", "png", "gif", "webp", "avif", "heic", "bmp", "tif", "tiff",
     ]
 
+    /// Whether a file is a candidate part or a candidate audiobook.
+    ///
+    /// **Audio is deliberately not in ``candidateExtensions``.** Putting it there would make
+    /// every part of a folder of chapter MP3s its own publication, which is the one thing
+    /// `publication-formats` says a folder of audio is not — "a folder holds ordered audio
+    /// files … it is treated as a single audiobook". So audio is counted separately, exactly
+    /// as images already are, and the folder-versus-file decision below reads both.
+    ///
+    /// The set itself is `FolderKind`'s, so the walk and the kind cannot disagree about what
+    /// counts as audio.
+    private static func isAudio(_ url: URL) -> Bool {
+        FolderKind.audioExtensions.contains(url.pathExtension.lowercased())
+    }
+
     /// Publications in `folder`, emitted as they are found.
     ///
     /// Depth-first and alphabetical, so the order a user sees matches the order
@@ -176,11 +190,14 @@ public enum LibraryScanner {
             candidateExtensions.contains($0.pathExtension.lowercased())
         }
         let images = files.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
-        if publications.isEmpty, !images.isEmpty {
+        let audio = files.filter { isAudio($0) }
+        if publications.isEmpty, !images.isEmpty || !audio.isEmpty {
             found.append(entry(for: directory))
             return
         }
-        for file in publications { found.append(entry(for: file)) }
+        // A lone audiobook beside packed comics is its own row. It is not in
+        // `candidateExtensions` on purpose — see that property's own note.
+        for file in publications + audio { found.append(entry(for: file)) }
         for child in directories { list(child, into: &found) }
     }
 
@@ -252,14 +269,22 @@ public enum LibraryScanner {
             candidateExtensions.contains($0.pathExtension.lowercased())
         }
         let imageFiles = files.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
+        let audioFiles = files.filter { isAudio($0) }
 
-        if publicationFiles.isEmpty, !imageFiles.isEmpty {
+        if publicationFiles.isEmpty, !imageFiles.isEmpty || !audioFiles.isEmpty {
             // Its subdirectories are chapters of it, not separate publications.
+            //
+            // Which kind of publication is `FolderKind`'s answer, not this one's: a folder
+            // of images is a comic, a folder of audio is an audiobook, and one holding both
+            // is whichever it holds more of. The walk only has to decide that the *folder*
+            // is the unit, which is the same decision for both.
             guard !skipping.contains(normalized(directory)) else { return tally }
             return tally + (await index(directory, seriesHint: seriesHint, known: known, emit: emit))
         }
 
-        for file in publicationFiles {
+        // Audio beside packed publications is indexed file by file, because a folder holding
+        // comics is a shelf and an audiobook standing on it is one book.
+        for file in publicationFiles + audioFiles {
             guard !Task.isCancelled else { return tally }
             // Already done by the scan this one is picking up from. Not counted either: the
             // caller put those publications back itself and has already counted them.
@@ -310,7 +335,7 @@ public enum LibraryScanner {
             emit(.found(publication))
             return Tally(found: 1, skipped: 0)
         } catch let error as PublicationIndexer.IndexError {
-            emit(.skipped(path: url.lastPathComponent, reason: reason(for: error)))
+            emit(.skipped(path: url.lastPathComponent, reason: skipReason(for: error)))
         } catch {
             emit(.skipped(path: url.lastPathComponent, reason: "it could not be read"))
         }
@@ -345,10 +370,14 @@ public enum LibraryScanner {
     ///
     /// "7-Zip is not supported" tells someone to convert the file; "could not open"
     /// tells them nothing, which is what `publication-formats` forbids.
-    private static func reason(for error: PublicationIndexer.IndexError) -> String {
+    static func skipReason(for error: PublicationIndexer.IndexError) -> String {
         switch error {
         case let .unsupported(format): "\(format) is not a format StoryArc reads"
         case let .unreadable(reason): reason
+        // Distinct from the line above, and `publication-formats` requires it to be: the
+        // format is one StoryArc reads and this file is locked by the store that sold it.
+        // No key is asked for here or anywhere.
+        case .contentProtected: "it is protected by its store's content protection"
         }
     }
 }

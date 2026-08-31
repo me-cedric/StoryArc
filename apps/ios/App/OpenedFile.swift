@@ -22,6 +22,11 @@ enum OpenedFile {
         case opened(Publication)
         /// The format was recognised and StoryArc does not read it.
         case unsupported(detected: String)
+        /// The format is one StoryArc reads, and this file is locked by the store that
+        /// sold it. `publication-formats` requires this refusal to be "distinct from an
+        /// unsupported container", so it is a case rather than a different string in the
+        /// one above — those two words are the only thing a reader can act on.
+        case contentProtected
         /// The file could not be reached or could not be understood at all.
         case unreadable
     }
@@ -46,6 +51,7 @@ enum OpenedFile {
             if case let .unsupported(format) = error {
                 return .unsupported(detected: format)
             }
+            if case .contentProtected = error { return .contentProtected }
             return .unreadable
         } catch {
             return .unreadable

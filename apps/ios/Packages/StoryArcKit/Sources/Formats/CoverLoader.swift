@@ -57,6 +57,13 @@ public enum CoverLoader {
         case .epub:
             return try await bookCover(for: publication, at: url)
 
+        case .audiobook, .audioFolder:
+            // An M4B can carry embedded artwork and this does not read it yet, so the
+            // library draws its no-art placeholder. Named rather than folded into the comic
+            // case: a folder of audio has no first page to fall back to, and reaching for
+            // one would open a file the reader is about to hear rather than see.
+            throw CoverError.noCover
+
         case .cbz, .cbr, .cbt, .cb7, .imageFolder:
             guard let path = publication.coverPath else { throw CoverError.noCover }
             guard let archive = try? await ComicArchiveOpener.open(fileAt: url) else {

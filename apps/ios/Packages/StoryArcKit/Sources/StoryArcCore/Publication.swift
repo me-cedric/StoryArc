@@ -278,13 +278,30 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
 /// filters and explains by format, and none of that should require the parser.
 public enum PublicationFormat: String, Sendable, Codable, CaseIterable {
     case cbz, cbr, cb7, cbt, epub, pdf, imageFolder
+    /// A single audio file: M4B, M4A, MP3, FLAC or Ogg. One publication, chaptered or not.
+    case audiobook
+    /// A directory of ordered audio files, played as one publication.
+    case audioFolder
 
     /// Whether pages are images rather than reflowable text. Drives which reader
     /// opens the publication, and whether a page curl needs a raster.
     public var isPagedImages: Bool {
         switch self {
         case .cbz, .cbr, .cb7, .cbt, .imageFolder: true
-        case .epub, .pdf: false
+        case .epub, .pdf, .audiobook, .audioFolder: false
+        }
+    }
+
+    /// Whether a player rather than a reader opens this.
+    ///
+    /// The question `FormatSniffer.Container.isAudio` answers about *bytes*, asked here
+    /// about a publication that has already been indexed — a screen holds one of these and
+    /// never the container it came from. Asked in one place for the same reason: a `switch`
+    /// repeated at three call sites is how two of them end up disagreeing.
+    public var isAudio: Bool {
+        switch self {
+        case .audiobook, .audioFolder: true
+        case .cbz, .cbr, .cb7, .cbt, .epub, .pdf, .imageFolder: false
         }
     }
 
@@ -333,7 +350,12 @@ public enum PublicationFormat: String, Sendable, Codable, CaseIterable {
         case .cbt: "application/vnd.comicbook+tar"
         case .epub: "application/epub+zip"
         case .pdf: "application/pdf"
-        case .imageFolder: nil
+        case .imageFolder, .audioFolder: nil
+        // Deliberately none. The audio types are many — M4B, M4A, MP3, FLAC, Ogg — and
+        // a publication does not record which of them it was, because nothing above the
+        // format layer has a use for the difference. `publication-formats` says the
+        // contents are the fact; a media type here would be a guess about the extension.
+        case .audiobook: nil
         }
     }
 
@@ -357,6 +379,8 @@ public enum PublicationFormat: String, Sendable, Codable, CaseIterable {
         case .epub: "EPUB"
         case .pdf: "PDF"
         case .imageFolder: "Folder"
+        case .audiobook: "Audiobook"
+        case .audioFolder: "Audio folder"
         }
     }
 }

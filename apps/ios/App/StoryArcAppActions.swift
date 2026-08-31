@@ -32,6 +32,8 @@ extension StoryArcApp {
             _ = OpenedFile.remember(url, in: bookmarks)
         case let .unsupported(detected):
             refusedFile = RefusedFile(name: url.lastPathComponent, detected: detected)
+        case .contentProtected:
+            refusedFile = RefusedFile(name: url.lastPathComponent, detected: nil, isProtected: true)
         case .unreadable:
             refusedFile = RefusedFile(name: url.lastPathComponent, detected: nil)
         }

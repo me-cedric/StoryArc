@@ -10,6 +10,14 @@ struct RefusedFile: Identifiable, Sendable {
     let name: String
     /// The format the sniffer recognised, or `nil` when it recognised nothing.
     let detected: String?
+    /// Whether the file is behind a store's content protection.
+    ///
+    /// Its own flag rather than a `detected` string, because `publication-formats` requires
+    /// this refusal to be "distinct from an unsupported container, because the format itself
+    /// is supported and this particular file is locked" — and the two sentences below say
+    /// genuinely different things. Listing the supported formats under this one would be
+    /// wrong twice over: the format *is* supported, and there is nothing to convert to.
+    var isProtected = false
 
     var id: String { name }
 
@@ -18,9 +26,17 @@ struct RefusedFile: Identifiable, Sendable {
     /// Written here rather than derived from the format enum on purpose: the enum holds
     /// what the app can *detect*, and 7-Zip is detected and refused. A list built from it
     /// would promise CB7.
-    private static let supported = "CBZ, CBR, CBT, EPUB, PDF"
+    private static let supported = "CBZ, CBR, CBT, EPUB, PDF, M4B and other audiobooks"
 
     var message: String {
+        // No key, no account, no activation code, and no suggestion of a way around it.
+        // StoryArc does not implement, circumvent or advise on removing a content
+        // protection, and a message that hinted at one would be the first step to a field
+        // that asks for it.
+        if isProtected {
+            return "\(name) is protected by its store's content protection, "
+                + "so StoryArc cannot open it."
+        }
         if let detected {
             return "\(name) is a \(detected) file, which StoryArc does not read. "
                 + "It reads \(Self.supported)."

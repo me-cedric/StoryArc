@@ -55,16 +55,36 @@ creep — see [`design.md`](design.md).
       sniffed when opened.
       *Still to come with the player:* turning an audiobook folder into a
       `Publication`, which needs the model to carry an audio format.
-- [ ] 2.3 Both: an audiobook with no chapter markers opens, its parts standing in for
+- [~] 2.3 Both: an audiobook with no chapter markers opens, its parts standing in for
       chapters, and nothing is reported as missing.
+      **iOS done.** `AudiobookReader.read(fileAt:)` returns one unnamed part rather than an
+      empty list, and `skippedPageCount` stays 0 so `isPartial` is false — nothing is
+      reported as missing. `AudiobookReaderTests` and `AudiobookIndexingTests` assert both,
+      against `unchaptered.m4a` read from the corpus. *The Android half is not started.*
 - [~] 2.4 Both: an `.aax`/`.aaxc` is refused by name, states the store's content
       protection as the reason, prompts for no key or account, and is distinct from
       an unsupported container. **Detection done and mutation-checked** — the brand is
       read at offset 8 and gets its own container case, so the refusal is structural
       rather than a message a caller chooses. What remains is the *wording* the user
       sees, which needs the player's own surface to say it on.
-- [ ] 2.5 Both: a truncated audiobook plays what it can and states how much it could
+      **iOS wording done.** `IndexError.contentProtected` is a case of its own carrying
+      **no payload** — there is no key to ask for, so there is nowhere a prompt could get
+      its wording from. `RefusedFile.isProtected` says "protected by its store's content
+      protection", names no format list (the format *is* supported), and suggests no way
+      around it. Mutation-checked: throwing `.unsupported` instead fails the refusal test.
+      A second test asserts the scanner's reason mentions no key, account, activation code,
+      password or sign-in. *The Android half is not started.*
+- [~] 2.5 Both: a truncated audiobook plays what it can and states how much it could
       not, in the player's controls, without interrupting playback.
+      **iOS half done, and the other half is named rather than claimed.** A *folder* with an
+      undecodable part is counted at index time — `Audiobook.unreadablePartCount` reaches
+      `Publication.skippedPageCount`, so `isPartial` is the same flag a comic missing pages
+      sets — and `PlaybackSource.unreadablePartCount` carries it to the player.
+      **A truncated single file is not detected at index time and this is measured, not
+      assumed**: `truncated.m4b` was cut with `+faststart`, so `AVURLAsset` reads its `moov`,
+      reports the full 6 s duration, all three chapters and `isPlayable == true`. Nothing
+      before playback says the media is short. Stating it needs the player to notice the item
+      failing, which is §4/§5 work and is **not done**. *The Android half is not started.*
 - [x] 2.6 Add audiobook fixtures to the shared corpus: a chaptered M4B, the same
       chapters as ID3 CHAP frames, an unchaptered single file, a folder of parts
       whose names defeat lexical sort, a folder mixing audio and images, a truncated
@@ -76,7 +96,18 @@ creep — see [`design.md`](design.md).
       "damaged beyond opening" instead of "plays what it can", and `+faststart`
       fixed it; and `protected.aax` still holds a **decodable** stream, so the
       refusal has to come from the brand rather than from a decoder choking.
-- [ ] 2.7 iOS: `AVURLAsset` + `loadChapterMetadataGroups`. Android: media3 ExoPlayer.
+- [~] 2.7 iOS: `AVURLAsset` + `loadChapterMetadataGroups`. Android: media3 ExoPlayer.
+      **iOS done** — `AudiobookReader`, asserted against all five audio fixtures read from
+      disk. **`design.md`'s API claim needs one correction and it is load-bearing.** The
+      method it names is right; the obvious argument is not. Passing the reader's preferred
+      languages — `bestMatchingPreferredLanguages: ["en"]` — returns **zero** groups for both
+      chaptered fixtures, because each declares its chapter titles under the `und` locale.
+      Measured 2026-09-01: `availableChapterLocales` answers `["und"]`, `["en"]` yields 0
+      groups and the asset's own identifiers yield 3. So the asset is asked what languages it
+      has before it is asked for its chapters. Mutation-checked: restoring `["en"]` turns a
+      three-chapter book into one unnamed part and fails two tests — which is exactly how it
+      would have shipped, since nothing in a build would have said a word.
+      *The Android half (media3 ExoPlayer) is not started.*
 - [ ] 2.8 Android: bump media3 to **1.11.0** and declare `media3-exoplayer` and
       `media3-session` explicitly in the version catalog. Readium only puts 1.10.0 on
       the classpath at runtime scope. **Nothing else in this section is blocked on
