@@ -134,6 +134,6 @@ enum OpdsJson {
         guard let kind = relations.lazy.compactMap(OpdsAcquisition.Kind.named).first
             ?? (relations.isEmpty ? OpdsAcquisition.Kind.direct : nil)
         else { return nil }
-        return OpdsAcquisition(href: href, mediaType: link.type ?? "", kind: kind)
+        return OpdsAcquisition(href: href, mediaType: link.type ?? "", kind: kind, length: link.size)
     }
 }

@@ -11,6 +11,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 /**
  * OPDS 2.0, which is a Readium Web Publication Manifest with catalogue groups.
@@ -153,7 +154,16 @@ internal object OpdsJson {
                 val kind = relations.firstNotNullOfOrNull(OpdsAcquisition.Kind::named)
                     ?: OpdsAcquisition.Kind.DIRECT.takeIf { relations.isEmpty() }
                     ?: return@mapNotNull null
-                OpdsAcquisition(href, each["type"].asString().orEmpty(), kind)
+                // The Readium Link Object's own field: the resource's size in bytes, before
+                // any encryption or compression in an archive. `asLong` yields null for a
+                // server that sends it as a string, which is a feed with no size stated
+                // rather than a feed to refuse.
+                OpdsAcquisition.of(
+                    href,
+                    each["type"].asString().orEmpty(),
+                    kind,
+                    each["size"].asLong(),
+                )
             },
         )
     }
@@ -181,9 +191,22 @@ internal object OpdsJson {
         runCatching { this?.jsonArray }.getOrNull()
     private fun JsonElement?.asString(): String? =
         runCatching { this?.jsonPrimitive?.contentOrNull }.getOrNull()
-    private fun JsonElement?.asInt(): Int? = runCatching { this?.jsonPrimitive?.intOrNull }.getOrNull()
-    private fun JsonElement?.asDouble(): Double? =
-        runCatching { this?.jsonPrimitive?.doubleOrNull }.getOrNull()
+    /**
+     * A number, and only a number.
+     *
+     * `intOrNull` and `longOrNull` parse the *content* of a primitive, so `"4096"` — a
+     * quoted string, which the standard's schema does not allow where an integer is
+     * required — reads back as 4096. iOS's `Decodable` refuses it, and a mirrored test
+     * caught the two platforms disagreeing about the same feed. `isString` is the check
+     * that makes them agree: a quoted number is a server sending the wrong type, which is a
+     * field with nothing in it rather than a catalogue to refuse.
+     */
+    private fun JsonElement?.asNumber(): JsonPrimitive? =
+        runCatching { this?.jsonPrimitive?.takeIf { !it.isString } }.getOrNull()
+
+    private fun JsonElement?.asInt(): Int? = asNumber()?.intOrNull
+    private fun JsonElement?.asLong(): Long? = asNumber()?.longOrNull
+    private fun JsonElement?.asDouble(): Double? = asNumber()?.doubleOrNull
     private fun JsonElement?.asBoolean(): Boolean? =
         runCatching { this?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() }.getOrNull()
 }

@@ -158,6 +158,126 @@ class OpdsParsingTest {
         )
     }
 
+    // What an acquisition costs
+
+    /**
+     * One entry whose acquisition links carry the sizes given, in the order given.
+     *
+     * Null writes the attribute out entirely, which is what most catalogues do, and the
+     * difference between "no size" and "a size of nothing" is the point of several of these
+     * cases. iOS's `atomSized` builds the same feed.
+     */
+    private fun atomSized(lengths: List<String?>): String {
+        val links = lengths.joinToString("\n") { length ->
+            val attribute = length?.let { " length=\"$it\"" }.orEmpty()
+            """
+            <link rel="http://opds-spec.org/acquisition" href="download.epub"
+                  type="application/epub+zip"$attribute/>
+            """.trimIndent()
+        }
+        return """
+        <feed xmlns="http://www.w3.org/2005/Atom"><title>t</title><entry><title>e</title>
+        $links</entry></feed>
+        """.trimIndent()
+    }
+
+    private fun atomLengths(lengths: List<String?>): List<Long?> =
+        OpdsDocument.parse(atomSized(lengths).toByteArray(), baseUrl = base)
+            .publications.firstOrNull()?.acquisitions?.map { it.length }.orEmpty()
+
+    @Test
+    fun anAtomLinkStatesItsLengthInBytes() {
+        assertEquals(listOf(4096L), atomLengths(listOf("4096")))
+    }
+
+    @Test
+    fun anAtomLinkWithNoLengthStatesNoSize() {
+        assertEquals(listOf(null), atomLengths(listOf(null)))
+    }
+
+    /**
+     * A size larger than `Int` is the ordinary case, not the exotic one: ADR-0008's worked
+     * example is a 400 MB archive, and a 4 GB one is a scanned omnibus.
+     */
+    @Test
+    fun aLengthBeyondFourGigabytesSurvives() {
+        assertEquals(listOf(5_368_709_120L), atomLengths(listOf("5368709120")))
+    }
+
+    /**
+     * A server filling in a field it does not know the answer to. Shown as no size rather
+     * than as a download of nothing, which is what a reader would read a 0 KB queue row as.
+     */
+    @Test
+    fun aLengthOfZeroOrLessIsNoSizeAtAll() {
+        assertEquals(listOf(null, null), atomLengths(listOf("0", "-1")))
+    }
+
+    /**
+     * Untrusted input: a length is a hint from a stranger, and a hint that is not a number is
+     * not a reason to lose the acquisition it was attached to.
+     */
+    @Test
+    fun aLengthThatIsNotANumberLosesOnlyTheLength() {
+        val feed = OpdsDocument.parse(
+            atomSized(listOf("not-a-number", "9e9", "12 345")).toByteArray(),
+            baseUrl = base,
+        )
+        val acquisitions = feed.publications.first().acquisitions
+        assertEquals(3, acquisitions.size)
+        assertTrue(acquisitions.all { it.length == null })
+        assertTrue(acquisitions.all { it.kind == OpdsAcquisition.Kind.DIRECT })
+    }
+
+    @Test
+    fun aJsonLinkStatesItsSizeInBytes() {
+        val feed = OpdsDocument.parse(json.toByteArray(), baseUrl = base)
+        assertEquals(5565L, feed.publications.first().acquisitions.first().length)
+    }
+
+    /**
+     * The two dialects spell one fact two ways, and the model has one field. A catalogue
+     * served in both -- which the mock in `scripts/opds-server.mjs` is -- must not report a
+     * different size depending on which one the app happened to ask for.
+     */
+    @Test
+    fun bothDialectsAgreeOnOneSize() {
+        val feed = OpdsDocument.parse(json.toByteArray(), baseUrl = base)
+        assertEquals(
+            atomLengths(listOf("5565")).first(),
+            feed.publications.first().acquisitions.first().length,
+        )
+    }
+
+    @Test
+    fun aJsonSizeSentAsAStringIsNoSizeRatherThanAFailedFeed() {
+        val body = """
+        { "metadata": { "title": "t" }, "publications": [
+          { "metadata": { "title": "e" },
+            "links": [{ "href": "/x.epub", "type": "application/epub+zip", "size": "4096" }] } ] }
+        """.trimIndent()
+        val feed = OpdsDocument.parse(body.toByteArray(), baseUrl = base)
+        assertEquals("e", feed.publications.first().title)
+        assertNull(feed.publications.first().acquisitions.first().length)
+    }
+
+    /**
+     * The same wrong type one field over. Found while mirroring the size tests: a quoted
+     * count failed the whole feed on iOS and parsed fine here, so a catalogue that showed on
+     * one phone showed nothing on the other.
+     */
+    @Test
+    fun aCountSentAsAStringCostsTheCountAndNotTheFeed() {
+        val body = """
+        { "metadata": { "title": "t" },
+          "navigation": [
+            { "title": "Unread", "href": "/unread", "properties": { "numberOfItems": "12" } } ] }
+        """.trimIndent()
+        val feed = OpdsDocument.parse(body.toByteArray(), baseUrl = base)
+        assertEquals(listOf("Unread"), feed.navigation.map { it.title })
+        assertNull(feed.navigation.first().count)
+    }
+
     @Test
     fun aSearchLinkWithoutATemplateIsADescriptionDocument() {
         val xml = """
@@ -238,7 +358,7 @@ class OpdsParsingTest {
             { "href": "/thumb/2.jpg", "width": 200 }
           ],
           "links": [
-            { "href": "/download/2.epub", "type": "application/epub+zip" }
+            { "href": "/download/2.epub", "type": "application/epub+zip", "size": 5565 }
           ]
         }
       ]

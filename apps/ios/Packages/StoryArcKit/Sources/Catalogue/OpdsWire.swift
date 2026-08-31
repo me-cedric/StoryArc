@@ -40,11 +40,15 @@ struct OpdsWireLink: Decodable {
     let templated: Bool?
     let properties: OpdsWireProperties?
 
+    /// The Readium Link Object's own field: the resource's size in bytes, before any
+    /// encryption or compression in an archive. OPDS 1.2 spells the same fact `length`.
+    let size: Int64?
+
     /// One string or an array of them, which the standard permits.
     let rel: [String]?
 
     private enum CodingKeys: String, CodingKey {
-        case href, type, title, templated, properties, rel
+        case href, type, title, templated, properties, size, rel
     }
 
     init(from decoder: any Decoder) throws {
@@ -53,7 +57,14 @@ struct OpdsWireLink: Decodable {
         type = try container.decodeIfPresent(String.self, forKey: .type)
         title = try container.decodeIfPresent(String.self, forKey: .title)
         templated = try container.decodeIfPresent(Bool.self, forKey: .templated)
-        properties = try container.decodeIfPresent(OpdsWireProperties.self, forKey: .properties)
+        // `try?` for the same reason as `size` below: `properties` holds hints — an item
+        // count, a price — and a server that types one of them wrongly has sent a link with
+        // no hints, not a catalogue to throw away. A `try` here failed the whole feed over a
+        // quoted `numberOfItems`, where Android read it and carried on.
+        properties = try? container.decodeIfPresent(OpdsWireProperties.self, forKey: .properties)
+        // `try?`: a server that sends a size as a string, or as something else again, has
+        // sent no size. One malformed hint is not a reason to drop a whole catalogue.
+        size = try? container.decodeIfPresent(Int64.self, forKey: .size)
         if let one = try? container.decodeIfPresent(String.self, forKey: .rel) {
             rel = [one]
         } else {

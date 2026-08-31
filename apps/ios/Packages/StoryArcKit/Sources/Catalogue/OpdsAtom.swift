@@ -157,7 +157,13 @@ enum OpdsAtom {
             let count = Self.attribute("count", in: attributes).flatMap(Int.init)
 
             if entry != nil {
-                entryLink(href: href, relation: relation, type: type)
+                // RFC 4287's own attribute, unprefixed, and advisory by its own definition.
+                entryLink(
+                    href: href,
+                    relation: relation,
+                    type: type,
+                    length: attributes["length"].flatMap(Int64.init)
+                )
                 return
             }
 
@@ -195,7 +201,7 @@ enum OpdsAtom {
             }
         }
 
-        private func entryLink(href: URL, relation: String, type: String) {
+        private func entryLink(href: URL, relation: String, type: String, length: Int64?) {
             switch relation {
             case "http://opds-spec.org/image", "http://opds-spec.org/cover":
                 entry?.cover = href
@@ -204,14 +210,14 @@ enum OpdsAtom {
             default:
                 if let kind = OpdsAcquisition.Kind.named(relation) {
                     entry?.acquisitions.append(
-                        OpdsAcquisition(href: href, mediaType: type, kind: kind)
+                        OpdsAcquisition(href: href, mediaType: type, kind: kind, length: length)
                     )
                 } else if relation.hasPrefix("http://opds-spec.org/acquisition") {
                     // A relation the standard added after this code was written. Listed as
                     // indirect rather than dropped: the spec requires an unsupported
                     // acquisition to be named, and a dropped link cannot be named.
                     entry?.acquisitions.append(
-                        OpdsAcquisition(href: href, mediaType: type, kind: .indirect)
+                        OpdsAcquisition(href: href, mediaType: type, kind: .indirect, length: length)
                     )
                 }
             }

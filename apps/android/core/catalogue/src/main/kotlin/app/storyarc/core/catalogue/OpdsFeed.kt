@@ -147,7 +147,7 @@ data class OpdsEntry(
     val acquisitions: List<OpdsAcquisition> = emptyList(),
 )
 
-/** One way to obtain a publication. */
+/** One way to obtain a publication. iOS's `OpdsAcquisition` is the same four fields. */
 data class OpdsAcquisition(
     val href: String,
     /**
@@ -157,7 +157,38 @@ data class OpdsAcquisition(
      */
     val mediaType: String,
     val kind: Kind,
+    /**
+     * How many bytes the feed says this is, when it says.
+     *
+     * `offline-downloads` requires a queued download to show "its size", and a collection to
+     * state "the item count and total size" *before* anything is fetched -- which is only
+     * possible from a number the catalogue sent. OPDS 1.2 spells it as the Atom link's
+     * `length` attribute and OPDS 2.0 as the Readium Link Object's `size`; both mean the same
+     * octets, so they arrive here as one field.
+     *
+     * **Advisory, and never used to allocate.** RFC 4287 calls `length` a hint, and a
+     * catalogue is untrusted input like any other file: the authority on how many bytes a
+     * publication has is the transfer itself. ADR-0008's rule -- no length field out of a
+     * file decides a buffer -- applies to a feed exactly as it applies to a ZIP header. This
+     * number is for telling a reader what they are about to spend, and for nothing else.
+     *
+     * Built through [of] rather than by hand, so a zero never reaches a reader as a 0 KB
+     * download.
+     */
+    val length: Long? = null,
 ) {
+    companion object {
+        /**
+         * An acquisition, with a stated size a server may have made up.
+         *
+         * A zero or a negative is a server filling in a field it does not know the answer to.
+         * Kept as "no size stated" rather than shown as an empty download. iOS does the same
+         * in `OpdsAcquisition.init`.
+         */
+        fun of(href: String, mediaType: String, kind: Kind, length: Long?): OpdsAcquisition =
+            OpdsAcquisition(href, mediaType, kind, length?.takeIf { it > 0 })
+    }
+
     /**
      * What obtaining it involves.
      *

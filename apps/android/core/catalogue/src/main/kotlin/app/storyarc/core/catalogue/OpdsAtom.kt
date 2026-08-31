@@ -163,7 +163,8 @@ internal object OpdsAtom {
                         null
                     }
                 if (kind != null) {
-                    entry.acquisitions += OpdsAcquisition(link.href, link.type, kind)
+                    entry.acquisitions +=
+                        OpdsAcquisition.of(link.href, link.type, kind, link.length)
                 }
             }
         }
@@ -179,6 +180,8 @@ internal object OpdsAtom {
         val count: Int?,
         val facetGroup: String?,
         val isActiveFacet: Boolean,
+        /** RFC 4287's own attribute, unprefixed, and advisory by its own definition. */
+        val length: Long?,
     ) {
         /**
          * Whether this points at another feed a reader can enter.
@@ -204,6 +207,7 @@ internal object OpdsAtom {
                     count = attribute(parser, "count")?.toIntOrNull(),
                     facetGroup = attribute(parser, "facetGroup"),
                     isActiveFacet = attribute(parser, "activeFacet") == "true",
+                    length = attribute(parser, "length")?.toLongOrNull(),
                 )
             }
 
