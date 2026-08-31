@@ -50,6 +50,24 @@ tasks.withType<Test>().configureEach {
     )
         .withPropertyName("smbTransferWiringSource")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // `LibrarySearchBarTest` reads this one for the same reason: which material3 API is called
+    // with which state partner is not decidable from a JVM unit test that cannot compose a
+    // `@Composable`, and two of the things it pins are *absences* — no clear affordance and no
+    // back-icon API exist to call, so both are hand-written and nothing else would notice them
+    // going.
+    // Two files: the bar, and the screen that owns the `Scaffold` it is the top bar of. The
+    // scroll behaviour has to be created by the screen — the scaffold's content is what reports
+    // the scroll to it — so the assertion spans both.
+    inputs.files(
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/library/LibrarySearchBar.kt",
+        ),
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/library/SearchScreen.kt",
+        ),
+    )
+        .withPropertyName("librarySearchBarWiringSource")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {

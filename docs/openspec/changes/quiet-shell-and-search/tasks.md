@@ -44,24 +44,24 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 - [x] 2.3 iOS: `.searchScopes` for the everything/on-device narrowing, persisted.
 - [x] 2.4 iOS: `SearchScreenTests` — nothing to suggest gives one sentence and the
       library's own add-a-source action, not empty headings.
-- [ ] 2.5 Android: `LibrarySearchBarTest` — the contained branch uses
+- [x] 2.5 Android: `LibrarySearchBarTest` — the contained branch uses
       `rememberContainedSearchBarState` and the docked branch
       `rememberSearchBarWithGapState`. Each expanded bar names its required state
       partner in its own KDoc and only those carry the content-fade specs.
-- [ ] 2.6 Android: hoist the state per branch; thread
+- [x] 2.6 Android: hoist the state per branch; thread
       `SearchBarDefaults.containedColors(state)` through `appBarWithSearchColors`
       into both bar and input field.
-- [ ] 2.7 Android: move `AppBarWithSearch` into `Scaffold(topBar =)` and pass
+- [x] 2.7 Android: move `AppBarWithSearch` into `Scaffold(topBar =)` and pass
       `SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()`.
-- [ ] 2.8 Android: hand-write the leading-icon swap — magnifier collapsed, back
+- [x] 2.8 Android: hand-write the leading-icon swap — magnifier collapsed, back
       arrow calling `animateToCollapsed()` expanded. Material requires the back icon
       to release focus and no API supplies it.
-- [ ] 2.9 Android: hand-write the clear-the-query trailing icon. `SearchBarDefaults`
+- [x] 2.9 Android: hand-write the clear-the-query trailing icon. `SearchBarDefaults`
       has no clear affordance of any kind.
-- [ ] 2.10 Android: narrowing as `FilterChip`s, **not** a segmented control — that
+- [x] 2.10 Android: narrowing as `FilterChip`s, **not** a segmented control — that
       component is retired in Expressive and its replacement is specified for two to
       five fixed views, which our source set is not.
-- [ ] 2.11 Android: result rows as `ListItem(content =, leadingContent =)` with a
+- [x] 2.11 Android: result rows as `ListItem(content =, leadingContent =)` with a
       transparent container; group by gap and `SegmentedListItem`, not dividers.
 - [ ] 2.12 Both: recent searches persist and clear. Assert the clear empties them and
       that reaching search does not itself record a query.

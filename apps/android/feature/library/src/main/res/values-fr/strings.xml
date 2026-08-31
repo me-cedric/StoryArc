@@ -29,6 +29,8 @@
     <string name="library_search">Rechercher</string>
     <string name="library_search_recent">Recherches récentes</string>
     <string name="library_search_recent_clear">Effacer les recherches récentes</string>
+    <string name="library_search_back">Fermer la recherche</string>
+    <string name="library_search_clear">Effacer la recherche</string>
     <string name="library_sort">Trier</string>
     <string name="library_sort_ascending">Croissant</string>
     <string name="library_sort_descending">Décroissant</string>

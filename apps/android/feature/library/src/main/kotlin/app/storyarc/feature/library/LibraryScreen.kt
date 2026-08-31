@@ -445,18 +445,19 @@ fun LibraryScreen(
             // nothing, and an indicator that comes down over the controls hides the two
             // chips saying what the shelf underneath is narrowed to.
             if (viewModel != null && publications.isNotEmpty()) {
-                // One bar, above the branch rather than inside it. The branch below changes
-                // as the reader types — a term that matches nothing swaps the shelf for the
-                // narrowed-to-nothing state — and a bar built inside it was rebuilt with the
-                // branch: it collapsed itself, and every remote answer that had arrived went
-                // with it.
-                LibrarySearchEntry(
-                    viewModel = viewModel,
-                    query = query,
-                    recents = recentSearches,
-                    onOpenPage = onOpenPage,
-                    onFollowToSource = onFollowToSource,
-                )
+                // **The search bar is gone from here, and that is the change.** It used to sit
+                // above these controls, and the comment that held its place explained how to
+                // keep it from collapsing itself — "one bar, above the branch rather than
+                // inside it", because a bar rebuilt with the branch threw away every remote
+                // answer that had arrived. The advice was right and the placement was the
+                // problem: a field belonging to this screen made searching something a reader
+                // does *to* the shelf, and `navigation-shell` now says search "SHALL be a place
+                // a reader arrives at, and no control SHALL change shape or position to become
+                // it". The bar is `SearchScreen`'s, one tap away in the navigation bar from
+                // here and from Home.
+                //
+                // What stays is the narrowing below, which is a different job: these chips
+                // filter the shelf a reader is looking at. Search spans every source.
                 LibraryControls(
                     query = query,
                     registry = registry,

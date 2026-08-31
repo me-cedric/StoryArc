@@ -45,6 +45,17 @@ over `material3.aar` at 1.5.0-alpha26, so the capsule there is not discouraged b
 inexpressible. [ADR-0001](../../../decisions/0001-independent-native-cores.md) working as
 intended.
 
+## The Android search bar, section 2
+
+| Shot | What is in it |
+| --- | --- |
+| `android-search-expanded` | The expanded bar with nothing typed. The **back arrow** has replaced the magnifier — hand-written, because Material requires that "the back icon releases focus" and no API supplies it. The scope is **filter chips**, not a segmented control: Material retired that component in the Expressive update and its replacement is specified for a fixed set of two to five views, which our sources are not. And the bar **covers the navigation bar** with no code asked to hide it, which is the whole reason none was written. |
+| `android-search-typed` | The same bar with a term in it. The **clear icon** has appeared — also hand-written, because `SearchBarDefaults` publishes no clear affordance of any kind — and it appears only now, because a permanent one is a control that does nothing most of the time. Underneath: *Still looking…* while the fan-out runs, and *Reading Room didn't answer / Try again* in grey rather than red, per `sources`. |
+
+Both taken by hand with `adb input tap` and `adb exec-out screencap`, because
+`pnpm capture:android`'s route table has no entry that opens the search bar. Adding one is
+worth doing and is not done here.
+
 ## What these do not prove
 
 The bar at `ShortNavigationBarMedium` — horizontal items, centred arrangement — is not in

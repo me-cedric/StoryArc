@@ -9,21 +9,32 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AppBarWithSearch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExpandedDockedSearchBarWithGap
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.SearchBarScrollBehavior
+import androidx.compose.material3.SearchBarValue
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberSearchBarState
+import androidx.compose.material3.rememberContainedSearchBarState
+import androidx.compose.material3.rememberSearchBarWithGapState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,6 +45,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -61,6 +73,7 @@ import kotlinx.coroutines.launch
  * `LibraryScreen` from gaining the fan-out, the stores and the routing on top of everything
  * else it already carries.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LibrarySearchEntry(
     viewModel: LibraryViewModel,
@@ -77,6 +90,11 @@ internal fun LibrarySearchEntry(
     onOpenPage: (Publication) -> Unit,
     /** How the app layer reaches a library that is not on this device, carrying the term. */
     onFollowToSource: (Source, String) -> Unit,
+    /** What the reader narrowed the question to. Passed straight through to the bar. */
+    searchScope: LibraryAvailability = LibraryAvailability.EVERYTHING,
+    onSearchScopeChange: (LibraryAvailability) -> Unit = {},
+    /** The scaffold's own scroll behaviour. See [LibrarySearchBar]. */
+    scrollBehavior: SearchBarScrollBehavior? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -126,28 +144,43 @@ internal fun LibrarySearchEntry(
             }
         },
         onRetry = { id -> search.retry(id, registry.sources, credentials, pins) },
+        searchScope = searchScope,
+        onSearchScopeChange = onSearchScopeChange,
+        scrollBehavior = scrollBehavior,
         modifier = modifier,
     )
 }
 
 /**
- * The one way into search on Android, and what it finds.
+ * The search bar, and what it finds.
  *
- * **The divergence from iOS is deliberate and the design direction states it.** iOS gives
- * search a `Tab(role: .search)`; Material ranks a search *bar* above a search *destination*
- * and permits the destination only for an app whose primary action is searching. StoryArc's
- * is browsing. So the navigation graph has three destinations and no fourth, and search is a
- * bar that takes over the screen when it is tapped: [AppBarWithSearch] collapsed, then
- * [ExpandedFullScreenContainedSearchBar] on a phone and [ExpandedDockedSearchBarWithGap]
- * where there is room. The design direction names the collapsed control `TopSearchBar`,
- * which is what it was called until material3 1.5.0-alpha26 renamed it and deprecated the
- * old spelling; same control, same slot.
+ * [AppBarWithSearch] collapsed, then [ExpandedFullScreenContainedSearchBar] on a phone and
+ * [ExpandedDockedSearchBarWithGap] where there is room. The contained style is what
+ * `MaterialExpressiveTheme` mandates — Material marks the divided style *"Not recommended.
+ * Use contained"*. The design direction names the collapsed control `TopSearchBar`, which is
+ * what it was called until material3 1.5.0-alpha26 renamed it; same control, same slot.
  *
- * Both platforms are being asked for the same behaviour — search is one tap away and takes
- * over the screen — and each says it in its own words.
+ * **This comment used to argue that search was a bar rather than a destination**: "Material
+ * ranks a search bar above a search destination and permits the destination only for an app
+ * whose primary action is searching. StoryArc's is browsing. So the navigation graph has three
+ * destinations and no fourth." Material's sentence is quoted correctly and still says that —
+ * it is permission conditioned on a judgement — and the judgement changed, for a reason about
+ * this app: publications arrive from a device, a folder, an OPDS catalogue, a Kavita server
+ * and an SMB share, and no shelf shows all of them at once in a way a reader can scan. Search
+ * is the only surface that spans them. See [SearchScreen] and `AppDestination.SEARCH`.
  *
- * What is *inside* the expanded bar is the part that matters, and it is the same on both: one
- * list, headed by what the match is, each row naming the library that supplied it.
+ * The bar itself did not change shape when search became a place; it moved from the library's
+ * own top to the search screen's, and gained the state partners, the colours, the scroll
+ * behaviour, the two hand-written icons and the chips below.
+ *
+ * **Two things here are hand-written because there is nothing to call.** Material requires
+ * that "the back icon releases focus" and no API supplies it, and Material asks for "an
+ * optional clear icon" while `SearchBarDefaults` publishes no clear affordance of any kind.
+ * Both verified with `javap` over `material3.aar` at 1.5.0-alpha26.
+ *
+ * What is *inside* the expanded bar is the part that matters, and it is the same on both
+ * platforms: one list, headed by what the match is, each row naming the library that supplied
+ * it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,12 +193,46 @@ internal fun LibrarySearchBar(
     onOpenHeld: (String) -> Unit,
     onFollow: (SearchRoute) -> Unit,
     onRetry: (String) -> Unit,
+    /**
+     * What the reader narrowed the question to.
+     *
+     * [LibraryAvailability], not a `SearchScope` of its own: it already means exactly this,
+     * already names both states for a control, and `narrowedTo` already answers it over a list
+     * of publications. Two names for one idea would drift on the day one of them gained a
+     * third case. iOS reuses its own equivalent for the same reason.
+     */
+    searchScope: LibraryAvailability = LibraryAvailability.EVERYTHING,
+    onSearchScopeChange: (LibraryAvailability) -> Unit = {},
+    /**
+     * Material's scroll-away-and-return behaviour, from the `Scaffold` that owns the top bar.
+     *
+     * Passed in rather than remembered here, because it has to be the **same** behaviour the
+     * scaffold hands its content connection — a second one made in this function would track a
+     * scroll nothing reports to it, and the bar would never move.
+     */
+    scrollBehavior: SearchBarScrollBehavior? = null,
     modifier: Modifier = Modifier,
 ) {
-    val state = rememberSearchBarState()
+    val windowClass = rememberWindowClass()
+    val isDocked = windowClass.showsSidebar
+
+    // **One state per branch, and one shared state cannot be right for both.** Each expanded
+    // bar names its required partner in its own KDoc, and `javap` over `material3.aar` shows
+    // why: `rememberContainedSearchBarState` and `rememberSearchBarWithGapState` each take
+    // their own list of animation specs, and only those carry the content-fade specs their own
+    // bar reads. The generic `rememberSearchBarState` this used to call was handed to both, so
+    // whichever branch a window landed on animated against specs written for the other.
+    //
+    // Both are remembered, not one behind an `if`: a branch is a composition-structure change,
+    // and a state created inside one is lost the moment a fold or a rotation moves the window
+    // across the boundary — mid-search, with the bar open.
+    val containedState = rememberContainedSearchBarState()
+    val dockedState = rememberSearchBarWithGapState()
+    val state = if (isDocked) dockedState else containedState
+
     val field = rememberTextFieldState(query)
     val scope = rememberCoroutineScope()
-    val windowClass = rememberWindowClass()
+    val isExpanded = state.currentValue == SearchBarValue.Expanded
 
     // One direction only, and deliberately: the field is the reader's, and writing the model
     // back into it mid-word is how a search box eats a keystroke. `drop(1)` skips the value
@@ -174,17 +241,63 @@ internal fun LibrarySearchBar(
         snapshotFlow { field.text.toString() }.drop(1).collect(onQueryChange)
     }
 
+    // The contained style's own colours, which interpolate **as the bar expands** — that is
+    // why the factory takes the state. Without them the bar is drawn with baseline colours and
+    // does not move, which reads as a missing animation rather than as wrong colour.
+    val searchColors = SearchBarDefaults.containedColors(state)
+    val barColors = SearchBarDefaults.appBarWithSearchColors(searchColors)
+
     val inputField: @Composable () -> Unit = {
         SearchBarDefaults.InputField(
             textFieldState = field,
             searchBarState = state,
             onSearch = { scope.launch { state.animateToCollapsed() } },
             placeholder = { Text(stringResource(R.string.library_search)) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            // **Hand-written, because no API supplies it.** Material requires that "the back
+            // icon releases focus" when the bar is expanded, and `InputField` takes
+            // `leadingIcon` as a plain slot with no opinion about what goes in it. Collapsing
+            // the bar is what releases the focus; the magnifier is not a control at all when
+            // the bar is shut, so it is an `Icon` rather than a dead button.
+            leadingIcon = {
+                if (isExpanded) {
+                    IconButton(onClick = { scope.launch { state.animateToCollapsed() } }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.library_search_back),
+                        )
+                    }
+                } else {
+                    Icon(Icons.Filled.Search, contentDescription = null)
+                }
+            },
+            // Material asks for "an optional clear icon", and `SearchBarDefaults` publishes no
+            // clear affordance of any kind — verified with `javap` over the whole class. Drawn
+            // only when there is something to clear: a permanent one is a control that does
+            // nothing most of the time, and reads as broken the first time it is tried.
+            trailingIcon = {
+                if (isExpanded && field.text.isNotEmpty()) {
+                    IconButton(onClick = { field.clearText() }) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = stringResource(R.string.library_search_clear),
+                        )
+                    }
+                }
+            },
+            colors = searchColors.inputFieldColors,
         )
     }
 
-    AppBarWithSearch(state = state, inputField = inputField, modifier = modifier)
+    AppBarWithSearch(
+        state = state,
+        inputField = inputField,
+        modifier = modifier,
+        colors = barColors,
+        // Material's own scroll-away-and-return, which does not exist unless it is passed:
+        // the parameter defaults to none, so a bar that was never handed one simply never
+        // moves.
+        scrollBehavior = scrollBehavior,
+    )
 
     val results: @Composable () -> Unit = {
         SearchAnswerList(
@@ -197,15 +310,27 @@ internal fun LibrarySearchBar(
             onOpenHeld = onOpenHeld,
             onFollow = onFollow,
             onRetry = onRetry,
+            scope = searchScope,
+            onScopeChange = onSearchScopeChange,
         )
     }
 
-    if (windowClass.showsSidebar) {
-        ExpandedDockedSearchBarWithGap(state = state, inputField = inputField) { results() }
+    // **The expanded bar covers the navigation bar by construction**, which is why no hide or
+    // show logic is written for it. Material's own navigation-bar page describes exactly this:
+    // the search flow "temporarily covering the bottom navigation bar until the search flow is
+    // completed". Writing it by hand would duplicate the component and fight predictive back.
+    if (isDocked) {
+        ExpandedDockedSearchBarWithGap(
+            state = dockedState,
+            inputField = inputField,
+            colors = searchColors,
+        ) { results() }
     } else {
-        ExpandedFullScreenContainedSearchBar(state = state, inputField = inputField) {
-            results()
-        }
+        ExpandedFullScreenContainedSearchBar(
+            state = containedState,
+            inputField = inputField,
+            colors = searchColors,
+        ) { results() }
     }
 }
 
@@ -229,10 +354,16 @@ private fun SearchAnswerList(
     onOpenHeld: (String) -> Unit,
     onFollow: (SearchRoute) -> Unit,
     onRetry: (String) -> Unit,
+    scope: LibraryAvailability,
+    onScopeChange: (LibraryAvailability) -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
 
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
+        // `library-browsing`: the screen "states what it is searching" and lets a reader narrow
+        // it. First, above everything, because it is a fact about every row below it.
+        item(key = "scope") { ScopeChips(scope, onScopeChange) }
+
         // `library-browsing`: "when a reader opens search, recent queries are offered, and
         // can be cleared". Offered instead of results rather than above them — once there is
         // something to read, a list of what was asked before is in the way.
@@ -273,7 +404,14 @@ private fun SearchAnswerList(
                 Heading(stringResource(group.kind.headingRes))
             }
             items(group.rows, key = { it.id }) { found ->
-                ResultRow(found, listing.namesOrigin, onOpenHeld, onFollow)
+                ResultRow(
+                    found = found,
+                    namesOrigin = listing.namesOrigin,
+                    onOpenHeld = onOpenHeld,
+                    onFollow = onFollow,
+                    index = group.rows.indexOf(found),
+                    count = group.rows.size,
+                )
             }
         }
 
@@ -320,11 +458,62 @@ private fun SearchAnswerList(
 }
 
 /**
+ * What the search is about to search, and the one narrowing a reader on a train wants.
+ *
+ * **Filter chips, not a segmented control.** Material retired the segmented button in the
+ * Expressive update, and its named replacement is specified for *"two to five toggleable
+ * views"* — a fixed, known set. Our sources are an open, growing one: a device, folders, OPDS
+ * catalogues, Kavita servers and SMB shares, however many of each a reader adds. Material's own
+ * search page lists *"filter chips to narrow down results"*.
+ *
+ * iOS diverges and uses its segmented scope bar, which is current and idiomatic there. That
+ * divergence is deliberate and the change's `design.md` carries it.
+ *
+ * Two chips rather than one toggle, so the current state is *named* rather than merely set —
+ * `library-browsing` asks the screen to state what it is searching, not only to let it be
+ * changed.
+ */
+@Composable
+private fun ScopeChips(scope: LibraryAvailability, onScopeChange: (LibraryAvailability) -> Unit) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+        modifier = Modifier.padding(StoryArcSpace.gutter, StoryArcSpace.sm),
+    ) {
+        LibraryAvailability.entries.forEach { option ->
+            FilterChip(
+                selected = scope == option,
+                onClick = { onScopeChange(option) },
+                label = { Text(stringResource(option.searchScopeLabel)) },
+            )
+        }
+    }
+}
+
+/**
+ * What each scope is called on the search screen.
+ *
+ * The shelf's own two strings, already translated into all four languages — two spellings of
+ * "On this device" in one app is how a vocabulary drifts, and `originLabel` a few lines down
+ * makes the same point about the same words.
+ */
+private val LibraryAvailability.searchScopeLabel: Int
+    get() = when (this) {
+        LibraryAvailability.EVERYTHING -> R.string.library_scope_all
+        LibraryAvailability.ON_THIS_DEVICE -> R.string.source_on_this_device
+    }
+
+/**
  * One result.
  *
  * Three shapes, and the difference between them is only what happens on a tap: a book the
  * device holds opens; something a server has is followed to; a person or a tag is a name the
  * server matched and goes nowhere, so it is not drawn as though it might.
+ *
+ * **A [ListItem], and a [SegmentedListItem] where the group has more than one row.** Material:
+ * *"use segmented gaps and filled list items to define a list group"* — dividers are for
+ * uncontained lists, and this list sits on the expanded bar's own surface. The container is
+ * transparent for the same reason: a filled container here would paint a second surface over
+ * the one the bar already draws.
  */
 @Composable
 private fun ResultRow(
@@ -332,6 +521,9 @@ private fun ResultRow(
     namesOrigin: Boolean,
     onOpenHeld: (String) -> Unit,
     onFollow: (SearchRoute) -> Unit,
+    /** Where this row sits in its heading's run, and how long that run is. */
+    index: Int,
+    count: Int,
 ) {
     val palette = LocalStoryArcPalette.current
     val result = found.result
@@ -345,34 +537,75 @@ private fun ResultRow(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(tap)
-            .padding(StoryArcSpace.gutter, StoryArcSpace.sm),
-    ) {
+    val headline: @Composable () -> Unit = {
         Text(
             text = result.title,
             style = MaterialTheme.typography.bodyLarge,
             color = if (result.isOpenable) palette.textPrimary else palette.textSecondary,
         )
-        result.detail?.takeIf { it.isNotEmpty() }?.let { detail ->
+    }
+    val supporting: (@Composable () -> Unit)? = supportingLines(found, namesOrigin, palette)
+    val colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+
+    if (count > 1) {
+        // `ListItemDefaults.segmentedShapes(index, count)` is what rounds the first and last
+        // row of a run and squares the ones between, which is how Material draws a group
+        // without a rule through it.
+        SegmentedListItem(
+            shapes = ListItemDefaults.segmentedShapes(index, count),
+            supportingContent = supporting,
+            colors = colors,
+            modifier = Modifier.fillMaxWidth().then(tap),
+            content = headline,
+        )
+    } else {
+        // A run of one is not a group, and a segmented shape over a single row draws a
+        // container around nothing.
+        ListItem(
+            supportingContent = supporting,
+            colors = colors,
+            modifier = Modifier.fillMaxWidth().then(tap),
+            content = headline,
+        )
+    }
+}
+
+/**
+ * The two lines under a result's title, or neither.
+ *
+ * Its own function so [ResultRow] can hand the same content to both list-item shapes without
+ * writing it twice — which is how one of the two would come to be missing a line.
+ */
+@Composable
+private fun supportingLines(
+    found: FoundRow,
+    namesOrigin: Boolean,
+    palette: app.storyarc.core.designsystem.theme.StoryArcPalette,
+): (@Composable () -> Unit)? {
+    val detail = found.result.detail?.takeIf { it.isNotEmpty() }
+    val origin = if (namesOrigin) originLabel(found.origin) else null
+    if (detail == null && origin == null) return null
+
+    return {
+        Column {
             // The series or the author — what tells a reader which "Volume 1" this is.
-            Text(
-                text = detail,
-                style = MaterialTheme.typography.bodySmall,
-                color = palette.textSecondary,
-            )
-        }
-        if (namesOrigin) {
+            detail?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textSecondary,
+                )
+            }
             // The label the scenario asks for, under the row rather than beside it: a
             // library's name is as long as the reader made it, and a trailing label would
             // take its width from the title at the largest text size.
-            Text(
-                text = originLabel(found.origin),
-                style = MaterialTheme.typography.bodySmall,
-                color = palette.textTertiary,
-            )
+            origin?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textTertiary,
+                )
+            }
         }
     }
 }
