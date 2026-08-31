@@ -1,0 +1,90 @@
+package app.storyarc.core.designsystem.theme
+
+import android.os.Build
+
+/**
+ * Natural's paper grain: when it is drawn, and how strong it is.
+ *
+ * The **decision** lives here; the shader that draws it lives with the reading surface
+ * that uses it, beside `PageCurl.kt` in the comic reader for the same reason — a reader's
+ * own shader belongs to the reader, and the curl already set that precedent.
+ *
+ * What is here instead is everything a unit test can hold: the rule about when grain
+ * appears at all, and the three numbers that decide what it looks like. iOS's
+ * `PaperGrain` carries the identical rule and the identical numbers.
+ */
+object PaperGrain {
+
+    // MARK: - When
+
+    /**
+     * Whether grain may be drawn over a reading surface.
+     *
+     * Three conditions, and two of them are refusals:
+     *
+     *  - **Natural is on.** Grain is Natural's texture and nothing else's. `design.md`:
+     *    the accents reach the whole app, "actual paper grain appears only where text is
+     *    read".
+     *  - **Increase Contrast is off.** `settings-and-about` requires this by name, and the
+     *    reason is not a preference: grain is a per-pixel modulation of the page, so it
+     *    lowers the effective contrast of every letterform drawn on it. A reader who asked
+     *    for more contrast is not asking for a texture that removes some.
+     *  - **The device can run the shader.** `RuntimeShader` arrived in API 33 and this
+     *    module's floor is 31, so two supported versions cannot draw it. `design.md`:
+     *    below the floor "Natural keeps its palette and accents and drops the texture".
+     *
+     * Reduce Transparency, which iOS also checks, has no Android counterpart: the platform
+     * ships contrast stops and no transparency switch. `DetailAccent` already records the
+     * same absence for the same requirement, so contrast is the whole answer here.
+     *
+     * @param sdk the running API level. A parameter rather than a read of
+     *   `Build.VERSION.SDK_INT`, because the version comparison is the one part of this a
+     *   unit test cannot reach otherwise — the same trade task 0.4b made for the curl.
+     */
+    fun isDrawn(
+        natural: Boolean,
+        isHighContrast: Boolean,
+        sdk: Int = Build.VERSION.SDK_INT,
+    ): Boolean = natural && !isHighContrast && sdk >= Build.VERSION_CODES.TIRAMISU
+
+    // MARK: - How much
+
+    // The three numbers, in one place, because they are the whole of what a screen has to
+    // judge and none of them can be judged from here. Each says what it does and how
+    // confident the value is.
+
+    /**
+     * The peak alpha of a single speck.
+     *
+     * **Unverified against a real display.** Chosen so a speck is at the edge of visible
+     * on a page at reading distance: high enough to read as stock rather than as a clean
+     * fill, low enough that body text at the smallest step does not sit in it. This is the
+     * number most likely to be wrong, and the one to move first.
+     */
+    const val INTENSITY: Float = 0.045f
+
+    /**
+     * How many **device pixels** one noise cell covers.
+     *
+     * Device pixels rather than dp, so grain is the same physical size on a 2× phone and a
+     * 3.5× one — a cell measured in dp would be three and a half pixels across on a
+     * flagship and two on a budget device, which is two different papers. Android's shader
+     * is handed pixel coordinates, so this figure goes in unchanged; iOS divides by its
+     * display scale first.
+     *
+     * **Unverified.** Below about 1 the noise starts to alias against the panel grid and
+     * shimmers when the page scrolls; above about 2.5 it stops being fibre and becomes
+     * visible dots.
+     */
+    const val CELL_PIXELS: Float = 1.5f
+
+    /**
+     * How much of the noise the second, finer octave contributes.
+     *
+     * One octave reads as television static because every speck is the same size. A second
+     * at a non-integer multiple breaks the regularity into something closer to fibre.
+     * **Unverified**, but the least risky of the three: it changes the character of the
+     * grain rather than how much of it there is.
+     */
+    const val FINE_OCTAVE: Float = 0.35f
+}

@@ -91,6 +91,13 @@ internal fun EpubChrome(
         return
     }
 
+    // Over the page and under the bars, which is where "reading surfaces only" puts
+    // Natural's grain: this ComposeView is a sibling above the navigator's own view, so
+    // anything emitted here lands on the page. Outside the visibility below on purpose —
+    // the texture belongs to the paper, and paper does not come and go with a tap. Draws
+    // nothing unless Natural is on, contrast is standard, and the device is API 33 or later.
+    PaperGrainOverlay()
+
     AnimatedVisibility(visible = isVisible, enter = fadeIn(), exit = fadeOut()) {
         Column(
             modifier = modifier.fillMaxSize().safeDrawingPadding(),

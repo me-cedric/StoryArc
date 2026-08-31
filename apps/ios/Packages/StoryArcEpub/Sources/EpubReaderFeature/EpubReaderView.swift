@@ -78,6 +78,11 @@ public struct EpubReaderView: View {
                 ProgressView()
             }
 
+            // Between the page and the chrome, which is where "reading surfaces only"
+            // puts it: over the words, under the toolbar. Draws nothing unless Natural
+            // is on and neither accessibility setting refuses it.
+            PaperGrainOverlay()
+
             // Grouped, because `native-experience` asks for overlapping glass
             // shapes to "morph as one". Only the container produces that — a
             // surface cannot know about its neighbours from the inside.
