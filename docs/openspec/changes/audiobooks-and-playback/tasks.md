@@ -180,6 +180,13 @@ creep — see [`design.md`](design.md).
       **Not yet proved:** that a real `chaptered.m4b` decodes to those three marks. That
       needs an instrumented test driving an `ExoPlayer` over the corpus, and it is the
       honest gap in this task.
+      **Now proved on a device, though not yet by a test.** A twenty-minute M4B with three
+      `chpl` chapters was built with ffmpeg, pushed to `storyarc-j6`, and opened: the player
+      lists *The Shiants* 5:00, *Bird Island* 7:00 and *The Fank* 8:00, which are the marks
+      the container carries. So the 1.11.0 bump does what the class-list check said it
+      would. **What is still missing is an instrumented test** that drives an `ExoPlayer`
+      over the corpus's own `chaptered.m4b` and asserts the manifest's three — a
+      screenshot is evidence and not a gate.
 - [ ] 2.8 Android: bump media3 to **1.11.0** and declare `media3-exoplayer` and
       `media3-session` explicitly in the version catalog. Readium only puts 1.10.0 on
       the classpath at runtime scope. **Nothing else in this section is blocked on
@@ -298,6 +305,15 @@ creep — see [`design.md`](design.md).
       both. **Photographed on a device**, and the bar names *Sea Room* and the chapter
       *Two* — read from the M4B's own chapter atom, which is also the end-to-end proof of
       the locale correction in 2.7. *The Android half is not started.*
+      **Android half done.** Six cases in `:core:designsystem`, Robolectric with
+      `GraphicsMode.NATIVE` for the reason `WhatsNewLayoutTest` sets out: every clause after
+      the first is a **layout** claim, and legacy graphics measure a glyph at about a pixel
+      wide, so a suite run that way passes against a bar that clips.
+      The whole shell is composed rather than the bar alone, because every claim is about
+      the *relationship* between the two and a bar composed on its own has none.
+      Mutation-checked twice: putting the bar in a `Box` over the navigation control fails
+      the displace/cover/resize case, and pinning the bar to 64 dp with one-line text fails
+      the largest-text case. iOS half outstanding.
 - [ ] 4.2 iOS: generalise `ReadAloudDock` in `tabViewBottomAccessory` to the shared
       session, so a narrated book and a spoken one produce the same bar.
       **Not done, and blocked on a measured fact rather than on effort.** `PlayerDock` exists
@@ -322,7 +338,23 @@ creep — see [`design.md`](design.md).
       would sit behind the navigation bar), **not** `HorizontalFloatingToolbar` and
       **not** `BottomAppBar` — both compile without complaint and both are ruled out
       by guidance. `design.md` records why, because the build will not.
+      **Done, in the `navigationSuite` slot rather than the `content` slot** — and that is
+      a correction to the plan, not a deviation from it. This app uses
+      `NavigationSuiteScaffoldLayout`, whose `content` slot is *behind* the control; a bar
+      there would cover the content's last row. Put in a `Column` above the control inside
+      the navigation slot, the layout hands its measured height back to the content, which
+      is what makes "does not cover" and "content still scrolls to its end" true together.
+      The colour is asked of `ShortNavigationBarDefaults.containerColor` rather than named,
+      so the two stay one assembly through a dynamic-colour change.
+      **A gap, recorded rather than dressed up:** on a rail the slot is a column *beside*
+      the content, so a tablet's bar sits over the rail rather than at the foot of the
+      content pane. Moving it there is a change to the layout's own arrangement.
 - [ ] 4.4 Android: flat `LinearProgressIndicator` for the progress line.
+      **Done**, in the compact bar and in the full player. Flat, not wavy: Material says a
+      linear indicator "shouldn't be used in any elements smaller than 40dp" and cautions
+      the wavy variant "may not be as visible" at small sizes. Null progress draws **no**
+      line rather than an empty one, which is `audio-playback`'s "position without a total
+      rather than inventing one" carried into a pixel.
 - [~] 4.5 Both: the full player — cover, publication, chapter, position, duration,
       play/pause, skip both ways, scrub, chapter list, speed, sleep timer. Assert
       opening it never restarts, reloads or repositions the audio.
@@ -335,6 +367,21 @@ creep — see [`design.md`](design.md).
       playing. **Photographed on a device** — cover, publication, chapter, a scrub control
       reading the chapter's own `0:00 / 0:02`, skip glyphs carrying 15 and 30, and the
       chapter list, speed and sleep timer.
+      **Android: everything but the cover and the sleep timer.** `PlayerScreen` takes a
+      `NowPlaying` and **not** a publication, which is how "opening it never restarts"
+      is made structural rather than tested: a screen that took a publication would have
+      to start something to draw anything.
+      Photographed playing on `storyarc-j6`, light and dark, at the default and largest
+      text sizes — `docs/captures/audiobooks/`.
+      **Two things the screenshots caught that no unit test would have.** The first draft
+      was a bare `Column` and the title sat under the status-bar clock; it is a `Scaffold`
+      with a top bar now, like every other screen a reader comes back from. And the skip
+      controls could not state their intervals with a glyph: Material ships `Replay5`,
+      `Replay10` and `Replay30` and **no `Replay15`**, so a numbered icon would have drawn
+      "10" on a control that moves fifteen. The number is text beside the arrow instead,
+      which states the right interval and grows with the reader's text size.
+      **Not done: the cover** (nothing extracts embedded artwork yet) **and the sleep
+      timer** (5.3). iOS half outstanding.
 - [~] 4.6 Both: a publication with no chapter markers lists its parts in playing
       order rather than showing an empty list.
       **iOS done, and there is no branch for it.** A source with no chapter markers reports
@@ -364,12 +411,30 @@ creep — see [`design.md`](design.md).
 
 ## 6. Playback outlives the publication
 
-- [ ] 6.1 Both: leaving the reader while playing does not stop it, and the compact
+- [~] 6.1 Both: leaving the reader while playing does not stop it, and the compact
       bar is the one action back.
+      **Android: true for a narrated audiobook, and photographed.** The audio is the
+      service's, not a screen's, so leaving the player leaves it playing;
+      `docs/captures/audiobooks/03-library-with-bar-light.png` is the library with the book
+      still going and the bar carrying it, against
+      `01-library-no-bar-light.png` — the same screen, the same device, minutes apart.
+      The bar's whole-row action opens the player and is the one action back.
+      **Not done: read-aloud does not drive this player yet.** It has its own host and its
+      own notification; the session table is now shared (1.1) and the source interface is
+      where the two meet, but nothing has been rewired. That is the honest state.
+      No test asserts the outliving — it is a process fact, and proving it needs the
+      instrumented pass §9 still owes.
 - [ ] 6.2 Both: returning to a read-aloud session resumes at the sentence being
       spoken **then**, not where the reader left.
-- [ ] 6.3 Both: reaching the end withdraws the highlight, dismisses the media
+- [~] 6.3 Both: reaching the end withdraws the highlight, dismisses the media
       controls and removes the compact bar.
+      **Android: written, and seen happening.** `PlaybackCentre.publish` drops the surface
+      the moment a source goes idle, and `AudiobookSource` reports `STATE_ENDED` as a
+      stopped session. Observed by accident and worth recording: the corpus's
+      `chaptered.m4b` is six seconds long, so the first run played it out before the screen
+      could be photographed — logcat shows `PLAYING(3), position=5903` then `STOPPED(1)`,
+      and the player drew "Nothing is playing." That is the requirement, arrived at the
+      wrong way round. `PlaybackSessionTest` pins the model half. iOS half outstanding.
 
 ## 7. Position
 
@@ -383,14 +448,29 @@ creep — see [`design.md`](design.md).
 
 ## 8. Accessibility
 
-- [ ] 8.1 Both: every control announced with a name and, where it has one, its value
+- [~] 8.1 Both: every control announced with a name and, where it has one, its value
       — speed, skip interval, remaining sleep time, position.
-- [ ] 8.2 Both: the scrub control is an adjustable announcing its position **in
-      time**, not as a percentage.
-- [ ] 8.3 Both: the compact bar is one element with separate play/pause and open
-      actions, and **does not steal focus when it appears**.
-- [ ] 8.4 Both: at the largest accessibility text size nothing is truncated to one
+      **Android: names and values are on the controls that exist.** The skip controls are
+      one element each, named "Back 15 seconds" / "Forward 30 seconds" rather than read out
+      as an arrow and a loose number; the speed slider's state description is the number
+      itself, because a screen reader saying "62 per cent" of a speed control tells a
+      listener nothing they can act on. **No sleep timer exists to announce** (5.3).
+      **Not verified by an accessibility scan** — `pnpm a11y:android` has no player route,
+      and adding one is part of §9.
+- [x] 8.2 Both — Android half. A `Slider` is already an adjustable; what it announces
+      by default is a percentage, and the `stateDescription` replaces that with
+      "0:42 of 5:00". iOS half outstanding.
+- [x] 8.3 Both — Android half. `mergeDescendants` makes the bar one element;
+      `CustomAccessibilityAction`s keep play/pause and open reachable separately. Not
+      stealing focus is what *not asking for it* is — nothing in the bar requests focus,
+      which is the whole of the requirement and is why there is no code to point at.
+- [~] 8.4 Both: at the largest accessibility text size nothing is truncated to one
       word and no transport control is pushed off the screen.
+      **Android: asserted and photographed.** `CompactPlayerTest` measures that the bar
+      grows rather than pinning, mutation-checked. The player was photographed at
+      `font_scale 2.0` in dark — `06-player-dark-2x.png` — with the whole transport on
+      screen and every stated value readable; the chapter list is what scrolls away, which
+      is why the transport sits above it. The device was put back to 1.0 afterwards.
 
 ## 9. Docs and close-out
 

@@ -10,6 +10,7 @@ import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
 import app.storyarc.core.persistence.removeAfterFinishing
+import app.storyarc.core.playback.PlaybackHost
 import app.storyarc.feature.library.CatalogueBrowser
 import app.storyarc.feature.library.CatalogueBrowserScreen
 import app.storyarc.feature.library.CatalogueDetailScreen
@@ -213,6 +214,32 @@ internal fun HostedScreen(
         )
 
         is Screen.Reader -> ReaderHost(host = host, screen = screen, onClose = back)
+
+        // The one session, drawn. What is playing is `PlaybackHost`'s, so this screen holds
+        // no copy of it — a second answer to "what is playing" is how a full player and the
+        // compact bar three dp below it come to disagree.
+        //
+        // Null while nothing plays, which is reachable: a listener who opened the player and
+        // let the book run out is standing on a screen with nothing to draw. Back, once, and
+        // they are where they were. Not a `LaunchedEffect` popping it out from under them —
+        // a screen that navigates on its own is the fifteenth answer to the back question
+        // this app spent a rewrite reducing to one.
+        is Screen.Player -> {
+            val playing = PlaybackHost.nowPlaying.collectAsStateWithLifecycle().value
+            if (playing == null) {
+                PlayerFinishedScreen(onBack = back)
+            } else {
+                PlayerScreen(
+                    playing = playing,
+                    onToggle = PlaybackHost::toggle,
+                    onSkip = PlaybackHost::skip,
+                    onSeek = PlaybackHost::seek,
+                    onChooseChapter = PlaybackHost::seekToPart,
+                    onSpeed = PlaybackHost::setSpeed,
+                    onBack = back,
+                )
+            }
+        }
     }
 }
 

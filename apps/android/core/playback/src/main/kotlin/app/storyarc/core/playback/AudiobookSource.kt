@@ -5,7 +5,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.extractor.metadata.Chapter
 
 /**
@@ -15,14 +14,19 @@ import androidx.media3.extractor.metadata.Chapter
  * it adds over the interface is entirely mapping: media3 speaks in items, windows and
  * metadata entries, and the surfaces speak in parts, positions and durations.
  *
- * **The player is the caller's**, not this class's. The service owns the `ExoPlayer`
- * because media3's session wraps one and the notification is drawn from it; this drives it
- * and reports what it did. That also means [release] is not here: ending a session detaches
- * this, and the player outlives it to carry the next book.
+ * **The player is a `Player`, not an `ExoPlayer`**, and that is the whole architecture in
+ * one type. `PlaybackService` owns the decoder because media3's session wraps one and the
+ * notification is drawn from it; the app holds a `MediaController`, which is also a
+ * `Player`, and drives the same audio across the process boundary. A field typed
+ * `ExoPlayer` would have made this class unusable from the app and the service the only
+ * place a book could be started.
+ *
+ * There is no `release` here either: ending a session detaches this, and the player outlives
+ * it to carry the next book.
  */
 class AudiobookSource(
     private val book: Audiobook,
-    private val player: ExoPlayer,
+    private val player: Player,
     /** The reader's own word for a chapter, for the marks a container left untitled. */
     private val chapterWord: String = "Chapter",
 ) : PlayerSource {

@@ -261,6 +261,26 @@ object PublicationIndexer {
     )
 
     /**
+     * Indexes an already-listed audiobook folder.
+     *
+     * The counterpart of the overload above, for the same reason it exists: a folder
+     * reached through the Storage Access Framework has no `File` to walk, so the caller
+     * lists it and hands the entries over. [AudiobookFolder] still decides what is a part,
+     * in what order, and what each is called — the listing is the only thing that differs.
+     */
+    fun index(
+        folder: AudiobookFolder,
+        identity: PublicationIdentity,
+        name: String,
+        seriesHint: String? = null,
+    ): Publication = audiobookFolder(
+        folder,
+        identity,
+        name,
+        FilenameMetadata.of(name, seriesHint),
+    )
+
+    /**
      * @param seriesHint the name of the folder the file sits in, when that folder
      *   is a subfolder of a picked library rather than the library itself.
      *   `local-library` presents such a subfolder "as a series whose name is the

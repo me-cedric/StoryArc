@@ -49,4 +49,26 @@
     <string name="downloads_move_later">Reculer \u00ab\u00a0%1$s\u00a0\u00bb</string>
     <string name="downloads_undo">Annuler</string>
     <string name="downloads_removed">\u00ab\u00a0%1$s\u00a0\u00bb supprim\u00e9 de cet appareil. Votre place est conserv\u00e9e.</string>
+
+    <!-- Le lecteur. Les intervalles figurent dans les libellés parce qu'ils figurent sur
+         les commandes : 15 s en arrière et 30 s en avant sont une décision produit. -->
+    <string name="player_play">Lire</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_open">Ouvrir le lecteur</string>
+    <string name="player_skip_back">Reculer de 15 secondes</string>
+    <string name="player_skip_forward">Avancer de 30 secondes</string>
+    <string name="player_seconds">%1$d s</string>
+    <string name="player_chapters">Chapitres</string>
+    <string name="player_chapter_word">Chapitre</string>
+    <string name="player_current_chapter">En cours</string>
+    <string name="player_speed">Vitesse %1$s</string>
+    <string name="player_nothing_playing">Aucune lecture en cours.</string>
+    <string name="player_back">Retour</string>
+    <plurals name="player_skipped_parts">
+        <item quantity="one">%1$d partie n\'a pas pu être lue</item>
+        <!-- French gained a `many` category (millions, with «de»). Lint fails the build
+             without it, and no audiobook has a million parts — it reads as `other`. -->
+        <item quantity="many">%1$d parties n\'ont pas pu être lues</item>
+        <item quantity="other">%1$d parties n\'ont pas pu être lues</item>
+    </plurals>
 </resources>

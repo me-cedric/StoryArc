@@ -2,6 +2,7 @@ package app.storyarc.core.designsystem.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -14,6 +15,7 @@ import androidx.compose.material3.ShortNavigationBarArrangement
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.WideNavigationRail
+import androidx.compose.material3.WideNavigationRailState
 import androidx.compose.material3.WideNavigationRailValue
 import androidx.compose.material3.WideNavigationRailItem
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
@@ -31,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.rememberWindowClass
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
@@ -119,6 +122,20 @@ fun AdaptiveNavigationShell(
      * destination set at three.
      */
     secondaryEntries: List<NavigationEntry> = emptyList(),
+    /**
+     * What rests between the content and the navigation control.
+     *
+     * The player's compact bar, and nothing else has asked for the slot. `audio-playback`
+     * requires it to sit "above the navigation control" and to "not displace, cover or
+     * resize" it — so it is a row in the same column as the navigation suite rather than
+     * an overlay: a `Box` over the content would cover the content's last item, and a row
+     * inside the navigation suite would take space from the destinations.
+     *
+     * Empty by default, which is the spec's other half: "the compact bar is absent rather
+     * than present and empty, and the space it occupied returns to the content". A column
+     * whose second child draws nothing has no second child's height.
+     */
+    aboveNavigation: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -160,43 +177,22 @@ fun AdaptiveNavigationShell(
 
     NavigationSuiteScaffoldLayout(
         navigationSuite = {
-            when {
-                type == NavigationSuiteType.None -> Unit
-                isRail -> WideNavigationRail(
-                    state = railState,
-                    header = {
-                        RailMenuButton(
-                            isOpen = isOpen,
-                            labels = menu,
-                            onToggle = { scope.launch { railState.toggle() } },
-                        )
-                    },
-                ) {
-                    // The three, always. Then the sections, only while the rail is open —
-                    // which is the state the reader asked for by pressing the button above,
-                    // so nothing appears or disappears underneath them.
-                    (if (isOpen) entries + secondaryEntries else entries).forEach { entry ->
-                        WideNavigationRailItem(
-                            selected = entry.selected,
-                            onClick = entry.onSelect,
-                            icon = { Icon(entry.icon, contentDescription = null) },
-                            label = { EntryLabel(entry, type.pinsLabelFontScale) },
-                            railExpanded = isOpen,
-                        )
-                    }
-                }
-
-                else -> ShortNavigationBar(arrangement = type.barArrangement) {
-                    entries.forEach { entry ->
-                        ShortNavigationBarItem(
-                            selected = entry.selected,
-                            onClick = entry.onSelect,
-                            icon = { Icon(entry.icon, contentDescription = null) },
-                            label = { EntryLabel(entry, type.pinsLabelFontScale) },
-                            iconPosition = type.barIconPosition,
-                        )
-                    }
-                }
+            // The bar and the control, in that order, as one bottom assembly.
+            //
+            // **Inside the navigation-suite slot rather than inside the content**, which is
+            // what makes both halves of the spec's sentence true at once: the layout gives
+            // this slot its measured height back to the content, so the content's last item
+            // is reachable rather than hidden under the bar — and the bar is *above* the
+            // control rather than in it, so the destinations keep their whole width.
+            //
+            // On a rail this column is a column beside the content, so the bar sits over the
+            // rail rather than above it. That is the honest wide-window arrangement for now
+            // and is recorded as a gap rather than dressed up: a tablet's bar belongs at the
+            // foot of the content pane, and moving it there is a change to
+            // `NavigationSuiteScaffoldLayout`'s own arrangement.
+            Column {
+                if (showsNavigation) aboveNavigation()
+                NavigationControl(type, isRail, isOpen, railState, menu, entries, secondaryEntries, scope)
             }
         },
         navigationSuiteType = type,
@@ -209,6 +205,59 @@ fun AdaptiveNavigationShell(
             }
         },
     )
+}
+
+/** The bar or the rail, whichever this window gets. Extracted so the bar can sit above it. */
+@Composable
+private fun NavigationControl(
+    type: NavigationSuiteType,
+    isRail: Boolean,
+    isOpen: Boolean,
+    railState: WideNavigationRailState,
+    menu: RailMenuLabels,
+    entries: List<NavigationEntry>,
+    secondaryEntries: List<NavigationEntry>,
+    scope: CoroutineScope,
+) {
+    when {
+        type == NavigationSuiteType.None -> Unit
+
+        isRail -> WideNavigationRail(
+            state = railState,
+            header = {
+                RailMenuButton(
+                    isOpen = isOpen,
+                    labels = menu,
+                    onToggle = { scope.launch { railState.toggle() } },
+                )
+            },
+        ) {
+            // The three, always. Then the sections, only while the rail is open —
+            // which is the state the reader asked for by pressing the button above,
+            // so nothing appears or disappears underneath them.
+            (if (isOpen) entries + secondaryEntries else entries).forEach { entry ->
+                WideNavigationRailItem(
+                    selected = entry.selected,
+                    onClick = entry.onSelect,
+                    icon = { Icon(entry.icon, contentDescription = null) },
+                    label = { EntryLabel(entry, type.pinsLabelFontScale) },
+                    railExpanded = isOpen,
+                )
+            }
+        }
+
+        else -> ShortNavigationBar(arrangement = type.barArrangement) {
+            entries.forEach { entry ->
+                ShortNavigationBarItem(
+                    selected = entry.selected,
+                    onClick = entry.onSelect,
+                    icon = { Icon(entry.icon, contentDescription = null) },
+                    label = { EntryLabel(entry, type.pinsLabelFontScale) },
+                    iconPosition = type.barIconPosition,
+                )
+            }
+        }
+    }
 }
 
 /**

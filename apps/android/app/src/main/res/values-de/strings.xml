@@ -48,4 +48,23 @@
     <string name="downloads_move_later">\u201e%1$s\u201c nach hinten</string>
     <string name="downloads_undo">R\u00fcckg\u00e4ngig</string>
     <string name="downloads_removed">\u201e%1$s\u201c von diesem Ger\u00e4t entfernt. Ihre Stelle bleibt erhalten.</string>
+
+    <!-- Der Player. Die Intervalle stehen in den Texten, weil sie auf den Bedienelementen
+         stehen: 15 s zurück und 30 s vor sind eine Produktentscheidung. -->
+    <string name="player_play">Abspielen</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_open">Player öffnen</string>
+    <string name="player_skip_back">15 Sekunden zurück</string>
+    <string name="player_skip_forward">30 Sekunden vor</string>
+    <string name="player_seconds">%1$d s</string>
+    <string name="player_chapters">Kapitel</string>
+    <string name="player_chapter_word">Kapitel</string>
+    <string name="player_current_chapter">Läuft</string>
+    <string name="player_speed">Geschwindigkeit %1$s</string>
+    <string name="player_nothing_playing">Es wird nichts abgespielt.</string>
+    <string name="player_back">Zurück</string>
+    <plurals name="player_skipped_parts">
+        <item quantity="one">%1$d Teil konnte nicht abgespielt werden</item>
+        <item quantity="other">%1$d Teile konnten nicht abgespielt werden</item>
+    </plurals>
 </resources>

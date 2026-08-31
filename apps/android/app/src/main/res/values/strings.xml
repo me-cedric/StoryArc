@@ -11,6 +11,28 @@
     <string name="open_in_protected">%1$s is protected by its store\'s content protection, and StoryArc cannot open it. StoryArc does not remove content protection, so there is nothing to enter here.</string>
     <string name="open_in_dismiss">OK</string>
 
+    <!-- The player. The intervals are in the strings because they are on the controls:
+         `audio-playback` asks the interval to be "stated on the control itself", and 15 s
+         back / 30 s forward is a **product decision** — media3's own defaults are 5 and 15. -->
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_open">Open the player</string>
+    <string name="player_skip_back">Back 15 seconds</string>
+    <string name="player_skip_forward">Forward 30 seconds</string>
+    <string name="player_seconds">%1$d s</string>
+    <string name="player_chapters">Chapters</string>
+    <!-- The word a chapter with no name of its own is numbered with: "Chapter 4". -->
+    <string name="player_chapter_word">Chapter</string>
+    <string name="player_current_chapter">Playing</string>
+    <string name="player_speed">Speed %1$s</string>
+    <string name="player_nothing_playing">Nothing is playing.</string>
+    <string name="player_back">Go back</string>
+    <!-- Stated in the player's own controls, never as an interruption. -->
+    <plurals name="player_skipped_parts">
+        <item quantity="one">%1$d part could not be played</item>
+        <item quantity="other">%1$d parts could not be played</item>
+    </plurals>
+
     <!-- `native-experience` quick actions: the menu the launcher shows on a long press.
          A launcher draws the long label where there is room for it and the short one where
          there is not, so the short label names the act and the long label names the act

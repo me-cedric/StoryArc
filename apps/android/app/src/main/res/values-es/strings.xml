@@ -49,4 +49,26 @@
     <string name="downloads_move_later">Retrasar \u00ab%1$s\u00bb</string>
     <string name="downloads_undo">Deshacer</string>
     <string name="downloads_removed">\u00ab%1$s\u00bb eliminado de este dispositivo. Se conserva tu posici\u00f3n.</string>
+
+    <!-- El reproductor. Los intervalos van en los textos porque van en los controles:
+         15 s atrás y 30 s adelante son una decisión de producto. -->
+    <string name="player_play">Reproducir</string>
+    <string name="player_pause">Pausa</string>
+    <string name="player_open">Abrir el reproductor</string>
+    <string name="player_skip_back">Retroceder 15 segundos</string>
+    <string name="player_skip_forward">Avanzar 30 segundos</string>
+    <string name="player_seconds">%1$d s</string>
+    <string name="player_chapters">Capítulos</string>
+    <string name="player_chapter_word">Capítulo</string>
+    <string name="player_current_chapter">Sonando</string>
+    <string name="player_speed">Velocidad %1$s</string>
+    <string name="player_nothing_playing">No se está reproduciendo nada.</string>
+    <string name="player_back">Volver</string>
+    <plurals name="player_skipped_parts">
+        <item quantity="one">No se pudo reproducir %1$d parte</item>
+        <!-- Spanish gained a `many` category (millions, and multiples of them). Lint fails
+             the build without it, and it reads the same as `other` here. -->
+        <item quantity="many">No se pudieron reproducir %1$d partes</item>
+        <item quantity="other">No se pudieron reproducir %1$d partes</item>
+    </plurals>
 </resources>

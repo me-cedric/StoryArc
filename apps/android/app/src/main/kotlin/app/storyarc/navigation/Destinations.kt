@@ -175,6 +175,25 @@ sealed interface Screen {
     data class Reader(val publication: Publication, val path: String) : Screen {
         override val hidesNavigation: Boolean = true
     }
+
+    /**
+     * The full player, for whatever is playing.
+     *
+     * **A destination, not a sheet.** `design.md` records why: Material points at a
+     * standard bottom sheet for exactly this, and `BottomSheetScaffold` has a `topBar`
+     * slot and no `bottomBar` slot — so its peek row would sit behind the navigation bar.
+     * The drag-to-expand sheet is deferred to its own change and this is a screen until
+     * then.
+     *
+     * It carries no publication. What is playing is `PlaybackHost`'s, and a screen holding
+     * a copy would be a second answer to "what is playing" that could disagree with the
+     * compact bar three dp below it.
+     */
+    data object Player : Screen {
+        // The navigation control stays. The player is somewhere a listener goes *to* while
+        // the book plays, and taking the destinations away would strand them there.
+        override val hidesNavigation: Boolean get() = false
+    }
 }
 
 /**

@@ -10,6 +10,10 @@ android {
 
     buildFeatures { compose = true }
 
+    // Robolectric composes against real resources, and a Material component that cannot
+    // resolve a theme attribute throws rather than degrading.
+    testOptions { unitTests { isIncludeAndroidResources = true } }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -54,6 +58,17 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    // The compact bar's claims are layout claims — that it does not displace the
+    // navigation control, that its height returns to the content when it is absent, that
+    // it grows rather than truncating at the largest text size. None of those is
+    // answerable by asserting a composable was called, and the unit gate has no device to
+    // compose on. The same trade `:feature:settings` and `:feature:library` already make.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    // The `ComponentActivity` the compose rule launches into. Without it Robolectric has
+    // no activity to resolve and every test in the suite fails at the rule.
+    testImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation(platform(libs.androidx.compose.bom))
 }
 
 // `AdaptiveNavigationTest` reads this module's own source to check that the bar's icon

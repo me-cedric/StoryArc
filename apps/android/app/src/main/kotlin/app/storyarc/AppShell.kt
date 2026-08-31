@@ -18,12 +18,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.storyarc.core.designsystem.back.PredictiveBack
 import app.storyarc.core.designsystem.back.PredictiveBackHost
 import app.storyarc.core.designsystem.navigation.AdaptiveNavigationShell
+import app.storyarc.core.designsystem.navigation.CompactPlayerBar
+import app.storyarc.core.designsystem.navigation.CompactPlayerLabels
 import app.storyarc.core.designsystem.navigation.NavigationEntry
 import app.storyarc.core.designsystem.navigation.RailMenuLabels
 import app.storyarc.core.model.AppSettings
@@ -31,6 +34,7 @@ import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.persistence.RemovedDownload
+import app.storyarc.core.playback.PlaybackHost
 import app.storyarc.feature.epubreader.EpubReaderActivity
 import app.storyarc.feature.library.CataloguePage
 import app.storyarc.feature.library.KavitaLevel
@@ -148,11 +152,26 @@ internal fun AppShell(
                 publication,
                 downloads.value.downloads.isNotEmpty(),
             )
-            // Two readers, chosen by what the publication *is* rather than by a mode the
-            // reader picks. A reflowable book is laid out by a rendering engine (ADR-0005);
-            // a comic is a list of images and needs none. A fixed-layout EPUB is the third
-            // case and belongs with the comic reader.
-            if (publication.format == PublicationFormat.EPUB && !publication.isFixedLayout) {
+            // Two readers and a player, chosen by what the publication *is* rather than by
+            // a mode the reader picks. A reflowable book is laid out by a rendering engine
+            // (ADR-0005); a comic is a list of images and needs none. A fixed-layout EPUB
+            // is the third case and belongs with the comic reader.
+            //
+            // An audiobook is the fourth, and it takes no reader at all.
+            // `publication-formats`: "it is recognised from its contents as an audiobook
+            // and opens in the player rather than in a reader". The player is a
+            // destination pushed onto this path, and the audio is the process's — so
+            // leaving this screen does not stop it, which is the whole point of the
+            // surface.
+            val audiobook = OpenedAudiobook.of(publication, path, activity.contentResolver)
+            if (audiobook != null) {
+                PlaybackHost.start(
+                    context = activity,
+                    book = audiobook,
+                    chapterWord = activity.getString(R.string.player_chapter_word),
+                )
+                navigation = navigation.push(Screen.Player)
+            } else if (publication.format == PublicationFormat.EPUB && !publication.isFixedLayout) {
                 activity.startActivity(
                     EpubReaderActivity.intent(
                         activity,
@@ -262,6 +281,45 @@ internal fun AppShell(
             ),
         ),
         showsNavigation = navigation.showsNavigation,
+        // The compact bar, above the navigation control and never in it.
+        //
+        // `audio-playback`: it "rests above the navigation control, naming the publication
+        // and the chapter being spoken", it is "absent rather than present and empty" when
+        // nothing plays, and it "does not steal focus when it appears, because a listener
+        // who started a book and moved on did not ask to be taken back". The first two are
+        // the null check below; the third is what *not* asking for focus is.
+        //
+        // Absent on the player itself: the bar's one action is to open the player, and a
+        // way back to where you already are is a control that does nothing.
+        aboveNavigation = {
+            val playing = PlaybackHost.nowPlaying.collectAsStateWithLifecycle().value
+            if (playing != null && navigation.current !is Screen.Player) {
+                CompactPlayerBar(
+                    title = playing.title,
+                    chapter = playing.chapter,
+                    isPlaying = playing.isPlaying,
+                    // Through the current part, and null where nothing knows how long it
+                    // is — `audio-playback` allows a position with no total and forbids
+                    // inventing one, and a line drawn against a guess is inventing one.
+                    progress = playing.statedPartDurationMillis
+                        ?.takeIf { it > 0 }
+                        ?.let { (playing.offsetMillis.toFloat() / it).coerceIn(0f, 1f) },
+                    labels = CompactPlayerLabels(
+                        play = stringResource(R.string.player_play),
+                        pause = stringResource(R.string.player_pause),
+                        open = stringResource(R.string.player_open),
+                    ),
+                    onToggle = PlaybackHost::toggle,
+                    onOpen = {
+                        // One action back to the audio, and never a second copy of the
+                        // screen: a listener who opens the player twice gets one.
+                        if (navigation.current !is Screen.Player) {
+                            navigation = navigation.push(Screen.Player)
+                        }
+                    },
+                )
+            }
+        },
     ) {
         // `native-experience` asks for predictive back, and the manifest opt-in is only the
         // half the system can do for itself: it draws the way out of the *app*. Everything

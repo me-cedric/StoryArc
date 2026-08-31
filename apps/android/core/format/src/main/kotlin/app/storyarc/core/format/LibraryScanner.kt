@@ -66,6 +66,18 @@ object LibraryScanner {
         setOf("jpg", "jpeg", "png", "gif", "webp", "avif", "heic", "bmp", "tif", "tiff")
 
     /**
+     * Audio a folder's parts may be. The same set [FolderKind] counts, borrowed rather
+     * than restated: two copies would eventually disagree about `.oga`.
+     *
+     * **Not in [CANDIDATE_EXTENSIONS], and that is the whole rule.** A folder of audio is
+     * *one* audiobook, exactly as a folder of images is one comic — so audio must not make
+     * a directory look like a shelf. It is indexed as a publication of its own only in the
+     * branch below where the directory already holds containers, where a lone `.m4b` beside
+     * a pile of CBZs is a book rather than a part of anything.
+     */
+    private val AUDIO_EXTENSIONS = FolderKind.AUDIO_EXTENSIONS
+
+    /**
      * Publications in [folder], emitted as they are found.
      *
      * Depth-first and alphabetical, so the order a user sees matches the order they
@@ -203,15 +215,20 @@ object LibraryScanner {
         val children = (directory.listFiles() ?: emptyArray()).filterNot { it.name.startsWith(".") }
         val files = children.filter { it.isFile }
         val publications = files.filter { it.extension.lowercase() in CANDIDATE_EXTENSIONS }
-        val images = files.filter { it.extension.lowercase() in IMAGE_EXTENSIONS }
+        val media = files.filter {
+            it.extension.lowercase() in IMAGE_EXTENSIONS || it.extension.lowercase() in AUDIO_EXTENSIONS
+        }
+        val audio = files.filter { it.extension.lowercase() in AUDIO_EXTENSIONS }
 
-        if (publications.isEmpty() && images.isNotEmpty()) {
-            // A folder of images has no size of its own, so it is compared on its
-            // modification time alone -- which is what changes when a page is added to it.
+        // The listing and the walk must make the same decisions or reconciling finds a
+        // difference on every launch. Both branches below mirror `walk` exactly.
+        if (publications.isEmpty() && media.isNotEmpty()) {
+            // A folder of media has no size of its own, so it is compared on its
+            // modification time alone -- which is what changes when a part is added to it.
             found += FolderSnapshot.Entry(directory.absolutePath, directory.lastModified(), 0)
             return
         }
-        for (file in publications) {
+        for (file in publications + audio) {
             found += FolderSnapshot.Entry(file.absolutePath, file.lastModified(), file.length())
         }
         for (child in children.filter { it.isDirectory }) list(child, found)
@@ -228,9 +245,13 @@ object LibraryScanner {
             .filterNot { it.name.startsWith(".") }
         val files = children.filterNot { it.isDirectory }
         val publications = files.filter { extensionOf(it.name) in CANDIDATE_EXTENSIONS }
-        val images = files.filter { extensionOf(it.name) in IMAGE_EXTENSIONS }
+        val media = files.filter {
+            extensionOf(it.name) in IMAGE_EXTENSIONS || extensionOf(it.name) in AUDIO_EXTENSIONS
+        }
+        val audio = files.filter { extensionOf(it.name) in AUDIO_EXTENSIONS }
 
-        if (publications.isEmpty() && images.isNotEmpty()) {
+        // Mirrors `walkTree`, for the reason `list` gives.
+        if (publications.isEmpty() && media.isNotEmpty()) {
             val uri = SafTree.documentUri(tree, documentId)
             val name = uri.lastPathSegment?.substringAfterLast('/') ?: documentId
             // A folder of images has no size or time of its own that a provider will state,
@@ -245,7 +266,7 @@ object LibraryScanner {
             )
             return
         }
-        for (entry in publications) {
+        for (entry in publications + audio) {
             found += Listed(
                 FolderSnapshot.Entry(
                     // The document `Uri`, because that is what the identity of a scanned
@@ -295,20 +316,29 @@ object LibraryScanner {
         val directories = children.filter { it.isDirectory }
         val files = children.filter { it.isFile }
         val publicationFiles = files.filter { it.extension.lowercase() in CANDIDATE_EXTENSIONS }
-        val imageFiles = files.filter { it.extension.lowercase() in IMAGE_EXTENSIONS }
+        val mediaFiles = files.filter {
+            it.extension.lowercase() in IMAGE_EXTENSIONS || it.extension.lowercase() in AUDIO_EXTENSIONS
+        }
+        val audioFiles = files.filter { it.extension.lowercase() in AUDIO_EXTENSIONS }
 
-        // A directory holding images and no publications is itself one publication.
+        // A directory holding media and no publications is itself one publication.
         // A directory holding publications is a shelf. Deciding per directory is
         // what lets an unpacked comic sit next to packed ones without either being
-        // mistaken for the other.
-        if (publicationFiles.isEmpty() && imageFiles.isNotEmpty()) {
+        // mistaken for the other — and now what lets a folder of chapter MP3s be one
+        // audiobook rather than a shelf of one-track books. Which kind it is is
+        // `FolderKind`'s answer, asked inside `PublicationIndexer.index`.
+        if (publicationFiles.isEmpty() && mediaFiles.isNotEmpty()) {
             // Its subdirectories are chapters of it, not separate publications.
             if (directory.absolutePath in skipping) return Tally()
             return index(directory, seriesHint, emit)
         }
 
         var tally = Tally()
-        for (file in publicationFiles) {
+        // Audio beside containers is indexed on its own, and images beside containers are
+        // still ignored. Not an inconsistency: an `.m4b` is a whole publication in one
+        // file, exactly like a `.cbz`, and a loose `.png` beside a pile of comics is a
+        // cover or a scan artefact rather than a book.
+        for (file in publicationFiles + audioFiles) {
             currentCoroutineContext().ensureActive()
             // Already done by the scan this one is picking up from. Not counted either: the
             // caller put those publications back itself and has already counted them.
@@ -346,16 +376,21 @@ object LibraryScanner {
         val directories = children.filter { it.isDirectory }
         val files = children.filterNot { it.isDirectory }
         val publications = files.filter { extensionOf(it.name) in CANDIDATE_EXTENSIONS }
-        val images = files.filter { extensionOf(it.name) in IMAGE_EXTENSIONS }
+        val media = files.filter {
+            extensionOf(it.name) in IMAGE_EXTENSIONS || extensionOf(it.name) in AUDIO_EXTENSIONS
+        }
+        val audio = files.filter { extensionOf(it.name) in AUDIO_EXTENSIONS }
 
-        if (publications.isEmpty() && images.isNotEmpty()) {
+        // The same rule as the `File` walk above, and it has to be the same rule: a folder
+        // reached through the Storage Access Framework is the same folder.
+        if (publications.isEmpty() && media.isNotEmpty()) {
             val folder = SafTree.documentUri(tree, documentId).toString()
             if (folder in skipping) return Tally()
             return indexDocumentFolder(resolver, tree, documentId, seriesHint, modifiedAt, emit)
         }
 
         var tally = Tally()
-        for (entry in publications) {
+        for (entry in publications + audio) {
             currentCoroutineContext().ensureActive()
             // Already done by the scan this one is picking up from, and identified the way
             // the library identifies a document: by the `Uri` its identity carries.
@@ -430,16 +465,35 @@ object LibraryScanner {
         val uri = SafTree.documentUri(tree, documentId)
         val name = uri.lastPathSegment?.substringAfterLast('/') ?: documentId
         val event = try {
-            ScanEvent.Found(
+            // Which kind of folder this is, asked here rather than assumed. The `File`
+            // walk asks the same question inside `PublicationIndexer.index(File)`; a
+            // document tree has no `File`, so the listing is done here and the answer is
+            // `FolderKind`'s either way.
+            val entries = SafTree.children(resolver, tree, documentId)
+            val kind = FolderKind.of(entries.filterNot { it.isDirectory }.map { it.name })
+
+            val publication = if (kind == FolderKind.AUDIOBOOK) {
+                PublicationIndexer.index(
+                    AudiobookFolder.of(
+                        entries.filterNot { it.isDirectory }.map { entry ->
+                            AudiobookFolder.Candidate(entry.name, entry.size)
+                        },
+                    ),
+                    identityOf(uri),
+                    name,
+                    seriesHint,
+                )
+            } else {
                 PublicationIndexer.index(
                     DocumentFolderArchive.open(resolver, tree, documentId),
                     identityOf(uri),
                     name,
                     seriesHint,
-                    // The folder was weighed by its own pages; only the date is
-                    // outside knowledge here.
-                ).withFileFacts(size = -1L, addedAt = modifiedAt),
-            )
+                )
+            }
+            // The folder was weighed by its own parts; only the date is outside
+            // knowledge here.
+            ScanEvent.Found(publication.withFileFacts(size = -1L, addedAt = modifiedAt))
         } catch (cause: IndexException) {
             ScanEvent.Skipped(name, reasonFor(cause))
         } catch (cause: CancellationException) {
