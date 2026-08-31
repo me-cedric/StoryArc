@@ -46,3 +46,23 @@ The Android half of the same defect. `OnDeviceCover` in
 box, and the library's `CoverCell` is private to `:feature:library` — so the fix is the same
 shape as the iOS one and was blocked on another change already moving code in that file.
 Recorded in [the delivery note](../../../delivery/remaining-work-2026-08-31.md).
+
+## The iOS mirror of Android's chip row, settled
+
+`ios-library-ax5` is the library at `AccessibilityXXXL`. It is here to answer a question
+asked of the Android chip-row work: does iOS's equivalent row overflow the window at the
+largest text size, the way Android's did at `font_scale 2.0`?
+
+It does not, and the reason is that the two platforms do not draw the same control. Both
+offer the same three choices — narrow to what is on this device, choose an order, filter —
+and iOS puts them in a toolbar as **icons**, which do not grow with the reader's text. The
+toolbar capsule is the same width at AX5 as at the default size. Android draws them as
+**labelled chips**, which do, which is why that row had to learn to wrap.
+
+So there is no iOS half of that defect to fix. The shelf below drops to two columns and the
+titles read in full.
+
+One thing the picture also shows, not fixed here: the author line truncates to `Ada Lov…`
+while the title above it wraps to two lines and reads whole. That is a `lineLimit`, not a
+clip, and the identifying half of the caption survives — but it is the kind of thing
+`design.md` §3's "no clipping" rule is worth being asked about, and nobody has.

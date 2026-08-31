@@ -55,6 +55,24 @@ final class ScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "library")
     }
 
+    /// The library at the largest accessibility text size.
+    ///
+    /// Android's filter chip row ran off the window at `font_scale 2.0` and had to learn to
+    /// wrap. The question this answers is whether iOS's equivalent has the same defect, and
+    /// it is a fair question because both platforms draw the same three controls — narrow to
+    /// what is on this device, choose an order, filter.
+    ///
+    /// They do not draw them the same way, which is the answer: iOS puts them in a toolbar
+    /// as icons, and an icon does not grow with the reader's text. The picture is what says
+    /// so, because a claim that a row cannot overflow is worth exactly as much as the
+    /// largest text size somebody actually pointed at it.
+    func testCaptureLibraryAtLargestText() throws {
+        let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
+        try XCTUnwrap(destination("Library", in: app)).tap()
+        _ = app.scrollViews.firstMatch.waitForExistence(timeout: 10)
+        attach(app.screenshot(), named: "library-ax5")
+    }
+
     private func attach(_ shot: XCUIScreenshot, named name: String) {
         let attachment = XCTAttachment(screenshot: shot)
         attachment.name = name
