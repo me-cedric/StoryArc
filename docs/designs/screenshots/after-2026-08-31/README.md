@@ -143,3 +143,25 @@ the reasoning recorded in the test's own expectations rather than here:
 
 The palette itself is not in question — `textPrimary` on `surfaceCanvas` measures 16.9:1 in
 light and 16.8:1 in dark, and the worst pair anywhere in the set is 4.97:1.
+
+---
+
+# The Android navigation bar at the largest text size
+
+`android-navbar-scale2-light` against `android-shelf-caption-scale2-light` in the same
+directory, which is the before: "Downloads" was cut off at the right edge at
+`font_scale 2.0`, failing `design.md` §3's rule that every screen survives the largest
+accessibility text size.
+
+The answer turned out to be Material's own. `NavigationBarItemView.setTextAppearanceWithoutFontScaling`
+removes font scaling from a navigation label, and `labelFontScalingEnabled` defaults to
+**off** — which is why every stock Material app draws small nav labels at a large font
+scale. Compose's `ShortNavigationBarItem` has no equivalent, because the label is the
+caller's composable, so the shell carries the rule instead. Material closes the other three
+doors itself: a navigation label must not truncate, must not wrap, and must not be dropped.
+
+It is scoped to the bar and the collapsed rail. The expanded rail has room and keeps the
+reader's chosen size.
+
+**Still visible in this capture and not fixed:** the filter chip row above the shelf runs
+off the window with no affordance that it scrolls. It is recorded as its own item.
