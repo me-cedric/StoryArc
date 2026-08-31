@@ -2,7 +2,6 @@ package app.storyarc
 
 import android.net.Uri
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Download
@@ -21,6 +20,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import app.storyarc.core.designsystem.back.PredictiveBack
+import app.storyarc.core.designsystem.back.PredictiveBackHost
 import app.storyarc.core.designsystem.navigation.AdaptiveNavigationShell
 import app.storyarc.core.designsystem.navigation.NavigationEntry
 import app.storyarc.core.designsystem.navigation.RailMenuLabels
@@ -76,11 +77,6 @@ internal fun AppShell(
     // screen rather than one launch behind it.
     val downloads = remember { mutableStateOf(dependencies.downloads.library()) }
     val removed = remember { mutableStateOf<RemovedDownload?>(null) }
-
-    // The one back rule. Registered before anything else in this composition so that a
-    // modal or a screen with its own predictive-back handler wins over it, which is what
-    // those handlers are for; everything else falls through to here.
-    BackHandler(enabled = navigation.canGoBack) { navigation = navigation.back() }
 
     // Held across every destination, not inside the library's: the reader's end screen asks
     // it what comes next in the series, and a model created inside one branch would not
@@ -238,15 +234,37 @@ internal fun AppShell(
         ),
         showsNavigation = navigation.showsNavigation,
     ) {
-        // One column, or a shelf and a page side by side where the window has room for
-        // both. Which of the two is derived from this same navigation — see `AppPanes`.
-        AppContent(
-            host = host,
-            navigation = navigation,
-            settings = settings,
-            onSettingsChange = onSettingsChange,
-            onResetSettings = onResetSettings,
-        )
+        // `native-experience` asks for predictive back, and the manifest opt-in is only the
+        // half the system can do for itself: it draws the way out of the *app*. Everything
+        // inside the app is this navigation value, so the preview of one of its screens
+        // leaving is the app's own to draw — and until this host existed the handler below
+        // was a plain `BackHandler` that reported only that the gesture had finished.
+        //
+        // Around the navigation area rather than around the whole shell, because back never
+        // takes the navigation control away: it pops a screen off the current destination's
+        // path, or returns to the destination the app opens on. The screen is what leaves;
+        // the bar or the rail is what stays, and shrinking it with the screen would preview
+        // an exit that is not going to happen.
+        //
+        // Settings keeps its own host inside this one. The composition local is static, so
+        // the innermost host owns the handlers below it and each transform is applied
+        // exactly once — nesting is the arrangement, not a conflict.
+        PredictiveBackHost {
+            // The one back rule. Registered before the content so that a modal or a screen
+            // with its own handler wins over it, which is what those handlers are for;
+            // everything else falls through to here.
+            PredictiveBack(enabled = navigation.canGoBack) { navigation = navigation.back() }
+
+            // One column, or a shelf and a page side by side where the window has room for
+            // both. Which of the two is derived from this same navigation — see `AppPanes`.
+            AppContent(
+                host = host,
+                navigation = navigation,
+                settings = settings,
+                onSettingsChange = onSettingsChange,
+                onResetSettings = onResetSettings,
+            )
+        }
     }
 
     AppSheets(host = host, sheet = sheet)
