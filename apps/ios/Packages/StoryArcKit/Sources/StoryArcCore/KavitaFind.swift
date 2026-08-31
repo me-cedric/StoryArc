@@ -173,8 +173,8 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
     ///
     /// Android reaches the same tolerance through kotlinx.serialization — a `@Serializable`
     /// property with a default is filled in when the key is missing — which is why
-    /// `KavitaCard.kt` gives `seriesName` and `chapterName` defaults it does not otherwise
-    /// need.
+    /// Android's `KavitaCard` gives `seriesName` and `chapterName` defaults it does not
+    /// otherwise need.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         publicationId = try container.decode(String.self, forKey: .publicationId)
