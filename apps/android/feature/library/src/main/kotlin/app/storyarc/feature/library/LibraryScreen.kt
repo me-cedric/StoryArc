@@ -218,10 +218,10 @@ fun LibraryScreen(
         mutableStateOf(DownloadFilter.named(preferences?.downloadFilter()))
     }
 
-    // Written down as the reader chooses, not on the way out: this screen has no moment it
-    // can call "the way out" -- the reader may leave it for the reader, for a destination,
-    // or by the process being killed -- and a choice only written on a tidy exit is a choice
-    // lost to every untidy one.
+    // Written down as the reader chooses, not on the way out. This screen has no moment it
+    // could call "the way out": a reader leaves it for a book, for another destination, or
+    // by the system killing the process behind them -- and a choice written only on a tidy
+    // exit is a choice lost to every untidy one.
     val chooseAvailability: (LibraryAvailability) -> Unit = { choice ->
         availability = choice
         preferences?.saveAvailability(choice.name)
