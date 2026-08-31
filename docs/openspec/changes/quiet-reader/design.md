@@ -44,6 +44,36 @@ the coarse position drawn behind it.
 thumbnail follow; Android keeps its `Slider`. Neither is drawn over the page any
 more.
 
+### "In words" turned out to mean a band, not a second number
+
+The spec says the line states "how much of the current chapter is left, **in words**",
+and implementing it forced a decision this document did not anticipate. It is recorded
+here after the fact, because the code made it and the plan should not pretend otherwise.
+
+*42% through · Chapter Three, 63% left* is two numbers a reader has to hold at once to
+learn one thing. So the remainder is a **five-band enum** — `nearly done`, `less than
+half left`, `about half left`, `more than half left`, `just begun` — shared by both
+platforms in `StoryArcCore` and `:core:model`.
+
+Three reasons, in order of weight:
+
+1. **A within-chapter percentage is not accurate enough to be one.** The renderer's
+   within-resource progression moves in jumps the width of a screen, so its second
+   decimal is noise presented as precision.
+2. **The band is what a reader actually wants from a chapter** — whether to keep going
+   before putting the book down.
+3. **Five bands rather than three**, because *nearly done* and *just begun* are the two
+   a reader acts on, and collapsing them into "less than half" and "more than half"
+   loses exactly the decision the line exists to inform.
+
+The type carries **no page number field at all**. The spec's *A publication that
+declares no chapters* scenario forbids falling back to a page count, and a rule enforced
+by a branch can be undone by an `else` — a rule enforced by the absence of a field
+cannot be undone without changing the type both readers share.
+
+The line is assembled from three localised fragments with punctuation rather than one
+format string, because the chapter title is the publication's and must not be translated.
+
 ## The theme surface, and the one real platform divergence
 
 **Level one is a sheet on both platforms.** Six preset tiles, and one full-width
