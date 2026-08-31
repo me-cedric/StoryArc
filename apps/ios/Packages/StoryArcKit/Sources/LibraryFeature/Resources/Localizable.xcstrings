@@ -2231,6 +2231,64 @@
         }
       }
     },
+    "downloads.metered.body %@ %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird „%1$@“ jetzt geladen, werden mobile Daten verbraucht. Die Datei ist %2$@ groß."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading “%1$@” now will use mobile data. It is %2$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargar «%1$@» ahora consumirá datos móviles. Ocupa %2$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Télécharger « %1$@ » maintenant consommera des données mobiles. Le fichier fait %2$@."
+          }
+        }
+      }
+    },
+    "downloads.metered.bodyUnstated %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird „%@“ jetzt geladen, werden mobile Daten verbraucht. Der Katalog nennt keine Dateigröße."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading “%@” now will use mobile data. The catalogue does not state its size."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargar «%@» ahora consumirá datos móviles. El catálogo no indica su tamaño."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Télécharger « %@ » maintenant consommera des données mobiles. Le catalogue n’indique pas sa taille."
+          }
+        }
+      }
+    },
     "downloads.pausedTitle": {
       "extractionState": "manual",
       "localizations": {

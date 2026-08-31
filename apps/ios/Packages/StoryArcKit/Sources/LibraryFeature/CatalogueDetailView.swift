@@ -34,6 +34,9 @@ struct CatalogueDetailView: View {
 
     @State private var cover: Image?
 
+    /// The download the reader is being asked to spend mobile data on, if one is.
+    @State private var meteredAsk: MeteredAsk?
+
     var body: some View {
         let onDevice = queue.onDevice.contains(entry.id)
         let active = queue.library.pending
@@ -80,6 +83,9 @@ struct CatalogueDetailView: View {
                     onResume: { queue.resume(first.id) }
                 )
             }
+        }
+        .meteredConfirmation($meteredAsk) { asked in
+            Task { await take(using: asked.acquisition, overridingMeteredConnection: true) }
         }
         .navigationTitle(entry.title)
         #if os(iOS)
@@ -138,12 +144,34 @@ struct CatalogueDetailView: View {
     /// An already-downloaded publication opens from disk whichever row was pressed:
     /// `offline-downloads` does not re-fetch what is here, and the queue is the authority on
     /// what that is.
-    private func take(using link: OpdsAcquisition) async {
+    /// - Parameter overridingMeteredConnection: the reader has already been asked and
+    ///   agreed. Only ever `true` on the way back from ``meteredConfirmation(_:onConfirm:)``,
+    ///   which is what keeps the grant to the one publication it was given for.
+    private func take(
+        using link: OpdsAcquisition,
+        overridingMeteredConnection: Bool = false
+    ) async {
         if let file = queue.downloaded(entry) {
             await open(from: file)
             return
         }
-        guard let file = await queue.fetch(entry, using: link) else { return }
+        // `offline-downloads`' *Overriding once*. Pressing a format on a metered link is
+        // the "explicitly downloads a specific publication" the scenario describes, so the
+        // reader is asked, with the size, before their allowance is spent — and the fetch
+        // resumes from the dialog rather than from here.
+        if !overridingMeteredConnection, queue.needsMeteredConfirmation(entry) {
+            meteredAsk = MeteredAsk(
+                entry: entry,
+                acquisition: link,
+                bytes: queue.statedBytes(of: entry)
+            )
+            return
+        }
+        guard let file = await queue.fetch(
+            entry,
+            using: link,
+            overridingMeteredConnection: overridingMeteredConnection
+        ) else { return }
         await open(from: file)
     }
 

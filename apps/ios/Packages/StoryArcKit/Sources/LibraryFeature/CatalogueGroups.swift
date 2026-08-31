@@ -175,6 +175,9 @@ struct CatalogueEntryLink: View {
     let isDownloaded: Bool
     let onOpen: (Publication, URL) -> Void
 
+    /// The download the reader is being asked to spend mobile data on, if one is.
+    @State private var meteredAsk: MeteredAsk?
+
     var body: some View {
         NavigationLink {
             CatalogueDetailView(
@@ -210,11 +213,31 @@ struct CatalogueEntryLink: View {
                 }
             } else if let best = CatalogueAcquisition.best(of: entry) {
                 Button {
-                    queue.enqueue(entry, using: best)
+                    // `offline-downloads`' *Overriding once*: on a metered link the reader
+                    // is asked, with the size, before a byte of their allowance is spent.
+                    // Off it, the tap is the whole interaction it has always been.
+                    if queue.needsMeteredConfirmation(entry) {
+                        meteredAsk = MeteredAsk(
+                            entry: entry,
+                            acquisition: best,
+                            bytes: queue.statedBytes(of: entry)
+                        )
+                    } else {
+                        queue.enqueue(entry, using: best)
+                    }
                 } label: {
                     Text("catalogue.acquire.download", bundle: .module)
                 }
             }
+        }
+        .meteredConfirmation($meteredAsk) { asked in
+            // The grant is this publication's, not the queue's: everything else behind it
+            // goes on waiting for Wi-Fi.
+            queue.enqueue(
+                asked.entry,
+                using: asked.acquisition,
+                overridingMeteredConnection: true
+            )
         }
     }
 }

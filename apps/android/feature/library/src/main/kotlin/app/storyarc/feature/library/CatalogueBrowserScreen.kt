@@ -82,6 +82,34 @@ fun CatalogueBrowserScreen(
 
     // The term as typed, and the result of the last search that was not the server's.
     var term by rememberSaveable { mutableStateOf("") }
+
+    // The download the reader is being asked to spend mobile data on, if one is.
+    var meteredAsk by remember { mutableStateOf<MeteredAsk?>(null) }
+
+    // `offline-downloads`' *Overriding once*: on a metered link the reader is asked, with
+    // the size, before a byte of their allowance is spent. Off it, the tap is the whole
+    // interaction it has always been. One lambda for both call sites below, because two
+    // copies of this decision is one copy too many.
+    val download: (OpdsEntry) -> Unit = { entry ->
+        CatalogueAcquisition.best(entry)?.let { link ->
+            if (queue.needsMeteredConfirmation(entry)) {
+                meteredAsk = MeteredAsk(entry, link, queue.statedBytes(entry))
+            } else {
+                queue.enqueue(entry, link)
+            }
+        }
+    }
+
+    MeteredConfirmation(
+        ask = meteredAsk,
+        onDismiss = { meteredAsk = null },
+        onConfirm = { asked ->
+            meteredAsk = null
+            // The grant is this publication's, not the queue's: everything else behind it
+            // goes on waiting for Wi-Fi.
+            queue.enqueue(asked.entry, asked.acquisition, overridingMeteredConnection = true)
+        },
+    )
     var filtered by remember { mutableStateOf<List<OpdsEntry>?>(null) }
     val shown = filtered ?: entries
     // The screen's own scope rather than the browser's: a search the reader left behind by
@@ -186,13 +214,11 @@ fun CatalogueBrowserScreen(
                         client = browser.client,
                         isDownloaded = entry.id in onDevice,
                         onSelect = { onSelect(entry) },
-                        onDownload = {
-                            // `offline-downloads`: "the app SHALL let a user download any
-                            // publication from a remote source for offline reading". A reader
-                            // packing for a flight wants the download without the reading, and
-                            // without a walk through the detail screen either.
-                            CatalogueAcquisition.best(entry)?.let { queue.enqueue(entry, it) }
-                        },
+                        // `offline-downloads`: "the app SHALL let a user download any
+                        // publication from a remote source for offline reading". A reader
+                        // packing for a flight wants the download without the reading, and
+                        // without a walk through the detail screen either.
+                        onDownload = { download(entry) },
                         onRemove = { queue.remove(entry.id) },
                     )
                     // The next page arrives because the reader scrolled, not because they
@@ -222,9 +248,7 @@ fun CatalogueBrowserScreen(
                             onDevice = onDevice,
                             onEnter = onEnter,
                             onSelect = onSelect,
-                            onDownload = { entry ->
-                                CatalogueAcquisition.best(entry)?.let { queue.enqueue(entry, it) }
-                            },
+                            onDownload = download,
                             onRemove = { entry -> queue.remove(entry.id) },
                         )
                     }

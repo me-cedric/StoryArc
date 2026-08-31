@@ -134,7 +134,17 @@ public final class DownloadQueue {
     public var onDevice: Set<String> { Set(library.finished.map(\.id)) }
 
     /// Adds a download and starts it when there is room.
-    public func enqueue(_ entry: OpdsEntry, using acquisition: OpdsAcquisition) {
+    ///
+    /// - Parameter overridingMeteredConnection: the reader was asked whether to spend
+    ///   mobile data on this one, and said yes. `offline-downloads` grants that "for that
+    ///   item only", which is why it is recorded against the id rather than flipping a
+    ///   setting — see ``MeteredDownload``.
+    public func enqueue(
+        _ entry: OpdsEntry,
+        using acquisition: OpdsAcquisition,
+        overridingMeteredConnection: Bool = false
+    ) {
+        if overridingMeteredConnection { overridden.insert(entry.id) }
         library = library.queueing(
             Download(
                 id: entry.id,
@@ -148,10 +158,30 @@ public final class DownloadQueue {
         pump()
     }
 
+    /// The publications the reader has agreed to spend mobile data on.
+    ///
+    /// In memory only, and deliberately: `offline-downloads` grants the override for one
+    /// item, at one moment, on one connection. A grant that outlived the app would be a
+    /// standing permission the reader never gave.
+    var overridden: Set<Download.ID> = []
+
     /// Enqueues, then waits for the file — for a reader who tapped to read it now.
-    public func fetch(_ entry: OpdsEntry, using acquisition: OpdsAcquisition) async -> URL? {
+    ///
+    /// A reader who pressed *Read* on a metered link has explicitly asked for this one
+    /// publication, which is exactly the override `offline-downloads` describes — so the
+    /// confirmation is the caller's to have already presented, and the grant travels with
+    /// the call rather than being asked for twice.
+    public func fetch(
+        _ entry: OpdsEntry,
+        using acquisition: OpdsAcquisition,
+        overridingMeteredConnection: Bool = false
+    ) async -> URL? {
         if let file = downloaded(entry) { return file }
-        enqueue(entry, using: acquisition)
+        enqueue(
+            entry,
+            using: acquisition,
+            overridingMeteredConnection: overridingMeteredConnection
+        )
         return await withCheckedContinuation { continuation in
             waiting[entry.id, default: []].append(continuation)
         }
@@ -223,8 +253,13 @@ public final class DownloadQueue {
         releaseSpaceHolds()
         // Held rather than cancelled: the queue keeps its order and its progress, and
         // starts again by itself the next time this is asked.
-        guard held == nil else { return }
-        let ready = library.downloads.filter { $0.state == .queued }
+        //
+        // The reader's own storage maximum stops everything, because an override is about
+        // the *connection* and says nothing about the disk. Waiting for Wi-Fi is decided
+        // per download instead — `offline-downloads` grants the override "for that item
+        // only", so one granted publication may run while the rest of the queue waits.
+        if held == .storageFull { return }
+        let ready = library.downloads.filter { $0.state == .queued && mayStart($0) }
         for download in ready.prefix(max(0, concurrency - running.count)) {
             // No catalogue entry is needed to fetch one: the record carries the address, the
             // media type and the name. An entry enqueued by a previous launch is gone from

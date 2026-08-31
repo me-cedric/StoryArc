@@ -97,9 +97,37 @@ fun CatalogueDetailScreen(
         cover = runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }.getOrNull()
     }
 
+    // The download the reader is being asked to spend mobile data on, if one is.
+    var meteredAsk by remember(entry.id) { mutableStateOf<MeteredAsk?>(null) }
+
     val take: (OpdsAcquisition) -> Unit = { link ->
-        scope.launch { openWhenReady(queue, entry, link, onOpen) }
+        // `offline-downloads`' *Overriding once*: pressing a format on a metered link is the
+        // "explicitly downloads a specific publication" the scenario describes, so the
+        // reader is asked, with the size, before their allowance is spent -- and the fetch
+        // resumes from the dialog rather than from here.
+        if (queue.needsMeteredConfirmation(entry)) {
+            meteredAsk = MeteredAsk(entry, link, queue.statedBytes(entry))
+        } else {
+            scope.launch { openWhenReady(queue, entry, link, onOpen) }
+        }
     }
+
+    MeteredConfirmation(
+        ask = meteredAsk,
+        onDismiss = { meteredAsk = null },
+        onConfirm = { asked ->
+            meteredAsk = null
+            scope.launch {
+                openWhenReady(
+                    queue,
+                    asked.entry,
+                    asked.acquisition,
+                    onOpen,
+                    overridingMeteredConnection = true,
+                )
+            }
+        },
+    )
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
@@ -405,8 +433,16 @@ internal suspend fun openWhenReady(
     entry: OpdsEntry,
     link: OpdsAcquisition,
     onOpen: (Publication, String) -> Unit,
+    /**
+     * The reader has already been asked and agreed. Only ever true on the way back from
+     * [MeteredConfirmation], which is what keeps the grant to the one publication it was
+     * given for.
+     */
+    overridingMeteredConnection: Boolean = false,
 ) {
-    val file = queue.downloaded(entry) ?: queue.fetch(entry, link) ?: return
+    val file = queue.downloaded(entry)
+        ?: queue.fetch(entry, link, overridingMeteredConnection)
+        ?: return
     runCatching { PublicationIndexer.index(file, catalogueSeries = entry.series) }
         .getOrNull()
         ?.let { onOpen(it, file.absolutePath) }

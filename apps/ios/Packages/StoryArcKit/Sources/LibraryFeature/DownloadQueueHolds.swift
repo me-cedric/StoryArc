@@ -1,3 +1,4 @@
+public import Catalogue
 internal import Formats
 public import StoryArcCore
 
@@ -39,7 +40,12 @@ extension DownloadQueue {
     public var held: Held? {
         if spaceIsLow { return .outOfSpace }
         let current = settings()
-        if current.downloadOverWifiOnly, network.isCellular { return .waitingForWifi }
+        // Not held when something in the queue carries a metered override: one granted
+        // publication is running, and a queue that reported itself stopped while bytes
+        // were arriving would be the lie this property exists to prevent.
+        if current.downloadOverWifiOnly, network.isCellular, !hasOverriddenPending {
+            return .waitingForWifi
+        }
         guard let limit = current.maximumDownloadBytes else { return nil }
         return library.bytesOnDisk >= limit ? .storageFull : nil
     }
@@ -82,5 +88,42 @@ extension DownloadQueue {
         guard waiting != library else { return }
         library = waiting
         store?.save(library)
+    }
+
+    /// Whether the reader has to be asked before this one is queued.
+    ///
+    /// `offline-downloads`' *Overriding once*. The answer is ``MeteredDownload``'s; what
+    /// this adds is the two facts it needs — whether the link is one to be careful with,
+    /// and whether this publication already carries a grant.
+    public func needsMeteredConfirmation(_ entry: OpdsEntry) -> Bool {
+        MeteredDownload.needsConfirmation(
+            isMetered: network.isCareful,
+            isOverridden: overridden.contains(entry.id)
+        )
+    }
+
+    /// What the confirmation can state about the size, or `nil` when nothing can.
+    ///
+    /// `offline-downloads` asks the confirmation to state the size, and states elsewhere
+    /// that a size is shown only when the server gave one — "a fabricated one is worse than
+    /// an honest blank". An OPDS acquisition link carries no length, so the honest answer
+    /// before a first download is usually nothing, and the dialog says so in words rather
+    /// than showing a number nobody supplied.
+    public func statedBytes(of entry: OpdsEntry) -> Int64? {
+        library[entry.id]?.expectedBytes
+    }
+
+    /// Whether this one may start over the connection the device is on.
+    func mayStart(_ download: Download) -> Bool {
+        MeteredDownload.mayStart(
+            wifiOnly: settings().downloadOverWifiOnly,
+            isMetered: network.isCellular,
+            isOverridden: overridden.contains(download.id)
+        )
+    }
+
+    /// Whether anything still to do carries a grant.
+    var hasOverriddenPending: Bool {
+        library.pending.contains { overridden.contains($0.id) }
     }
 }

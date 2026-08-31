@@ -16,6 +16,7 @@ import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
+import app.storyarc.core.model.MeteredDownload
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.StorageHeadroom
 import app.storyarc.core.persistence.DownloadStore
@@ -98,8 +99,63 @@ class DownloadQueue(
      */
     private val concurrency: Int get() = if (NetworkCost.isCareful(context)) 1 else 2
 
-    /** Adds a download and starts it when there is room. */
-    fun enqueue(entry: OpdsEntry, acquisition: OpdsAcquisition) {
+    /**
+     * The publications the reader has agreed to spend mobile data on.
+     *
+     * In memory only, and deliberately: `offline-downloads` grants the override for one
+     * item, at one moment, on one connection. A grant that outlived the process would be a
+     * standing permission the reader never gave.
+     */
+    private val overridden = mutableSetOf<String>()
+
+    /**
+     * Whether the reader has to be asked before this one is queued.
+     *
+     * `offline-downloads`' *Overriding once*. The answer is [MeteredDownload]'s; what this
+     * adds is the two facts it needs -- whether the link is one to be careful with, and
+     * whether this publication already carries a grant.
+     */
+    fun needsMeteredConfirmation(entry: OpdsEntry): Boolean = MeteredDownload.needsConfirmation(
+        isMetered = NetworkCost.isCareful(context),
+        isOverridden = entry.id in overridden,
+    )
+
+    /**
+     * What the confirmation can state about the size, or null when nothing can.
+     *
+     * `offline-downloads` asks the confirmation to state the size, and states elsewhere that
+     * a size is shown only when the server gave one -- "a fabricated one is worse than an
+     * honest blank". An OPDS acquisition link carries no length, so the honest answer before
+     * a first download is usually nothing, and the dialog says so in words rather than
+     * showing a number nobody supplied.
+     */
+    fun statedBytes(entry: OpdsEntry): Long? = _library.value[entry.id]?.expectedBytes
+
+    /** Whether this one may start over the connection the device is on. */
+    private fun mayStart(download: Download): Boolean = MeteredDownload.mayStart(
+        wifiOnly = settings().downloadOverWifiOnly,
+        isMetered = !isOnWifi(),
+        isOverridden = download.id in overridden,
+    )
+
+    /** Whether anything still to do carries a grant. */
+    private fun hasOverriddenPending(): Boolean =
+        _library.value.pending.any { it.id in overridden }
+
+    /**
+     * Adds a download and starts it when there is room.
+     *
+     * @param overridingMeteredConnection the reader was asked whether to spend mobile data
+     *   on this one, and said yes. `offline-downloads` grants that "for that item only",
+     *   which is why it is recorded against the id rather than flipping a setting -- see
+     *   [MeteredDownload].
+     */
+    fun enqueue(
+        entry: OpdsEntry,
+        acquisition: OpdsAcquisition,
+        overridingMeteredConnection: Boolean = false,
+    ) {
+        if (overridingMeteredConnection) overridden += entry.id
         _library.value = _library.value.queueing(
             Download(
                 id = entry.id,
@@ -113,12 +169,23 @@ class DownloadQueue(
         pump()
     }
 
-    /** Enqueues, then waits for the file -- for a reader who tapped to read it now. */
-    suspend fun fetch(entry: OpdsEntry, acquisition: OpdsAcquisition): File? {
+    /**
+     * Enqueues, then waits for the file -- for a reader who tapped to read it now.
+     *
+     * A reader who pressed *Read* on a metered link has explicitly asked for this one
+     * publication, which is exactly the override `offline-downloads` describes -- so the
+     * confirmation is the caller's to have already presented, and the grant travels with the
+     * call rather than being asked for twice.
+     */
+    suspend fun fetch(
+        entry: OpdsEntry,
+        acquisition: OpdsAcquisition,
+        overridingMeteredConnection: Boolean = false,
+    ): File? {
         downloaded(entry)?.let { return it }
         val waiter = CompletableDeferred<File?>()
         waiting.getOrPut(entry.id) { mutableListOf() }.add(waiter)
-        enqueue(entry, acquisition)
+        enqueue(entry, acquisition, overridingMeteredConnection)
         return waiter.await()
     }
 
@@ -192,7 +259,12 @@ class DownloadQueue(
     fun held(): Held? {
         if (spaceIsLow) return Held.OutOfSpace
         val current = settings()
-        if (current.downloadOverWifiOnly && !isOnWifi()) return Held.WaitingForWifi
+        // Not held when something in the queue carries a metered override: one granted
+        // publication is running, and a queue that reported itself stopped while bytes were
+        // arriving would be the lie this function exists to prevent.
+        if (current.downloadOverWifiOnly && !isOnWifi() && !hasOverriddenPending()) {
+            return Held.WaitingForWifi
+        }
         val limit = current.maximumDownloadBytes ?: return null
         return if (_library.value.bytesOnDisk >= limit) Held.StorageFull else null
     }
@@ -290,8 +362,14 @@ class DownloadQueue(
         releaseSpaceHolds()
         // Held rather than cancelled: the queue keeps its order and its progress, and
         // starts again by itself the next time this is asked.
-        if (held() != null) return
-        val ready = _library.value.downloads.filter { it.state == Download.State.Queued }
+        //
+        // The reader's own storage maximum stops everything, because an override is about
+        // the *connection* and says nothing about the disk. Waiting for Wi-Fi is decided per
+        // download instead -- `offline-downloads` grants the override "for that item only",
+        // so one granted publication may run while the rest of the queue waits.
+        if (held() == Held.StorageFull) return
+        val ready = _library.value.downloads
+            .filter { it.state == Download.State.Queued && mayStart(it) }
         ready.take(maxOf(0, concurrency - running.size)).forEach { download ->
             // No catalogue entry is needed to fetch one: the record carries the address, the
             // media type and the name. An entry enqueued by a previous launch is gone from

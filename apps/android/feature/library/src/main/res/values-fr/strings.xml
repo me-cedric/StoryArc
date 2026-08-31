@@ -116,6 +116,8 @@
     </plurals>
     <string name="catalogue_back">Retour</string>
     <string name="catalogue_entry_downloaded">Sur cet appareil</string>
+    <string name="downloads_metered_body">Télécharger « %1$s » maintenant consommera des données mobiles. Le fichier fait %2$s.</string>
+    <string name="downloads_metered_body_unstated">Télécharger « %1$s » maintenant consommera des données mobiles. Le catalogue n’indique pas sa taille.</string>
     <string name="catalogue_acquire_download">Télécharger</string>
     <string name="catalogue_group_more">Tout voir</string>
     <string name="catalogue_detail_read">Lire</string>
