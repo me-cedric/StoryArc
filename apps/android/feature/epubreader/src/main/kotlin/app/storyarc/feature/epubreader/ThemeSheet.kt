@@ -20,7 +20,9 @@ import androidx.compose.material.icons.filled.TextDecrease
 import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
@@ -90,6 +92,14 @@ internal fun ThemeSheet(
     choices: TransitionChoices,
     onChooseTransition: (PageTransition) -> Unit,
     modifier: Modifier = Modifier,
+    /** The chapter the reader is in, for the live preview to name. */
+    chapter: String? = null,
+    /**
+     * Words from where the reader is, read once when the sheet opens. Empty until the
+     * resource comes back, and empty for good on a publication it cannot be read from --
+     * the preview shows its sample paragraph in both cases.
+     */
+    excerpt: String = "",
 ) {
     val palette = LocalStoryArcPalette.current
 
@@ -100,6 +110,9 @@ internal fun ThemeSheet(
             .padding(StoryArcSpace.gutter),
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xl),
     ) {
+        // First, because it is the thing every control below it changes.
+        ThemePreview(theme = theme, values = values, title = chapter, excerpt = excerpt)
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -618,5 +631,52 @@ private fun PublisherStylesNotice(onLeave: () -> Unit, modifier: Modifier = Modi
                 )
             }
         }
+    }
+}
+
+/**
+ * The theme sheet, in the platform's own modal bottom sheet.
+ *
+ * `native-experience` wants the sheet to look like the platform's; iOS gets a
+ * detented sheet on Liquid Glass and Android gets this.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ThemeBottomSheet(
+    theme: ReadingTheme,
+    values: ThemeValues,
+    brightness: Float?,
+    onAdopt: (ThemePreset) -> Unit,
+    onChange: (ThemeAxis, ThemeValues) -> Unit,
+    onSet: (ThemeAxis, Double) -> Unit,
+    onBrightness: (Float) -> Unit,
+    onRestore: () -> Unit,
+    onLeavePublisherStyles: () -> Unit,
+    onAdoptColours: (ReaderPalette) -> Boolean,
+    onDiscardColours: () -> Unit,
+    choices: TransitionChoices,
+    onChooseTransition: (PageTransition) -> Unit,
+    onDismiss: () -> Unit,
+    chapter: String? = null,
+    excerpt: String = "",
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        ThemeSheet(
+            theme = theme,
+            values = values,
+            brightness = brightness,
+            onAdopt = onAdopt,
+            onChange = onChange,
+            onSet = onSet,
+            onBrightness = onBrightness,
+            onRestore = onRestore,
+            onLeavePublisherStyles = onLeavePublisherStyles,
+            onAdoptColours = onAdoptColours,
+            onDiscardColours = onDiscardColours,
+            choices = choices,
+            onChooseTransition = onChooseTransition,
+            chapter = chapter,
+            excerpt = excerpt,
+        )
     }
 }

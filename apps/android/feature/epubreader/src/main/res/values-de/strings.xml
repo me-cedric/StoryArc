@@ -63,6 +63,9 @@
     <string name="theme_page_colour_sample_label">Beispiel für Text und Hintergrund zusammen</string>
     <string name="theme_page_colour_swatch">Farbe %1$s</string>
     <string name="theme_specimen">Handgloves</string>
+    <string name="theme_preview">Vorschau</string>
+    <string name="theme_preview_description">Eine Beispielseite mit den von Ihnen gewählten Einstellungen.</string>
+    <string name="theme_preview_sample">Das Licht war aus dem Nachmittag gewichen, als sie die letzte der Hecken erreichte, und der Weg vor ihr verengte sich, bis er kaum mehr war als eine Andeutung zwischen den Feldern. Sie ging dennoch weiter und zählte die Gatter.</string>
     <string name="theme_specimen_second">Aa Bb 123</string>
     <string name="theme_page_turn">Seitenwechsel</string>
     <string name="theme_page_turn_curl">Blättern</string>

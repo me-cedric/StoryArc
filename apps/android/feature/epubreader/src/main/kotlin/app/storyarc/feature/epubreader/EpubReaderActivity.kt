@@ -469,6 +469,13 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     }
 
                     if (isShowingTheme) {
+                        // Words from where the reader is, read once when the sheet opens.
+                        // The position does not move while the sheet is up, and re-reading
+                        // the resource on every slider step would put a disk read inside a
+                        // drag.
+                        var excerpt by remember { mutableStateOf("") }
+                        LaunchedEffect(Unit) { excerpt = model.previewExcerpt() }
+
                         ThemeBottomSheet(
                             theme = theme,
                             values = values,
@@ -484,6 +491,8 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                             choices = model.transitions,
                             onChooseTransition = model::choose,
                             onDismiss = { isShowingTheme = false },
+                            chapter = chapter,
+                            excerpt = excerpt,
                         )
                     }
 
@@ -1004,48 +1013,5 @@ private fun ContentsBottomSheet(
                 onGo = onGo,
             )
         }
-    }
-}
-
-/**
- * The theme sheet, in the platform's own modal bottom sheet.
- *
- * `native-experience` wants the sheet to look like the platform's; iOS gets a
- * detented sheet on Liquid Glass and Android gets this.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@androidx.compose.runtime.Composable
-private fun ThemeBottomSheet(
-    theme: app.storyarc.core.model.ReadingTheme,
-    values: app.storyarc.core.model.ThemeValues,
-    brightness: Float?,
-    onAdopt: (app.storyarc.core.model.ThemePreset) -> Unit,
-    onChange: (app.storyarc.core.model.ThemeAxis, app.storyarc.core.model.ThemeValues) -> Unit,
-    onSet: (app.storyarc.core.model.ThemeAxis, Double) -> Unit,
-    onBrightness: (Float) -> Unit,
-    onRestore: () -> Unit,
-    onLeavePublisherStyles: () -> Unit,
-    onAdoptColours: (app.storyarc.core.model.ReaderPalette) -> Boolean,
-    onDiscardColours: () -> Unit,
-    choices: app.storyarc.core.model.TransitionChoices,
-    onChooseTransition: (PageTransition) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        ThemeSheet(
-            theme = theme,
-            values = values,
-            brightness = brightness,
-            onAdopt = onAdopt,
-            onChange = onChange,
-            onSet = onSet,
-            onBrightness = onBrightness,
-            onRestore = onRestore,
-            onLeavePublisherStyles = onLeavePublisherStyles,
-            onAdoptColours = onAdoptColours,
-            onDiscardColours = onDiscardColours,
-            choices = choices,
-            onChooseTransition = onChooseTransition,
-        )
     }
 }

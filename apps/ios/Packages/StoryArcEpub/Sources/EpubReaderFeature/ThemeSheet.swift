@@ -22,10 +22,22 @@ struct ThemeSheet: View {
 
     let model: EpubReaderModel
 
+    /// Words from where the reader is, read once when the sheet opens. Empty until the
+    /// resource comes back, and empty for good on a publication it cannot be read from —
+    /// the preview shows its sample paragraph in both cases.
+    @State private var excerpt = ""
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
+                    // First, because it is the thing every control below it changes.
+                    ThemePreview(
+                        readingTheme: model.theme,
+                        values: model.values,
+                        title: model.chapterTitle,
+                        excerpt: excerpt
+                    )
                     presets
                     pageTurn
                     fontSize
@@ -48,6 +60,10 @@ struct ThemeSheet: View {
                 }
                 .padding(StoryArcSpace.gutter)
             }
+            // Once, on open. The reader's position does not move while the sheet is up,
+            // and re-reading the resource on every slider step would put a disk read
+            // inside a drag.
+            .task { excerpt = await model.previewExcerpt() }
             // No background of our own. A sheet on iOS 26 is already presented
             // on Liquid Glass, and `native-experience` wants it "left untinted so
             // it picks up the page beneath it" — an opaque fill here is the one

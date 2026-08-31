@@ -63,6 +63,9 @@
     <string name="theme_page_colour_sample_label">Muestra del texto y el fondo juntos</string>
     <string name="theme_page_colour_swatch">Color %1$s</string>
     <string name="theme_specimen">Handgloves</string>
+    <string name="theme_preview">Vista previa</string>
+    <string name="theme_preview_description">Una página de ejemplo con los ajustes que has elegido.</string>
+    <string name="theme_preview_sample">La luz se había ido de la tarde cuando llegó al último de los setos, y el camino que tenía delante se estrechó hasta no ser más que una insinuación entre los campos. Aun así siguió andando, contando las cancelas.</string>
     <string name="theme_specimen_second">Aa Bb 123</string>
     <string name="theme_page_turn">Cambio de página</string>
     <string name="theme_page_turn_curl">Doblez</string>

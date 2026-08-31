@@ -533,6 +533,25 @@ class EpubReaderViewModel(
      */
     private suspend fun excerptAt(locator: Locator): String {
         locator.text.highlight?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
+        return textAt(locator, Excerpt.LENGTH)
+    }
+
+    /**
+     * Words from where the reader is, for the theme sheet's live preview to set.
+     *
+     * `reading-themes`: the preview "uses text from the open publication where one is open,
+     * and representative sample text otherwise" — so this returns empty rather than a
+     * substitute, and the sheet supplies the sample.
+     *
+     * Long enough for the several lines the requirement asks for, and no longer: a preview
+     * 200 dp tall shows about six of them, and the rest would be text nobody sees being
+     * escaped on every slider step. iOS's `previewExcerpt` reads the same words the same
+     * way.
+     */
+    suspend fun previewExcerpt(): String = here?.let { textAt(it, PREVIEW_LENGTH) }.orEmpty()
+
+    /** One resource, as plain text, at the fraction through it the locator names. */
+    private suspend fun textAt(locator: Locator, length: Int): String {
         val publication = opened ?: return ""
         val markup = withContext(Dispatchers.IO) {
             runCatching {
@@ -543,6 +562,7 @@ class EpubReaderViewModel(
         return Excerpt.at(
             text = Excerpt.plainText(markup),
             fraction = locator.locations.progression ?: 0.0,
+            length = length,
         )
     }
 
@@ -724,5 +744,15 @@ class EpubReaderViewModel(
                 updatedAtEpochMillis = System.currentTimeMillis(),
             ),
         )
+    }
+
+    private companion object {
+        /**
+         * How many characters the live preview asks for.
+         *
+         * Wider than a bookmark's excerpt, because the preview is six lines of body text
+         * rather than two lines in a list.
+         */
+        const val PREVIEW_LENGTH = 320
     }
 }

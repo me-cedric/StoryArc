@@ -63,6 +63,9 @@
     <string name="theme_page_colour_sample_label">Échantillon du texte et du fond ensemble</string>
     <string name="theme_page_colour_swatch">Couleur %1$s</string>
     <string name="theme_specimen">Handgloves</string>
+    <string name="theme_preview">Aperçu</string>
+    <string name="theme_preview_description">Un exemple de page avec les réglages que vous avez choisis.</string>
+    <string name="theme_preview_sample">La lumière avait quitté l’après-midi lorsqu’elle atteignit la dernière des haies, et le chemin devant elle se rétrécit jusqu’à n’être plus qu’une suggestion entre les champs. Elle continua malgré tout, comptant les barrières.</string>
     <string name="theme_specimen_second">Aa Bb 123</string>
     <string name="theme_page_turn">Tourne de page</string>
     <string name="theme_page_turn_curl">Pliure</string>

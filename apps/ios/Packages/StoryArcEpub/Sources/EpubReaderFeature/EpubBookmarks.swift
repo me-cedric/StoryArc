@@ -87,7 +87,11 @@ public extension EpubReaderModel {
     ///
     /// `nonisolated` so the read happens off the main actor, which is where a disk read
     /// belongs -- Android's half puts the same read on `Dispatchers.IO`.
-    nonisolated private static func markup(
+    ///
+    /// Not private: the theme sheet's live preview reads the same resource the same way,
+    /// and `reading-themes` asks it to use "text from the open publication where one is
+    /// open". Two copies of one `readAsString` is one copy too many.
+    nonisolated internal static func markup(
         of publication: ReadiumShared.Publication?,
         at href: AnyURL
     ) async -> String? {

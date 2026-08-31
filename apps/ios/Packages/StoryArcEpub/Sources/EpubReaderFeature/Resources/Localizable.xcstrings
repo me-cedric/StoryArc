@@ -2640,6 +2640,93 @@
         }
       }
     },
+    "theme.preview": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorschau"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vista previa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aperçu"
+          }
+        }
+      }
+    },
+    "theme.preview.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Beispielseite mit den von Ihnen gewählten Einstellungen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sample page in the settings you have chosen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una página de ejemplo con los ajustes que has elegido."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un exemple de page avec les réglages que vous avez choisis."
+          }
+        }
+      }
+    },
+    "theme.preview.sample": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Licht war aus dem Nachmittag gewichen, als sie die letzte der Hecken erreichte, und der Weg vor ihr verengte sich, bis er kaum mehr war als eine Andeutung zwischen den Feldern. Sie ging dennoch weiter und zählte die Gatter."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The light had gone out of the afternoon by the time she reached the last of the hedgerows, and the lane ahead of her narrowed until it was little more than a suggestion between the fields. She walked on anyway, counting the gates."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La luz se había ido de la tarde cuando llegó al último de los setos, y el camino que tenía delante se estrechó hasta no ser más que una insinuación entre los campos. Aun así siguió andando, contando las cancelas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La lumière avait quitté l’après-midi lorsqu’elle atteignit la dernière des haies, et le chemin devant elle se rétrécit jusqu’à n’être plus qu’une suggestion entre les champs. Elle continua malgré tout, comptant les barrières."
+          }
+        }
+      }
+    },
     "theme.publisherStyles.action": {
       "extractionState": "manual",
       "localizations": {

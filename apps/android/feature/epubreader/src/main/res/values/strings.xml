@@ -63,6 +63,9 @@
     <string name="theme_page_colour_sample_label">Sample of the text and background together</string>
     <string name="theme_page_colour_swatch">Colour %1$s</string>
     <string name="theme_specimen">Handgloves</string>
+    <string name="theme_preview">Preview</string>
+    <string name="theme_preview_description">A sample page in the settings you have chosen.</string>
+    <string name="theme_preview_sample">The light had gone out of the afternoon by the time she reached the last of the hedgerows, and the lane ahead of her narrowed until it was little more than a suggestion between the fields. She walked on anyway, counting the gates.</string>
     <string name="theme_specimen_second">Aa Bb 123</string>
     <string name="theme_page_turn">Page turn</string>
     <string name="theme_page_turn_curl">Curl</string>
