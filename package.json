@@ -21,12 +21,12 @@
     "spec:list": "cd docs && openspec list --specs",
     "lint": "pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm strings:ios",
     "lint:ios": "swiftlint lint --strict",
-    "lint:android": "cd apps/android && ./gradlew lint",
+    "lint:android": "node scripts/gradle.mjs lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test",
     "test:ios:epub": "cd apps/ios/Packages/StoryArcEpub && xcodebuild test -scheme StoryArcEpub -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' -collect-test-diagnostics never -quiet",
-    "test:android": "cd apps/android && ./gradlew test",
+    "test:android": "node scripts/gradle.mjs test",
     "build:ios": "cd apps/ios && xcodegen generate && xcodebuild build -project StoryArc.xcodeproj -scheme StoryArc -destination 'generic/platform=iOS Simulator' -quiet",
-    "build:android": "cd apps/android && ./gradlew assembleDebug",
+    "build:android": "node scripts/gradle.mjs assembleDebug",
     "check": "pnpm lint && pnpm lint:ios && pnpm test:ios && pnpm lint:android && pnpm test:android",
     "prepare": "husky",
     "fixtures:build": "python3 packages/test-fixtures/scripts/generate.py",
@@ -45,7 +45,8 @@
     "lockfile:ios:selftest": "node scripts/ios-lockfile.mjs --self-test",
     "libarchive:pin": "node scripts/libarchive-pin.mjs --check",
     "libarchive:pin:selftest": "node scripts/libarchive-pin.mjs --self-test",
-    "libarchive:upstream": "node scripts/libarchive-pin.mjs --upstream"
+    "libarchive:upstream": "node scripts/libarchive-pin.mjs --upstream",
+    "gradle": "node scripts/gradle.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",

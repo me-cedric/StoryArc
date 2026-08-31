@@ -79,10 +79,18 @@ change** — never the whole repository when one module moved.
 | `apps/ios/Packages/StoryArcKit` | `pnpm test:ios` (host, no simulator) |
 | `packages/test-fixtures` | `pnpm fixtures:build`, then **commit the regenerated corpus and manifest**, then run both platforms' format tests |
 | `apps/ios` app target or `project.yml` | `pnpm build:ios` |
-| One Android module | `cd apps/android && ./gradlew :<module>:lint :<module>:testDebugUnitTest` |
+| One Android module | `pnpm gradle :<module>:lint :<module>:testDebugUnitTest` |
 | Android across modules | `pnpm lint:android && pnpm test:android` |
 | `packages/design-tokens` | `pnpm tokens:sync` — then **commit the regenerated app copies in the same change** |
 | `docs/openspec/specs` | `pnpm spec:validate` |
+
+**Android needs a JDK 21 and an SDK, and neither is on the path by default.**
+`pnpm gradle <task>` (and `pnpm lint:android` / `test:android` / `build:android`) find
+both, and write the gitignored `apps/android/local.properties` a fresh worktree lacks —
+`scripts/gradle.mjs` says where it looks. A bare `./gradlew` still needs `JAVA_HOME`
+exported, because the wrapper needs a JVM before it can read any property file. Homebrew's
+JDKs are keg-only and macOS ships a `/usr/bin/java` stub that reports no runtime and
+shadows them, so "Unable to locate a Java Runtime" means the path, never a missing install.
 
 A task is not complete until you report changed files, the exact commands you
 ran, the result of each, whether a failure is pre-existing or introduced, and

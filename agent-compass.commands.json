@@ -73,14 +73,15 @@
       ]
     },
     "android": {
-      "lint": "cd apps/android && ./gradlew lint",
-      "test": "cd apps/android && ./gradlew test",
-      "build": "cd apps/android && ./gradlew assembleDebug",
-      "install": "cd apps/android && ./gradlew installDebug",
-      "moduleCheck": "cd apps/android && ./gradlew :<module>:lint :<module>:testDebugUnitTest",
+      "lint": "pnpm lint:android",
+      "test": "pnpm test:android",
+      "build": "pnpm build:android",
+      "install": "pnpm gradle installDebug",
+      "moduleCheck": "pnpm gradle :<module>:lint :<module>:testDebugUnitTest",
       "screenshot": "adb exec-out screencap -p > shot.png",
       "notes": [
-        "local.properties must set sdk.dir. It is gitignored.",
+        "pnpm gradle <task> resolves JDK 21 and the SDK itself, and writes the gitignored local.properties a fresh worktree lacks. See scripts/gradle.mjs.",
+        "A bare ./gradlew needs JAVA_HOME exported: the wrapper needs a JVM before it can read a property file, and macOS ships a /usr/bin/java stub that shadows a keg-only Homebrew JDK.",
         "Scope to :<module> rather than running the whole build for a single-module change."
       ]
     },
