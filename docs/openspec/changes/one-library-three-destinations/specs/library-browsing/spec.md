@@ -69,6 +69,22 @@ group results by what the match is rather than by which source answered.
 - **WHEN** a reader opens search
 - **THEN** recent queries are offered, and can be cleared
 
+> **The scenarios below arrived from a sibling change and are carried, not written
+> here.** A MODIFIED requirement replaces the whole block, so a delta written before
+> that change synced would drop them on archive. `openspec validate` caught it.
+
+#### Scenario: The scope is stated, and can be narrowed
+- **WHEN** the search screen is open
+- **THEN** it states whether it is searching everything or only what is on the device
+- **AND** a user can narrow it to what is on the device, and widen it again, without leaving the screen
+- **AND** the choice persists until changed
+
+
+#### Scenario: Searching with every source unreachable
+- **WHEN** a query is typed while no configured source can be reached
+- **THEN** results held on the device appear and are usable, and the screen names the sources it could not ask rather than reporting no results
+- **AND** narrowing to what is on the device removes that notice, because nothing is then being waited for
+
 ### Requirement: Filtering
 
 The app SHALL filter by read state, format, language, genre, tag, publisher,

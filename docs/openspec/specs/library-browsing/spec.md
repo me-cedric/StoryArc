@@ -28,6 +28,24 @@ user narrow it to one source.
 The app SHALL provide search across titles, series, authors, publishers, tags
 and genres, using the server's own search where a source provides one.
 
+Search SHALL say what it is about to search, and SHALL let a reader narrow it to
+what can be read with no network.
+
+> Where search is *reached* from, and what its screen opens onto before a query is
+> typed, belong to [`navigation-shell`](../navigation-shell/spec.md). This
+> requirement owns what searching *does*.
+
+#### Scenario: The scope is stated, and can be narrowed
+- **WHEN** the search screen is open
+- **THEN** it states whether it is searching everything or only what is on the device
+- **AND** a user can narrow it to what is on the device, and widen it again, without leaving the screen
+- **AND** the choice persists until changed
+
+#### Scenario: Searching with every source unreachable
+- **WHEN** a query is typed while no configured source can be reached
+- **THEN** results held on the device appear and are usable, and the screen names the sources it could not ask rather than reporting no results
+- **AND** narrowing to what is on the device removes that notice, because nothing is then being waited for
+
 #### Scenario: Typing a query
 - **WHEN** a user types in the search field
 - **THEN** results update as they type, debounced, without a submit action

@@ -129,7 +129,16 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
       silent. There is also no `ConnectedButtonGroup` composable — it is assembled from
       `ButtonGroupDefaults`' three shape helpers — which is why it is sized as its own
       change.
-- [ ] 6.3 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
+- [x] 6.3 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
-- [ ] 6.4 `agent-compass openspec-guard . --strict`.
-- [ ] 6.5 `/opsx:verify quiet-reader`, then `/opsx:sync`.
+- [x] 6.4 `pnpm spec:guard:strict` — 0 errors, 1 warning, and that warning is the
+      pre-existing orphan list.
+- [x] 6.5 Verified and synced on 2026-08-31. Main specs updated; the change stays
+      open, per the lifecycle.
+      **The sync surfaced a coordination problem worth recording.** Two other open
+      changes carried MODIFIED deltas on requirements this one changed, and a
+      MODIFIED requirement replaces the whole block — so archiving either of them
+      later would have silently dropped the scenarios added here.
+      `openspec validate --all` caught it; the missing scenarios are carried into
+      `one-library-three-destinations` and `reader-theming-and-page-transitions`
+      with a note saying where they came from.

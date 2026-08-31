@@ -138,7 +138,21 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       were before section 1, and add rows 14–16: the bar's container, the narrowing control,
       and where recent searches sit.
 - [x] 4.2 Update `docs/openspec/STATUS.md`.
-- [ ] 4.3 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
+- [x] 4.3 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
-- [ ] 4.4 `agent-compass openspec-guard . --strict`.
-- [ ] 4.5 `/opsx:verify quiet-shell-and-search`, then `/opsx:sync`.
+- [x] 4.4 `pnpm spec:guard:strict` — 0 errors, 1 warning, and that warning is the
+      pre-existing orphan list.
+- [x] 4.5 Verified and synced on 2026-08-31. Main specs updated; the change stays
+      open, per the lifecycle.
+      **`navigation-shell` is deliberately not synced.** It has no main spec: it is a new
+      capability `one-library-three-destinations` introduces and has not synced, so there is
+      nothing to merge into and creating one from this change's single requirement would
+      publish a fraction of the capability as if it were the whole contract. It syncs with
+      that change. The proposal anticipated this and the two deltas do not contradict.
+      **The sync surfaced a coordination problem worth recording.** Two other open
+      changes carried MODIFIED deltas on requirements this one changed, and a
+      MODIFIED requirement replaces the whole block — so archiving either of them
+      later would have silently dropped the scenarios added here.
+      `openspec validate --all` caught it; the missing scenarios are carried into
+      `one-library-three-destinations` and `reader-theming-and-page-transitions`
+      with a note saying where they came from.

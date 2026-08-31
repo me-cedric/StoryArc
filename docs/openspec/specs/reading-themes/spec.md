@@ -29,6 +29,9 @@ colour, a text colour, a typeface, and a spacing character.
 | **Calm** | Warm dim. Cream-on-brown, generous line height. Long evening sessions. |
 | **Focus** | Narrow measure, high contrast, minimal decoration. Fewest words per line. |
 
+A preset a reader has deviated from SHALL be restorable **by name**, to the values
+this table describes, without touching any other preset or any other setting.
+
 #### Scenario: Applying a preset
 - **WHEN** a user taps a preset
 - **THEN** every axis the preset defines is applied at once and the change is visible immediately in the reader behind the sheet
@@ -44,6 +47,21 @@ colour, a text colour, a typeface, and a spacing character.
 - **THEN** the preset stays selected and is marked as modified
 - **AND** a single action restores the preset's own values
 
+#### Scenario: The reset names what it restores
+- **WHEN** a modified preset is reset
+- **THEN** the action names that preset — the reader who modified Calm is offered Calm back, not an unnamed default
+- **AND** every axis returns to that preset's published value, including any the reader never touched
+- **AND** the other five presets, the custom colour slot, the per-series memory and the global default are unchanged, because a reset is not a factory reset
+
+#### Scenario: Resetting the preset that is already unmodified
+- **WHEN** a reset is offered for a preset nothing has deviated from
+- **THEN** the action is absent rather than present and doing nothing, because a control that never changes anything teaches a reader to distrust the ones that do
+
+#### Scenario: Reset does not disturb the reading position
+- **WHEN** a preset is reset while a publication is open
+- **THEN** the reading position is preserved to the paragraph across the repagination, exactly as a type-size change is
+- **AND** the change is visible behind the sheet without the sheet being dismissed
+
 #### Scenario: Presets follow the appearance polarity
 - **WHEN** the app appearance switches between light and dark
 - **THEN** the reading theme does **not** change, because appearance and reading theme are independent settings
@@ -53,6 +71,10 @@ colour, a text colour, a typeface, and a spacing character.
 
 A reading theme SHALL be defined by exactly these axes, and each SHALL be
 independently adjustable.
+
+Every axis control SHALL state its current value beside it. A slider is a position
+on a track and a reader cannot report, repeat or reason about a position; "line
+spacing 1.4" is a value they can.
 
 | Axis | Control | Notes |
 | --- | --- | --- |
@@ -72,6 +94,11 @@ independently adjustable.
 - **WHEN** a user taps the smaller or larger control
 - **THEN** the size moves one step and the step position is shown
 - **AND** the step scale spans at least seven steps from smallest to largest
+
+#### Scenario: Every axis states its value
+- **WHEN** an axis control is shown
+- **THEN** its current value is stated beside it in the reader's own language and units, and updates as the control moves
+- **AND** the value is available to assistive technology as part of the control rather than as a separate unlabelled element
 
 #### Scenario: An axis requires publisher styles to be off
 - **WHEN** an axis that depends on publisher styles being disabled is displayed while they are enabled

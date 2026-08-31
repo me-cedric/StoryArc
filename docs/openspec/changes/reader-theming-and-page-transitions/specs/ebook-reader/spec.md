@@ -56,3 +56,33 @@ for body text.
 - **WHEN** the preset grid is shown
 - **THEN** each preset is rendered as its own swatch, previewing its background and typeface with the letters "Aa" and its name
 - **AND** the active preset is visibly selected, and a preset deviated from is marked as modified rather than silently shown as active
+
+> **The scenarios below arrived from a sibling change and are carried, not written
+> here.** A MODIFIED requirement replaces the whole block, so a delta written before
+> that change synced would drop them on archive. `openspec validate` caught it.
+
+#### Scenario: The theme surface opens on the presets
+- **WHEN** a user opens reading themes from the reader's menu
+- **THEN** the six preset swatches are what is shown, with no axis control among them
+- **AND** one action, given equal prominence to the grid, opens the axes
+- **AND** picking a preset applies it and leaves the surface, because that was the whole errand
+
+
+#### Scenario: The axes, over the reader's own text
+- **WHEN** a user opens the axes
+- **THEN** they appear on a surface of their own, over a specimen of the publication's own text in the active theme, which updates as an axis changes
+- **AND** every axis states its current value in words or numbers beside its control, rather than as an unlabelled position on a track
+- **AND** the axes offered are exactly those in [`reading-themes`](../reading-themes/spec.md), with none added and none dropped
+
+
+#### Scenario: Getting back to the preset
+- **WHEN** a preset has been modified and the reader wants it back
+- **THEN** the axes surface offers a reset that names the preset it restores
+- **AND** it is described in [`reading-themes`](../reading-themes/spec.md), which owns what resetting means
+
+
+#### Scenario: Both levels at the largest text size
+- **WHEN** either surface is shown at the largest accessibility text size
+- **THEN** every preset name, axis label and value is readable in full, the surface scrolls if it must, and the action that opens the axes stays reachable
+- **AND** no label is truncated to fit its value beside it
+
