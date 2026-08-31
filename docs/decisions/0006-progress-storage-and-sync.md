@@ -68,9 +68,17 @@ A publication's identity is, in order of preference:
 
 1. **The server's own identifier**, when it came from a source that has one
    (a Kavita chapter id). The server is authoritative for its own content.
-2. **A content hash** otherwise: a digest of the file's size plus the first and
-   last 64 KB. Cheap to compute over SMB (two ranged reads, no full transfer),
-   and stable across renames, moves, and re-downloads.
+2. **A content hash** otherwise: a SHA-256 digest of the file's length plus the
+   first and last **512 KB**. Cheap to compute over SMB (two ranged reads, no
+   full transfer), and stable across renames, moves, and re-downloads.
+
+   *Corrected 2026-08-31: this line said 64 KB from the day it was written and
+   the code has always said 512 KB. The prose was wrong, not the code, and the
+   number cannot now be moved to match it — the digest is stored as a bare hex
+   SHA-256 with no scheme tag, so changing what it is computed from orphans
+   every digest already written, and Android's externally-opened-file records
+   carry a digest with no path to fall back to. Any future change to this
+   number needs a scheme tag in the stored string first.*
 3. **A normalised path**, only as a last resort when neither is obtainable.
 
 Identity 1 and identity 2 are recorded together when both are known, which is
