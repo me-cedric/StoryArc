@@ -64,10 +64,35 @@ than inventing one.
 | Notification | media3's automatic `MediaStyle` notification | Hand-rolling it is how the shade and the lock screen fall out of step |
 | Resumption | `MediaSession.Callback.onPlaybackResumption` returning the saved position | What makes the notification-shade carousel work after process death |
 | Android Auto | `MediaLibraryService` + `automotive_app_desc.xml` | An audiobook player that cannot be driven from a car is missing its best use |
-| Version | **media3 1.11.0**, declared explicitly in the version catalog | M4B chapter marks are absent at 1.10.0 — verified by unzipping `media3-common-1.10.0.aar` and `media3-container-1.10.0.aar`. Readium already puts 1.10.0 on the runtime classpath, so this is a bump plus a declaration, not a new dependency |
+| Version | **media3 1.11.0**, declared explicitly in the version catalog | See the note below. Readium already puts 1.10.0 on the runtime classpath, so this is a bump plus a declaration, not a new dependency |
 | Compact bar | **Hand-composed row** in `NavigationSuiteScaffold`'s `content` slot | See below |
 | Progress line | Flat `LinearProgressIndicator` | Material cautions the wavy variant *"may not be as visible"* at small sizes and says linear indicators *"shouldn't be used in any elements smaller than 40dp"* |
 | Rows | `ListItem` | The guided row for icon + heading + supporting line |
+
+### The media3 version, checked rather than taken on trust
+
+The research pass reported that M4B chapter marks are "absent at 1.10.0". That is
+true of MP4 and **not** true in general, and the difference decides how much of the
+format table works before the bump. Checked on 2026-08-31 by unzipping the cached
+`media3-common-1.10.0.aar`, `media3-container-1.10.0.aar` and
+`media3-extractor-1.10.0.aar` and reading the class list:
+
+- **ID3 chapters already work at 1.10.0.** `ChapterFrame` and `ChapterTocFrame` are
+  both present in `androidx.media3.extractor.metadata.id3`. So a folder of chaptered
+  MP3s — the common library-service export — needs no bump at all.
+- **MP4 chapters do not.** No class in any of the three artifacts is named for a
+  chapter atom, `BoxParser` disassembles with no reference to `chap` or `chpl`, and
+  `media3-common` carries none of those strings across its 388 classes. M4B is the
+  format that needs 1.11.0.
+
+`1.11.0` is released and stable — confirmed against Google's Maven metadata for
+`androidx.media3:media3-common`, which also lists a `1.10.1` between the two.
+
+**What this changes in the plan.** Nothing is blocked on the bump: task 2.1's
+detection, task 2.3's unchaptered case and the whole MP3-folder path work at 1.10.0.
+The bump buys M4B's own chapter marks and nothing else, so if it ever turns out to
+drag Readium's transitive media3 somewhere unwelcome, the fallback is a chaptered-M4B
+gap rather than no audiobooks.
 
 ### Why the compact bar is hand-composed
 
