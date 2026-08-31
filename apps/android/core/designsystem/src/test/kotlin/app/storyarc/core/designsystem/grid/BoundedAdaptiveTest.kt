@@ -1,4 +1,4 @@
-package app.storyarc.feature.library
+package app.storyarc.core.designsystem.grid
 
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.ui.unit.Density

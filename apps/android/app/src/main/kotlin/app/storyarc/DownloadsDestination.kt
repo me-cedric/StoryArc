@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -28,14 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
@@ -44,7 +40,6 @@ import app.storyarc.feature.library.isOnDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.roundToInt
 
 /**
  * Everything readable with no network at all, and whatever is still on its way.
@@ -104,7 +99,13 @@ internal fun DownloadsDestination(host: AppHost) {
         snackbarHost = { SnackbarHost(snackbars) },
     ) { padding ->
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = coverMinimum()),
+            // The library shelf's own columns, asked of the same rule rather than restated
+            // here. Two things were different and both were visible: this grid ignored the
+            // reader's font scale, and `GridCells.Adaptive` has no upper bound, so on a
+            // tablet these covers stretched past the 168 dp the library's stop at. The
+            // spacing matches for the same reason — two shelves of one library that answer
+            // the same window differently read as two apps.
+            columns = rememberCoverColumns(),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = StoryArcSpace.gutter,
@@ -112,7 +113,7 @@ internal fun DownloadsDestination(host: AppHost) {
                 top = padding.calculateTopPadding() + StoryArcSpace.md,
                 bottom = StoryArcSpace.xxl,
             ),
-            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.coverGap),
+            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
         ) {
             wide { DestinationTitle(stringResource(R.string.destination_downloads)) }
@@ -239,76 +240,6 @@ private suspend fun remove(host: AppHost, download: Download) {
     // The library holds a row for every imported copy, and a row whose file has just been
     // moved aside is a book that opens onto nothing.
     host.library.refreshImports()
-}
-
-/**
- * The font scale at which the reader has left the ordinary range.
- *
- * Android's own Font size slider stops at 1.3 outside accessibility settings, and the larger
- * steps (1.5, 1.8, 2.0) live behind them. Must equal `:feature:library`'s constant of the
- * same name; `CoverMinimumTest` is what says so.
- */
-private const val ACCESSIBILITY_FONT_SCALE = 1.3f
-
-/**
- * How much wider a cover is drawn once the reader is at an accessibility font scale.
- *
- * A step, not a scale, and there are exactly two of them: what a cramped caption needs is
- * one fewer column, and a column is a step. 1.4 takes a ~400 dp phone from three columns to
- * two and leaves a 360 dp phone at the two it already had. Must equal `:feature:library`'s
- * constant of the same name.
- */
-private const val ACCESSIBILITY_COVER_STEP = 1.4f
-
-/**
- * The narrowest a cover is drawn in a window this wide, for a reader asking for text this
- * large.
- *
- * `design.md`: "Minimum cover width scales by size class: 104 / 132 / 158 pt", at Material's
- * own medium and expanded breakpoints. The same ladder the library's grid uses — one number
- * for every window is what leaves a tablet showing a wall of phone-sized postage stamps.
- *
- * **[fontScale] is the second input and this screen was ignoring it**, so at an accessibility
- * text size the Downloads shelf kept 104 dp columns while the library shelf widened to 146 —
- * two shelves in one app laying out differently, and captions wrapping hard inside the narrow
- * one. iOS had the identical divergence in `OnDeviceShelf` and Apple's audit reported it as
- * five clipped labels.
- *
- * **This is a third copy of a rule that should have one home.** `:feature:library` holds
- * `coverMinimumWidth`, `coverMaximumWidth` and `BoundedAdaptive`, and all three are
- * `internal` to that module, so `:app` cannot call them however much it should. The fix is
- * to move them to `:core:designsystem`, which both modules already depend on and where
- * `design.md`'s other rules already live — one deletion in each module once somebody owns
- * both. Until then this copy is kept honest by a test asserting the same table iOS and
- * `:feature:library` assert.
- */
-internal fun coverMinimum(windowWidthDp: Int, fontScale: Float): Dp {
-    val tier = when {
-        windowWidthDp >= 840 -> 158.dp
-        windowWidthDp >= 600 -> 132.dp
-        else -> 104.dp
-    }
-    return if (fontScale >= ACCESSIBILITY_FONT_SCALE) {
-        (tier.value * ACCESSIBILITY_COVER_STEP).roundToInt().dp
-    } else {
-        tier
-    }
-}
-
-/**
- * The same rule, asked of the window this screen is in.
- *
- * The *window's* width rather than this shelf's, which is what `:feature:library`'s grid also
- * asks: 600 and 840 are Material's own window size-class breakpoints, so measuring a content
- * pane against them would read a 900 dp window behind a navigation rail as a medium one.
- */
-@Composable
-private fun coverMinimum(): Dp {
-    val density = LocalDensity.current
-    val width = LocalWindowInfo.current.containerSize.width
-    return remember(density, width, density.fontScale) {
-        coverMinimum(with(density) { width.toDp().value.toInt() }, density.fontScale)
-    }
 }
 
 /** One full-width row inside the cover grid. */

@@ -1,4 +1,4 @@
-package app.storyarc.feature.library
+package app.storyarc.core.designsystem.grid
 
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.ui.unit.Density
@@ -18,8 +18,12 @@ import androidx.compose.ui.unit.Dp
  * held the second clause and Android did not. This is that value, and nothing more: below
  * the cap it computes exactly what [GridCells.Adaptive] computes, remainder pixels
  * included, so a wide window is laid out identically to before.
+ *
+ * Public, and reached through [rememberCoverColumns] rather than constructed: every shelf in
+ * the app is entitled to the same column rule, and the Downloads shelf was drawing plain
+ * [GridCells.Adaptive] for the whole time this class was `internal` to `:feature:library`.
  */
-internal class BoundedAdaptive(
+class BoundedAdaptive(
     private val minSize: Dp,
     private val maxSize: Dp,
 ) : GridCells {

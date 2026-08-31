@@ -1,4 +1,4 @@
-package app.storyarc.feature.library
+package app.storyarc.core.designsystem.grid
 
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -17,6 +17,10 @@ import org.junit.Test
  * captioned `Harbour Lights #1` wrapped and its neighbours' series lines truncated. The
  * artwork stayed recognisable and the caption stopped being readable, which is the wrong
  * way round. iOS's `CoverMinimumWidthTests` asserts the same bounds.
+ *
+ * This asserted `:feature:library`'s copy of the ladder until the ladder came here. It is the
+ * widths' only test now — `:app`'s `ShelfColumnsAgreeTest` asserts that both shelves ask for
+ * them rather than restating them.
  */
 class CoverMinimumWidthTest {
 
