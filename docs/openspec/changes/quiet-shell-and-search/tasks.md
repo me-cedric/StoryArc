@@ -65,8 +65,19 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       transparent container; group by gap and `SegmentedListItem`, not dividers.
 - [ ] 2.12 Both: recent searches persist and clear. Assert the clear empties them and
       that reaching search does not itself record a query.
-- [ ] 2.13 Both: a query typed while a source is unreachable shows local results and
+      **iOS done** — `RecentSearchMemoryTests`, mutation-checked by dropping the
+      store write from `clearRecentSearches()`. **Android not done**: the same
+      assertions belong in `feature/library/src/test/…/LibraryViewModelTest`, and
+      `apps/android/feature/library/` was off limits to the agent that did the iOS
+      half. The behaviour mirrors iOS and is unasserted at the view-model level.
+- [x] 2.13 Both: a query typed while a source is unreachable shows local results and
       names the source once, in the results. Assert nothing waits on it.
+      **Already asserted before this change**, case for case, by
+      `SearchListingTests.swift` and `SearchListingTest.kt`: *what the device holds
+      is the whole answer until something else replies*, *a library that could not
+      answer is named once however often it is asked*, and *a library that fails
+      leaves the rows already on screen alone*. Both suites were run; the iOS one
+      was mutation-checked by appending the notice unconditionally.
 
 ## 3. What's new
 
