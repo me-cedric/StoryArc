@@ -19,16 +19,21 @@ creep — see [`design.md`](design.md).
 
 ## 2. Audiobooks open
 
-- [ ] 2.1 Both: format-detection tests for M4B, a single audio file and a folder of
-      ordered audio, from **contents** rather than extension — an `.m4b` and an
-      `.m4a` holding the same audio behave identically.
+- [x] 2.1 Both: format-detection tests for M4B, MP3, FLAC and Ogg from **contents**
+      rather than extension — an `.m4b` and an `.m4a` holding the same audio behave
+      identically. `FormatSniffer` on both platforms, plus `Container.isAudio` so the
+      reader-or-player question is asked in one place. Mutation-checked on both.
+      *The folder half moves to 2.2*, which is where the folder scanner lives.
 - [ ] 2.2 Both: a folder mixing audio and images is treated as the kind the majority
       of its entries are, and states which it chose.
 - [ ] 2.3 Both: an audiobook with no chapter markers opens, its parts standing in for
       chapters, and nothing is reported as missing.
-- [ ] 2.4 Both: an `.aax`/`.aaxc` is refused by name, states the store's content
+- [~] 2.4 Both: an `.aax`/`.aaxc` is refused by name, states the store's content
       protection as the reason, prompts for no key or account, and is distinct from
-      an unsupported container. Assert no key prompt appears.
+      an unsupported container. **Detection done and mutation-checked** — the brand is
+      read at offset 8 and gets its own container case, so the refusal is structural
+      rather than a message a caller chooses. What remains is the *wording* the user
+      sees, which needs the player's own surface to say it on.
 - [ ] 2.5 Both: a truncated audiobook plays what it can and states how much it could
       not, in the player's controls, without interrupting playback.
 - [x] 2.6 Add audiobook fixtures to the shared corpus: a chaptered M4B, the same
