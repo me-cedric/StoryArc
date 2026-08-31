@@ -41,6 +41,29 @@ is a small job and it is the one that makes every other number in this document 
 
 ---
 
+## 0b. What has closed since this was written, the same day
+
+Kept as an addendum rather than by editing the sections below, so the audit still reads as
+what was found rather than as what survived.
+
+| Closed | Where it was |
+| --- | --- |
+| **The publication page is reachable** on both platforms. Every cover leads to it; every resume affordance still opens the book. Three browse screens deliberately keep opening the reader, and the reason is recorded in the change's task 2.3. | §1 |
+| **Android's shelf caught up with iOS's** — the on-device mark, dimming for what cannot be read now, and section headings by series. The per-source chip strip and the superseded empty state are gone. | §2 |
+| **The interface language reaches the EPUB reader.** Both of the app's two activities now use one mechanism. | §3.2 |
+| **Material You can be turned off**, with the switch disabled and explained under OLED Dark, where true black already wins over the wallpaper. | §3.3 |
+| **The iOS accessibility audit runs at all.** Its target had never built — no `Info.plist`, no generation flag — so `xcodebuild test` failed before a single test started. It reported nineteen issues on first run; Downloads is down from seven to one, and the nine contrast findings are each judged in the test's own expectations. | §5 |
+| **The device tooling finds its own tools.** `scripts/adb.mjs` resolves `adb`; `scripts/gradle.mjs` resolves JDK 21, the SDK, and writes the `local.properties` a fresh worktree lacks. Before this, two of the three device scripts could not run on this machine at all and Gradle could not start in a worktree. | §5 |
+| **`pnpm smoke:android` walks 16 of 16 routes**, up from 1 of 13, with no crashes. It had been describing the pre-revamp shell, and reading uiautomator's null dumps as "element absent". | §5 |
+
+**And two questions answered by a device rather than by reading**, both now recorded in
+[`ui-revamp-2026-08.md`](../designs/ui-revamp-2026-08.md): `Tab(role: .search)` morphs into
+a field in place, so the documented fallback should not be built; and the OPDS stack works
+end to end against `pnpm opds` — the app connects, names the catalogue, and issues
+`GET /opds/all?q=…`. What is *not* wired is the merge, which is exactly what §3.12 says.
+
+---
+
 ## 1. The single largest gap: a whole screen nobody can reach
 
 The publication page — hero, cover-derived wash, title block, primary action, overflow,
