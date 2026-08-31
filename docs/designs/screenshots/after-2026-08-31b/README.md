@@ -136,3 +136,40 @@ rule documents avoiding: it read `SourceConnectionState.canFetch`, which the rul
 because every source is probed on launch and "still asking" is not "cannot be reached", and it
 consulted the format, which the rule refuses because that "would conflate 'your network is
 down' with 'this file is a CB7'". Home asks `isReadableNow` now. Measured after: **0 of 4**.
+
+## The chip rows wrap instead of running off the window
+
+`android-download-limit-es-scale2-light`, at **320 dp** (`wm size 1080x2400`,
+`wm density 540`), `font_scale 2.0`, Spanish. Measured from the tree:
+
+| Chip | Size | Position |
+| --- | --- | --- |
+| Sin límite | 110×37 dp | x=40..151, y=303 |
+| 1,0 GB | 76×37 dp | x=187..263, y=303 |
+| 5,0 GB | 76×37 dp | x=40..117, y=355 |
+| 20 GB | 71×37 dp | x=153..223, y=355 |
+
+Two lines, every chip inside the 320 dp window with 57 dp to spare, none truncated and none
+squeezed into a column of letters. Those were the three things named as falsifying the change.
+
+Spanish rather than the German the earlier rounds assumed: the app ships four locales and
+Spanish is the longest. `Tamaño en este dispositivo` exceeds a full 320 dp window on its own,
+which is the single-chip-wider-than-the-row case an earlier comment declared unreached.
+
+The **reading list's** order chips — the row that case belongs to — are not photographed here.
+Reaching them needs a reading list with a sort override on a device whose language is Spanish,
+and the route map this harness walks is English-only, which is a real gap in the tooling and
+not a claim about the code. `ListOrderChipsWrapTest` covers that row in all four locales and
+fails in all four when its `FlowRow` becomes a `Row`, which was re-run before merging.
+
+## Two things this batch's captures found in the harness itself
+
+**It photographed a splash screen and filed it as Home.** `capture-android.mjs` waited a fixed
+3.5 seconds, which is enough for a warm start and not for the first launch after an install.
+That is precisely the failure its own header claims to prevent. It now waits for a node
+carrying text, because a splash screen is an image and nothing else.
+
+**The crash walk was counting failures instead of routes.** `16/16 routes walked and survived`
+became `13/16` the moment `--a11y` was on, because three unnamed views were subtracted from the
+route count. An hour went into chasing that as a regression, and it was one line below the
+comment explaining that conflating these outcomes is how the script had already lied once.
