@@ -68,13 +68,72 @@ internal fun primaryActionOf(
 internal val PrimaryAction.opensTheBook: Boolean
     get() = this == PrimaryAction.READ || this == PrimaryAction.CONTINUE
 
-/** How the primary action is worded. */
-internal fun PrimaryAction.label(): Int = when (this) {
+/**
+ * How the primary action is worded, or null where the page draws no button at all.
+ *
+ * Null for exactly one state, and it is not a gap. `publication-detail` says an action that
+ * does not apply is "absent, not shown disabled without explanation": a refused publication
+ * has nothing to offer under any circumstances, so it gets [explanation] and no control.
+ * iOS reaches the same shape from the other direction -- `DetailActions.swift:91` returns
+ * `EmptyView()` for the same state and puts the refusal in a sentence.
+ *
+ * A label that could never render used to live here. `detail_action_refused`, "Cannot be
+ * opened", was translated four ways and produced only inside `if (press != null)`, where
+ * `press` is null exactly when the action is `REFUSED`. It said less than
+ * `detail_refused_body` already says and was deleted rather than given a button, because
+ * the button it would need is the one the spec forbids.
+ *
+ * The two `NEEDS_` states keep a label even though their button is conditional. That
+ * condition is a fact about the app -- whether there is any way to fetch this publication
+ * -- rather than about the action, so it is settled at the call site and not here.
+ */
+internal fun PrimaryAction.label(): Int? = when (this) {
     PrimaryAction.READ -> R.string.detail_action_read
     PrimaryAction.CONTINUE -> R.string.detail_action_continue
     PrimaryAction.NEEDS_DOWNLOAD, PrimaryAction.NEEDS_SOURCE -> R.string.detail_action_download
-    PrimaryAction.REFUSED -> R.string.detail_action_refused
+    PrimaryAction.REFUSED -> null
 }
+
+/** Where the download is offered, when the app has a way to fetch this publication at all. */
+internal enum class DownloadControl {
+    /** The primary action *is* the download: the book cannot be opened until it lands. */
+    PRIMARY,
+
+    /** The book opens now, and a copy is one of the things the overflow offers. */
+    OVERFLOW,
+
+    /** Nowhere. Either nothing can be fetched, or fetching would change nothing. */
+    NONE,
+}
+
+/**
+ * The one place that decides which control carries the download.
+ *
+ * `publication-detail` asks for "exactly one primary action" and for everything else to be
+ * "available from this page without competing with" it. A `NEEDS_DOWNLOAD` publication used
+ * to break both halves at once: the primary read *Download it* and the overflow carried a
+ * second *Download it*, because the two were written in different composables and gated on
+ * the same non-null callback without either knowing about the other.
+ *
+ * iOS cannot express that. `DetailActions.swift` partitions on one fact -- the primary is
+ * the download when `file == nil` (`:102`) and the menu offers it when `file != nil`
+ * (`:136`) -- so the two branches are complements and no state satisfies both. This is that
+ * partition, named, with the answer as a value rather than as two conditions that have to
+ * be kept opposite by hand. A function returning one of three cannot return two.
+ *
+ * `REFUSED` is [NONE] for the reason iOS's `canCopy` (`:179-181`) excludes it: fetching a
+ * container no decoder will open produces a local copy that still cannot be read.
+ *
+ * @param canDownload whether the app has any route to a copy — false for a publication that
+ *   is already on the device, and for one whose source offers no way to fetch it.
+ */
+internal fun downloadControl(action: PrimaryAction, canDownload: Boolean): DownloadControl =
+    when {
+        !canDownload -> DownloadControl.NONE
+        action == PrimaryAction.REFUSED -> DownloadControl.NONE
+        action.opensTheBook -> DownloadControl.OVERFLOW
+        else -> DownloadControl.PRIMARY
+    }
 
 /**
  * The sentence under the action, when it needs one, and none otherwise.

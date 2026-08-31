@@ -155,6 +155,12 @@ fun PublicationDetailScreen(
     var isShelfSheetOpen by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
+    // Decided once, here, and handed to exactly one of the two controls below. The primary
+    // and the overflow used to reach for `onDownload` independently, so a publication that
+    // has to arrive before it opens offered *Download it* twice -- once as the thing the
+    // page wants you to do and once buried in the menu beside it.
+    val download = downloadControl(action, canDownload = onDownload != null)
+
     Scaffold(
         containerColor = palette.surfaceCanvas,
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -185,7 +191,7 @@ fun PublicationDetailScreen(
                         isFinished = publication.id in viewModel.finishedPublications(),
                         onMark = { isRead -> onMark(publication, isRead) },
                         onAddToShelf = { isShelfSheetOpen = true },
-                        onDownload = onDownload,
+                        onDownload = onDownload.takeIf { download == DownloadControl.OVERFLOW },
                         onRemoveDownload = onRemoveDownload,
                     )
                 },
@@ -203,7 +209,7 @@ fun PublicationDetailScreen(
                 provenance = provenance,
                 downloadFraction = downloadFraction,
                 onRead = { onRead(publication) },
-                onDownload = onDownload,
+                onDownload = onDownload.takeIf { download == DownloadControl.PRIMARY },
                 modifier = modifier,
             )
         }
@@ -347,12 +353,15 @@ private fun DetailPrimaryAction(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
     ) {
-        val press: (() -> Unit)? = when {
-            action.opensTheBook -> onRead
-            action == PrimaryAction.REFUSED -> null
-            else -> onDownload
-        }
-        if (press != null) {
+        // Two independent facts, and both have to hold. [PrimaryAction.label] is null for
+        // the one state that never has a button; `press` is null when the state would have
+        // one and the app has no way to act on it — a publication that has to be fetched
+        // from a source that offers no route to a copy. That one keeps its explanation and
+        // loses its button, which is the same "absent, not disabled" rule from the other
+        // side.
+        val press: (() -> Unit)? = if (action.opensTheBook) onRead else onDownload
+        val label = action.label()
+        if (press != null && label != null) {
             Button(
                 onClick = press,
                 shape = MaterialTheme.shapes.large,
@@ -367,7 +376,7 @@ private fun DetailPrimaryAction(
                 ),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(action.label()))
+                Text(stringResource(label))
             }
         }
         action.explanation()?.let { explanation ->

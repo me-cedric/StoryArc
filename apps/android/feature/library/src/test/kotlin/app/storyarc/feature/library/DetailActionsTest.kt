@@ -122,4 +122,73 @@ class DetailActionsTest {
             assertEquals(action.name, action.opensTheBook, action.explanation() == null)
         }
     }
+
+    @Test
+    fun onlyTheRefusedStateGoesWithoutALabel() {
+        // A refused publication has nothing to offer under any circumstances, so it draws
+        // no button — and a button label with no button is a string four locales carry and
+        // nothing can render. Every other state has one, because every other state has a
+        // button somewhere in its range of inputs.
+        for (action in PrimaryAction.entries) {
+            assertEquals(
+                action.name,
+                action == PrimaryAction.REFUSED,
+                action.label() == null,
+            )
+        }
+    }
+
+    @Test
+    fun theDownloadIsOfferedByExactlyOneControl() {
+        // The defect this replaces: a `NEEDS_DOWNLOAD` publication drew *Download it* as
+        // the primary action and carried a second *Download it* in the overflow beside it,
+        // because the two were gated on the same non-null callback in different
+        // composables. One value for one decision makes both-at-once unrepresentable.
+        for (action in PrimaryAction.entries) {
+            val control = downloadControl(action, canDownload = true)
+            assertEquals(
+                action.name,
+                action == PrimaryAction.REFUSED,
+                control == DownloadControl.NONE,
+            )
+            assertEquals(action.name, action.opensTheBook, control == DownloadControl.OVERFLOW)
+        }
+    }
+
+    @Test
+    fun theStatesThatCannotOpenYetCarryTheDownloadThemselves() {
+        // The two the reader did not cause. The page wants one thing of them and it is the
+        // fetch, so it is the primary rather than an entry in a menu.
+        assertEquals(
+            DownloadControl.PRIMARY,
+            downloadControl(PrimaryAction.NEEDS_DOWNLOAD, canDownload = true),
+        )
+        assertEquals(
+            DownloadControl.PRIMARY,
+            downloadControl(PrimaryAction.NEEDS_SOURCE, canDownload = true),
+        )
+    }
+
+    @Test
+    fun nothingOffersADownloadTheAppCannotMake() {
+        // Already on the device, or a source with no route to a copy. `AppScreens` passes a
+        // null `onDownload` for both, and neither control may invent one.
+        for (action in PrimaryAction.entries) {
+            assertEquals(
+                action.name,
+                DownloadControl.NONE,
+                downloadControl(action, canDownload = false),
+            )
+        }
+    }
+
+    @Test
+    fun aRefusedContainerIsNeverOfferedAsADownloadEither() {
+        // iOS excludes it through `canCopy`, and for the same reason: fetching a container
+        // no decoder will open produces a local copy that still cannot be read.
+        assertEquals(
+            DownloadControl.NONE,
+            downloadControl(PrimaryAction.REFUSED, canDownload = true),
+        )
+    }
 }

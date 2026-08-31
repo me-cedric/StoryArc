@@ -340,7 +340,6 @@
     <string name="detail_action_read">Lire</string>
     <string name="detail_action_continue">Reprendre</string>
     <string name="detail_action_download">La télécharger</string>
-    <string name="detail_action_refused">Impossible à ouvrir</string>
     <string name="detail_needs_download">Celle-ci doit être sur votre appareil avant de s’ouvrir.</string>
     <string name="detail_needs_source">Elle n’est pas sur cet appareil, et la bibliothèque où elle se trouve ne répond pas. Elle sera récupérée dès son retour.</string>
     <string name="detail_refused_body">StoryArc ne peut pas ouvrir ce fichier, ici ni ailleurs.</string>

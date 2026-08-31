@@ -340,7 +340,6 @@
     <string name="detail_action_read">Read</string>
     <string name="detail_action_continue">Continue</string>
     <string name="detail_action_download">Download it</string>
-    <string name="detail_action_refused">Cannot be opened</string>
     <string name="detail_needs_download">This one has to be on your device before it opens.</string>
     <string name="detail_needs_source">It is not on this device, and the library it lives in is not answering. It will be fetched when that library is back.</string>
     <string name="detail_refused_body">StoryArc cannot open this file, here or anywhere else.</string>
