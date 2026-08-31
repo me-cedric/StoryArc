@@ -23,6 +23,13 @@ export const sleep = (ms) => execFileSync('/bin/sleep', [String(ms / 1000)])
  *
  * A route is a list of names to tap in order. Each is matched against a node's text or
  * its content description, so the list reads as what a person would do.
+ *
+ * A step may name alternatives with `|`, and the reader's action needs it: a publication
+ * nobody has opened offers **Read** and one that is part-read offers **Continue**, so a map
+ * naming only one of them stops walking the moment somebody reads a page. That is not
+ * hypothetical — it took this walk from 16 of 16 to 14 of 16 an hour after a fixture was
+ * read for an unrelated screenshot, and `AuditWalk.swift` carries the same note about the
+ * same defect on iOS, where it had already cost a suite its meaning.
  */
 export const ROUTES = [
     ['Home', []],
@@ -33,9 +40,9 @@ export const ROUTES = [
     // said twelve of thirteen routes were unreachable the first time it ran after the
     // navigation rewrite: it was still describing the app as it had been.
     ['Publication page', ['Library', ', CBZ']],
-    ['Comic reader', ['Library', ', CBZ', 'Read']],
-    ['Comic reader > chrome', ['Library', ', CBZ', 'Read', '@tap-centre']],
-    ['EPUB reader', ['Library', ', EPUB', 'Read']],
+    ['Comic reader', ['Library', ', CBZ', 'Read|Continue']],
+    ['Comic reader > chrome', ['Library', ', CBZ', 'Read|Continue', '@tap-centre']],
+    ['EPUB reader', ['Library', ', EPUB', 'Read|Continue']],
     // Settings left the browse path in the shell revamp: it is behind the library's
     // overflow, which is why naming it as a first step found nothing.
     ['Settings', ['Library', 'More', 'Settings']],
@@ -127,9 +134,16 @@ export function navigator(sh) {
                 tap(540, 1200)
                 continue
             }
+            // Any one of the alternatives will do, and each is tried against the same
+            // tree before scrolling: a page offering *Continue* is not a page missing *Read*.
+            const wanted = step.split('|')
             let spot = null
             for (let attempt = 0; attempt < 3 && !spot; attempt += 1) {
-                spot = centre(dump(), step)
+                const tree = dump()
+                for (const name of wanted) {
+                    spot = centre(tree, name)
+                    if (spot) break
+                }
                 if (!spot) {
                     sh('shell', 'input', 'swipe', '540', '1800', '540', '800', '260')
                     sleep(1200)
