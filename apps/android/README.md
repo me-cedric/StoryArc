@@ -59,7 +59,16 @@ anything. The other three ended at `cover?.let { Image(…) }`, which has no els
 branch, so a publication with no cover was a bare `surfaceSunken` rectangle. The
 view was written inside `CoverGrid`'s private cell, so no other module could ask
 for it however much it should. `:app`'s `ShelvesDrawOneWellTest` names the four by
-path, checks each asks, and rejects the `?.let` shape that hid the omission.
+path, checks each asks, rejects the `?.let` shape that hid the omission, and reads
+the `format` argument at each call site — the one thing the four differ about, and
+interchangeable to the compiler. Two of the four are also composed and asserted:
+`:app`'s `DownloadsCoverlessWellTest` and `:feature:library`'s `CoverlessWellTest`,
+which between them cover what the well draws, what it announces, and where its
+title sits relative to the format label at `font_scale` 1.0, 1.5 and 2.0.
+
+`:app` declares Robolectric and a Compose test rule for the first time to make the
+first of those possible; before that the shelf the defect was reported on had a
+source grep behind it and nothing else.
 
 **Again, those four and not every cover.** Four further wells are deliberately
 different and `cover/CoverlessWell.kt` names each with its reason: a publication

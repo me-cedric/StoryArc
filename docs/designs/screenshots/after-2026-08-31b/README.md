@@ -78,15 +78,71 @@ Four further wells are deliberately untouched and named in `cover/CoverlessWell.
 `DetailHero`'s hero draws a book glyph and no title, because a publication page reads its
 title out of the app bar; and `CatalogueEntryCell`, `KavitaSeriesGrid` and
 `CatalogueDetailScreen` stand for an OPDS entry or a Kavita series rather than a
-`Publication`, so they have no format to name and hold three different text roles between
-them. Converting those changes what three remote-browsing screens look like and belongs with
-its own capture.
+`Publication`, so they have no format to name. **Two** text roles between the three, not
+three, and an earlier draft of this line said three: `CatalogueEntryCell` and
+`KavitaSeriesGrid` are the same well twice over — `bodySmall`, `textSecondary`, centred,
+`maxLines = 4`, ellipsised, `StoryArcSpace.sm` either side, differing only in whether the
+title comes off an entry or a series — and `CatalogueDetailScreen`'s is `titleMedium`. That
+makes them *more* consolidatable than the line claimed, not less. Converting them still
+changes what three remote-browsing screens look like and still belongs with its own capture.
 
-**This still owes an Android after-picture.** The change is proven by
-`:feature:library`'s `CoverlessWellTest`, which composes Home's card with no artwork, and by
-`:app`'s `ShelvesDrawOneWellTest`, which reads all four call sites — but §6 of
+## Two defects this change introduced, and what closed them
+
+Neither was visible in this note's first version, and both were found by review rather than
+by a gate.
+
+**The Downloads cell announced its title twice.** `OnDeviceCover` wraps its cell in a
+`combinedClickable`, which merges the whole cell into one spoken node, and the caption at the
+foot of that cell is what labels it. A well drawn inside the box therefore *added* to the
+label: `Foreign Codec, CBZ, Foreign Codec` — the title twice and a format the caption does
+not carry. iOS never had this because `.accessibilityHidden(true)` has sat on that box all
+along, and the first draft of `CoverlessWell.kt` cited that iOS fact without applying it.
+`CoverlessWell` now clears its own semantics for every caller, which is where the rule
+belongs: it was four callers' business before the view was shared and three of them got it
+wrong by not writing it at all.
+
+The other three surfaces were checked one at a time rather than given the same answer by
+assumption, because what is right depends on whether the cell already speaks for its
+children:
+
+| Surface | What labels the cell | Effect of the clear |
+| --- | --- | --- |
+| `OnDeviceCover` — Downloads | a caption `Text` under the box, inside the merging node | **load-bearing.** Removes a duplicate title and a format that was never spoken. |
+| `CoverGrid`'s cell — the library shelf | an explicit `contentDescription` on the same merging node, which TalkBack prefers over descendant text | inert; the label was already correct. |
+| `HomeCoverArt` — Home | `Modifier.homeCardSemantics`, which ends in `clearAndSetSemantics` on the whole card | inert; an ancestor already cleared it. |
+| `DetailSeriesCell` — a series shelf | a `contentDescription` on the cell's `Column`, naming title, volume and read state | restores the state before this change. The inner `Surface(onClick)` is an unlabelled button either way — pre-existing, and not this change's to fix or to paper over with a second copy of the title. |
+
+**The title's fourth line was drawn under the format label from `font_scale 1.5` up.** This
+one was inherited from the library shelf, not invented — the title was centred in the whole
+well with the label laid on top of it — and sharing the view spread it to Downloads, which is
+a screen this batch photographs at exactly that scale
+(`android-downloads-tablet-scale15-light.png`). Measured at a 104 dp well: the title ran to
+142 px against a label starting at 128. The well is a column now, so the label's height is
+reserved rather than drawn over and the title has a box of its own to wrap and truncate
+inside. `maxLines` stays at 4 — Compose lays a `Text` out inside the height it is given, so
+the box caps the line count without being told to, and a conditional there killed no mutation
+the box did not already kill.
+
+It costs the title about half the label's height at the default size, where it is now centred
+in the space above the label rather than in the whole well. **That is a visible change on the
+two surfaces that name a format** — the library shelf and Downloads — including the library
+shelf, which was not broken.
+
+**This still owes an Android after-picture, and now owes more of one.** What the tests prove:
+`:app`'s `DownloadsCoverlessWellTest` composes the Downloads cell and asserts both that the
+well is drawn and that the cell announces the title once with no format;
+`:feature:library`'s `CoverlessWellTest` composes `CoverlessWell` and `HomeCoverArt` — in
+isolation, not inside `HomeKeepReadingCard` or `HomeShelfCell`, and an earlier version of this
+line said "composes Home's card", which overstated it. In the real tree Home's card is wrapped
+in `clearAndSetSemantics`, so a text lookup finds nothing there; what that test proves is that
+the composable draws the title, not that Home's card does. `ShelvesDrawOneWellTest` reads all
+four call sites and their `format` arguments. Every one of those was re-run against a hand
+reverted fix and observed to fail.
+
+What none of them proves is what the four screens look like. §6 of
 [`AGENTS.md`](../../../AGENTS.md) asks for a photograph of Downloads and Home from a booted
-emulator, light and dark, and that is not in this directory yet.
+emulator, light and dark, and the title's new position on the library shelf and Downloads now
+asks for one at `font_scale 1.5` as well. Nothing in this directory is that yet.
 
 ## The iOS mirror of Android's chip row, settled
 

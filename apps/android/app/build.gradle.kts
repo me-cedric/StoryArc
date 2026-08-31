@@ -44,6 +44,10 @@ android {
 
     buildFeatures { compose = true }
 
+    // Robolectric composes real widgets, and this module's cells reach for string resources.
+    // `:feature:library` carries the same line for the same reason.
+    testOptions { unitTests { isIncludeAndroidResources = true } }
+
     lint {
         lintConfig = file("lint.xml")
         warningsAsErrors = true
@@ -111,6 +115,19 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // A composition on the JVM, so this module's own cells can be asserted in the unit gate.
+    //
+    // `ShelvesDrawOneWellTest` and `CoverlessWellTest` both used to say, correctly, that
+    // `:app` declared neither Robolectric nor a Compose test rule — which is why the shelf the
+    // coverless-well defect was actually *reported* on had nothing but a source grep behind
+    // it, and why a mutation reinstating the blank well passed the whole suite. The same five
+    // declarations `:feature:library` already carried, plus the `isIncludeAndroidResources`
+    // line above.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.junit)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

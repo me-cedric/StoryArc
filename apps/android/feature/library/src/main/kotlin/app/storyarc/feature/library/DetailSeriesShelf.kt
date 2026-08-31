@@ -158,6 +158,14 @@ private fun DetailSeriesCell(
                 // one. Its two caption lines are the volume and the read state, and a well
                 // stands in for missing artwork rather than introducing a field the surface
                 // around it does not carry.
+                //
+                // Spoken by the `Column` above and not by the well, which clears its own
+                // semantics. The `Surface` here is a click target with nothing in it that
+                // TalkBack reads either way — with a cover, the `Image` carries no
+                // description; without one, the well is silent — and that is the state
+                // before this change, kept. Labelling the button by letting the well speak
+                // would state the title a second time on a cell whose `contentDescription`
+                // already opens with it.
                 CoverlessWell(title = publication.displayTitle, format = null)
             }
         }

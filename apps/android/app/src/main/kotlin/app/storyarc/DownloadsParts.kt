@@ -50,7 +50,6 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.Publication
 import app.storyarc.core.persistence.ImportedCopies
-import app.storyarc.feature.library.LibraryViewModel
 
 /** The proportions of a comic cover, near enough for every publisher. */
 private const val COVER_ASPECT = 2f / 3f
@@ -86,15 +85,25 @@ private const val COVER_PIXELS = 512
 @Composable
 internal fun OnDeviceCover(
     publication: Publication,
-    viewModel: LibraryViewModel,
+    /**
+     * Where the artwork comes from, as a function rather than as the view model that holds it.
+     *
+     * `:feature:library`'s `HomeCoverArt` — the cell this one is deliberately the twin of —
+     * already takes its cover this way, and the reason applies here with more force: the
+     * branch that matters is the one taken when this answers `null`, and that is a state a
+     * test can hand over in one line while a `LibraryViewModel` is an `AndroidViewModel` a
+     * test would have to construct. This cell reads nothing else off the model, so nothing
+     * else is worth carrying. `DownloadsCoverlessWellTest` is what the change buys.
+     */
+    cover: suspend (Publication, Int) -> Bitmap?,
     onOpen: () -> Unit,
     /** Null when this is not something the app put here, and so not its to delete. */
     onRemove: (() -> Unit)?,
 ) {
     val palette = LocalStoryArcPalette.current
-    var cover by remember(publication.id) { mutableStateOf<Bitmap?>(null) }
+    var artwork by remember(publication.id) { mutableStateOf<Bitmap?>(null) }
     var isOffering by remember(publication.id) { mutableStateOf(false) }
-    LaunchedEffect(publication.id) { cover = viewModel.cover(publication, COVER_PIXELS) }
+    LaunchedEffect(publication.id) { artwork = cover(publication, COVER_PIXELS) }
 
     Column(
         modifier = Modifier
@@ -113,7 +122,7 @@ internal fun OnDeviceCover(
                 .background(palette.surfaceSunken),
             contentAlignment = Alignment.Center,
         ) {
-            val art = cover
+            val art = artwork
             if (art != null) {
                 Image(
                     bitmap = art.asImageBitmap(),
@@ -132,6 +141,12 @@ internal fun OnDeviceCover(
                 // With the format, because the library's cell names it and this cell is
                 // meant to be that cell: `no-pages` reads `no-pages` / `CBZ` here exactly
                 // as it does one destination away.
+                //
+                // Drawn only. The `combinedClickable` above merges this whole cell into one
+                // spoken node, and the caption at the foot of the column is what states the
+                // title to TalkBack — so the well is silent, which `CoverlessWell` does for
+                // every caller rather than leaving each to remember. Without that this cell
+                // announced `Foreign Codec, CBZ, Foreign Codec`.
                 CoverlessWell(
                     title = publication.displayTitle,
                     format = publication.format.displayName,

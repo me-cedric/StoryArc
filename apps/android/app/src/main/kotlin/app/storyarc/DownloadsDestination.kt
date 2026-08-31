@@ -167,7 +167,7 @@ internal fun DownloadsDestination(host: AppHost) {
                 items(onDevice, key = { it.id }) { publication ->
                     OnDeviceCover(
                         publication = publication,
-                        viewModel = host.library,
+                        cover = host.library::cover,
                         // A cover, so the publication's page — the on-device destination is
                         // a shelf like any other and `publication-detail` puts a page behind
                         // every cover on one. Nothing here offers to resume.
