@@ -139,18 +139,7 @@ struct KavitaChapterList: View {
             }
 
             if let metadata {
-                VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
-                    if let summary = metadata.summary, !summary.isEmpty {
-                        Text(summary)
-                            .textRole(.body)
-                            .foregroundStyle(theme.palette.textPrimary)
-                    }
-                    if !metadata.facts.isEmpty {
-                        Text(metadata.facts.joined(separator: " · "))
-                            .textRole(.caption)
-                            .foregroundStyle(theme.palette.textSecondary)
-                    }
-                }
+                KavitaSeriesFacts(metadata: metadata)
             }
 
             ForEach(volumes) { volume in

@@ -37,6 +37,17 @@ public struct KavitaMetadata: Sendable, Equatable, Decodable {
     public let publishers: [KavitaNamed]
     public let releaseYear: Int
 
+    /// Kavita's `AgeRating` and `PublicationStatus`, as the bare integers the API sends.
+    ///
+    /// Kept as numbers on the model and read through ``KavitaAgeRating`` and
+    /// ``KavitaPublicationStatus``, which is where the two rules about them live: an
+    /// unrecognised number is not a rating, and two of Kavita's own values are not ratings at
+    /// all. Decoding straight into an enum would have to decide what an unknown number means
+    /// at the point where the only honest answer is "nothing", and a failed decode would cost
+    /// the whole series' metadata rather than one line of it.
+    public let ageRating: Int
+    public let publicationStatus: Int
+
     /// The people worth naming on a detail screen, in the order a reader looks for them.
     public var people: [String] {
         (writers + publishers).map(\.label).filter { !$0.isEmpty }
@@ -62,10 +73,16 @@ public struct KavitaMetadata: Sendable, Equatable, Decodable {
         writers = try container.decodeIfPresent([KavitaNamed].self, forKey: .writers) ?? []
         publishers = try container.decodeIfPresent([KavitaNamed].self, forKey: .publishers) ?? []
         releaseYear = try container.decodeIfPresent(Int.self, forKey: .releaseYear) ?? 0
+        // `0` is Kavita's own default for both — `Unknown` for the rating and `OnGoing` for
+        // the status — so an absent field and a server that never set one read alike, which
+        // is what they are.
+        ageRating = try container.decodeIfPresent(Int.self, forKey: .ageRating) ?? 0
+        publicationStatus = try container.decodeIfPresent(Int.self, forKey: .publicationStatus) ?? 0
     }
 
     private enum CodingKeys: String, CodingKey {
         case seriesId, summary, genres, tags, writers, publishers, releaseYear
+        case ageRating, publicationStatus
     }
 }
 
