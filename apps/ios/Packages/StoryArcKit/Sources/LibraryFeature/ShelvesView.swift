@@ -160,7 +160,7 @@ public struct ShelvesView: View {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: StoryArcSpace.xl) {
                     ForEach(local) { collection in
                         NavigationLink {
-                            CollectionDetail(model: model, id: collection.id, onOpen: onOpen)
+                            CollectionDetail(model: model, id: collection.id)
                         } label: {
                             // `collections-and-reading-lists` gives a collection with
                             // contents a cover "composite of its first four member covers",

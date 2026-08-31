@@ -104,7 +104,6 @@ struct SeriesLineTests {
         CoverCell(
             publication: publication,
             model: LibraryModel(),
-            onOpen: { _ in },
             maxPixelSize: 200
         )
     }

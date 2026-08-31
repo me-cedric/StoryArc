@@ -92,7 +92,6 @@ struct DownloadsDestination: View {
                         OnDeviceShelf(
                             publications: onDevice,
                             model: model,
-                            onOpen: open,
                             removable: { downloads[$0.id] != nil },
                             onRemove: { removing = downloads[$0.id] }
                         )
@@ -103,6 +102,8 @@ struct DownloadsDestination: View {
             }
             .frame(maxWidth: .infinity)
             .background(theme.palette.surfaceCanvas)
+            // Once, at the root of this stack, for the covers on the shelf below.
+            .publicationPages(in: model, onOpen: onOpen)
             // The same soft edge the shelf and Home use: what passes under this app's
             // chrome is artwork, and a hard cut across a cover looks like a rendering fault.
             .scrollEdgeEffectStyle(.soft, for: .all)
@@ -208,10 +209,6 @@ struct DownloadsDestination: View {
             .storyArcGlass(in: RoundedRectangle(cornerRadius: StoryArcRadius.md))
             .padding(.horizontal, StoryArcSpace.gutter)
         }
-    }
-
-    private func open(_ publication: Publication) {
-        if let url = model.location(of: publication) { onOpen(publication, url) }
     }
 
     private func size(_ download: Download) -> String {

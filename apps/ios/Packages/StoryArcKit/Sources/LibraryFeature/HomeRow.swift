@@ -61,7 +61,6 @@ struct HomeSection<Content: View, Destination: View>: View {
 struct HomeShelfRow: View {
     let publications: [Publication]
     let model: LibraryModel
-    let onOpen: (Publication) -> Void
 
     /// The width at or above which covers stop being a widened phone's.
     ///
@@ -80,8 +79,7 @@ struct HomeShelfRow: View {
                     HomeShelfCard(
                         publication: publication,
                         model: model,
-                        width: coverWidth,
-                        onOpen: onOpen
+                        width: coverWidth
                     )
                 }
             }
@@ -101,11 +99,36 @@ private struct HomeShelfCard: View {
     let publication: Publication
     let model: LibraryModel
     let width: CGFloat
-    let onOpen: (Publication) -> Void
 
     private var isReadable: Bool { model.isReadableNow(publication) }
 
+    /// The card, and where it leads.
+    ///
+    /// To the publication's page. These are the *Up next*, *Recently added* and *Finished*
+    /// shelves — none of them offers to resume anything, and `publication-detail` sends
+    /// every cover that is not a resume affordance to the page. `Keep reading` is the
+    /// affordance that does resume, and it is ``HomeHero``, which still opens the book.
+    ///
+    /// A publication that cannot be opened right now stays on the shelf, dimmed, and does
+    /// not lead anywhere: `home-screen` requires it kept and stated, and the page's own
+    /// primary action is the thing that cannot be honoured, so there is nothing there to
+    /// offer yet. That is the one place this differs from the library's grid, where the same
+    /// publication is dimmed for availability rather than refused for format.
     var body: some View {
+        Group {
+            if isReadable {
+                NavigationLink(value: PublicationRoute(publication)) { card }
+                    .buttonStyle(.plain)
+            } else {
+                card
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel([publication.displayTitle, subtitle].compactMap { $0 }.joined(separator: ", "))
+        .accessibilityAddTraits(isReadable ? .isButton : [])
+    }
+
+    private var card: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
             HomeArtwork(publication: publication, model: model, width: width)
                 // 2:3 is the comic and book proportion, and fixing it here means a card
@@ -143,10 +166,6 @@ private struct HomeShelfCard: View {
         // loss to a reader who did not lose anything.
         .opacity(isReadable ? 1 : 0.55)
         .contentShape(.rect)
-        .onTapGesture { if isReadable { onOpen(publication) } }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel([publication.displayTitle, subtitle].compactMap { $0 }.joined(separator: ", "))
-        .accessibilityAddTraits(isReadable ? .isButton : [])
     }
 
     /// The second line: what tells this card from its neighbours, or why it is dimmed.
@@ -154,13 +173,10 @@ private struct HomeShelfCard: View {
         guard isReadable else {
             return String(localized: "home.unavailable", bundle: .module, locale: .storyArc)
         }
-        if let series = publication.series {
-            let line = publication.number.map { "\(series) #\($0)" } ?? series
-            // A guessed title is often the series and the issue joined back together, and
-            // a card that printed the same words twice would look like a rendering fault
-            // rather than a second fact.
-            if line.caseInsensitiveCompare(publication.displayTitle) != .orderedSame { return line }
-        }
-        return publication.authors.first
+        // ``seriesLine(for:)`` rather than the composition written out again. This card was
+        // the one surface that had always got this right, and the rule was lifted out of it;
+        // keeping a private copy here is how the shelf and the card would come to disagree
+        // about it a second time.
+        return seriesLine(for: publication) ?? publication.authors.first
     }
 }

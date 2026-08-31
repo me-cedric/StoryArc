@@ -48,7 +48,6 @@ struct CoverCellMarksTests {
         CoverCell(
             publication: publication,
             model: model,
-            onOpen: { _ in },
             maxPixelSize: 200,
             isPicked: picked
         )

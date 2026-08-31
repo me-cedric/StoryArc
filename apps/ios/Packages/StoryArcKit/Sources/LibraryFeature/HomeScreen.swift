@@ -83,6 +83,12 @@ public struct HomeScreen: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(theme.palette.surfaceCanvas)
+            // Once, at the root of this stack, for every cover below it — the shelves here,
+            // the *see all* grids they lead to, the shelves screen, a collection's grid, and
+            // the series shelf on the page itself. `publication-detail` requires the page to
+            // open "within the destination they were already in", which is what a push onto
+            // this stack is.
+            .publicationPages(in: model, onOpen: onOpen)
             // The same soft edge the shelf uses: what passes under this app's chrome is
             // artwork, and a hard cut across a cover looks like a rendering fault.
             .scrollEdgeEffectStyle(.soft, for: .all)
@@ -136,7 +142,7 @@ public struct HomeScreen: View {
                 shelvesLink
 
                 if !finished.isEmpty {
-                    HomeFinished(groups: finished, model: model, onOpen: open)
+                    HomeFinished(groups: finished, model: model)
                 }
             }
             .padding(.vertical, StoryArcSpace.lg)
@@ -145,13 +151,23 @@ public struct HomeScreen: View {
     }
 
     /// The hero. One on the surface, never two — a second would make neither of them one.
+    ///
+    /// **The one shelf on Home that still opens the book.** `publication-detail` sends every
+    /// cover to the publication's page and exempts resuming, and `home-screen` says the same
+    /// thing from the other side: choosing from Keep reading opens at the recorded position
+    /// "without an intermediate screen". A reader who taps a card that says how much is left
+    /// has already decided.
+    ///
+    /// Its *heading* still leads to `HomeMore`, which is the library's own grid over the same
+    /// set — `home-screen` words that as "the full list in the library, filtered to match the
+    /// shelf" — so the covers there lead to the page like every other cover in that grid. The
+    /// resume affordance is the hero, not the set of publications behind it.
     private var keepReadingSection: some View {
         HomeSection(title: Text("library.continueReading", bundle: .module)) {
             HomeMore(
                 title: Text("library.continueReading", bundle: .module),
                 publications: keepReading,
-                model: model,
-                onOpen: open
+                model: model
             )
         } content: {
             HomeHero(publications: keepReading, model: model, onOpen: open)
@@ -165,14 +181,9 @@ public struct HomeScreen: View {
     /// and the two never offer the same publication at the same time.
     private var upNextSection: some View {
         HomeSection(title: Text("home.upNext", bundle: .module)) {
-            HomeMore(
-                title: Text("home.upNext", bundle: .module),
-                publications: upNext,
-                model: model,
-                onOpen: open
-            )
+            HomeMore(title: Text("home.upNext", bundle: .module), publications: upNext, model: model)
         } content: {
-            HomeShelfRow(publications: upNext, model: model, onOpen: open)
+            HomeShelfRow(publications: upNext, model: model)
         }
     }
 
@@ -181,11 +192,10 @@ public struct HomeScreen: View {
             HomeMore(
                 title: Text("home.recentlyAdded", bundle: .module),
                 publications: HomeShelves.recentlyAdded(in: model.publications, limit: .max),
-                model: model,
-                onOpen: open
+                model: model
             )
         } content: {
-            HomeShelfRow(publications: recentlyAdded, model: model, onOpen: open)
+            HomeShelfRow(publications: recentlyAdded, model: model)
         }
     }
 

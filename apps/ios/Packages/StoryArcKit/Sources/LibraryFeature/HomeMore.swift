@@ -16,10 +16,9 @@ struct HomeMore: View {
     let title: Text
     let publications: [Publication]
     let model: LibraryModel
-    let onOpen: (Publication) -> Void
 
     var body: some View {
-        CoverGrid(publications: publications, model: model, onOpen: onOpen)
+        CoverGrid(publications: publications, model: model)
             .background(theme.palette.surfaceCanvas)
             .scrollEdgeEffectStyle(.soft, for: .all)
             .navigationTitle(title)

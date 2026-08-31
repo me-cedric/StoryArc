@@ -12,7 +12,6 @@ struct CollectionDetail: View {
 
     let model: LibraryModel
     let id: UUID
-    let onOpen: (Publication, URL) -> Void
 
     /// Whether the reader is choosing which cover this collection wears.
     @State private var isChoosingCover = false
@@ -28,14 +27,7 @@ struct CollectionDetail: View {
                     .foregroundStyle(theme.palette.textSecondary)
                     .padding(StoryArcSpace.xl)
             } else {
-                CoverGrid(
-                    publications: members,
-                    continueReading: [],
-                    model: model,
-                    onOpen: { publication in
-                        if let url = model.location(of: publication) { onOpen(publication, url) }
-                    }
-                )
+                CoverGrid(publications: members, model: model)
             }
         }
         .background(theme.palette.surfaceCanvas)

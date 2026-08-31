@@ -61,17 +61,17 @@ struct CoverGrid: View {
     @Environment(\.dynamicTypeSize) private var textSize
 
     let publications: [Publication]
-    /// In-progress publications, most recently read first. Empty means the row is
-    /// not drawn — `library-browsing` requires it absent rather than shown empty.
-    var continueReading: [Publication] = []
     /// Search results under their own headings. Empty means there is no search running and
     /// the shelf is drawn as one run of covers.
     var groups: [MatchGroup] = []
     let model: LibraryModel
-    /// What to do when a cover is tapped. The library does not open the reader
-    /// itself — a feature module never depends on another feature module, so the
-    /// app layer wires the two together.
-    let onOpen: (Publication) -> Void
+
+    // No `onOpen`. A cover leads to the publication's page now — `publication-detail` makes
+    // that the rule for every cover on every surface — and ``CoverCell`` pushes the route
+    // itself, so the enclosing stack's one registration is the whole wiring. The grid used
+    // to carry a `Continue reading` row of its own, which was the only resume affordance
+    // here; it moved to the home surface's hero long before this change and had been passed
+    // an empty array by every caller since.
 
     /// What the reader has picked, or `nil` when they are not picking.
     ///
@@ -105,20 +105,6 @@ struct CoverGrid: View {
 
     var body: some View {
         ScrollView {
-            if !continueReading.isEmpty {
-                ContinueReadingRow(
-                    publications: continueReading,
-                    model: model,
-                    onOpen: onOpen,
-                    // Slightly larger than a shelf cover, because there are few of them
-                    // and they are what the reader came back for. The multiplier keeps a
-                    // phone at the 128 pt this row already was, and lets an iPad grow
-                    // with the shelf under it rather than staying a phone's row above it.
-                    coverWidth: (minimumWidth * 1.25).rounded(),
-                    maxPixelSize: Int(maximumWidth * displayScale)
-                )
-            }
-
             // `library-browsing`: while a search is running, results are "grouped by match
             // kind". One heading and one grid per group rather than a second screen — the
             // reader is looking at their library with a word typed over it, not somewhere
@@ -162,7 +148,6 @@ struct CoverGrid: View {
                 CoverCell(
                     publication: publication,
                     model: model,
-                    onOpen: onOpen,
                     // Pixels, not points: a cover decoded at point size is
                     // blurry on every device made since 2010.
                     maxPixelSize: Int(maximumWidth * displayScale),
@@ -176,48 +161,12 @@ struct CoverGrid: View {
     }
 }
 
-/// What the reader was in the middle of.
-///
-/// `library-browsing`: "a Continue reading row appears first, ordered by most
-/// recently read". Horizontal, because it is a shortcut rather than a second
-/// library — a vertical block of it would push the shelf off the screen.
-struct ContinueReadingRow: View {
-    @Environment(\.theme) private var theme
-
-    let publications: [Publication]
-    let model: LibraryModel
-    let onOpen: (Publication) -> Void
-    /// How wide one shortcut is. Handed down rather than fixed, so this row scales with
-    /// the shelf beneath it instead of staying a phone's row in a 13-inch window.
-    let coverWidth: CGFloat
-    let maxPixelSize: Int
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-            Text("library.continueReading", bundle: .module)
-                .textRole(.headline)
-                .foregroundStyle(theme.palette.textPrimary)
-                .padding(.horizontal, StoryArcSpace.gutter)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: StoryArcSpace.md) {
-                    ForEach(publications) { publication in
-                        CoverCell(
-                            publication: publication,
-                            model: model,
-                            onOpen: onOpen,
-                            maxPixelSize: maxPixelSize
-                        )
-                        .frame(width: coverWidth)
-                    }
-                }
-                .padding(.horizontal, StoryArcSpace.gutter)
-            }
-        }
-        .padding(.top, StoryArcSpace.md)
-        .padding(.bottom, StoryArcSpace.sm)
-    }
-}
+// `ContinueReadingRow` used to be here. `library-browsing`'s "a Continue reading row appears
+// first" moved to `home-screen` — the row became the home surface's hero, because the shelf
+// hid it the moment a search or a selection started, which is exactly when a reader is
+// looking hardest. Every caller had been passing this grid an empty array ever since, so the
+// row was drawn nowhere; it goes rather than becoming the one cover on the browse path that
+// still opened the reader after `publication-detail` decided covers lead to the page.
 
 /// Whether a cover is one of the ones the reader has picked.
 ///

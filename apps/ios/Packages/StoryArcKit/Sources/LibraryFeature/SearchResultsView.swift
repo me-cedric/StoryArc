@@ -21,8 +21,10 @@ struct SearchResultsView: View {
 
     let answers: SearchAnswers
 
-    /// Opens a publication the device holds.
-    let onOpenHeld: (String) -> Void
+    // A row for a publication the library already holds leads to that publication's page,
+    // and pushes the route itself — see ``row(_:)``. `publication-detail` names search among
+    // the surfaces a cover leads from, and a result the device holds is that cover written
+    // as a line.
 
     /// Goes to the library a row came from, carrying the term so it opens on the answer
     /// rather than at its front door.
@@ -86,12 +88,18 @@ struct SearchResultsView: View {
     /// One result.
     ///
     /// Three shapes, and the difference between them is only what happens on a tap: a book
-    /// the device holds opens; something a server has is followed to; a person or a tag is a
-    /// name the server matched and goes nowhere, so it is not drawn as though it might.
+    /// the device holds leads to its page; something a server has is followed to; a person or
+    /// a tag is a name the server matched and goes nowhere, so it is not drawn as though it
+    /// might.
+    ///
+    /// The route carries the identifier rather than the publication, which is all a result
+    /// has: the page re-reads it from the model, so a row that has gone stale between the
+    /// search and the tap resolves to nothing and says so, instead of opening a page about a
+    /// publication the library no longer holds.
     @ViewBuilder
     private func row(_ result: SearchResult) -> some View {
         if let held = result.publicationID {
-            Button { onOpenHeld(held) } label: { line(result) }
+            NavigationLink(value: PublicationRoute(publicationID: held)) { line(result) }
                 .buttonStyle(.plain)
         } else if let route = result.route {
             Button { onFollow(route) } label: { line(result) }

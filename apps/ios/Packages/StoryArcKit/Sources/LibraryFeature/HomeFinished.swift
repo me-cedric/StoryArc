@@ -18,7 +18,6 @@ struct HomeFinished: View {
 
     let groups: [HomeShelves.FinishedGroup]
     let model: LibraryModel
-    let onOpen: (Publication) -> Void
 
     private var everything: [Publication] { groups.flatMap(\.publications) }
 
@@ -27,8 +26,7 @@ struct HomeFinished: View {
             HomeMore(
                 title: Text("library.readState.finished", bundle: .module),
                 publications: everything,
-                model: model,
-                onOpen: onOpen
+                model: model
             )
         } content: {
             VStack(alignment: .leading, spacing: StoryArcSpace.lg) {
@@ -39,11 +37,7 @@ struct HomeFinished: View {
                             .foregroundStyle(theme.palette.textSecondary)
                             .padding(.horizontal, StoryArcSpace.gutter)
 
-                        HomeShelfRow(
-                            publications: group.publications,
-                            model: model,
-                            onOpen: onOpen
-                        )
+                        HomeShelfRow(publications: group.publications, model: model)
                     }
                 }
             }

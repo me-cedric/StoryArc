@@ -57,6 +57,42 @@ extension View {
             PublicationDestination(route: route, model: model, onOpen: onOpen, onGone: onGone)
         }
     }
+
+    /// The registration above, plus somewhere to put the sentence when a route resolves to
+    /// nothing.
+    ///
+    /// What every surface actually wants, and the reason the destination modifier sat unused
+    /// for a wave: on its own it hands `onGone` back to a caller that has no state to hold a
+    /// sentence in, so each of the six stacks that show covers would have grown its own
+    /// `@State` flag and its own alert. One modifier owns both halves instead, and a stack
+    /// attaches the page in a single line.
+    ///
+    /// An alert rather than a banner because it is the answer to a tap that has already
+    /// happened: `publication-detail` requires the reader to be "returned to the surface they
+    /// came from with a plain sentence", and by the time it is shown they are back on that
+    /// surface with nothing else to explain why. No new string ships for it —
+    /// ``PublicationRoute/goneSentence`` is already translated, and the dismissal is the
+    /// system's own.
+    public func publicationPages(
+        in model: LibraryModel,
+        onOpen: @escaping (Publication, URL) -> Void
+    ) -> some View {
+        modifier(PublicationPages(model: model, onOpen: onOpen))
+    }
+}
+
+/// Holds the one piece of state ``View/publicationPages(in:onOpen:)`` needs.
+private struct PublicationPages: ViewModifier {
+    let model: LibraryModel
+    let onOpen: (Publication, URL) -> Void
+
+    @State private var isGone = false
+
+    func body(content: Content) -> some View {
+        content
+            .publicationDetail(model: model, onOpen: onOpen, onGone: { isGone = true })
+            .alert(PublicationRoute.goneSentence, isPresented: $isGone) {}
+    }
 }
 
 extension PublicationRoute {
@@ -94,23 +130,19 @@ private struct PublicationDestination: View {
     }
 }
 
-/// What the second pane says before a publication has been chosen.
-///
-/// One sentence, per `publication-detail`: not an arbitrary publication, and not an empty
-/// rectangle. Kept beside the page rather than inside whichever container presents it, so a
-/// split view and a stack that has been emptied show the same words.
-public struct PublicationDetailPlaceholder: View {
-    public init() {}
-
-    public var body: some View {
-        ContentUnavailableView {
-            Label {
-                Text("library.title", bundle: .module)
-            } icon: {
-                Image(systemName: "books.vertical")
-            }
-        } description: {
-            Text("detail.empty", bundle: .module)
-        }
-    }
-}
+// `PublicationDetailPlaceholder` used to be here: the sentence `publication-detail` asks a
+// second pane to show "before a publication has been chosen". It is gone rather than wired,
+// because **iOS has no second pane to put it in.**
+//
+// The shell is a `TabView` with `.sidebarAdaptable`, not a `NavigationSplitView` — see
+// ``AppShell`` and ``LibraryView``, which both say why: the platform draws the same three
+// destinations as a tab bar on a phone and as a sidebar on an iPad, and a split view inside
+// one of them would be a second, disagreeing navigation. Each sidebar row is its own
+// `NavigationStack`, and a row is always selected, so there is no moment at which a pane is
+// waiting for a publication to be chosen. A placeholder for a state the platform layout
+// cannot reach is not a placeholder; it is a fourth piece of dead code behind a change whose
+// whole problem was dead code.
+//
+// The scenario is not met, and the tasks file says so rather than this file pretending
+// otherwise. Whoever gives iOS a real split — `publication-detail` task 4.1 — writes the
+// sentence back with the pane it belongs to.

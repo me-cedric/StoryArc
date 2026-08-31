@@ -21,7 +21,9 @@ struct CoverList: View {
     /// the list is one run of rows.
     var groups: [MatchGroup] = []
     let model: LibraryModel
-    let onOpen: (Publication) -> Void
+
+    // No `onOpen`. A row is a cover drawn small, and `publication-detail` sends every cover
+    // to the publication's page; ``ListRow`` pushes the route itself.
 
     /// What the reader has picked, or `nil` when they are not picking.
     ///
@@ -58,7 +60,6 @@ struct CoverList: View {
         ListRow(
             publication: publication,
             model: model,
-            onOpen: onOpen,
             thumbnailWidth: thumbnailWidth,
             maxPixelSize: Int(thumbnailWidth * displayScale),
             isPicked: selection?.contains(publication.id),
@@ -73,7 +74,6 @@ struct ListRow: View {
 
     let publication: Publication
     let model: LibraryModel
-    let onOpen: (Publication) -> Void
     let thumbnailWidth: CGFloat
     let maxPixelSize: Int
 
@@ -86,7 +86,49 @@ struct ListRow: View {
     /// The server whose list just refused this publication, if one did.
     @State private var refusedServer: String?
 
+    /// The row, and what a tap on it does.
+    ///
+    /// A link to the publication's page, for ``CoverCell``'s reason: the grid losing the old
+    /// behaviour while the list kept it would make "what does a tap do" depend on a layout
+    /// toggle. While the reader is picking, a tap still picks; a publication nothing can
+    /// open is still not tappable.
     var body: some View {
+        Group {
+            if isPicked == nil, publication.isOpenable {
+                NavigationLink(value: PublicationRoute(publication)) { line }
+                    .buttonStyle(.plain)
+            } else {
+                line
+                    .contentShape(.rect)
+                    .onTapGesture { if isPicked != nil { onToggle(publication) } }
+            }
+        }
+        // The same long press the grid answers. `native-experience` asks for the system's
+        // context menu wherever the app needs one, and a publication does not stop having
+        // shelves because the reader switched to the list layout — until this was here,
+        // marking something read was a thing you could only do in the grid, which is a rule
+        // no reader could have guessed.
+        //
+        // Absent while picking, for the reason the grid's is: the bar below is already
+        // offering the same actions for everything that is picked.
+        .contextMenu {
+            if isPicked == nil {
+                AddToShelfMenu(model: model, publications: [publication]) { refusedServer = $0 }
+            }
+        }
+        .refusedByServer($refusedServer, model: model, publication: publication)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
+        .accessibilityAddTraits(isPicked == true ? .isSelected : [])
+        .task(id: publication.id) {
+            if cover == nil {
+                cover = await model.cover(for: publication, maxPixelSize: maxPixelSize)
+            }
+        }
+    }
+
+    /// The thumbnail, the title, what tells it from its neighbours, and how far in.
+    private var line: some View {
         HStack(spacing: StoryArcSpace.md) {
             if let isPicked { PickMark(isPicked: isPicked) }
 
@@ -119,38 +161,6 @@ struct ListRow: View {
                     .textRole(.caption)
                     .monospacedDigit()
                     .foregroundStyle(theme.palette.textSecondary)
-            }
-        }
-        .contentShape(.rect)
-        // While the reader is picking, a tap picks. Opening the reader mid-selection would
-        // throw away everything they had chosen so far.
-        .onTapGesture {
-            if isPicked != nil {
-                onToggle(publication)
-            } else if publication.isOpenable {
-                onOpen(publication)
-            }
-        }
-        // The same long press the grid answers. `native-experience` asks for the system's
-        // context menu wherever the app needs one, and a publication does not stop having
-        // shelves because the reader switched to the list layout — until this was here,
-        // marking something read was a thing you could only do in the grid, which is a rule
-        // no reader could have guessed.
-        //
-        // Absent while picking, for the reason the grid's is: the bar below is already
-        // offering the same actions for everything that is picked.
-        .contextMenu {
-            if isPicked == nil {
-                AddToShelfMenu(model: model, publications: [publication]) { refusedServer = $0 }
-            }
-        }
-        .refusedByServer($refusedServer, model: model, publication: publication)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
-        .accessibilityAddTraits(isPicked == true ? .isSelected : [])
-        .task(id: publication.id) {
-            if cover == nil {
-                cover = await model.cover(for: publication, maxPixelSize: maxPixelSize)
             }
         }
     }

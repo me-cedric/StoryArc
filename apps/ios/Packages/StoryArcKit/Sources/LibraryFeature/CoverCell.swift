@@ -19,7 +19,6 @@ struct CoverCell: View {
 
     let publication: Publication
     let model: LibraryModel
-    let onOpen: (Publication) -> Void
     let maxPixelSize: Int
 
     /// Whether this one is picked, or `nil` when the library is not in selection mode.
@@ -29,7 +28,87 @@ struct CoverCell: View {
     @State private var cover: CGImage?
     @State private var didAttemptLoad = false
 
+    /// The cell, and what a tap on it does.
+    ///
+    /// **A cover leads to the publication's page, not to the reader.** `publication-detail`
+    /// makes that the rule for every cover on every surface, and separates it from resuming:
+    /// a reader who chooses *Keep reading* has already decided, and that affordance still
+    /// opens the book directly. This is the other verb — "what is this", not "carry on".
+    ///
+    /// A link rather than a callback, so the enclosing stack's single `PublicationRoute`
+    /// registration does the work and this cell does not have to know what a publication's
+    /// page is made of. It is also what gets the cell the system's own link behaviour, which
+    /// a tap gesture never had.
+    ///
+    /// Two cases still do not navigate, and neither is new. While the reader is picking, a
+    /// tap picks — opening a page mid-selection would throw away everything chosen so far.
+    /// And a publication that cannot be read at all is not tappable: `publication-formats`
+    /// requires a named refusal, the caption already carries it, and a page whose one action
+    /// is unavailable is a second place to read the same refusal.
     var body: some View {
+        Group {
+            if isPicked == nil, publication.isOpenable {
+                NavigationLink(value: PublicationRoute(publication)) { cell }
+                    .buttonStyle(.plain)
+            } else {
+                cell
+                    .contentShape(.rect)
+                    .onTapGesture { if isPicked != nil { onToggle(publication) } }
+            }
+        }
+        // `collections-and-reading-lists`: a publication "may belong to any number of
+        // collections", and this is where a reader says so. Only shown when there is
+        // somewhere to add it to — a menu whose only content is "you have no collections"
+        // is a menu that wastes a long press. Absent while picking: the bar below is
+        // already offering the same actions for everything that is picked.
+        .contextMenu {
+            if isPicked == nil {
+                AddToShelfMenu(
+                    model: model,
+                    publications: [publication],
+                    onRefused: { refusedServer = $0 },
+                    onRestart: { restarting = publication }
+                )
+            }
+        }
+        // `reading-progress` requires the clear to be confirmed. Here rather than in the
+        // menu because a context menu cannot present one, and destructive because it is:
+        // the position is the only copy the app promises never to lose.
+        .confirmationDialog(
+            Text("library.restart.title \(publication.displayTitle)", bundle: .module),
+            isPresented: Binding(
+                get: { restarting?.id == publication.id },
+                set: { if !$0 { restarting = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive) {
+                Task { await model.restart(publication) }
+                restarting = nil
+            } label: {
+                Text("library.restart.confirm", bundle: .module)
+            }
+        } message: {
+            Text("library.restart.body", bundle: .module)
+        }
+        .refusedByServer($refusedServer, model: model, publication: publication)
+        // One label for the whole cell. Read as three separate elements it would
+        // announce the title, then the format, then an unlabelled image.
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
+        // Spoken, because a tick in the corner of a cover is invisible to VoiceOver and
+        // "is this one picked" is the only question selection mode asks.
+        .accessibilityAddTraits(isPicked == true ? .isSelected : [])
+        .task(id: publication.id) {
+            guard !didAttemptLoad else { return }
+            didAttemptLoad = true
+            cover = await model.cover(for: publication, maxPixelSize: maxPixelSize)
+        }
+    }
+
+    /// The artwork, its marks, and the caption under them.
+    private var cell: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
             artwork
                 // 2:3 is the comic and book proportion. Fixing it here means a
@@ -92,68 +171,6 @@ struct CoverCell: View {
                         .lineLimit(1)
                 }
             }
-        }
-        // One label for the whole cell. Read as three separate elements it would
-        // announce the title, then the format, then an unlabelled image.
-        .contentShape(.rect)
-        // A publication that cannot be read is not tappable. Opening it only to
-        // show the same refusal a second time wastes the user's tap.
-        //
-        // While the reader is picking, a tap picks. A cover that opened the reader
-        // mid-selection would throw away everything they had chosen so far.
-        .onTapGesture {
-            if isPicked != nil {
-                onToggle(publication)
-            } else if publication.isOpenable {
-                onOpen(publication)
-            }
-        }
-        // `collections-and-reading-lists`: a publication "may belong to any number of
-        // collections", and this is where a reader says so. Only shown when there is
-        // somewhere to add it to — a menu whose only content is "you have no collections"
-        // is a menu that wastes a long press. Absent while picking: the bar below is
-        // already offering the same actions for everything that is picked.
-        .contextMenu {
-            if isPicked == nil {
-                AddToShelfMenu(
-                    model: model,
-                    publications: [publication],
-                    onRefused: { refusedServer = $0 },
-                    onRestart: { restarting = publication }
-                )
-            }
-        }
-        // `reading-progress` requires the clear to be confirmed. Here rather than in the
-        // menu because a context menu cannot present one, and destructive because it is:
-        // the position is the only copy the app promises never to lose.
-        .confirmationDialog(
-            Text("library.restart.title \(publication.displayTitle)", bundle: .module),
-            isPresented: Binding(
-                get: { restarting?.id == publication.id },
-                set: { if !$0 { restarting = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) {
-                Task { await model.restart(publication) }
-                restarting = nil
-            } label: {
-                Text("library.restart.confirm", bundle: .module)
-            }
-        } message: {
-            Text("library.restart.body", bundle: .module)
-        }
-        .refusedByServer($refusedServer, model: model, publication: publication)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
-        // Spoken, because a tick in the corner of a cover is invisible to VoiceOver and
-        // "is this one picked" is the only question selection mode asks.
-        .accessibilityAddTraits(isPicked == true ? .isSelected : [])
-        .task(id: publication.id) {
-            guard !didAttemptLoad else { return }
-            didAttemptLoad = true
-            cover = await model.cover(for: publication, maxPixelSize: maxPixelSize)
         }
     }
 

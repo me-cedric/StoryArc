@@ -117,9 +117,9 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
                     HomeMore(
                         title: Text("home.recentlyAdded", bundle: .module),
                         publications: HomeShelves.recentlyAdded(in: model.publications, limit: .max),
-                        model: model,
-                        onOpen: open
+                        model: model
                     )
+                    .publicationPages(in: model, onOpen: onOpen)
                 }
             } label: {
                 Label {
@@ -131,7 +131,8 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
 
             Tab(value: value(.series)) {
                 NavigationStack {
-                    SidebarSeriesList(model: model, onOpen: open)
+                    SidebarSeriesList(model: model)
+                        .publicationPages(in: model, onOpen: onOpen)
                 }
             } label: {
                 Label {
@@ -149,7 +150,8 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
             ForEach(model.shelves.collections.prefix(Self.inlineShelfLimit)) { collection in
                 Tab(value: value(.collection(collection.id))) {
                     NavigationStack {
-                        CollectionDetail(model: model, id: collection.id, onOpen: onOpen)
+                        CollectionDetail(model: model, id: collection.id)
+                            .publicationPages(in: model, onOpen: onOpen)
                     }
                 } label: {
                     Label {
@@ -180,6 +182,7 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
             Tab(value: value(.allShelves)) {
                 NavigationStack {
                     ShelvesView(model: model, onOpen: onOpen)
+                        .publicationPages(in: model, onOpen: onOpen)
                 }
             } label: {
                 Label {
@@ -194,9 +197,10 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
         .defaultVisibility(.hidden, for: .tabBar)
     }
 
-    private func open(_ publication: Publication) {
-        if let url = model.location(of: publication) { onOpen(publication, url) }
-    }
+    // No `open(_:)`. Every row here leads to a grid or a list of covers, and a cover leads
+    // to the publication's page; the page is what reaches the reader, through `onOpen`
+    // handed to each stack's `publicationPages(in:onOpen:)`. The reading list is the one
+    // exception and it is not a cover surface — see ``ReadingListDetail``.
 }
 
 /// The library as its series, for the sidebar's *Series* row.
@@ -213,7 +217,6 @@ struct SidebarSeriesList: View {
     @Environment(\.theme) private var theme
 
     let model: LibraryModel
-    let onOpen: (Publication) -> Void
 
     /// Every series in the library, in the order a reader reads names.
     ///
@@ -279,12 +282,7 @@ struct SidebarSeriesList: View {
     /// without either a card each or a box round the lot.
     private func row(_ entry: (name: String, issues: [Publication])) -> some View {
         NavigationLink {
-            HomeMore(
-                title: Text(entry.name),
-                publications: entry.issues,
-                model: model,
-                onOpen: onOpen
-            )
+            HomeMore(title: Text(entry.name), publications: entry.issues, model: model)
         } label: {
             VStack(spacing: 0) {
                 HStack(spacing: StoryArcSpace.sm) {

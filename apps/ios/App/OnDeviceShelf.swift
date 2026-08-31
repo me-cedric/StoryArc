@@ -24,7 +24,6 @@ struct OnDeviceShelf: View {
 
     let publications: [Publication]
     let model: LibraryModel
-    let onOpen: (Publication) -> Void
 
     /// Whether this publication is one the app can take off the device.
     ///
@@ -64,9 +63,14 @@ struct OnDeviceShelf: View {
                 spacing: StoryArcSpace.lg
             ) {
                 ForEach(publications) { publication in
-                    Button {
-                        onOpen(publication)
-                    } label: {
+                    // The publication's page, not the reader. The delta to
+                    // `offline-downloads` asks this destination for "the same grid, the same
+                    // cells and the same publication pages as the library", and
+                    // `publication-detail` makes that a rule rather than a resemblance: a
+                    // cover here is a cover. It is also where the page earns its keep on this
+                    // screen — the reader who is deciding what to take on a flight is exactly
+                    // the reader who wants to know what a book is before opening it.
+                    NavigationLink(value: PublicationRoute(publication)) {
                         cell(publication)
                     }
                     .buttonStyle(.plain)

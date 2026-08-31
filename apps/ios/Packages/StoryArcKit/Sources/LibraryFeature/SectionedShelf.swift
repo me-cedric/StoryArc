@@ -25,7 +25,6 @@ struct SectionedShelf: View {
 
     let sections: [LibrarySection]
     let model: LibraryModel
-    let onOpen: (Publication) -> Void
 
     /// What the reader has picked, or `nil` when they are not picking.
     var selection: Set<String>?
@@ -89,7 +88,6 @@ struct SectionedShelf: View {
                 CoverCell(
                     publication: publication,
                     model: model,
-                    onOpen: onOpen,
                     // Pixels, not points: a cover decoded at point size is blurry on every
                     // device made since 2010.
                     maxPixelSize: Int(maximumWidth * displayScale),

@@ -95,7 +95,6 @@ extension LibraryView {
                     SectionedShelf(
                         sections: sections,
                         model: model,
-                        onOpen: open,
                         selection: selection.isActive ? selection.ids : nil,
                         onToggle: { selection.toggle($0.id) },
                         isReadableNow: isReadableNow
@@ -103,18 +102,11 @@ extension LibraryView {
                 } else if model.layout == .grid {
                     CoverGrid(
                         publications: shown,
-                        // Empty, always. What the reader is in the middle of is the hero of
-                        // the home destination now, and a second copy of it above the shelf
-                        // was the app's only editorial moment being hidden the moment a
-                        // search or a selection started — which is exactly when a reader is
-                        // looking hardest.
-                        continueReading: [],
                         // `library-browsing`: while a search is running, results are
                         // "grouped by match kind". Empty when nothing is typed, and then
                         // the shelf is one run of covers.
                         groups: model.matchGroups,
                         model: model,
-                        onOpen: open,
                         selection: selection.isActive ? selection.ids : nil,
                         onToggle: { selection.toggle($0.id) }
                     )
@@ -123,7 +115,6 @@ extension LibraryView {
                         publications: shown,
                         groups: model.matchGroups,
                         model: model,
-                        onOpen: open,
                         selection: selection.isActive ? selection.ids : nil,
                         onToggle: { selection.toggle($0.id) }
                     )

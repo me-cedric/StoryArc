@@ -143,10 +143,11 @@ public struct LibraryView: View {
         Binding(get: { model.query.search }, set: { model.query.search = $0 })
     }
 
-    /// Where a publication lives, handed to the app layer.
-    func open(_ publication: Publication) {
-        if let url = model.location(of: publication) { onOpen(publication, url) }
-    }
+    // `open(_:)` used to be here, and nothing on this screen calls it any more: every cover
+    // and every search result leads to the publication's page, and the page is what reaches
+    // the reader. `onOpen` is still the library's one way out to a reader — it is handed to
+    // `publicationPages(in:onOpen:)` below and to the source browsers, which open a server's
+    // or a share's file directly because it is not a publication the library holds yet.
 
     /// What the reader has picked, when they are picking.
     ///
@@ -212,6 +213,13 @@ public struct LibraryView: View {
     /// The library itself: the grid or the list, and the chrome that belongs to it.
     var libraryColumn: some View {
         searching(content)
+            // Once, at the root of this stack, for every cover on all three of its surfaces:
+            // the shelf, the on-device set, and the results of a search. The page opens
+            // inside the destination the reader was already on, so going back lands on the
+            // shelf with its scroll position, its filters and its selection intact — which is
+            // what `publication-detail` asks for and what a sheet or a separate stack would
+            // have cost.
+            .publicationPages(in: model, onOpen: onOpen)
             .navigationTitle(title)
             .toolbar { if surface == .shelf { toolbarItems } }
             // Reloaded on every appearance, which is what makes the bar under a
@@ -322,11 +330,6 @@ extension LibraryView {
         if search.isSearching {
             SearchResultsView(
                 answers: search.answers,
-                onOpenHeld: { id in
-                    if let publication = model.publications.first(where: { $0.id == id }) {
-                        open(publication)
-                    }
-                },
                 // A row a server answered leads to that server, opened on the question
                 // rather than at its front door. The reader is not told which server it was
                 // until they are standing in it, which is the difference between routing a
