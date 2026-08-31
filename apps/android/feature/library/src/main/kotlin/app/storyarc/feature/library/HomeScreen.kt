@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.grid.coverMinimumWidth
+import app.storyarc.core.designsystem.grid.steppedForFontScale
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -205,7 +206,7 @@ private fun LazyListScope.keepReading(
             HomeKeepReadingCard(
                 entry = entry,
                 cover = cover,
-                width = homeHeroWidth(),
+                width = homeHeroWidth(homeWindowWidthDp(), LocalDensity.current.fontScale),
                 modifier = Modifier
                     .padding(horizontal = StoryArcSpace.gutter)
                     .clickable { onResume(entry.publication) }
@@ -216,7 +217,7 @@ private fun LazyListScope.keepReading(
     }
 
     item {
-        val width = homeHeroWidth()
+        val width = homeHeroWidth(homeWindowWidthDp(), LocalDensity.current.fontScale)
         val state = rememberCarouselState { surface.keepReading.size }
         HorizontalMultiBrowseCarousel(
             state = state,
@@ -414,18 +415,38 @@ private fun HomeFirstRun(onOpenFile: () -> Unit, onAddFolder: () -> Unit) {
 }
 
 /**
- * How wide the hero card is drawn.
+ * How wide the Keep reading card is drawn — the single card and each carousel item both.
  *
- * Wide enough that the cover is a cover and not a thumbnail, and never wider than half a
- * phone's screen — beyond that the carousel has nothing left to show beside it and stops
- * being a carousel. The two thresholds are Material's own medium and expanded breakpoints,
- * the same ones the cover grid uses.
+ * These three widths are the hero's own and no grid asks them: the hero is a *card* with a
+ * cover inside its padding, not a cell in a lattice, so `design.md` §4's 104 / 132 / 158
+ * floor is not the quantity. What it does share is the accessibility step — the same
+ * [steppedForFontScale] the cover ladder takes, for the same reason. The card's text is laid
+ * out across the card's width less [StoryArcSpace.md] on each side, so a hero pinned at 200 dp
+ * gives its title and its pages-left line 176 dp at every text size, while the shelf below it
+ * goes 130 → 182.5 dp at font scale 1.5. That was this function: it read only the window and
+ * never the font scale, which is the same defect [homeShelfCoverWidth] was fixed for, one
+ * section up the same screen.
+ *
+ * Capped at the room the card is actually given, which is the window less a gutter on each
+ * side — the single card is laid out inside `padding(horizontal = gutter)` and the carousel
+ * inside `contentPadding` of the same, so that is the constraint either way. Without the cap
+ * the step overflows a small window: a 300 dp freeform slot has 260 dp of room and would be
+ * handed a 280 dp card.
+ *
+ * The two width thresholds are Material's medium and expanded breakpoints, the same pair
+ * [coverMinimumWidth] uses; taken from the window for the reason [homeWindowWidthDp] gives.
+ *
+ * Not `@Composable`, so the arithmetic can be asserted without a window — `HomeCoverWidthTest`
+ * is the only reach a plain JVM suite has into what this screen draws.
  */
-@Composable
-private fun homeHeroWidth(): Dp = when {
-    homeWindowWidthDp() >= 840 -> 280.dp
-    homeWindowWidthDp() >= 600 -> 240.dp
-    else -> 200.dp
+internal fun homeHeroWidth(windowWidthDp: Int, fontScale: Float): Dp {
+    val tier = when {
+        windowWidthDp >= 840 -> 280.dp
+        windowWidthDp >= 600 -> 240.dp
+        else -> 200.dp
+    }
+    val room = windowWidthDp.dp - StoryArcSpace.gutter * 2
+    return minOf(tier.steppedForFontScale(fontScale), room)
 }
 
 /**
@@ -443,13 +464,17 @@ private fun homeWindowWidthDp(): Int {
 }
 
 /**
- * How wide a cover on a home shelf is drawn.
+ * How wide a cover on a plain home shelf is drawn.
  *
- * The grid's ladder, scaled — the same rule the library grid and the Downloads shelf ask,
- * so a reader who turns their text size up finds Home reflowed too. It did not: this read
- * `coverMinimumWidth(homeWindowWidthDp())` and the font scale was an optional argument, so
- * at scale 1.5 the library grid widened 104 → 146 dp and the continue-reading run below it
- * kept the ordinary width. The argument is no longer optional, which is why this cannot
+ * The plain shelves, and only those: [HomeCoverRun] is the sole caller, and it draws Up next,
+ * Recently added and each Finished period group. Keep reading is a card and asks
+ * [homeHeroWidth].
+ *
+ * The grid's ladder, scaled — the same rule the library grid and the Downloads shelf ask, so
+ * a reader who turns their text size up finds these runs reflowed too. They did not: this read
+ * `coverMinimumWidth(homeWindowWidthDp())` and the font scale was an optional argument, so at
+ * scale 1.5 the library grid on the next destination widened 104 → 146 dp and every run on
+ * Home kept its ordinary width. The argument is no longer optional, which is why that cannot
  * come back.
  *
  * Not `@Composable`, so the arithmetic can be asserted without a window — `HomeCoverWidthTest`
