@@ -60,6 +60,21 @@ fun rememberHighContrast(): Boolean {
  * Android 14 gave contrast a first-class API with three stops. Before it, the only
  * public signal is the accessibility "high contrast text" secure setting, which is a
  * flag rather than a scale — so the floor reads that and treats it as the top stop.
+ *
+ * **Android has two settings that sound like this one, and above API 34 only the first is
+ * read.** *Contrast* — Settings › Accessibility › Display size and text › Contrast, three
+ * stops, `UiModeManager.getContrast`, backed by the `contrast_level` secure setting — is
+ * StoryArc's Increase Contrast, because it is what iOS's `isDarkerSystemColorsEnabled`
+ * mirrors and what `native-experience` means by strengthening borders. *High contrast
+ * text* — [HIGH_TEXT_CONTRAST], still present on Android 16 — is a different switch that
+ * outlines glyphs, and above the floor this deliberately does not read it.
+ *
+ * That is worth knowing before testing anything gated on contrast. On 2026-08-31 a device
+ * check concluded Natural's paper grain never drew, because `settings put secure
+ * high_text_contrast_enabled 1` changed nothing on an API 36 emulator and two captures came
+ * back identical. The app never saw that write. Above the floor the knob is
+ * `contrast_level` — `0.0` standard, `0.5` medium, `1.0` high — or the Contrast control in
+ * Settings.
  */
 private fun systemContrast(context: Context): Boolean =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

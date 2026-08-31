@@ -81,6 +81,28 @@ private val SOURCE = """
  * Placed between the page and the chrome, which is where "reading surfaces only" puts it:
  * over the words, under the app bars. It draws and nothing else — no clickable, no
  * pointer input — so every tap still reaches the navigator underneath.
+ *
+ * **Whether it is drawing is a measurement, not a look**, and the first attempt to judge it
+ * on a device got the answer backwards in both directions — first reading the page's own
+ * flat cream as grain, then reading real grain as that same flat cream. At a peak alpha of
+ * [PaperGrain.INTENSITY] the texture is meant to be at the edge of visible, so an eye is the
+ * wrong instrument. Two numbers settle it on a **1:1 crop of native pixels** — grain does
+ * not survive resampling — over a patch of margin with no text in it:
+ *
+ *  - **Standard deviation.** The page under this is a flat fill; Readium paints one colour
+ *    and nothing in this module draws a gradient, so with no grain a patch has sd `0`.
+ *    Grain puts it at **≈ 1.9** whatever the background, because the spread comes from the
+ *    tints and the alpha rather than from the colour underneath.
+ *  - **Skew.** The dark tint pulls about nine times harder than the light one pushes, so
+ *    the histogram leans left at **≈ −1.1**. Anything symmetric — dithering, sensor-style
+ *    noise, compression — sits near `0`. This is the one that needs a single capture and no
+ *    accessibility setting, which makes it the test to reach for first.
+ *
+ * Over the *cream* preset (`#FBF0DA`), a 600 × 120 patch reads mean 240.78 / sd 0 flat and
+ * mean 239.49 / sd 1.89 grained, in Rec.601 luma. An A/B against Increase Contrast works
+ * too, but read `HighContrast.systemContrast`'s note before choosing the knob: above API 34
+ * the app does not read `high_text_contrast_enabled`, and an A/B through that setting
+ * returns two identical captures whatever the grain is doing.
  */
 @Composable
 internal fun PaperGrainOverlay(modifier: Modifier = Modifier) {
