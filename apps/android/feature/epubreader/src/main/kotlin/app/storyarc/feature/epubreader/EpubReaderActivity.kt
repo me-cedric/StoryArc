@@ -41,7 +41,6 @@ import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commitNow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import app.storyarc.core.model.AppearanceMode
 import androidx.compose.ui.graphics.toArgb
 import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.HighlightColour
@@ -57,7 +56,6 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.SettingsStore
 import app.storyarc.core.persistence.chosenLanguage
 import app.storyarc.core.persistence.speaking
-import app.storyarc.core.model.presetMatching
 import app.storyarc.core.designsystem.theme.resolved
 import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.BookmarkStore
@@ -213,13 +211,37 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             bookmarkStore = BookmarkStore.open(applicationContext),
             annotationStore = AnnotationStore.open(applicationContext),
             series = intent.getStringExtra(EXTRA_SERIES),
-            // Resolved here, because "System" is a question about the device and only
-            // something holding a `Context` can answer it. Null when the reader has not
-            // opted in, which leaves the shelf's own theme in force.
-            linkedPreset = SettingsStore.open(applicationContext).settings()
-                .takeIf { it.linkReadingThemeToAppearance }
-                ?.let { presetMatching(it.appearance.resolved(resources.configuration)) },
+            linkedPreset = appearance.linkedPreset,
         )
+    }
+
+    /**
+     * Settings › Appearance, read once when the book opens.
+     *
+     * One read of one store, resolved here because "System" is a question about the device
+     * and only something holding a `Context` can answer it. [ReaderAppearance] says which
+     * of its answers wants the reader's literal choice and which wants the resolved one,
+     * and why the two differ.
+     *
+     * **There is one route by which this goes stale, and it is not fixed here.** A reader
+     * can leave an open book by the home button, change appearance or the Material You
+     * opt-out in the other activity, and come back to this one still alive: nothing
+     * recreates it, so it draws the scheme it was built with until the book is closed and
+     * reopened. The same is true of the interface language in `attachBaseContext`.
+     * `MainActivity` recreates itself on a change and this does not, deliberately --
+     * recreating the reader re-parses the publication, and doing that under a reader who
+     * only switched away for a moment is a worse defect than a colour scheme that lags
+     * until the next open. Worth revisiting with an emulator, which is the only place the
+     * trade can honestly be judged.
+     *
+     * `SYSTEM` is exempt from that staleness, because it is the one value the theme keeps
+     * asking about: `StoryArcTheme` reads the device's own night mode from inside the
+     * composition, so a device that flips theme mid-chapter still takes the reader's chrome
+     * with it.
+     */
+    private val appearance: ReaderAppearance by lazy {
+        val settings = SettingsStore.open(applicationContext).settings()
+        ReaderAppearance.of(settings, settings.appearance.resolved(resources.configuration))
     }
 
     private lateinit var container: FragmentContainerView
@@ -318,24 +340,16 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             )
         }
 
-        // `native-experience`'s Material You opt-out, read once when the book opens.
-        //
-        // **There is one route by which this goes stale, and it is not fixed here.** A reader
-        // can leave an open book by the home button, change the setting in the other
-        // activity, and come back to this one still alive: nothing recreates it, so it draws
-        // the scheme it was built with until the book is closed and reopened. The same is
-        // true of the interface language above. `MainActivity` recreates itself on a change
-        // and this does not, deliberately -- recreating the reader re-parses the publication,
-        // and doing that under a reader who only switched away for a moment is a worse defect
-        // than a colour scheme that lags until the next open. Worth revisiting with an
-        // emulator, which is the only place the trade can honestly be judged.
-        val useDynamicColor = SettingsStore.open(applicationContext).settings().useDynamicColor
-
         val chrome = ComposeView(this).apply {
             setContent {
+                // Read, not fixed. `settings-and-about`'s appearance is the reader's and it
+                // applies "across the whole app"; the Material You opt-out is
+                // `native-experience`'s and belongs to the same choice. Both come from the
+                // one read on `appearance`, which also carries why this one is the literal
+                // choice rather than the resolved one.
                 StoryArcTheme(
-                    appearance = AppearanceMode.SYSTEM,
-                    useDynamicColor = useDynamicColor,
+                    appearance = appearance.chrome,
+                    useDynamicColor = appearance.useDynamicColor,
                 ) {
                     val progression by model.progression.collectAsStateWithLifecycle()
                     val chapter by model.chapterTitle.collectAsStateWithLifecycle()
