@@ -75,4 +75,19 @@ struct KavitaAddressTests {
         let url = try #require(address.endpoint("Library/libraries"))
         #expect(url.absoluteString == "https://k.example/books/api/Library/libraries")
     }
+
+    @Test("Describing an address never says what the key is")
+    func descriptionRedactsTheKey() throws {
+        let secret = "s3cret-api-key"
+        let address = try #require(KavitaAddress.from(base: "https://k.example", apiKey: secret))
+
+        // Every way a value reaches a string, because the leak is whichever one nobody
+        // thought of. Android's `KavitaAddressTest` makes the same claim.
+        #expect(!address.description.contains(secret))
+        #expect(!address.debugDescription.contains(secret))
+        #expect(!"\(address)".contains(secret))
+        #expect(!String(describing: address).contains(secret))
+        #expect(!String(reflecting: address).contains(secret))
+        #expect(address.description.contains("k.example"))
+    }
 }

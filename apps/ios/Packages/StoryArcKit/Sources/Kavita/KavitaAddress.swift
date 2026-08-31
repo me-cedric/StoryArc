@@ -4,7 +4,7 @@ public import Foundation
 ///
 /// `kavita-server` takes "a base URL and a user API key". Both are needed for every
 /// request, and neither is useful alone, so they travel together.
-public struct KavitaAddress: Sendable, Equatable {
+public struct KavitaAddress: Sendable, Equatable, CustomStringConvertible, CustomDebugStringConvertible {
     /// The server's root — `https://kavita.example`, with no `/api` and no trailing slash.
     public let base: URL
 
@@ -15,6 +15,20 @@ public struct KavitaAddress: Sendable, Equatable {
         self.base = base
         self.apiKey = apiKey
     }
+
+    /// The server, and the fact that a key is held — never the key.
+    ///
+    /// Swift's own mirror of a struct prints every stored property, and this one's second
+    /// property is the reader's API key, so every interpolation of an address into a message,
+    /// a diagnostic or a crash breadcrumb would have carried the secret out of memory.
+    /// `AGENTS.md` non-negotiable 4 says redact before any string leaves memory, and a
+    /// default nobody wrote is exactly the kind that leaks. Android's `toString` says the
+    /// same thing.
+    public var description: String {
+        "KavitaAddress(base: \(base.absoluteString), apiKey: \(apiKey.isEmpty ? "none" : "redacted"))"
+    }
+
+    public var debugDescription: String { description }
 
     /// Reads an address out of whatever the reader pasted.
     ///

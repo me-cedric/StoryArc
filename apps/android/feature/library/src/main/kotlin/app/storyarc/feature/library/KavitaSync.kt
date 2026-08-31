@@ -28,7 +28,7 @@ object KavitaSync {
      * The two travel together because neither is any use alone here: an address says where to
      * send, and the source says which of the queued writes belong to it.
      */
-    private data class Server(val id: String, val address: KavitaAddress)
+    private class Server(val id: String, val address: KavitaAddress)
 
     /** Sends one position, keeping it for later if the server is not there. */
     suspend fun report(

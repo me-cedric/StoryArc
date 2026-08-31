@@ -70,6 +70,19 @@ class KavitaAddressTest {
     }
 
     @Test
+    fun describingAnAddressNeverSaysWhatTheKeyIs() {
+        val secret = "s3cret-api-key"
+        val address = KavitaAddress.from("https://k.example", secret)!!
+
+        // Every way a value reaches a string, because the leak is whichever one nobody
+        // thought of. iOS's `KavitaAddressTests` makes the same claim.
+        assertFalse(secret in address.toString())
+        assertFalse(secret in "$address")
+        assertFalse(secret in listOf(address).toString())
+        assertTrue("k.example" in address.toString())
+    }
+
+    @Test
     fun aVersionIsComparedAsAVersion() {
         assertTrue(KavitaVersion.of("0.7.14")!! < KavitaVersion.of("0.8.0")!!)
         // A build number is ignored rather than refused.
@@ -90,6 +103,12 @@ class KavitaClientTest {
     private lateinit var server: HttpServer
     private var tokenIsStale = false
     private var authentications = 0
+
+    /** What the last write asked for, so a test can assert on the request and not the answer. */
+    private var sentTo: String? = null
+    private var sentBody: String? = null
+    private var sentBearer: String? = null
+    private var sentQuery: String? = null
 
     private fun client() = KavitaClient(
         KavitaAddress("http://localhost:${server.address.port}", "key"),
@@ -123,6 +142,15 @@ class KavitaClientTest {
                 path.endsWith("/Series/volumes") ->
                     body = """[{"id":10,"number":0,"chapters":[{"id":1,"number":"1","pages":8,"pagesRead":8}]},
                               {"id":11,"number":1,"name":"Volume 1","chapters":[]}]"""
+                path.endsWith("/Reader/progress") ||
+                    path.endsWith("/Reader/mark-chapter-read") ||
+                    path.endsWith("/Reader/mark-chapter-unread") -> {
+                    sentTo = path
+                    sentBearer = bearer
+                    sentQuery = exchange.requestURI.query
+                    sentBody = exchange.requestBody.readBytes().decodeToString()
+                    body = "{}"
+                }
                 path.endsWith("/Search/search") ->
                     body = """{"series":[{"id":2,"name":"Tidal Reach"}],
                               "chapters":[{"id":9,"titleName":"The Harbour","seriesId":2}],
@@ -219,6 +247,38 @@ class KavitaClientTest {
         // rather than tappable and inert.
         val person = client().find("okonkwo").first { it.kind == KavitaHit.Kind.PERSON }
         assertFalse(person.isOpenable)
+    }
+
+    @Test
+    fun aReportedPositionPostsKavitasWholeChainAtThePageTheReaderIsOn() = runBlocking {
+        // The push half of `reading-progress`, on the wire. `scripts/kavita-server.mjs
+        // --self-test` asserts the server's half of the same number: a `pageNum` of 7 is
+        // eight pages read, and eight pages read is page 7 again.
+        client().report(KavitaPosition(1, 11, 1100, 12, 7))
+
+        assertEquals("/api/Reader/progress", sentTo)
+        assertEquals("Bearer t", sentBearer)
+        // The key rides in that header and never in the URL, which a proxy would log.
+        assertNull(sentQuery)
+        val posted = sentBody.orEmpty()
+        for (field in listOf(
+            "\"libraryId\":1",
+            "\"seriesId\":11",
+            "\"volumeId\":1100",
+            "\"chapterId\":12",
+            "\"pageNum\":7",
+        )) {
+            assertTrue(field, field in posted)
+        }
+    }
+
+    @Test
+    fun markingAChapterReadNamesTheSeriesAsWellAsTheChapter() = runBlocking {
+        client().mark(11, 12, isRead = false)
+
+        assertEquals("/api/Reader/mark-chapter-unread", sentTo)
+        assertTrue("\"seriesId\":11" in sentBody.orEmpty())
+        assertTrue("\"chapterId\":12" in sentBody.orEmpty())
     }
 
     @Test

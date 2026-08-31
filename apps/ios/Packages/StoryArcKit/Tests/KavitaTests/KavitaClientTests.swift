@@ -103,9 +103,95 @@ struct KavitaClientTests {
         }
     }
 
+    @Test("A reported position posts Kavita's whole chain, at the page the reader is on")
+    func reportsAPosition() async throws {
+        // The push half of `reading-progress`, on the wire. `scripts/kavita-server.mjs
+        // --self-test` asserts the server's half of the same number: a `pageNum` of 7 is
+        // eight pages read, and eight pages read is page 7 again.
+        let sent = KavitaSent()
+        let client = try client { request in
+            if request.url?.path().contains("authenticate") == true {
+                return self.json(#"{"username":"ada","token":"t","apiKey":"key"}"#)
+            }
+            sent.record(request)
+            return self.json("{}")
+        }
+
+        try await client.report(
+            KavitaPosition(libraryId: 1, seriesId: 11, volumeId: 1100, chapterId: 12, pageNum: 7)
+        )
+
+        let request = try #require(sent.request)
+        #expect(request.url?.path() == "/api/Reader/progress")
+        #expect(request.httpMethod == "POST")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer t")
+        // The key rides in that header and never in the URL, which a proxy would log.
+        #expect(request.url?.query() == nil)
+
+        let posted = try JSONDecoder().decode(KavitaPosition.self, from: try #require(sent.body))
+        #expect(posted == KavitaPosition(
+            libraryId: 1, seriesId: 11, volumeId: 1100, chapterId: 12, pageNum: 7
+        ))
+    }
+
+    @Test("Marking a chapter read names the series as well as the chapter")
+    func marksAChapter() async throws {
+        let sent = KavitaSent()
+        let client = try client { request in
+            if request.url?.path().contains("authenticate") == true {
+                return self.json(#"{"username":"ada","token":"t","apiKey":"key"}"#)
+            }
+            sent.record(request)
+            return self.json("{}")
+        }
+
+        try await client.mark(seriesId: 11, chapterId: 12, isRead: false)
+
+        let request = try #require(sent.request)
+        #expect(request.url?.path() == "/api/Reader/mark-chapter-unread")
+        let body = try #require(sent.body)
+        let text = try #require(String(bytes: body, encoding: .utf8))
+        #expect(text.contains("\"seriesId\":11") && text.contains("\"chapterId\":12"))
+    }
+
     /// A box, because the stub runs on the session's queue.
     private final class Counter: @unchecked Sendable {
         var value = 0
+    }
+}
+
+/// What the transport was asked, so a test can assert on the request and not only the answer.
+///
+/// `URLProtocol` hands a body over as a stream rather than as `httpBody`, and the stream can
+/// be read once — so it is drained the moment the request arrives.
+final class KavitaSent: @unchecked Sendable {
+    private let lock = NSLock()
+    private var seen: URLRequest?
+    private var payload: Data?
+
+    func record(_ request: URLRequest) {
+        let body = request.httpBody ?? Self.drain(request.httpBodyStream)
+        lock.withLock {
+            seen = request
+            payload = body
+        }
+    }
+
+    var request: URLRequest? { lock.withLock { seen } }
+    var body: Data? { lock.withLock { payload } }
+
+    private static func drain(_ stream: InputStream?) -> Data? {
+        guard let stream else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 1024)
+        while stream.hasBytesAvailable {
+            let read = stream.read(&buffer, maxLength: buffer.count)
+            guard read > 0 else { break }
+            data.append(contentsOf: buffer[..<read])
+        }
+        return data
     }
 }
 

@@ -39,6 +39,18 @@ data class KavitaAddress(
     fun chapterUrl(chapterId: Int): String =
         endpoint("Download/chapter", mapOf("chapterId" to chapterId.toString()))
 
+    /**
+     * The server, and the fact that a key is held -- never the key.
+     *
+     * A `data class` writes its own `toString`, and this one's second field is the reader's
+     * API key, so every interpolation of an address into a message, a diagnostic or a crash
+     * breadcrumb would have carried the secret out of memory. `AGENTS.md` non-negotiable 4
+     * says redact before any string leaves memory, and a default nobody wrote is exactly the
+     * kind that leaks. iOS's `description` says the same thing.
+     */
+    override fun toString(): String =
+        "KavitaAddress(base=$base, apiKey=${if (apiKey.isEmpty()) "none" else "redacted"})"
+
     companion object {
         /**
          * Reads an address out of whatever the reader pasted.
