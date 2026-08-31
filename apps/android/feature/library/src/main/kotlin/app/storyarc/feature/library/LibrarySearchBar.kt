@@ -45,8 +45,6 @@ import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.MatchKind
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.RecentSearches
-import app.storyarc.core.model.SearchAnswers
-import app.storyarc.core.model.SearchResult
 import app.storyarc.core.model.SearchRoute
 import app.storyarc.core.model.Source
 import app.storyarc.core.persistence.CertificatePinStore
@@ -91,7 +89,7 @@ internal fun LibrarySearchEntry(
     val credentials = remember(context) { CredentialStore.open(context) }
     val pins = remember(context) { CertificatePins(CertificatePinStore.open(context).pins()) }
 
-    val answers by search.answers.collectAsStateWithLifecycle()
+    val listing by search.listing.collectAsStateWithLifecycle()
     val groups by viewModel.matchGroups.collectAsStateWithLifecycle()
     val registry by viewModel.registry.collectAsStateWithLifecycle()
 
@@ -106,7 +104,7 @@ internal fun LibrarySearchEntry(
     // the keyboard. The local rows are a snapshot taken when the question is asked, which is
     // what iOS does as well.
     LaunchedEffect(query.search) {
-        search.ask(query.search, groups, registry.sources, credentials, pins)
+        search.ask(query.search, groups, registry, credentials, pins)
     }
 
     LibrarySearchBar(
@@ -114,16 +112,17 @@ internal fun LibrarySearchEntry(
         onQueryChange = { viewModel.setQuery(viewModel.query.value.copy(search = it)) },
         recents = recents,
         onClearRecents = viewModel::clearRecentSearches,
-        answers = answers,
+        listing = listing,
         onOpenHeld = { id ->
             viewModel.publications.value.firstOrNull { it.id == id }?.let(onOpenPage)
         },
         // A row a server answered leads to that server, opened on the question rather than at
-        // its front door. The reader is not told which server it was until they are standing
-        // in it, which is the difference between routing a tap and labelling a result.
+        // its front door — and never to the publication page, which resolves against the
+        // library's own set and would say the publication is gone. The row already names the
+        // library; this is where the reader arrives in it.
         onFollow = { route ->
             registry.sources.firstOrNull { it.id.toString() == route.sourceId }?.let { source ->
-                onFollowToSource(source, answers.term)
+                onFollowToSource(source, listing.term)
             }
         },
         onRetry = { id -> search.retry(id, registry.sources, credentials, pins) },
@@ -147,8 +146,8 @@ internal fun LibrarySearchEntry(
  * Both platforms are being asked for the same behaviour — search is one tap away and takes
  * over the screen — and each says it in its own words.
  *
- * What is *inside* the expanded bar is the part that matters, and it is the same on both:
- * one list, headed by what the match is, with nothing on it naming the library that answered.
+ * What is *inside* the expanded bar is the part that matters, and it is the same on both: one
+ * list, headed by what the match is, each row naming the library that supplied it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -157,7 +156,7 @@ internal fun LibrarySearchBar(
     onQueryChange: (String) -> Unit,
     recents: RecentSearches,
     onClearRecents: () -> Unit,
-    answers: SearchAnswers,
+    listing: SearchListing,
     onOpenHeld: (String) -> Unit,
     onFollow: (SearchRoute) -> Unit,
     onRetry: (String) -> Unit,
@@ -189,7 +188,7 @@ internal fun LibrarySearchBar(
 
     val results: @Composable () -> Unit = {
         SearchAnswerList(
-            answers = answers,
+            listing = listing,
             recents = recents,
             onUseRecent = { term ->
                 field.setTextAndPlaceCursorAtEnd(term)
@@ -213,15 +212,17 @@ internal fun LibrarySearchBar(
 /**
  * What one search found, wherever it was found.
  *
- * `library-browsing`: results are grouped "by what the match is rather than by which source
- * answered", and "no result is labelled with the source that supplied it". Rows arrive in two
- * waves and the list does not notice the difference — the device's own matches are here in
- * the frame the reader typed in, and a server's join underneath when they arrive. Nothing
- * above them moves; that promise lives in `SearchAnswers` and is asserted there.
+ * `library-browsing`'s *Mixed local and server search*: results are "merged into one ranked
+ * list, each labelled with its source", under headings that say what the match *is*. The label
+ * is drawn only when the reader has more than one library, which is *Unified library*'s own
+ * clause. Rows arrive in two waves and the list does not notice the difference — the device's
+ * own matches are here in the frame the reader typed in, and a server's join underneath when
+ * they arrive. Nothing above them moves; that promise lives in [SearchListing] and is asserted
+ * there.
  */
 @Composable
 private fun SearchAnswerList(
-    answers: SearchAnswers,
+    listing: SearchListing,
     recents: RecentSearches,
     onUseRecent: (String) -> Unit,
     onClearRecents: () -> Unit,
@@ -235,7 +236,7 @@ private fun SearchAnswerList(
         // `library-browsing`: "when a reader opens search, recent queries are offered, and
         // can be cleared". Offered instead of results rather than above them — once there is
         // something to read, a list of what was asked before is in the way.
-        if (answers.term.isEmpty()) {
+        if (listing.term.isEmpty()) {
             if (recents.terms.isNotEmpty()) {
                 item { Heading(stringResource(R.string.library_search_recent)) }
                 items(recents.terms) { term ->
@@ -261,24 +262,24 @@ private fun SearchAnswerList(
             return@LazyColumn
         }
 
-        if (answers.results.isEmpty() && !answers.isWaiting) {
+        if (listing.rows.isEmpty() && !listing.isWaiting) {
             // Named, per `library-browsing`: an empty state that does not say what was
             // searched for leaves a reader wondering whether the app heard them.
-            item { Quiet(stringResource(R.string.library_empty_search, answers.term)) }
+            item { Quiet(stringResource(R.string.library_empty_search, listing.term)) }
         }
 
-        answers.groups.forEach { group ->
+        listing.groups.forEach { group ->
             item(key = "heading:${group.kind}") {
                 Heading(stringResource(group.kind.headingRes))
             }
-            items(group.results, key = { it.id }) { result ->
-                ResultRow(result, onOpenHeld, onFollow)
+            items(group.rows, key = { it.id }) { found ->
+                ResultRow(found, listing.namesOrigin, onOpenHeld, onFollow)
             }
         }
 
         // Last, under everything, and quiet. Both of these are the app talking about itself,
         // and neither is worth a row's worth of attention while there are results above them.
-        if (answers.isWaiting) {
+        if (listing.isWaiting) {
             item(key = "waiting") {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -297,7 +298,7 @@ private fun SearchAnswerList(
 
         // `sources`: an unreachable library "is grey, never red". A sentence at the foot of
         // results the reader can already use, not an alert over the top of them.
-        items(answers.silent, key = { "silent:${it.sourceId}" }) { source ->
+        items(listing.silent, key = { "silent:${it.sourceId}" }) { source ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -327,11 +328,13 @@ private fun SearchAnswerList(
  */
 @Composable
 private fun ResultRow(
-    result: SearchResult,
+    found: FoundRow,
+    namesOrigin: Boolean,
     onOpenHeld: (String) -> Unit,
     onFollow: (SearchRoute) -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
+    val result = found.result
     val held = result.publicationId
     val route = result.route
     val tap = Modifier.let {
@@ -354,15 +357,37 @@ private fun ResultRow(
             color = if (result.isOpenable) palette.textPrimary else palette.textSecondary,
         )
         result.detail?.takeIf { it.isNotEmpty() }?.let { detail ->
-            // The series or the author — what tells a reader which "Volume 1" this is. Never
-            // the library it came from.
+            // The series or the author — what tells a reader which "Volume 1" this is.
             Text(
                 text = detail,
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.textSecondary,
             )
         }
+        if (namesOrigin) {
+            // The label the scenario asks for, under the row rather than beside it: a
+            // library's name is as long as the reader made it, and a trailing label would
+            // take its width from the title at the largest text size.
+            Text(
+                text = originLabel(found.origin),
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.textTertiary,
+            )
+        }
     }
+}
+
+/**
+ * Which library a row came from, in the reader's own words.
+ *
+ * The same two strings the shelf and the publication page use — two spellings of "On this
+ * device" in one app is how a vocabulary drifts. Nothing else about the library reaches the
+ * row: no protocol, no address, no product, no path.
+ */
+@Composable
+private fun originLabel(origin: SearchOrigin): String = when (origin) {
+    is SearchOrigin.Library -> stringResource(R.string.library_cell_source, origin.name)
+    SearchOrigin.ThisDevice -> stringResource(R.string.source_on_this_device)
 }
 
 @Composable

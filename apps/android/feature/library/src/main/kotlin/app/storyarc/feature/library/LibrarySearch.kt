@@ -2,9 +2,9 @@ package app.storyarc.feature.library
 
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.model.MatchGroup
-import app.storyarc.core.model.SearchAnswers
-import app.storyarc.core.model.SearchResult
 import app.storyarc.core.model.Source
+import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.model.attributesPublications
 import app.storyarc.core.persistence.CredentialStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -35,16 +35,17 @@ import kotlinx.coroutines.launch
  *   once, with a way to ask again. The rows already on screen are untouched, per the
  *   requirement's own words: "never replaced by an error".
  *
- * The merge itself is [SearchAnswers] — pure, mirrored, and where the no-reordering promise
- * is actually kept. This type is the part that has a clock and a network in it, and
- * deliberately has nothing else. iOS's `LibrarySearch` is the same object.
+ * The merge itself is [SearchListing] — pure, mirrored, and where the ranking, the labelling
+ * and the no-reordering promise are actually kept. This type is the part that has a clock and
+ * a network in it, and deliberately has nothing else. iOS's `LibrarySearch` is the same
+ * object.
  */
 internal class LibrarySearch(private val scope: CoroutineScope) {
 
-    private val _answers = MutableStateFlow(SearchAnswers.of(""))
+    private val _listing = MutableStateFlow(SearchListing.of(""))
 
     /** Everything known about the question currently being asked. */
-    val answers: StateFlow<SearchAnswers> = _answers.asStateFlow()
+    val listing: StateFlow<SearchListing> = _listing.asStateFlow()
 
     /** The fan-out for the term now in the field. Cancelled when the term changes. */
     private var remote: Job? = null
@@ -52,13 +53,13 @@ internal class LibrarySearch(private val scope: CoroutineScope) {
     /**
      * The reader typed.
      *
-     * Local rows are in [answers] by the time this returns. The rest arrives later, or does
+     * Local rows are in [listing] by the time this returns. The rest arrives later, or does
      * not arrive, and either way the screen already has something on it.
      */
     fun ask(
         raw: String,
         groups: List<MatchGroup>,
-        sources: List<Source>,
+        registry: SourceRegistry,
         credentials: CredentialStore?,
         pins: CertificatePins,
     ) {
@@ -67,14 +68,17 @@ internal class LibrarySearch(private val scope: CoroutineScope) {
 
         val term = raw.trim()
         if (term.isEmpty()) {
-            _answers.value = SearchAnswers.of("")
+            _listing.value = SearchListing.of("")
             return
         }
 
-        val asked = sources.filter(RemoteSearch::answers)
-        _answers.value = SearchAnswers.of(
+        val asked = registry.sources.filter(RemoteSearch::answers)
+        _listing.value = SearchListing.of(
             term = term,
-            local = SearchResult.held(groups),
+            // Read once, here, so a label cannot appear on the rows already on screen when
+            // the second library replies. See [SearchListing.namesOrigin].
+            namesOrigin = registry.attributesPublications,
+            local = FoundRow.held(groups, registry),
             asking = asked.map { it.id.toString() },
         )
 
@@ -98,7 +102,7 @@ internal class LibrarySearch(private val scope: CoroutineScope) {
     fun clear() {
         remote?.cancel()
         remote = null
-        _answers.value = SearchAnswers.of("")
+        _listing.value = SearchListing.of("")
     }
 
     /**
@@ -116,8 +120,8 @@ internal class LibrarySearch(private val scope: CoroutineScope) {
     ) {
         val source = sources.firstOrNull { it.id.toString() == sourceId } ?: return
         if (credentials == null) return
-        val term = _answers.value.term
-        _answers.value = _answers.value.askingAgain(sourceId)
+        val term = _listing.value.term
+        _listing.value = _listing.value.askingAgain(sourceId)
         scope.launch { ask(source, term, credentials, pins) }
     }
 
@@ -136,16 +140,16 @@ internal class LibrarySearch(private val scope: CoroutineScope) {
             // not. Narrowing this to the four exception types the three clients can throw
             // would be four branches that all do one thing, and a fifth escaping as a crash.
             if (failure is kotlinx.coroutines.CancellationException) throw failure
-            if (_answers.value.term == term) {
-                _answers.value = _answers.value.couldNotAnswer(id, source.displayName)
+            if (_listing.value.term == term) {
+                _listing.value = _listing.value.couldNotAnswer(id, source.displayName)
             }
             return
         }
         // The reader has typed on, so this answer is to a question nobody is asking any more.
         // Dropped rather than merged: rows for "bon" appearing under a field that says "bone"
         // is the one way a late answer *can* still surprise someone.
-        if (_answers.value.term != term) return
-        _answers.value = _answers.value.answered(id, rows)
+        if (_listing.value.term != term) return
+        _listing.value = _listing.value.answered(id, FoundRow.away(rows, source))
     }
 
     private companion object {

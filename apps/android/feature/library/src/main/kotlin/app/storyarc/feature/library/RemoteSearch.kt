@@ -121,8 +121,13 @@ internal object RemoteSearch {
      * The client is built here rather than a [CatalogueBrowser] being borrowed: a browser is
      * a `ViewModel` with a page, a scroll position and a lifecycle, and a search that lasts
      * one keystroke has no business owning one.
+     *
+     * `internal` rather than private so `RemoteSearchOpdsTest` can drive it against a real
+     * server on the loopback interface. [rows] cannot be: it needs a `CredentialStore`, which
+     * needs a `Context`, which a JVM unit test does not have — and this is the half worth
+     * proving, because it is two requests and a template substitution between them.
      */
-    private suspend fun entries(
+    internal suspend fun entries(
         term: String,
         page: CataloguePage,
         pins: CertificatePins,

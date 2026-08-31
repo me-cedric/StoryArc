@@ -24,15 +24,15 @@ internal import StoryArcCore
 ///   library once, with a way to ask again. The rows already on screen are untouched, per
 ///   the requirement's own words: "never replaced by an error".
 ///
-/// The merge itself is ``SearchAnswers`` — pure, mirrored, and where the no-reordering
-/// promise is actually kept. This type is the part that has a clock and a network in it, and
-/// deliberately has nothing else.
+/// The merge itself is ``SearchListing`` — pure, mirrored, and where the ranking, the
+/// labelling and the no-reordering promise are actually kept. This type is the part that has
+/// a clock and a network in it, and deliberately has nothing else.
 @MainActor
 @Observable
 final class LibrarySearch {
 
     /// Everything known about the question currently being asked.
-    private(set) var answers = SearchAnswers(term: "")
+    private(set) var listing = SearchListing(term: "")
 
     /// The fan-out for the term now in the field. Cancelled when the term changes.
     private var remote: Task<Void, Never>?
@@ -48,11 +48,11 @@ final class LibrarySearch {
     init() {}
 
     /// Whether there is a question on the table at all.
-    var isSearching: Bool { !answers.term.isEmpty }
+    var isSearching: Bool { !listing.term.isEmpty }
 
     /// The reader typed.
     ///
-    /// Local rows are in `answers` by the time this returns. The rest arrives later, or does
+    /// Local rows are in `listing` by the time this returns. The rest arrives later, or does
     /// not arrive, and either way the screen already has something on it.
     func ask(
         _ raw: String,
@@ -65,14 +65,17 @@ final class LibrarySearch {
 
         let term = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !term.isEmpty else {
-            answers = SearchAnswers(term: "")
+            listing = SearchListing(term: "")
             return
         }
 
         let asked = model.registry.sources.filter(RemoteSearch.answers)
-        answers = SearchAnswers(
+        listing = SearchListing(
             term: term,
-            local: SearchResult.held(in: model.matchGroups),
+            // Read once, here, so a label cannot appear on the rows already on screen when
+            // the second library replies. See ``SearchListing/namesOrigin``.
+            namesOrigin: model.registry.attributesPublications,
+            local: FoundRow.held(in: model.matchGroups, registry: model.registry),
             asking: asked.map { $0.id.uuidString }
         )
 
@@ -88,7 +91,7 @@ final class LibrarySearch {
     func clear() {
         remote?.cancel()
         remote = nil
-        answers = SearchAnswers(term: "")
+        listing = SearchListing(term: "")
     }
 
     /// The reader asked a library that went quiet to try once more.
@@ -104,8 +107,8 @@ final class LibrarySearch {
     ) {
         guard let source = model.registry.sources.first(where: { $0.id.uuidString == sourceID })
         else { return }
-        let term = answers.term
-        answers = answers.askingAgain(sourceID)
+        let term = listing.term
+        listing = listing.askingAgain(sourceID)
         Task { [weak self] in
             await self?.ask(source, term: term, credentials: credentials, pins: pins)
         }
@@ -148,11 +151,11 @@ final class LibrarySearch {
             // The reader has typed on, so this answer is to a question nobody is asking any
             // more. Dropped rather than merged: rows for "bon" appearing under a field that
             // says "bone" is the one way a late answer *can* still surprise someone.
-            guard answers.term == term else { return }
-            answers = answers.answered(id, with: rows)
+            guard listing.term == term else { return }
+            listing = listing.answered(id, with: FoundRow.away(rows, from: source))
         } catch {
-            guard answers.term == term else { return }
-            answers = answers.couldNotAnswer(id, named: source.displayName)
+            guard listing.term == term else { return }
+            listing = listing.couldNotAnswer(id, named: source.displayName)
         }
     }
 }

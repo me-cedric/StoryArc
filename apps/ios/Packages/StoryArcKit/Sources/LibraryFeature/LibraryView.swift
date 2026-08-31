@@ -338,13 +338,14 @@ extension LibraryView {
     private func searchSurface(_ inner: some View) -> some View {
         if search.isSearching {
             SearchResultsView(
-                answers: search.answers,
+                listing: search.listing,
                 // A row a server answered leads to that server, opened on the question
-                // rather than at its front door. The reader is not told which server it was
-                // until they are standing in it, which is the difference between routing a
-                // tap and labelling a result.
+                // rather than at its front door — and never to the publication page, which
+                // resolves against the library's own set and would say the publication is
+                // gone. The row already names the library; this is where the reader arrives
+                // in it.
                 onFollow: { route in
-                    serverSearch = search.answers.term
+                    serverSearch = search.listing.term
                     browsing = UUID(uuidString: route.sourceID)
                 },
                 onRetry: { id in
