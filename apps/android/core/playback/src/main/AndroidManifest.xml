@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The player's platform contract, declared by the module that owns it.
+
+    `audio-playback` asks that playback outlive the publication and that the system's own
+    controls drive the same session. On Android those are not two requirements: without a
+    foreground service of type `mediaPlayback` the process is frozen the moment the
+    listener leaves the app, and without a media session the lock screen, the shade
+    carousel and a car's head unit all have nothing to draw.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The service, and the API 34 rule that a service may only declare a type the app
+         has asked for. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- The transport is a notification, and from API 33 a notification needs asking for.
+         Refusing it does not stop the audio: playback and the lock screen's own controls
+         both come from the session, and what is lost is the shade's copy of them. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+
+        <!-- `automotive_app_desc.xml` is what a head unit reads to decide this app can be
+             driven from a car. It is a `<meta-data>` on the application rather than on the
+             service, which is where Android looks for it. -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
+        <service
+            android:name=".PlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <!-- Both actions. `MediaSessionService` is what the shade, the lock screen and
+                 a `MediaController` in the app itself bind to; `MediaBrowserService` is
+                 the legacy action a car and Wear still send, and a service that answers
+                 only the first is invisible to them. -->
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

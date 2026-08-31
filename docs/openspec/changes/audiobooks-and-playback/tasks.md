@@ -168,6 +168,18 @@ creep — see [`design.md`](design.md).
       three-chapter book into one unnamed part and fails two tests — which is exactly how it
       would have shipped, since nothing in a build would have said a word.
       *The Android half (media3 ExoPlayer) is not started.*
+      **Android half written, and half of it is proved.** `AudiobookSource` is
+      `PlayerSource` over an `ExoPlayer`, and `AudiobookChapters` holds every rule worth
+      arguing about — asserted on the JVM against `ChapterMark`, a shape of our own, so
+      that "an unchaptered book is one part and never an empty list" does not need a
+      decoder running to be checked. Mutation-checked: returning an empty list for an
+      unchaptered book fails two tests.
+      **Where media3 puts chapters is worth writing down**: not on `MediaMetadata`. A
+      `Chapter` is a `Metadata.Entry` hung off a track's `Format`, so it arrives with
+      `onTracksChanged` and not with the item, and `Chapter` is `@UnstableApi`.
+      **Not yet proved:** that a real `chaptered.m4b` decodes to those three marks. That
+      needs an instrumented test driving an `ExoPlayer` over the corpus, and it is the
+      honest gap in this task.
 - [ ] 2.8 Android: bump media3 to **1.11.0** and declare `media3-exoplayer` and
       `media3-session` explicitly in the version catalog. Readium only puts 1.10.0 on
       the classpath at runtime scope. **Nothing else in this section is blocked on
@@ -219,11 +231,44 @@ creep — see [`design.md`](design.md).
 - [ ] 3.4 Android: a real `MediaSessionService` with
       `foregroundServiceType="mediaPlayback"` and both `FOREGROUND_SERVICE`
       permissions. Assert the service is declared in the merged manifest.
-- [ ] 3.5 Android: media3's automatic `MediaStyle` notification — hand-rolling it is
+      **Done.** `PlaybackService` is a `MediaLibraryService`, which is a
+      `MediaSessionService` with a browse tree on top, declared in `:core:playback`'s own
+      manifest with both permissions and both intent-filter actions.
+      **Asserted of the installed package rather than of a file.**
+      `PlayerServiceIsDeclaredTest` asks the `PackageManager` — a source guard over the
+      module manifest would pass with the app not depending on the module, and the merger
+      is exactly where that mistake lands. Five assertions, run on `storyarc-j6`, all
+      passing. Mutation-checked on the device: changing the type to `dataSync` and dropping
+      the `MediaBrowserService` action fails two of them.
+- [x] 3.5 Android: media3's automatic `MediaStyle` notification — hand-rolling it is
       how the shade and the lock screen fall out of step.
-- [ ] 3.6 Android: `MediaSession.Callback.onPlaybackResumption` returning the saved
+      **Done, and the work was to install nothing.** No `MediaNotification.Provider` is
+      set, so media3's `DefaultMediaNotificationProvider` draws it. What *is* chosen is
+      which two buttons flank play/pause — `setMediaButtonPreferences` with
+      `SLOT_BACK` / `SLOT_FORWARD`, not the deprecated `setCustomLayout`, because a
+      preference says which slot a button wants and lets each surface place it.
+      Not yet photographed in the shade — that is a capture and it belongs with §6.
+- [~] 3.6 Android: `MediaSession.Callback.onPlaybackResumption` returning the saved
       position, so the shade carousel works after process death.
+      **Written, not proved.** The three-argument overload; the two-argument one is
+      deprecated at 1.11.0. `isForPlayback` is answered the same either way on purpose —
+      the carousel's row and the audio behind it have to name the same place, and giving
+      the drawing pass a different one is how a listener presses play on "Chapter 4" and
+      gets chapter 1. The position arrives through `PlaybackService.resumption`, a
+      process-wide handoff rather than a database read, because `:core:playback` does not
+      depend on `:core:persistence` and a service the system just started has no scope.
+      **Nothing writes to `resumption` yet** — that is the app's job and it lands with the
+      surfaces. And proving it needs the process killed between two runs, which is a device
+      exercise nothing here has done.
 - [ ] 3.7 Android: `MediaLibraryService` and `automotive_app_desc.xml`.
+      **Done.** The service is a `MediaLibraryService`; the descriptor declares `media` and
+      nothing else, because declaring a capability the app cannot honour is how an app
+      appears in a car's launcher and then does nothing.
+      `PlayerServiceIsDeclaredTest` reads the `com.google.android.gms.car.application`
+      meta-data off the installed package, which is how a head unit reaches it.
+      **The browse tree itself is still media3's default** — `onGetLibraryRoot` and
+      `onGetChildren` are unimplemented, so a head unit can drive what is *playing* and
+      cannot yet browse the library. That is the honest state of this task.
 - [~] 3.8 Both: interruption tests — audio taken and returned with the resume hint
       resumes; a pause the listener made is never undone; audio taken for good ends
       the session and records the position.
@@ -309,8 +354,13 @@ creep — see [`design.md`](design.md).
 - [ ] 5.3 Both: sleep timer offers durations **and end-of-chapter**, shows the
       remaining time, fades out rather than cutting, and records a position slightly
       before where the fade ended.
-- [ ] 5.4 Android: declare `COMMAND_SEEK_TO_PREVIOUS`/`NEXT` so the notification's
+- [x] 5.4 Android: declare `COMMAND_SEEK_TO_PREVIOUS`/`NEXT` so the notification's
       three compact slots carry seek-back / play-pause / seek-forward.
+      **Done.** All four are added in `onConnect`: the two chapter moves a head unit uses
+      and the two second-counts the notification carries. The compact row's outer slots are
+      `COMMAND_SEEK_BACK` and `COMMAND_SEEK_FORWARD` at 15 s and 30 s — media3's own
+      defaults, 5 s and 15 s, are set aside on the `ExoPlayer.Builder`, and that is a
+      **product decision** with no guideline behind it.
 
 ## 6. Playback outlives the publication
 

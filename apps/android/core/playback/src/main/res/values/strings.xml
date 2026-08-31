@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The player's own words, owned by the module that draws them.
+
+    `:core:designsystem` deliberately ships no strings, because a design system that owned
+    words would own vocabulary. This module is not that: it draws a notification and a
+    lock-screen transport of its own, exactly as `:feature:epubreader` does for read-aloud,
+    and a button that has to be labelled has to have a label somewhere.
+
+    The intervals are in the names because they are in the buttons. Fifteen back and thirty
+    forward is a **product decision** — media3's own defaults are five and fifteen — and a
+    listener reading the control needs to be told which it is.
+-->
+<resources>
+    <string name="playback_skip_back">Back 15 seconds</string>
+    <string name="playback_skip_forward">Forward 30 seconds</string>
+</resources>

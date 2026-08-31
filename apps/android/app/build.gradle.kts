@@ -88,6 +88,11 @@ dependencies {
     // Added for the open-in flow. The system hands the app a `Uri` and the app layer is
     // where routing lives, so the app is what has to decide what those bytes are.
     implementation(project(":core:format"))
+    // The player, and the service that keeps it running once every screen has gone. The
+    // manifest is what actually matters here: `PlaybackService`, its `mediaPlayback`
+    // foreground type and both `FOREGROUND_SERVICE` permissions merge in from this module,
+    // and `PlayerServiceIsDeclaredTest` asks the installed package for them.
+    implementation(project(":core:playback"))
     implementation(project(":feature:library"))
     implementation(project(":feature:reader"))
     implementation(project(":feature:epubreader"))

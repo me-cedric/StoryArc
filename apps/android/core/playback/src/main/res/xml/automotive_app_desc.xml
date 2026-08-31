@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    What a car's head unit reads to decide StoryArc can be driven from it.
+
+    `media` and nothing else. StoryArc has no messaging, no navigation and no template
+    screens, and declaring a capability an app cannot honour is how an app appears in a
+    car's launcher and then does nothing.
+
+    `design.md`: "an audiobook player that cannot be driven from a car is missing its best
+    use". The browse tree the head unit walks is `PlaybackService`'s, which is a
+    `MediaLibraryService` for exactly this reason.
+-->
+<automotiveApp>
+    <uses name="media" />
+</automotiveApp>
