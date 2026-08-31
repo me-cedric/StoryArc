@@ -343,7 +343,7 @@ private fun HomeCoverRun(
     cover: suspend (Publication, Int) -> Bitmap?,
     onOpen: (Publication) -> Unit,
 ) {
-    val width = coverMinimumWidth(homeWindowWidthDp()) * SHELF_COVER_SCALE
+    val width = homeShelfCoverWidth(homeWindowWidthDp(), LocalDensity.current.fontScale)
     LazyRow(
         contentPadding = PaddingValues(horizontal = StoryArcSpace.gutter),
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.coverGap),
@@ -441,6 +441,22 @@ private fun homeWindowWidthDp(): Int {
     val size = LocalWindowInfo.current.containerSize
     return with(density) { size.width.toDp() }.value.toInt()
 }
+
+/**
+ * How wide a cover on a home shelf is drawn.
+ *
+ * The grid's ladder, scaled — the same rule the library grid and the Downloads shelf ask,
+ * so a reader who turns their text size up finds Home reflowed too. It did not: this read
+ * `coverMinimumWidth(homeWindowWidthDp())` and the font scale was an optional argument, so
+ * at scale 1.5 the library grid widened 104 → 146 dp and the continue-reading run below it
+ * kept the ordinary width. The argument is no longer optional, which is why this cannot
+ * come back.
+ *
+ * Not `@Composable`, so the arithmetic can be asserted without a window — `HomeCoverWidthTest`
+ * is the only reach a plain JVM suite has into what this screen draws.
+ */
+internal fun homeShelfCoverWidth(windowWidthDp: Int, fontScale: Float): Dp =
+    coverMinimumWidth(windowWidthDp, fontScale) * SHELF_COVER_SCALE
 
 /**
  * How much bigger a home shelf's covers are than the library grid's floor.
