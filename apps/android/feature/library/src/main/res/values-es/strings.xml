@@ -154,6 +154,13 @@
     <string name="shelves_create">Crear</string>
     <string name="shelves_cancel">Cancelar</string>
     <string name="shelves_delete">Eliminar %1$s</string>
+    <string name="shelves_delete_confirm">Eliminar</string>
+    <string name="shelves_delete_title">¿Eliminar «%1$s»?</string>
+    <string name="shelves_delete_collection_body">Los libros y cómics que contiene siguen en tu biblioteca. Solo desaparece la colección.</string>
+    <string name="shelves_delete_list_body">Los libros y cómics que contiene siguen en tu biblioteca. Solo desaparece la lista de lectura.</string>
+    <string name="shelves_cover">Elegir una portada</string>
+    <string name="shelves_cover_about">Elige una, o deja que la colección muestre sus cuatro primeras portadas.</string>
+    <string name="shelves_cover_composite">Las cuatro primeras portadas</string>
     <string name="shelves_collection_empty">Aún no hay nada en esta colección. Añade libros y cómics desde tu biblioteca.</string>
     <string name="shelves_list_empty">Aún no hay nada en esta lista. Añade libros y cómics desde tu biblioteca.</string>
     <string name="shelves_list_unavailable">Ya no está donde estaba</string>

@@ -1636,6 +1636,33 @@ class LibraryViewModel(
     }
 
     /**
+     * Deletes a shelf the reader has confirmed, and not one they have not.
+     *
+     * `collections-and-reading-lists` asks for the confirmation; [ShelfDeletion] is what holds
+     * the question until it is answered, and this is the only thing that answers it.
+     *
+     * Internal because [ShelfDeletion] is: a confirmation that has been answered is this
+     * module's own business, and [deleteCollection] and [deleteList] remain the way anything
+     * outside it deletes a shelf.
+     */
+    internal fun delete(deletion: ShelfDeletion) {
+        _shelves.update { deletion.apply(it) }
+        shelvesStore?.save(_shelves.value)
+    }
+
+    /**
+     * Gives a collection a cover of its own, or hands it back to the composite with `null`.
+     *
+     * `collections-and-reading-lists` makes the composite what a collection wears "unless the
+     * user sets a specific one". [Shelves.settingCover] has always been able to store the
+     * choice; this is the first thing that asks it to.
+     */
+    fun setCollectionCover(member: String?, id: UUID) {
+        _shelves.update { it.settingCover(member, id) }
+        shelvesStore?.save(_shelves.value)
+    }
+
+    /**
      * What to offer when a publication is finished.
      *
      * A reading list wins over a series. `collections-and-reading-lists`: when a reader

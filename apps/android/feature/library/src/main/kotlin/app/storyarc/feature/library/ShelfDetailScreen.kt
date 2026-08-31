@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,11 +69,29 @@ fun CollectionDetailScreen(
     var undo by remember { mutableStateOf<BulkUndo?>(null) }
     BulkUndoEffect(undo, snackbars, viewModel, publications, onMark) { undo = null }
 
+    // Whether the reader is choosing which cover this collection wears.
+    var isChoosingCover by remember { mutableStateOf(false) }
+
     Scaffold(
         containerColor = palette.surfaceCanvas,
         snackbarHost = { SnackbarHost(snackbars) },
         topBar = {
             DetailBar(collection?.name.orEmpty(), onBack) {
+                // `collections-and-reading-lists`: the composite is what a collection wears
+                // "unless the user sets a specific one". The offer lives here rather than on
+                // the shelf card, because choosing between four covers and one is a question
+                // about what is inside the collection, and this is the screen showing what is
+                // inside it. A collection holding nothing has nothing to offer, so it does
+                // not ask.
+                if (collection?.members?.isNotEmpty() == true) {
+                    IconButton(onClick = { isChoosingCover = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.GridView,
+                            contentDescription = stringResource(R.string.shelves_cover),
+                            tint = palette.accent,
+                        )
+                    }
+                }
                 // `collections-and-reading-lists` asks for a whole collection to be
                 // downloaded or marked read. Membership rather than the grid: a publication
                 // whose file has gone is still a member, and marking it read is still what
@@ -106,6 +125,14 @@ fun CollectionDetailScreen(
                 )
             }
         }
+    }
+
+    if (isChoosingCover && collection != null) {
+        ShelfCoverPicker(
+            viewModel = viewModel,
+            collection = collection,
+            onDismiss = { isChoosingCover = false },
+        )
     }
 }
 

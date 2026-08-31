@@ -117,6 +117,12 @@ fun ShelvesScreen(
     var draft by remember { mutableStateOf("") }
     var menuOpen by remember { mutableStateOf(false) }
 
+    // The shelf a reader has asked to delete and not yet answered for.
+    // `collections-and-reading-lists`: deleting a collection is confirmed, and the confirmation
+    // "states plainly that the publications themselves are not deleted". This is the gap between
+    // the two -- while it holds something, nothing has been written.
+    var deleting by remember { mutableStateOf<ShelfDeletion?>(null) }
+
     Scaffold(
         containerColor = palette.surfaceCanvas,
         topBar = {
@@ -194,7 +200,7 @@ fun ShelvesScreen(
                         subtitle = caption(collection.origin, collection.members.size, registry.sources),
                         tiles = shelfTiles(collection),
                         onOpen = { onOpenCollection(collection.id) },
-                        onDelete = { viewModel.deleteCollection(collection.id) },
+                        onDelete = { deleting = ShelfDeletion.of(collection) },
                     )
                 }
                 items(serverCollections, key = { "c-${it.server.id}-${it.id}" }) { shelf ->
@@ -226,7 +232,7 @@ fun ShelvesScreen(
                         tiles = shelfTiles(list),
                         onOpen = { onOpenList(list.id) },
                         progress = shelfFraction(list, finished),
-                        onDelete = { viewModel.deleteList(list.id) },
+                        onDelete = { deleting = ShelfDeletion.of(list) },
                     )
                 }
                 items(serverLists, key = { "l-${it.server.id}-${it.id}" }) { shelf ->
@@ -279,6 +285,17 @@ fun ShelvesScreen(
                     Text(stringResource(R.string.shelves_cancel))
                 }
             },
+        )
+    }
+
+    deleting?.let { deletion ->
+        ShelfDeletionDialog(
+            deletion = deletion,
+            onConfirm = {
+                viewModel.delete(deletion)
+                deleting = null
+            },
+            onDismiss = { deleting = null },
         )
     }
 
