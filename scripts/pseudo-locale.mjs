@@ -28,6 +28,7 @@
  *   node scripts/pseudo-locale.mjs --keep       leave the device in en-XA afterwards
  *   node scripts/pseudo-locale.mjs --self-test  check the checks still fire
  */
+import { pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -149,12 +150,26 @@ export const inspect = (nodes, screen, density) => {
  */
 const TO_SETTINGS = ['to-library', 'gear', 'overflow-last']
 
-// KNOWN GAP, 2026-08-31: `to-library` does not reliably land on the library. Run against a
-// booted emulator it reaches a destination with three rows of covers and *no top bar*,
-// so `gear` then finds nothing and every Settings route fails. The bottom-eighth filter is
-// catching the bar's own container alongside its items, so "the middle one" is not the
-// middle destination. Home walks; the Settings routes do not. Fixing it means identifying a
-// destination by something sturdier than its position in a list that includes its parent.
+// KNOWN GAP, narrowed 2026-08-31: the walk now reaches **Library** under `en-XA`, which it
+// never did before, and `Home` and `Library` both pass. The Settings routes still fail one hop
+// later: `gear` finds a clickable node in the top eighth and taps it, and the overflow menu
+// does not open, so `overflow-last` never finds an item. What has been ruled out — each by
+// measurement under the pseudo-locale, not by reading:
+//
+//   * It is not the container-vs-destination confusion that was recorded here before. The
+//     bottom bar's three destinations are exact thirds of the display under `en-XA` as well
+//     as under English, and `tapLibrary` now identifies them by that and lands correctly.
+//   * It is not a race. All four positional helpers now read the screen until what they are
+//     counting is there, rather than once; four reads a second apart is not enough for a menu
+//     that is never opening.
+//   * It is not that the current destination is unclickable, which is true and was the reason
+//     a clickability filter could never see three of them.
+//
+// What is left to establish is what the rightmost clickable node in the Library's top eighth
+// actually *is* under `en-XA`. Under English it is the overflow at x=944..1070. A one-shot
+// dump cannot answer it: every attempt read the screen before the shell had drawn, which is
+// the same trap `tapWhenFound` exists for — the diagnostic needs the same patience the walk
+// now has.
 
 const ROUTES = [
     ['Home', []],
@@ -170,22 +185,75 @@ const ROUTES = [
 ]
 
 /**
+ * Reads the tree until it holds the thing being looked for, then taps it.
+ *
+ * **`tree()` waits for *a* tree, not for *the* tree.** It retries only while the dump comes
+ * back empty, and a splash screen is not empty — nor is the screen behind an opening menu.
+ * So every positional helper here read once, counted what happened to be on screen, and
+ * either threw or tapped the wrong thing. That is one cause behind three separate symptoms:
+ * `to-library` landing on a destination with no top bar, the overflow menu appearing to never
+ * open, and a settings row index counting rows that had not been drawn yet. Two of the three
+ * were recorded as known gaps for a day.
+ *
+ * A fixed settle cannot fix it, because the wait that is long enough on one machine after a
+ * warm start is not long enough on another after a cold one. Asking for what is needed is the
+ * only wait that is right by construction.
+ *
+ * @param find given the tree, the node to tap, or null when it is not there yet.
+ * @param what what was being looked for, for the message when it never arrives.
+ */
+const tapWhenFound = (find, what) => {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+        if (attempt > 0) settle(900)
+        const found = find(tree())
+        if (!found) continue
+        const { bounds } = found
+        sh('shell', 'input', 'tap', String((bounds.left + bounds.right) >> 1), String((bounds.top + bounds.bottom) >> 1))
+        return
+    }
+    throw new Error(`${what} never appeared, after four reads of the screen a second apart.`)
+}
+
+/**
  * Taps the middle of the three bottom destinations, which is the library.
  *
- * By position, like everything else here. The bar's items are the clickable nodes in the
- * bottom eighth of the display; the shell promises there are exactly three of them and a
- * test in `:app` holds it to that, so the middle one is the library wherever it is drawn.
+ * By position, like everything else here: under `en-XA` every label reads
+ * `[Ĺíbŕáŕý one two]`, so nothing can be found by name.
+ *
+ * **A destination is identified by its width, not by being clickable.** Two things made the
+ * obvious filter wrong, and between them they cost this walk a day of every Settings route
+ * failing while Home passed:
+ *
+ * 1. The bar's own container is clickable and as wide as the display, so it was counted
+ *    alongside its children and "the middle of four" was not the middle destination.
+ * 2. **The destination the app is already on is not clickable at all.** The shell opens on
+ *    Home, Compose gives the selected item `selected="true"` and no click semantic, and so
+ *    only ever *two* of the three are clickable. Filtering on clickability can therefore
+ *    never see three, whatever else is fixed.
+ *
+ * The bar divides the display into equal thirds, so a destination is a node at the foot of
+ * the screen one third of the display wide. That is a property of what the thing is. The
+ * duplicates are nested wrappers sharing a child's bounds, so one per left edge is kept.
+ *
+ * Read off a real emulator rather than assumed: at 1080 wide the three sit at x=0..360,
+ * 360..720 and 720..1080, and the two 1080-wide nodes above them are the bar and the window.
  */
-const tapLibrary = () => {
-    const nodes = tree()
-    const height = Math.max(...nodes.map((n) => n.bounds.bottom).filter(Number.isFinite))
-    const bar = nodes
-        .filter((n) => n.clickable && n.bounds.top > (height * 7) / 8 && Number.isFinite(n.bounds.right))
-        .sort((a, b) => a.bounds.left - b.bounds.left)
-    if (bar.length < 2) throw new Error(`expected three bottom destinations, found ${bar.length}`)
-    const { bounds } = bar[Math.floor(bar.length / 2)]
-    sh('shell', 'input', 'tap', String((bounds.left + bounds.right) >> 1), String((bounds.top + bounds.bottom) >> 1))
-}
+const tapLibrary = () =>
+    tapWhenFound((nodes) => {
+        const height = Math.max(...nodes.map((n) => n.bounds.bottom).filter(Number.isFinite))
+        const width = Math.max(...nodes.map((n) => n.bounds.right).filter(Number.isFinite))
+        const third = width / 3
+        const byLeft = new Map()
+        for (const node of nodes) {
+            const { left, right, top } = node.bounds
+            if (!Number.isFinite(right) || top <= (height * 7) / 8) continue
+            // Within a pixel of a third: the bar's own thirds, and neither the bar nor an icon.
+            if (Math.abs(right - left - third) > 1) continue
+            if (!byLeft.has(left)) byLeft.set(left, node)
+        }
+        const bar = [...byLeft.values()].sort((a, b) => a.bounds.left - b.bounds.left)
+        return bar.length === 3 ? bar[1] : null
+    }, 'the middle of three bottom destinations')
 
 /**
  * Taps the last item of an open dropdown, which is Settings.
@@ -195,39 +263,38 @@ const tapLibrary = () => {
  * that has nothing to do -- so counting from the top would land somewhere different on an
  * empty library than on a full one. Counting from the bottom lands on Settings either way.
  */
-const tapLastMenuItem = () => {
-    const nodes = tree()
-    const height = Math.max(...nodes.map((n) => n.bounds.bottom).filter(Number.isFinite))
-    const items = nodes
-        .filter((n) => n.clickable && Number.isFinite(n.bounds.bottom) && n.bounds.bottom < height / 2)
-        .sort((a, b) => a.bounds.top - b.bounds.top)
-    if (items.length === 0) throw new Error('no menu item found below the overflow')
-    const { bounds } = items.at(-1)
-    sh('shell', 'input', 'tap', String((bounds.left + bounds.right) >> 1), String((bounds.top + bounds.bottom) >> 1))
-}
+/**
+ * Taps the last item of the overflow menu, which is Settings.
+ *
+ * **Waits for the menu rather than for a tree.** `tree()` retries only while the dump comes
+ * back *empty*, and the screen behind an opening menu is not empty — so the first read
+ * returned the library, found no menu item, and threw. The step before this one has a 1200 ms
+ * settle after it and that was not always enough. Every Settings route in this walk failed
+ * that way for a day while Home and Library passed, which is the shape of a wait that is
+ * long enough on the machine it was written on.
+ *
+ * So it asks for what it needs, three times, and says what it saw when it gives up. The
+ * menu's items are in the top half of the display because the overflow it hangs from is in
+ * the top bar; measured on an emulator they sit at y=296..422, 422..548 and 548..674 of 2400.
+ */
+const tapLastMenuItem = () =>
+    tapWhenFound((nodes) => {
+        const height = Math.max(...nodes.map((n) => n.bounds.bottom).filter(Number.isFinite))
+        const items = nodes
+            .filter((n) => n.clickable && Number.isFinite(n.bounds.bottom) && n.bounds.bottom < height / 2)
+            .sort((a, b) => a.bounds.top - b.bounds.top)
+        return items.at(-1) ?? null
+    }, 'the last item of the overflow menu')
 
-const tapGear = () => {
-    const nodes = tree()
-    // The rightmost clickable node in the top eighth of the display. Position, not name.
-    const screenHeight = Math.max(...nodes.map((n) => n.bounds.bottom).filter(Number.isFinite))
-    const top = nodes
-        .filter((n) => n.clickable && n.bounds.top < screenHeight / 8 && Number.isFinite(n.bounds.right))
-        .sort((a, b) => b.bounds.right - a.bounds.right)
-    if (top.length === 0) {
-        // Say what was on screen. A positional walk that misses tells you nothing about
-        // why unless it shows you what it was looking at.
-        const seen = nodes
-            .filter((n) => n.clickable)
-            .map((n) => `${n.bounds.top}..${n.bounds.bottom}`)
-            .join(', ')
-        throw new Error(
-            `no action found in the top bar (above ${Math.round(screenHeight / 8)}). ` +
-                `Clickable rows: ${seen || 'none'}`
-        )
-    }
-    const { bounds } = top[0]
-    sh('shell', 'input', 'tap', String((bounds.left + bounds.right) >> 1), String((bounds.top + bounds.bottom) >> 1))
-}
+const tapGear = () =>
+    tapWhenFound((nodes) => {
+        // The rightmost clickable node in the top eighth of the display. Position, not name.
+        const height = Math.max(...nodes.map((n) => n.bounds.bottom).filter(Number.isFinite))
+        const top = nodes
+            .filter((n) => n.clickable && n.bounds.top < height / 8 && Number.isFinite(n.bounds.right))
+            .sort((a, b) => b.bounds.right - a.bounds.right)
+        return top[0] ?? null
+    }, 'an action in the top bar')
 
 /**
  * Taps the nth row of a settings list.
@@ -238,23 +305,20 @@ const tapGear = () => {
  * a happy accident here: navigation that cannot read text cannot be broken by translating
  * it.
  */
-const tapRow = (index) => {
-    const nodes = tree()
-    const width = Math.max(...nodes.map((n) => n.bounds.right).filter(Number.isFinite))
-    const rows = nodes
-        .filter(
-            (n) =>
-                n.clickable &&
-                Number.isFinite(n.bounds.top) &&
-                n.bounds.left <= 8 &&
-                n.bounds.right >= width - 8,
-        )
-        .sort((a, b) => a.bounds.top - b.bounds.top)
-    const target = rows[index]
-    if (!target) throw new Error(`no row ${index} among ${rows.length} full-width rows`)
-    const { bounds } = target
-    sh('shell', 'input', 'tap', String((bounds.left + bounds.right) >> 1), String((bounds.top + bounds.bottom) >> 1))
-}
+const tapRow = (index) =>
+    tapWhenFound((nodes) => {
+        const width = Math.max(...nodes.map((n) => n.bounds.right).filter(Number.isFinite))
+        const rows = nodes
+            .filter(
+                (n) =>
+                    n.clickable &&
+                    Number.isFinite(n.bounds.top) &&
+                    n.bounds.left <= 8 &&
+                    n.bounds.right >= width - 8,
+            )
+            .sort((a, b) => a.bounds.top - b.bounds.top)
+        return rows[index] ?? null
+    }, `row ${index} of the settings list`)
 
 const walk = () => {
     const density = Number(/\d+/.exec(sh('shell', 'wm', 'density'))?.[0] ?? 160)
@@ -311,7 +375,18 @@ const selfTest = () => {
     process.exitCode = ok ? 0 : 1
 }
 
-if (process.argv.includes('--self-test')) {
+/**
+ * Run only when run, so `parse` can be imported without walking a device.
+ *
+ * `parse` is exported and a diagnostic that imported it for that alone found itself driving
+ * the emulator, changing the app's locale and force-stopping it — the same wart
+ * `a11y-scan.mjs` already grew this guard for, in the same words.
+ */
+const isMain = import.meta.url === pathToFileURL(process.argv[1] ?? '').href
+
+if (!isMain) {
+    // Imported for `parse`. Nothing to do.
+} else if (process.argv.includes('--self-test')) {
     selfTest()
 } else {
     try {
