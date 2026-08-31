@@ -188,7 +188,11 @@ struct DownloadsDestination: View {
             HStack(spacing: StoryArcSpace.md) {
                 Text("downloads.removed \(removed.download.title)")
                     .textRole(.footnote)
-                    .foregroundStyle(theme.palette.textPrimary)
+                    // On glass, so the material decides rather than a fixed palette colour.
+                    // This bar floats over the on-device shelf with covers beneath it, and a
+                    // constant cannot follow a ground that is whatever art is passing —
+                    // see `ScanSummary` in `LibraryStates.swift` for what that cost.
+                    .storyArcGlassText(.primary)
                     .lineLimit(2)
 
                 Spacer(minLength: 0)

@@ -87,7 +87,9 @@ struct BulkActionBar: View {
         HStack(spacing: StoryArcSpace.md) {
             Text("library.selected \(selection.count)", bundle: .module)
                 .textRole(.footnote)
-                .foregroundStyle(theme.palette.textSecondary)
+                // On glass, so the material decides — see ``ScanSummary``. This bar floats
+                // over the shelf with covers passing beneath it, exactly like that one.
+                .storyArcGlassText()
 
             Spacer(minLength: 0)
 
@@ -191,7 +193,9 @@ struct BulkUndoBar: View {
         HStack(spacing: StoryArcSpace.md) {
             Text("library.bulk.changed \(record.ids.count)", bundle: .module)
                 .textRole(.footnote)
-                .foregroundStyle(theme.palette.textSecondary)
+                // On glass, here and again in ``ShelfBulkActions``, which puts this same bar
+                // over a collection's covers.
+                .storyArcGlassText()
 
             Spacer(minLength: 0)
 

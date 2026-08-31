@@ -40,32 +40,26 @@ struct ScanningView: View {
 /// The cached-shelf notice that used to sit here left for `CachedNotice.swift` when it was
 /// finally mounted; it is a statement about the whole shelf rather than about a scan.
 ///
-/// **Secondary, not tertiary.** This was the one branch of the bottom strip drawn in
-/// `textTertiary`, and over bright artwork in light mode it was barely there. `design.md`
-/// §2 contracts that role for "timestamps, disabled, placeholder" — the things a reader is
-/// meant to skip — while `textSecondary` is "metadata, subtitles", which is what a count of
-/// unreadable files is. The strip's other three branches, ``BulkActionBar``,
-/// ``UnavailableFolderNotice`` and ``CachedNotice``, were already secondary; this one was
-/// the odd one out, and Android's shelf makes the same three-to-one split.
+/// **The colour follows the glass, because a fixed one cannot.** This sentence went from
+/// `textTertiary` to `textSecondary` and was still barely there: at
+/// `accessibility-extra-extra-extra-large` on a booted iPhone 17 Pro the covers are large
+/// enough that this strip always sits over one, and in *light* mode a dark grey over glass
+/// that had picked up a dark purple cover was very nearly invisible. It read fine in dark
+/// mode at the same size, which is the tell — the ground was moving and the text was not.
 ///
-/// Being honest about what that does and does not buy: **no text token is contrast-gated
-/// against glass.** `pnpm tokens:check` measures the three text roles on `surfaceCanvas`,
-/// `surfaceRaised` and `surfaceSunken`, and untinted Liquid Glass is none of them — its
-/// ground is whatever cover art happens to scroll beneath it, and even its declared opaque
-/// fallback, `surfaceOverlay`, is outside the gate. So the move here is to the role with
-/// the most measured headroom on every ramp — 6.36:1 to 8.72:1 against tertiary's 4.94:1 to
-/// 5.87:1 — rather than to a token that certifies this surface, because there is no such
-/// token. Inventing one, or relaxing a floor to make one fit, would be worse than saying so.
+/// The move was never going to be a better token. No text token is gated against glass at
+/// all: `pnpm tokens:check` measures the three text roles on `surfaceCanvas`,
+/// `surfaceRaised` and `surfaceSunken`, and untinted Liquid Glass is none of them.
+/// ``View/storyArcGlassText(_:)`` carries the whole argument, and the app's own neutral
+/// comes back with the opaque fallback.
 struct ScanSummary: View {
-    @Environment(\.theme) private var theme
-
     let found: Int
     let skipped: Int
 
     var body: some View {
         Text("library.skipped \(skipped)", bundle: .module)
             .textRole(.footnote)
-            .foregroundStyle(theme.palette.textSecondary)
+            .storyArcGlassText()
             .padding(.vertical, StoryArcSpace.sm)
             .frame(maxWidth: .infinity)
             .storyArcGlass(in: Rectangle())
@@ -234,8 +228,6 @@ struct LibraryAway: View {
 /// preserving reading progress for everything inside it". Progress survives
 /// because ADR-0006 keys it on the publication, not on the folder.
 struct UnavailableFolderNotice: View {
-    @Environment(\.theme) private var theme
-
     let name: String
     let repick: () -> Void
 
@@ -243,7 +235,8 @@ struct UnavailableFolderNotice: View {
         HStack(spacing: StoryArcSpace.sm) {
             Text("library.folderUnavailable \(name)", bundle: .module)
                 .textRole(.footnote)
-                .foregroundStyle(theme.palette.textSecondary)
+                // On glass, so the material decides — see ``ScanSummary``.
+                .storyArcGlassText()
 
             Spacer(minLength: 0)
 
