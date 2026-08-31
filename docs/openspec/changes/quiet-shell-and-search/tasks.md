@@ -63,6 +63,11 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       five fixed views, which our source set is not.
 - [x] 2.11 Android: result rows as `ListItem(content =, leadingContent =)` with a
       transparent container; group by gap and `SegmentedListItem`, not dividers.
+- [x] 2.11b Android: `SearchSuggestionsTest` — the three sections over `LibraryIndex` and
+      `HomeShelves.upNext`, disjoint, capped, ordered by arrival, and `isEmpty` for the
+      screen that says so in one sentence. Its own type over `HomeEntry`, **not** a port of
+      iOS's `SearchSuggestions` — that one is a composition over its own home shelves and
+      hands the screen bare publications.
 - [x] 2.12 Android: the scope chips reach the fan-out. `SearchScopeTest` — narrowing asks
       nobody, drops what cannot be read with no network, empties no heading over it, and
       leaves `waiting` and `silent` empty; `LibraryPreferencesTest` — the choice is written

@@ -47,6 +47,7 @@ const NAMES = {
     home: 'Home|Inicio|Start|Accueil', //                         destination_home
     library: 'Library|Biblioteca|Bibliothek|Bibliothèque', //      destination_library
     downloads: 'Downloads|Descargas|Téléchargements', //           destination_downloads (de is "Downloads")
+    search: 'Search|Buscar|Suche|Recherche', //                    destination_search
     more: 'More|Más|Mehr|Plus', //                                 library_more
     settings: 'Settings|Ajustes|Einstellungen|Réglages', //        settings_title
     // A publication nobody has opened offers Read; a part-read one offers Continue. Both keys
@@ -69,6 +70,12 @@ export const ROUTES = [
     ['Home', []],
     ['Library', [NAMES.library]],
     ['Downloads', [NAMES.downloads]],
+    // Search became a destination with a page behind it in `quiet-shell-and-search`; before
+    // that it was a field on the library screen, and there was nothing here to walk to. The
+    // page at rest is what this photographs — the bar plus what it offers before a letter is
+    // typed. The *expanded* bar is a second condition and still has to be taken by hand: it
+    // needs a tap on the field, which is a step this table has no vocabulary for.
+    ['Search', [NAMES.search]],
     // A cover leads to the publication's page now, and the page's own action leads to the
     // reader. That is two taps where this list used to have one, and the reason the list
     // said twelve of thirteen routes were unreachable the first time it ran after the

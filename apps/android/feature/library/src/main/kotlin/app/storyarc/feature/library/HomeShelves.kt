@@ -128,14 +128,7 @@ object HomeShelves {
         shelfLength: Int = SHELF_LENGTH,
     ): HomeSurface {
         val state: (Publication) -> LibraryIndex.Progress = { LibraryIndex.Progress.of(progress(it)) }
-        val entry: (Publication) -> HomeEntry = { publication ->
-            HomeEntry(
-                publication = publication,
-                isReadableNow = isReadableNow(publication),
-                pagesRemaining = pagesRemaining(publication, progress(publication)),
-                fraction = state(publication).fraction,
-            )
-        }
+        val entry: (Publication) -> HomeEntry = { entryOf(it, progress, isReadableNow) }
 
         // Straight through `LibraryIndex`, which both platforms already mirror and whose
         // ordering rule — most recently read first — is asserted in both test suites.
@@ -173,7 +166,7 @@ object HomeShelves {
      * working through leads the shelf. `home-screen` fixes the order of Keep reading and
      * says nothing about this one; last-touched is the same answer for the same reason.
      */
-    private fun upNext(
+    internal fun upNext(
         publications: List<Publication>,
         state: (Publication) -> LibraryIndex.Progress,
         shelfLength: Int,
@@ -225,8 +218,40 @@ object HomeShelves {
      */
     private fun recentlyAdded(publications: List<Publication>, shelfLength: Int): List<Publication> =
         publications
-            .sortedByDescending { it.addedAtEpochMillis ?: it.modifiedAtEpochMillis ?: Long.MIN_VALUE }
+            .sortedByDescending(::arrived)
             .take(shelfLength)
+
+    /**
+     * When a publication turned up, as well as anything knows.
+     *
+     * `Long.MIN_VALUE` for one that says nothing, which sorts it last without dropping it —
+     * see [recentlyAdded] for why a shelf must not empty itself over a missing date.
+     *
+     * Internal because [SearchSuggestions] orders its own *never opened* section by the same
+     * answer. Two readings of "when did this arrive" would put one screen's newest arrival
+     * halfway down another's.
+     */
+    internal fun arrived(publication: Publication): Long =
+        publication.addedAtEpochMillis ?: publication.modifiedAtEpochMillis ?: Long.MIN_VALUE
+
+    /**
+     * One publication as a shelf offers it.
+     *
+     * Lifted out of [assemble]'s local lambda so [SearchSuggestions] builds its entries the
+     * same way rather than the near-same way: `pagesRemaining` and the fraction are both easy
+     * to get subtly differently, and a suggestion that disagreed with Home about how much of
+     * a book is left would be the same book described twice.
+     */
+    internal fun entryOf(
+        publication: Publication,
+        progress: (Publication) -> ReadingProgress?,
+        isReadableNow: (Publication) -> Boolean,
+    ): HomeEntry = HomeEntry(
+        publication = publication,
+        isReadableNow = isReadableNow(publication),
+        pagesRemaining = pagesRemaining(publication, progress(publication)),
+        fraction = LibraryIndex.Progress.of(progress(publication)).fraction,
+    )
 
     /**
      * What has been finished, newest first, in three buckets.
