@@ -46,9 +46,62 @@ can be pushed onto the existing stack.
       one, and one whose source is unreachable.
 - [ ] **2.2** **[F2]** Android: the same content model with Material
       composition. Same three screenshots.
-- [ ] **2.3** Every cover on every surface leads here; every resume affordance
+- [x] **2.3** Every cover on every surface leads here; every resume affordance
       still opens the book directly. Screenshot the two paths from the home
       surface.
+
+      **Routed on iOS, not yet photographed.** The two paths are owed as
+      screenshots and are named in the handoff; Android is this wave's mirror and
+      reports separately.
+
+      The page was finished, translated and screenshotted a wave ago and reachable
+      from nothing: `publicationDetail(model:onOpen:onGone:)` had no call sites, so
+      the only `PublicationRoute` push in the app was the series shelf *on the
+      page*. Commit `82ad1d92` had reverted the wiring to avoid a same-wave file
+      conflict and said "one line attaches it". It is that line, at six navigation
+      stacks, plus the cells that had to stop opening the reader.
+
+      Both halves of the rule are kept, and each of the eight sites was judged
+      rather than swept:
+
+      - **Covers, and they lead here.** `CoverCell` (the library grid, the
+        sectioned shelf, every *see all*, a collection's grid), `ListRow`,
+        `HomeShelfCard` (Up next, Recently added, Finished), `OnDeviceShelf`, and a
+        search result for a publication the device already holds — which is a cover
+        written as a line, and search is named in the delta.
+      - **A resume affordance, and it still opens the book.** `HomeHero`, which is
+        *Keep reading*. `home-screen` requires it to open "without an intermediate
+        screen", and a reader who taps a card stating how much is left has decided.
+        Its *heading* still leads to `HomeMore` — the library's own grid over the
+        same set, which `home-screen` words as "the full list in the library" — so
+        the covers there behave like every other cover in that grid. The affordance
+        is the hero, not the set of publications behind it.
+      - **Neither, and they keep opening the reader.** `CatalogueDetailView`,
+        `KavitaChapterList` and `SmbBrowserView`. A remote catalogue entry, a server
+        chapter and a file on a share are not publications the library holds: each
+        is fetched and indexed *on the tap*, and this page resolves a route against
+        `model.publications`, so routing them here would show the "it is gone"
+        sentence every time. They are also already past the question the page
+        answers — the reader is standing in the library they chose, looking at the
+        thing they asked for. **The page cannot serve those three until a catalogue
+        entry can become a `Publication` before it is fetched**, which is not this
+        change.
+
+      One deletion the rule forced: `ContinueReadingRow`, the grid's own resume
+      affordance. It had moved to Home's hero long ago and every caller had been
+      passing it an empty array since, so it was already dead — and would otherwise
+      have become the one cover on the browse path still opening the reader.
+
+      **A spec conflict this surfaced, for whoever syncs the delta.**
+      `reading-progress`'s *Continue from the library* says a tap on a part-read
+      publication "opens at the stored position without an intermediate screen", and
+      its *Restart deliberately* says the restart is on the long-press menu "rather
+      than on a publication detail screen, because the library opens a publication
+      when its cover is tapped". Both sentences describe the behaviour this task
+      replaces, and the delta does not list `reading-progress` as MODIFIED. The
+      proposal is explicit that the two entry verbs are deliberate, so the code
+      follows the delta — but that spec now contradicts the shipped app and wants
+      amending rather than being left to be discovered.
 - [ ] **2.4** The page for a publication with no series, no year, no description
       and no cover — the composition has to hold up with a title and a placeholder.
       Screenshot both platforms.
@@ -63,9 +116,34 @@ can be pushed onto the existing stack.
 - [ ] **3.3** The removed-source case: the download survives, the line says "on
       this device", and no removed library is named. Test, not inspection — this
       is the case that will silently render a stale name.
-- [ ] **3.4** Confirm by inspection of the browse path that origin appears
+- [x] **3.4** Confirm by inspection of the browse path that origin appears
       nowhere else: home, library, on-device destination, search, shelves. This is
       the seam's only test and it is a `grep` plus four screenshots.
+
+      **Grepped on iOS. The four screenshots are owed** and are named in the
+      handoff.
+
+      Two findings, and only one of them was a leak.
+
+      *The leak was already dead code.* `LibraryModel.sourceName(of:)` answers
+      "which source is this publication from", which is the question no browse
+      surface may ask. The grid stopped calling it, then the list did, then the
+      spoken labels did, and it was left behind as public API with a doc comment
+      describing "the callers that remain" — of which there were none. It is
+      removed rather than left as an invitation to put the line back. Nothing else
+      on home, the library, the on-device destination or search names a
+      publication's origin: the four cell types and both spoken labels were read,
+      and each already says so in a comment.
+
+      *The shelves card is not the same fact and stays.* `ShelvesView` draws
+      `"<source> · N items"` under a collection, and that names which server
+      **defines the collection**, not where a publication came from.
+      `collections-and-reading-lists` requires it in as many words — server-defined
+      and local collections are presented "in the same places, distinguished by a
+      source label rather than segregated into separate sections", and "each
+      labelled with its source". Removing it would break a scenario in the main
+      specs to satisfy a clause in a delta that is about publications. The two
+      facts share a word and nothing else.
 - [ ] **3.5** No new user-facing string ships from this change. If the provenance
       line needs one, hand it to the vocabulary slice rather than adding it here.
 
@@ -76,8 +154,30 @@ can be pushed onto the existing stack.
       View.
 - [ ] **4.2** Android: the detail pane, with predictive back animated by the
       scaffold. Screenshot expanded width, and the narrow-then-widen path.
-- [ ] **4.3** The empty second pane before a publication is chosen — one
+- [x] **4.3** The empty second pane before a publication is chosen — one
       sentence, not an arbitrary publication. Screenshot both platforms.
+
+      **Answered on iOS, and the answer is that there is no second pane** — so
+      there is nothing to screenshot, and the scenario is unmet rather than met.
+      Android is separate and reports for itself.
+
+      `PublicationDetailPlaceholder` existed, was translated into four languages
+      and had no caller, which made it the third piece of dead code behind this
+      change. It is deleted rather than wired, with its `detail.empty` string.
+
+      The iOS shell is a `TabView` with `.tabViewStyle(.sidebarAdaptable)`, not a
+      `NavigationSplitView` — `AppShell` and `LibraryView` both say why, and it is
+      the same reason: the platform draws the same three destinations as a tab bar
+      on a phone and as a sidebar on an iPad, and a split view inside one of them
+      would be a second, disagreeing navigation. Every sidebar row is its own
+      `NavigationStack` and a row is always selected, so the app never reaches a
+      state where a pane is waiting for a publication to be chosen. A placeholder
+      for an unreachable state is not a placeholder.
+
+      This makes **4.1** the task that owes the sentence: whoever gives iOS a real
+      split column writes it back with the pane it belongs to. Until then the
+      delta's *pane before anything is chosen* scenario is not met on iOS, and this
+      note is where that is written down.
 
 ## Phase 5 — Gates
 
