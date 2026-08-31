@@ -486,7 +486,7 @@ internal fun ScopeChips(scope: LibraryAvailability, onScopeChange: (LibraryAvail
     // **A wrapping row, and the `Row` it replaced is why.** A `Row` measures its children in
     // order and gives the second whatever width the first left, so at the largest text size in
     // a 320 dp window *On this device* was drawn over four lines with a lone "e" on the last
-    // one — photographed on an emulator, in `docs/designs/screenshots/before-2026-08-31d/`.
+    // one — photographed on an emulator, in `docs/designs/screenshots/before-2026-08-31e/`.
     // Wrapping gives the second chip its own line at its natural width instead. `ListOrderChips`
     // reached the same layout from the same failure, and `design.md` §3 rule 3 makes surviving
     // that text size a requirement.

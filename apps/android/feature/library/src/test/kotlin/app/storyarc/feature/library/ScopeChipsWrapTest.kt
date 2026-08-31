@@ -54,7 +54,7 @@ import org.robolectric.annotation.GraphicsMode
  * 2.0` it fits both chips on one line, where the emulator does not. It fails from about 200 dp
  * down, so it guards the same rule with less headroom than the real screen has. The proof that
  * the wrapping row fixed the real thing is the emulator pair in
- * `docs/designs/screenshots/{before,after}-2026-08-31d/`, not this file. Kept anyway: a future
+ * `docs/designs/screenshots/{before,after}-2026-08-31e/`, not this file. Kept anyway: a future
  * label or type ramp that overflows even the harness's narrower measure should not reach a
  * device to be found.
  */
