@@ -54,6 +54,10 @@ class SearchListingTest {
         sourceId = sourceId,
     )
 
+    /** What the reader actually sees: the groups, one after another. */
+    private fun rendered(listing: SearchListing): List<String> =
+        listing.groups.flatMap { it.rows }.map { it.result.title }
+
     @Test
     fun `what the device holds is the whole answer until something else replies`() {
         val listing = SearchListing.of("bone", local = listOf(held("Bone")), asking = listOf("server"))
@@ -192,15 +196,76 @@ class SearchListingTest {
     }
 
     @Test
-    fun `a row is labelled only when the reader has more than one library`() {
-        assertFalse(SearchListing.of("bone").namesOrigin)
-        assertTrue(SearchListing.of("bone", namesOrigin = true).namesOrigin)
-        // Carried through an answer, so a label cannot appear or vanish mid-search.
+    fun `a row is labelled only when more than one place could have answered`() {
+        // One folder and nothing asked: every row would say the same words.
+        assertFalse(SearchListing.of("bone", local = listOf(held("Bone"))).namesOrigin)
+        // The commonest mixed search there is, and the one the shelf's own rule used to
+        // hide: a single configured server plus a file another app handed over.
         assertTrue(
-            SearchListing.of("bone", namesOrigin = true)
-                .answered("server", listOf(away("Bone")))
-                .namesOrigin,
+            SearchListing.of(
+                "bone",
+                local = listOf(held("Bone", origin = SearchOrigin.ThisDevice)),
+                asking = listOf("server"),
+            ).namesOrigin,
         )
+        // A folder and a catalogue — the scenario's own situation.
+        assertTrue(
+            SearchListing.of(
+                "bone",
+                local = listOf(held("Bone")),
+                asking = listOf("server"),
+            ).namesOrigin,
+        )
+        // One library, whether it answered locally or remotely, is still one place: a
+        // download carries the identity of the library it came from.
+        assertFalse(
+            SearchListing.of(
+                "bone",
+                local = listOf(held("Bone", origin = server)),
+                asking = listOf("server"),
+            ).namesOrigin,
+        )
+        // Nothing held and one catalogue asked: every row will come from that catalogue.
+        assertFalse(SearchListing.of("bone", asking = listOf("server")).namesOrigin)
+    }
+
+    @Test
+    fun `the label cannot appear or vanish part-way through a search`() {
+        val start = SearchListing.of(
+            "bone",
+            local = listOf(held("Bone")),
+            asking = listOf("server"),
+        )
+        assertTrue(start.namesOrigin)
+        assertTrue(start.answered("server", listOf(away("Carbone"))).namesOrigin)
+        assertTrue(start.couldNotAnswer("server", "Reading Room").namesOrigin)
+        assertTrue(start.askingAgain("server").namesOrigin)
+    }
+
+    @Test
+    fun `a late answer never moves a row past another and can push a heading down`() {
+        // The exact case the type's doc comment is careful about. Ranked, the device's own
+        // answer puts the exact title first and the series under its own heading below it;
+        // the server then answers with another title, which lands inside the *first* heading.
+        val before = SearchListing.of(
+            "bone",
+            local = listOf(held("Bone"), held("Bone Chart", kind = MatchKind.SERIES)),
+            asking = listOf("server"),
+        )
+        assertEquals(listOf("Bone", "Bone Chart"), rendered(before))
+
+        val after = before.answered("server", listOf(away("Carbone")))
+        // The flat list is append-only: the new row is last, and nothing before it moved.
+        assertEquals(
+            listOf("Bone", "Bone Chart", "Carbone"),
+            after.rows.map { it.result.title },
+        )
+        // On screen it lands under Titles, so the Series heading and its row shift down one.
+        assertEquals(listOf("Bone", "Carbone", "Bone Chart"), rendered(after))
+        // What is promised, and pinned here so a change has to argue with it: relative order
+        // is preserved, and a row only ever moves *down*.
+        assertEquals(1, rendered(before).indexOf("Bone Chart"))
+        assertEquals(2, rendered(after).indexOf("Bone Chart"))
     }
 
     @Test

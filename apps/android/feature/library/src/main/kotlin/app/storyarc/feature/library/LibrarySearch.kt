@@ -4,7 +4,6 @@ import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceRegistry
-import app.storyarc.core.model.attributesPublications
 import app.storyarc.core.persistence.CredentialStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -73,11 +72,11 @@ internal class LibrarySearch(private val scope: CoroutineScope) {
         }
 
         val asked = registry.sources.filter(RemoteSearch::answers)
+        // Whether a row names its library is [SearchListing]'s own rule, decided from what
+        // the device matched and who is being asked — not from the registry's count, which
+        // answers a different question for the shelf.
         _listing.value = SearchListing.of(
             term = term,
-            // Read once, here, so a label cannot appear on the rows already on screen when
-            // the second library replies. See [SearchListing.namesOrigin].
-            namesOrigin = registry.attributesPublications,
             local = FoundRow.held(groups, registry),
             asking = asked.map { it.id.toString() },
         )

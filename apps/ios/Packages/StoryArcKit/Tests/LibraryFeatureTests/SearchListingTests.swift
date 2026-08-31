@@ -44,6 +44,11 @@ struct SearchListingTests {
         )
     }
 
+    /// What the reader actually sees: the groups, one after another.
+    private func rendered(_ listing: SearchListing) -> [String] {
+        listing.groups.flatMap { $0.rows }.map(\.result.title)
+    }
+
     @Test("What the device holds is the whole answer until something else replies")
     func localIsInstant() {
         let listing = SearchListing(term: "bone", local: [held("Bone")], asking: ["server"])
@@ -161,13 +166,63 @@ struct SearchListingTests {
         #expect(!half.answered("b", with: []).isWaiting)
     }
 
-    @Test("A row is labelled only when the reader has more than one library")
+    @Test("A row is labelled only when more than one place could have answered")
     func labelsOnlyWhenThereIsSomethingToTell() {
-        #expect(!SearchListing(term: "bone").namesOrigin)
-        #expect(SearchListing(term: "bone", namesOrigin: true).namesOrigin)
-        // Carried through an answer, so a label cannot appear or vanish mid-search.
-        #expect(SearchListing(term: "bone", namesOrigin: true)
-            .answered("server", with: [away("Bone")]).namesOrigin)
+        // One folder and nothing asked: every row would say the same words.
+        #expect(!SearchListing(term: "bone", local: [held("Bone")]).namesOrigin)
+        // The commonest mixed search there is, and the one the shelf's own rule used to
+        // hide: a single configured server plus a file another app handed over.
+        #expect(SearchListing(
+            term: "bone",
+            local: [held("Bone", in: .thisDevice)],
+            asking: ["server"]
+        ).namesOrigin)
+        // A folder and a catalogue — the scenario's own situation.
+        #expect(SearchListing(term: "bone", local: [held("Bone")], asking: ["server"])
+            .namesOrigin)
+        // One library, whether it answered locally or remotely, is still one place: a
+        // download carries the identity of the library it came from.
+        #expect(!SearchListing(
+            term: "bone",
+            local: [held("Bone", in: Self.server)],
+            asking: ["server"]
+        ).namesOrigin)
+        // Nothing held and one catalogue asked: every row will come from that catalogue.
+        #expect(!SearchListing(term: "bone", asking: ["server"]).namesOrigin)
+    }
+
+    @Test("The label cannot appear or vanish part-way through a search")
+    func labelIsFixedForTheWholeSearch() {
+        let start = SearchListing(term: "bone", local: [held("Bone")], asking: ["server"])
+        #expect(start.namesOrigin)
+        #expect(start.answered("server", with: [away("Carbone")]).namesOrigin)
+        #expect(start.couldNotAnswer("server", named: "Reading Room").namesOrigin)
+        #expect(start.askingAgain("server").namesOrigin)
+    }
+
+    @Test("A late answer never moves a row past another, and can push a heading down")
+    func lateAnswersDisplaceHeadingsAndNothingElse() {
+        // The exact case the type's doc comment is careful about. Ranked, the device's own
+        // answer puts the exact title first and the series under its own heading below it;
+        // the server then answers with another title, which lands inside the *first* heading.
+        let before = SearchListing(
+            term: "bone",
+            local: [held("Bone"), held("Bone Chart", kind: .series)],
+            asking: ["server"]
+        )
+        #expect(rendered(before) == ["Bone", "Bone Chart"])
+
+        let after = before.answered("server", with: [away("Carbone")])
+        // The flat list is append-only: the new row is last, and nothing before it moved.
+        #expect(after.rows.map(\.result.title) == ["Bone", "Bone Chart", "Carbone"])
+        // On screen it lands under Titles, so the Series heading and its row shift down one.
+        #expect(rendered(after) == ["Bone", "Carbone", "Bone Chart"])
+        // What is promised, and pinned here so a change has to argue with it: relative order
+        // is preserved, and a row only ever moves *down*.
+        let was = try? #require(rendered(before).firstIndex(of: "Bone Chart"))
+        let now = try? #require(rendered(after).firstIndex(of: "Bone Chart"))
+        #expect(was == 1)
+        #expect(now == 2)
     }
 
     @Test("Nothing typed is nothing found")

@@ -214,11 +214,11 @@ internal fun LibrarySearchBar(
  *
  * `library-browsing`'s *Mixed local and server search*: results are "merged into one ranked
  * list, each labelled with its source", under headings that say what the match *is*. The label
- * is drawn only when the reader has more than one library, which is *Unified library*'s own
- * clause. Rows arrive in two waves and the list does not notice the difference — the device's
- * own matches are here in the frame the reader typed in, and a server's join underneath when
- * they arrive. Nothing above them moves; that promise lives in [SearchListing] and is asserted
- * there.
+ * is drawn only where more than one place could have answered, which is
+ * [SearchListing.namesOrigin]'s rule. Rows arrive in two waves: the device's own matches are
+ * here in the frame the reader typed in, and a server's join when they arrive. No row is ever
+ * removed, replaced or reordered against another — and a late row can still push a *later
+ * heading* down the screen. Exactly what is and is not promised lives on [SearchListing].
  */
 @Composable
 private fun SearchAnswerList(

@@ -87,11 +87,13 @@ struct RemoteSearchOpdsTests {
         )
         let listing = SearchListing(
             term: "Fine Print",
-            namesOrigin: true,
             local: [onDevice],
             asking: [catalogue.id.uuidString]
         )
         .answered(catalogue.id.uuidString, with: try answered())
+
+        // A folder and a catalogue are two places, so every row names the one it came from.
+        #expect(listing.namesOrigin)
 
         #expect(listing.rows.map(\.result.title) == ["Fine Print", "Fine Print"])
         #expect(listing.rows.map(\.origin) == [

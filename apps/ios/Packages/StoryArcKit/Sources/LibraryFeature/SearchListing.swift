@@ -18,10 +18,14 @@ enum SearchOrigin: Equatable, Hashable, Sendable {
     /// What the merge compares two origins by.
     var key: String {
         switch self {
-        case let .library(id, _): "library:\(id)"
+        case let .library(id, _): Self.key(ofLibrary: id)
         case .thisDevice: "device"
         }
     }
+
+    /// The key a library has, spelled once, so a library named only by its identifier — the
+    /// list of who was asked — can be compared against a row that carries the whole origin.
+    static func key(ofLibrary id: String) -> String { "library:\(id)" }
 }
 
 /// One row of an answer to a search, and the library that supplied it.
@@ -97,11 +101,32 @@ struct FoundGroup: Identifiable, Equatable, Sendable {
 /// - **Ranked, per answer.** ``SearchRank`` orders each answer as it lands, including the
 ///   device's own. One ranking applied to every answerer is the only sense in which a local
 ///   row and a remote row are in *one* ranked list rather than two lists drawn end to end.
-/// - **Append-only, across answers.** Rows keep the position they arrived at, for ever. A
-///   late answer can add rows below and can add a heading below; it can never move one. The
-///   cost is that a very good remote match sits under a mediocre local one, and that is the
-///   right trade: the reader can see both, and the alternative is a screen that moves under
-///   their thumb while they reach for it.
+/// - **Append-only, across answers.** ``rows`` only ever grows. No row is removed, replaced,
+///   or reordered against another row, so a very good remote match sits under a mediocre
+///   local one for ever — the right trade, because the reader can see both and the
+///   alternative is a list that re-sorts itself while they read it.
+///
+///   **What that does *not* promise is a stable position on screen, and this is worth being
+///   exact about.** ``groups`` partitions the rows by kind, so what the reader sees is the
+///   groups one after another. A late row whose kind already has a heading lands inside that
+///   heading and pushes every later heading down by as many rows as arrived. A row can
+///   therefore move *down*; it can never move up, never past another row, and never onto a
+///   different heading.
+///
+///   The alternative — appending every late row at the very bottom under a fresh heading of
+///   its own kind — does keep every position fixed, and it was rejected. Ranking is applied
+///   *across* kinds within one answer, so even the device's own answer would arrive
+///   interleaved and shatter into several runs of the same heading before a server said
+///   anything. One heading per kind is what `library-browsing`'s *Typing a query* asks for:
+///   "results are grouped by match kind — series, publication, person, tag".
+///
+///   The stronger clause this comment used to claim — that "the arrival of remote results
+///   never reorders or displaces a result the reader is already reaching for" — **is not in
+///   the main spec.** It is in the unarchived `one-library-three-destinations` delta, the
+///   same delta whose labelling clause this type declines to follow, and the two should be
+///   settled together by a human. If it lands, the remedy is scroll anchoring in each view:
+///   the data underneath is already append-only, which is the half a view cannot do for
+///   itself.
 /// - **Labelled, so a duplicate is only ever folded within one library.** Two libraries that
 ///   both hold *Fine Print* are two facts, and with each row naming its library the reader
 ///   can tell them apart. Folding across libraries is what made a catalogue's only answer
@@ -122,14 +147,23 @@ struct SearchListing: Equatable, Sendable {
 
     /// Whether a row says which library supplied it.
     ///
-    /// `library-browsing`, *Unified library*: a publication "shows its source only when more
-    /// than one source is configured". With one library the label is on every row and
-    /// distinguishes nothing from nothing.
+    /// **Not the shelf's rule.** The shelf shows a source "only when more than one source is
+    /// configured" — `library-browsing`, *Unified library* — and reusing that here hid the
+    /// label in the commonest mixed search there is: one configured server plus files another
+    /// app handed over is *one* source, and "On this device" against "From Attic NAS" is
+    /// exactly the fact the reader needs. *Mixed local and server search* asks for the label
+    /// with no condition at all.
     ///
-    /// Decided once, from the registry, when the question is asked — not from the rows that
-    /// have arrived. A label that appeared when the second library answered would give every
-    /// row on screen an extra line at once, which is the displacement the append-only rule
-    /// exists to prevent, arriving by another door.
+    /// So the rule is the intent behind the shelf's, applied to this screen's own question:
+    /// **say where a row came from when more than one place could have answered.** The places
+    /// are the origins of what the device matched, plus every library that was asked. One
+    /// place means every row would carry the same words, which is noise wearing the clothes
+    /// of information.
+    ///
+    /// Decided once, when the question is asked, from what is known then — never from the
+    /// answers as they land. A label that appeared when the second library replied would give
+    /// every row on screen an extra line at once, which is a worse displacement than any this
+    /// type's merge can produce.
     let namesOrigin: Bool
 
     /// Every row, in the order it arrived. Never sorted again.
@@ -153,17 +187,19 @@ struct SearchListing: Equatable, Sendable {
 
     /// The state a search starts in: what the device could answer instantly, and the list of
     /// everyone else who was asked.
-    init(
-        term: String,
-        namesOrigin: Bool = false,
-        local: [FoundRow] = [],
-        asking: [String] = []
-    ) {
+    init(term: String, local: [FoundRow] = [], asking: [String] = []) {
         self.term = term
-        self.namesOrigin = namesOrigin
+        namesOrigin = Self.namesOrigin(local: local, asking: asking)
         waiting = asking
         silent = []
         rows = Self.appending(local, to: [], for: term)
+    }
+
+    /// Whether more than one place could answer this question. See ``namesOrigin``.
+    static func namesOrigin(local: [FoundRow], asking: [String]) -> Bool {
+        var places = Set(local.map(\.origin.key))
+        for id in asking { places.insert(SearchOrigin.key(ofLibrary: id)) }
+        return places.count > 1
     }
 
     /// Whether anything is still expected. Drives the quiet progress line, and nothing else.
@@ -184,8 +220,9 @@ struct SearchListing: Equatable, Sendable {
         return order.map { FoundGroup(kind: $0, rows: members[$0] ?? []) }
     }
 
-    /// A library answered. Its rows are ranked among themselves and go on the end; nothing
-    /// already shown moves.
+    /// A library answered. Its rows are ranked among themselves and go on the end of
+    /// ``rows``; nothing already there is removed or reordered. What that does and does not
+    /// promise the reader's eye is set out on the type.
     ///
     /// Answering twice is not an error — a library can be asked again after it failed — so
     /// this is idempotent in the only way that matters: rows already present are dropped

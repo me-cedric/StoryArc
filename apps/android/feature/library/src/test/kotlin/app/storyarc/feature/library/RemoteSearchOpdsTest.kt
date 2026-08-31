@@ -11,6 +11,7 @@ import java.net.URLDecoder
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -115,7 +116,6 @@ class RemoteSearchOpdsTest {
         val listing = SearchListing
             .of(
                 "Fine Print",
-                namesOrigin = true,
                 local = listOf(onDevice),
                 asking = listOf(catalogue.id.toString()),
             )
@@ -130,6 +130,8 @@ class RemoteSearchOpdsTest {
                 ),
             )
 
+        // A folder and a catalogue are two places, so every row names the one it came from.
+        assertTrue(listing.namesOrigin)
         assertEquals(listOf("Fine Print", "Fine Print"), listing.rows.map { it.result.title })
         assertEquals(
             listOf("Attic NAS", "StoryArc Test Catalogue"),

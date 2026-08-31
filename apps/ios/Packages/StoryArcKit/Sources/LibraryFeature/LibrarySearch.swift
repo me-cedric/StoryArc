@@ -70,11 +70,11 @@ final class LibrarySearch {
         }
 
         let asked = model.registry.sources.filter(RemoteSearch.answers)
+        // Whether a row names its library is ``SearchListing``'s own rule, decided from
+        // what the device matched and who is being asked — not from the registry's count,
+        // which answers a different question for the shelf.
         listing = SearchListing(
             term: term,
-            // Read once, here, so a label cannot appear on the rows already on screen when
-            // the second library replies. See ``SearchListing/namesOrigin``.
-            namesOrigin: model.registry.attributesPublications,
             local: FoundRow.held(in: model.matchGroups, registry: model.registry),
             asking: asked.map { $0.id.uuidString }
         )
