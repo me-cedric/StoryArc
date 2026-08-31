@@ -21,7 +21,13 @@ $openspec-propose "add support for <thing>"
 ```
 
 That produces a proposal, delta specs, a design note and a task list under
-`docs/openspec/changes/`. Review it, then implement.
+`docs/openspec/changes/`. Review it, then implement with `/opsx:apply`, and run
+`/opsx:verify` before `/opsx:archive` — a ticked task list records that somebody
+believed the work was done, and verify reads the requirements against the code.
+
+`/opsx:continue` writes whichever artifact comes next, and `pnpm spec:guard` says
+whether any change is missing one. `pnpm spec:validate` does not: it checks the
+files a change has, not the files it should have.
 
 The OpenSpec root is `docs/openspec`. The CLI resolves it from `docs/`, so run
 `cd docs` before any `openspec` command, or use the `pnpm spec:*` scripts.
@@ -55,6 +61,9 @@ Run the **smallest set that covers your change**, not the whole repository.
 | Android across modules | `pnpm lint:android && pnpm test:android` |
 | `packages/design-tokens` | `pnpm tokens:sync`, then commit the regenerated app copies |
 | `docs/openspec/specs` | `pnpm spec:validate` |
+| `docs/openspec/changes` | `pnpm spec:validate && pnpm spec:guard` |
+| `docs/openspec/config.yaml` | `pnpm spec:guard` |
+| The `@fission-ai/openspec` version | `pnpm openspec:workflows`, then commit the regenerated files |
 | Not sure | `pnpm check` |
 
 ## Things that will bite you

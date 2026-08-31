@@ -373,10 +373,19 @@ The OpenSpec root is `docs/openspec`, so the CLI resolves it only from `docs/`.
 Run `cd docs` first, or use the `pnpm spec:*` scripts, which do it for you.
 
 ```bash
-cd docs && pnpm exec openspec init   # if your agent tooling is not set up yet
+pnpm openspec:workflows   # if your agent tooling is not set up yet
 # then, in Claude Code / Codex / Gemini:
 /opsx:propose "add support for <thing>"
 ```
+
+Not `openspec init`: it writes the agent directories beside the root, and this root
+is `docs/openspec` while `.claude/` and `.github/` are at the top. `pnpm
+openspec:workflows` renders the same twelve workflows from the installed CLI's own
+templates into the right place, and `pnpm lint` fails when they drift from it.
+
+`pnpm spec:validate` checks that the artifacts a change has are well-formed.
+`pnpm spec:guard` checks that it has the ones it should — the two are not the same
+question, and a change holding only a proposal passes the first.
 
 A change a user can see also owes a screenshot from a booted simulator or
 emulator — a `#Preview` or `@Preview` is not proof. On Android it owes a clean

@@ -253,11 +253,20 @@ Spanish rather than the German the earlier rounds assumed: the app ships four lo
 Spanish is the longest. `Tamaño en este dispositivo` exceeds a full 320 dp window on its own,
 which is the single-chip-wider-than-the-row case an earlier comment declared unreached.
 
-The **reading list's** order chips — the row that case belongs to — are not photographed here.
-Reaching them needs a reading list with a sort override on a device whose language is Spanish,
-and the route map this harness walks is English-only, which is a real gap in the tooling and
-not a claim about the code. `ListOrderChipsWrapTest` covers that row in all four locales and
-fails in all four when its `FlowRow` becomes a `Row`, which was re-run before merging.
+The **reading list's** order chips — the row that case belongs to — are not photographed, and
+the reason has changed since this was first written. The tooling gap is closed: the route map
+walks the app in all four languages now, and a Spanish walk reaches sixteen of sixteen routes.
+What remains is that **the device holds no reading list**. The Shelves screen offers "New
+reading list" and nothing else, so a capture would mean creating a list, adding publications,
+setting a sort override, and then narrowing the window — fabricating the data the picture is of.
+
+Left undone deliberately, and the trade is worth stating. `ListOrderChipsWrapTest` covers that
+exact row in **all four** locales and fails in all four when its `FlowRow` becomes a `Row`,
+which was re-run against the merged tree. A screenshot would cover one locale. And the
+*rendered* behaviour of the same fix is already photographed one screen over, in
+`android-download-limit-es-scale2-light`, where the four limits wrap onto two lines with every
+label complete. The test is the stronger evidence here; the picture would add a second look at
+a wrap that is already visible.
 
 ## Two things this batch's captures found in the harness itself
 
