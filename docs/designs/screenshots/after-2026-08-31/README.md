@@ -290,3 +290,43 @@ the 130-odd captures in the directories beside this one.
 The refusal itself was also reworded. The image reader serves fixed-layout books and PDFs
 as well as comics, and telling someone who opened a book about "this comic" is wrong in all
 four languages. It says there are no pages *here* now, which is true whatever was opened.
+
+---
+
+# Natural, and the reader's system bars
+
+## Natural
+
+`android-appearance-natural-{off,on}-light`, on the emulator at the default text size.
+
+Natural is a **theme**, not an appearance: it has its own light and dark and follows the
+four radio rows above rather than replacing them. Turning it on turns the whole surface to
+warm paper stock with a clay accent — and turns the *wallpaper* row off and disables it,
+with its reason rewritten to say why: "Natural brings its own warm accents: a wallpaper tint
+beside them would be two themes at once." Two dynamic-colour systems at once is not a
+preference anyone holds.
+
+**One defect these show and this wave does not fix:** in the third row, *Match the reading
+theme to the app*, the description runs **under** its switch — "a paper-white page" ends
+beneath the toggle's left edge. The two rows above it stop short of theirs. It is the row's
+text having no width to yield with, and it is at the default text size, so it is worse at
+larger ones.
+
+## The reader's system bars
+
+`android-reader-immersive-light` and `android-reader-chrome-back-light`. The system bars
+leaving with the reader's chrome shipped earlier today and merged with **no capture at all**;
+these are it, on a device.
+
+The first is a page with nothing over it — no clock, no battery, no signal, no gesture pill.
+The second is the same page after a centre tap: the reader's own controls return, and the
+system bars stay away, which is the point — the chrome that comes back is the app's.
+
+Android showed its own *"Viewing full screen — to exit, swipe down from the top"* sheet the
+first time, which is the platform confirming the mode is really on rather than the app
+drawing over the bars.
+
+**Still owed:** the paper grain. Grain is confined to reading surfaces, and the comic reader
+has none — its own slice named that as out of its file set. Judging it needs the EPUB reader
+with Natural on, in both appearances, and again with Reduce Transparency on, where the
+texture must vanish and the palette must stay.
