@@ -252,27 +252,31 @@ fun ReadingListDetailScreen(
                 }
             } else {
                 item {
-                    // `collections-and-reading-lists`: a list "shows how many entries are
-                    // finished and where the user's position is".
-                    Text(
-                        text = stringResource(
-                            R.string.shelves_list_progress,
-                            position,
-                            entries.size,
-                        ),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = palette.textSecondary,
-                    )
-                    // `library-browsing`: the curated order is "labelled as such -- not
-                    // alphabetical", another field applies for the session, and there is a
-                    // one-tap way back. The chip carries the name of the order it is in,
-                    // which is what does the labelling.
-                    ListOrderChips(
-                        order = order,
-                        onSortChange = { sort = it },
-                        onDirectionChange = { ascending = it },
-                        onCurated = { sort = null },
-                    )
+                    // One `Column` rather than two siblings: an item's content is a single
+                    // slot, and what stacks inside it has to say so.
+                    Column(modifier = Modifier.padding(bottom = StoryArcSpace.xs)) {
+                        // `collections-and-reading-lists`: a list "shows how many entries are
+                        // finished and where the user's position is".
+                        Text(
+                            text = stringResource(
+                                R.string.shelves_list_progress,
+                                position,
+                                entries.size,
+                            ),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = palette.textSecondary,
+                        )
+                        // `library-browsing`: the curated order is "labelled as such -- not
+                        // alphabetical", another field applies for the session, and there is
+                        // a one-tap way back. The chip carries the name of the order it is
+                        // in, which is what does the labelling.
+                        ListOrderChips(
+                            order = order,
+                            onSortChange = { sort = it },
+                            onDirectionChange = { ascending = it },
+                            onCurated = { sort = null },
+                        )
+                    }
                 }
                 itemsIndexed(shown, key = { _, entry -> entry }) { index, entry ->
                     val publication = publications.firstOrNull { it.id == entry }

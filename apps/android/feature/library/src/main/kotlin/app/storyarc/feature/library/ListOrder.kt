@@ -177,6 +177,30 @@ internal fun ListOrderChips(
             onClick = { open = true },
             label = { Text(stringResource(order.labelRes)) },
         )
+        // Inside the row and next to the chip it belongs to, so the menu opens under that
+        // chip rather than under the start of the row — the same arrangement `SortChip` uses.
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            ChosenOrderItem(stringResource(R.string.shelves_list_order), order.isCurated) {
+                onSortChange(null)
+            }
+            LibrarySort.entries.forEach { sort ->
+                ChosenOrderItem(stringResource(sort.labelRes), order.sort == sort) {
+                    onSortChange(sort)
+                }
+            }
+            // A direction for the curated order would be a control with nothing to reverse.
+            if (!order.isCurated) {
+                HorizontalDivider()
+                listOf(
+                    true to R.string.library_sort_ascending,
+                    false to R.string.library_sort_descending,
+                ).forEach { (value, label) ->
+                    ChosenOrderItem(stringResource(label), order.ascending == value) {
+                        onDirectionChange(value)
+                    }
+                }
+            }
+        }
         if (!order.isCurated) {
             FilterChip(
                 selected = false,
@@ -186,29 +210,6 @@ internal fun ListOrderChips(
                     Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = null)
                 },
             )
-        }
-    }
-
-    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-        ChosenOrderItem(stringResource(R.string.shelves_list_order), order.isCurated) {
-            onSortChange(null)
-        }
-        LibrarySort.entries.forEach { sort ->
-            ChosenOrderItem(stringResource(sort.labelRes), order.sort == sort) {
-                onSortChange(sort)
-            }
-        }
-        // A direction for the curated order would be a control with nothing to reverse.
-        if (!order.isCurated) {
-            HorizontalDivider()
-            listOf(
-                true to R.string.library_sort_ascending,
-                false to R.string.library_sort_descending,
-            ).forEach { (value, label) ->
-                ChosenOrderItem(stringResource(label), order.ascending == value) {
-                    onDirectionChange(value)
-                }
-            }
         }
     }
 }
