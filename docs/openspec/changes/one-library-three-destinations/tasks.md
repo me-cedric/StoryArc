@@ -21,6 +21,20 @@ is not a screen that works. Where a task asks for something the app has since
 decided not to do, it is left unticked with the decision cited, never ticked and
 never quietly dropped.
 
+**The `library-browsing` delta moved after this list, and no task changed with it.**
+`ec9551d6`, 2026-08-31 12:09, withdrew two clauses this change's delta had written into
+*Mixed local and server search* — that no result is labelled with the source that supplied it,
+and that a remote arrival never reorders or displaces a result the reader is reaching for — and
+replaced them with what the shipped app actually does. Search was built against the **main**
+spec deliberately, because a main spec is the contract and a delta is a proposal, so a sync
+would have reverted working behaviour to a promise nothing kept.
+
+No task in this list described either withdrawn clause, so none needed revising; the delta was
+corrected to match the code rather than the code to match the delta. `openspec-guard` reports
+this list as `stale` on a timestamp comparison, which is the right heuristic and the wrong
+conclusion here. Recorded rather than silently re-touched, so the next reader can tell the two
+apart.
+
 **Audited against `main` at `6c931e61`, 2026-08-31**, with `path:line` evidence
 read from the source rather than from any note. Earlier notes here described a
 tree that has moved a great deal since; where an old number is now wrong the new
