@@ -83,7 +83,7 @@ private const val ACCESSIBILITY_FONT_SCALE = 1.3f
  *
  * 1.4 is chosen against the widths that bracket a phone. It takes a ~400 dp phone from
  * three columns to two — the caption goes from 112 dp, where `Harbour Lights #1` wraps and
- * its neighbours' series lines truncate, to 168 dp — and it leaves a 360 dp phone at the
+ * its neighbours' series lines truncate, to 174 dp — and it leaves a 360 dp phone at the
  * two columns it already had rather than dropping it to one. `library-browsing` still wants
  * a grid at every text size; it is the truncation that has to go, not the shelf.
  *
