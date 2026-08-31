@@ -74,3 +74,40 @@ application may be doing too much work on its main thread"* in logcat. That read
 like a startup defect and is not one. The same APK on the same AVD started with `-gpu host`
 reports `TotalTime: 1483` — one and a half seconds. Software GL cannot keep up with Compose
 on this host. **Start the emulator with `-gpu host`**, or measure nothing.
+
+---
+
+# The publication page, reached from a cover, 2026-08-31
+
+The page was built, translated and photographed a wave earlier and reachable from nothing
+on either platform. These are the first captures of it as a reader would actually arrive.
+
+| Capture | What it shows |
+| --- | --- |
+| `ios-detail-from-a-cover-dark` | Tapping `Ashfall #1` on the library shelf. Hero, the wash derived from the cover, the title, one primary action, the overflow beside it, and the series shelf. |
+| `android-detail-from-a-cover-light` | The same journey on the emulator. The provenance line reads *From Attic NAS* — the one place in the app that names where a publication came from. |
+| `android-library-no-source-strip-light` | The shelf with the per-source chip strip gone, which task 2.4 asked for and only iOS had done. |
+| `ios-library-no-accessory-dark` | The library with **no** read-aloud session, proving the tab bar is back to its own height. |
+
+## The before image, and what it caught
+
+`before-2026-08-31/ios-detail-overflow-and-empty-accessory-dark` is the first build with the
+page wired, and it carries two defects that only a screenshot could have found:
+
+1. **An empty glass capsule above the tab bar.** The docked transport's slot draws its
+   container whether or not the builder produced content, so every destination lost that
+   much height while nothing was speaking. `tabViewBottomAccessory(isEnabled:)` is the
+   remedy, and it costs the app's only availability branch — iOS 26.1 against a 26.0 floor.
+2. **The overflow button half again as tall as *Read*.** A 44 × 44 frame on the label sat
+   inside a `.large` control, so the disc was the glyph plus a hit target plus the control's
+   own padding. Removing the frame alone made it too small; the row now fixes its own height
+   and the circle fills it.
+
+## One thing the Android capture shows that is not fixed
+
+`android-detail-from-a-cover-light` is task 2.4's degenerate case — a publication with no
+cover, no series, no year and no description — and **the composition does not hold up**.
+The wash card fills most of the window with a format glyph in the middle of it and the
+action pinned to the foot, so roughly three fifths of the page is empty. Task 2.4 asks in as
+many words whether "the composition has to hold up with a title and a placeholder". On this
+evidence it does not, and that is a layout decision rather than a bug to patch.
