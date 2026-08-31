@@ -34,7 +34,12 @@ final class ReadingContinuityUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let reader = try openFirstPublication(in: app)
+        // Remembered, so the relaunch reopens the *same* publication.
+        let opened = try XCTUnwrap(readablePublication(in: app), "This library has nothing to read.")
+        let action = try openFirstPublication(in: app, named: opened)
+        action.tap()
+        let reader = app.otherElements.firstMatch
+        _ = reader.waitForExistence(timeout: 10)
         // One turn. Enough that resuming on the first page would fail — which is the whole
         // property — and few enough that a three-page fixture does not reach its last page
         // and get restarted by the finished rule instead.
@@ -44,7 +49,8 @@ final class ReadingContinuityUITests: XCTestCase {
 
         app.terminate()
         app.launch()
-        _ = try openFirstPublication(in: app)
+        try openFirstPublication(in: app, named: opened).tap()
+        _ = app.otherElements.firstMatch.waitForExistence(timeout: 10)
         let resumed = try XCTUnwrap(pagePosition(in: app), "The reader shows no position after relaunching.")
 
         XCTAssertEqual(
@@ -58,56 +64,14 @@ final class ReadingContinuityUITests: XCTestCase {
 
     // MARK: - Private
 
-    /// Opens the first publication on the shelf and returns the reader.
-    ///
-    /// Chosen by position rather than by name, so this does not depend on which fixtures a
-    /// device happens to hold, and skipped rather than failed when there is nothing to open
-    /// — a device whose sources have all gone away is a real state, and a suite that reports
-    /// a defect because its fixtures are missing is a suite nobody believes twice.
-    @discardableResult
-    private func openFirstPublication(in app: XCUIApplication) throws -> XCUIElement {
-        let library = app.tabBars.buttons["Library"].firstMatch
-        try XCTSkipUnless(library.waitForExistence(timeout: 15), "The shell drew no tab bar.")
+    /// The label of the first publication on the shelf that can be read from.
+    private func readablePublication(in app: XCUIApplication) -> String? {
+        guard let library = destination("Library", in: app) else { return nil }
         library.tap()
-
-        // Re-queried on every attempt, never cached. An `XCUIElement` array is a snapshot,
-        // and going back to the shelf invalidates it — the second attempt then asks for an
-        // element that no longer exists and the test fails with "no matches found" rather
-        // than with anything about reading.
-        // A cover speaks its whole publication: "Fine Print, Ada Lovelace, CBZ". Matching that
-        // shape rather than "a button somewhere in the middle of the screen" is what stops
-        // this walking into a toolbar control and then reporting that nothing opens.
-        func covers() -> [XCUIElement] {
-            // The format sits *inside* the label, not at its end: a cell speaks its title,
-            // then what distinguishes it, then the format, and then — only sometimes — how
-            // far in the reader is, whether it is on the device, and its page count.
-            let shape = NSPredicate(format: "label MATCHES %@", ".*, (CBZ|CBR|CBT|CB7|EPUB|PDF)(,.*)?")
-            return app.buttons.matching(shape).allElementsBoundByIndex
-                .filter(\.isHittable)
-                // Not one that is already finished. `reading-progress` restarts a finished
-                // publication from the beginning, which is correct and is not what this
-                // test is about — the first run picked one, read to its last page, and
-                // reported "left on 3 of 3, came back to 1 of 3" as though continuity were
-                // broken. A cover says how far in it is, so the shelf can be asked.
-                .filter { !$0.label.contains("100 percent read") }
-        }
-        try XCTSkipUnless(!covers().isEmpty, "This device's library has no cover to open.")
-
-        let opens = NSPredicate(format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue'")
-        let action = app.buttons.matching(opens).firstMatch
-        for index in 0..<3 {
-            let shelf = covers()
-            guard index < shelf.count else { break }
-            shelf[index].tap()
-            if action.waitForExistence(timeout: 5) {
-                action.tap()
-                let page = app.otherElements.firstMatch
-                _ = page.waitForExistence(timeout: 10)
-                return page
-            }
-            app.navigationBars.buttons.element(boundBy: 0).tap()
-        }
-        throw XCTSkip("No publication on this device opens. Covers seen: \(covers().map(\.label))")
+        let shape = NSPredicate(format: "label MATCHES %@", ".*, (CBZ|CBR|CBT|CB7|EPUB|PDF)(,.*)?")
+        return app.buttons.matching(shape).allElementsBoundByIndex
+            .first { $0.isHittable && !$0.label.contains("100 percent read") }?
+            .label
     }
 
     /// A page turn, as a reader makes one: a tap in the forward third of the page.

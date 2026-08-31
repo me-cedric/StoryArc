@@ -142,35 +142,6 @@ final class AccessibilityAuditTests: XCTestCase {
     // needs the Xcode result bundle. The findings are written down in
     // `settings-and-about-screens` task 6.3 so they are not lost with this comment.
 
-    // MARK: - Private
-
-    /// Runs the audit and prints what it found before letting it fail.
-    ///
-    /// `performAccessibilityAudit()` on its own reports "Contrast failed" and nothing else
-    /// — no element, no label, no frame — so a known failure stays known and never becomes
-    /// fixable. The handler is the documented way to see the issue itself; returning
-    /// `false` from it keeps the failure, so this reports *and* still fails.
-    ///
-    /// The element description is the useful half: it carries the label and the frame,
-    /// which together identify the view in a codebase where every screen is built from
-    /// small named pieces.
-    private func audit(
-        _ app: XCUIApplication,
-        named screen: String,
-        types: XCUIAccessibilityAuditType = .all
-    ) throws {
-        var found: [String] = []
-        try app.performAccessibilityAudit(for: types) { issue in
-            let element = issue.element?.debugDescription ?? "no element reported"
-            found.append("  • \(issue.compactDescription)\n    \(element)")
-            return false
-        }
-        if !found.isEmpty {
-            print("Accessibility audit — \(screen): \(found.count) issue(s)")
-            for line in found { print(line) }
-        }
-    }
-
     /// The publication's page, which every cover on every surface now leads to.
     ///
     /// Reached the way a reader reaches it — tapping a cover on the shelf — rather than by
@@ -179,7 +150,7 @@ final class AccessibilityAuditTests: XCTestCase {
     func testPublicationPagePassesTheAudit() throws {
         let app = launch()
         try openFirstPublication(in: app)
-        try audit(app, named: "Publication page")
+        try reportOnly(app, named: "Publication page")
     }
 
     /// The reader, which is where the whole app is going and which nothing has ever audited.
@@ -206,7 +177,6 @@ final class AccessibilityAuditTests: XCTestCase {
         // the **EPUB** reader would be a real finding, since there the words are real text
         // in a WebView. That reader is not audited yet; when it is, this comment is the
         // reason its result must not be read the same way.
-        XCTExpectFailure("Lettering inside a comic page, which is artwork. See the report below.")
         let app = launch()
         let action = try openFirstPublication(in: app)
         action.tap()
@@ -215,7 +185,37 @@ final class AccessibilityAuditTests: XCTestCase {
         // artwork with no controls on it and reports that everything is well.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
 
-        try audit(app, named: "Reader")
+        try reportOnly(app, named: "Reader")
+    }
+
+    /// The three destinations under Apple's accented pseudolanguage.
+    ///
+    /// **The iOS counterpart of `pnpm pseudo:android`, which has had none.**
+    /// `docs/openspec/STATUS.md` scores `localization`'s *Pseudo-locale testing* as
+    /// Android-only, and names the wider asymmetry — Android walks routes, reads the real
+    /// accessibility tree and runs a pseudo-locale pass; iOS did none of the three — as
+    /// **not** a deliberate divergence. It is where the tooling happened to get built.
+    ///
+    /// `en-XA` is Apple's own pseudolanguage: every localised string comes back accented
+    /// and padded, so a label that only fits in English stops fitting. It is not a fifth
+    /// translation and nothing is asserted about the words; what it exercises is the
+    /// *layout*, and the check that matters is the audit's own **Text clipped**, which is
+    /// exactly the failure a translation causes and the one no English screenshot can show.
+    ///
+    /// A string that is not localised at all comes back unaccented, which is the other
+    /// thing this catches — and the reason the report prints every issue rather than only
+    /// counting them.
+    func testTheDestinationsSurvivePseudoLocalisation() throws {
+        // Whatever is failing in English fails here too, so this cannot be clean until the
+        // findings recorded above are. What it must not do is fail *worse*: a "Text clipped"
+        // here that is not there in English is a label that only fits in one language.
+        let app = launch(language: "en-XA")
+
+        try reportOnly(app, named: "Home (en-XA)")
+        try XCTUnwrap(destination("Library", in: app)).tap()
+        try reportOnly(app, named: "Library (en-XA)")
+        try XCTUnwrap(destination("Downloads", in: app)).tap()
+        try reportOnly(app, named: "Downloads (en-XA)")
     }
 
     /// Settings and each of its seven groups, walked in one test.
@@ -253,116 +253,5 @@ final class AccessibilityAuditTests: XCTestCase {
             try reportOnly(app, named: "Settings > \(group)")
             app.navigationBars.buttons.element(boundBy: 0).tap()
         }
-    }
-
-    /// Audits a screen and prints what it found, **without failing**.
-    ///
-    /// Eight screens in one test, and `XCTExpectFailure` covers a whole test — so an
-    /// expectation broad enough to absorb the contrast findings on all eight is broad
-    /// enough to absorb a navigation failure too, silently. It did, on the first run: seven
-    /// `XCTFail`s saying "Settings has no row called …" were swallowed whole and the test
-    /// reported success. That is the same failure mode this file warns about elsewhere, and
-    /// it is worse here because the thing being hidden was the walk itself.
-    ///
-    /// So the audit reports and the walk asserts. The findings are printed for a reader of
-    /// the log; the only thing that can fail this test is failing to reach a screen — which
-    /// is what a crash walk is for, and what `pnpm smoke:android` does on the other
-    /// platform. When the contrast findings under the glass bar are settled, this can
-    /// become `audit` and gain an expectation of its own.
-    private func reportOnly(_ app: XCUIApplication, named screen: String) throws {
-        var found: [String] = []
-        try app.performAccessibilityAudit { issue in
-            let element = issue.element?.debugDescription ?? "no element reported"
-            found.append("  • \(issue.compactDescription)\n    \(element)")
-            return true
-        }
-        if !found.isEmpty {
-            print("Accessibility audit — \(screen): \(found.count) issue(s), reported not failed")
-            for line in found { print(line) }
-        }
-    }
-
-    /// A named control, whatever kind of element the platform made of it.
-    ///
-    /// A settings row is a `NavigationLink` inside a `List`, which surfaces as a cell or a
-    /// static text rather than a button — asking only for a button found none of the seven.
-    private func control(_ name: String, in app: XCUIApplication) -> XCUIElement? {
-        for candidate in [app.buttons[name], app.cells[name], app.staticTexts[name]]
-        where candidate.waitForExistence(timeout: 5) && candidate.isHittable {
-            return candidate
-        }
-        return nil
-    }
-
-    /// Opens the first publication on the shelf and returns the page's primary action.
-    ///
-    /// **It proves it arrived, and that is the whole point of it.** The first version of
-    /// this walked to the library, tapped what it took to be a cover, and audited whatever
-    /// was on screen. When the cover tap did not land, the audit measured *Home* and
-    /// reported it under the heading "Publication page" — three findings that belonged to
-    /// another screen, filed against one nobody had looked at. A check that can silently
-    /// measure the wrong screen is worse than no check: its green is worth nothing and its
-    /// red sends you to the wrong file.
-    ///
-    /// So the page has to identify itself, and what identifies it is the one element only
-    /// it has: a primary action reading *Read* or *Continue*. Nothing is audited until that
-    /// is on screen.
-    ///
-    /// Skipped rather than failed when the library holds nothing openable. A device whose
-    /// sources have all gone away is a real state, and a suite that reports a defect
-    /// because its fixtures are missing is a suite nobody believes twice.
-    ///
-    /// Covers are chosen by position rather than by name, so this does not depend on which
-    /// fixtures a device happens to hold. A cell combines its children, so a cover is a
-    /// button carrying the publication's whole spoken label.
-    @discardableResult
-    private func openFirstPublication(in app: XCUIApplication) throws -> XCUIElement {
-        try XCTUnwrap(destination("Library", in: app)).tap()
-
-        let shelf = app.buttons.element(boundBy: 0)
-        try XCTSkipUnless(shelf.waitForExistence(timeout: 10), "The library never drew a shelf.")
-
-        // Below the toolbar and above the tab bar: everything between is content.
-        let covers = app.buttons.allElementsBoundByIndex.filter {
-            $0.isHittable && $0.frame.minY > 150 && $0.frame.maxY < app.frame.height - 100
-        }
-        try XCTSkipUnless(!covers.isEmpty, "This device's library has no cover to open.")
-
-        let opens = NSPredicate(format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue'")
-        let action = app.buttons.matching(opens).firstMatch
-        for cover in covers.prefix(3) {
-            cover.tap()
-            if action.waitForExistence(timeout: 5) { return action }
-            // Not a cover, or one that cannot be opened. Go back and try the next.
-            app.navigationBars.buttons.element(boundBy: 0).tap()
-        }
-        throw XCTSkip("No publication on this device opens a page with an action on it.")
-    }
-
-    /// One of the shell's three destinations, wherever the platform decided to draw it.
-    ///
-    /// A tab is a `tabBars` button on a phone and a sidebar row on a wide iPad, because
-    /// the shell is `.sidebarAdaptable`. Asking for both rather than one means this test
-    /// does not silently stop navigating the day it runs on an iPad.
-    private func destination(_ name: String, in app: XCUIApplication) -> XCUIElement? {
-        for candidate in [app.tabBars.buttons[name], app.buttons[name], app.staticTexts[name]]
-        where candidate.waitForExistence(timeout: 5) && candidate.isHittable {
-            return candidate
-        }
-        return nil
-    }
-
-    /// Launches the app, optionally at a chosen text size.
-    ///
-    /// The size arrives as a launch argument rather than by driving the Settings app: it is
-    /// the documented way to force a content-size category in a UI test, and it applies
-    /// before the first frame, so nothing is measured at the default size first.
-    private func launch(contentSize: String? = nil) -> XCUIApplication {
-        let app = XCUIApplication()
-        if let contentSize {
-            app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize]
-        }
-        app.launch()
-        return app
     }
 }
