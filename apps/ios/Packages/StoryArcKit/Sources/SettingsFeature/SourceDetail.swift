@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import Persistence
 internal import StoryArcCore
 
 /// One source, in full, and the five things that can be done to it.
@@ -46,7 +47,7 @@ struct SourceDetail: View {
                 // than beside them, because it is a fact about the source rather than a
                 // value that changes — and it belongs on this screen rather than in the
                 // list, which describes what a kind of source *is* before one exists.
-                if !source.kind.syncsReadingProgress {
+                if statesProgressIsLocal {
                     Text("sources.detail.progressLocalOnly", bundle: .module)
                 }
             }
@@ -122,6 +123,20 @@ struct SourceDetail: View {
         }
         .frame(minHeight: 44)
         .accessibilityElement(children: .combine)
+    }
+
+    /// Whether this screen has to say that a position for this source stays on the device.
+    ///
+    /// Two clauses, and the second is the one a `kind` alone gets wrong. "On this device" is
+    /// a real registered source of kind `.localFolder` — ``ImportedCopies`` puts it in the
+    /// registry the moment a reader imports a file — so the kind says it cannot hold a
+    /// position, and the sentence written for a folder on a NAS then tells a reader that the
+    /// device cannot store progress and that their place is kept on the device. A category
+    /// error and a tautology in one line. ``SourcesSettings`` excludes the same identifier
+    /// from removal and from `isRemovable` for the same reason: it is not a source the reader
+    /// added, it is where the app keeps their own copies.
+    private var statesProgressIsLocal: Bool {
+        source.id != ImportedCopies.sourceID && !source.kind.syncsReadingProgress
     }
 
     private var syncedAt: Text {

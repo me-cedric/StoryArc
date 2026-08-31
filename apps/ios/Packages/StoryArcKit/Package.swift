@@ -104,7 +104,10 @@ let package = Package(
         .testTarget(name: "CatalogueTests", dependencies: ["Catalogue"]),
         .testTarget(name: "KavitaTests", dependencies: ["Kavita"]),
         .testTarget(name: "ReaderFeatureTests", dependencies: ["ReaderFeature"]),
-        .testTarget(name: "SettingsFeatureTests", dependencies: ["SettingsFeature"]),
+        // `Persistence` is explicit rather than left to transitive visibility:
+        // `SourceProgressNoteTests` names `ImportedCopies.sourceID`, which is the source the
+        // detail screen has to *not* say "kept on this device only" about.
+        .testTarget(name: "SettingsFeatureTests", dependencies: ["SettingsFeature", "Persistence"]),
         // The adaptive layout decides what a sidebar holds, and there is no simulator in
         // this repository's loop. What can be asserted without one is asserted here.
         // `Catalogue` and `Kavita` are here because what the library does with an address

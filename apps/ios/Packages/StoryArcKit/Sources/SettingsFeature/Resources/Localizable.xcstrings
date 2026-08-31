@@ -3781,7 +3781,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta fuente no puede guardar el progreso de lectura, así que su posición se queda solo en este dispositivo."
+            "value": "Esta fuente no puede guardar el progreso de lectura, así que tu posición se queda solo en este dispositivo."
           }
         },
         "fr": {

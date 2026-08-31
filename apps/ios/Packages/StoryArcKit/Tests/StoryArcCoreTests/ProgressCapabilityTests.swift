@@ -14,8 +14,9 @@ struct ProgressCapabilityTests {
 
     @Test("Kavita is the one source that keeps a position of its own")
     func onlyKavitaSyncs() {
-        // Not a preference: `KavitaSync` is the only code in either app that pushes or
-        // pulls a position, so this list is the list of sources that have a mechanism.
+        // Not a preference: Kavita is the only one of the four with somewhere to put a
+        // position. `KavitaClient.report(_:)` posts one to `Reader/progress` and
+        // `continuePoint(ofSeries:)` reads one back; no other source kind has either half.
         #expect(SourceKind.kavitaServer.syncsReadingProgress)
     }
 
@@ -29,11 +30,13 @@ struct ProgressCapabilityTests {
         #expect(!SourceKind.opdsCatalog.syncsReadingProgress)
     }
 
-    @Test("Exactly one of the four syncs, so a fifth kind cannot default into silence")
+    @Test("Exactly one of the four syncs, so the other three all state it")
     func oneOfFour() {
-        // The same guard `isBrowsable` carries: the property is a `switch` over every case,
-        // so a new kind fails to compile rather than being quietly assumed to sync — which
-        // would drop the sentence for it and let a reader assume their place is safe.
+        // What keeps a *fifth* kind out of silence is not this assertion. The property is a
+        // `switch` used as an expression, so a new case is a compile error rather than a
+        // quiet `false` — a guarantee no test can fail on, which is why it is claimed here
+        // and not in the name above. This pins the answer for the four kinds that exist,
+        // and it is the assertion that breaks if a case is moved to the wrong arm.
         #expect(SourceKind.allCases.filter(\.syncsReadingProgress) == [.kavitaServer])
     }
 }

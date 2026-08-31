@@ -119,7 +119,7 @@
     <string name="sources_detail_error_unreachable">Sin respuesta desde el %1$s</string>
     <string name="sources_detail_items">En su biblioteca</string>
     <string name="sources_detail_downloaded">Descargado</string>
-    <string name="sources_detail_progress_local_only">Esta fuente no puede guardar el progreso de lectura, así que su posición se queda solo en este dispositivo.</string>
+    <string name="sources_detail_progress_local_only">Esta fuente no puede guardar el progreso de lectura, así que tu posición se queda solo en este dispositivo.</string>
     <string name="sources_detail_open">Abrir %1$s</string>
     <string name="sources_action_reconnect">Iniciar sesión de nuevo</string>
     <string name="sources_action_test">Probar la conexión</string>

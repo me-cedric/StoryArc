@@ -17,8 +17,9 @@ class ProgressCapabilityTest {
 
     @Test
     fun `kavita is the one source that keeps a position of its own`() {
-        // Not a preference: `KavitaSync` is the only code in either app that pushes or pulls
-        // a position, so this list is the list of sources that have a mechanism.
+        // Not a preference: Kavita is the only one of the four with somewhere to put a
+        // position. `KavitaClient` posts one to `Reader/progress` and reads one back from
+        // `Reader/continue-point`; no other source kind has either half.
         assertTrue(SourceKind.KAVITA_SERVER.syncsReadingProgress)
     }
 
@@ -33,10 +34,12 @@ class ProgressCapabilityTest {
     }
 
     @Test
-    fun `exactly one of the four syncs, so a fifth kind cannot default into silence`() {
-        // The same guard `isBrowsable` carries: the property is a `when` over every case, so
-        // a new kind fails to compile rather than being quietly assumed to sync -- which
-        // would drop the sentence for it and let a reader assume their place is safe.
+    fun `exactly one of the four syncs, so the other three all state it`() {
+        // What keeps a *fifth* kind out of silence is not this assertion. The property is a
+        // `when` used as an expression, so a new case is a compile error rather than a quiet
+        // `false` -- a guarantee no test can fail on, which is why it is claimed here and not
+        // in the name above. This pins the answer for the four kinds that exist, and it is
+        // the assertion that breaks if a case is moved to the wrong arm.
         assertEquals(
             listOf(SourceKind.KAVITA_SERVER),
             SourceKind.entries.filter { it.syncsReadingProgress },

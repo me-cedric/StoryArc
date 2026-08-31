@@ -41,6 +41,7 @@ import app.storyarc.core.model.SourceAction
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceFailure
+import app.storyarc.core.persistence.ImportedCopies
 
 /**
  * One source, in full, and the five things that can be done to it.
@@ -181,7 +182,16 @@ internal fun SourceDetailScreen(
             // because it is a fact about the source rather than a value that changes — and it
             // belongs on this screen rather than in the list, which describes what a kind of
             // source *is* before one exists.
-            if (!source.kind.syncsReadingProgress) {
+            //
+            // The identifier clause is the one a `kind` alone gets wrong. "On this device" is
+            // a real registered source of kind `LOCAL_FOLDER` — `ImportedCopies` puts it in
+            // the registry the moment a reader imports a file — so the kind says it cannot
+            // hold a position, and the sentence written for a folder on a NAS then tells a
+            // reader that the device cannot store progress and that their place is kept on
+            // the device. A category error and a tautology in one line. `SourcesGroup` and
+            // `SettingsScreen` exclude the same identifier from removal for the same reason:
+            // it is not a source the reader added, it is where the app keeps their own copies.
+            if (source.id != ImportedCopies.SOURCE_ID && !source.kind.syncsReadingProgress) {
                 Text(
                     text = stringResource(R.string.sources_detail_progress_local_only),
                     style = MaterialTheme.typography.bodySmall,

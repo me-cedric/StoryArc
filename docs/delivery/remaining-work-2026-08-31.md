@@ -281,6 +281,12 @@ plain grid, the list layout and search results show unreachable items undimmed.
 
 Everything here is buildable today. Nothing in it waits on hardware.
 
+A closed row is marked in place here rather than only in an addendum, because this table is
+the one people are briefed from and a row that still reads *open* costs the next session a
+whole round. A session was briefed from rows 7, 10 and 18 four hours after two of the three
+had shipped, and spent its first pass establishing that. The original wording is kept struck
+through so the audit still reads as what was found.
+
 | # | Gap | Why it ranks here |
 | --- | --- | --- |
 | 1 | **Content identity** — iOS `PublicationIndexer.contentDigest` is dead code; Android digests only a file opened from outside the app | Renaming or moving a file silently loses the reader's place. Data loss the reader cannot see coming. |
@@ -289,10 +295,10 @@ Everything here is buildable today. Nothing in it waits on hardware.
 | 4 | **The "Downloaded" filter** is absent from `LibraryFilterMenu` on both platforms | The one filter that matters on a plane or underground. Its stated blocker is gone: `DownloadStore` already knows which downloads finished. |
 | 5 | **The same publication from two sources never merges** — `PublicationIdentity.ServerIdentifier` is never constructed in production on either platform | A folder copy and a Kavita copy of one book are two records. Read twice, counted twice. |
 | 6 | **A device that is ahead never tells the server** — `ProgressPull.toPush` is computed and discarded (`KavitaSync.swift:65-66` and its Kotlin mirror) | The other device silently rereads. `pnpm kavita` can prove the fix. |
-| 7 | **Nothing pauses the queue when the disk fills** — `Download.Pause.outOfSpace` and its string exist and are unreachable; nothing asks the device for free space | The queue will fill the disk. |
+| 7 | ~~**Nothing pauses the queue when the disk fills** — `Download.Pause.outOfSpace` and its string exist and are unreachable; nothing asks the device for free space~~ **Closed** by `feat(ios,android): the queue asks how much room is left, and stops before the disk does` (`a0ebc484`). Something asks: `DownloadQueue.pump()` calls `refreshHeadroom()` as its first statement and `holdForSpace()` before any transfer starts, on both platforms; `DownloadStore.availableBytes()` walks up to the first ancestor that exists and asks the volume. The pause reaches the reader in words, in all four locales. | Was: the queue will fill the disk. |
 | 8 | **No metered-connection override** — `enqueue` queues unconditionally, with no per-item override, no confirmation and no size stated | Silent cellular spend on a 400 MB comic. |
 | 9 | **Reading has to wait for the whole download** — `fetch` blocks on a continuation until the file lands, with no stream-to-local-copy hand-over | Today you wait for the last byte before the first page. |
-| 10 | **"This source cannot store progress" is never said** | One string. Prevents a reader assuming a folder source syncs. |
+| 10 | ~~**"This source cannot store progress" is never said**~~ **Closed** by `feat(ios,android): a source that cannot hold a reading position says so` (`2e37224e`). It was two strings and a rule, not one string: `SourceKind.syncsReadingProgress` is mirrored in `StoryArcCore` and `:core:model`, both detail screens draw the sentence under it in all four locales, and both exclude the `ImportedCopies` pseudo-source — on "On this device" the sentence would call the device a source that cannot store progress and then promise the position stays on the device. | Was: one string. Prevents a reader assuming a folder source syncs. |
 | 11 | **A reading list cannot be sorted, or restored to its curated order**, and the curated order is unlabelled | |
 | 12 | **Local and server search results are never merged** into one ranked list | Two places to look for one book. |
 | 13 | **A Kavita reading list opens read-only** — no reorder, online or off | `scripts/kavita-server.mjs` already serves `/api/ReadingList/update-by-multiple`. |
@@ -300,7 +306,7 @@ Everything here is buildable today. Nothing in it waits on hardware.
 | 15 | **A theme does not follow a mid-book appearance flip** — `ThemePreset.matching` is a fixed map resolved once at reader construction | On Android there is no reachable flip to follow: `EpubReaderActivity` stacks on `MainActivity` in one task with no launch flags, so returning to the app resumes the book, and every route to `MainActivity` finishes the reader first. Settle on a device before ranking this. |
 | 16 | **`PredictiveBackHost` is written and called nowhere** — all 11 in-app Android back destinations use a plain `BackHandler` | Pure wiring. |
 | 17 | **The transport line (SMB 2/3, encryption) appears only in the add-share sheet**, never on the source's own detail screen | Answers "is this share encrypted?" where the reader looks. |
-| 18 | **A failed download verification is never re-queued once**, on either platform | The spec asks for it. |
+| 18 | ~~**A failed download verification is never re-queued once**, on either platform~~ **Closed** by `feat(ios,android): a download that arrives corrupt is fetched once more, then said` (`c77dbc17`). The code calls it `failingVerification`, never `requeue`, which is why a grep for the latter reported it open: `StoryArcCore/DownloadLibrary.swift:222-236` and `:core:model`'s `Download.kt:333-354`, with `verificationLimit`/`VERIFICATION_LIMIT` = 1 counted apart from the three transfer attempts and persisted on both sides (`DownloadStore.swift:299-332`, `DownloadStore.kt:245-276`), so a download killed between its two chances does not come back with both. | Was: the spec asks for it. |
 | 19 | **iOS's `AppSettings.turnPagesWithVolumeButtons`** is unit-tested and drives nothing | Deliberate divergence, dead setting. Delete it. |
 
 ### Streaming honesty — the two open tasks in `format-scope-and-libraries`
