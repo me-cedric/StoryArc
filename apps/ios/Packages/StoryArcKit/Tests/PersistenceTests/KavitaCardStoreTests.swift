@@ -125,4 +125,27 @@ struct KavitaCardStoreTests {
         #expect(read.ageRating == 0)
         #expect(read.publicationStatus == -1)
     }
+
+    @Test("A card with no names on it still reads, rather than emptying the cache")
+    func aCardWithoutItsNamesStillReads() throws {
+        // The four the decoder requires are the four a card cannot be looked up or attributed
+        // without. `seriesName` and `chapterName` are not among them, and the reason is the
+        // store rather than the card: it decodes every card as one dictionary with `try?`, so
+        // a row this refused would take the reader's whole offline library with it. Android's
+        // `KavitaCard` defaults the same two keys for the same reason.
+        let defaults = try #require(UserDefaults(suiteName: "cards-\(UUID().uuidString)"))
+        let unnamed = """
+        {"p1":{"publicationId":"p1","sourceId":"s","seriesId":7,"chapterId":1},\
+        "p2":{"publicationId":"p2","sourceId":"s","seriesId":8,"chapterId":2,\
+        "seriesName":"Tidal Reach","chapterName":"The Harbour"}}
+        """
+        defaults.set(Data(unnamed.utf8), forKey: key)
+
+        let store = KavitaCardStore(defaults: defaults)
+        let read = try #require(store.card(of: "p1"))
+        #expect(read.seriesName == "")
+        #expect(read.chapterName == "")
+        // And the row beside it is still there, which is the whole point of not throwing.
+        #expect(store.card(of: "p2")?.seriesName == "Tidal Reach")
+    }
 }

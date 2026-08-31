@@ -164,11 +164,17 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
     /// device with it, and the reader's whole offline library loses the server's word at
     /// once.
     ///
-    /// So every field that has a default in the memberwise initialiser has the same default
-    /// here, and only the four a card cannot mean anything without are required. Android
-    /// gets this for free — a `@Serializable` property with a default is filled in when the
-    /// key is missing — which is why the two platforms need different amounts of code to
-    /// make the same promise.
+    /// So the four a card cannot be looked up or attributed without are required —
+    /// `publicationId`, `sourceId`, `seriesId`, `chapterId` — and every other key, including
+    /// the two names the memberwise initialiser above does require of a caller, falls back
+    /// rather than throwing. The two differ on purpose: code building a card has the names
+    /// and should say them; bytes already on disk are not code, and refusing them would
+    /// empty the cache.
+    ///
+    /// Android reaches the same tolerance through kotlinx.serialization — a `@Serializable`
+    /// property with a default is filled in when the key is missing — which is why
+    /// `KavitaCard.kt` gives `seriesName` and `chapterName` defaults it does not otherwise
+    /// need.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         publicationId = try container.decode(String.self, forKey: .publicationId)

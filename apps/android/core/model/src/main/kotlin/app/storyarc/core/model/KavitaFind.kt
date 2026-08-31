@@ -95,8 +95,16 @@ data class KavitaCard(
     val libraryId: Int = 0,
     val seriesId: Int,
     val chapterId: Int,
-    val seriesName: String,
-    val chapterName: String,
+    /**
+     * The names, defaulted for the bytes and not for the caller.
+     *
+     * `KavitaCardStore` decodes every card as one map with a single `runCatching`, so one row
+     * kotlinx.serialization refuses does not lose two fields -- it loses the reader's whole
+     * offline library. A `MissingFieldException` for a name is not worth that, which is the
+     * same reasoning that gave iOS's `KavitaCard` a hand-written decoder.
+     */
+    val seriesName: String = "",
+    val chapterName: String = "",
     val summary: String? = null,
     val people: List<String> = emptyList(),
     /** Genres and tags read as one list; the distinction is Kavita's, not the reader's. */

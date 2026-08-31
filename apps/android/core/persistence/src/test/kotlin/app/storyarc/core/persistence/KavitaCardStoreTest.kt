@@ -114,4 +114,27 @@ class KavitaCardStoreTest {
         assertEquals(0, read.ageRating)
         assertEquals(-1, read.publicationStatus)
     }
+
+    @Test
+    fun `a card with no names on it still reads, rather than emptying the cache`() {
+        // [KavitaCardStore] decodes every card as one map with a single `runCatching`, so a
+        // row kotlinx.serialization refuses takes the reader's whole offline library with it
+        // and not two fields. `seriesName` and `chapterName` are defaulted for that reason
+        // and no other; iOS's hand-written decoder defaults the same two keys.
+        val preferences = FakePreferences()
+        preferences.edit().putString(
+            "cards",
+            """{"p1":{"publicationId":"p1","sourceId":"s","seriesId":7,"chapterId":1},""" +
+                """"p2":{"publicationId":"p2","sourceId":"s","seriesId":8,"chapterId":2,""" +
+                """"seriesName":"Tidal Reach","chapterName":"The Harbour"}}""",
+        ).apply()
+
+        val store = KavitaCardStore(preferences)
+        val read = store.card("p1")
+        assertNotNull(read)
+        assertEquals("", read!!.seriesName)
+        assertEquals("", read.chapterName)
+        // And the row beside it is still there, which is the whole point of not throwing.
+        assertEquals("Tidal Reach", store.card("p2")?.seriesName)
+    }
 }

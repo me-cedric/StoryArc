@@ -26,11 +26,11 @@ import app.storyarc.core.persistence.KavitaCardStore
  *
  * `kavita-server`: "when a downloaded Kavita publication is opened with the server
  * unreachable, the cached server metadata is displayed, not the file's embedded metadata".
- * Five of the seven fields that requirement names reach the page through
- * [KavitaCard.appliedTo], which lays the card over the publication indexed from the file --
- * a title, a series, people, a year and a summary all have somewhere to go. The publication
- * status and the age rating do not: `Publication` has no slot for either, and no local file
- * states them, so they stay on the card and are read from it here.
+ * Five of the seven fields that requirement names -- a summary, genres, tags, people and a
+ * release year -- reach the page through [KavitaCard.appliedTo], which lays the card over the
+ * publication indexed from the file, because `Publication` has somewhere to put each of them.
+ * The publication status and the age rating are the other two: there is no slot for either
+ * and no local file states them, so they stay on the card and are read from it here.
  *
  * A named line each rather than a run of facts, which is the same decision `KavitaChapters`
  * made for the live answer and for the same reason: a rating dropped unlabelled into
