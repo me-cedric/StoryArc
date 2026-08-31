@@ -78,12 +78,18 @@ struct CatalogueEntryCell: View {
         .task(id: entry.id) { await loadCover() }
     }
 
-    /// The author, or — when nothing here can be opened — what was offered instead.
+    /// The series, the author, or — when nothing here can be opened — what was offered
+    /// instead.
+    ///
+    /// ``seriesLine(for:)`` rather than the composition written out here, and that is a fix
+    /// rather than a tidy-up: this cell composed `"<series> #<index>"` under
+    /// `Text(entry.title)` with **no comparison at all**, so a feed whose titles already
+    /// carry their number — which is most feeds generated from filenames — printed
+    /// `Harbour Lights #1` in the title and `Harbour Lights #1` again in the caption, on
+    /// every entry. The shelf had a broken guard; the catalogue had none.
     private var subtitle: String {
         guard readable.isEmpty else {
-            return entry.series.map { series in
-                entry.seriesIndex.map { "\(series) #\(Int($0))" } ?? series
-            } ?? entry.authors.first ?? ""
+            return seriesLine(for: entry) ?? entry.authors.first ?? ""
         }
         let offered = entry.acquisitions.map(\.mediaType).filter { !$0.isEmpty }
         guard !offered.isEmpty else {

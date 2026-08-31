@@ -201,8 +201,13 @@ struct CatalogueDetailHeadline: View {
             // Written rather than localised: a series name and a number joined by a hash is
             // the same in every language this app speaks, and a two-argument catalogue key
             // is one SwiftUI cannot look up.
-            if let series = entry.series {
-                Text(entry.seriesIndex.map { "\(series) #\(Int($0))" } ?? series)
+            //
+            // Composed by ``seriesLine(for:)``, which also decides whether it is worth
+            // drawing. This headline used to compose it unconditionally, so an entry titled
+            // `Harbour Lights #1` set the title in `title2` and repeated it in `footnote`
+            // three lines down — the same defect the grid cell above it had.
+            if let series = seriesLine(for: entry) {
+                Text(series)
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textTertiary)
             }

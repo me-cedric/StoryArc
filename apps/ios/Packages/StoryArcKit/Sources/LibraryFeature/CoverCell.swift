@@ -258,29 +258,3 @@ struct CoverCell: View {
         return parts.joined(separator: ", ")
     }
 }
-
-/// The line that names the series a publication belongs to, or `nil` when it would only
-/// repeat the title back at the reader.
-///
-/// Free and pure so it can be asserted without a view, and shared so the grid, the list and
-/// their spoken labels cannot drift apart: one composition, one comparison, one answer.
-///
-/// The comparison is the whole of the bug this replaces. The guard tested the **bare**
-/// series against the title while the line actually returned was the **composed**
-/// `"<series> #<number>"` — so a publication titled `Ashfall #1` with series `Ashfall` and
-/// number `1` passed the guard and printed the same words twice, once in primary and once
-/// in tertiary, on every cover of a numbered series. Composing first and comparing the
-/// string that is really drawn is the fix. ``HomeRow`` was already written this way; the
-/// shelf and the list were not.
-///
-/// Case-insensitive, for ``HomeRow``'s reason: a title inferred from a filename is often
-/// the series and the number joined back together, and a difference of case between the two
-/// is not a second fact about the publication.
-func seriesLine(for publication: Publication) -> String? {
-    guard let series = publication.series else { return nil }
-    let line = publication.number.map { "\(series) #\($0)" } ?? series
-    guard line.caseInsensitiveCompare(publication.displayTitle) != .orderedSame else {
-        return nil
-    }
-    return line
-}

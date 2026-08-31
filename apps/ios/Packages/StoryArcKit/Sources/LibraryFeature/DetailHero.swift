@@ -117,7 +117,7 @@ struct DetailTitleBlock: View {
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if let series = seriesLine {
+            if let series = seriesLine(for: publication) {
                 Text(series)
                     .textRole(.headline)
                     .foregroundStyle(theme.palette.textSecondary)
@@ -135,13 +135,12 @@ struct DetailTitleBlock: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// The series and the number, when the title is not already both of them.
-    private var seriesLine: String? {
-        guard let series = publication.series, series != publication.displayTitle else {
-            return nil
-        }
-        return publication.number.map { "\(series) #\($0)" } ?? series
-    }
+    // The series line is ``seriesLine(for:)`` — the shelf's own rule, not a second copy of
+    // it. This block used to carry the shape the shelf was fixed out of: it compared the
+    // **bare** series against the title and then drew the **composed** `"<series> #<number>"`,
+    // so the page for a publication titled `Ashfall #1` set the title in the editorial face
+    // and repeated `Ashfall #1` underneath it in the headline role. The hero is where that
+    // reads worst, because both lines are large.
 
     /// Author and year, joined only where both exist.
     private var secondaryLine: String? {
