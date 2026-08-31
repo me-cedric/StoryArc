@@ -2,18 +2,9 @@ package app.storyarc.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.persistence.ReaderPreferences
@@ -35,45 +26,17 @@ internal fun ReadingGroup(
     /** The row a search result pointed at, if the reader arrived through one. */
     highlight: SettingsAnchor? = null,
 ) {
-    val palette = LocalStoryArcPalette.current
-
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md)) {
-        // The row is the toggleable, not the switch inside it — the same reason as the
-        // appearance link: a switch whose label is a sibling is a nameless on/off to a
-        // screen reader.
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .toggleable(
-                    value = settings.turnPagesWithVolumeButtons,
-                    role = Role.Switch,
-                    onValueChange = {
-                        onChange(settings.copy(turnPagesWithVolumeButtons = it))
-                    },
-                )
-                .settingsHighlight(SettingsAnchor.VOLUME_BUTTONS, highlight),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.reading_volume_buttons),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.textPrimary,
-                )
-                // Off by default and said out loud, because `page-transitions` asks for
-                // the volume buttons "where enabled in settings": volume keys that
-                // silently stop changing the volume are a defect, not a feature.
-                Text(
-                    text = stringResource(R.string.reading_volume_buttons_note),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.textTertiary,
-                )
-            }
-            Switch(
-                checked = settings.turnPagesWithVolumeButtons,
-                onCheckedChange = null,
-            )
-        }
+        // The note is off by default and said out loud, because `page-transitions` asks
+        // for the volume buttons "where enabled in settings": volume keys that silently
+        // stop changing the volume are a defect, not a feature.
+        SettingsSwitchRow(
+            title = stringResource(R.string.reading_volume_buttons),
+            note = stringResource(R.string.reading_volume_buttons_note),
+            checked = settings.turnPagesWithVolumeButtons,
+            onChange = { onChange(settings.copy(turnPagesWithVolumeButtons = it)) },
+            modifier = Modifier.settingsHighlight(SettingsAnchor.VOLUME_BUTTONS, highlight),
+        )
 
         // The whole block, not its first row: the reading defaults are one setting to a
         // reader and several sections to the layout, and a tint that covered only the first

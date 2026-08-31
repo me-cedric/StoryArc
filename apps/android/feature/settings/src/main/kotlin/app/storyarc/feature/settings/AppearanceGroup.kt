@@ -5,19 +5,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.semantics
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.NaturalTheme
 import app.storyarc.core.designsystem.theme.rememberNaturalTheme
@@ -132,37 +127,16 @@ internal fun AppearanceGroup(
         // them, so a fifth radio row would make it an alternative to dark mode — the
         // choice `settings-and-about` exists to avoid.
         val naturalUnavailable = naturalUnavailableRes(settings.appearance)
-        Row(
+        SettingsSwitchRow(
+            title = stringResource(R.string.appearance_natural),
+            note = stringResource(naturalUnavailable ?: R.string.appearance_natural_note),
+            checked = natural.value,
+            onChange = { NaturalTheme.set(context, it) },
+            enabled = naturalUnavailable == null,
             modifier = Modifier
-                .fillMaxWidth()
-                .toggleable(
-                    value = natural.value,
-                    enabled = naturalUnavailable == null,
-                    role = Role.Switch,
-                    onValueChange = { NaturalTheme.set(context, it) },
-                )
                 .padding(top = StoryArcSpace.md)
                 .settingsHighlight(SettingsAnchor.NATURAL_THEME, highlight),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.appearance_natural),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.textPrimary,
-                )
-                Text(
-                    text = stringResource(naturalUnavailable ?: R.string.appearance_natural_note),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.textTertiary,
-                )
-            }
-            Switch(
-                checked = natural.value,
-                onCheckedChange = null,
-                enabled = naturalUnavailable == null,
-            )
-        }
+        )
 
         // `native-experience`'s opt-out. Disabled rather than hidden under OLED Dark: the
         // reader's answer is still stored and still shown, and a switch that silently did
@@ -170,71 +144,25 @@ internal fun AppearanceGroup(
         // for the same reason, so the same treatment applies.
         val isNatural = NaturalTheme.applies(natural.value, settings.appearance)
         val dynamicColourApplies = !settings.appearance.isTrueBlack && !isNatural
-        Row(
+        SettingsSwitchRow(
+            title = stringResource(R.string.appearance_dynamic_colour),
+            note = stringResource(dynamicColourNoteRes(settings.appearance, isNatural)),
+            checked = settings.useDynamicColor,
+            onChange = { onChange(settings.copy(useDynamicColor = it)) },
+            enabled = dynamicColourApplies,
             modifier = Modifier
-                .fillMaxWidth()
-                .toggleable(
-                    value = settings.useDynamicColor,
-                    enabled = dynamicColourApplies,
-                    role = Role.Switch,
-                    onValueChange = { onChange(settings.copy(useDynamicColor = it)) },
-                )
                 .padding(top = StoryArcSpace.md)
                 .settingsHighlight(SettingsAnchor.DYNAMIC_COLOUR, highlight),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.appearance_dynamic_colour),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.textPrimary,
-                )
-                Text(
-                    text = stringResource(dynamicColourNoteRes(settings.appearance, isNatural)),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.textTertiary,
-                )
-            }
-            Switch(
-                checked = settings.useDynamicColor,
-                onCheckedChange = null,
-                enabled = dynamicColourApplies,
-            )
-        }
+        )
 
-        // The row is the toggleable, not the switch inside it. A switch on its own is
-        // an unnamed node — its label is a sibling, and a screen reader landing on it
-        // hears a bare on/off. `toggleable` merges the label in and widens the target.
-        Row(
+        SettingsSwitchRow(
+            title = stringResource(R.string.appearance_link_theme),
+            note = stringResource(R.string.appearance_link_theme_note),
+            checked = settings.linkReadingThemeToAppearance,
+            onChange = { onChange(settings.copy(linkReadingThemeToAppearance = it)) },
             modifier = Modifier
-                .fillMaxWidth()
-                .toggleable(
-                    value = settings.linkReadingThemeToAppearance,
-                    role = Role.Switch,
-                    onValueChange = {
-                        onChange(settings.copy(linkReadingThemeToAppearance = it))
-                    },
-                )
                 .padding(top = StoryArcSpace.md)
                 .settingsHighlight(SettingsAnchor.LINK_READING_THEME, highlight),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.appearance_link_theme),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.textPrimary,
-                )
-                Text(
-                    text = stringResource(R.string.appearance_link_theme_note),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.textTertiary,
-                )
-            }
-            Switch(
-                checked = settings.linkReadingThemeToAppearance,
-                onCheckedChange = null,
-            )
-        }
+        )
     }
 }

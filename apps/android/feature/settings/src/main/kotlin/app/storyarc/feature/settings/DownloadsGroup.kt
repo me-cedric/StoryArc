@@ -6,17 +6,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
@@ -98,22 +94,24 @@ private fun Policy(
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
 
-    SwitchRow(
+    SettingsSwitchRow(
         title = stringResource(R.string.downloads_wifi_only),
         note = stringResource(R.string.downloads_wifi_only_note),
         checked = settings.downloadOverWifiOnly,
+        onChange = { onChange(settings.copy(downloadOverWifiOnly = it)) },
         modifier = Modifier.settingsHighlight(SettingsAnchor.DOWNLOADS_WIFI_ONLY, highlight),
-    ) { onChange(settings.copy(downloadOverWifiOnly = it)) }
+    )
 
-    SwitchRow(
+    SettingsSwitchRow(
         title = stringResource(R.string.downloads_remove_after),
         note = stringResource(R.string.downloads_remove_after_note),
         checked = settings.removeDownloadsAfterFinishing,
+        onChange = { onChange(settings.copy(removeDownloadsAfterFinishing = it)) },
         modifier = Modifier.settingsHighlight(
             SettingsAnchor.DOWNLOADS_REMOVE_AFTER_FINISHING,
             highlight,
         ),
-    ) { onChange(settings.copy(removeDownloadsAfterFinishing = it)) }
+    )
 
     // A short ladder rather than a free number: a reader knows "about two gigabytes", not
     // 2_147_483_648, and a text field for a byte count is a way to mistype one.
@@ -142,29 +140,6 @@ private fun Policy(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun SwitchRow(
-    title: String,
-    note: String,
-    checked: Boolean,
-    modifier: Modifier = Modifier,
-    onChange: (Boolean) -> Unit,
-) {
-    val palette = LocalStoryArcPalette.current
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary)
-            Text(note, style = MaterialTheme.typography.labelLarge, color = palette.textTertiary)
-        }
-        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
