@@ -5,20 +5,46 @@ import LibraryFeature
 import Persistence
 import StoryArcCore
 
-/// The three destinations and the search role, as the platform's own tab bar.
+/// The four destinations, as the platform's own tab bar.
 ///
 /// Until this existed the iPhone had **no tab bar at all**: `StoryArcApp` put `LibraryView`
 /// straight into the `WindowGroup`, so the app was the shelf and everything else was
-/// behind chrome on it. `navigation-shell` asks for three destinations reachable at any
+/// behind chrome on it. `navigation-shell` asks for destinations reachable at any
 /// time from one persistent control, and for that control not to grow a row when a reader
 /// adds a server. This is that control.
 ///
-/// Four things the system gives us here that hand-building would not:
+/// ## The search role was here, and was removed
 ///
-/// - **`Tab(role: .search)`** is set apart from the three rather than listed among them —
-///   the circular button on the trailing edge — and expands into a field that takes the
-///   rest of the bar with it. That is the requirement `navigation-shell` states as *"set
-///   apart from them rather than listed among them"*, and it is one argument.
+/// **The argument this comment used to make**, at the head of the list below: *"`Tab(role:
+/// .search)` is set apart from the three rather than listed among them — the circular
+/// button on the trailing edge — and expands into a field that takes the rest of the bar
+/// with it. That is the requirement `navigation-shell` states as 'set apart from them
+/// rather than listed among them', and it is one argument."*
+///
+/// **Why it no longer holds.** The argument was sound about the requirement it quoted, and
+/// that requirement is the thing that changed. It named a *control* — "set apart from" —
+/// and the control it got does more than sit apart: it morphs the tab into a text field in
+/// place, confirmed on a device on 2026-08-31. So the bar changed shape under the reader's
+/// thumb, and because there was no screen behind it there was nowhere to land and nothing
+/// the app could offer before a letter was typed. `navigation-shell` is now written as an
+/// outcome instead: search "SHALL be a place a reader arrives at, and no control SHALL
+/// change shape or position to become it".
+///
+/// **What removing the role costs.** Placement on the trailing edge, the circular
+/// treatment, and the morph — all three, and they were genuinely the platform's own work.
+/// What it buys is the thing the requirement now asks for: a destination with a screen
+/// behind it, drawn like its three neighbours, that leaves the control the reader's thumb
+/// is resting on exactly where it was. See ``LibraryDestination`` for why *this* app in
+/// particular needs search to be a place rather than a filter.
+///
+/// **The bar keeps its floating capsule**, which is what iOS 26 draws. Android's
+/// deliberately does not — `ShortNavigationBar` exposes no `shape` parameter at all, so a
+/// capsule is inexpressible there rather than merely discouraged. That divergence is in the
+/// change's `design.md` and is [ADR-0001](../../docs/decisions/0001-independent-native-cores.md)
+/// working as intended.
+///
+/// Three things the system still gives us here that hand-building would not:
+///
 /// - **`.tabViewStyle(.sidebarAdaptable)`** makes the same set the iPad's sidebar without a
 ///   second navigation to keep in step, and the adaptation is non-destructive: rotating
 ///   back does not lose the destination, its scroll position or its filters.
@@ -39,14 +65,15 @@ import StoryArcCore
 struct AppShell: View {
     /// What a tab is worth as a selection.
     ///
-    /// The three destinations come from ``LibraryDestination`` rather than being restated,
-    /// so the promise that the set never grows is held in one place and tested there.
-    /// Search is not one of them: it is a role the platform provides, and giving it a case
-    /// here is only how the shell addresses the tab.
+    /// All four destinations come from ``LibraryDestination`` rather than being restated,
+    /// so the promise that the set does not grow with what a reader configures is held in
+    /// one place and tested there. Search had a `case` of its own here while it was a role,
+    /// because a role is not a destination and the shell still had to address its tab; now
+    /// that it is a destination, the extra case would be a second way to say the same thing
+    /// and a second thing to keep in step.
     enum Selection: Hashable {
         case destination(LibraryDestination)
-        case search
-        /// A row the iPad sidebar reveals below the three. Not a destination and never in
+        /// A row the iPad sidebar reveals below the four. Not a destination and never in
         /// the tab bar — see ``SidebarEntry`` and ``LibrarySidebar``.
         case sidebar(SidebarEntry)
     }
@@ -100,19 +127,20 @@ struct AppShell: View {
                 label(Text("tab.downloads"), LibraryDestination.onDevice.symbolName)
             }
 
-            // The role decides the placement — apart from the three, on the trailing edge
-            // — and the expand-into-a-field behaviour. The label is still ours: the system
-            // would write its own in the *device's* language, and `localization` lets a
-            // reader choose the app's without touching the device's.
-            Tab(value: .search, role: .search) {
+            // **No `role:`.** A fourth tab, drawn like its three neighbours, leading to a
+            // page — see this type's own comment for what the role did and why it went. The
+            // label was always ours and stays ours: the system would write its own in the
+            // *device's* language, and `localization` lets a reader choose the app's without
+            // touching the device's.
+            Tab(value: .destination(.search)) {
                 library(.search)
             } label: {
-                label(Text("tab.search"), "magnifyingglass")
+                label(Text("tab.search"), LibraryDestination.search.symbolName)
             }
 
             // The iPad's second half of the same set: library sections and the reader's
             // shelves, under their own headers, hidden from the tab bar so the phone still
-            // shows three destinations and the search role and nothing else.
+            // shows four destinations and nothing else.
             LibrarySidebar(model: model, onOpen: onOpen) { Selection.sidebar($0) }
         }
         .tabViewStyle(.sidebarAdaptable)
@@ -133,7 +161,7 @@ struct AppShell: View {
         // looking half-empty for no reason they could see. The term itself is not lost —
         // the model has already filed it as a recent search.
         .onChange(of: tab) { previous, _ in
-            if previous == .search { model.query.search = "" }
+            if previous == .destination(.search) { model.query.search = "" }
         }
         // The library is brought up here rather than by whichever surface happens to be
         // shown first. It used to be started by the shelf's own `.task`, which was

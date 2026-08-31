@@ -6,17 +6,17 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 
 ## 1. Search becomes a destination
 
-- [ ] 1.1 iOS: `LibraryDestinationTests` — extend the destination set to four and
+- [x] 1.1 iOS: `LibraryDestinationTests` — extend the destination set to four and
       assert the order is home, library, downloads, search, and that `all(for:)`
       still ignores the source registry. Fails before `LibraryDestination` gains
       `.search`.
-- [ ] 1.2 iOS: add `case search` to `LibraryDestination` with its symbol, and
+- [x] 1.2 iOS: add `case search` to `LibraryDestination` with its symbol, and
       delete `AppShell.Selection.search` — the shell addresses it as a destination
       like the other three now.
-- [ ] 1.3 iOS: `AppShell.swift` — `Tab(value: .destination(.search))` with no
+- [x] 1.3 iOS: `AppShell.swift` — `Tab(value: .destination(.search))` with no
       `role:`. Rewrite the doc comment that defends the role: keep the argument it
       made, say why it no longer holds.
-- [ ] 1.4 iOS: `ShellWiringTests` (new, source-level, in the manner of
+- [x] 1.4 iOS: `ShellWiringTests` (new, source-level, in the manner of
       `CoverRoutingWiringTests`) — assert no `role: .search` remains in
       `AppShell.swift`. Mutation-check: restoring the role fails it.
 - [ ] 1.5 Android: `LibraryDestinationTest` — the same four-entry assertion against
