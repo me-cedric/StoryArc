@@ -11,7 +11,8 @@ apps/android/
 ├── gradle/libs.versions.toml    single source of dependency versions
 ├── app/                         application module: manifest, activity, launch theme
 ├── core/
-│   ├── designsystem/            theme, palette, typography + generated tokens
+│   ├── designsystem/            theme, palette, typography, the cover-grid rule
+│   │                            + generated tokens
 │   └── model/                   domain: sources, identity, progress, preferences
 └── feature/
     └── library/                 library screen, source presentation, strings
@@ -22,13 +23,20 @@ apps/android/
 | Module | Contains | Depends on |
 | --- | --- | --- |
 | `:core:model` | `Source`, `PublicationIdentity`, `ReadingProgress`, `ProgressMerge`, reader preferences. **No Compose.** | — |
-| `:core:designsystem` | `StoryArcTheme`, `StoryArcPalette`, typography, `tokens/StoryArcTokens.kt` | Compose, Material 3 |
+| `:core:designsystem` | `StoryArcTheme`, `StoryArcPalette`, typography, `tokens/StoryArcTokens.kt`, `grid/` — `rememberCoverColumns`, `coverMinimumWidth`, `coverMaximumWidth`, `COVER_MAXIMUM_WIDTH`, `steppedForFontScale`, `BoundedAdaptive` | Compose, Material 3 |
 | `:feature:library` | `LibraryScreen`, empty state, source presentation, localised strings | `:core:designsystem`, `:core:model` |
 | `:app` | `MainActivity`, `StoryArcApplication`, manifest, launch theme | all of the above |
 
 `:core:model` has no Compose dependency so the domain is testable as plain JVM
 code. Presentation for a domain type — an icon for a source kind, a colour for a
 connection state — lives in the feature that shows it.
+
+**`grid/` is in the design system because more than one module draws a shelf.**
+The library shelf and the Downloads destination both lay covers out, and while
+the rule was `internal` to `:feature:library` the Downloads shelf carried its own
+copy of `design.md` §4's ladder — a copy that had already stopped following the
+reader's font scale and had no upper bound on a tablet. A shelf calls
+`rememberCoverColumns` and states nothing itself.
 
 Every module compiles with `allWarningsAsErrors`, and `:app` runs Lint with
 `warningsAsErrors`.

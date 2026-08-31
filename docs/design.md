@@ -223,7 +223,25 @@ looks like a music player.
 - Aspect ratio 2:3 — the North American comic trim.
 - Manga volumes and EPUB covers vary. The cell crops to a consistent shape and
   **letterboxes onto `surfaceSunken` rather than distorting art.**
-- Minimum cover width scales by size class: 104 / 132 / 158 pt.
+- Minimum cover width scales by size class: 104 / 132 / 158 pt. Each platform
+  reads its own breakpoints — Android at Material's 600 and 840 dp, iOS at 600
+  and 900 pt — which is divergence #4 in the register, not drift.
+- **A maximum as well as a minimum, always.** A lower bound on its own lets a
+  narrow window stretch one cover edge to edge. Android caps at 168 pt; iOS
+  derives 1.6 × the minimum, because SwiftUI's `adaptive(minimum:maximum:)`
+  takes the pair and Android needed a `GridCells` written for it.
+- **At an accessibility text size every tier steps once, by 1.4:** 146 / 185 /
+  221, and the maximum steps with it. A step, not a scale that follows the
+  font — what a cramped caption needs is one fewer column, and a column is a
+  step; the artwork is the interface and does not shrink to make room for
+  words. The boundary is font scale 1.3, where Android's ordinary Font size
+  slider stops and where `DynamicTypeSize.isAccessibilitySize` becomes true.
+- **Every shelf asks one function; no shelf restates the ladder.** Android's
+  lives in `:core:designsystem/grid/CoverColumns.kt`, iOS's in
+  `LibraryFeature/CoverGrid.swift`. Both apps have already shipped a second
+  shelf — the downloads destination — that carried a copy and laid the same
+  window out differently, and on both platforms the copy is what stopped
+  following the reader's text size.
 - `maxContentWidth` 720 pt for text-heavy screens, so a settings list on an iPad
   does not stretch to a 1200 pt line length.
 
