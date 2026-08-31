@@ -28,11 +28,12 @@ import java.io.File
  * worth adding, on the day that one script line names this module too. Until then a guard
  * that runs beats a better one that does not.
  *
- * What a `RuntimeShader`-free JVM can do is read the file and refuse the one edit that
- * reintroduces the defect. It is a tripwire, not a proof: it says the argument is spelled
- * correctly, never that the pixels came out black. `scripts/line-cap.mjs` is the same kind
- * of gate for the same kind of reason. Delete this the day an instrumented test measures the
- * reader's chrome on a device.
+ * What a `RuntimeShader`-free JVM can do is read the file and refuse the two edits that
+ * reintroduce the defect: a constant where the read appearance belongs, and dropping the
+ * re-read that lets a choice made mid-book reach the book. It is a tripwire, not a proof: it
+ * says the source is spelled correctly, never that the pixels came out black.
+ * `scripts/line-cap.mjs` is the same kind of gate for the same kind of reason. Delete this
+ * the day an instrumented test measures the reader's chrome on a device.
  */
 class ReaderChromeWiringTest {
 
@@ -82,6 +83,30 @@ class ReaderChromeWiringTest {
                 " the whole app without a restart\", and a book is not outside the app.",
             "appearance.chrome",
             argument,
+        )
+    }
+
+    @Test
+    fun `the chrome is read again when the reader comes back to the book`() {
+        // The second half of the same defect, and reverting it is the same kind of quiet edit.
+        // `ReaderAppearance.of` and `refreshingChrome` are both pure, so both stay green with
+        // the activity reading the store once and never again -- which is the state a reader
+        // notices, because the choice is made in `MainActivity` and this screen is a separate
+        // activity that nothing recreates.
+        val resumed = Regex("""override fun onResume\(\) \{([\s\S]*?)\n {4}\}""")
+            .find(source)
+            ?.groupValues
+            ?.get(1)
+
+        assertTrue(
+            "EpubReaderActivity must re-read Settings › Appearance in onResume and merge it" +
+                " through refreshingChrome. Without that, a reader who leaves an open book," +
+                " changes appearance and comes back is still looking at the scheme the book" +
+                " opened with, and `settings-and-about` requires an appearance to apply" +
+                " \"immediately across the whole app without a restart\". Merging rather than" +
+                " replacing is what keeps the reading theme out of it — see" +
+                " ReaderAppearance.refreshingChrome. What onResume does now: $resumed",
+            resumed?.contains("refreshingChrome(storedAppearance())") == true,
         )
     }
 

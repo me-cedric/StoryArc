@@ -21,6 +21,11 @@ import org.junit.Test
  * with a hardcoded `AppearanceMode.SYSTEM`, which made it the one screen in the app that
  * ignored Settings › Appearance -- and, because a true-black palette outranks Material You
  * in `StoryArcTheme`, the one screen OLED Dark could not reach at all.
+ *
+ * The two `refreshingChrome` cases are the second half of that defect: the appearance was
+ * then read once, at open, so an appearance chosen while the book stayed open reached the
+ * book only after it was closed and reopened. `ReaderChromeWiringTest` is what checks the
+ * activity calls this on the way back in; these two check what it means when it does.
  */
 class ReaderAppearanceTest {
 
@@ -76,6 +81,41 @@ class ReaderAppearanceTest {
 
         assertEquals(ThemePreset.QUIET, of(settings, device = AppearanceMode.DARK).linkedPreset)
         assertEquals(ThemePreset.PAPER, of(settings, device = AppearanceMode.LIGHT).linkedPreset)
+    }
+
+    @Test
+    fun `coming back from Settings redraws the chrome`() {
+        // The defect this pins: the reader is its own activity, so a choice made in
+        // `MainActivity` while a book stayed open reached every screen except the book.
+        // `settings-and-about` requires an appearance to apply "immediately across the whole
+        // app without a restart", and a reader still looking at the old scheme is that clause
+        // failing.
+        val opened = of(AppSettings(appearance = AppearanceMode.LIGHT, useDynamicColor = true))
+        val now = of(AppSettings(appearance = AppearanceMode.OLED_DARK, useDynamicColor = false))
+
+        val back = opened.refreshingChrome(now)
+
+        assertEquals(AppearanceMode.OLED_DARK, back.chrome)
+        assertEquals(false, back.useDynamicColor)
+    }
+
+    @Test
+    fun `coming back from Settings leaves the reading theme the book opened with`() {
+        // The other half, and the reason this is a merge rather than a fresh read: by now the
+        // reader may have adopted a preset by hand in the theme sheet, and `settings-and-about`
+        // says a change of app appearance does not override the reading theme.
+        val linked = AppSettings(linkReadingThemeToAppearance = true)
+        val opened = of(linked.copy(appearance = AppearanceMode.LIGHT), device = AppearanceMode.LIGHT)
+        val now = of(linked.copy(appearance = AppearanceMode.DARK), device = AppearanceMode.DARK)
+
+        val back = opened.refreshingChrome(now)
+
+        assertEquals(ThemePreset.PAPER, back.linkedPreset)
+        assertEquals(AppearanceMode.DARK, back.chrome)
+
+        // And in the other direction: a reader who opted in *while* the book was open does not
+        // get a preset pushed at them either. The setting takes effect on the next book.
+        assertNull(of(AppSettings()).refreshingChrome(now).linkedPreset)
     }
 
     @Test
