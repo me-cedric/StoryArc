@@ -70,6 +70,27 @@ what was found rather than as what survived.
 | **A test that proves a publication comes back where it was left**, across a real terminate and relaunch. `reading-progress` scores nine of seventeen scenarios as built and asserted by nothing. | §5 |
 | **A fixed-layout EPUB that could never be opened.** The routing was right and the fixture was wrong, so that path had never been exercised against anything it could draw. | not previously recorded |
 
+### The accessibility walk now reports nothing, and that needs saying carefully
+
+`pnpm smoke:android:a11y` reported three problems this morning — two on Downloads
+(`UNNAMED View at [53,2132][353,2169]`, `SMALL View 114.3x14.1dp ""`) and one on the EPUB
+reader (`UNNAMED WebView at [0,371][1080,2028]`). It now reports **16 of 16 routes with none**.
+
+That is not yet a claim that three defects were fixed, and it would be easy to file it as one.
+Two of the causes are plausible and neither is established:
+
+* The Downloads pair may have gone with the cover-width change, which altered that grid's
+  geometry — spacing from `coverGap` to `md` and an unbounded `GridCells.Adaptive` to a bounded
+  one. A 114.3 dp-wide element is cover-width under the *old* spacing at this emulator's
+  411 dp, which fits, but fitting is not proof.
+* The EPUB reader's may have gone with the **corpus**, not the code. The route resolves the
+  first EPUB alphabetically, the library gained `Ebooks/` this afternoon, and the first EPUB is
+  now `fixed-layout.epub` — whose reader is a Compose surface with no WebView in it at all.
+  A finding that cannot recur because the route reaches a different screen has not been fixed.
+
+Reproducing them means restoring the previous corpus, which nobody needs. What is worth
+recording is that the count went to zero and why that is not the same as three fixes.
+
 ### The EPUB reader, audited on iOS for the first time — and a real divergence
 
 `AccessibilityAuditTests` had thirteen routes against Android's sixteen, and its own comment
@@ -112,7 +133,7 @@ that screen is everything except its contrast.
 
 | Found | What it is |
 | --- | --- |
-| **The Downloads shelf draws nothing where a coverless publication should be.** `OnDeviceCover` in `app/DownloadsParts.kt` renders `cover?.let { Image(…) }` inside a sunken box, and nothing whatever when the cover is null — while the library's own cell draws the title and the format badge. Nine of the twelve fixtures on the emulator have no cover art, so most of the screen is empty rectangles. It is also what `pnpm smoke:android:a11y` had been reporting for weeks as `Downloads: UNNAMED View` and `SMALL View 114.3x14.1dp ""`, which nobody had connected to a missing placeholder. |
+| **The Downloads shelf draws nothing where a coverless publication should be.** `OnDeviceCover` in `app/DownloadsParts.kt` renders `cover?.let { Image(…) }` inside a sunken box, and nothing whatever when the cover is null — while the library's own cell draws the title and the format badge. On the emulator's corpus five of twenty-five cells are blank rectangles. **A first draft of this row claimed the scanner's `UNNAMED View` / `SMALL View 114.3x14.1dp` findings were this defect; that was never verified and is probably wrong** — 14 dp is a tenth the height of a cover cell, so whatever those were, they were not a well. A reviewer refused to repeat the claim and was right to. |
 | **A tablet spends half the library's list pane on nothing.** Measured from the live accessibility tree at a 1067 dp window: the pane is **360 dp**, and it draws **one 168 dp cover** — about 150 dp of it unused — while Downloads on the same device draws five at 175 dp. |
 
 The second one is a trade-off rather than a slip, and the measurement is what makes it

@@ -54,10 +54,17 @@ public func coverlessWellDrawsTitle(at textSize: DynamicTypeSize) -> Bool {
 /// **No check caught it on this platform, and the reason is worth knowing.** The well is
 /// `accessibilityHidden` and the caption below the cell carries the title, so the screen
 /// reads correctly to VoiceOver whether or not anything is drawn in the box — Apple's audit
-/// has one finding on Downloads and it is about contrast. Android's own scanner *did* see
-/// it, as `UNNAMED View` and `SMALL View 114.3x14.1dp`, because it measures boxes rather
-/// than labels. A defect that is invisible to the audit and visible to anyone looking at the
-/// screen is exactly the kind §6 of `AGENTS.md` asks for a screenshot to catch.
+/// has one finding on Downloads and it is about contrast.
+///
+/// A first version of this comment claimed Android's own scanner had seen it. **That was not
+/// verified and is probably false**: the two findings it named were `UNNAMED View` and
+/// `SMALL View 114.3x14.1dp`, and 14 dp is a tenth the height of a cover cell — whatever they
+/// were, they were not a well. A reviewer refused to repeat the claim, which was right.
+///
+/// So this defect was invisible to every automated check on both platforms and obvious to
+/// anyone looking at the screen, which is exactly the case §6 of `AGENTS.md` asks for a
+/// screenshot to catch. It went unnoticed until someone photographed the screen for an
+/// unrelated reason.
 ///
 /// So the well is a view now, and the surfaces ask for it rather than reproducing it. What
 /// genuinely differs between them is one thing — whether the format is named — and the

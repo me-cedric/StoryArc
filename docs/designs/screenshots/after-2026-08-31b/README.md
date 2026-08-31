@@ -30,10 +30,13 @@ Worth writing down, because the same blind spot will produce the same kind of de
 
 The well is `accessibilityHidden` and the caption below the cell carries the title, so the
 screen reads correctly to VoiceOver whether or not anything is drawn in the box. Apple's
-audit has exactly one finding on Downloads and it is about contrast. Android's own scanner
-*did* see it — as `UNNAMED View` and `SMALL View 114.3x14.1dp` in `pnpm smoke:android:a11y`
-— because it measures boxes rather than labels, and nobody had connected that line to a
-missing placeholder.
+audit has exactly one finding on Downloads and it is about contrast. This paragraph first claimed Android's own
+scanner had seen it, naming `UNNAMED View` and `SMALL View 114.3x14.1dp` from
+`pnpm smoke:android:a11y`. **That was not verified and is probably wrong**: 14 dp is a tenth
+the height of a cover cell, so whatever those two were, they were not a well. A reviewer
+declined to repeat the claim, which was the right call — and the whole walk now reports 16 of
+16 routes with no accessibility findings at all, so they cannot be identified after the fact
+either.
 
 A defect invisible to every automated check and obvious to anyone looking at the screen is
 the case §6 of [`AGENTS.md`](../../../AGENTS.md) asks for a screenshot to catch. It went
