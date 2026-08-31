@@ -1084,19 +1084,42 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       The second replaced it and is narrower and does not follow: "the EPUB reader does
       not reach a state with its own controls on this simulator", because the theme
       control — labelled *Reading* — never appeared within twenty seconds of tapping a
-      hittable *Read*. **The walk was not in that reader, so the run says nothing about
-      it.** It asked the shelf for an `EPUB`, and a cover's spoken label carries the
-      format and says nothing about the layout — so a **fixed-layout** EPUB satisfies it,
-      and `Publication.isReflowable` sends one of those to the *comic* reader, which has
-      no theme control and never will. `Bright Panels` and `Glasshouse` are both
-      `pre-paginated` in `scripts/corpus.mjs` and both sort before the three reflowable
-      EPUBs, so the first EPUB on a title-sorted shelf is always one that opens the wrong
-      reader. That is enough to explain every symptom recorded — no control, no crash, no
-      log — with nothing wrong in the reader at all.
+      hittable *Read*. **That run never established which reader it was in, so it is not
+      evidence about either.** It asked the shelf for an `EPUB`, and a cover's spoken
+      label carries the format and says nothing about the layout — so a **fixed-layout**
+      EPUB satisfies it, and `Publication.isReflowable` is false for one, which is what
+      routes it to the *comic* reader, where the reading themes have no control of their
+      own.
 
-      `AuditWalk.openTheEpubReader` opens EPUBs in turn until the reader it lands in
-      carries that control. Both suites use it, both compile, and **neither has been run
-      on a booted simulator yet** — that run is what closes this task.
+      `Bright Panels` and `Glasshouse` are both `pre-paginated` in `scripts/corpus.mjs`,
+      and under `LibraryQuery`'s default `sort: .title` both sort ahead of the three
+      reflowable EPUBs. **That is a fact about the corpus, not about the device that
+      produced the record.** The sort is persisted — `LibraryModel` restores
+      `preferences.query()` on launch — and the UI tests reset no app state, so nothing
+      here says which cover that run actually opened. What can be said is the weaker
+      thing: a walk that asks only for the format can land in either reader, which
+      explains the symptom recorded (no control, no crash, no log) without a defect in
+      either one. Whether the reflowable reader has a problem of its own is still
+      unmeasured.
+
+      `AuditWalk`'s companion `EpubWalk.openTheEpubReader` opens EPUBs in turn until one
+      of them lands in the reflowable reader **with a page in it** — the theme control is
+      drawn over the loading spinner too, so its presence proves the reader and not the
+      book. Both suites use it, both compile, and **neither has been run on a booted
+      simulator yet** — that run is what closes this task.
+
+      **No script in `package.json` compiles the UI test sources.** `pnpm build:ios`
+      builds the `StoryArc` scheme's build action, which does not include
+      `StoryArcUITests`: with `let thisWillNotCompile: Int = "not an int"` appended to
+      `AuditWalk.swift` it still exits 0. Only
+
+          xcodebuild build-for-testing -project apps/ios/StoryArc.xcodeproj \
+            -scheme StoryArc -destination "generic/platform=iOS Simulator"
+
+      compiles them, and with that line present it answers `** TEST BUILD FAILED **`.
+      Every change to `apps/ios/UITests` before this one was unverified by every gate the
+      project runs. Until that command is in `pnpm check`, "the UI tests compile" is a
+      claim about a command somebody remembered to type.
 
       `pnpm capture:ios --out docs/designs/screenshots/<batch>` writes `ios-theme-sheet.png`
       and `ios-theme-sheet-largest.png`. That is two of the four Android has: these two
@@ -1107,9 +1130,14 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       This was found the hard way twice. An accessibility audit of the same reader,
       written the same afternoon, reported **zero findings** — and had measured the
       publication page, because the action element it tapped was not hittable. Its
-      replacement then measured the comic reader while reporting on the EPUB reader. A
-      walk that can arrive somewhere else has to check where it arrived, every time, and
-      "the format the shelf says" is not that check.
+      replacement then reported on the EPUB reader without ever checking which reader it
+      was in. A walk that can arrive somewhere else has to check where it arrived, every
+      time, and "the format the shelf says" is not that check.
+
+      The same class of defect was sitting in the comic reader's own audit and is fixed
+      here: `testReaderPassesTheAudit` tapped the screen centre right after opening "to
+      bring the chrome back", and that reader's chrome starts *visible* and a centre tap
+      toggles it — so the tap took away the chrome the audit was there to measure.
 - [ ] **7.5** Record the curl: a screen recording on each platform, because a
       still frame cannot show interruptibility or finger tracking.
 - [ ] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce
