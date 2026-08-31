@@ -28,11 +28,18 @@ owes. What landed under them is kept in their notes; only the tick moved.
 
 ---
 
-## ⚠ Before `/opsx:sync`: this change needs a spec amendment it does not declare
+## ✅ Settled: the spec amendment this change needed is now declared
 
-The delta lists `publication-detail` and `native-experience` as its specs. It
-needs **`reading-progress` as MODIFIED as well**, and until that is written the
-sync will leave two sentences in the main specs that the shipped app
+**Written 2026-08-31**, at
+[`specs/reading-progress/spec.md`](specs/reading-progress/spec.md), with the
+reasoning in the [proposal](proposal.md) under *Modified: `reading-progress`* so
+it survives the sync that erases the delta. The banner below is kept as the
+record of what was wrong, because the next reader of this file will want to know
+why a third delta appeared late.
+
+The delta listed `publication-detail` and `native-experience` as its specs. It
+needed **`reading-progress` as MODIFIED as well**, and until that was written the
+sync would have left two sentences in the main specs that the shipped app
 contradicts:
 
 - [`specs/reading-progress/spec.md:38-40`](../../specs/reading-progress/spec.md),

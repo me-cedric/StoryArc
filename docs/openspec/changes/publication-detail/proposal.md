@@ -72,6 +72,36 @@ statement that **chrome never takes the cover's colour.** Untinted floating
 chrome picking up the art beneath it is the design's own rule; a tinted tab bar
 that changes hue as the reader scrolls past covers is the failure it prevents.
 
+### Modified: `reading-progress`
+
+**Declared late, and that is worth saying out loud.** This change shipped on both
+platforms with no `reading-progress` delta, and two sentences in that spec were
+written when a cover *was* the resume affordance. Syncing without this delta
+would have left the contract describing an app that no longer exists.
+
+The *Resuming* requirement is the one this change moves, and it holds in full for
+the resume affordance — *Keep reading* still opens the book at the stored
+position with nothing in between. What changes is that the requirement now
+carries the two verbs rather than assuming one:
+
+- *Continue from the library* said a tap on a partially read publication "opens
+  at the stored position without an intermediate screen". That was one sentence
+  covering both verbs because there was only one. It is now two scenarios: the
+  resume affordance keeps the sentence unchanged, and the cover leads to this
+  change's page, whose primary action continues from the same position and says
+  so before it is taken.
+- *Restart deliberately* justified putting "Start from the beginning" on the long
+  press "because the library opens a publication when its cover is tapped". The
+  **placement is still right and is unchanged**; only its reason was load-bearing
+  on a premise this change removed. The replacement reason is the true one: the
+  long press is on every cover on every browse surface, so starting over never
+  needs a screen opened first — and it is never a page's primary action, because
+  the primary action continues.
+
+Nothing else in `reading-progress` moves. The local store, synchronisation,
+conflict resolution and privacy requirements are untouched by a screen between
+the shelf and the reader.
+
 ## Non-goals
 
 - **A series screen.** *Other issues in this series* is a shelf on this screen,
