@@ -374,12 +374,14 @@ object LibraryScanner {
     private fun extensionOf(name: String): String = name.substringAfterLast('.', "").lowercase()
 
     /**
-     * The identity of a document.
+     * Where a document is. What it *is* is added by [PublicationIndexer.index], which
+     * digests the source it has already opened and records the two together.
      *
-     * The document `Uri` stands in for the path. It survives a restart because the
-     * tree permission does (`local-library`), and [PublicationIdentity.matches]
-     * still merges it with a content digest when the background pass that computes
-     * one arrives — the same trade recorded in [PublicationIndexer.identityFor].
+     * The document `Uri` stands in for the path, and survives a restart because the tree
+     * permission does (`local-library`). It is still the last-resort component ADR-0006
+     * calls it: a `Uri` from one provider is not the same string as the same file reached
+     * through another, which is exactly why the digest beside it is what recognises a
+     * publication again.
      */
     private fun identityOf(uri: Uri) = PublicationIdentity(normalizedPath = uri.toString())
 

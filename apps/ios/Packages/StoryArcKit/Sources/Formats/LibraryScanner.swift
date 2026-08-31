@@ -55,6 +55,14 @@ public enum LibraryScanner {
     ///
     ///   A closure rather than a store: this module reads containers and knows nothing
     ///   about caches or registries, and handing it a question keeps it that way.
+    ///
+    ///   **Nothing passes this yet, and whoever first does has one trap to avoid.** A
+    ///   publication handed back here is emitted exactly as it was cached, identity
+    ///   included — so a cache written before content digests existed would hand back
+    ///   path-only identities for ever, and the rename this exists to survive would go
+    ///   on losing the reader's place on every device that had already scanned once.
+    ///   A cached publication with no `contentDigest` must be re-indexed, or have one
+    ///   attached, before it is emitted.
     /// - Parameter skipping: paths an earlier, interrupted scan of this folder already
     ///   indexed. `local-library` requires a scan to be "cancellable and resumable", and
     ///   this is the resumable half: the walk still visits them, which costs one directory
