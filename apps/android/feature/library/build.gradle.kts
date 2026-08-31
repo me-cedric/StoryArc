@@ -10,6 +10,11 @@ android {
 
     buildFeatures { compose = true }
 
+    // Robolectric composes real widgets, and a chip's label is a string resource. Without
+    // the packaged resources on the unit-test classpath every label resolves to nothing and
+    // a layout test measures empty chips.
+    testOptions { unitTests { isIncludeAndroidResources = true } }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -45,6 +50,13 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    // A composition on the JVM, for layout claims the unit gate has to be able to check.
+    // See `ListOrderChipsWrapTest`.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.junit)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.compose.ui.test.manifest)
     // A working XmlPullParser on the JVM, so a feed can be parsed in a unit test without a
     // device. Android ships the same implementation; the catalogue declares the versions.
     testImplementation(libs.xmlpull)

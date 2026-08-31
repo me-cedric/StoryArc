@@ -158,5 +158,8 @@ private fun Policy(
  *
  * Round decimal values rather than powers of two: the platform formats a size in decimal
  * gigabytes, so 2^30 renders as "1.1 GB" and a ladder of those reads like a mistake.
+ *
+ * Visible to the module rather than to this file alone so `DownloadLimitWrapTest` asserts
+ * against the ladder that is actually drawn, instead of a copy of it that can drift.
  */
-private val LIMITS = listOf<Long?>(null, 1_000_000_000, 5_000_000_000, 20_000_000_000)
+internal val LIMITS = listOf<Long?>(null, 1_000_000_000, 5_000_000_000, 20_000_000_000)

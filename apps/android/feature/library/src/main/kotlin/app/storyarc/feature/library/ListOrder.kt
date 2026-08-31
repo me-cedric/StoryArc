@@ -173,11 +173,10 @@ object ListOrdering {
  * on screen. It also settles the focus question a fade would have left open — nothing is
  * scrolled out of view, so there is no off-screen chip for TalkBack or a keyboard to have to
  * bring back. It does not cover the case `LibraryControls` names — a single chip wider than
- * the window — and unlike there, that case is open here rather than closed: nobody has yet
- * measured `Größe auf diesem Gerät` at `font_scale 2.0` in a 320 dp window, and a wrap
- * cannot save a chip that does not fit on a line of its own. Wrapping is still strictly
- * better than the scroll it replaces, which truncated that same label *and* put the second
- * chip out of sight.
+ * the window, which no wrap can help — and that case is closer here than anywhere else in
+ * the app. `ListOrderChipsWrapTest` measures it rather than guessing at it: at
+ * `font_scale 2.0` in a 320 dp window the German pair comes to 314 dp and 308 dp, one chip
+ * per line, so both fit with a few dp to spare. Narrow, and on the right side of the line.
  */
 @Composable
 internal fun ListOrderChips(
