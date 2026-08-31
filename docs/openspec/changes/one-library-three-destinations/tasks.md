@@ -156,6 +156,26 @@ emulator** — light and dark, default and largest text size — per
       `pnpm build:ios`. No Swift file over 400 lines.
 - [ ] **6.3** Android: `./gradlew test lint`. No Kotlin file over 800 lines —
       `MainActivity.kt` and `LibraryScreen.kt` both start over it.
+      *Both of the named files are under the cap — `MainActivity.kt` is 170 lines
+      and `LibraryScreen.kt` is 697 — and one file the task did not name is over
+      it: `LibraryViewModel.kt`, at 1701 lines, the largest violation in the
+      repository.*
+
+      **Left as a slice of its own, deliberately.** iOS solved the same problem by
+      spreading `LibraryModel` over eight files — `LibraryScanning`,
+      `LibraryWatching`, `LibraryImports`, `LibraryLookups`, `LibraryFacets`,
+      `LibrarySources`, `LibraryRestore` — each an `extension LibraryModel` and
+      each under its own 400-line cap. That option does not exist here: Kotlin
+      cannot extend a class across files, so the same seams have to become real
+      collaborators with real interfaces between them, each holding a share of the
+      state the whole class currently reads at will. The largest of them, the
+      folder scanner, is roughly 740 lines and touches `_publications`,
+      `_registry`, `locations`, `_scanState`, `rebuild()` and `cacheLibrary()`
+      — and there is no `LibraryViewModelTest` to catch a mistake, so the split
+      would be done with a screenshot as its only proof. That is a design job with
+      a test suite in front of it, not a file move, and doing it inside a wave that
+      already changed the shelf'''s routing and its marks would put both at risk at
+      once.
 - [ ] **6.4** `corepack pnpm lint`.
 - [ ] **6.5** The screenshot set is complete: every task above that changes a
       screen has its light, dark, default-size and largest-size captures beside the
