@@ -59,28 +59,95 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.MatchKind
 import app.storyarc.core.model.Publication
+import kotlin.math.roundToInt
 
-/** The widest a cover is ever drawn. Above it a phone shows one and a half of them. */
+/** The widest a cover is ever drawn at an ordinary font scale. See [coverMaximumWidth]. */
 internal val COVER_MAXIMUM_WIDTH = 168.dp
 
 /**
- * The narrowest a cover may be drawn in a window this wide, in dp.
+ * The font scale at which the reader has left the ordinary range.
+ *
+ * Android's own Font size slider stops at 1.3 outside accessibility settings, and the
+ * larger steps (1.5, 1.8, 2.0) live behind them. iOS reads the same boundary as
+ * `DynamicTypeSize.isAccessibilitySize`.
+ */
+private const val ACCESSIBILITY_FONT_SCALE = 1.3f
+
+/**
+ * How much wider a cover is drawn once the reader is at an accessibility font scale.
+ *
+ * A step, not a scale, and there are exactly two of them. Cover width and text size are not
+ * the same quantity: multiplying the cell by the font would trade away the artwork — the
+ * one thing this app says is the interface — to make room for words. What a cramped caption
+ * actually needs is *one fewer column*, and a column is a step.
+ *
+ * 1.4 is chosen against the widths that bracket a phone. It takes a ~400 dp phone from
+ * three columns to two — the caption goes from 112 dp, where `Harbour Lights #1` wraps and
+ * its neighbours' series lines truncate, to 168 dp — and it leaves a 360 dp phone at the
+ * two columns it already had rather than dropping it to one. `library-browsing` still wants
+ * a grid at every text size; it is the truncation that has to go, not the shelf.
+ *
+ * iOS's `accessibilityCoverStep` is the same number for the same reason.
+ */
+private const val ACCESSIBILITY_COVER_STEP = 1.4f
+
+/**
+ * The narrowest a cover may be drawn, given the room the window has and how large the
+ * reader has asked for text to be.
  *
  * `design.md` §4: "Minimum cover width scales by size class: 104 / 132 / 158 pt". One
  * number for every window is what left a 1400 dp tablet showing roughly eleven columns of
  * phone-sized covers — a shelf reads as a shelf at a size the room can afford, and a room
- * that got bigger should not simply hold more of the same postage stamps.
+ * that got bigger should not simply hold more of the same postage stamps. Those three are
+ * the answer at every ordinary font scale and are unchanged; [fontScale] only decides
+ * whether the tier is taken as written or one step wider.
  *
- * The two thresholds are Material's own medium (600 dp) and expanded (840 dp) breakpoints,
- * which is also where `StoryArcWindowClass` will grow its remaining cases. Taken from the
- * window's width rather than from a device check, for the reason `WindowClass.kt` sets out
- * at length: a multi-window slot, a rotation and a fold are all the same event.
+ * The two width thresholds are Material's own medium (600 dp) and expanded (840 dp)
+ * breakpoints, which is also where `StoryArcWindowClass` will grow its remaining cases.
+ * Taken from the window's width rather than from a device check, for the reason
+ * `WindowClass.kt` sets out at length: a multi-window slot, a rotation and a fold are all
+ * the same event. The font scale is the second such event.
  */
-internal fun coverMinimumWidth(windowWidthDp: Int): Dp = when {
-    windowWidthDp >= 840 -> 158.dp
-    windowWidthDp >= 600 -> 132.dp
-    else -> 104.dp
+internal fun coverMinimumWidth(windowWidthDp: Int, fontScale: Float = 1f): Dp {
+    val tier = when {
+        windowWidthDp >= 840 -> 158.dp
+        windowWidthDp >= 600 -> 132.dp
+        else -> 104.dp
+    }
+    return tier.steppedFor(fontScale)
 }
+
+/**
+ * The widest a cover is ever drawn. Above it a phone shows one and a half of them.
+ *
+ * The cap steps with the minimum, or it would become the thing that decides the layout: a
+ * tablet at an accessibility font scale asks for 221 dp columns, and a cap still pinned at
+ * 168 dp would grant the wider columns and then draw 168 dp covers inside them, leaving a
+ * ragged strip of empty shelf down the trailing edge. iOS derives its maximum from its
+ * minimum and gets this for nothing.
+ */
+internal fun coverMaximumWidth(fontScale: Float = 1f): Dp =
+    COVER_MAXIMUM_WIDTH.steppedFor(fontScale)
+
+/**
+ * How wide one shortcut in the continue-reading row is at an ordinary font scale.
+ *
+ * Slightly larger than a phone's shelf cover, because there are few of them and they are
+ * what the reader came back for.
+ */
+private val CONTINUE_READING_WIDTH = 128.dp
+
+/**
+ * This width, one accessibility step wider when the reader is past [ACCESSIBILITY_FONT_SCALE].
+ *
+ * Rounded to whole dp, so both platforms land on the same 146 / 185 / 221.
+ */
+private fun Dp.steppedFor(fontScale: Float): Dp =
+    if (fontScale >= ACCESSIBILITY_FONT_SCALE) {
+        (value * ACCESSIBILITY_COVER_STEP).roundToInt().dp
+    } else {
+        this
+    }
 
 /**
  * The cover grid.
@@ -135,13 +202,17 @@ internal fun CoverGrid(
 ) {
     val density = LocalDensity.current
     val windowWidth = LocalWindowInfo.current.containerSize.width
-    val minimumWidth = remember(density, windowWidth) {
-        coverMinimumWidth(with(density) { windowWidth.toDp().value.toInt() })
+    // The reader's text size is the second input to the cover size, not only the window's
+    // width: three columns of caption on a phone at an accessibility font scale is a
+    // recognisable cover under an unreadable label, which inverts what a caption is for.
+    val fontScale = density.fontScale
+    val minimumWidth = remember(density, windowWidth, fontScale) {
+        coverMinimumWidth(with(density) { windowWidth.toDp().value.toInt() }, fontScale)
     }
-    val maximumWidth = COVER_MAXIMUM_WIDTH
+    val maximumWidth = remember(fontScale) { coverMaximumWidth(fontScale) }
     // Pixels, not dp: a cover decoded at dp size is blurry on every device made
     // since 2010.
-    val maxPixelSize = remember(density) { with(density) { maximumWidth.roundToPx() } }
+    val maxPixelSize = remember(density, maximumWidth) { with(density) { maximumWidth.roundToPx() } }
 
     val gridState = rememberLazyGridState()
 
@@ -244,6 +315,7 @@ private fun ContinueReadingRow(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
+    val fontScale = LocalDensity.current.fontScale
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
@@ -267,7 +339,12 @@ private fun ContinueReadingRow(
                     // reading, and until this was passed through, the row was the only
                     // cover in the app whose long press did nothing.
                     onAddToShelf = onAddToShelf,
-                    modifier = Modifier.width(128.dp),
+                    // The same accessibility step the shelf below takes. A row of covers
+                    // that kept its ordinary width while the grid under it widened would
+                    // be the one place on the screen still truncating its captions — and
+                    // it is the row the reader came back for. Unchanged at every ordinary
+                    // font scale; iOS grows this row with the shelf for the same reason.
+                    modifier = Modifier.width(CONTINUE_READING_WIDTH.steppedFor(fontScale)),
                 )
             }
         }

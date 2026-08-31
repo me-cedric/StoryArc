@@ -3,6 +3,50 @@ public import SwiftUI
 internal import DesignSystem
 public import StoryArcCore
 
+/// The width at or above which the shelf stops being a widened phone.
+///
+/// An iPad Pro clears it in either orientation; the same iPad in a half-width Split
+/// View slot does not, and gets the middle tier, which is the point of measuring.
+private let confidentShelfWidth: CGFloat = 900
+
+/// How much wider a cover is drawn once the reader is at an accessibility text size.
+///
+/// A step, not a scale, and there are exactly two of them. Cover width and text size are
+/// not the same quantity: multiplying the cell by the font would trade away the artwork —
+/// the one thing this app says is the interface — to make room for words. What a cramped
+/// caption actually needs is *one fewer column*, and a column is a step.
+///
+/// 1.4 is chosen against the two widths that bracket every supported phone. It takes a
+/// 402 pt iPhone from three columns to two — the caption goes from 112 pt, where `Ashfall
+/// #1` hyphenates across two lines and its series line truncates to `Ashf…`, to 175 pt —
+/// and it stops short of taking a 375 pt iPhone SE, the narrowest device on the iOS 26
+/// floor, down to a single column. `library-browsing` still wants a grid at every text
+/// size; it is the truncation that has to go, not the shelf.
+private let accessibilityCoverStep: CGFloat = 1.4
+
+/// The narrowest a cover may be drawn, given the room the shelf has and how large the
+/// reader has asked for text to be.
+///
+/// Pure and free of the view so the column count can be asserted without a window. It had
+/// to be: the truncation this answers was only ever going to be found by looking at a
+/// booted simulator at the largest Dynamic Type size, because nothing here could be tested.
+/// Android's `coverMinimumWidth` is the same function over the same two inputs.
+///
+/// `design.md` §4 — "Minimum cover width scales by size class: 104 / 132 / 158 pt" — is the
+/// answer at every ordinary text size, unchanged. One pair for every window is what put
+/// eight phone-sized cells in a 13-inch iPad: the same lattice widened, rather than the
+/// fewer, larger, more confident covers a big window is for. The text size only decides
+/// whether the tier is taken as written or one step wider.
+func coverMinimumWidth(shelfWidth: CGFloat, textSize: DynamicTypeSize) -> CGFloat {
+    let tier: CGFloat = switch shelfWidth {
+    case ..<StoryArcWindowClass.sidebarWidthThreshold: 104
+    case ..<confidentShelfWidth: 132
+    default: 158
+    }
+    guard textSize.isAccessibilitySize else { return tier }
+    return (tier * accessibilityCoverStep).rounded()
+}
+
 /// The cover grid.
 ///
 /// `library-browsing`: "the number of grid columns follows the available width,
@@ -12,6 +56,9 @@ public import StoryArcCore
 struct CoverGrid: View {
     @Environment(\.theme) private var theme
     @Environment(\.displayScale) private var displayScale
+    /// How large the reader has asked for text to be. The second input to the cover size —
+    /// see ``coverMinimumWidth(shelfWidth:textSize:)``.
+    @Environment(\.dynamicTypeSize) private var textSize
 
     let publications: [Publication]
     /// In-progress publications, most recently read first. Empty means the row is
@@ -44,25 +91,10 @@ struct CoverGrid: View {
     /// So the input is the width of the grid, not of the device.
     @State private var width: CGFloat = 0
 
-    /// The width at or above which the shelf stops being a widened phone.
-    ///
-    /// An iPad Pro clears it in either orientation; the same iPad in a half-width Split
-    /// View slot does not, and gets the middle tier, which is the point of measuring.
-    private static let confidentShelfWidth: CGFloat = 900
-
     /// The readable range. Below the minimum a cover stops being recognisable;
     /// above the maximum a phone shows one and a half of them.
-    ///
-    /// `design.md`: "Minimum cover width scales by size class: 104 / 132 / 158 pt." One
-    /// pair for every window is what put eight phone-sized cells in a 13-inch iPad — the
-    /// same lattice widened, rather than the fewer, larger, more confident covers a big
-    /// window is for.
     private var minimumWidth: CGFloat {
-        switch width {
-        case ..<StoryArcWindowClass.sidebarWidthThreshold: 104
-        case ..<Self.confidentShelfWidth: 132
-        default: 158
-        }
+        coverMinimumWidth(shelfWidth: width, textSize: textSize)
     }
 
     /// Headroom over the minimum, so the last column grows into the leftover instead of
