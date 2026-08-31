@@ -46,10 +46,26 @@ const run = adbRunner()
 /** The device's own density. A guessed one invents defects, so this is never a constant. */
 const density = () => Number(/(\d+)/.exec(run('shell', 'wm', 'density'))?.[1] ?? 420)
 
+/**
+ * The accessibility tree the device is showing right now.
+ *
+ * uiautomator answers `ERROR: null root node` and writes nothing when there is no window
+ * to read -- the launcher between activities, a screen mid-animation, a device that has
+ * not finished booting. Left unchecked, the `cat` that follows fails and Node prints
+ * twenty lines of its own internals, which says nothing about what to do. Say it instead.
+ */
 const liveDump = () => {
-  run('shell', 'uiautomator', 'dump', '/sdcard/a11y.xml')
+  const dumped = run('shell', 'uiautomator', 'dump', '/sdcard/a11y.xml')
+  if (!/dumped to/.test(dumped)) {
+    throw new Error(
+      `uiautomator could not read the screen: ${dumped.trim() || 'no output'}\n` +
+        'Bring the app to the foreground and let it settle, then run this again.'
+    )
+  }
   const xml = run('shell', 'cat', '/sdcard/a11y.xml')
-  return xml.slice(xml.indexOf('<?xml'))
+  const start = xml.indexOf('<?xml')
+  if (start < 0) throw new Error('uiautomator wrote no XML. The screen may still be animating.')
+  return xml.slice(start)
 }
 
 /**
