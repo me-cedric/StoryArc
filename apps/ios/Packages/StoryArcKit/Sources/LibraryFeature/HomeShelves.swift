@@ -138,6 +138,33 @@ enum HomeShelves {
             .sorted { $0.id > $1.id }
     }
 
+    // MARK: - Never opened
+
+    /// What the reader has never opened, newest arrival first.
+    ///
+    /// Home does not draw this; the search screen does, per `navigation-shell`'s *What search
+    /// opens onto*. It lives here rather than there because the question is *what reading
+    /// state is this publication in*, and that question is answered in exactly one place in
+    /// this codebase — see ``isUnread(_:_:)``, and see ``upNext(in:limit:progress:)`` for
+    /// what a second answer to a question like this costs.
+    ///
+    /// Newest first for the same reason ``recentlyAdded(in:limit:)`` is: of all the books a
+    /// reader has not read, the ones they just added are the ones they were thinking about.
+    /// Undated arrivals keep the library's own order rather than being dropped — a folder
+    /// copied wholesale reports nothing, and a section that emptied itself over that would
+    /// take the offer away from the reader who most needs it.
+    static func neverOpened(
+        in library: [Publication],
+        limit: Int = shelfLength,
+        progress: (Publication) -> ReadingProgress?
+    ) -> [Publication] {
+        library
+            .filter { isUnread($0, progress) }
+            .sorted { arrived($0) > arrived($1) }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     // MARK: - Reading states
 
     /// Part-way through: opened, moved, not finished.
