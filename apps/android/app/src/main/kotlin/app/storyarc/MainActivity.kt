@@ -19,6 +19,8 @@ import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.theme.VolumeTurns
 import app.storyarc.core.model.QuickActionRequest
 import app.storyarc.core.persistence.SettingsStore
+import app.storyarc.core.persistence.chosenLanguage
+import app.storyarc.core.persistence.speaking
 import app.storyarc.feature.settings.BuildInfo
 
 /**
@@ -101,6 +103,10 @@ class MainActivity : ComponentActivity() {
      * Here rather than in the composition because a `Popup` -- every dropdown menu in the
      * app -- is its own window built from this context, and would otherwise stay in the
      * system's language while the screen behind it changed.
+     *
+     * `EpubReaderActivity` carries the same three lines, because an activity that does not
+     * is an activity in the system's language. Both call the same `InterfaceLanguage` in
+     * `:core:persistence`; a second mechanism is how the two would come to disagree.
      */
     override fun attachBaseContext(newBase: Context) {
         language = newBase.chosenLanguage()

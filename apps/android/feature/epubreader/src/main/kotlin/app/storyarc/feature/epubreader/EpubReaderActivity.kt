@@ -55,6 +55,8 @@ import app.storyarc.core.designsystem.theme.swatch
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.persistence.SettingsStore
+import app.storyarc.core.persistence.chosenLanguage
+import app.storyarc.core.persistence.speaking
 import app.storyarc.core.model.presetMatching
 import app.storyarc.core.designsystem.theme.resolved
 import app.storyarc.core.persistence.AnnotationStore
@@ -257,6 +259,21 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      */
     private val notifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    /**
+     * `localization`: the reader's own language, before anything reads a resource.
+     *
+     * The same three lines `MainActivity` has, and for the same reason: a `Popup` is its own
+     * window built from this context, so an overridden `Configuration` carried down the
+     * composition would reach the page and none of the menus over it. Without this the whole
+     * of the reader -- 109 string keys across 94 `stringResource` call sites -- stayed in the
+     * system language the moment a book opened, while every screen behind it was in the
+     * reader's. Nothing recreates this activity on a language change and nothing needs to:
+     * it is started fresh from a library that has already been rebuilt in the new language.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase.speaking(newBase.chosenLanguage()))
+    }
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
