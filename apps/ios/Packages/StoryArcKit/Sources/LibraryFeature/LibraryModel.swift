@@ -252,7 +252,13 @@ public final class LibraryModel {
             LibraryCache.Snapshot(
                 refreshedAt: .now,
                 publications: publications,
-                locations: locations.reduce(into: [:]) { $0[$1.key] = $1.value.path() }
+                // `percentEncoded: false` because the read side is
+                // `URL(fileURLWithPath:)`, which takes its string literally. `path()`
+                // encodes by default, so a location under "Application Support" was written
+                // as "Application%20Support" and never matched again on the next launch:
+                // a downloaded publication silently lost its on-device mark and came back
+                // as a second row beside itself.
+                locations: locations.reduce(into: [:]) { $0[$1.key] = $1.value.path(percentEncoded: false) }
             )
         )
         cachedAt = nil

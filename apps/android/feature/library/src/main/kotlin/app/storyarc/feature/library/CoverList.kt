@@ -201,7 +201,7 @@ private fun ListRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = rowSubtitle(publication, viewModel.sourceName(publication)),
+                text = rowSubtitle(publication),
                 style = MaterialTheme.typography.labelLarge,
                 color = palette.textTertiary,
                 maxLines = 1,
@@ -230,7 +230,11 @@ private fun ListRow(
  * on every row and would separate nothing from nothing.
  */
 @Composable
-private fun rowSubtitle(publication: Publication, source: String?): String {
+// No source here either. `library-browsing` says nothing on the shelf states which source
+// a publication came from, and the list is the shelf drawn as rows — the grid losing the
+// line while the list kept it would make the answer depend on a layout toggle. Origin has
+// one home now: the provenance line on the publication's page.
+private fun rowSubtitle(publication: Publication): String {
     val parts = buildList {
         if (!publication.isOpenable) add(stringResource(R.string.library_cell_cannot_open))
         val series = publication.series
@@ -240,7 +244,6 @@ private fun rowSubtitle(publication: Publication, source: String?): String {
             publication.authors.firstOrNull()?.let { add(it) }
         }
         add(publication.format.displayName)
-        source?.let { add(stringResource(R.string.library_cell_source, it)) }
     }
     return parts.joinToString(" · ")
 }

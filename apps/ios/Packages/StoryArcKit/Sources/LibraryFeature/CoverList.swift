@@ -181,15 +181,10 @@ struct ListRow: View {
             parts.append(author)
         }
         parts.append(publication.format.displayName)
-        if let source = model.sourceName(of: publication) {
-            parts.append(
-                String(
-                    localized: "library.cell.source \(source)",
-                    bundle: .module,
-                    locale: .storyArc
-                )
-            )
-        }
+        // No source here either. `library-browsing` says nothing on the shelf states which
+        // source a publication came from, and the list is the shelf drawn as rows — the grid
+        // losing the line while the list kept it would make the answer depend on a layout
+        // toggle. Origin has one home now: the provenance line on the publication's page.
         return parts.joined(separator: " · ")
     }
 }
