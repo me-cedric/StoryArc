@@ -51,6 +51,16 @@ material3 = "1.5.0-alpha26"
 # window has. `adaptive-layout` and `adaptive-navigation` are declared here for the
 # pane scaffolds the tablet slice needs, and are not applied to a module yet.
 material3Adaptive = "1.3.0"
+# The audiobook player. Readium already drags media3 1.10.0 onto the runtime
+# classpath — `:feature:epubreader:dependencies` shows `media3-session` and
+# `media3-exoplayer` there — so this is a bump plus a *declaration*, not a new
+# dependency: a transitive at runtime scope cannot be compiled against.
+#
+# 1.11.0 rather than 1.10.0 for one reason, checked rather than taken on trust:
+# **MP4 chapter atoms**. ID3 CHAP frames already parse at 1.10.0, so the folder-of-
+# MP3s path — the common library-service export — needs no bump at all. M4B is the
+# format that does. See the change's `design.md`.
+media3 = "1.11.0"
 kotlinxCoroutines = "1.11.0"
 junit = "4.13.2"
 # A working `XmlPullParser` on the JVM. The Atom parser calls an Android API that the unit
@@ -98,6 +108,9 @@ androidx-compose-material3-adaptive = { group = "androidx.compose.material3.adap
 androidx-compose-material3-adaptive-layout = { group = "androidx.compose.material3.adaptive", name = "adaptive-layout", version.ref = "material3Adaptive" }
 androidx-compose-material3-adaptive-navigation = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation", version.ref = "material3Adaptive" }
 androidx-compose-material-icons-extended ={ group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
+
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+androidx-media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
 
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }

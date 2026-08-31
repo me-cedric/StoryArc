@@ -133,6 +133,20 @@ creep — see [`design.md`](design.md).
       the bump** — see `design.md`: ID3 chapters already parse at 1.10.0, so the
       MP3-folder path, detection and the unchaptered case all land without it, and
       the bump buys M4B's own chapter atom and nothing else.
+      **Android done, and both halves of `design.md`'s claim were re-checked against the
+      shipped artifacts** rather than carried from the plan, by unzipping both extractor
+      AARs and reading their class lists. At **1.10.0**: only `id3.ChapterFrame` and
+      `id3.ChapterTocFrame`, no class anywhere carrying the string `chpl`, and nothing in
+      `mp4/` referring to a chapter type. At **1.11.0**: `extractor.metadata.Chapter` is
+      new, `mp4/BoxParser` carries `chpl`, and `Mp4Extractor` refers to `Chapter`. So the
+      bump buys exactly what the plan says it buys.
+      `:feature:epubreader:dependencies` confirms Readium puts `media3-session` and
+      `media3-exoplayer` 1.10.0 on the **runtime** classpath — which is why this is a
+      declaration as well as a bump, a runtime transitive being uncompilable-against.
+      `:app:dependencies` shows Readium's 1.10.0 resolving to 1.11.0 with no conflict and
+      `assembleDebug` passes.
+      **One thing the plan does not say and every caller hits:** `metadata.Chapter` is
+      `@UnstableApi`, so reading an MP4's chapter marks needs an opt-in at the call site.
 
 ## 3. The platform session
 
