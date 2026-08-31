@@ -106,7 +106,11 @@ technical, and each item's fallback is in `design.md`.
       counts *lines*, and the whole preferences blob is one line. It looked for a
       moment as though a stored preference had been overwritten. It had not.
 - [ ] **0.5** Procedural paper grain: prototype on both platforms and judge
-      whether it reads as paper. If not, price a bundled tiling texture.
+      whether it reads as paper. If not, price a bundled tiling texture. **Built,
+      not judged.** The shader exists on both platforms and is wired to the page —
+      see 5.4, which carries the three parameters and how confident each is. What
+      remains is the half this task is actually about: looking at it. A bundled
+      tiling texture stays the fallback if the answer is that it reads as digital.
 - [x] **0.6** Record the spike outcomes as an ADR — the curl decision is exactly
       the kind of thing that gets re-litigated in six months without one.
       **Done**: [ADR-0009](../../../decisions/0009-page-curl-as-a-fragment-shader.md).
@@ -302,8 +306,78 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       control, brightness. Second level behind one "Customise" action.
 - [x] **3.5** Fine axes: line, character, word and paragraph spacing, margins,
       alignment, font family, bold. Long-press to reset an axis.
-- [ ] **3.6** Live preview rendered by the **real** renderer, showing a chapter
-      title and body text, reflowing continuously during a drag.
+- [x] **3.6** Live preview rendered by the **real** renderer, showing a chapter
+      title and body text, reflowing continuously during a drag. **Done, and what
+      "the real renderer" turned out to mean is worth stating exactly, because it is
+      not what the word first suggests.**
+
+      It is a web view — `WKWebView` on iOS, the system `WebView` on Android — which
+      is precisely what Readium paints a reflowable page in. It is **not** a second
+      Readium navigator over the publication's own resources.
+
+      The requirement's own preview content is what settles that. It asks for "a
+      chapter title and at least three lines of body text", which is a *constructed*
+      specimen; a navigator renders the resource at a locator and nothing else, so it
+      can show a page but never that. "The same engine that renders the publication"
+      is therefore the layout engine, and this is it: the same WebKit and the same
+      Blink that lay out the page a moment later, given the same axis values.
+
+      Two things are given up by not being a navigator, and both are named in the
+      code as well as here:
+
+      - **The publisher's stylesheet is absent.** Under any preset but Original that
+        is what the reader asked for — `publisherStyles` is off and StoryArc's values
+        win. It is a real gap only under Original, where the preview shows the
+        browser's defaults rather than the publisher's design.
+      - **ReadiumCSS itself is absent.** Its resets and its `--USER__*` plumbing are
+        not reproduced; the same *numbers* are emitted as plain CSS. Where ReadiumCSS
+        does something StoryArc's values do not describe, the page has it and the
+        preview does not.
+
+      What keeps "the same engine" from decaying into "roughly the same" is a test,
+      not an intention. On iOS every axis is asserted against the `EPUBPreferences`
+      the same theme produces — font size, line height, letter and word spacing,
+      paragraph spacing, margins, alignment, hyphenation, colours — so the document
+      and the page cannot compute one differently. Android cannot make that half:
+      `EpubPreferences` needs a device, so `ThemePreviewDocumentTest` holds the same
+      strings instead, which is what keeps the two documents identical.
+
+      **The words are the publication's**, which is the requirement's other half.
+      Both readers already had the resource read a bookmark's excerpt uses; the
+      preview asks the same code for a longer slice at the same position, once when
+      the sheet opens — a disk read inside a slider drag is a disk read inside a
+      slider drag. A publication it cannot be read from falls back to sample text,
+      in all four locales.
+
+      The bundled type resolves in both previews, which needed two different answers.
+      Android reaches its own staged assets through `file:///android_asset/`, which
+      stays readable whatever `allowFileAccess` says. iOS serves the same files
+      through a `WKURLSchemeHandler`, because `WKWebView` refuses a `file:`
+      subresource under a document loaded as a string and the alternatives were
+      copying two megabytes of type into a cache directory or rebuilding a base64
+      face on every keystroke. Without the declaration the family silently falls back
+      — which would make the preview disagree with the page on the most visible axis
+      there is.
+
+      Fixed at 200 points, deliberately *not* growing with the text size. The delta
+      asks the preview to stay "large enough to judge a spacing change" at large
+      text, and on a sheet that grows every point the preview takes is a point the
+      controls below it lose.
+
+      One Kotlin trap, recorded because it produced a wrong document that compiled:
+      `trimIndent()` runs *after* interpolation, so a stylesheet's own unindented
+      lines set the common indent to zero and every line keeps the indentation it was
+      written with — including the doctype, which is then not the first thing in the
+      file. The document is assembled line by line instead, and the test asserts the
+      prefix.
+
+      Two things moved to keep `EpubReaderActivity.kt` under its recorded length:
+      `ThemeBottomSheet` left it for `ThemeSheet.kt`, where the sheet it wraps already
+      lives, and the activity came out 34 lines shorter than it went in.
+
+      **Not verified on a screen.** `pnpm test:ios:epub` needs a booted simulator this
+      worktree does not own, so the iOS half compiled (`build-for-testing`) and did
+      not run. See 7.4 for what to capture.
 - [x] **3.7** Custom background: swatches, picker, derived text colour at 7:1,
       refusal below 4.5:1 **with the measured ratio shown**. **Done for reflowable
       publications.** The fixed-layout half is held — see below.
@@ -777,8 +851,53 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       appearance… carries its own light and dark variants", so a case here would force
       a choice between Natural and dark mode that the spec exists to avoid. A test
       asserts its absence, so a future hand does not helpfully add it.
-- [ ] **5.2** Natural as a theme with its own light and dark variants: accents
-      app-wide, grain confined to reading surfaces.
+- [x] **5.2** Natural as a theme with its own light and dark variants: accents
+      app-wide, grain confined to reading surfaces. **Done.** The tokens have carried
+      `naturalLight` and `naturalDark` since 1.2 and nothing read them; this is what
+      reads them. The grain half is 5.4.
+
+      **Where Natural lives, and why it is not an appearance.** It is a second axis
+      crossed with the first: `AppearanceMode` answers *which polarity* — which end of
+      light and dark, or follow the device — and Natural answers *which texture*. So
+      the Appearance screen keeps its four radio rows and gains a switch below them,
+      and System, Light and Dark each acquire a Natural variant. 5.1's reasoning is
+      unchanged and its two tests are untouched: a fifth case would force the choice
+      between Natural and dark mode that the spec exists to avoid.
+
+      It is not a reading theme either. A `ThemePreset` reaches the page and stops
+      there; `design.md` asks Natural's accents to reach "the library, settings and
+      source list" so the theme is coherent rather than bolted onto the reader.
+
+      **OLED Dark declines it.** Warm cream stock and true black are opposite asks,
+      and true black is the whole reason that appearance exists — a Natural canvas at
+      `#16100C` would quietly break the promise. So the switch is *disabled with the
+      reason on screen* rather than hidden or left live and inert, which is the
+      treatment dynamic colour already gets under the same appearance.
+
+      **On Android, Natural also overrides Material You**, for the same shape of
+      reason OLED Dark does: a wallpaper-derived tonal wash beside a clay accent is
+      two themes at once. The dynamic-colour row gains a third note saying so, so no
+      switch on that screen silently does nothing.
+
+      The accents are `clayStrong` on paper and `clay` on ink — `pnpm tokens:check`
+      already gates both at 3:1, which is why no token moved for this. `accentMuted`
+      takes `clayStrong` on both variants rather than a `clayMuted` that does not
+      exist: its only reader is the settings-search highlight at 30 % alpha, and
+      inventing a token no contrast gate covers to serve one wash is the worse trade.
+
+      **The stored value is its own key, not a field on `AppSettings`.** Storing an
+      independent axis inside the field it is independent of is how a boolean ends up
+      encoded in an enum a year later; and reading it inside the theme resolver —
+      `@AppStorage` on iOS, a shared Compose state over `SharedPreferences` on Android
+      — leaves every existing call site of the theme entry point untouched.
+      `ReaderPreferences` already set the precedent that a preference can live outside
+      `AppSettings` when the type that reads it is not the settings screen. Both
+      platforms use the same key name, `storyarc.appearance.natural`.
+
+      Search reaches the row by what a reader wants rather than what the screen calls
+      it — natural, paper, grain, texture, warm — in both mirrored indexes.
+
+      **Not verified on a screen.** See 7.4.
 - [x] **5.3** OLED Dark: true black chrome, reader surface deliberately above
       true black, with the reason surfaced in the setting. **Done.** The tokens already
       carried an `oledDark` palette whose `surfaceReader` refuses to be `#000`, with
@@ -793,9 +912,55 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       incompatible asks. Material You derives its surfaces from the wallpaper, and a
       wallpaper-tinted "true black" is neither, so the explicit choice wins over the
       automatic one.
-- [ ] **5.4** Natural grain as procedural noise on reading surfaces only,
+- [x] **5.4** Natural grain as procedural noise on reading surfaces only,
       disabled automatically under Reduce Transparency or Increase Contrast, and
-      absent below API 33 on Android with the palette retained.
+      absent below API 33 on Android with the palette retained. **Built on both
+      platforms.** 0.5 asked for a prototype and none was made, so the shader and the
+      thing it draws landed together — but 0.5's own question is a *judgement*, and
+      that still needs a screen. See the parameter table below and 7.4.
+
+      Procedural noise rather than a bundled tile, which is what `design.md` chose:
+      cheaper, resolution-independent, no bytes. One hash, two octaves at 2.17× so the
+      two lattices never line up, and a warm/dark tint pair rather than symmetric
+      grey — grey speckle reads as sensor noise, which is the one thing this must not
+      look like. The Metal and the AGSL are one texture expressed twice, down to the
+      constants, the way the curl already is.
+
+      **Where it draws.** Between the page and the chrome: over the words, under the
+      app bars. On Android it is emitted by `EpubChrome` rather than beside it, and
+      deliberately *outside* the visibility that hides the bars — the texture belongs
+      to the paper, and paper does not come and go with a tap. It is not interactive
+      and not spoken.
+
+      **Three refusals, in one function per platform** so no screen decides for
+      itself: Natural off, Reduce Transparency on, Increase Contrast on. The last two
+      are not preferences — grain is a per-pixel modulation of the page, so it eats
+      contrast from every letterform on it. Android has no transparency switch, an
+      absence `DetailAccent` already recorded for the same requirement, so contrast is
+      the whole answer there. What Android has instead is the API 33 floor
+      `RuntimeShader` imposes, below which the palette stays and the texture goes; the
+      level is a parameter so a unit test reaches the comparison, which is the trade
+      0.4b made for the curl.
+
+      **The three numbers I am unsure of**, named in one file per platform with what
+      each does:
+
+      | Number | Value | Confidence |
+      | --- | --- | --- |
+      | Peak alpha of a speck | `0.045` | **Lowest.** Move this first. High enough to read as stock, low enough that body text at the smallest step does not sit in it — judged from arithmetic, not from a panel. |
+      | Noise cell, in **device pixels** | `1.5` | Below about 1 it aliases against the panel grid and shimmers on a scroll; above about 2.5 it stops being fibre and becomes dots. Device pixels rather than points or dp, so a 2× phone and a 3.5× phone show one paper. |
+      | Finer octave's share | `0.35` | Least risky: it changes the *character* of the grain rather than how much there is. |
+
+      A test on each side asserts the three are equal across platforms, so a
+      screenshot that moves one moves it in both files or the build says so.
+
+      **What has no grain.** The comic reader: `ReaderFeature` and `feature/reader`
+      are outside this change's file set. And the reading theme's own background still
+      reaches the page untouched — grain is drawn *over* whatever colour the reader
+      chose, never instead of it, which is what keeps "the reading theme is not
+      overridden" true.
+
+      **Not verified on a screen, and this is the task that most needs one.** See 7.4.
 - [x] **5.5** Opt-in setting linking app appearance to reading theme; off by
       default. **Done on both platforms**, in `settings-and-about-screens` task 5.3 —
       the toggle needed a settings screen to live on.
