@@ -169,14 +169,26 @@ private struct OnDeviceCover: View {
 
     var body: some View {
         ZStack {
-            // Letterboxed onto the sunken surface rather than filled, per `design.md`: a
-            // manga volume and a square ebook cover are not 2:3, and cropping the art to
-            // make them so cuts the title off the top of the artwork.
-            theme.palette.surfaceSunken
             if let image {
+                // Letterboxed onto the sunken surface rather than filled, per `design.md`: a
+                // manga volume and a square ebook cover are not 2:3, and cropping the art to
+                // make them so cuts the title off the top of the artwork.
+                theme.palette.surfaceSunken
                 Image(decorative: image, scale: displayScale)
                     .resizable()
                     .scaledToFit()
+            } else {
+                // The well the library has drawn all along, asked for rather than skipped.
+                // This branch used to be nothing at all — the sunken surface and no more —
+                // so a publication with no artwork was an empty rectangle on a screen whose
+                // own contract asks for "the same grid, the same cells" as the library.
+                // Plenty of EPUBs carry no cover. Nothing caught this: the well is
+                // hidden from VoiceOver and the caption below carries the title, so the
+                // audit had no reason to look at it.
+                CoverlessWell(
+                    title: publication.displayTitle,
+                    format: publication.format.displayName
+                )
             }
         }
         .aspectRatio(2.0 / 3.0, contentMode: .fit)

@@ -213,24 +213,10 @@ struct CoverCell: View {
             // cannot hold — never shrunk to fit. ``coverlessWellDrawsTitle(at:)`` carries
             // the whole argument, and the caption below this cell is what keeps the title
             // from being lost.
-            ZStack(alignment: .bottom) {
-                theme.palette.surfaceRaised
-
-                if coverlessWellDrawsTitle(at: textSize) {
-                    Text(publication.displayTitle)
-                        .textRole(.headline)
-                        .foregroundStyle(theme.palette.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(4)
-                        .padding(.horizontal, StoryArcSpace.sm)
-                        .frame(maxHeight: .infinity)
-                }
-
-                Text(publication.format.displayName)
-                    .textRole(.caption)
-                    .foregroundStyle(theme.palette.textTertiary)
-                    .padding(.bottom, StoryArcSpace.xs)
-            }
+            CoverlessWell(
+                title: publication.displayTitle,
+                format: publication.format.displayName
+            )
         }
     }
 

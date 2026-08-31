@@ -78,17 +78,6 @@ struct HomeArtwork: View {
     /// one defect, and only one of them was named in the report.
     @ViewBuilder
     private var placeholder: some View {
-        ZStack {
-            theme.palette.surfaceRaised
-
-            if coverlessWellDrawsTitle(at: textSize) {
-                Text(publication.displayTitle)
-                    .textRole(.headline)
-                    .foregroundStyle(theme.palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(4)
-                    .padding(StoryArcSpace.md)
-            }
-        }
+        CoverlessWell(title: publication.displayTitle, format: nil)
     }
 }

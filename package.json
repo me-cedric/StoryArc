@@ -14,6 +14,7 @@
     "tokens:sync": "node scripts/sync-tokens.mjs",
     "a11y:android": "node scripts/a11y-scan.mjs",
     "capture:android": "node scripts/capture-android.mjs",
+    "capture:ios": "node scripts/capture-ios.mjs",
     "a11y:selftest": "node scripts/a11y-scan.mjs --self-test",
     "pseudo:android": "node scripts/pseudo-locale.mjs",
     "pseudo:selftest": "node scripts/pseudo-locale.mjs --self-test",
