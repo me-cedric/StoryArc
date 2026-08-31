@@ -53,8 +53,17 @@ import app.storyarc.core.model.SourceRegistry
  * Wrapping has no affordance to discover: at the largest text size the four controls take
  * two or three lines and all of them are simply on screen. The cost is a taller header
  * exactly where the text is largest, which is the trade Material makes for a chip group
- * too. It does not cover one case — a single chip wider than the window — and no label in
- * the set reaches that at 320 dp, so nothing is truncated to buy it.
+ * too.
+ *
+ * It does not cover one case — a single chip wider than the line it sits on — and this row
+ * reaches that case. The row is padded by [StoryArcSpace.gutter] on both sides inside a
+ * window with no further inset of its own, so at 320 dp it is 280 dp across, and the sort
+ * chip carries the same `LibrarySort` labels `ListOrderChips` draws: built the same way, at
+ * `font_scale 2.0`, that chip wants 357 dp for `Tamaño en este dispositivo`, more than the
+ * whole window. Nothing is truncated to buy the wrap, because the chip does not truncate —
+ * a label is ordinary text, so it takes a second line inside the chip and the chip grows
+ * taller. `ListOrderChipsWrapTest` measures that on the other row; this one has no such
+ * test, and the claim that its longest label fits one line was wrong in both directions.
  */
 @Composable
 internal fun LibraryControls(

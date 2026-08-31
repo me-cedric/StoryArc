@@ -163,20 +163,29 @@ object ListOrdering {
  * Two chips is fewer than the shelf's four, which is not the same as narrower. The second
  * chip is composed only while a sort is overriding the list, and that is exactly the state
  * in which the first one is longest: it then names the chosen field, and *Size on this
- * device* — `Größe auf diesem Gerät` in German — is the longest of those names. Beside it
- * stands *The list's order*, `Reihenfolge der Liste`, carrying an icon as well. So whenever
- * this row has two chips at all, it is the longest label in the set next to the way back
- * that the reader is most likely to be looking for, and the way back is the one that runs
- * off the edge.
+ * device* is the longest of those names in every language this app ships. Beside it stands
+ * *The list's order*, carrying an icon as well. So whenever this row has two chips at all,
+ * it is the longest label in the set next to the way back that the reader is most likely to
+ * be looking for, and one line cannot hold the pair.
  *
  * Wrapping has no affordance to discover: the chips take a second line and both are simply
  * on screen. It also settles the focus question a fade would have left open — nothing is
  * scrolled out of view, so there is no off-screen chip for TalkBack or a keyboard to have to
- * bring back. It does not cover the case `LibraryControls` names — a single chip wider than
- * the window, which no wrap can help — and that case is closer here than anywhere else in
- * the app. `ListOrderChipsWrapTest` measures it rather than guessing at it: at
- * `font_scale 2.0` in a 320 dp window the German pair comes to 314 dp and 308 dp, one chip
- * per line, so both fit with a few dp to spare. Narrow, and on the right side of the line.
+ * bring back.
+ *
+ * **The case `LibraryControls` names — a single chip wider than the line it is on — is
+ * reached here, and a wrapping row is not what answers it.** `ShelfDetailScreen` puts this
+ * row in a `LazyColumn` padded by `StoryArcSpace.gutter` on both sides, so in a 320 dp
+ * window the row is 280 dp across, and at `font_scale 2.0` three of the four locales ask for
+ * more than that on one line. Measured unconstrained, the sort chip wants 357 dp in Spanish,
+ * 314 dp in German and 287 dp in French — Spanish's does not fit one line of even the whole
+ * 320 dp window. What saves them is not the wrap but the chip itself: a label is ordinary
+ * text, so it takes a second line *inside* the chip and the chip grows taller instead of
+ * wider. Each of the three is then drawn 280 dp by 76 dp — the full width of the row,
+ * nothing past its edge, nothing clipped. There is no margin here, and the note this
+ * paragraph replaces claimed a few spare dp from a 320 dp container this row never gets.
+ * `ListOrderChipsWrapTest` pins all four locales against all three ways a row that does not
+ * wrap loses a chip.
  */
 @Composable
 internal fun ListOrderChips(

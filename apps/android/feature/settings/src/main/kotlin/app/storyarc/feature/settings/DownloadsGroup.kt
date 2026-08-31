@@ -128,11 +128,17 @@ private fun Policy(
             color = palette.textPrimary,
         )
         // Wrapping rather than one line, for the reason `LibraryControls` and
-        // `ListOrderChips` wrap: at `font_scale 2.0` in a 320 dp window four chips do not
-        // fit across, and a plain `Row` does not fail by scrolling — it fails by placing
-        // the last chips past the edge, where no interaction reaches them at all. The
-        // ladder is exactly where that hurts most: the chip past the edge is a limit the
-        // reader can no longer choose.
+        // `ListOrderChips` wrap: at `font_scale 2.0` the four chips do not fit across the
+        // 280 dp this group has in a 320 dp window. A plain `Row` does not fail by scrolling
+        // and it does not place anything past the edge either -- it never measures a child
+        // wider than the space still free. It fails by keeping the chips it can fit and
+        // giving each of the rest whatever is left. Put a plain `Row` back and
+        // `DownloadLimitWrapTest` measures the third chip at 25 dp by 228 dp in English,
+        // 1 dp wide in German and no width at all in French; the fourth is never reached,
+        // because the assertion on the third ends the test. A limit squeezed into a column
+        // of single letters is one a reader cannot read, and a limit of no width is one no
+        // interaction reaches at all. The ladder is where that hurts most: it is the whole
+        // control.
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
