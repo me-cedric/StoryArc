@@ -86,11 +86,12 @@ private val SOURCE = """
  * the rule rather than an accident of this screen.** `LocalIsNaturalTheme` carries
  * `NaturalTheme.applies`, which is `isOn && !appearance.isTrueBlack`: Natural does not
  * combine with OLED Dark anywhere in the app, because `design.md` gives OLED Dark's black
- * point the standing of a promise about the panel and Natural's canvas is cream at
- * `#16100C`. Grain is Natural's texture and nothing else's, so where the theme does not
- * apply the texture has nothing to be the texture of — warm brown specks over a true-black
- * page, with none of Natural's palette behind them, would be the defect rather than the
- * feature. The Appearance screen disables the switch under OLED Dark and states the reason,
+ * point the standing of a promise about the panel, and Natural's dark canvas is a warm ink
+ * at `#16100C` — lifted well off black rather than sitting on it. Grain is Natural's texture
+ * and nothing else's, so where the theme does not apply the texture has nothing to be the
+ * texture of: warm brown specks over an all-but-black page — `OledDark.surfaceReader` is
+ * `#010101` — with none of Natural's palette behind them, would be the defect rather than
+ * the feature. The Appearance screen disables the switch under OLED Dark and states the reason,
  * which is the same answer said in words.
  *
  * This reader is the last screen to obey that, and only because it used to build its chrome

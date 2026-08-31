@@ -87,9 +87,10 @@ class ReaderAppearanceTest {
 
         val reader = of(settings, device = AppearanceMode.OLED_DARK)
 
-        // The sentence `settings-and-about` writes as one: honoured where it helps, declined
-        // where it does not. Quiet rather than anything darker, because pure black smears on
-        // OLED during a page turn.
+        // `settings-and-about` writes both halves as one sentence: "honoured where it helps
+        // and explained where it does not". Honoured is the chrome going true black. Quiet
+        // rather than anything darker is the other half, and the Appearance screen is where
+        // it gets explained -- pure black smears on OLED during a page turn.
         assertTrue(reader.chrome.isTrueBlack)
         assertEquals(ThemePreset.QUIET, reader.linkedPreset)
 

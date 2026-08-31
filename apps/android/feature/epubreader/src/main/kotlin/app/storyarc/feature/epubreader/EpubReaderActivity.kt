@@ -227,12 +227,20 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * can leave an open book by the home button, change appearance or the Material You
      * opt-out in the other activity, and come back to this one still alive: nothing
      * recreates it, so it draws the scheme it was built with until the book is closed and
-     * reopened. The same is true of the interface language in `attachBaseContext`.
-     * `MainActivity` recreates itself on a change and this does not, deliberately --
-     * recreating the reader re-parses the publication, and doing that under a reader who
-     * only switched away for a moment is a worse defect than a colour scheme that lags
-     * until the next open. Worth revisiting with an emulator, which is the only place the
-     * trade can honestly be judged.
+     * reopened. The same is true of the interface language in `attachBaseContext`, though
+     * for a harder reason: a language needs the activity rebuilt against it, which is why
+     * `MainActivity`'s only `recreate()` call fires on a language change and on nothing
+     * else. Colour needs no such thing. `MainActivity` keeps its settings in a
+     * `mutableStateOf` and `StoryArcTheme` simply recomposes; re-reading the store in
+     * `onResume` into a state this `ComposeView` reads would do the same here, with no
+     * recreation and no re-parse.
+     *
+     * So this is a gap and not a trade between two evils. What is not free is doing it to
+     * the whole of [ReaderAppearance]: [linkedPreset] is handed to the view model when the
+     * book opens, and refreshing that mid-book would push a reading theme over one the
+     * reader may have picked by hand in the theme sheet since. Refreshing the chrome alone
+     * is the smaller, separable change, and it wants an emulator to judge -- which is where
+     * this stops rather than guessing at it.
      *
      * `SYSTEM` is exempt from that staleness, because it is the one value the theme keeps
      * asking about: `StoryArcTheme` reads the device's own night mode from inside the
@@ -293,9 +301,10 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * reader's.
      *
      * Nothing recreates this activity on a language change, so a book left open across a trip
-     * to Settings keeps the language it was opened in until it is closed and reopened. See
-     * the staleness note on [appearance] for why that trade was taken; the colour scheme and
-     * the interface language go stale by the same route and for the same reason.
+     * to Settings keeps the language it was opened in until it is closed and reopened. The
+     * colour scheme goes stale by that same route -- see the note on [appearance] -- but not
+     * for the same reason: a language is applied here, once, against a context the activity
+     * was built on, so ending this one does need the activity rebuilt.
      */
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase.speaking(newBase.chosenLanguage()))

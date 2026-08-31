@@ -34,8 +34,9 @@ class ReaderNaturalGrainTest {
     @Test
     fun `OLED Dark takes the grain off the page, switch on or not`() {
         // Not a loss, a rule: Natural does not combine with OLED Dark anywhere in the app,
-        // because a cream canvas at #16100C would break the promise the black point makes
-        // about the panel. Grain is Natural's texture and nothing else's, so it goes with it.
+        // because Natural's dark canvas is a warm ink at #16100C, and a canvas that far off
+        // black would break the promise the black point makes about the panel. Grain is
+        // Natural's texture and nothing else's, so it goes with it.
         assertFalse(isGrainDrawn(natural = true, appearance = AppearanceMode.OLED_DARK))
         assertFalse(NaturalTheme.isAvailable(AppearanceMode.OLED_DARK))
     }

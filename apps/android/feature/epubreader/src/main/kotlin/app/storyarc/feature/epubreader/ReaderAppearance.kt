@@ -33,8 +33,10 @@ import app.storyarc.core.model.presetMatching
  * chrome is the whole point of the setting, and it maps to Quiet rather than to anything
  * darker in [linkedPreset], because a reading surface is deliberately never pure black —
  * pure black smears during a page turn, which is the exact motion this app is built around.
- * `settings-and-about` states both halves in one sentence: the setting is honoured where it
- * helps and declined where it does not.
+ * `settings-and-about` puts both halves in one sentence — "the setting is honoured where it
+ * helps and explained where it does not". This decides the honoured half only. The
+ * explaining is the Appearance screen's: its OLED Dark row carries
+ * `appearance_oled_dark_note`, which says the page itself stays just above black and why.
  */
 internal data class ReaderAppearance(
     val chrome: AppearanceMode,
