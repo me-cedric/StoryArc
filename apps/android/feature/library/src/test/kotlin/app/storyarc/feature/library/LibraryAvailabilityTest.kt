@@ -98,4 +98,23 @@ class LibraryAvailabilityTest {
             shelf.narrowedTo(LibraryAvailability.EVERYTHING, registry).map { it.displayTitle },
         )
     }
+
+    @Test
+    fun `the axis survives being written down and read back`() {
+        // `library-browsing`: the scope "persists until changed", and a launch is not a
+        // change. The name, not the ordinal -- an ordinal is a position in a source file.
+        LibraryAvailability.entries.forEach { axis ->
+            assertEquals(axis, LibraryAvailability.named(axis.name))
+        }
+    }
+
+    @Test
+    fun `a stored name this version does not have widens rather than narrows`() {
+        // The direction matters. Widening shows a reader more of their library than they
+        // asked for; the other mistake hides publications behind a narrowing nobody set,
+        // which is the empty-looking library *Scoping to one source* is written against.
+        assertEquals(LibraryAvailability.EVERYTHING, LibraryAvailability.named(null))
+        assertEquals(LibraryAvailability.EVERYTHING, LibraryAvailability.named("ON_THIS_SHELF"))
+        assertEquals(LibraryAvailability.EVERYTHING, LibraryAvailability.named(""))
+    }
 }

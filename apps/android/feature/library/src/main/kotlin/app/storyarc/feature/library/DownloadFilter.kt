@@ -66,6 +66,17 @@ enum class DownloadFilter {
         DOWNLOADED -> isDownloaded
         NOT_DOWNLOADED -> !isDownloaded
     }
+
+    companion object {
+        /**
+         * The name `LibraryPreferences` wrote down, turned back into a group.
+         *
+         * [EITHER] for anything it cannot read, for the reason [LibraryAvailability.named]
+         * gives: a group nobody set must not narrow the shelf.
+         */
+        fun named(name: String?): DownloadFilter =
+            entries.firstOrNull { it.name == name } ?: EITHER
+    }
 }
 
 /**

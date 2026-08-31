@@ -53,6 +53,7 @@ import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRegistry
+import app.storyarc.core.persistence.LibraryPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -71,6 +72,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 @Composable
 fun LibraryScreen(
     viewModel: LibraryViewModel? = null,
+    /**
+     * Where the two shelf choices that are not on the query are written down.
+     *
+     * Handed in rather than opened here, so this screen never touches a `Context` for
+     * storage and a preview can render without one. The app layer already holds the single
+     * instance the view model reads its query and layout from, so there is one store and not
+     * a second copy of it. Nullable for the same reason [viewModel] is: with no store the
+     * two choices still work for the session, and only the launch forgets them.
+     */
+    preferences: LibraryPreferences? = null,
     /**
      * How the app layer reaches the reader. The library knows which publication
      * was chosen and where it lives; it does not know what a reader is.
@@ -180,22 +191,45 @@ fun LibraryScreen(
     /**
      * The library's primary axis: everything, or only what can be read with no network.
      *
-     * Saved rather than remembered, so a rotation or a trip through the reader comes back
-     * to the shelf the reader left. It does not yet survive a cold start: the query is what
-     * `LibraryPreferences` persists and availability is not part of it — see
-     * [LibraryAvailability] and the handoff.
+     * Read from [preferences] rather than started at its default, because `library-browsing`
+     * says the scope "persists until changed" and a launch is not a change. The failure the
+     * *Scoping to one source* scenario is written against is a reader who left the shelf
+     * narrowed, comes back to what looks like an empty library, and has nothing on screen
+     * telling them why — and reopening wide is only the other half of the same failure: the
+     * app silently undoing a decision, and the reader with no way to know it did.
+     *
+     * Still [rememberSaveable] as well as stored. The two answer different questions: the
+     * saver carries the choice through a rotation or a process death mid-session without a
+     * disk read, and the store carries it across the launch. Losing either is visible.
      */
-    var availability by rememberSaveable { mutableStateOf(LibraryAvailability.EVERYTHING) }
+    var availability by rememberSaveable {
+        mutableStateOf(LibraryAvailability.named(preferences?.availability()))
+    }
 
     /**
      * The download group of the filter, which is a facet rather than an axis.
      *
      * Beside [availability] and not inside it: [DownloadFilter] sets out why the two are
-     * different questions. Saved the same way, and with the same limit — the query is what
-     * `LibraryPreferences` persists and neither of these is part of it, so both come back
-     * after a rotation and neither survives a cold start yet.
+     * different questions. Stored the same way, and for the same clause —
+     * `library-browsing` asks that "when a user leaves the library and returns, active
+     * filters are still applied", and a relaunch is a return.
      */
-    var downloads by rememberSaveable { mutableStateOf(DownloadFilter.EITHER) }
+    var downloads by rememberSaveable {
+        mutableStateOf(DownloadFilter.named(preferences?.downloadFilter()))
+    }
+
+    // Written down as the reader chooses, not on the way out: this screen has no moment it
+    // can call "the way out" -- the reader may leave it for the reader, for a destination,
+    // or by the process being killed -- and a choice only written on a tidy exit is a choice
+    // lost to every untidy one.
+    val chooseAvailability: (LibraryAvailability) -> Unit = { choice ->
+        availability = choice
+        preferences?.saveAvailability(choice.name)
+    }
+    val chooseDownloads: (DownloadFilter) -> Unit = { choice ->
+        downloads = choice
+        preferences?.saveDownloadFilter(choice.name)
+    }
 
     // Android hands a picked folder over as a tree `Uri` and grants access to it
     // only for this process — until the app asks for the grant to be persisted,
@@ -429,16 +463,16 @@ fun LibraryScreen(
                     layout = layout,
                     availability = availability,
                     downloads = downloads,
-                    onAvailabilityChange = { availability = it },
+                    onAvailabilityChange = chooseAvailability,
                     onQueryChange = viewModel::setQuery,
-                    onDownloadsChange = { downloads = it },
+                    onDownloadsChange = chooseDownloads,
                     onLayoutChange = viewModel::setLayout,
                     // One action, everything it undoes. The library filter and the download
                     // group are cleared with the rest of them, so there is no state a reader
                     // can be left in without noticing.
                     onClearFilters = {
-                        availability = LibraryAvailability.EVERYTHING
-                        downloads = DownloadFilter.EITHER
+                        chooseAvailability(LibraryAvailability.EVERYTHING)
+                        chooseDownloads(DownloadFilter.EITHER)
                         viewModel.setQuery(
                             query.withoutFilters().copy(scope = LibraryScope.AllSources),
                         )
@@ -490,8 +524,8 @@ fun LibraryScreen(
                                 // included. One that left a facet set would leave the shelf
                                 // as empty as it found it.
                                 onClear = {
-                                    availability = LibraryAvailability.EVERYTHING
-                                    downloads = DownloadFilter.EITHER
+                                    chooseAvailability(LibraryAvailability.EVERYTHING)
+                                    chooseDownloads(DownloadFilter.EITHER)
                                     viewModel.setQuery(
                                         query.withoutFilters()
                                             .copy(search = "", scope = LibraryScope.AllSources),
@@ -499,7 +533,7 @@ fun LibraryScreen(
                                 },
                                 // Offered only when the axis is what is hiding things.
                                 onWiden = if (availability.isNarrowing) {
-                                    { availability = LibraryAvailability.EVERYTHING }
+                                    { chooseAvailability(LibraryAvailability.EVERYTHING) }
                                 } else {
                                     null
                                 },

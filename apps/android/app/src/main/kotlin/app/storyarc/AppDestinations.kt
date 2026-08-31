@@ -46,6 +46,10 @@ private fun LibraryDestination(host: AppHost) {
     val dependencies = host.dependencies
     LibraryScreen(
         viewModel = host.library,
+        // The same store the view model reads its query and layout from. The availability
+        // axis and the download group are not on the query, so the shelf writes them down
+        // itself — see `LibraryPreferences.availability`.
+        preferences = dependencies.libraryPreferences,
         // Two verbs, because `publication-detail` makes them two: `onOpen` is reached only
         // from the continue-reading row, which offers a resume, and every cover in the grid,
         // the list and the search results reaches `onOpenPage` instead.

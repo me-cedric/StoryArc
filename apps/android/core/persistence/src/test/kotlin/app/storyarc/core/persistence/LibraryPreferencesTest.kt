@@ -9,6 +9,7 @@ import app.storyarc.core.model.ReadState
 import app.storyarc.core.model.YearRange
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -108,5 +109,44 @@ class LibraryPreferencesTest {
         assertEquals(LibraryLayout.GRID, preferences.layout())
         preferences.save(LibraryLayout.LIST)
         assertEquals(LibraryLayout.LIST, preferences.layout())
+    }
+
+    @Test
+    fun `a shelf nobody has narrowed says nothing about either choice`() {
+        val preferences = fresh()
+
+        // Null and not a default, so the feature's own default is the only one there is.
+        // Two defaults for one choice is how the two platforms end up disagreeing.
+        assertNull(preferences.availability())
+        assertNull(preferences.downloadFilter())
+    }
+
+    @Test
+    fun `the availability axis and the download group come back on the next launch`() {
+        val preferences = fresh()
+
+        preferences.saveAvailability("ON_THIS_DEVICE")
+        preferences.saveDownloadFilter("DOWNLOADED")
+
+        assertEquals("ON_THIS_DEVICE", preferences.availability())
+        assertEquals("DOWNLOADED", preferences.downloadFilter())
+    }
+
+    @Test
+    fun `the two choices are stored apart from each other and from the query`() {
+        val preferences = fresh()
+
+        preferences.saveAvailability("ON_THIS_DEVICE")
+        preferences.saveDownloadFilter("NOT_DOWNLOADED")
+        preferences.save(LibraryQuery(sort = LibrarySort.LAST_READ))
+
+        // Three keys, three answers. Sharing one would make widening the shelf clear a
+        // filter the reader had set, or saving the query undo a narrowing they had.
+        assertEquals("ON_THIS_DEVICE", preferences.availability())
+        assertEquals("NOT_DOWNLOADED", preferences.downloadFilter())
+        assertEquals(LibrarySort.LAST_READ, preferences.query().sort)
+
+        preferences.saveAvailability("EVERYTHING")
+        assertEquals("NOT_DOWNLOADED", preferences.downloadFilter())
     }
 }

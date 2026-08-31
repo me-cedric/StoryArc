@@ -107,4 +107,20 @@ class DownloadFilterTest {
         // had just added a folder full of comics.
         assertEquals(DownloadFilter.EITHER, DownloadFilter.entries.first())
     }
+
+    @Test
+    fun `every group survives being written down and read back`() {
+        // The name, not the ordinal: an ordinal is a position in this file, and reordering the
+        // three would silently turn a reader's stored "Downloaded" into something else.
+        DownloadFilter.entries.forEach { group ->
+            assertEquals(group, DownloadFilter.named(group.name))
+        }
+    }
+
+    @Test
+    fun `a stored name this version does not have widens rather than narrows`() {
+        assertEquals(DownloadFilter.EITHER, DownloadFilter.named(null))
+        assertEquals(DownloadFilter.EITHER, DownloadFilter.named("PARTIALLY_DOWNLOADED"))
+        assertEquals(DownloadFilter.EITHER, DownloadFilter.named(""))
+    }
 }

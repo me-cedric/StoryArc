@@ -20,6 +20,19 @@ enum class LibraryAvailability {
     ;
 
     val isNarrowing: Boolean get() = this == ON_THIS_DEVICE
+
+    companion object {
+        /**
+         * The name `LibraryPreferences` wrote down, turned back into an axis.
+         *
+         * The widest answer for anything it cannot read — never chosen, or a name this
+         * version of the app no longer has. Widening is the safe direction: it shows a
+         * reader more of their library than they asked for, where the other mistake hides
+         * publications behind a narrowing nobody set.
+         */
+        fun named(name: String?): LibraryAvailability =
+            entries.firstOrNull { it.name == name } ?: EVERYTHING
+    }
 }
 
 /**

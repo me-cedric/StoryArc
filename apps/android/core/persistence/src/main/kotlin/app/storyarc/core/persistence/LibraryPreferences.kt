@@ -47,6 +47,8 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
         private const val YEAR_TO = "yearTo"
         private const val LAYOUT = "layout"
         private const val RECENT_SEARCHES = "recentSearches"
+        private const val AVAILABILITY = "availability"
+        private const val DOWNLOAD_FILTER = "downloadFilter"
 
         /**
          * What the stored searches are joined with.
@@ -142,6 +144,46 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
 
     fun save(layout: LibraryLayout, scope: LibraryScope = LibraryScope.AllSources) {
         preferences.edit().putString(key(scope), layout.name).apply()
+    }
+
+    /**
+     * The library's availability axis, by name, or `null` when the reader never chose.
+     *
+     * `library-browsing` makes availability the primary axis and says the choice "persists
+     * until changed" — until changed, not until the process dies. A shelf narrowed to what
+     * is on the device and then reopened wide is the app quietly undoing a decision the
+     * reader made, and the reader has no way to know it happened.
+     *
+     * Its own key beside the query's, in the same file, because it is not a field on
+     * [LibraryQuery]: the query is the value both platforms encode, and a case added to it is
+     * a change to `:core:model` and to iOS's mirror of it. iOS reaches the identical
+     * arrangement from the other side — `@AppStorage(LibraryAvailability.storageKey)` writes
+     * into the same `UserDefaults` the rest of the library's preferences use. Nothing is
+     * migrated on either platform.
+     *
+     * A name rather than a value, because both enums live in `:feature:library` and this
+     * module does not depend on a feature module. The name is the whole contract: the feature
+     * turns it back into a choice and falls back to its own default when it cannot, which is
+     * the rule [enumOrNull] already applies to every other stored enum here.
+     */
+    fun availability(): String? = preferences.getString(AVAILABILITY, null)
+
+    fun saveAvailability(choice: String) {
+        preferences.edit().putString(AVAILABILITY, choice).apply()
+    }
+
+    /**
+     * The download facet, by name, or `null` when the reader never chose.
+     *
+     * Beside [availability] and not inside it, for the reason the facet itself gives: the two
+     * ask different questions. Stored the same way and for the same clause —
+     * `library-browsing` asks that "when a user leaves the library and returns, active
+     * filters are still applied".
+     */
+    fun downloadFilter(): String? = preferences.getString(DOWNLOAD_FILTER, null)
+
+    fun saveDownloadFilter(choice: String) {
+        preferences.edit().putString(DOWNLOAD_FILTER, choice).apply()
     }
 
     /** One stored facet, or an empty set when nothing was ever written for it. */
