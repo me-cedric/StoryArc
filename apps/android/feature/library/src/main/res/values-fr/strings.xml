@@ -65,14 +65,6 @@
     <string name="library_layout_grid">Grille</string>
     <string name="library_layout_list">Liste</string>
     <string name="library_settings">Réglages</string>
-    <string name="source_remove">Retirer</string>
-    <string name="source_remove_action">Retirer %1$s</string>
-    <string name="source_remove_title">Retirer %1$s ?</string>
-    <string name="library_cancel">Annuler</string>
-    <plurals name="source_remove_body">
-        <item quantity="one">Cela retire %1$d titre de votre bibliothèque. Aucun fichier de votre appareil n’est supprimé, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
-        <item quantity="other">Cela retire %1$d titres de votre bibliothèque. Aucun fichier de votre appareil n’est supprimé, et rien n’a été téléchargé. Vos positions de lecture sont conservées 30 jours.</item>
-    </plurals>
     <string name="catalogue_title">Ajouter une bibliothèque en ligne</string>
     <string name="catalogue_address_label">Adresse</string>
     <string name="catalogue_address_prompt">library.example.com/opds</string>
@@ -114,7 +106,6 @@
     <string name="catalogue_acquire_fetching">Récupération de %1$s…</string>
     <string name="catalogue_acquire_unsupported">Le serveur a envoyé %1$s, que StoryArc ne peut pas ouvrir.</string>
     <string name="catalogue_acquire_unreadable">Ce que le serveur a envoyé n’a pas pu être ouvert.</string>
-    <string name="catalogue_strip_hint">Parcourt ce catalogue</string>
     <string name="library_add_source">Ajouter des livres</string>
     <plurals name="catalogue_section_count">
         <item quantity="one">%1$d titre</item>

@@ -79,7 +79,6 @@ private fun LibraryDestination(host: AppHost) {
                 dependencies.credentials,
             )
         },
-        onRemoveSource = { host.library.removeSource(it, dependencies.credentials) },
         removedDownload = host.removed.value?.download?.title,
         onUndoRemoval = {
             host.activity.lifecycleScope.launch {

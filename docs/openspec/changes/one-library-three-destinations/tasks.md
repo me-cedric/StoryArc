@@ -62,9 +62,29 @@ emulator** — light and dark, default and largest text size — per
       content leaves the settings modal; the queue becomes a pinned section that is
       absent when nothing is in flight; storage limits and network policy stay in
       settings. Screenshot: with a queue in flight, with none, and empty.
-- [ ] **2.4** Delete the per-source destinations and the server chip strip above
+- [x] **2.4** Delete the per-source destinations and the server chip strip above
       the shelf on both platforms, and delete the source line under a cover.
       Screenshot: the library with two sources configured, before and after.
+      *Done on both platforms; the Android before-and-after screenshot is
+      outstanding.* The source line under a cover went in an earlier commit on
+      each. This one takes Android'''s `CatalogueStrip` — the per-source chips above
+      the shelf — and `SourceList`, the browse fallback that stood in for the grid
+      and listed every configured library with its connection state. §6.2 of the
+      direction puts connections in Settings and nowhere else on the browse path,
+      and Settings already has the removal flow; `LibraryScreen` therefore stops
+      taking `onRemoveSource` at all. `AddSourceMenu` shared a file with the strip
+      and does not share its fate — it is the toolbar'''s way in to the
+      add-a-source sheets, and it moves to a file of its own, named as iOS names
+      it. Five strings left with the two screens, in all four locales.
+
+      Two dead composables are reached in the same pass, because the branch the
+      strip left behind is where they belong. `LibraryScreen` called an
+      `EmptyLibrary(onScan:)` overload that resolved to the superseded one in
+      `LibraryEmptyStates.kt`: four transport rows over a folder button, which is
+      the shape `sources` forbids. The rewritten `EmptyLibrary` and its
+      `AddBooksButton` had been written, translated and called by nobody, and so
+      had `LibraryAway`. Both are wired now, the superseded overload is deleted,
+      and the shelf'''s two bare states say what `sources` asks them to.
 
 ## Phase 3 — The availability axis
 

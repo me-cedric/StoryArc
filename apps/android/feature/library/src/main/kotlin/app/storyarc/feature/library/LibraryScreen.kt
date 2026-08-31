@@ -95,8 +95,13 @@ fun LibraryScreen(
      */
     onOpenSettings: () -> Unit = {},
     /**
-     * How the app layer reaches a catalogue's pages. Same reasoning as `onOpen`: the
-     * library knows which catalogue was chosen and does not know what a browser is.
+     * How the app layer reaches a library that is not on this device.
+     *
+     * No longer reached from a strip of chips above the shelf — those went with the
+     * per-source destinations — but still the one rule that decides what an unreachable or
+     * refused source leads to, which is what [onFollowToSource] falls back to. Same
+     * reasoning as `onOpen`: the library knows which library was chosen and does not know
+     * what a browser is.
      */
     onBrowse: (Source) -> Unit = {},
     /**
@@ -137,12 +142,6 @@ fun LibraryScreen(
      */
     removedDownload: String? = null,
     onUndoRemoval: () -> Unit = {},
-    /**
-     * Removes a source, secret and all. The app layer owns the secrets, for the reason
-     * [onProbeSources] gives, and a removal that cannot reach the secure store is the
-     * removal that left a disconnected server's password on the device.
-     */
-    onRemoveSource: ((Source) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -386,13 +385,12 @@ fun LibraryScreen(
         },
     ) { insets ->
         Column(modifier = Modifier.fillMaxSize().padding(insets)) {
-            // Above the library rather than inside it. A catalogue, a server and a share
-            // are all places to browse rather than shelves of local publications, and
-            // mixing the two would make "what can I read on the train" unanswerable.
-            val catalogues = registry.sources.filter { it.kind.isBrowsable }
-            if (catalogues.isNotEmpty() && !windowClass.showsSidebar) {
-                CatalogueStrip(sources = catalogues, onOpen = onBrowse)
-            }
+            // No strip of per-source chips above the shelf. `library-browsing` presents
+            // every source as one library and takes origin off the browse path entirely, and
+            // task 2.4 of `one-library-three-destinations` asked for the chips to go with
+            // the per-source destinations. A reader who wants a server's own pages reaches
+            // it from Settings, where the connection lives. iOS removed its equivalent in
+            // the same slice.
 
             KavitaSearchOffer(registry, query, onSearchOnServer)
 
@@ -488,13 +486,32 @@ fun LibraryScreen(
 
                         state is LibraryScanState.Scanning -> Scanning(state.found)
 
-                        registry.sources.isEmpty() ->
-                            EmptyLibrary(onScan = { pickFolder.launch(null) })
+                        // The first thing a reader ever sees when they own nothing: one
+                        // sentence, one action that opens a comic with nothing to configure
+                        // first, and one plain secondary behind which the four kinds of
+                        // place are named. It had been written, translated and reachable by
+                        // nobody — the call here resolved to the superseded overload next
+                        // door, which put the four transports on the screen in the order
+                        // `sources` forbids and offered no way to open a comic at all.
+                        registry.sources.isEmpty() -> EmptyLibrary(
+                            onOpenComic = { importFile.launch(arrayOf("*/*")) },
+                            onAddFolder = { pickFolder.launch(null) },
+                            onAddCatalogue = onAddCatalogue,
+                            onAddKavita = onAddKavita,
+                            onAddShare = onAddShare,
+                        )
 
-                        else -> SourceList(
-                            sources = registry.sources,
-                            itemCount = { viewModel?.itemCount(it.id) ?: 0 },
-                            onRemove = onRemoveSource,
+                        // Sources are configured and the shelf is still bare. Two ways to
+                        // arrive and they are not the same fact, so they do not get the same
+                        // sentence — see [LibraryAway]. What stood here was the source list,
+                        // which is the plumbing wearing the shelf's clothes: §6.2 of the
+                        // direction puts connections in Settings and nowhere else on the
+                        // browse path, and task 2.4 of `one-library-three-destinations`
+                        // asked for it to go. iOS removed its own.
+                        else -> LibraryAway(
+                            isEverythingAway = everythingAway(registry),
+                            onRetry = onProbeSources,
+                            onOpenComic = { importFile.launch(arrayOf("*/*")) },
                         )
                     }
                 }

@@ -65,14 +65,6 @@
     <string name="library_layout_grid">Cuadrícula</string>
     <string name="library_layout_list">Lista</string>
     <string name="library_settings">Ajustes</string>
-    <string name="source_remove">Quitar</string>
-    <string name="source_remove_action">Quitar %1$s</string>
-    <string name="source_remove_title">¿Quitar %1$s?</string>
-    <string name="library_cancel">Cancelar</string>
-    <plurals name="source_remove_body">
-        <item quantity="one">Esto quita %1$d título de tu biblioteca. No se borra ningún archivo de tu dispositivo, y no se ha descargado nada. Tus posiciones de lectura se conservan 30 días.</item>
-        <item quantity="other">Esto quita %1$d títulos de tu biblioteca. No se borra ningún archivo de tu dispositivo, y no se ha descargado nada. Tus posiciones de lectura se conservan 30 días.</item>
-    </plurals>
     <string name="catalogue_title">Añadir una biblioteca en línea</string>
     <string name="catalogue_address_label">Dirección</string>
     <string name="catalogue_address_prompt">library.example.com/opds</string>
@@ -114,7 +106,6 @@
     <string name="catalogue_acquire_fetching">Obteniendo %1$s…</string>
     <string name="catalogue_acquire_unsupported">El servidor envió %1$s, que StoryArc no puede abrir.</string>
     <string name="catalogue_acquire_unreadable">No se pudo abrir lo que envió el servidor.</string>
-    <string name="catalogue_strip_hint">Explora este catálogo</string>
     <string name="library_add_source">Añadir libros</string>
     <plurals name="catalogue_section_count">
         <item quantity="one">%1$d título</item>
