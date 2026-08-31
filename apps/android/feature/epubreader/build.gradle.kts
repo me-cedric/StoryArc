@@ -106,6 +106,10 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
     implementation(project(":core:persistence"))
+    // `api`, not `implementation`: `ReadAloudHost.session` is a `PlaybackSession`, and the
+    // app module observes it to draw the compact bar. A type on a public signature has to
+    // be on the consumer's compile classpath.
+    api(project(":core:playback"))
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.fragment)

@@ -4,6 +4,7 @@ import android.content.Context
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.TotalProgression
 import app.storyarc.core.persistence.ProgressStore
+import app.storyarc.core.playback.PlaybackSession
 import java.lang.ref.WeakReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,10 +67,10 @@ internal object ReadAloudHost {
      */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    private val _session = MutableStateFlow(ReadAloudSession())
+    private val _session = MutableStateFlow(PlaybackSession())
 
     /** Whether the voice is running, and what silenced it if it is not. */
-    val session: StateFlow<ReadAloudSession> = _session.asStateFlow()
+    val session: StateFlow<PlaybackSession> = _session.asStateFlow()
 
     private val _book = MutableStateFlow<SpokenBook?>(null)
 
@@ -215,7 +216,7 @@ internal object ReadAloudHost {
         ReadAloudService.commands = null
         ReadAloudService.dismiss(ending.context)
         _book.value = null
-        _session.value = ReadAloudSession()
+        _session.value = PlaybackSession()
         scope.launch { drawing?.withdrawSpokenHighlight() }
     }
 
@@ -259,7 +260,7 @@ internal object ReadAloudHost {
     private fun announce() {
         val voice = controller ?: return
         val book = _book.value ?: return
-        ReadAloudService.show(voice.context, book, _session.value.isSpeaking)
+        ReadAloudService.show(voice.context, book, _session.value.isPlaying)
     }
 }
 

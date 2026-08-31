@@ -4,134 +4,17 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
 
-// What reading aloud is, with no engine in it.
+// What reading aloud is that playing an audiobook is not.
 //
-// `ebook-reader` asks for speech that starts at the reader's position, follows the page,
-// and survives the app going to the background. Almost all of that is platform work —
-// an engine, an audio session, a media session — but one part is a decision, and it is
-// the part that goes wrong: what a pause *means*.
+// The session table used to live here — what a pause *means*, and therefore whether a
+// finished phone call starts the book again. It is now `:core:playback`'s `PlaybackSession`,
+// because `audio-playback` asks the same question of a narrated file and answers it the same
+// way, and two copies of one answer is how the two sources come to disagree. Read-aloud
+// reads that table rather than owning one.
 //
-// A reader who pressed pause and a phone call that took the audio away both leave the
-// voice silent, and they must not end the same way. When the call ends the book should
-// carry on; when the reader pressed pause it must not, or a book starts talking again on
-// its own the moment an unrelated notification finishes.
-//
-// So the cause of the pause is carried with the pause, and the transitions live here
-// where they can be asserted without a speaker. iOS pins the same table in `ReadAloud.swift`.
-
-/** Whether the voice is running, stopped, or holding. */
-internal enum class ReadAloudState { IDLE, SPEAKING, PAUSED }
-
-/** Who silenced it, which decides whether the end of an interruption starts it again. */
-internal enum class PauseCause { READER, INTERRUPTION }
-
-/**
- * The state of reading aloud, and every way it can change.
- *
- * Immutable: each event returns the session that follows it, so a wrong transition is a
- * value a test can compare rather than a field somebody forgot to clear.
- */
-internal data class ReadAloudSession(
-    val state: ReadAloudState = ReadAloudState.IDLE,
-    /** Null unless [state] is [ReadAloudState.PAUSED]. */
-    val pausedBy: PauseCause? = null,
-) {
-
-    /** Whether a sentence is being spoken right now. */
-    val isSpeaking: Boolean get() = state == ReadAloudState.SPEAKING
-
-    /**
-     * Whether the transport controls belong on screen at all.
-     *
-     * Paused counts: a reader who paused still needs the play button, and skipping a
-     * sentence while paused is how somebody gets past a sentence they do not want read.
-     */
-    val isActive: Boolean get() = state != ReadAloudState.IDLE
-
-    /** Starting, or restarting from a new position. */
-    fun started(): ReadAloudSession = ReadAloudSession(ReadAloudState.SPEAKING)
-
-    /** The reader pressed pause. Nothing but the reader starts this again. */
-    fun pausedByReader(): ReadAloudSession =
-        if (isSpeaking) ReadAloudSession(ReadAloudState.PAUSED, PauseCause.READER) else this
-
-    /**
-     * Something else took the audio: a call, another app, a spoken direction.
-     *
-     * A pause the reader already made is left exactly as it was — otherwise a
-     * notification arriving during a deliberate pause would convert it into one that
-     * resumes on its own.
-     */
-    fun interrupted(): ReadAloudSession =
-        if (isSpeaking) ReadAloudSession(ReadAloudState.PAUSED, PauseCause.INTERRUPTION) else this
-
-    /** The reader pressed play. */
-    fun resumed(): ReadAloudSession =
-        if (state == ReadAloudState.PAUSED) ReadAloudSession(ReadAloudState.SPEAKING) else this
-
-    /**
-     * The interruption is over.
-     *
-     * [mayResume] is the platform's own answer — iOS puts it in the interruption
-     * notification's options, Android in whether the focus came back at all. Speech
-     * resumes only when the platform says so *and* the pause was the interruption's.
-     */
-    fun interruptionEnded(mayResume: Boolean): ReadAloudSession =
-        if (mayResume && pausedBy == PauseCause.INTERRUPTION) resumed() else this
-
-    /**
-     * The audio is gone for good — another app took it and kept it.
-     *
-     * Stopped rather than paused: there is nothing to wait for, and a session that sat
-     * paused for ever would hold a foreground service open for a book nobody is hearing.
-     */
-    fun lostAudio(): ReadAloudSession = ReadAloudSession()
-
-    /** The reader closed it, or the book ran out of words. */
-    fun stopped(): ReadAloudSession = ReadAloudSession()
-
-    /**
-     * What the end of an interruption means for this session.
-     *
-     * Three answers, not two, and the missing third is the defect this fixes on iOS: it
-     * handled the interruption beginning and ending, and an ending the platform would not
-     * resume matched neither branch — so the session sat paused for ever, with no position
-     * written and nothing telling the listener. Android has always answered the same event
-     * as `AUDIOFOCUS_LOSS`, and now both read it off the same table.
-     *
-     * [mayResume] is the platform's own answer — iOS reads it from the interruption
-     * notification's `shouldResume`, Android from whether the focus came back at all rather
-     * than being taken outright.
-     */
-    fun endingInterruption(mayResume: Boolean): InterruptionOutcome = when {
-        // Taken for good, and it ends the session whoever silenced it: a session left
-        // paused with nothing able to start it is exactly what the spec forbids. That is
-        // not the pause being *undone* — the other clause forbids resuming a pause the
-        // reader made, and this never resumes one.
-        !mayResume -> if (isActive) InterruptionOutcome.LOST else InterruptionOutcome.NOTHING
-        pausedBy == PauseCause.INTERRUPTION -> InterruptionOutcome.RESUME
-        else -> InterruptionOutcome.NOTHING
-    }
-}
-
-/**
- * What the end of an interruption does to a session.
- *
- * A value rather than a branch inside each platform's audio callback, because the two
- * callbacks look nothing alike — a stream of focus changes here, one notification with an
- * options bitmask on iOS — and the decision underneath them is the same one. iOS pins these
- * three in `ReadAloud.swift`.
- */
-internal enum class InterruptionOutcome {
-    /** Nothing to do: the voice was not the interruption's to give back. */
-    NOTHING,
-
-    /** The audio came back and the pause was the interruption's, so the voice carries on. */
-    RESUME,
-
-    /** The audio is gone for good. The session ends, and its position is written first. */
-    LOST,
-}
+// What is left here is what only a *voice* has: the sentence being spoken, the position that
+// sentence makes, the highlight it is drawn in, and the line the transport says about it.
+// iOS keeps the same split.
 
 /**
  * A book being read aloud: what to say about it, and the way back to it.
@@ -207,45 +90,6 @@ internal data class ReachedPosition(
     internal companion object {
         /** Close enough to the end of the content to count as the end of the book. */
         const val FINISHED: Double = 0.999
-    }
-}
-
-/**
- * What opening a publication does to a voice that is already speaking.
- *
- * One session at a time. `ebook-reader`: "the session ends at a sentence boundary and the
- * position it reached is recorded before the new publication opens" — two books cannot be
- * read aloud at once, and switching silently would lose a listener's place.
- *
- * The same question answers what a reader coming *back* to the book being spoken does: it
- * picks the voice up rather than starting another. Both live here as a value so they can be
- * asserted without a speech engine, in the way the pause table already is. iOS pins the
- * same three in `ReadAloud.swift`.
- */
-internal enum class SessionHandover {
-    /** Nothing is speaking. The reader opens silent, as it always did. */
-    NONE,
-
-    /**
-     * The book being opened is the book being spoken, so the reader observes the session
-     * rather than starting another.
-     */
-    ADOPT,
-
-    /**
-     * A different book. The voice ends at the sentence it reached and that position is
-     * written down before the new publication draws a word.
-     */
-    DISPLACE,
-    ;
-
-    internal companion object {
-        /** @param whileSpeaking the id of the book being spoken, or null for silence. */
-        fun opening(publication: String, whileSpeaking: String?): SessionHandover = when {
-            whileSpeaking == null -> NONE
-            whileSpeaking == publication -> ADOPT
-            else -> DISPLACE
-        }
     }
 }
 

@@ -8,7 +8,7 @@ creep — see [`design.md`](design.md).
 
 ## 1. The shared player model
 
-- [~] 1.1 Both: `PlaybackSessionTests` / `PlaybackSessionTest` — one session type
+- [x] 1.1 Both: `PlaybackSessionTests` / `PlaybackSessionTest` — one session type
       with two sources, and the surfaces cannot tell which is behind them. Assert by
       driving the same assertions over both.
       **iOS done.** A new `Playback` target in `StoryArcKit` — host-testable, so
@@ -17,8 +17,16 @@ creep — see [`design.md`](design.md).
       no `isNarrated` and nothing a view can switch on**; `PlayerCentre` is the one
       session object. Nine of the sixteen tests are parameterised over both source
       kinds, which is what "driving the same assertions over both" means here.
-      *The Android half is not started.*
-- [~] 1.2 Both: parts, position, duration and speed as the design's table defines
+      **Android half done.** New module `:core:playback`: `PlayerSource` (the interface
+      with two implementations), `NowPlaying` (everything a surface draws, and nothing
+      that names the engine), `PlaybackCentre` (the one session), `PlaybackSession` (the
+      state table). `PlaybackSessionTest` drives one set of assertions over a narrated
+      part list and a spoken one.
+      **And the read-aloud session was not a second copy left standing** — the table
+      moved out of `:feature:epubreader`'s `ReadAloud.kt` and read-aloud now reads it
+      from `:core:playback`, so "one session type" is a fact about the build rather than
+      a claim. `ReadAloudSessionTest` keeps only what a voice has that a file does not.
+- [x] 1.2 Both: parts, position, duration and speed as the design's table defines
       them. Assert that a source with **no known duration** reports position without
       a total rather than inventing one.
       **iOS done.** `PlaybackTime` carries `total: TimeInterval?` and `isScrubbable`,
@@ -26,11 +34,22 @@ creep — see [`design.md`](design.md).
       the scrubber is *absent* rather than present and refusing. Mutation-checked:
       making `isScrubbable` always true fails both the spoken-duration test and the
       scrub test. *The Android half is not started.*
-- [~] 1.3 Both: starting a second publication stops the first, records its position
+      **Android half done.** `PlaybackPart`, `PlaybackPosition`, `PlaybackDuration`,
+      `PlaybackSpeed`. Duration has **three** cases, not two: `Known` from the
+      container, `Estimated` from characters and rate, `Unknown`. `statedMillis` is null
+      for an estimate and `isScrubbable` is false — so "never presented as exact" is
+      enforced by the type rather than by a comment. Mutation-checked: making
+      `Estimated.statedMillis` return its millis fails two tests. A total across parts is
+      all-or-nothing; mutation-checked by summing unknown parts as zero. iOS half
+      outstanding.
+- [x] 1.3 Both: starting a second publication stops the first, records its position
       first, and does not resume it when the second ends.
       **iOS done.** `PlayerCentre.begin` calls `end()` first, and `end()` writes the
       position before it clears anything. Mutation-checked: deleting that call fails
       the displacement test. *The Android half is not started.*
+      **Android half done.** `PlaybackCentre.start` records, then stops, then plays, and
+      the test asserts the **order** rather than the effects — mutation-checked by moving
+      the record after the stop, which fails it. iOS half outstanding.
 
 ## 2. Audiobooks open
 
@@ -156,7 +175,6 @@ creep — see [`design.md`](design.md).
       **iOS done.** All three, over both source kinds, in `PlayerInterruptionTests` —
       plus the transitions themselves in `PlaybackTransitionTests`, which now run on the
       host in `pnpm test:ios` rather than in a suite no gate ran.
-      *The Android half is not started.*
 - [~] 3.9 Both: route-change test — headphones removed pauses, and reconnecting does
       **not** resume.
       **iOS done.** `PlayerCentre.routeLost` records the pause as the *listener's*, which is
@@ -164,7 +182,6 @@ creep — see [`design.md`](design.md).
       nothing the platform sends afterwards can undo a listener's pause. Asserted over both
       source kinds. `PlaybackAudioSession` acts only on `.oldDeviceUnavailable`, because
       the notification also fires when headphones are plugged *in*.
-      *The Android half is not started.*
 
 ## 4. The surfaces
 
@@ -218,7 +235,6 @@ creep — see [`design.md`](design.md).
       playing. **Photographed on a device** — cover, publication, chapter, a scrub control
       reading the chapter's own `0:00 / 0:02`, skip glyphs carrying 15 and 30, and the
       chapter list, speed and sleep timer.
-      *The Android half is not started.*
 - [~] 4.6 Both: a publication with no chapter markers lists its parts in playing
       order rather than showing an empty list.
       **iOS done, and there is no branch for it.** A source with no chapter markers reports

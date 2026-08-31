@@ -6,6 +6,8 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import app.storyarc.core.playback.InterruptionOutcome
+import app.storyarc.core.playback.PlaybackSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -29,7 +31,7 @@ import org.readium.r2.shared.publication.Publication
  * Three parts, and only one of them is a decision this project makes. [SpokenSentences]
  * answers what to say and where it is in the book. The platform's `TextToSpeech` says it.
  * What a pause *means* — and therefore whether a finished phone call starts the book again
- * — is [ReadAloudSession], which is asserted without a speaker on both platforms.
+ * — is [PlaybackSession], which is asserted without a speaker on both platforms.
  *
  * The engine is the device's own, so a reader hears the voice they installed and the
  * languages they downloaded, and nothing about the book leaves the device to be spoken.
@@ -61,8 +63,8 @@ internal class ReadAloudController(
 
     private val sentences = SpokenSentences(publication)
 
-    private val _session = MutableStateFlow(ReadAloudSession())
-    val session: StateFlow<ReadAloudSession> = _session.asStateFlow()
+    private val _session = MutableStateFlow(PlaybackSession())
+    val session: StateFlow<PlaybackSession> = _session.asStateFlow()
 
     private val audio = context.getSystemService(AudioManager::class.java)
 
@@ -87,7 +89,7 @@ internal class ReadAloudController(
             -> pauseFor(interrupted = true)
             // It gave the speaker back, or took it for good. Which of those means what is
             // the session's decision, not this listener's — see
-            // [ReadAloudSession.endingInterruption].
+            // [PlaybackSession.endingInterruption].
             AudioManager.AUDIOFOCUS_GAIN -> endInterruption(mayResume = true)
             AudioManager.AUDIOFOCUS_LOSS -> endInterruption(mayResume = false)
         }
@@ -119,7 +121,7 @@ internal class ReadAloudController(
 
     /** Pause and play, from the reader's own control or from the lock screen's. */
     fun toggle() {
-        if (_session.value.isSpeaking) {
+        if (_session.value.isPlaying) {
             pauseFor(interrupted = false)
         } else {
             val next = _session.value.resumed()
@@ -154,7 +156,7 @@ internal class ReadAloudController(
      */
     private fun lostAudio() = finish(_session.value.lostAudio())
 
-    private fun finish(next: ReadAloudSession) {
+    private fun finish(next: PlaybackSession) {
         walking?.cancel()
         current = null
         engine?.stop()
@@ -190,7 +192,7 @@ internal class ReadAloudController(
 
     private fun pauseFor(interrupted: Boolean) {
         val next =
-            if (interrupted) _session.value.interrupted() else _session.value.pausedByReader()
+            if (interrupted) _session.value.interrupted() else _session.value.pausedByListener()
         if (next == _session.value) return
         engine?.stop()
         _session.value = next
@@ -243,7 +245,7 @@ internal class ReadAloudController(
         override fun onDone(utteranceId: String?) {
             // The engine finished a sentence of its own accord. A sentence it was told to
             // stop reports `onStop`, not this, so a pause never runs on into the next one.
-            scope.launch { if (_session.value.isSpeaking) speakNext(forward = true) }
+            scope.launch { if (_session.value.isPlaying) speakNext(forward = true) }
         }
 
         override fun onStop(utteranceId: String?, interrupted: Boolean) = Unit
@@ -256,7 +258,7 @@ internal class ReadAloudController(
         override fun onError(utteranceId: String?, errorCode: Int) {
             // One sentence the engine could not say is not a reason to end the book: the
             // usual cause is a language it has no voice for, in a single quoted line.
-            scope.launch { if (_session.value.isSpeaking) speakNext(forward = true) }
+            scope.launch { if (_session.value.isPlaying) speakNext(forward = true) }
         }
     }
 

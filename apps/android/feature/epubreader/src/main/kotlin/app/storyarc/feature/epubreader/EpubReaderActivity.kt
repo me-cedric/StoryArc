@@ -1,76 +1,77 @@
 package app.storyarc.feature.epubreader
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Color as AndroidColor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.graphics.Color as AndroidColor
 import android.widget.FrameLayout
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.fragment.app.FragmentManager
-import kotlinx.coroutines.flow.MutableStateFlow
-import org.readium.r2.navigator.Decoration
-import org.readium.r2.navigator.HyperlinkNavigator
-import org.readium.r2.shared.publication.Publication
-import org.readium.r2.shared.util.AbsoluteUrl
 import androidx.fragment.app.FragmentContainerView
+import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commitNow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.compose.ui.graphics.toArgb
-import app.storyarc.core.model.Annotation
-import app.storyarc.core.model.HighlightColour
-import app.storyarc.core.model.AnnotationExport
-import app.storyarc.core.model.ExternalLink
-import app.storyarc.core.model.Bookmark
-import app.storyarc.core.model.SearchMatch
-import app.storyarc.core.model.PageTransition
 import app.storyarc.core.designsystem.theme.StoryArcTheme
+import app.storyarc.core.designsystem.theme.resolved
 import app.storyarc.core.designsystem.theme.swatch
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.Annotation
+import app.storyarc.core.model.AnnotationExport
+import app.storyarc.core.model.Bookmark
+import app.storyarc.core.model.ExternalLink
+import app.storyarc.core.model.HighlightColour
+import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.PublicationIdentity
-import app.storyarc.core.persistence.SettingsStore
-import app.storyarc.core.persistence.chosenLanguage
-import app.storyarc.core.persistence.speaking
-import app.storyarc.core.designsystem.theme.resolved
+import app.storyarc.core.model.SearchMatch
 import app.storyarc.core.persistence.AnnotationStore
 import app.storyarc.core.persistence.BookmarkStore
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ReaderPreferences
+import app.storyarc.core.persistence.SettingsStore
+import app.storyarc.core.persistence.chosenLanguage
+import app.storyarc.core.persistence.speaking
+import app.storyarc.core.playback.SessionHandover
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import org.readium.r2.navigator.Decoration
+import org.readium.r2.navigator.HyperlinkNavigator
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.shared.ExperimentalReadiumApi
-import org.json.JSONObject
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
+import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.util.AbsoluteUrl
 import org.readium.r2.shared.util.Url
 
 /**
@@ -610,7 +611,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                         canReturn = returnPoint != null,
                         onReturn = { model.takeReturnPoint()?.let { goToLocator(it, remember = false) } },
                         isReadingAloud = isThisBook && spoken.isActive,
-                        isSpeaking = isThisBook && spoken.isSpeaking,
+                        isSpeaking = isThisBook && spoken.isPlaying,
                         onToggleReadAloud = ReadAloudHost::toggle,
                         onSkipSentence = ReadAloudHost::skip,
                         onStopReadAloud = ReadAloudHost::end,
