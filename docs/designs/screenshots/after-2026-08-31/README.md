@@ -262,3 +262,31 @@ Typing into the simulator on this machine goes through the host's French keyboar
 `http://127.0.0.1:4444/opds` arrives as `httpM==&éè:à:à:&M''''=opds`. Use
 `xcrun simctl pbcopy <udid>` and then Cmd+A / Cmd+V driven at the Simulator process. A long
 press does not raise the paste menu reliably on iOS 26.
+
+---
+
+# A fixed-layout book that could never be opened
+
+Found by opening `Bright Panels` on the simulator — a publication the shelf labels EPUB.
+It landed on **"This comic has no pages StoryArc can show."**
+(`before-2026-08-31/ios-fixed-layout-refused-dark`.)
+
+The routing was right. `ebook-reader` sends a fixed-layout EPUB to the image reader, and
+that is where it went. **The fixture was not a fixed-layout book.** `scripts/corpus.mjs`
+wrote the same wall of sentences whether `fixed` was set or not and only added
+`rendition:layout` to the metadata — a pre-paginated *text* book, which is legal EPUB and
+is nothing like what an image reader exists to draw. The refusal was therefore correct:
+there really were no images in it.
+
+The consequence is the part that matters. **The fixed-layout path had never once been
+exercised against anything it could draw** — not in a test, not on a device, not in any of
+the 130-odd captures in the directories beside this one.
+
+| Capture | What changed |
+| --- | --- |
+| `ios-fixed-layout-cover-dark` | The shelf. `Bright Panels` had been a blank grey card, because a book with no images has no cover to take one from. It has a cover now. |
+| `ios-fixed-layout-opens-dark` | The book, open, showing its first plate letterboxed on black. |
+
+The refusal itself was also reworded. The image reader serves fixed-layout books and PDFs
+as well as comics, and telling someone who opened a book about "this comic" is wrong in all
+four languages. It says there are no pages *here* now, which is true whatever was opened.
