@@ -39,10 +39,13 @@ extension XCTestCase {
     ///   sibling gated only on `isChromeVisible`, which starts `true`, so it is drawn over the
     ///   `ProgressView()` and over the failure view just as it is drawn over a page. A comment
     ///   here once claimed this wait was for the book to open. It never was.
-    /// - A web view proves the book. `NavigatorHost` is the only thing in that screen that
-    ///   hosts one, and it is built only in the `else if let navigator` branch — so no web
-    ///   view means a spinner or a `Failure`, and a screenshot or an audit taken then measures
-    ///   neither reader honestly.
+    /// - A web view proves the book. `NavigatorHost` is what hosts it and it is built only in
+    ///   `EpubReaderView`'s `else if let navigator` branch, so with no sheet up a web view
+    ///   means the navigator and no web view means the spinner or a `Failure` — and a
+    ///   screenshot or an audit taken then measures neither reader honestly. The one other
+    ///   `WKWebView` in that module is `ThemePreview`'s, inside `ThemeSheet`, which is not
+    ///   presented at the point this looks; a caller that opens the sheet first would be
+    ///   asking a different question.
     ///
     /// **The scroll depth and the attempt budget are counted separately.** They used to be one
     /// number: sweep *n* swiped up *n* times and took one candidate, so an untried EPUB
@@ -59,8 +62,8 @@ extension XCTestCase {
     /// in the skip rather than concluding anything.
     ///
     /// Candidates are remembered by the stable head of their label rather than by the whole of
-    /// it — see ``shelfIdentity(of:)``. Opening a publication is precisely the act that
-    /// changes the tail.
+    /// it — see ``shelfIdentity(of:endingWith:)``. Opening a publication is precisely the act
+    /// that changes the tail.
     ///
     /// Relaunching between attempts rather than closing the reader: leaving is a full-screen
     /// cover's own business, the comic reader's chrome fades after four seconds, and a launch
@@ -68,9 +71,11 @@ extension XCTestCase {
     /// why each attempt swipes its way back down.
     ///
     /// **English only, deliberately unhandled.** `Reading` and the *Library* destination are
-    /// hardcoded, so under `launch(language:)` this finds neither and skips — the same
-    /// dependency `control(_:in:)` documents for itself. A localised lookup would need the
-    /// test bundle to read `EpubReaderFeature`'s own strings, which it cannot see.
+    /// hardcoded, so under `launch(language:)` this finds neither and skips. It is the same
+    /// dependency `AccessibilityAuditTests` states for its Settings walk — "the groups are
+    /// named by their English labels. That is a real dependency … this suite runs in the
+    /// development language." A localised lookup would need the test bundle to read
+    /// `EpubReaderFeature`'s own strings, which it cannot see.
     ///
     /// It skips rather than fails, and one message covers every way of coming back empty: what
     /// EPUB covers were seen at all, which were opened, which reached the reflowable reader,
@@ -94,12 +99,14 @@ extension XCTestCase {
                 for _ in 0..<depth { app.swipeUp() }
 
                 let covers = coversOnScreen(in: app, ofFormat: "EPUB")
-                seen.formUnion(covers.map { shelfIdentity(of: $0.label) })
+                seen.formUnion(covers.map { shelfIdentity(of: $0.label, endingWith: "EPUB") })
                 // Nothing new here: scroll further rather than spending an attempt.
-                guard let cover = covers.first(where: { !tried.contains(shelfIdentity(of: $0.label)) })
+                guard let cover = covers.first(where: {
+                    !tried.contains(shelfIdentity(of: $0.label, endingWith: "EPUB"))
+                })
                 else { continue depths }
 
-                let candidate = shelfIdentity(of: cover.label)
+                let candidate = shelfIdentity(of: cover.label, endingWith: "EPUB")
                 tried.append(candidate)
                 attempts += 1
                 cover.tap()
@@ -139,20 +146,27 @@ extension XCTestCase {
         )
     }
 
-    /// The head of a cover's spoken label — the part that does not move when the publication
-    /// is read or downloaded.
+    /// A cover's spoken label cut off after its format — the part of it that opening the
+    /// publication cannot change.
     ///
-    /// `CoverCell` builds the label as `LibraryMarks.spoken([title, subtitle, format,
-    /// progress, pages], isOnDevice:isReadableNow:)`, comma-joined in that order, so
-    /// everything mutable is in the tail: the progress phrase appears once a publication has
-    /// been opened past the first page, and the *Downloaded* mark appears once its bytes are
-    /// on the device — and it now survives a launch. Keying a walk's "already tried" set on
-    /// the whole label meant a candidate came back looking new and spent a second attempt.
+    /// `CoverCell` builds the label with `LibraryMarks.spoken([title, subtitle, format,
+    /// progress, pages], isOnDevice:isReadableNow:)`, comma-joined in that order with the
+    /// `nil`s dropped, so **everything that moves is after the format**: the progress phrase
+    /// appears as soon as a recorded position is above zero (`LibraryModel.readFraction`),
+    /// *On this device* appears once the bytes are local — and that mark now survives a launch
+    /// — and *Needs its library to be reachable* comes and goes with the source. Keying a
+    /// walk's "already tried" set on the whole label meant a candidate it had just opened came
+    /// back looking new and spent a second attempt on itself.
     ///
-    /// The first three parts are the title, the caption under it and the format. Two
-    /// publications agreeing on all three would be one identity to this walk; nothing in
-    /// `scripts/corpus.mjs` does.
-    func shelfIdentity(of label: String) -> String {
-        label.components(separatedBy: ", ").prefix(3).joined(separator: ", ")
+    /// Cut at the format token rather than at a part count, because the count is not fixed: a
+    /// publication with no series line and no author has no subtitle, and `spoken` drops it
+    /// rather than leaving a gap, so the third part of one cover's label is the format and of
+    /// another's is its progress.
+    ///
+    /// Two publications with the same title and the same caption are one identity to this
+    /// walk. That is a real limit and it is the same kind the shelf itself has.
+    func shelfIdentity(of label: String, endingWith format: String) -> String {
+        guard let format = label.range(of: ", \(format)") else { return label }
+        return String(label[label.startIndex..<format.upperBound])
     }
 }
