@@ -24,8 +24,22 @@ creep — see [`design.md`](design.md).
       identically. `FormatSniffer` on both platforms, plus `Container.isAudio` so the
       reader-or-player question is asked in one place. Mutation-checked on both.
       *The folder half moves to 2.2*, which is where the folder scanner lives.
-- [ ] 2.2 Both: a folder mixing audio and images is treated as the kind the majority
-      of its entries are, and states which it chose.
+- [x] 2.2 Both: a folder of audio is one audiobook, and a folder mixing audio and
+      images is the kind the majority of its entries are. `FolderKind` on both
+      platforms, seven tests each, mutation-checked (make a tie an audiobook and the
+      tie test fails). Asserted against the corpus's own two folders read from disk,
+      not from a literal, so regenerating the fixtures differently fails it.
+      `PageOrdering.isPage` split so audio reuses the resource-fork and dotfile
+      exclusions rather than restating them.
+      **A tie is a comic — a product decision, recorded as one**, because a folder of
+      images is what StoryArc has always made of a folder.
+      **And this one reads extensions where the rest of the layer reads bytes**, which
+      is documented at the type: the unit being detected is the folder, its cheap
+      evidence is its entries' names, and sniffing each entry would be one read per
+      file to answer a question asked before anything is opened. Each part is still
+      sniffed when opened.
+      *Still to come with the player:* turning an audiobook folder into a
+      `Publication`, which needs the model to carry an audio format.
 - [ ] 2.3 Both: an audiobook with no chapter markers opens, its parts standing in for
       chapters, and nothing is reported as missing.
 - [~] 2.4 Both: an `.aax`/`.aaxc` is refused by name, states the store's content

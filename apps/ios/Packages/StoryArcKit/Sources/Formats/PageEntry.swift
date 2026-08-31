@@ -35,9 +35,14 @@ public enum PageOrdering {
         "jxl",
     ]
 
-    /// True when an entry is a page candidate.
-    public static func isPage(path: String) -> Bool {
-        // Directory markers are not pages.
+    /// True when an entry could be part of a publication at all.
+    ///
+    /// Everything ``isPage(path:)`` rejected before it looked at the extension, split
+    /// out so ``FolderKind`` can apply the same exclusions to audio without restating
+    /// them. A resource fork is not evidence of a comic and not evidence of an
+    /// audiobook either, and two copies of that list would eventually disagree.
+    public static func isCandidateEntry(path: String) -> Bool {
+        // Directory markers are not entries.
         guard !path.hasSuffix("/") else { return false }
 
         let components = path.split(separator: "/", omittingEmptySubsequences: true)
@@ -49,7 +54,13 @@ public enum PageOrdering {
         if name.hasPrefix("._") { return false }
         // Dotfiles: .DS_Store and friends.
         if name.hasPrefix(".") { return false }
+        return true
+    }
 
+    /// True when an entry is a page candidate.
+    public static func isPage(path: String) -> Bool {
+        guard isCandidateEntry(path: path) else { return false }
+        let name = String(path.split(separator: "/", omittingEmptySubsequences: true).last ?? "")
         let ext = (name as NSString).pathExtension.lowercased()
         return imageExtensions.contains(ext)
     }

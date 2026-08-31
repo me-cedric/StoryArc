@@ -32,8 +32,15 @@ object PageOrdering {
         "jxl",
     )
 
-    /** True when an entry is a page candidate. */
-    fun isPage(path: String): Boolean {
+    /**
+     * True when an entry could be part of a publication at all.
+     *
+     * Everything [isPage] rejected before it looked at the extension, split out so
+     * [FolderKind] can apply the same exclusions to audio without restating them. A
+     * resource fork is not evidence of a comic and not evidence of an audiobook
+     * either, and two copies of that list would eventually disagree.
+     */
+    fun isCandidateEntry(path: String): Boolean {
         if (path.endsWith("/")) return false
 
         val components = path.split('/').filter { it.isNotEmpty() }
@@ -45,7 +52,13 @@ object PageOrdering {
         if (name.startsWith("._")) return false
         // Dotfiles: .DS_Store and friends.
         if (name.startsWith(".")) return false
+        return true
+    }
 
+    /** True when an entry is a page candidate. */
+    fun isPage(path: String): Boolean {
+        if (!isCandidateEntry(path)) return false
+        val name = path.split('/').filter { it.isNotEmpty() }.last()
         val ext = name.substringAfterLast('.', "").lowercase()
         return ext in IMAGE_EXTENSIONS
     }
