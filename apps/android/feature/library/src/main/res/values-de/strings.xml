@@ -262,6 +262,8 @@
     <string name="smb_metered_title">Mobile Daten verwenden?</string>
     <string name="smb_metered_body">Diese Verbindung ist kostenpflichtig oder der Datensparmodus ist an. „%1$s“ zu lesen verbraucht Daten von der Freigabe.</string>
     <string name="smb_metered_continue">Lesen</string>
+    <string name="smb_download_first_title">Zuerst herunterladen?</string>
+    <string name="smb_download_first_body">„%1$s“ lässt sich nicht Seite für Seite lesen. Erst muss die ganze Datei herüberkommen — %2$s.</string>
     <string name="smb_found">In diesem Netzwerk</string>
     <string name="smb_error_encryption">Dieser Server verlangt SMB-3-Verschlüsselung, die StoryArc noch nicht beherrscht. Stellen Sie die Verschlüsselung auf dem Server auf „aktiviert“ statt „erforderlich“.</string>
     <string name="downloads_undo">Rückgängig</string>
