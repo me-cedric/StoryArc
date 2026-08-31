@@ -20,7 +20,9 @@ import StoryArcCore
 /// and they are held here as they are held there.
 struct OnDeviceShelf: View {
     @Environment(\.theme) private var theme
-    @Environment(\.horizontalSizeClass) private var sizeClass
+    /// How large the reader has asked for text to be — the second input to the cover width.
+    /// See ``LibraryFeature/coverMinimumWidth(shelfWidth:textSize:)``.
+    @Environment(\.dynamicTypeSize) private var textSize
 
     let publications: [Publication]
     let model: LibraryModel
@@ -34,15 +36,29 @@ struct OnDeviceShelf: View {
 
     let onRemove: (Publication) -> Void
 
-    /// The narrowest a cover is drawn, by size class.
+    /// How much room this shelf itself has.
     ///
-    /// `design.md`: "Minimum cover width scales by size class: 104 / 132 / 158 pt". One
-    /// number for every window is what leaves a tablet showing a wall of phone-sized
-    /// postage stamps — a shelf reads as a shelf at a size the room can afford.
-    private var minimumWidth: CGFloat { sizeClass == .regular ? 158 : 104 }
+    /// Measured, for the reason ``LibraryFeature/CoverGrid`` measures it: a size class is
+    /// coarse and answers about the device rather than about the column the shelf was given.
+    @State private var width: CGFloat = 0
 
-    /// The widest, so a wide window grows its covers only so far before it grows a column.
-    private static let maximumWidth: CGFloat = 168
+    /// The narrowest a cover is drawn, given the room and the reader's text size.
+    ///
+    /// The library's own rule, asked rather than copied. This shelf held
+    /// `sizeClass == .regular ? 158 : 104` — `design.md` §4's tiers with the text size left
+    /// out — which is the defect `CoverGrid` and `SectionedShelf` were both fixed for and
+    /// this screen was not: at an accessibility text size the downloads destination kept
+    /// three columns and its captions ran out of column, while the shelf next door had
+    /// already dropped to two. That is what Apple's own audit reported here as five clipped
+    /// captions and reported nowhere else.
+    private var minimumWidth: CGFloat {
+        coverMinimumWidth(shelfWidth: width, textSize: textSize)
+    }
+
+    /// Headroom over the minimum, so the last column grows into the leftover rather than
+    /// leaving a ragged trailing margin. The library's ratio, for the same reason as above:
+    /// a flat 168 pt ceiling stopped the covers growing with the step this shelf now takes.
+    private var maximumWidth: CGFloat { (minimumWidth * 1.6).rounded() }
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.md) {
@@ -54,8 +70,13 @@ struct OnDeviceShelf: View {
             LazyVGrid(
                 columns: [
                     GridItem(
-                        .adaptive(minimum: minimumWidth, maximum: Self.maximumWidth),
-                        spacing: StoryArcSpace.coverGap,
+                        .adaptive(minimum: minimumWidth, maximum: maximumWidth),
+                        // `md`, which is what both of the library's grids use between
+                        // columns and what `CoverMinimumWidthTests` counts columns with.
+                        // This shelf used `coverGap`, two points wider, so the same rule
+                        // asked on the same window could still hand the two screens
+                        // different columns.
+                        spacing: StoryArcSpace.md,
                         alignment: .top
                     )
                 ],
@@ -95,16 +116,33 @@ struct OnDeviceShelf: View {
             }
             .padding(.horizontal, StoryArcSpace.gutter)
         }
+        // The one input to the cover width that is not the reader's text size, measured
+        // where the library measures it: the whole width the shelf was handed, gutters
+        // included, so a rotation, a Split View drag and a sidebar appearing are all the
+        // same event.
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
     private func cell(_ publication: Publication) -> some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
             OnDeviceCover(publication: publication, model: model)
+            // `footnote`, which is the role the library's own cell captions a cover with.
+            // This shelf used `subheadline`, two points larger in a column of the same
+            // width, and that is the second half of the clipped captions: a lazy grid sizes
+            // a cell against the column's *maximum* and then draws it at the column's real
+            // width, so a caption that fits one line at the maximum and needs two at the
+            // real width is handed one line's height and asked to draw two. The smaller
+            // role is not a number lowered to silence a check — it is what makes a cover
+            // here caption itself the way a cover in the library does, which is what this
+            // screen's own contract asks for.
             Text(publication.displayTitle)
-                .textRole(.subheadline)
+                .textRole(.footnote)
                 .foregroundStyle(theme.palette.textPrimary)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
+                // The height a caption is given follows the text it actually has to draw,
+                // rather than the height the grid guessed from a wider column.
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

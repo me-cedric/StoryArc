@@ -37,7 +37,16 @@ private let accessibilityCoverStep: CGFloat = 1.4
 /// eight phone-sized cells in a 13-inch iPad: the same lattice widened, rather than the
 /// fewer, larger, more confident covers a big window is for. The text size only decides
 /// whether the tier is taken as written or one step wider.
-func coverMinimumWidth(shelfWidth: CGFloat, textSize: DynamicTypeSize) -> CGFloat {
+///
+/// Public because the on-device shelf is a fourth grid of covers and it lives in the app
+/// target. It held its own `sizeClass == .regular ? 158 : 104`, which is the tier switch
+/// *without* either of the two corrections this function exists for: it never saw the
+/// reader's text size, so the downloads destination kept three columns at
+/// `accessibility-extra-extra-extra-large` while the library dropped to two, and it asked a
+/// size class rather than measuring, so a shelf in a narrow column answered as a whole iPad.
+/// A rule copied is a rule that drifts — this is the third caller and the second time the
+/// copy was wrong.
+public func coverMinimumWidth(shelfWidth: CGFloat, textSize: DynamicTypeSize) -> CGFloat {
     let tier: CGFloat = switch shelfWidth {
     case ..<StoryArcWindowClass.sidebarWidthThreshold: 104
     case ..<confidentShelfWidth: 132
