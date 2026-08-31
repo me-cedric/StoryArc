@@ -186,7 +186,28 @@ class DownloadQueue(
         val waiter = CompletableDeferred<File?>()
         waiting.getOrPut(entry.id) { mutableListOf() }.add(waiter)
         enqueue(entry, acquisition, overridingMeteredConnection)
+        // `offline-downloads`' *Reading while downloading*. The reader is waiting on this
+        // one, so it goes to the head of the queue rather than behind whatever they lined up
+        // earlier and are not reading -- on a metered link, where the bound is one, that was
+        // the difference between a five-megabyte comic and a four-hundred-megabyte wait.
+        promote(entry.id)
         return waiter.await()
+    }
+
+    /**
+     * Puts a download at the head of the queue.
+     *
+     * The order is the reader's -- `offline-downloads` gives them pause, resume, cancel and
+     * reorder -- and this is that reorder asked for by opening a book. The rule about what
+     * "head" means among running and finished downloads is [DownloadLibrary.promoting]'s, and
+     * is asserted rather than living here.
+     */
+    fun promote(id: String) {
+        val ahead = _library.value.promoting(id)
+        if (ahead == _library.value) return
+        _library.value = ahead
+        store?.save(ahead)
+        pump()
     }
 
     /** Stops a download and forgets it, deleting whatever arrived. */

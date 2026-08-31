@@ -182,9 +182,28 @@ public final class DownloadQueue {
             using: acquisition,
             overridingMeteredConnection: overridingMeteredConnection
         )
+        // `offline-downloads`' *Reading while downloading*. The reader is waiting on this
+        // one, so it goes to the head of the queue rather than behind whatever they lined
+        // up earlier and are not reading — on a metered link, where the bound is one, that
+        // was the difference between a five-megabyte comic and a four-hundred-megabyte wait.
+        promote(entry.id)
         return await withCheckedContinuation { continuation in
             waiting[entry.id, default: []].append(continuation)
         }
+    }
+
+    /// Puts a download at the head of the queue.
+    ///
+    /// The order is the reader's — `offline-downloads` gives them pause, resume, cancel and
+    /// reorder — and this is that reorder asked for by opening a book. The rule about what
+    /// "head" means among running and finished downloads is
+    /// ``DownloadLibrary/promoting(_:)``'s, and is asserted rather than living here.
+    public func promote(_ id: Download.ID) {
+        let ahead = library.promoting(id)
+        guard ahead != library else { return }
+        library = ahead
+        store?.save(library)
+        pump()
     }
 
     /// Stops a download and forgets it, deleting whatever arrived.

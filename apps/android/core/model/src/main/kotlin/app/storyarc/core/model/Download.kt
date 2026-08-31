@@ -223,6 +223,35 @@ data class DownloadLibrary(val downloads: List<Download> = emptyList()) {
         return copy(downloads = moved)
     }
 
+    /**
+     * Puts a download at the head of the queue, because a reader is waiting to read it.
+     *
+     * `offline-downloads`' *Reading while downloading* is about a reader not waiting for the
+     * last byte before the first page. The queue made that worse than it had to be: tapping
+     * *Read* appended to the **back** of the list and then waited, so on a metered link --
+     * where the bound is one -- a reader wanting a five-megabyte comic waited out a
+     * four-hundred-megabyte one they had queued for later and were not reading.
+     *
+     * Order, not priority: nothing is cancelled, nothing is preempted, and a running download
+     * keeps its slot. `offline-downloads` gives the reader the queue's order anyway --
+     * "per-item and global pause, resume, cancel, and **reorder**" -- and this is that same
+     * reorder, asked for by opening a book rather than by dragging a row.
+     *
+     * Only among the queued, for [moving]'s reason: a running download has already started
+     * and a finished one has no order left to have. A download that is already at the head is
+     * left exactly where it is.
+     */
+    fun promoting(id: String): DownloadLibrary {
+        val download = this[id]?.takeIf { it.state == Download.State.Queued } ?: return this
+        val head = downloads.firstOrNull { it.state == Download.State.Queued } ?: return this
+        if (head.id == id) return this
+        val moved = downloads.filterNot { it.id == id }.toMutableList()
+        val at = moved.indexOfFirst { it.state == Download.State.Queued }
+        if (at < 0) return this
+        moved.add(at, download)
+        return copy(downloads = moved)
+    }
+
     /** Forgets a download. The file is the caller's to delete. */
     fun removing(id: String): DownloadLibrary = copy(downloads = downloads.filterNot { it.id == id })
 
