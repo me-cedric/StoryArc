@@ -79,7 +79,10 @@ struct CoverRoutingWiringTests {
 
         #expect(
             !guardLine.contains("publication.isOpenable"),
-            "\(file) gates its link on isOpenable again: \(guardLine). The page is where a refusal is explained."
+            """
+            \(file) gates its link on isOpenable again: \(guardLine)
+            The page is where a refusal is explained.
+            """
         )
         #expect(
             !guardLine.contains("isReadable"),
