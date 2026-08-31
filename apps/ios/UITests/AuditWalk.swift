@@ -151,25 +151,45 @@ extension XCTestCase {
         throw XCTSkip("No publication on this device opens a page with an action on it.")
     }
 
-    /// Every cover on the shelf a walk may open, in the order the shelf drew them.
+    /// The covers a walk may open, on the screenful of shelf that is showing.
     ///
     /// Split out of ``openFirstPublication(in:named:ofFormat:)`` so that
     /// ``openTheEpubReader(in:)`` can ask the same question — which covers are candidates —
     /// rather than growing a second answer to it. Each filter above is a lesson; two copies
-    /// of them would be two sets of lessons, and this file exists because that already
-    /// happened once.
+    /// of them would be two sets of lessons, and this file exists because that happened once
+    /// already.
     func coversOnTheShelf(
         in app: XCUIApplication,
         named wanted: String? = nil,
         ofFormat format: String? = nil
     ) throws -> [XCUIElement] {
+        try showTheShelf(in: app)
+        return coversOnScreen(in: app, named: wanted, ofFormat: format)
+    }
+
+    /// Puts the library shelf on screen, and waits for it to have drawn something.
+    func showTheShelf(in app: XCUIApplication) throws {
         try XCTUnwrap(destination("Library", in: app)).tap()
 
         let shelf = app.buttons.element(boundBy: 0)
         try XCTSkipUnless(shelf.waitForExistence(timeout: 10), "The library never drew a shelf.")
+    }
 
+    /// The covers drawn **right now**, which is not the same as the covers on the shelf.
+    ///
+    /// A shelf is a scroll view, `isHittable` is false for anything off it, and the frame
+    /// bounds below are absolute screen coordinates — so every filter here is a statement
+    /// about one screenful. That is enough for "open something" and wrong for "open a
+    /// particular one": on an 874-point window this library draws as far as `Broken
+    /// Transfer`, and the accessibility audit's own findings say so. A caller that needs a
+    /// publication further down the alphabet has to scroll and ask again.
+    func coversOnScreen(
+        in app: XCUIApplication,
+        named wanted: String? = nil,
+        ofFormat format: String? = nil
+    ) -> [XCUIElement] {
         // Below the toolbar and above the tab bar: everything between is content.
-        return app.buttons.allElementsBoundByIndex
+        app.buttons.allElementsBoundByIndex
             .filter { $0.isHittable && $0.frame.minY > 150 && $0.frame.maxY < app.frame.height - 100 }
             .filter { !$0.label.contains("100 percent read") }
             .filter { wanted == nil || $0.label == wanted }
@@ -202,27 +222,44 @@ extension XCTestCase {
     /// platform limit.
     ///
     /// So this opens EPUBs in turn and stops at the one whose reader carries the theme
-    /// control, which is the one control no other screen in the app has. Relaunching
-    /// between attempts rather than closing the reader: leaving is a full-screen cover's
-    /// own business, the comic reader's chrome fades after four seconds, and a launch is a
-    /// single call that cannot half-succeed.
+    /// control, which is the one control no other screen in the app has.
     ///
-    /// One candidate skipping does not end the walk, and the skip at the end names every
+    /// **It scrolls, and it has to.** The two pre-paginated EPUBs sort first, and one
+    /// screenful of this library reaches `Broken Transfer` — so the three reflowable ones
+    /// are not merely later in the list, they are off the screen and not hittable at all.
+    /// A retry that only looked at the covers already showing would try the same two wrong
+    /// books twice and skip with the same message.
+    ///
+    /// Relaunching between attempts rather than closing the reader: leaving is a
+    /// full-screen cover's own business, the comic reader's chrome fades after four
+    /// seconds, and a launch is a single call that cannot half-succeed. The cost is the
+    /// scroll position, which is why each sweep swipes its way back down.
+    ///
+    /// One candidate failing does not end the walk, and the skip at the end names every
     /// publication that was opened and every button that was on screen when it gave up. A
     /// check that gives up quietly is a check whose next reader derives all of this again.
     func openTheEpubReader(in app: XCUIApplication) throws {
-        let candidates = try coversOnTheShelf(in: app, ofFormat: "EPUB").map(\.label)
-        try XCTSkipUnless(!candidates.isEmpty, "This device's library holds no EPUB to open.")
-
         // `theme.title` in `EpubReaderFeature`, drawn as part of the chrome whether or not
         // the book has finished opening.
         let reading = app.buttons["Reading"]
+        var tried: [String] = []
         var opened: [String] = []
-        for (attempt, candidate) in candidates.prefix(3).enumerated() {
-            if attempt > 0 { app.launch() }
+        for sweep in 0..<4 {
+            if sweep > 0 { app.launch() }
+            try showTheShelf(in: app)
+            for _ in 0..<sweep { app.swipeUp() }
+
+            let untried = coversOnScreen(in: app, ofFormat: "EPUB")
+                .map(\.label)
+                .first { !tried.contains($0) }
+            guard let candidate = untried else { continue }
+            tried.append(candidate)
+            guard let cover = coversOnScreen(in: app, named: candidate).first else { continue }
+            cover.tap()
+
             // A hittable action, not the first in the hierarchy: this page has duplicate
             // entries and `firstMatch` can bind to one no finger could reach.
-            guard (try? openFirstPublication(in: app, named: candidate)) != nil,
+            guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 5),
                   let action = app.buttons.matching(opensAPublication)
                       .allElementsBoundByIndex.first(where: \.isHittable)
             else { continue }
@@ -232,11 +269,12 @@ extension XCTestCase {
             // this waits for the book to open rather than for a fade to be interrupted.
             if reading.waitForExistence(timeout: 15) { return }
         }
+        try XCTSkipUnless(!tried.isEmpty, "This device's library holds no EPUB to open.")
         throw XCTSkip(
             """
             No EPUB on this device opened the reflowable reader.
             Opened: \(opened)
-            Not opened: \(candidates.prefix(3).filter { !opened.contains($0) })
+            Reached but not opened: \(tried.filter { !opened.contains($0) })
             Buttons on screen: \(app.buttons.allElementsBoundByIndex.map(\.label))
             """
         )
