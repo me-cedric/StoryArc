@@ -83,7 +83,12 @@ struct ReaderPaletteTests {
     func adoptingAPresetDropsTheCustomColours() {
         let theme = ReadingTheme().adopting(ReaderPalette.derived(name: "Sea", background: "#0B2027"))
         #expect(theme.adopting(ThemePreset.focus).custom == nil)
-        #expect(theme.restored().custom == nil)
+        // Not `restored()`. That line asserted the old behaviour and `reading-themes` now
+        // contradicts it: a reset leaves "the custom colour slot … unchanged, because a reset
+        // is not a factory reset". `ThemeResetTests` owns that clause; the two acts are
+        // deliberately different and `discardingCustomColours` is how a reader drops a palette
+        // on purpose.
+        #expect(theme.discardingCustomColours().custom == nil)
     }
 
     @Test("Original refuses custom colours, because the publisher's are the point")

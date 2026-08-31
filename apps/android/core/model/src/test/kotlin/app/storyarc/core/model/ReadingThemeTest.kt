@@ -274,7 +274,12 @@ class ReadingThemeTest {
     fun `Tapping one of the six leaves the reader's own palette behind`() {
         val theme = ReadingTheme().adopting(ReaderPalette.derived("Sea", "#0B2027"))
         assertNull(theme.adopting(ThemePreset.FOCUS).custom)
-        assertNull(theme.restored().custom)
+        // Not `restored()`. That line asserted the old behaviour and `reading-themes` now
+        // contradicts it: a reset leaves "the custom colour slot … unchanged, because a reset
+        // is not a factory reset". `ThemeResetTest` owns that clause; the two acts are
+        // deliberately different and `discardingCustomColours` is how a reader drops a palette
+        // on purpose.
+        assertNull(theme.discardingCustomColours().custom)
     }
 
     @Test

@@ -10,7 +10,7 @@ internal import StoryArcCore
 // leaves the rest of `ThemeValues` alone, and a sheet full of `onChange` handlers is
 // where an axis quietly stops being written.
 
-extension ThemeSheet {
+extension ThemeAxesSheet {
     var typefaceBinding: Binding<ReaderTypeface> {
         Binding(
             get: { model.values.typeface },

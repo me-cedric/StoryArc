@@ -8,7 +8,7 @@ internal import StoryArcCore
 // Split out of `ThemeSheet` so that file stays the sheet's sections rather than the
 // sections plus one of them in full. Internal rather than private because the sheet's
 // `body` is in the other file, and a `private` member of an extension cannot cross one.
-extension ThemeSheet {
+extension ThemeAxesSheet {
     /// How a page becomes the next page.
     ///
     /// `page-transitions` asks for its four modes in *both* readers. Two of them animate

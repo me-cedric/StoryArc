@@ -27,11 +27,14 @@ struct ThemeSheet: View {
     /// the preview shows its sample paragraph in both cases.
     @State private var excerpt = ""
 
+    /// Whether level two — the axes — is on screen.
+    @State private var isCustomising = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
-                    // First, because it is the thing every control below it changes.
+                    // First, because it is the thing every card below it previews.
                     ThemePreview(
                         readingTheme: model.theme,
                         values: model.values,
@@ -39,24 +42,7 @@ struct ThemeSheet: View {
                         excerpt: excerpt
                     )
                     presets
-                    pageTurn
-                    fontSize
-                    typeface
-                    if model.theme.preset.keepsPublisherStyles {
-                        publisherNotice
-                    } else {
-                        fineAxes
-                        alignment
-                        // A custom background cannot apply under Original, where
-                        // the publisher's own colours are the point — so it lives
-                        // in the same branch as the other overrides.
-                        PageColourSection(
-                            palette: model.theme.custom,
-                            onAdopt: { model.adoptColours($0) },
-                            onDiscard: model.discardCustomColours
-                        )
-                    }
-                    brightness
+                    customise
                 }
                 .padding(StoryArcSpace.gutter)
             }
@@ -79,15 +65,36 @@ struct ThemeSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button { dismiss() } label: { Text("theme.done", bundle: .module) }
                 }
-                if model.theme.isModified {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button { model.restoreTheme() } label: {
-                            Text("theme.restore", bundle: .module)
-                        }
-                    }
-                }
             }
         }
+        // Level two, as a second sheet from the first.
+        //
+        // Sheet-on-sheet is idiomatic on iOS and the platform animates it as a stack.
+        // Android does not do this: `design.md` records why, and the short version is that
+        // predictive back is a component-level contract there and two stacked modal sheets
+        // give the gesture two competing dismiss targets and no correct preview.
+        .sheet(isPresented: $isCustomising) {
+            ThemeAxesSheet(model: model, excerpt: excerpt)
+        }
+    }
+
+    /// The one action on level one, and the reason level one is only presets.
+    ///
+    /// `ebook-reader`: "one action, given equal prominence to the grid, opens the axes".
+    /// Full-width and bordered-prominent, so it reads as the grid's peer rather than as a
+    /// footnote under it — a reader who came to nudge line spacing has to be able to see
+    /// where that lives without having learnt it first.
+    private var customise: some View {
+        Button { isCustomising = true } label: {
+            Label {
+                Text("theme.customise", bundle: .module)
+            } icon: {
+                Image(systemName: "slider.horizontal.3")
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
     }
 
     /// Three by two, each card in its own colours.
@@ -114,6 +121,10 @@ struct ThemeSheet: View {
                         isModified: model.theme.preset == preset && model.theme.isModified
                     ) {
                         model.adopt(preset)
+                        // `ebook-reader`: "picking a preset applies it and leaves the surface,
+                        // because that was the whole errand". A sheet that stayed up over the
+                        // change would put the reader's own decision behind their own choice.
+                        dismiss()
                     }
                 }
                 // The seventh slot, present only once the reader has made one.
@@ -128,261 +139,4 @@ struct ThemeSheet: View {
         }
     }
 
-    /// `reading-themes`: stepped, with the position shown, never a free slider.
-    private var fontSize: some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-            Text("theme.fontSize", bundle: .module)
-                .textRole(.headline)
-                .foregroundStyle(theme.palette.textPrimary)
-
-            HStack(spacing: StoryArcSpace.md) {
-                Button { step(to: model.values.fontSize.previous) } label: {
-                    Label {
-                        Text("theme.fontSize.smaller", bundle: .module)
-                    } icon: {
-                        Image(systemName: "textformat.size.smaller")
-                    }
-                    .labelStyle(.iconOnly)
-                }
-                .disabled(model.values.fontSize == FontSizeStep.allCases.first)
-
-                StepDots(position: model.values.fontSize.position, count: FontSizeStep.count)
-
-                Button { step(to: model.values.fontSize.next) } label: {
-                    Label {
-                        Text("theme.fontSize.larger", bundle: .module)
-                    } icon: {
-                        Image(systemName: "textformat.size.larger")
-                    }
-                    .labelStyle(.iconOnly)
-                }
-                .disabled(model.values.fontSize == FontSizeStep.allCases.last)
-            }
-            .buttonStyle(.bordered)
-
-            Text("theme.fontSize.percent \(model.values.fontSize.rawValue)", bundle: .module)
-                .textRole(.footnote)
-                .monospacedDigit()
-                .foregroundStyle(theme.palette.textTertiary)
-        }
-        // One control, spoken as one: `reading-themes` asks for increment actions so
-        // VoiceOver can adjust it rather than hunting two buttons.
-        .accessibilityElement(children: .combine)
-        // Position first, then the percentage. `native-experience` asks the stepper
-        // to announce "its position out of the total rather than only larger" — a
-        // percentage alone never says how much room is left on the ladder.
-        .accessibilityValue(
-            Text(
-                "theme.fontSize.position \(model.values.fontSize.position + 1) \(FontSizeStep.count)",
-                bundle: .module
-            )
-            + Text(verbatim: ", ")
-            + Text("theme.fontSize.percent \(model.values.fontSize.rawValue)", bundle: .module)
-        )
-        .accessibilityAdjustableAction { direction in
-            switch direction {
-            case .increment: step(to: model.values.fontSize.next)
-            case .decrement: step(to: model.values.fontSize.previous)
-            @unknown default: break
-            }
-        }
-    }
-
-    /// Typeface and weight: the two axes that reach the page even under Original.
-    private var typeface: some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-            Text("theme.axis.fontFamily", bundle: .module)
-                .textRole(.headline)
-                .foregroundStyle(theme.palette.textPrimary)
-                .accessibilityAddTraits(.isHeader)
-
-            // A list of rows rather than a menu, and each name drawn in the face it
-            // names. A menu would fit more compactly, but SwiftUI strips a custom
-            // font inside one — and a typeface picker whose options all look alike is
-            // a list of words rather than a choice. Eight faces do not fit across a
-            // phone either way, and `reading-themes` calls this axis a picker.
-            ForEach(ReaderTypeface.allCases, id: \.self) { face in
-                Button { typefaceBinding.wrappedValue = face } label: {
-                    HStack(spacing: StoryArcSpace.sm) {
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(face.titleKey, bundle: .module)
-                                .font(BundledFonts.font(face, size: 17))
-                                .foregroundStyle(theme.palette.textPrimary)
-
-                            if face.isDesignedForLowVision {
-                                // `reading-themes`: labelled as such, because "an
-                                // accessibility affordance presented as a style
-                                // option gets missed by the people who need it".
-                                Text("theme.typeface.lowVision", bundle: .module)
-                                    .textRole(.caption)
-                                    .foregroundStyle(theme.palette.textTertiary)
-                            }
-                        }
-
-                        Spacer()
-
-                        if model.values.typeface == face {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(theme.accent)
-                        }
-                    }
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(
-                    model.values.typeface == face ? [.isButton, .isSelected] : .isButton
-                )
-            }
-
-            Toggle(isOn: boldBinding) {
-                Text("theme.axis.boldText", bundle: .module)
-                    .textRole(.body)
-                    .foregroundStyle(theme.palette.textPrimary)
-            }
-
-            // Beside bold rather than among the sliders: both are switches, and
-            // `ebook-reader` lists hyphenation with the things a reader adjusts.
-            Toggle(isOn: hyphenationBinding) {
-                Text("theme.axis.hyphenation", bundle: .module)
-                    .textRole(.body)
-                    .foregroundStyle(theme.palette.textPrimary)
-            }
-        }
-    }
-
-    /// A slider's value as a screen reader should say it.
-    ///
-    /// The unit comes from the domain, so the two platforms cannot describe the same
-    /// slider differently. The number is formatted for the reader's locale, which is
-    /// why this is not a plain interpolation — a comma decimal separator is not a
-    /// detail a French reader should have to work around.
-    private static func spoken(_ value: Double, in unit: AxisUnit?) -> Text {
-        let number = value.formatted(.number.precision(.fractionLength(0...2)))
-        switch unit {
-        case .multiple: return Text("theme.axis.value.multiple \(number)", bundle: .module)
-        case .em: return Text("theme.axis.value.em \(number)", bundle: .module)
-        case nil: return Text(verbatim: number)
-        }
-    }
-
-    /// The sliders. One loop rather than five blocks, because the domain answers
-    /// every question a slider asks: its range, its value, and how to set it.
-    private var fineAxes: some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.md) {
-            Text("theme.spacing", bundle: .module)
-                .textRole(.headline)
-                .foregroundStyle(theme.palette.textPrimary)
-                .accessibilityAddTraits(.isHeader)
-
-            ForEach(ThemeAxis.allCases, id: \.self) { axis in
-                if let range = axis.sliderRange {
-                    VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                        Text(axis.titleKey, bundle: .module)
-                            .textRole(.footnote)
-                            .foregroundStyle(theme.palette.textSecondary)
-
-                        Slider(
-                            value: Binding(
-                                get: { model.values.value(of: axis) },
-                                set: { model.set(axis, to: $0) }
-                            ),
-                            in: range,
-                            // Stepped, so a screen reader's adjust action moves the
-                            // value by something a reader can notice, and so a drag
-                            // submits twenty preference changes to the renderer
-                            // rather than one per frame.
-                            step: axis.step ?? range.upperBound
-                        )
-                        .tint(theme.accent)
-                        // The name belongs on the slider. The heading above it is a
-                        // sibling element, so VoiceOver landing on the slider would
-                        // otherwise announce a bare percentage and never say which
-                        // axis it belongs to.
-                        .accessibilityLabel(Text(axis.titleKey, bundle: .module))
-                        .accessibilityValue(Self.spoken(model.values.value(of: axis), in: axis.unit))
-                    }
-                }
-            }
-        }
-    }
-
-    private var alignment: some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-            Text("theme.axis.textAlignment", bundle: .module)
-                .textRole(.headline)
-                .foregroundStyle(theme.palette.textPrimary)
-                .accessibilityAddTraits(.isHeader)
-
-            Picker("", selection: alignmentBinding) {
-                ForEach(ReaderTextAlignment.allCases, id: \.self) { value in
-                    Text(value.titleKey, bundle: .module).tag(value)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-        }
-    }
-
-    /// `reading-themes`: reader-local, and it does not permanently move the
-    /// device's own. The reader's value is restored on leaving by `EpubReaderView`.
-    private var brightness: some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-            Text("theme.brightness", bundle: .module)
-                .textRole(.headline)
-                .foregroundStyle(theme.palette.textPrimary)
-                .accessibilityAddTraits(.isHeader)
-
-            Slider(
-                value: Binding(
-                    get: { model.brightness ?? Double(UIScreen.main.brightness) },
-                    set: { model.brightness = $0 }
-                ),
-                in: 0.1...1
-            ) {
-                Text("theme.brightness", bundle: .module)
-            } minimumValueLabel: {
-                Image(systemName: "sun.min")
-            } maximumValueLabel: {
-                Image(systemName: "sun.max")
-            }
-            .tint(theme.accent)
-            .accessibilityValue(
-                Text(
-                    "theme.brightness.percent \(Int(((model.brightness ?? 0.5) * 100).rounded()))",
-                    bundle: .module
-                )
-            )
-        }
-    }
-
-    private var publisherNotice: some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
-            Text("theme.publisherStyles.title", bundle: .module)
-                .textRole(.headline)
-                .foregroundStyle(theme.palette.textPrimary)
-                .accessibilityAddTraits(.isHeader)
-
-            Text("theme.publisherStyles.reason", bundle: .module)
-                .textRole(.footnote)
-                .foregroundStyle(theme.palette.textSecondary)
-
-            // The single action the spec asks for. It names what it does rather than
-            // saying "fix": turning publisher styles off is a real choice about
-            // whose typography wins.
-            Button { model.leavePublisherStyles() } label: {
-                Text("theme.publisherStyles.action", bundle: .module)
-            }
-            .buttonStyle(.bordered)
-
-            VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                ForEach(ThemeAxis.allCases.filter(\.requiresPublisherStylesOff), id: \.self) { axis in
-                    Text(axis.titleKey, bundle: .module)
-                        .textRole(.caption)
-                        .foregroundStyle(theme.palette.textTertiary)
-                }
-            }
-        }
-        .padding(StoryArcSpace.md)
-        .background(theme.palette.surfaceRaised, in: .rect(cornerRadius: StoryArcRadius.lg))
-    }
 }

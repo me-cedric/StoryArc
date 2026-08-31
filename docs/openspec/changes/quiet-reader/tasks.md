@@ -46,7 +46,7 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
 - [ ] 3.1 Both: `ThemeSheetTests` / `ThemeSheetTest` — level one shows six presets
       and **no axis control**, and one action of equal prominence opens the axes.
 - [ ] 3.2 Both: picking a preset applies it and dismisses level one.
-- [ ] 3.3 iOS: level two as a second `.sheet` from the first.
+- [x] 3.3 iOS: level two as a second `.sheet` from the first.
 - [ ] 3.4 Android: level two as a **destination** with its own top app bar and close
       affordance — not a nested `ModalBottomSheet`. Predictive back is a
       component-level contract and two stacked modal sheets give it two competing

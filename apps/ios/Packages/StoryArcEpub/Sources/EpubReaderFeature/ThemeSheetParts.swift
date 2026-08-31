@@ -197,6 +197,23 @@ extension ThemePreset {
         case .focus: "theme.preset.focus"
         }
     }
+
+    /// The same name as a lookup *value*, for a sentence that takes it as an argument.
+    ///
+    /// `reading-themes` requires the reset to name the preset it restores — "the reader who
+    /// modified Calm is offered Calm back" — and that name has to be resolved to a `String`
+    /// before it can be interpolated into another localised sentence. A `LocalizedStringKey`
+    /// cannot be: it is a key for `Text`, not a value.
+    var localizedName: String.LocalizationValue {
+        switch self {
+        case .original: "theme.preset.original"
+        case .quiet: "theme.preset.quiet"
+        case .paper: "theme.preset.paper"
+        case .bold: "theme.preset.bold"
+        case .calm: "theme.preset.calm"
+        case .focus: "theme.preset.focus"
+        }
+    }
 }
 
 extension ThemeAxis {

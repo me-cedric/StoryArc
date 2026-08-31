@@ -157,8 +157,20 @@ public struct ReadingTheme: Sendable, Equatable, Codable {
         return ReadingTheme(preset: preset, deviations: deviations.union([axis]), custom: custom)
     }
 
-    /// Puts every axis back to the preset's own values, and its colours with them.
+    /// Puts every axis back to the preset's own values.
+    ///
+    /// `reading-themes`, *The reset names what it restores*: "every axis returns to that
+    /// preset's published value, including any the reader never touched **AND** the other
+    /// five presets, **the custom colour slot**, the per-series memory and the global default
+    /// are unchanged, because a reset is not a factory reset."
+    ///
+    /// **The custom palette therefore survives, and that is the whole difference from
+    /// ``adopting(_:)``.** This used to be spelled `ReadingTheme(preset: preset)`, which is
+    /// `adopting`'s body — and `adopting` drops the palette on purpose, because tapping one
+    /// of the six presets is how a reader leaves their own colours. A reset is not that act.
+    /// A reader who had made a palette, chosen Calm and nudged the line spacing lost the
+    /// palette by putting the line spacing back. ``ThemeResetTests`` is why it does not now.
     public func restored() -> ReadingTheme {
-        ReadingTheme(preset: preset)
+        ReadingTheme(preset: preset, custom: custom)
     }
 }
