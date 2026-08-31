@@ -172,6 +172,42 @@ public struct DownloadLibrary: Sendable, Equatable {
         })
     }
 
+    /// Records that the bytes arrived and were not a publication, and decides what next.
+    ///
+    /// `offline-downloads`: "when a download completes … its integrity is verified before
+    /// it is marked available offline, and **a failed verification re-queues it once**".
+    /// Once, and this is the whole of it: the first corrupt arrival goes back in the queue
+    /// to be fetched again, because a truncated transfer is the likeliest cause and a
+    /// second fetch is the cheapest way to find out. The second corrupt arrival is the
+    /// server's answer rather than the network's, and the download is marked failed with
+    /// the reason the reader can read.
+    ///
+    /// Separate from ``failing(_:reason:)`` because the two failures are not the same
+    /// event. That one counts transfers that never arrived and allows three; this counts
+    /// arrivals that were not a book and allows one more. Sharing a counter would let three
+    /// corrupt downloads be re-fetched, or a flaky network burn the verification's only
+    /// second chance before the bytes ever landed.
+    public func failingVerification(_ id: Download.ID, reason: String) -> DownloadLibrary {
+        DownloadLibrary(downloads: downloads.map { each in
+            guard each.id == id else { return each }
+            var changed = each
+            changed.verificationFailures += 1
+            changed.state = changed.verificationFailures <= Self.verificationLimit
+                ? .queued
+                // As though every transfer attempt were spent, so the queue stops asking.
+                : .failed(reason: reason, attempts: Self.attemptLimit)
+            return changed
+        })
+    }
+
+    /// Whether a download whose bytes did not verify has its one re-queue left.
+    public static func shouldRequeueAfterVerification(_ download: Download) -> Bool {
+        download.verificationFailures < verificationLimit
+    }
+
+    /// One, from `offline-downloads`' "re-queues it once".
+    public static let verificationLimit = 1
+
     /// Whether a failed download has attempts left.
     public static func shouldRetry(_ download: Download) -> Bool {
         guard case let .failed(_, attempts) = download.state else { return false }

@@ -34,6 +34,19 @@ public struct Download: Sendable, Identifiable, Equatable {
 
     public var completedAt: Date?
 
+    /// How many times the bytes arrived and were not a publication this app could open.
+    ///
+    /// `offline-downloads`: "its integrity is verified before it is marked available
+    /// offline, and a failed verification re-queues it once". Counted separately from the
+    /// attempts on ``State/failed(reason:attempts:)`` because the two failures are not the
+    /// same event and do not get the same number of chances: a transfer that never arrived
+    /// is worth three tries, and a transfer that arrived corrupt is worth exactly one more
+    /// — the second identical result is the server's answer, not the network's.
+    ///
+    /// On the record rather than in the queue, so it survives the app being killed between
+    /// the first corrupt download and the second.
+    public var verificationFailures: Int
+
     public init(
         id: String,
         sourceID: UUID? = nil,
@@ -43,7 +56,8 @@ public struct Download: Sendable, Identifiable, Equatable {
         state: State = .queued,
         expectedBytes: Int64? = nil,
         downloadedBytes: Int64 = 0,
-        completedAt: Date? = nil
+        completedAt: Date? = nil,
+        verificationFailures: Int = 0
     ) {
         self.id = id
         self.sourceID = sourceID
@@ -54,6 +68,7 @@ public struct Download: Sendable, Identifiable, Equatable {
         self.expectedBytes = expectedBytes
         self.downloadedBytes = downloadedBytes
         self.completedAt = completedAt
+        self.verificationFailures = verificationFailures
     }
 
     /// Where a download is in its life.

@@ -21,7 +21,7 @@ public final class DownloadQueue {
     public internal(set) var library: DownloadLibrary
 
     /// The most recent failure, for a screen that wants to say something about it.
-    public private(set) var lastFailure: String?
+    public internal(set) var lastFailure: String?
 
     private let client: OpdsClient
     let store: DownloadStore?
@@ -39,7 +39,7 @@ public final class DownloadQueue {
     var running: [Download.ID: Task<Void, Never>] = [:]
 
     /// Callers waiting for a particular download to land, because they mean to open it.
-    private var waiting: [Download.ID: [CheckedContinuation<URL?, Never>]] = [:]
+    var waiting: [Download.ID: [CheckedContinuation<URL?, Never>]] = [:]
 
     /// How the app decides whether the connection is one to be careful with.
     let network = NetworkCost()
@@ -242,12 +242,20 @@ public final class DownloadQueue {
     }
 
     private func transfer(_ download: Download, seriesHint: String?) async {
-        var attempt = 0
         while !Task.isCancelled {
-            attempt += 1
             if let file = await one(download, seriesHint: seriesHint) {
                 running[download.id] = nil
                 finish(download.id, with: file)
+                pump()
+                return
+            }
+            // `offline-downloads`: "a failed verification re-queues it once". The bytes
+            // arrived and were not a book, so ``one(_:seriesHint:)`` put the download back
+            // in the queue rather than failing it. Left there for the pump to start again,
+            // and — the part that matters — nobody waiting to *read* it is told it failed,
+            // because it has not.
+            if library[download.id]?.state == .queued {
+                running[download.id] = nil
                 pump()
                 return
             }
@@ -285,80 +293,49 @@ public final class DownloadQueue {
             let temporary = try await transfers.download(request, named: download.id)
             return try await land(download, from: temporary, seriesHint: seriesHint)
         } catch let error as PublicationIndexer.IndexError {
-            // Not retryable. Fetching the same bytes again produces the same format.
-            let message = if case let .unsupported(format) = error {
-                String(
-                    format: String(localized: "catalogue.acquire.unsupported", bundle: .module, locale: .storyArc),
-                    format
+            // Indexing *is* the verification, so this is where `offline-downloads`' "a
+            // failed verification re-queues it once" is answered — and the two ways it can
+            // fail get different answers.
+            //
+            // **An unsupported format is not a failed verification.** The bytes are
+            // exactly what the server holds; the app simply has no decoder for them.
+            // Fetching them again produces the same format, so this is terminal and always
+            // was.
+            //
+            // **Unreadable bytes are a failed verification.** A truncated archive, a
+            // central directory that is not there, a file that stops mid-entry — the
+            // likeliest cause is the transfer rather than the publication, and one more
+            // fetch is the cheapest way to find out. Exactly one: a second identical
+            // result is the server's answer, and asking a third time is asking a question
+            // already answered twice.
+            if case let .unsupported(format) = error {
+                fail(
+                    download.id,
+                    reason: String(
+                        format: String(
+                            localized: "catalogue.acquire.unsupported",
+                            bundle: .module,
+                            locale: .storyArc
+                        ),
+                        format
+                    ),
+                    retryable: false
                 )
             } else {
-                String(localized: "catalogue.acquire.unreadable", bundle: .module, locale: .storyArc)
+                failVerification(
+                    download.id,
+                    reason: String(
+                        localized: "catalogue.acquire.unreadable",
+                        bundle: .module,
+                        locale: .storyArc
+                    )
+                )
             }
-            fail(download.id, reason: message, retryable: false)
         } catch let error as OpdsError {
             fail(download.id, reason: CatalogueMessages.describe(error), retryable: error.isTransient)
         } catch {
             fail(download.id, reason: CatalogueMessages.reachability(error))
         }
         return nil
-    }
-
-    /// Moves a finished transfer into the download store and records it.
-    ///
-    /// Shared by the ordinary path and by adoption: a transfer that outlived the caller
-    /// that asked for it has to end up in exactly the state one that did not would.
-    private func land(
-        _ download: Download,
-        from temporary: URL,
-        seriesHint: String? = nil
-    ) async throws -> URL {
-        guard let store else { throw CocoaError(.fileNoSuchFile) }
-        try store.prepare()
-        let file = store.location(of: download)
-        // The download's own folder, not just the store's: the id is a directory now.
-        try FileManager.default.createDirectory(
-            at: file.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        try? FileManager.default.removeItem(at: file)
-        try FileManager.default.moveItem(at: temporary, to: file)
-        // Indexing *is* the verification. `offline-downloads` requires integrity to be
-        // checked "before it is marked available offline", and with no checksum from the
-        // server the honest check is whether the bytes are a publication this app can
-        // open. A truncated archive fails here, not at the first page turn.
-        _ = try await PublicationIndexer.index(fileAt: file, catalogueSeries: seriesHint)
-        // The size comes from the file now rather than from a buffer, because the bytes
-        // never passed through one: the system wrote them straight to disk.
-        let written = Int64((try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-        library = library
-            .advancing(download.id, downloaded: written, expected: written)
-            .marking(download.id, as: .finished)
-        store.save(library)
-        return file
-    }
-
-    private func fail(_ id: Download.ID, reason: String, retryable: Bool = true) {
-        library = retryable
-            ? library.failing(id, reason: reason)
-            // Marked as though every attempt were spent, so the queue stops asking and the
-            // reader sees the reason rather than a spinner that returns twice more.
-            : library.marking(
-                id,
-                as: .failed(reason: reason, attempts: DownloadLibrary.attemptLimit)
-            )
-        if let store, let download = library[id] {
-            // The whole directory, not the one file: a stem this build did not choose is
-            // still this download's bytes, and leaving them is what made the storage total lie.
-            store.remove(download)
-        }
-        store?.save(library)
-        lastFailure = reason
-    }
-
-    /// Hands the result to whoever was waiting to read it.
-    private func finish(_ id: Download.ID, with file: URL?) {
-        for continuation in waiting.removeValue(forKey: id) ?? [] {
-            continuation.resume(returning: file)
-        }
     }
 }

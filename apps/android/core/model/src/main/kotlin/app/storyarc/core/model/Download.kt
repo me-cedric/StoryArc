@@ -38,6 +38,20 @@ data class Download(
     /** What is on disk now. */
     val downloadedBytes: Long = 0,
     val completedAt: Date? = null,
+    /**
+     * How many times the bytes arrived and were not a publication this app could open.
+     *
+     * `offline-downloads`: "its integrity is verified before it is marked available offline,
+     * and a failed verification re-queues it once". Counted separately from the attempts on
+     * [State.Failed] because the two failures are not the same event and do not get the same
+     * number of chances: a transfer that never arrived is worth three tries, and a transfer
+     * that arrived corrupt is worth exactly one more -- the second identical result is the
+     * server's answer, not the network's.
+     *
+     * On the record rather than in the queue, so it survives the process being killed
+     * between the first corrupt download and the second.
+     */
+    val verificationFailures: Int = 0,
 ) {
     /** Where a download is in its life. */
     sealed interface State {
@@ -262,9 +276,53 @@ data class DownloadLibrary(val downloads: List<Download> = emptyList()) {
         },
     )
 
+    /**
+     * Records that the bytes arrived and were not a publication, and decides what next.
+     *
+     * `offline-downloads`: "when a download completes ... its integrity is verified before
+     * it is marked available offline, and **a failed verification re-queues it once**".
+     * Once, and this is the whole of it: the first corrupt arrival goes back in the queue to
+     * be fetched again, because a truncated transfer is the likeliest cause and a second
+     * fetch is the cheapest way to find out. The second corrupt arrival is the server's
+     * answer rather than the network's, and the download is marked failed with the reason
+     * the reader can read.
+     *
+     * Separate from [failing] because the two failures are not the same event. That one
+     * counts transfers that never arrived and allows three; this counts arrivals that were
+     * not a book and allows one more. Sharing a counter would let three corrupt downloads be
+     * re-fetched, or a flaky network burn the verification's only second chance before the
+     * bytes ever landed.
+     */
+    fun failingVerification(id: String, reason: String): DownloadLibrary = copy(
+        downloads = downloads.map {
+            if (it.id != id) {
+                it
+            } else {
+                val failures = it.verificationFailures + 1
+                it.copy(
+                    verificationFailures = failures,
+                    state = if (failures <= VERIFICATION_LIMIT) {
+                        Download.State.Queued
+                    } else {
+                        // As though every transfer attempt were spent, so the queue stops
+                        // asking.
+                        Download.State.Failed(reason, ATTEMPT_LIMIT)
+                    },
+                )
+            }
+        },
+    )
+
     companion object {
         /** Three, from `offline-downloads`. */
         const val ATTEMPT_LIMIT = 3
+
+        /** One, from `offline-downloads`' "re-queues it once". */
+        const val VERIFICATION_LIMIT = 1
+
+        /** Whether a download whose bytes did not verify has its one re-queue left. */
+        fun shouldRequeueAfterVerification(download: Download): Boolean =
+            download.verificationFailures < VERIFICATION_LIMIT
 
         /** Whether a failed download has attempts left. */
         fun shouldRetry(download: Download): Boolean {

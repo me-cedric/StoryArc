@@ -290,6 +290,14 @@ private struct StoredDownload: Codable {
     let failure: String?
     let attempts: Int
 
+    /// `offline-downloads` allows a corrupt arrival exactly one re-fetch, so the count has
+    /// to outlive the process that made it — otherwise a download that was killed between
+    /// its two chances comes back with both of them.
+    ///
+    /// Optional on the way in, because a record written by a build before this field
+    /// existed has none, and `ignoreUnknownKeys` is not the same as a default.
+    let verificationFailures: Int?
+
     init(_ download: Download) {
         id = download.id
         sourceID = download.sourceID
@@ -299,6 +307,7 @@ private struct StoredDownload: Codable {
         expectedBytes = download.expectedBytes
         downloadedBytes = download.downloadedBytes
         completedAt = download.completedAt
+        verificationFailures = download.verificationFailures
         isFinished = download.state.isFinished
         if case let .failed(reason, count) = download.state {
             failure = reason
@@ -319,7 +328,8 @@ private struct StoredDownload: Codable {
             state: state,
             expectedBytes: expectedBytes,
             downloadedBytes: downloadedBytes,
-            completedAt: completedAt
+            completedAt: completedAt,
+            verificationFailures: verificationFailures ?? 0
         )
     }
 

@@ -324,6 +324,17 @@ class DownloadQueue(
                 return
             }
             val current = _library.value[download.id] ?: break
+            // `offline-downloads`: "a failed verification re-queues it once". The bytes
+            // arrived and were not a book, so [attempt] put the download back in the queue
+            // rather than failing it. Left there for the pump to start again, and -- the
+            // part that matters -- nobody waiting to *read* it is told it failed, because
+            // it has not.
+            if (current.state == Download.State.Queued) {
+                running.remove(download.id)
+                follow()
+                pump()
+                return
+            }
             val failed = current.state as? Download.State.Failed ?: break
             if (!DownloadLibrary.shouldRetry(current)) break
             delay(DownloadLibrary.backoffMillis(failed.attempts))
@@ -354,19 +365,35 @@ class DownloadQueue(
         store.save(_library.value)
         file
     } catch (error: IndexException) {
-        // Not retryable. Fetching the same bytes again produces the same format.
+        // Indexing *is* the verification, so this is where `offline-downloads`' "a failed
+        // verification re-queues it once" is answered -- and the two ways it can fail get
+        // different answers.
+        //
+        // **An unsupported format is not a failed verification.** The bytes are exactly
+        // what the server holds; the app simply has no decoder for them. Fetching them
+        // again produces the same format, so this is terminal and always was.
+        //
+        // **Unreadable bytes are a failed verification.** A truncated archive, a central
+        // directory that is not there, a file that stops mid-entry -- the likeliest cause is
+        // the transfer rather than the publication, and one more fetch is the cheapest way
+        // to find out. Exactly one: a second identical result is the server's answer, and
+        // asking a third time is asking a question already answered twice.
         //
         // Its own branch because `IndexException` extends `Exception` rather than
         // `IOException`: without it a truncated archive threw straight out of this
         // coroutine, and the scope it runs in has a `SupervisorJob` and no handler, so a
         // failed verification took the app down instead of marking the download failed.
-        val reason = when (error) {
-            is IndexException.Unsupported ->
-                context.getString(R.string.catalogue_acquire_unsupported, error.format)
-            is IndexException.Unreadable ->
-                context.getString(R.string.catalogue_acquire_unreadable)
+        when (error) {
+            is IndexException.Unsupported -> fail(
+                download.id,
+                context.getString(R.string.catalogue_acquire_unsupported, error.format),
+                retryable = false,
+            )
+            is IndexException.Unreadable -> failVerification(
+                download.id,
+                context.getString(R.string.catalogue_acquire_unreadable),
+            )
         }
-        fail(download.id, reason, retryable = false)
         null
     } catch (error: OpdsError) {
         fail(download.id, CatalogueMessages.describe(context, error), error.isTransient)
@@ -374,6 +401,21 @@ class DownloadQueue(
     } catch (error: IOException) {
         fail(download.id, CatalogueMessages.reachability(context, error))
         null
+    }
+
+    /**
+     * Records that the bytes arrived and were not a publication.
+     *
+     * The corrupt file goes either way. On the re-queue it has to, because the next attempt
+     * writes to the same path and half a comic left there is what the storage total would
+     * count; on the second failure it has to for the same reason [fail] has always removed
+     * it. [DownloadLibrary.failingVerification] decides which of the two this is, and that
+     * rule is asserted rather than living here.
+     */
+    private fun failVerification(id: String, reason: String) {
+        _library.value = _library.value.failingVerification(id, reason)
+        _library.value[id]?.let { download -> store?.remove(download) }
+        store?.save(_library.value)
     }
 
     private fun fail(id: String, reason: String, retryable: Boolean = true) {

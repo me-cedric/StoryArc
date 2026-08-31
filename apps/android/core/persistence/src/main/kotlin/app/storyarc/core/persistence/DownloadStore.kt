@@ -235,6 +235,14 @@ private data class StoredDownload(
     val isFinished: Boolean,
     val failure: String?,
     val attempts: Int,
+    /**
+     * `offline-downloads` allows a corrupt arrival exactly one re-fetch, so the count has to
+     * outlive the process that made it -- otherwise a download killed between its two chances
+     * comes back with both of them.
+     *
+     * Defaulted, because a record written by a build before this field existed has none.
+     */
+    val verificationFailures: Int = 0,
 ) {
     constructor(download: Download) : this(
         id = download.id,
@@ -248,6 +256,7 @@ private data class StoredDownload(
         isFinished = download.state.isFinished,
         failure = (download.state as? Download.State.Failed)?.reason,
         attempts = (download.state as? Download.State.Failed)?.attempts ?: 0,
+        verificationFailures = download.verificationFailures,
     )
 
     fun download(): Download = Download(
@@ -264,5 +273,6 @@ private data class StoredDownload(
         expectedBytes = expectedBytes,
         downloadedBytes = downloadedBytes,
         completedAt = completedAt?.let(::Date),
+        verificationFailures = verificationFailures,
     )
 }
