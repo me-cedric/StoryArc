@@ -8608,6 +8608,36 @@
         }
       }
     },
+    "smb.cannotOpen": {
+      "comment": "Shown in the share browser when a publication that has just been fetched turns out to be one no decoder will open — a solid RAR4. The transfer changed nothing, and the sentence says so rather than sending the reader to a reader that cannot render page one.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc kann diese Datei nicht öffnen, hier so wenig wie irgendwo sonst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc cannot open this file, here or anywhere else."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc no puede abrir este archivo, ni aquí ni en ningún otro sitio."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc ne peut pas ouvrir ce fichier, ni ici ni ailleurs."
+          }
+        }
+      }
+    },
     "smb.connect": {
       "extractionState": "manual",
       "localizations": {
@@ -8633,6 +8663,65 @@
           "stringUnit": {
             "state": "translated",
             "value": "Se connecter"
+          }
+        }
+      }
+    },
+    "smb.downloadFirst.body %@ %@": {
+      "comment": "The share browser, before a publication that cannot be read a page at a time is transferred. First the publication's name, then its size as the share stated it.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%1$@“ lässt sich nicht Seite für Seite lesen. Erst muss die ganze Datei herüberkommen — %2$@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” cannot be read a page at a time. The whole file has to come across first — %2$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%1$@» no se puede leer página a página. Primero tiene que llegar el archivo completo: %2$@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %1$@ » ne se lit pas page par page. Le fichier entier doit d’abord être transféré — %2$@."
+          }
+        }
+      }
+    },
+    "smb.downloadFirst.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zuerst herunterladen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download it first?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Descargarla primero?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La télécharger d’abord ?"
           }
         }
       }
