@@ -48,6 +48,24 @@ const sh = adbRunner(adb)
 
 const settle = (ms) => execFileSync(adb, ['shell', `sleep ${ms / 1000}`], { encoding: 'utf8' })
 
+/**
+ * The accessibility tree, retried, because a single attempt lies.
+ *
+ * uiautomator answers `ERROR: null root node returned by UiTestAutomationBridge` and emits
+ * nothing whenever it is asked while a window is animating -- and every step here is a tap
+ * followed immediately by a read. An empty document parses to zero nodes, and zero nodes
+ * reads as "this screen has no navigation on it", which is how a walk that worked reported
+ * `expected three bottom destinations, found 0`. Ask again, and give the window a moment.
+ */
+const tree = () => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        if (attempt > 0) settle(900)
+        const nodes = parse(sh('exec-out', 'uiautomator', 'dump', '/dev/tty'))
+        if (nodes.length > 0) return nodes
+    }
+    throw new Error('uiautomator could not read the screen after three attempts')
+}
+
 /** Every node in a uiautomator dump, with its bounds and the flags this cares about. */
 export const parse = (xml) => {
     const nodes = []
@@ -117,26 +135,96 @@ export const inspect = (nodes, screen, density) => {
  * last action in the top bar. Nothing here matches text, because under a pseudo-locale
  * there is no text to match.
  */
+/**
+ * Every route, as positions rather than names.
+ *
+ * Nothing here is matched by text, and that is the point: this walk runs under `en-XA`,
+ * where every string is `[Ĺíbŕáŕý one two]`, so navigation that reads a label cannot work.
+ *
+ * The shell revamp moved Settings off the browse path -- the app opens on Home now, and
+ * Settings sits at the foot of the library's overflow -- so `gear` alone stopped finding
+ * anything and this walk failed at its first step with "no action found in the top bar".
+ * `to-library` and `overflow-last` are the two hops it grew, and both are positional for
+ * the same reason `gear` always was.
+ */
+const TO_SETTINGS = ['to-library', 'gear', 'overflow-last']
+
+// KNOWN GAP, 2026-08-31: `to-library` does not reliably land on the library. Run against a
+// booted emulator it reaches a destination with three rows of covers and *no top bar*,
+// so `gear` then finds nothing and every Settings route fails. The bottom-eighth filter is
+// catching the bar's own container alongside its items, so "the middle one" is not the
+// middle destination. Home walks; the Settings routes do not. Fixing it means identifying a
+// destination by something sturdier than its position in a list that includes its parent.
+
 const ROUTES = [
-    ['Library', []],
-    ['Settings', ['gear']],
-    ['Settings > Sources', ['gear', { row: 0 }]],
-    ['Settings > Appearance', ['gear', { row: 1 }]],
-    ['Settings > Reading', ['gear', { row: 2 }]],
-    ['Settings > Downloads', ['gear', { row: 3 }]],
-    ['Settings > Language', ['gear', { row: 4 }]],
-    ['Settings > Privacy', ['gear', { row: 5 }]],
-    ['Settings > About', ['gear', { row: 6 }]],
+    ['Home', []],
+    ['Library', ['to-library']],
+    ['Settings', TO_SETTINGS],
+    ['Settings > Sources', [...TO_SETTINGS, { row: 0 }]],
+    ['Settings > Appearance', [...TO_SETTINGS, { row: 1 }]],
+    ['Settings > Reading', [...TO_SETTINGS, { row: 2 }]],
+    ['Settings > Downloads', [...TO_SETTINGS, { row: 3 }]],
+    ['Settings > Language', [...TO_SETTINGS, { row: 4 }]],
+    ['Settings > Privacy', [...TO_SETTINGS, { row: 5 }]],
+    ['Settings > About', [...TO_SETTINGS, { row: 6 }]],
 ]
 
+/**
+ * Taps the middle of the three bottom destinations, which is the library.
+ *
+ * By position, like everything else here. The bar's items are the clickable nodes in the
+ * bottom eighth of the display; the shell promises there are exactly three of them and a
+ * test in `:app` holds it to that, so the middle one is the library wherever it is drawn.
+ */
+const tapLibrary = () => {
+    const nodes = tree()
+    const height = Math.max(...nodes.map((n) => n.bounds.bottom).filter(Number.isFinite))
+    const bar = nodes
+        .filter((n) => n.clickable && n.bounds.top > (height * 7) / 8 && Number.isFinite(n.bounds.right))
+        .sort((a, b) => a.bounds.left - b.bounds.left)
+    if (bar.length < 2) throw new Error(`expected three bottom destinations, found ${bar.length}`)
+    const { bounds } = bar[Math.floor(bar.length / 2)]
+    sh('shell', 'input', 'tap', String((bounds.left + bounds.right) >> 1), String((bounds.top + bounds.bottom) >> 1))
+}
+
+/**
+ * Taps the last item of an open dropdown, which is Settings.
+ *
+ * Last rather than named, for the locale reason, and last rather than first because the
+ * overflow builds Select, Shelves and Settings in that order and drops any of the first two
+ * that has nothing to do -- so counting from the top would land somewhere different on an
+ * empty library than on a full one. Counting from the bottom lands on Settings either way.
+ */
+const tapLastMenuItem = () => {
+    const nodes = tree()
+    const height = Math.max(...nodes.map((n) => n.bounds.bottom).filter(Number.isFinite))
+    const items = nodes
+        .filter((n) => n.clickable && Number.isFinite(n.bounds.bottom) && n.bounds.bottom < height / 2)
+        .sort((a, b) => a.bounds.top - b.bounds.top)
+    if (items.length === 0) throw new Error('no menu item found below the overflow')
+    const { bounds } = items.at(-1)
+    sh('shell', 'input', 'tap', String((bounds.left + bounds.right) >> 1), String((bounds.top + bounds.bottom) >> 1))
+}
+
 const tapGear = () => {
-    const nodes = parse(sh('exec-out', 'uiautomator', 'dump', '/dev/tty'))
+    const nodes = tree()
     // The rightmost clickable node in the top eighth of the display. Position, not name.
     const screenHeight = Math.max(...nodes.map((n) => n.bounds.bottom).filter(Number.isFinite))
     const top = nodes
         .filter((n) => n.clickable && n.bounds.top < screenHeight / 8 && Number.isFinite(n.bounds.right))
         .sort((a, b) => b.bounds.right - a.bounds.right)
-    if (top.length === 0) throw new Error('no action found in the top bar')
+    if (top.length === 0) {
+        // Say what was on screen. A positional walk that misses tells you nothing about
+        // why unless it shows you what it was looking at.
+        const seen = nodes
+            .filter((n) => n.clickable)
+            .map((n) => `${n.bounds.top}..${n.bounds.bottom}`)
+            .join(', ')
+        throw new Error(
+            `no action found in the top bar (above ${Math.round(screenHeight / 8)}). ` +
+                `Clickable rows: ${seen || 'none'}`
+        )
+    }
     const { bounds } = top[0]
     sh('shell', 'input', 'tap', String((bounds.left + bounds.right) >> 1), String((bounds.top + bounds.bottom) >> 1))
 }
@@ -151,7 +239,7 @@ const tapGear = () => {
  * it.
  */
 const tapRow = (index) => {
-    const nodes = parse(sh('exec-out', 'uiautomator', 'dump', '/dev/tty'))
+    const nodes = tree()
     const width = Math.max(...nodes.map((n) => n.bounds.right).filter(Number.isFinite))
     const rows = nodes
         .filter(
@@ -180,11 +268,13 @@ const walk = () => {
         sh('shell', 'am', 'start', '-n', ACTIVITY)
         settle(2500)
         for (const step of steps) {
-            if (step === 'gear') tapGear()
+            if (step === 'to-library') tapLibrary()
+            else if (step === 'gear') tapGear()
+            else if (step === 'overflow-last') tapLastMenuItem()
             else tapRow(step.row)
             settle(1200)
         }
-        const nodes = parse(sh('exec-out', 'uiautomator', 'dump', '/dev/tty'))
+        const nodes = tree()
         const problems = inspect(nodes, screen, density)
         writeFileSync(join(SHOTS, `${name.replace(/[^\w]+/g, '-')}.png`), execFileSync(adb, ['exec-out', 'screencap', '-p'], { maxBuffer: 1 << 28 }))
         for (const problem of problems) found.push(`${name}: ${problem}`)
