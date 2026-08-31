@@ -38,8 +38,16 @@ public final class EpubReaderModel {
     /// depends on the type size, so there is no page number to present.
     public internal(set) var progression: Double = 0
 
-    /// The chapter the reader is in, for the chrome to name.
+    /// The chapter the reader is in, for the menu to name.
     public internal(set) var chapterTitle: String?
+
+    /// How far through the current chapter, 0…1, or `nil` where Readium has not said.
+    ///
+    /// `ebook-reader` asks the progress line for "how much of the current chapter is left",
+    /// and this is the only quantity a reflowable renderer can answer that with — it is
+    /// within-*resource*, which is what a chapter is in an EPUB's reading order.
+    /// ``ReadingPositionLine`` turns it into words.
+    public internal(set) var withinChapter: Double?
 
     /// Which preset is on and which axes have been moved from it.
     public internal(set) var theme: ReadingTheme

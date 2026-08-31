@@ -143,6 +143,17 @@ class EpubReaderViewModel(
     val chapterTitle: StateFlow<String?> = _chapterTitle.asStateFlow()
 
     /**
+     * How far through the current chapter, 0…1, or null where Readium has not said.
+     *
+     * `ebook-reader` asks the progress line for "how much of the current chapter is left",
+     * and this is the only quantity a reflowable renderer can answer that with — it is
+     * within-*resource*, which is what a chapter is in an EPUB's reading order.
+     * [ReadingPositionLine] turns it into words.
+     */
+    private val _withinChapter = MutableStateFlow<Double?>(null)
+    val withinChapter: StateFlow<Double?> = _withinChapter.asStateFlow()
+
+    /**
      * The publication's own navigation, or null until the publication is open.
      *
      * Null and empty are different answers. Empty means the publication declares no
@@ -439,6 +450,7 @@ class EpubReaderViewModel(
         scope.launch {
             locators.collect { locator ->
                 _chapterTitle.value = locator.title
+                _withinChapter.value = locator.locations.progression
                 _currentResource.value = locator.href.removeFragment()
                 val total = totalProgressionOf(locator)
                 _progression.value = total

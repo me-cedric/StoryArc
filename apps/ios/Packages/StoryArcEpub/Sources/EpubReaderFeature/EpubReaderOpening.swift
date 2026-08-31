@@ -249,6 +249,7 @@ extension EpubReaderModel {
         self.locator = locator
         progression = totalProgression(of: locator)
         chapterTitle = locator.title
+        withinChapter = locator.locations.progression
         await record(locator)
     }
 }

@@ -2,7 +2,11 @@
 <resources>
     <string name="epub_close">Fermer</string>
     <string name="epub_menu">Menu</string>
-    <string name="epub_progress_chapter">%1$d%% lus · %2$s</string>
+    <string name="reader_chapter_left_nearly_done">presque fini</string>
+    <string name="reader_chapter_left_less_than_half">moins de la moitié restante</string>
+    <string name="reader_chapter_left_about_half">environ la moitié restante</string>
+    <string name="reader_chapter_left_more_than_half">plus de la moitié restante</string>
+    <string name="reader_chapter_left_just_begun">à peine commencé</string>
     <string name="reader_menu_contents">Sommaire</string>
     <string name="reader_menu_bookmarks">Signets</string>
     <string name="reader_menu_search">Rechercher</string>

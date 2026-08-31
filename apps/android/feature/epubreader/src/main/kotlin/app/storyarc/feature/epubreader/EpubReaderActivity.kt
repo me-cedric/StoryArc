@@ -367,6 +367,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                 ) {
                     val progression by model.progression.collectAsStateWithLifecycle()
                     val chapter by model.chapterTitle.collectAsStateWithLifecycle()
+                    val withinChapter by model.withinChapter.collectAsStateWithLifecycle()
                     val failure by model.failure.collectAsStateWithLifecycle()
                     val isVisible by model.isChromeVisible.collectAsStateWithLifecycle()
                     val theme by model.theme.collectAsStateWithLifecycle()
@@ -535,6 +536,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                             facts = EpubMenuFacts(
                                 chapter = chapter,
                                 progression = progression,
+                                withinChapter = withinChapter,
                                 isPageBookmarked = isPageBookmarked,
                                 isContentsReady = contents != null,
                                 canReadAloud = canSpeak,

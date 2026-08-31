@@ -1,6 +1,7 @@
 package app.storyarc.feature.reader
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,19 +17,24 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.PageFit
 import app.storyarc.core.model.PageTransition
@@ -212,18 +218,46 @@ internal fun ReaderMenuSheet(
  * One row for *where am I* and *where else could I be*, because a reader asking the first
  * question is usually about to ask the second. `comic-reader` puts the position "in text on
  * that row", and the thumbnail browser is what the row opens.
+ *
+ * `comic-reader`, *Where the reader is, at a glance*: "the coarse position through the
+ * publication is drawn as a fill behind the menu's own contents row … the text is what
+ * conveys the position, so the fill may be absent without anything being lost".
+ *
+ * **The flat indicator, not the wavy one.** Material cautions that the wavy variant changes
+ * the component's height and "may not be as visible" at small sizes, and says linear
+ * indicators "shouldn't be used in any elements smaller than 40dp". A thin fill behind a list
+ * row is precisely that case. The wavy indicator stays where the height exists: downloads and
+ * imports.
+ *
+ * **Decorative to assistive technology.** The text above already states the page and the
+ * total. A page number announced twice is a page number announced wrong, so the indicator is
+ * cleared of semantics rather than labelled.
  */
 @Composable
 private fun ContentsRow(pageIndex: Int, pageCount: Int, onOpen: () -> Unit) {
-    ListItem(
-        supportingContent = {
-            Text(stringResource(R.string.reader_page, pageIndex + 1, pageCount))
-        },
-        leadingContent = {
-            Icon(imageVector = Icons.AutoMirrored.Filled.List, contentDescription = null)
-        },
-        modifier = Modifier.fillMaxWidth().clickableRow(onOpen),
-    ) { Text(stringResource(ReaderMenuEntry.CONTENTS.labelRes)) }
+    Box(Modifier.fillMaxWidth().clickableRow(onOpen)) {
+        LinearProgressIndicator(
+            // A single page is all the way through itself; anything else is where the reader
+            // has reached out of the turns available.
+            progress = {
+                if (pageCount > 1) pageIndex.toFloat() / (pageCount - 1) else 1f
+            },
+            color = LocalStoryArcPalette.current.accent.copy(alpha = 0.14f),
+            trackColor = Color.Transparent,
+            drawStopIndicator = {},
+            modifier = Modifier.matchParentSize().clearAndSetSemantics {},
+        )
+        ListItem(
+            supportingContent = {
+                Text(stringResource(R.string.reader_page, pageIndex + 1, pageCount))
+            },
+            leadingContent = {
+                Icon(imageVector = Icons.AutoMirrored.Filled.List, contentDescription = null)
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(stringResource(ReaderMenuEntry.CONTENTS.labelRes)) }
+    }
 }
 
 /**

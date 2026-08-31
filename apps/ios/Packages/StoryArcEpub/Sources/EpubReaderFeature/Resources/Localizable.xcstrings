@@ -1105,6 +1105,156 @@
         }
       }
     },
+    "reader.chapter.left.aboutHalfLeft": {
+      "comment": "How much of the current chapter is left, in words. Roughly half left.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "etwa die Hälfte übrig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "about half left"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "queda aproximadamente la mitad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "environ la moitié restante"
+          }
+        }
+      }
+    },
+    "reader.chapter.left.justBegun": {
+      "comment": "How much of the current chapter is left, in words. Nine tenths or more left.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gerade begonnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "just begun"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "apenas empezado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "à peine commencé"
+          }
+        }
+      }
+    },
+    "reader.chapter.left.lessThanHalfLeft": {
+      "comment": "How much of the current chapter is left, in words. Less than two fifths left.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "weniger als die Hälfte übrig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "less than half left"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "queda menos de la mitad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "moins de la moitié restante"
+          }
+        }
+      }
+    },
+    "reader.chapter.left.moreThanHalfLeft": {
+      "comment": "How much of the current chapter is left, in words. More than three fifths left.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mehr als die Hälfte übrig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "more than half left"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "queda más de la mitad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "plus de la moitié restante"
+          }
+        }
+      }
+    },
+    "reader.chapter.left.nearlyDone": {
+      "comment": "How much of the current chapter is left, in words. Nine tenths or more read.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fast fertig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nearly done"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "casi terminado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "presque fini"
+          }
+        }
+      }
+    },
     "reader.menu.bookmarks": {
       "comment": "The reader menu's row for the positions the reader marked.",
       "extractionState": "manual",

@@ -25,19 +25,19 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
 
 ## 2. Progress sized to the format
 
-- [ ] 2.1 Both: `ReaderProgressTests` / `ReaderProgressTest` — a reflowable
+- [x] 2.1 Both: `ReaderProgressTests` / `ReaderProgressTest` — a reflowable
       publication offers **no slider**, and one line stating progress and what is
       left of the chapter, in words.
-- [ ] 2.2 Both: a reflowable publication that declares no navigation states progress
+- [x] 2.2 Both: a reflowable publication that declares no navigation states progress
       alone and never falls back to a page count.
-- [ ] 2.3 Both: build the line on the menu's contents row.
-- [ ] 2.4 iOS: the coarse fill behind the row as a `Rectangle` in a `GeometryReader`.
-- [ ] 2.5 Android: the fill as a flat `LinearProgressIndicator`. Not the wavy one:
+- [x] 2.3 Both: build the line on the menu's contents row.
+- [x] 2.4 iOS: the coarse fill behind the row as a `Rectangle` in a `GeometryReader`.
+- [x] 2.5 Android: the fill as a flat `LinearProgressIndicator`. Not the wavy one:
       Material says linear indicators "shouldn't be used in any elements smaller
       than 40dp" and cautions the wavy variant is less visible small.
-- [ ] 2.6 Both: assert the fill is decorative to assistive technology and the text
+- [x] 2.6 Both: assert the fill is decorative to assistive technology and the text
       carries the meaning — a percentage announced twice is announced wrong.
-- [ ] 2.7 Both: a fixed-page publication keeps its slider, in the menu, with the
+- [x] 2.7 Both: a fixed-page publication keeps its slider, in the menu, with the
       thumbnail follow intact. Assert releasing dismisses the menu and offers the
       return-to-previous-position control.
 
