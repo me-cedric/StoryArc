@@ -11,8 +11,8 @@ apps/android/
 ├── gradle/libs.versions.toml    single source of dependency versions
 ├── app/                         application module: manifest, activity, launch theme
 ├── core/
-│   ├── designsystem/            theme, palette, typography, the cover-grid rule
-│   │                            + generated tokens
+│   ├── designsystem/            theme, palette, typography, the cover-grid rule,
+│   │                            the coverless well + generated tokens
 │   └── model/                   domain: sources, identity, progress, preferences
 └── feature/
     └── library/                 library screen, source presentation, strings
@@ -23,7 +23,7 @@ apps/android/
 | Module | Contains | Depends on |
 | --- | --- | --- |
 | `:core:model` | `Source`, `PublicationIdentity`, `ReadingProgress`, `ProgressMerge`, reader preferences. **No Compose.** | — |
-| `:core:designsystem` | `StoryArcTheme`, `StoryArcPalette`, typography, `tokens/StoryArcTokens.kt`, `grid/` — `rememberCoverColumns`, `coverMinimumWidth`, `coverMaximumWidth`, `COVER_MAXIMUM_WIDTH`, `steppedForFontScale`, `BoundedAdaptive` | Compose, Material 3 |
+| `:core:designsystem` | `StoryArcTheme`, `StoryArcPalette`, typography, `tokens/StoryArcTokens.kt`, `grid/` — `rememberCoverColumns`, `coverMinimumWidth`, `coverMaximumWidth`, `COVER_MAXIMUM_WIDTH`, `steppedForFontScale`, `BoundedAdaptive`, `cover/` — `CoverlessWell` | Compose, Material 3 |
 | `:feature:library` | `LibraryScreen`, empty state, source presentation, localised strings | `:core:designsystem`, `:core:model` |
 | `:app` | `MainActivity`, `StoryArcApplication`, manifest, launch theme | all of the above |
 
@@ -49,6 +49,24 @@ the library's list-view thumbnail. `design.md` §4 lists all eight in a table wi
 what each states. Home's own two runs are a third case again: they read the same
 accessibility step through `:core:designsystem`, but the Keep reading card keeps
 tiers of its own because it is a card, not a grid cell.
+
+**`cover/` is there for the same structural reason, and closed a worse defect.**
+`CoverlessWell` is what a cover-shaped cell draws when the publication has no
+artwork: the title as stand-in, and the format beneath it on a surface that names
+one. Four cells hold a `Publication` — the library shelf, the Downloads shelf,
+Home's cards and a publication page's series shelf — and only the first drew
+anything. The other three ended at `cover?.let { Image(…) }`, which has no else
+branch, so a publication with no cover was a bare `surfaceSunken` rectangle. The
+view was written inside `CoverGrid`'s private cell, so no other module could ask
+for it however much it should. `:app`'s `ShelvesDrawOneWellTest` names the four by
+path, checks each asks, and rejects the `?.let` shape that hid the omission.
+
+**Again, those four and not every cover.** Four further wells are deliberately
+different and `cover/CoverlessWell.kt` names each with its reason: a publication
+page's hero draws a book glyph and no title, because the page reads its title out
+of the app bar; and `CatalogueEntryCell`, `KavitaSeriesGrid` and
+`CatalogueDetailScreen` stand for an OPDS entry or a Kavita series rather than a
+`Publication`, so they have no format to name.
 
 Every module compiles with `allWarningsAsErrors`, and `:app` runs Lint with
 `warningsAsErrors`.

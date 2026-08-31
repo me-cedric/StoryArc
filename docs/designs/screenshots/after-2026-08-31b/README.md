@@ -42,13 +42,51 @@ A defect invisible to every automated check and obvious to anyone looking at the
 the case §6 of [`AGENTS.md`](../../../AGENTS.md) asks for a screenshot to catch. It went
 unnoticed until someone photographed the screen for an unrelated reason.
 
-## Still open on these screens
+## The Android half, closed — and it was larger than this note said
 
-The Android half of the same defect. `OnDeviceCover` in
-`apps/android/app/src/main/kotlin/app/storyarc/DownloadsParts.kt` has the identical empty
-box, and the library's `CoverCell` is private to `:feature:library` — so the fix is the same
-shape as the iOS one and was blocked on another change already moving code in that file.
-Recorded in [the delivery note](../../../delivery/remaining-work-2026-08-31.md).
+This section used to name one Android surface, `OnDeviceCover` in
+`apps/android/app/src/main/kotlin/app/storyarc/DownloadsParts.kt`, as the whole of the
+remaining work. It was three. Android has **four** cover-shaped cells holding a
+`Publication`, not iOS's three, and only the library's drew a well:
+
+| Surface | Before | Now |
+| --- | --- | --- |
+| `CoverGrid`'s cell — the library shelf | The well, written out inline. | Asks `CoverlessWell`. |
+| `OnDeviceCover` — the Downloads shelf | Empty rectangle. | The title, with the format beneath it, as the library shows them one destination away. |
+| `HomeCoverArt` — Home's hero and shelf cells | Empty rectangle. **Not named in this note.** | The title. No format: nothing on Home names one. |
+| `DetailSeriesCell` — a publication page's series shelf | Empty rectangle. **Not named in this note.** | The title. No format: the shelf's captions are the volume number and the read state. |
+
+`android-downloads-tablet-default-light.png` in this directory is the before picture, taken
+for an unrelated reason: five of the twenty-five cells fully on screen — `no-pages` and four
+of the six `rar4`/`rar5` fixtures — are bare `surfaceSunken` cream, near-indistinguishable
+from the page behind them, while every cell around them carries artwork.
+
+`android-home-default-light.png` is **not** a picture of the Home defect, and it is worth
+saying so because it looks like one. Its three cells are blue-grey where the Downloads
+capture's same publications are solid blue: that is cover art at `AWAY_ALPHA` 0.45, because
+all three read *Can't be opened right …*, not an empty well. No committed capture happens to
+show Home or a series shelf holding a coverless publication, which is a good part of why
+neither was noticed.
+
+The view lives in `:core:designsystem`'s new `cover/` package — public API, beside the `grid/`
+package `rememberCoverColumns` moved into the same afternoon, for the same structural reason:
+`CoverGrid`'s cell is private to `:feature:library`, so `:app` could not call it however much
+it should. One parameter, `format: String?`, is the only thing that genuinely differs between
+the four.
+
+Four further wells are deliberately untouched and named in `cover/CoverlessWell.kt`:
+`DetailHero`'s hero draws a book glyph and no title, because a publication page reads its
+title out of the app bar; and `CatalogueEntryCell`, `KavitaSeriesGrid` and
+`CatalogueDetailScreen` stand for an OPDS entry or a Kavita series rather than a
+`Publication`, so they have no format to name and hold three different text roles between
+them. Converting those changes what three remote-browsing screens look like and belongs with
+its own capture.
+
+**This still owes an Android after-picture.** The change is proven by
+`:feature:library`'s `CoverlessWellTest`, which composes Home's card with no artwork, and by
+`:app`'s `ShelvesDrawOneWellTest`, which reads all four call sites — but §6 of
+[`AGENTS.md`](../../../AGENTS.md) asks for a photograph of Downloads and Home from a booted
+emulator, light and dark, and that is not in this directory yet.
 
 ## The iOS mirror of Android's chip row, settled
 
