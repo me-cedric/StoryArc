@@ -43,33 +43,6 @@ internal data class ReaderAppearance(
     val useDynamicColor: Boolean,
     val linkedPreset: ThemePreset?,
 ) {
-    /**
-     * This book after a trip to Settings: [now]'s chrome, and the reading theme the book was
-     * opened with.
-     *
-     * The two halves have different lifetimes and that difference is the whole rule.
-     *
-     *  - [chrome] and [useDynamicColor] follow Settings for as long as the book is open,
-     *    because `settings-and-about` requires an appearance to apply "immediately across the
-     *    whole app without a restart" and a book is not outside the app. A reader who leaves
-     *    an open book, picks OLED Dark and comes back is the case *without a restart* names.
-     *  - [linkedPreset] stays where the book opened. The same spec's "Reader theme is
-     *    separate" scenario says the reading theme "is not overridden" when app appearance
-     *    changes, and by the time this is called the reader may have adopted a preset by hand
-     *    in the theme sheet -- which a freshly linked one would replace without being asked.
-     *    `EpubReaderViewModel` takes its linked preset once, at construction, so preserving
-     *    it here is what makes that true however late the first read happens.
-     *
-     * iOS arrives at the same split from the other side rather than by agreeing to it. Its
-     * reader is a `fullScreenCover` inside `StoryArcApp`'s own body, so
-     * `.storyArcTheme(appearance: settings.appearance)` re-evaluates the moment the picker
-     * moves and its chrome was never stale; `linkedPreset(for:in:)` is handed to
-     * `EpubReaderView`, which keeps it in a `State(initialValue:)` and so reads it once per
-     * book exactly as this does.
-     */
-    fun refreshingChrome(now: ReaderAppearance): ReaderAppearance =
-        now.copy(linkedPreset = linkedPreset)
-
     companion object {
         /**
          * @param settings what the reader chose, as the store gave it back.

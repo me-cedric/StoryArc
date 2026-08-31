@@ -14,7 +14,6 @@ import android.widget.FrameLayout
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -217,46 +216,40 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     }
 
     /**
-     * Settings › Appearance, read when the book opens and read again on the way back in.
+     * Settings › Appearance, read once when the book opens.
      *
      * One read of one store, resolved here because "System" is a question about the device
-     * and only something holding a `Context` can answer it. [ReaderAppearance] says which of
-     * its answers wants the reader's literal choice and which wants the resolved one.
+     * and only something holding a `Context` can answer it. [ReaderAppearance] says which
+     * of its answers wants the reader's literal choice and which wants the resolved one,
+     * and why the two differ.
      *
-     * A snapshot state behind a getter, because this is the app's one screen that is its own
-     * activity: a reader can leave an open book by the home button, change appearance in
-     * `MainActivity`, and come back to this one still alive. Nothing recreates it, so a value
-     * read once stays the scheme the book opened with until the book is closed -- and
-     * `settings-and-about` requires an appearance to apply "immediately across the whole app
-     * without a restart". Read through a state, the composition below recomposes the moment
-     * [onResume] refills it. Only the chrome half moves; the reasons are on
-     * [ReaderAppearance.refreshingChrome], and iOS's reader splits it the same way.
+     * **There is one route by which this goes stale, and it is not fixed here.** A reader
+     * can leave an open book by the home button, change appearance or the Material You
+     * opt-out in the other activity, and come back to this one still alive: nothing
+     * recreates it, so it draws the scheme it was built with until the book is closed and
+     * reopened. The same is true of the interface language in `attachBaseContext`, though
+     * for a harder reason: a language needs the activity rebuilt against it, which is why
+     * `MainActivity`'s only `recreate()` call fires on a language change and on nothing
+     * else. Colour needs no such thing. `MainActivity` keeps its settings in a
+     * `mutableStateOf` and `StoryArcTheme` simply recomposes; re-reading the store in
+     * `onResume` into a state this `ComposeView` reads would do the same here, with no
+     * recreation and no re-parse.
      *
-     * `SYSTEM` never went stale by this route: it is the one value the theme keeps asking
-     * about, because `StoryArcTheme` reads the device's own night mode from inside the
-     * composition -- so a device that flips theme mid-chapter carries the reader with it.
+     * So this is a gap and not a trade between two evils. What is not free is doing it to
+     * the whole of [ReaderAppearance]: [linkedPreset] is handed to the view model when the
+     * book opens, and refreshing that mid-book would push a reading theme over one the
+     * reader may have picked by hand in the theme sheet since. Refreshing the chrome alone
+     * is the smaller, separable change, and it wants an emulator to judge -- which is where
+     * this stops rather than guessing at it.
+     *
+     * `SYSTEM` is exempt from that staleness, because it is the one value the theme keeps
+     * asking about: `StoryArcTheme` reads the device's own night mode from inside the
+     * composition, so a device that flips theme mid-chapter still takes the reader's chrome
+     * with it.
      */
-    private val appearance: ReaderAppearance get() = readerAppearance.value
-
-    /** Holds [appearance]. Lazy: an initialiser runs before this activity has a context. */
-    private val readerAppearance: MutableState<ReaderAppearance> by lazy {
-        mutableStateOf(storedAppearance())
-    }
-
-    /** Settings › Appearance as the store has it now. */
-    private fun storedAppearance(): ReaderAppearance {
+    private val appearance: ReaderAppearance by lazy {
         val settings = SettingsStore.open(applicationContext).settings()
-        return ReaderAppearance.of(settings, settings.appearance.resolved(resources.configuration))
-    }
-
-    /**
-     * The reader came back, possibly from the Appearance screen. Looking again is what this
-     * screen has instead of a picker writing into its state: the choice was made in another
-     * activity, and nothing here is told of it.
-     */
-    override fun onResume() {
-        super.onResume()
-        readerAppearance.value = readerAppearance.value.refreshingChrome(storedAppearance())
+        ReaderAppearance.of(settings, settings.appearance.resolved(resources.configuration))
     }
 
     private lateinit var container: FragmentContainerView
@@ -309,10 +302,9 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      *
      * Nothing recreates this activity on a language change, so a book left open across a trip
      * to Settings keeps the language it was opened in until it is closed and reopened. The
-     * colour scheme used to go the same way and no longer does -- [onResume] re-reads it --
-     * and the same fix cannot reach a language: a colour is a value the composition reads,
-     * while a language is applied here, once, against the context the activity was built on,
-     * so replacing one does need the activity rebuilt.
+     * colour scheme goes stale by that same route -- see the note on [appearance] -- but not
+     * for the same reason: a language is applied here, once, against a context the activity
+     * was built on, so ending this one does need the activity rebuilt.
      */
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase.speaking(newBase.chosenLanguage()))
@@ -362,10 +354,9 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             setContent {
                 // Read, not fixed. `settings-and-about`'s appearance is the reader's and it
                 // applies "across the whole app"; the Material You opt-out is
-                // `native-experience`'s and belongs to the same choice. Both come from
-                // `appearance`, which is a snapshot state -- so these two arguments follow a
-                // choice made while this book stayed open, and it carries why this one is the
-                // literal choice rather than the resolved one.
+                // `native-experience`'s and belongs to the same choice. Both come from the
+                // one read on `appearance`, which also carries why this one is the literal
+                // choice rather than the resolved one.
                 StoryArcTheme(
                     appearance = appearance.chrome,
                     useDynamicColor = appearance.useDynamicColor,
