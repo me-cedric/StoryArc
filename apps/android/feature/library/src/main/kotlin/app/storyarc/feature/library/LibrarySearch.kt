@@ -39,7 +39,16 @@ import kotlinx.coroutines.launch
  * a network in it, and deliberately has nothing else. iOS's `LibrarySearch` is the same
  * object.
  */
-internal class LibrarySearch(private val scope: CoroutineScope) {
+internal class LibrarySearch(
+    /**
+     * Where the fan-out runs.
+     *
+     * Named `coroutines` rather than `scope`, which is what it was called: on this screen
+     * *scope* is the reader's word for what the search covers, and [ask] now takes one. Two
+     * meanings of one word in one function is how the wrong one gets narrowed.
+     */
+    private val coroutines: CoroutineScope,
+) {
 
     private val _listing = MutableStateFlow(SearchListing.of(""))
 
@@ -61,6 +70,15 @@ internal class LibrarySearch(private val scope: CoroutineScope) {
         registry: SourceRegistry,
         credentials: CredentialStore?,
         pins: CertificatePins,
+        /**
+         * What the reader narrowed the question to.
+         *
+         * `library-browsing`: the screen "states whether it is searching everything or only
+         * what is on the device". Defaulted, so the shelf's and the browsers' own calls are
+         * unchanged — none of them has a scope control, and everything is what they have
+         * always asked. iOS defaults its own parameter for the same reason.
+         */
+        scope: LibraryAvailability = LibraryAvailability.EVERYTHING,
     ) {
         remote?.cancel()
         remote = null
@@ -71,18 +89,23 @@ internal class LibrarySearch(private val scope: CoroutineScope) {
             return
         }
 
-        val asked = registry.sources.filter(RemoteSearch::answers)
+        // **The scope decides who is asked, not only what is shown.** `library-browsing`:
+        // narrowing to the device "removes that notice, because nothing is then being waited
+        // for". A scope that filtered rows alone would leave this fan-out running and the
+        // could-not-answer notice up, so the reader who narrowed precisely to stop waiting
+        // would still be waiting.
+        val asked = scope.sourcesToAsk(registry)
         // Whether a row names its library is [SearchListing]'s own rule, decided from what
         // the device matched and who is being asked — not from the registry's count, which
         // answers a different question for the shelf.
         _listing.value = SearchListing.of(
             term = term,
-            local = FoundRow.held(groups, registry),
+            local = FoundRow.held(groups.narrowedTo(scope, registry), registry),
             asking = asked.map { it.id.toString() },
         )
 
         if (asked.isEmpty() || credentials == null) return
-        remote = scope.launch {
+        remote = coroutines.launch {
             // `library-browsing` asks for results that "update as they type, debounced". The
             // local half needs no debounce — it is a filter over a list in memory. This is
             // for the other half: a term typed at speed would otherwise put eight questions
@@ -121,7 +144,7 @@ internal class LibrarySearch(private val scope: CoroutineScope) {
         if (credentials == null) return
         val term = _listing.value.term
         _listing.value = _listing.value.askingAgain(sourceId)
-        scope.launch { ask(source, term, credentials, pins) }
+        coroutines.launch { ask(source, term, credentials, pins) }
     }
 
     /** One library asked, and its answer folded in — unless the reader has moved on. */

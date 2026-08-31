@@ -115,14 +115,19 @@ internal fun LibrarySearchEntry(
     // second piece of state, so a recent search chosen from the list runs exactly as if it
     // had been typed.
     //
-    // **Keyed on the term and nothing else, deliberately.** Keying on the local matches too
+    // **Not keyed on the local matches, deliberately.** Keying on them too
     // reads as the more correct thing and is the opposite: the index recomputes when a scan
     // ticks and when progress reloads, and each of those restarted the fan-out — throwing
     // away every remote answer that had already arrived, under a reader who had not touched
     // the keyboard. The local rows are a snapshot taken when the question is asked, which is
     // what iOS does as well.
-    LaunchedEffect(query.search) {
-        search.ask(query.search, groups, registry, credentials, pins)
+    //
+    // **Keyed on the scope as well**, because the scope decides who is asked and not only which
+    // rows survive: `library-browsing` says narrowing to the device "removes that notice,
+    // because nothing is then being waited for", and a fan-out already in flight has to be
+    // cancelled and re-asked for that to be true. `ask` cancels the previous one on the way in.
+    LaunchedEffect(query.search, searchScope) {
+        search.ask(query.search, groups, registry, credentials, pins, searchScope)
     }
 
     LibrarySearchBar(

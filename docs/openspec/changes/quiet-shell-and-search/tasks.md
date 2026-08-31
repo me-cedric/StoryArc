@@ -63,7 +63,11 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       five fixed views, which our source set is not.
 - [x] 2.11 Android: result rows as `ListItem(content =, leadingContent =)` with a
       transparent container; group by gap and `SegmentedListItem`, not dividers.
-- [ ] 2.12 Both: recent searches persist and clear. Assert the clear empties them and
+- [x] 2.12 Android: the scope chips reach the fan-out. `SearchScopeTest` — narrowing asks
+      nobody, drops what cannot be read with no network, empties no heading over it, and
+      leaves `waiting` and `silent` empty; `LibraryPreferencesTest` — the choice is written
+      down under its own key, not the shelf's. iOS's half landed with 2.3.
+- [ ] 2.12b Both: recent searches persist and clear. Assert the clear empties them and
       that reaching search does not itself record a query.
       **iOS done** — `RecentSearchMemoryTests`, mutation-checked by dropping the
       store write from `clearRecentSearches()`. **Android not done**: the same

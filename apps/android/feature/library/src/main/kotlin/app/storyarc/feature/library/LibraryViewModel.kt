@@ -159,6 +159,30 @@ class LibraryViewModel(
     val recentSearches: StateFlow<RecentSearches> = _recentSearches.asStateFlow()
 
     /**
+     * What the **search screen** is narrowed to.
+     *
+     * Held here rather than in `SearchScreen`'s own `rememberSaveable`, which is what carried
+     * it and is not what `library-browsing` asks for: the choice "persists until changed", and
+     * a launch is not a change. Saved state dies with the process, so a reader who narrowed to
+     * what is on the device came back to a search that had quietly widened itself.
+     *
+     * Its own key beside the shelf's axis, never the same one. `navigation-shell` promises a
+     * reader leaving search returns to the destination they were on "with its filters intact",
+     * and one shared key would have narrowing a search narrow the shelf they go back to. See
+     * [app.storyarc.core.persistence.LibraryPreferences.searchScope].
+     */
+    private val _searchScope =
+        MutableStateFlow(LibraryAvailability.named(preferences?.searchScope()))
+
+    val searchScope: StateFlow<LibraryAvailability> = _searchScope.asStateFlow()
+
+    fun setSearchScope(value: LibraryAvailability) {
+        if (value == _searchScope.value) return
+        _searchScope.value = value
+        preferences?.saveSearchScope(value.name)
+    }
+
+    /**
      * Grid or list. `library-browsing` requires both, and requires the choice to
      * persist per scope.
      */

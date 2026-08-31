@@ -8,10 +8,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,12 +60,16 @@ fun SearchScreen(
     // bar would track a scroll nothing tells it about, and the bar would never move.
     val scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
 
-    // `library-browsing` asks the scope to persist "until changed". `rememberSaveable` keeps it
-    // across a rotation and a process death, which is what a reader means by *until changed*
-    // within a session; the shelf's own axis is written to `LibraryPreferences` and this one
-    // deliberately is not, because narrowing a search must not narrow the shelf a reader goes
-    // back to. iOS keeps the two apart the same way, under a second `@AppStorage` key.
-    var scope by rememberSaveable { mutableStateOf(LibraryAvailability.EVERYTHING) }
+    // `library-browsing` asks the scope to persist "until changed", and a launch is not a
+    // change — so the model holds it and `LibraryPreferences` writes it down. This was a
+    // `rememberSaveable`, which dies with the process: a reader who narrowed to what is on the
+    // device came back to a search that had quietly widened itself.
+    //
+    // Its own preference key, never the shelf's. `navigation-shell` promises a reader leaving
+    // search returns to the destination they were on "with its filters intact", and one shared
+    // key would have narrowing a search on a train narrow the shelf they go back to. iOS keeps
+    // the two apart the same way, under a second `@AppStorage` key.
+    val scope by viewModel.searchScope.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -82,7 +82,7 @@ fun SearchScreen(
                 onOpenPage = onOpenPage,
                 onFollowToSource = onFollowToSource,
                 searchScope = scope,
-                onSearchScopeChange = { scope = it },
+                onSearchScopeChange = viewModel::setSearchScope,
                 scrollBehavior = scrollBehavior,
             )
         },

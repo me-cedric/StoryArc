@@ -223,6 +223,59 @@ class LibrarySearchBarTest {
         )
     }
 
+    /**
+     * The chips reach the fan-out rather than only being drawn.
+     *
+     * They were drawn, their state was carried through three composables, and **nothing read
+     * it**: `ask` filtered nothing and asked everyone whatever the reader had chosen. The
+     * arithmetic is asserted in [SearchScopeTest]; this is the wiring between the control and
+     * it, which no JVM test can compose its way to.
+     *
+     * Two halves, and both are needed. The scope has to be *passed*, and the effect has to be
+     * *keyed* on it — an unkeyed effect would leave a fan-out already in flight running, and
+     * `library-browsing` removes the could-not-answer notice "because nothing is then being
+     * waited for", which is only true once that fan-out is cancelled.
+     */
+    @Test
+    fun `the scope chips reach the search that runs`() {
+        assertTrue(
+            "The scope is not passed to LibrarySearch.ask, so the chips narrow nothing.",
+            source.contains("search.ask(query.search, groups, registry, credentials, pins, searchScope)"),
+        )
+        assertTrue(
+            "The effect that asks is not keyed on the scope, so changing it re-asks nothing.",
+            source.contains("LaunchedEffect(query.search, searchScope)"),
+        )
+    }
+
+    /**
+     * The screen's scope outlives the process, and is not the shelf's.
+     *
+     * `library-browsing` asks the choice to persist "until changed", and a launch is not a
+     * change. This was a `rememberSaveable`, which dies with the process. The store keeps the
+     * two axes under separate keys — asserted in `:core:persistence`'s own suite — and this is
+     * what says the screen still reaches for the search one.
+     */
+    @Test
+    fun `the scope is the model's, written down, and not remembered in the composition`() {
+        assertTrue(
+            "The screen does not read the model's search scope.",
+            screen.contains("viewModel.searchScope"),
+        )
+        assertTrue(
+            "Changing the chips does not reach the model, so nothing is written down.",
+            screen.contains("viewModel::setSearchScope"),
+        )
+        assertFalse(
+            "The scope is remembered in the composition again. rememberSaveable dies with the" +
+                " process, and `until changed` outlives one.",
+            // The call form, not the word: the comment above the line explains what was there
+            // before and why it went, and a bare substring match would be tripped by its own
+            // explanation.
+            Regex("""rememberSaveable\s*[({]""").containsMatchIn(screen),
+        )
+    }
+
     private companion object {
         /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
         const val MODULE_DIRECTORY = "storyarc.library.projectDir"

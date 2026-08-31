@@ -119,6 +119,26 @@ class LibraryPreferencesTest {
         // Two defaults for one choice is how the two platforms end up disagreeing.
         assertNull(preferences.availability())
         assertNull(preferences.downloadFilter())
+        assertNull(preferences.searchScope())
+    }
+
+    @Test
+    fun `the search scope comes back on the next launch, and is not the shelf's`() {
+        val preferences = fresh()
+
+        // `library-browsing` asks the search choice to persist "until changed" in its own
+        // right, and `navigation-shell` promises a reader leaving search returns to the
+        // destination they were on "with its scroll position and filters intact". One shared
+        // key would have narrowing a search on a train silently narrow the shelf they go back
+        // to, which is a filter they never set and would have to find to undo. iOS keeps the
+        // two apart under a second `@AppStorage` key for the same two sentences.
+        preferences.saveSearchScope("ON_THIS_DEVICE")
+
+        assertEquals("ON_THIS_DEVICE", preferences.searchScope())
+        assertNull(preferences.availability())
+
+        preferences.saveAvailability("EVERYTHING")
+        assertEquals("ON_THIS_DEVICE", preferences.searchScope())
     }
 
     @Test

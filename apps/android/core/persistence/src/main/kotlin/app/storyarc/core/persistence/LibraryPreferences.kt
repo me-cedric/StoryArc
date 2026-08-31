@@ -48,6 +48,7 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
         private const val LAYOUT = "layout"
         private const val RECENT_SEARCHES = "recentSearches"
         private const val AVAILABILITY = "availability"
+        private const val SEARCH_SCOPE = "searchScope"
         private const val DOWNLOAD_FILTER = "downloadFilter"
 
         /**
@@ -170,6 +171,27 @@ class LibraryPreferences(private val preferences: SharedPreferences) {
 
     fun saveAvailability(choice: String) {
         preferences.edit().putString(AVAILABILITY, choice).apply()
+    }
+
+    /**
+     * What the **search screen** is narrowed to, by name, or `null` when the reader never
+     * chose.
+     *
+     * A second key rather than [availability]'s, because the two are the same question asked
+     * about different screens. `navigation-shell` promises a reader leaving search "return to
+     * the destination they were on, with its scroll position and filters intact" — and a
+     * shared key would have narrowing a search on a train silently narrow the shelf they go
+     * back to, which is a filter they never set and would have to find to undo.
+     *
+     * `library-browsing` asks the search choice to persist "until changed" in its own right,
+     * so it needs somewhere of its own to persist to. `rememberSaveable` is not that: it dies
+     * with the process, and a launch is not a change. iOS reaches the identical arrangement
+     * from the other side, under `LibraryAvailability.searchScopeKey`.
+     */
+    fun searchScope(): String? = preferences.getString(SEARCH_SCOPE, null)
+
+    fun saveSearchScope(choice: String) {
+        preferences.edit().putString(SEARCH_SCOPE, choice).apply()
     }
 
     /**
