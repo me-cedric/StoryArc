@@ -64,6 +64,37 @@ end to end against `pnpm opds` — the app connects, names the catalogue, and is
 
 ---
 
+## 0c. Thirteen defects a task-list reconciliation found on the way past
+
+Found while re-deciding all 48 tasks of `one-library-three-destinations` and
+`publication-detail` against the source. None was in that agent's remit to fix; all are
+recorded with evidence so nobody has to find them twice. Roughly in order of what a reader
+would notice.
+
+| # | Defect | Where |
+| --- | --- | --- |
+| 1 | **iOS: *Clear filters* cannot clear the by-library narrowing.** `ScopeMenu` writes `query.scope`; `activeFilterCount` excludes it and `withoutFilters()` leaves it — so a reader can be left looking at one source's shelf with nothing offering to undo it. `library-browsing` forbids that in as many words: "there is no state a reader can be left in without noticing". Android has the right shape. | `ScopeMenu.swift:127-144`, `LibraryQuery.swift:126-136,155-166` |
+| 2 | **iOS: dimming reaches only the sectioned shelf.** Its sole call site is gated on a grid of more than twelve items, so a short library shows unreachable publications undimmed, and `CoverList` has neither the dim nor the on-device mark. The fact also rides an `accessibilityHint` rather than the label. Android is complete on both layouts. | `SectionedShelf.swift:97`, `CoverList.swift` |
+| 3 | **Android: a remote publication that is not downloaded can never have a cover**, so its page is permanently washless — both cover pipelines bottom out on a location written only when bytes are on the device. | both platforms' cover pipelines |
+| 4 | **Android: `detail_action_refused` is unreachable.** It is produced only inside `if (press != null)`, and `press` is null exactly when the action is `REFUSED`. Four locales carry a string nothing can render. | `PublicationDetailScreen.kt` |
+| 5 | **Android: a `NEEDS_DOWNLOAD` publication shows two controls for one action** — the primary and an overflow item. iOS forbids it by construction. | `PublicationDetailScreen.kt:339,408-416` |
+| 6 | **Android: the detail pane draws an unconditional back arrow** with the list permanently beside it. Material's own `ListDetailPaneScaffold` hides it when both panes are visible; this pane is hand-composed. | `PublicationDetailScreen.kt:153-159` |
+| 7 | **`PredictiveBackHost` has zero call sites.** Nothing in the app animates a predictive back, which is why `publication-detail` task 4.2 cannot close. | `PredictiveBack.kt:105` |
+| 8 | **iOS's cover wash arrives as a hard cut** — no animation anywhere in the `Detail*.swift` files, where Android crossfades. That is the visible flash task 0.1 forbids. | `Detail*.swift` |
+| 9 | **Provenance diverges on the same file.** A comic in a picked folder reads *"On this device"* on Android and *"From ‹folder›"* on iOS. Same reader, same file, two sentences. | both platforms' provenance |
+| 10 | **Android: neither the availability scope nor the download facet survives a cold start**, where iOS persists both. Closing it needs `core/persistence`. | `LibraryScreen.kt:188,198` |
+| 11 | **Experimental Material 3 opt-ins have spread to four modules** while the file that centralises them still claims to be "the one place". An alpha bump is now a four-module fix. | `Panes.kt:17` |
+| 12 | **iOS: `OnDeviceEmpty` is unreachable** since the Downloads destination replaced the on-device library surface, and the space total can read "Zero KB" under a full shelf. | `LibraryContent.swift:132-137` |
+| 13 | **Nothing counts a line.** `pnpm lint` runs ten checks and none is a line-count gate, which is how five Kotlin files got over the 800-line cap without anyone noticing. The largest is **`ReaderScreen.kt` at 1893**, not `LibraryViewModel.kt` as earlier notes claimed. Swift is clean by exactly one line: its largest file is 400. | `package.json` |
+
+**A spec amendment is owed before `/opsx:sync`.** `reading-progress`'s *Continue from the
+library* ("opens at the stored position without an intermediate screen") and *Restart
+deliberately* ("the library opens a publication when its cover is tapped") both now
+contradict the shipped app, and the `publication-detail` change declares no
+`reading-progress` delta. There is a banner on that change's task list saying so.
+
+---
+
 ## 1. The single largest gap: a whole screen nobody can reach
 
 The publication page — hero, cover-derived wash, title block, primary action, overflow,
