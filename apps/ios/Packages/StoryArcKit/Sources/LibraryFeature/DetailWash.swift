@@ -30,6 +30,27 @@ struct DetailWash: Equatable, Sendable {
     /// How much of the canvas it takes, at the wash's strongest point.
     let strength: Double
 
+    /// How much of the tint the page actually draws.
+    ///
+    /// Three answers rather than two, and the third is why this is a named rule and not a
+    /// condition in a view body: **the page is composed before its cover is decoded.** A
+    /// publication's page renders with `nil` here, the cover lands, the wash is computed, and
+    /// the value changes under a screen the reader is already looking at. That transition is
+    /// what `publication-detail` task 0.1 requires to happen "with no visible flash", and a
+    /// `Double` the view can animate is the only shape in which the requirement is expressible
+    /// — a wash held in an `if let` has nothing to interpolate between.
+    ///
+    /// Zero for a cover with no colour to give, which is the ordinary manga case, and zero
+    /// again when the system has asked for a plain surface. **Replaced, not softened**: the
+    /// delta says so in as many words, and softening a wash is how a screen ends up marginally
+    /// below the floor instead of clearly above it.
+    ///
+    /// - Parameter isPlain: whether increased contrast or reduced transparency is on.
+    static func drawn(_ wash: DetailWash?, isPlain: Bool) -> Double {
+        guard let wash, !isPlain else { return 0 }
+        return wash.strength
+    }
+
     /// The most of the cover a page will ever show.
     ///
     /// Enough that the screen reads as belonging to the book, and far short of the point

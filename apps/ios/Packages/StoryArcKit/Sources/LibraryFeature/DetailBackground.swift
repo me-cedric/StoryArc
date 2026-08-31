@@ -20,10 +20,18 @@ internal import StoryArcCore
 /// - **Increased contrast and reduced transparency replace it.** Not soften it. Softening a
 ///   wash is how a screen ends up marginally below the floor instead of clearly above it,
 ///   and a reader who asked for more contrast did not ask for a paler version of less.
+/// - **It arrives rather than appearing.** The page is composed before its cover is decoded —
+///   `PublicationDetailView` holds `nil` on the first frame for every publication, and for a
+///   remote one that has not been downloaded the cover never arrives at all. So the wash
+///   changes under a screen the reader is already looking at, and `publication-detail` task
+///   0.1 requires that to happen with **no visible flash**. It was a hard cut: nothing in any
+///   of the `Detail*.swift` files animated, while Android crossfaded the same change at
+///   `DetailHero.kt:94`.
 struct DetailBackground: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// `nil` for a cover with no colour to give, which is the ordinary manga case.
     let wash: DetailWash?
@@ -31,23 +39,41 @@ struct DetailBackground: View {
     var body: some View {
         ZStack {
             theme.palette.surfaceCanvas
-            if let wash, !isPlain {
-                LinearGradient(
-                    stops: [
-                        .init(color: Color(hex: wash.tint).opacity(wash.strength), location: 0),
-                        .init(color: Color(hex: wash.tint).opacity(wash.strength * 0.4), location: 0.35),
-                        .init(color: .clear, location: 0.75),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
+            // Always drawn, and faded by ``strength``, rather than held in an `if let`. A
+            // view that is inserted has nothing to interpolate from, which is the whole
+            // reason the arrival was a cut — and the arithmetic is unchanged, because an
+            // opacity on the layer multiplies through its stops exactly as the strength used
+            // to be baked into them. The one point that was contrast-checked is still the
+            // one that is drawn at full strength.
+            LinearGradient(
+                stops: [
+                    .init(color: tint, location: 0),
+                    .init(color: tint.opacity(0.4), location: 0.35),
+                    .init(color: .clear, location: 0.75),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .opacity(strength)
+            // The crossfade Android has had. `nil` for a reader who asked for less motion:
+            // a wash that snaps into place is still a legible page, and `native-experience`
+            // is explicit that reduced motion removes an animation rather than shortening it.
+            .animation(
+                reduceMotion ? nil : .easeInOut(duration: StoryArcDuration.normal),
+                value: strength
+            )
         }
         .ignoresSafeArea()
         // Decoration, and labelled as nothing. It carries no meaning and nothing on the
         // page depends on it to be found, which is the delta's own wording.
         .accessibilityHidden(true)
     }
+
+    /// How much wash this page draws right now. The rule is ``DetailWash/drawn(_:isPlain:)``.
+    private var strength: Double { DetailWash.drawn(wash, isPlain: isPlain) }
+
+    /// The colour it fades in, or a placeholder nothing ever sees at zero strength.
+    private var tint: Color { Color(hex: wash?.tint ?? "#000000") }
 
     /// Whether the system has asked for a plain surface instead.
     private var isPlain: Bool { contrast == .increased || reduceTransparency }

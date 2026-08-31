@@ -95,4 +95,40 @@ struct DetailWashTests {
         #expect(DetailWash.blend("#FF0000", into: "#000000", by: 1) == "#FF0000")
         #expect(DetailWash.blend("#FFFFFF", into: "#000000", by: 0.5) == "#808080")
     }
+// MARK: What the page draws
+
+    /// The three answers, and the reason there are three.
+    ///
+    /// A page is composed before its cover is decoded, so every publication renders once
+    /// with no wash and then again with one. Expressing that as a \`Double\` is what lets the
+    /// view interpolate the change instead of cutting to it — an \`if let\` around the
+    /// gradient has nothing to animate between, which is why the arrival used to flash.
+    @Test("A cover with no colour to give draws nothing")
+    func nothingToDraw() {
+        #expect(DetailWash.drawn(nil, isPlain: false) == 0)
+    }
+
+    /// **Replaced, not softened.** A reader who asked for more contrast did not ask for a
+    /// paler version of less, and a softened wash is how a screen lands marginally below the
+    /// floor rather than clearly above it.
+    @Test("Increased contrast or reduced transparency removes the wash rather than dimming it")
+    func plainDrawsNothing() {
+        let wash = DetailWash(tint: "#DC143C", strength: DetailWash.strongest)
+        #expect(DetailWash.drawn(wash, isPlain: true) == 0)
+    }
+
+    @Test("Otherwise the page draws exactly the strength the wash asked for")
+    func drawsItsStrength() {
+        let wash = DetailWash(tint: "#DC143C", strength: 0.18)
+        #expect(DetailWash.drawn(wash, isPlain: false) == 0.18)
+    }
+
+    /// The property the crossfade rests on: arriving at a cover moves one number, so there
+    /// is something to interpolate. If these two were ever equal the fade would be invisible
+    /// and the hard cut would be back without any test going red.
+    @Test("A cover arriving is a change in one value, which is what makes it animatable")
+    func arrivalIsInterpolable() {
+        let wash = DetailWash(tint: "#2E5AAC", strength: 0.18)
+        #expect(DetailWash.drawn(nil, isPlain: false) != DetailWash.drawn(wash, isPlain: false))
+    }
 }
