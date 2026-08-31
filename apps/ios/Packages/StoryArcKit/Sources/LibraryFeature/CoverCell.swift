@@ -74,26 +74,11 @@ struct CoverCell: View {
                 )
             }
         }
-        // `reading-progress` requires the clear to be confirmed. Here rather than in the
-        // menu because a context menu cannot present one, and destructive because it is:
-        // the position is the only copy the app promises never to lose.
-        .confirmationDialog(
-            Text("library.restart.title \(publication.displayTitle)", bundle: .module),
-            isPresented: Binding(
-                get: { restarting?.id == publication.id },
-                set: { if !$0 { restarting = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) {
-                Task { await model.restart(publication) }
-                restarting = nil
-            } label: {
-                Text("library.restart.confirm", bundle: .module)
-            }
-        } message: {
-            Text("library.restart.body", bundle: .module)
-        }
+        // `reading-progress` requires the clear to be confirmed. In a modifier rather than
+        // written out here, because `CoverList` offers the same action and a second copy of
+        // this dialog is a second thing to get wrong — which is how the list came to have
+        // the button and none of the rest of it.
+        .restartConfirmation($restarting, model: model)
         .refusedByServer($refusedServer, model: model, publication: publication)
         // One label for the whole cell. Read as three separate elements it would
         // announce the title, then the format, then an unlabelled image.

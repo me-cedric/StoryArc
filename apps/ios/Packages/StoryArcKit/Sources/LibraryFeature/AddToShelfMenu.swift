@@ -34,7 +34,11 @@ struct AddToShelfMenu: View {
 
     /// Asks the parent to confirm starting over. Same reason as `onRefused`: the
     /// confirmation `reading-progress` requires cannot be presented from inside a menu.
-    var onRestart: () -> Void = {}
+    ///
+    /// Optional, and `nil` means the action is not offered at all — see ``RestartOffer``.
+    /// It used to default to an empty closure, so a caller that forgot it got a button that
+    /// did nothing, which is exactly what `CoverList` had.
+    var onRestart: (() -> Void)?
 
     var body: some View {
         let shelves = model.shelves
@@ -60,9 +64,18 @@ struct AddToShelfMenu: View {
         // to clear — on an unread publication it would start it from the beginning it is
         // already at — and only on one publication, because a set of them has no single
         // beginning to go back to.
-        if let publication = publications.count == 1 ? publications.first : nil,
-           model.finishedPublications.contains(publication.id)
-            || model.readFraction(of: publication) != nil {
+        //
+        // The third condition — that someone took the handler — is ``RestartOffer``'s and
+        // is not decoration: without it this drew a button whose tap went into a default
+        // empty closure.
+        if let publication = publications.first,
+           let onRestart,
+           RestartOffer.isOffered(
+               publicationCount: publications.count,
+               hasSomethingToClear: model.finishedPublications.contains(publication.id)
+                   || model.readFraction(of: publication) != nil,
+               isWired: true
+           ) {
             Button {
                 onRestart()
             } label: {

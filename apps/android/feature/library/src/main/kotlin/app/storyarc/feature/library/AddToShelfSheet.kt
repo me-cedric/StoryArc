@@ -120,9 +120,18 @@ fun AddToShelfSheet(
             // something to clear — on an unread publication it would start it from the
             // beginning it is already at — and only on one publication, because a set of
             // them has no single beginning to go back to.
+            //
+            // The third condition -- that someone took the handler -- reads as a niceness
+            // here and is the whole of the defect on the other platform: iOS's menu drew
+            // this button with nothing behind it. [RestartOffer] is the rule both sides now
+            // assert, rather than one of them merely happening to have it.
             val alone = publications.singleOrNull()
-            if (onRestart != null && alone != null &&
-                (alone.id in finished || viewModel.readFraction(alone) != null)
+            if (RestartOffer.isOffered(
+                    publicationCount = publications.size,
+                    hasSomethingToClear = alone != null &&
+                        (alone.id in finished || viewModel.readFraction(alone) != null),
+                    isWired = onRestart != null,
+                ) && onRestart != null
             ) {
                 Row(
                     name = stringResource(R.string.library_restart),

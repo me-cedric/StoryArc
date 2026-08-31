@@ -86,6 +86,9 @@ struct ListRow: View {
     /// The server whose list just refused this publication, if one did.
     @State private var refusedServer: String?
 
+    /// The publication whose progress is about to be cleared, once the reader confirms.
+    @State private var restarting: Publication?
+
     /// The row, and what a tap on it does.
     ///
     /// A link to the publication's page, for ``CoverCell``'s reason: the grid losing the old
@@ -119,9 +122,23 @@ struct ListRow: View {
         // offering the same actions for everything that is picked.
         .contextMenu {
             if isPicked == nil {
-                AddToShelfMenu(model: model, publications: [publication]) { refusedServer = $0 }
+                // Every argument named. A trailing closure here bound to `onRefused` —
+                // the first parameter with no default — and left `onRestart` on its own,
+                // so *Start from the beginning* drew and did nothing. `onRestart` is
+                // optional now and the menu declines to draw a button it cannot deliver,
+                // but the call reads as what it means either way.
+                AddToShelfMenu(
+                    model: model,
+                    publications: [publication],
+                    onRefused: { refusedServer = $0 },
+                    onRestart: { restarting = publication }
+                )
             }
         }
+        // `reading-progress` asks for the action "from the publication's own cover in the
+        // library", and the list is the shelf drawn as rows. The confirmation is the same
+        // one the grid presents, from the same modifier, so the two cannot drift.
+        .restartConfirmation($restarting, model: model)
         .refusedByServer($refusedServer, model: model, publication: publication)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(publication.isOpenable ? .isButton : [])
