@@ -132,6 +132,36 @@ just opened a book has not yet learned that a centre tap brings the way out back
 showing it once is the only place that can be taught. Apple Books, which this change
 follows, does the same.
 
+### Android's comic reader, same change
+
+| Frame | before | after |
+| --- | --- | --- |
+| On arrival | **nine controls and a slider** — close and a thumbnail grid at the top left, a capsule of three at the top right (reading mode, fit, adjustments), a capsule of two at the foot (direction, rotation lock), a *1 of 3* pill, and a full-width page slider under it | **two**, in one `HorizontalFloatingToolbar` at the foot: a close and a menu |
+
+`android-reader-on-arrival.png` in each batch. The "before" is the same
+`5b7d42a5` worktree, built and installed onto the same emulator, and the device was put
+back on the current build afterwards.
+
+**The two platforms place the pair differently on purpose.** iOS puts the close at the
+top left and the menu at the top right, which is where a sheet's chrome goes there.
+Android puts both in a floating toolbar at the foot — the one floating bottom capsule
+Material sanctions, and within thumb reach. [ADR-0001](../../../decisions/0001-independent-native-cores.md)
+is the reason neither copies the other.
+
+### `capture:android` could not take this shot, and that is worth knowing
+
+The route table has `Comic reader` and `Comic reader > chrome`, and **both produced the
+same SHA-256** — a bare page. `capture-android.mjs` waits for a text node to settle before
+it photographs, and that wait is longer than the four-second auto-hide, so by the time it
+shoots the chrome has withdrawn. The `> chrome` route's centre tap then *hides* chrome
+that was already gone, or reveals it just in time to be missed.
+
+These two were taken by walking the route with `android-routes.mjs`'s own navigator and
+calling `adb exec-out screencap` immediately after the last tap, inside the countdown.
+A route that wants to photograph transient chrome needs the harness to grow a
+"shoot now" step; it does not have one, and that is why this pair is not reproducible
+with `pnpm capture:android` alone.
+
 ### How the "before" was obtained, since it matters
 
 The change had landed before these were taken, so the "before" is **a worktree at
