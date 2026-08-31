@@ -108,6 +108,75 @@ final class ScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "search-ax5")
     }
 
+    /// About, which is where a reader who dismissed the what’s-new sheet too fast finds it
+    /// again — `settings-and-about`: "it is reachable from the About screen, along with the
+    /// entries for earlier versions".
+    ///
+    /// Photographed before that row existed as well as after, because a row added to a list
+    /// is exactly the change a picture of the finished screen cannot prove on its own.
+    func testCaptureAbout() throws {
+        let app = launch()
+        try openAbout(in: app)
+        attach(app.screenshot(), named: "about")
+    }
+
+    /// What’s new, reached the way the sheet is *not* — from About, which the spec requires
+    /// "does not change what the app considers seen".
+    func testCaptureWhatsNewFromAbout() throws {
+        let app = launch()
+        try openAbout(in: app)
+        try XCTUnwrap(control("What\u{2019}s new", in: app), "About has no What’s new row.").tap()
+        _ = app.scrollViews.firstMatch.waitForExistence(timeout: 5)
+        attach(app.screenshot(), named: "whats-new-from-about")
+    }
+
+    /// The sheet itself, on the launch after an update.
+    ///
+    /// **The version it has already been told about is injected as a launch argument, not by
+    /// a hook in the app.** `UserDefaults`’s argument domain outranks the standard one, so
+    /// passing `-app.storyarc.whatsNewSeen` makes `WhatsNewStore` read an older version and
+    /// the shell take the branch it takes on a real update — the same code, on the same
+    /// path, with nothing test-only in it. The content-size argument two lines up is the
+    /// same mechanism.
+    func testCaptureWhatsNew() throws {
+        attach(try whatsNewSheet(contentSize: nil), named: "whats-new")
+    }
+
+    /// The same sheet at the largest accessibility text size. `settings-and-about`: "every
+    /// entry’s heading and sentence are readable in full, the screen scrolls if it must,
+    /// and the dismissing action stays reachable without scrolling past the content".
+    func testCaptureWhatsNewAtLargestText() throws {
+        attach(
+            try whatsNewSheet(contentSize: "UICTContentSizeCategoryAccessibilityXXXL"),
+            named: "whats-new-ax5"
+        )
+    }
+
+    private func whatsNewSheet(contentSize: String?) throws -> XCUIScreenshot {
+        let app = XCUIApplication()
+        if let contentSize {
+            app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize]
+        }
+        app.launchArguments += ["-app.storyarc.whatsNewSeen", "0.0.1"]
+        app.launch()
+        // The sheet identifies itself before anything is photographed, for the reason
+        // `AuditWalk` gives at length: a capture that can silently photograph the screen
+        // behind the one it names is worth less than no capture.
+        XCTAssertTrue(
+            app.buttons["Continue"].waitForExistence(timeout: 10),
+            "No what’s-new sheet appeared on the launch after an update."
+        )
+        return app.screenshot()
+    }
+
+    /// Home → Settings → About. The rows are `NavigationLink`s in a `List`, which is why this
+    /// asks ``control(_:in:)`` rather than for a button.
+    private func openAbout(in app: XCUIApplication) throws {
+        try XCTUnwrap(control("Settings", in: app), "Home has no way into Settings.").tap()
+        try XCTUnwrap(control("About", in: app), "Settings has no About row.").tap()
+        _ = app.scrollViews.firstMatch.waitForExistence(timeout: 5)
+    }
+
     /// The theme sheet and its six presets, which `reader-theming-and-page-transitions`
     /// task 7.4 asks for and which has been recorded as impossible on this platform.
     ///
