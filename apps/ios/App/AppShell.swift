@@ -117,32 +117,16 @@ struct AppShell: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
-        // The docked transport, and the whole of "it reserves no space when absent":
-        // without a session the builder produces no content at all, so there is no
-        // accessory for the slot to make room for — rather than an empty one, or a hidden
-        // one, or a bar of zero height that still insets the destination above it.
-        //
-        // The `if` is here and not inside ``ReadAloudDock`` deliberately. A view that
-        // rendered `EmptyView` would still be *a view* handed to the slot, and whether the
-        // system collapses that is the system's business rather than a promise this app
-        // can make. `ebook-reader` states the promise, so the app makes it structurally.
-        //
-        // If a screenshot with no session ever shows the tab bar sitting higher than it
-        // does without this modifier, the platform reserves the slot regardless and the
-        // answer is `tabViewBottomAccessory(isEnabled:)` — which exists, and is iOS 26.1
-        // against a 26.0 floor (ADR-0003), so it would cost an availability branch this
-        // app does not otherwise have. Not taken on speculation.
+        // The docked transport. `ebook-reader` requires that it reserve no space when
+        // there is no session, and ``ReadAloudAccessory`` is what holds that promise —
+        // see its own comment for why an empty builder is not enough.
         //
         // The way back is `onOpen` — the same seam the shelf uses to open a cover, taking
         // the publication and its URL. Opening the book that is already being spoken is
         // what `SessionHandover` answers with `adopt`: the reader picks up the sentence
         // the voice is on and the voice never notices. There is no second path back, and
         // that is the point — the one that exists is the one Phase 1 tested.
-        .tabViewBottomAccessory {
-            if isReadingAloud {
-                ReadAloudDock(onReturn: onOpen)
-            }
-        }
+        .modifier(ReadAloudAccessory(isSpeaking: isReadingAloud, onReturn: onOpen))
         // `navigation-shell`: leaving search returns the reader to the destination they
         // were on "with its scroll position and filters intact". The query narrows the one
         // library, so a term left behind would follow them onto the shelf and leave it
@@ -186,5 +170,37 @@ struct AppShell: View {
             onOpen: onOpen,
             showLibrary: showLibrary
         )
+    }
+}
+
+/// The slot below the tabs, present only while a voice is speaking.
+///
+/// **An empty builder is not an absent accessory.** The first attempt passed
+/// `tabViewBottomAccessory { if isSpeaking { ... } }`, on the reasoning that producing no
+/// content leaves the slot nothing to make room for. A screenshot of the library with no
+/// session settled it: the platform draws the glass capsule regardless, so the shelf
+/// gained an empty pill above the tab bar and every destination lost that much height.
+/// The comment left behind said this was the outcome to watch for and named the remedy,
+/// which is the only reason this took one capture rather than an afternoon.
+///
+/// `tabViewBottomAccessory(isEnabled:)` is that remedy and it is **iOS 26.1** against this
+/// app's 26.0 floor ([ADR-0003](../../docs/decisions/0003-platform-floors.md)), so it costs
+/// the availability branch below — the app's only one. On 26.0 the empty capsule remains:
+/// the old behaviour, not a new defect, and the honest cost of a floor set before the API
+/// existed. Delete the branch when the floor moves.
+private struct ReadAloudAccessory: ViewModifier {
+    let isSpeaking: Bool
+    let onReturn: (Publication, URL) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.1, *) {
+            content.tabViewBottomAccessory(isEnabled: isSpeaking) {
+                ReadAloudDock(onReturn: onReturn)
+            }
+        } else {
+            content.tabViewBottomAccessory {
+                if isSpeaking { ReadAloudDock(onReturn: onReturn) }
+            }
+        }
     }
 }

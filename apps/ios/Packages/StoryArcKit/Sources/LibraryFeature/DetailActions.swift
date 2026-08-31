@@ -31,10 +31,17 @@ struct DetailActions: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.sm) {
+            // `.fixedSize(horizontal:vertical:)` on the row, so the two controls share one
+            // height: the primary sets it from its own label and the secondary's circle is
+            // measured to match rather than to a number written down here. That matters at
+            // the largest text size, where the primary grows and a hard-coded disc would
+            // not — and it is why the overflow is a `.frame(maxHeight:)` below rather than
+            // a diameter.
             HStack(spacing: StoryArcSpace.md) {
                 primary
                 secondary
             }
+            .fixedSize(horizontal: false, vertical: true)
 
             if isCopying {
                 // `offline-downloads` lets a publication be read while it arrives, so this
@@ -143,8 +150,15 @@ struct DetailActions: View {
                 onRestart: { isRestarting = true }
             )
         } label: {
+            // Fills whatever height the row settled on, and stays a circle by matching its
+            // width to it. A 44 × 44 frame used to sit here instead, *inside* a `.large`
+            // control, so the disc came out as the glyph plus a hit target plus the control's
+            // own padding — half again as tall as the button it pairs with. Dropping the
+            // frame alone left it too small; the answer is neither number, it is the height
+            // of the thing beside it.
             Image(systemName: "ellipsis")
-                .frame(width: 44, height: 44)
+                .frame(maxHeight: .infinity)
+                .aspectRatio(1, contentMode: .fit)
                 .contentShape(.rect)
         }
         .menuStyle(.button)
