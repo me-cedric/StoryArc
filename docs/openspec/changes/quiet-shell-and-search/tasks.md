@@ -89,13 +89,16 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       nobody, drops what cannot be read with no network, empties no heading over it, and
       leaves `waiting` and `silent` empty; `LibraryPreferencesTest` — the choice is written
       down under its own key, not the shelf's. iOS's half landed with 2.3.
-- [ ] 2.12b Both: recent searches persist and clear. Assert the clear empties them and
+- [x] 2.12b Both: recent searches persist and clear. Assert the clear empties them and
       that reaching search does not itself record a query.
-      **iOS done** — `RecentSearchMemoryTests`, mutation-checked by dropping the
-      store write from `clearRecentSearches()`. **Android not done**: the same
-      assertions belong in `feature/library/src/test/…/LibraryViewModelTest`, and
-      `apps/android/feature/library/` was off limits to the agent that did the iOS
-      half. The behaviour mirrors iOS and is unasserted at the view-model level.
+      iOS `RecentSearchMemoryTests`, Android `RecentSearchMemoryTest` — the same four
+      assertions in the same order on both platforms. Android's runs under **Robolectric**
+      rather than as a source-level tripwire, because `LibraryViewModel` takes an
+      `Application` and `LibraryPreferences` wraps `SharedPreferences`; `feature/library`
+      already had the dependency wired and `feature/settings` had already set the
+      precedent, so this is a real behaviour test on both sides.
+      Mutation-checked on both: drop the store write from `clearRecentSearches()` and the
+      clear test fails; make the arrival record a term and two tests fail.
 - [x] 2.13 Both: a query typed while a source is unreachable shows local results and
       names the source once, in the results. Assert nothing waits on it.
       **Already asserted before this change**, case for case, by
