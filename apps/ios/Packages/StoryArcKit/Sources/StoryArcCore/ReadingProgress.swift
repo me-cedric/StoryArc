@@ -20,6 +20,16 @@ public enum ReadingPosition: Sendable, Equatable, Codable {
             return min(1, max(0, progression))
         }
     }
+
+    /// Whether this describes the same point in a publication as another.
+    ///
+    /// By ``fraction`` rather than by case, because that is the currency the whole merge
+    /// deals in — and because a store is entitled to keep a synced position as the one
+    /// number that survives a change of typography. Android's does exactly that, and while
+    /// this was case equality, a page position could never equal the one it had just been
+    /// stored from, so ADR-0006's first row — remote ahead, local untouched, adopt quietly —
+    /// was unreachable there. Android's `matches` is the same line.
+    public func matches(_ other: ReadingPosition) -> Bool { fraction == other.fraction }
 }
 
 public struct ReadingProgress: Sendable, Equatable, Codable {
@@ -105,7 +115,7 @@ public enum ProgressMerge {
             return .keepLocalAndPush(local)
         }
 
-        let localMoved = local.syncedPosition.map { $0 != local.position } ?? true
+        let localMoved = local.syncedPosition.map { !$0.matches(local.position) } ?? true
         let remoteAhead = remote.position.fraction > local.position.fraction
 
         if !localMoved {
@@ -114,7 +124,7 @@ public enum ProgressMerge {
         }
 
         // Local moved since the last sync. Did remote move too?
-        let remoteMoved = local.syncedPosition.map { $0 != remote.position } ?? true
+        let remoteMoved = local.syncedPosition.map { !$0.matches(remote.position) } ?? true
         if !remoteMoved {
             return .keepLocalAndPush(local)
         }

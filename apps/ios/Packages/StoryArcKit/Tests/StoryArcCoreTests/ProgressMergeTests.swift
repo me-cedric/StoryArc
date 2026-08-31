@@ -99,6 +99,33 @@ struct ProgressMergeTests {
 
         #expect(outcome == .conflict(resolved: remote, discarded: .page(index: 20, of: 100)))
     }
+
+    @Test("A synced position a store kept as a bare fraction still counts as untouched")
+    func syncedKeptAsAFractionStillMatches() {
+        // What Android's Room row hands back: the fraction survived, the page did not.
+        // Compared by case, this could never equal the position it was stored from, and the
+        // first row of the table above was unreachable there.
+        var local = progress(page: 10)
+        local.syncedPosition = .reflowable(
+            progression: ReadingPosition.page(index: 10, of: 100).fraction,
+            locator: ""
+        )
+        let remote = progress(page: 40)
+
+        #expect(ProgressMerge.merge(local: local, remote: remote) == .adoptRemote(remote))
+    }
+
+    @Test("A synced position kept as a fraction still says when the server has not moved")
+    func syncedKeptAsAFractionSeesAStillServer() {
+        var local = progress(page: 40)
+        local.syncedPosition = .reflowable(
+            progression: ReadingPosition.page(index: 10, of: 100).fraction,
+            locator: ""
+        )
+        let remote = progress(page: 10)
+
+        #expect(ProgressMerge.merge(local: local, remote: remote) == .keepLocalAndPush(local))
+    }
 }
 
 @Suite("Reading position normalises across kinds")

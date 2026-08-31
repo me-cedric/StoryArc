@@ -68,6 +68,28 @@ struct ProgressPullTests {
         #expect(pull.conflicts.first?.discarded.fraction == 0.5)
     }
 
+    @Test("A conflict the local position wins is pushed as well as written")
+    func localWinningAConflictIsPushed() {
+        // Last synced at 0.2; this device read on to 0.9, another only to 0.5. The server is
+        // behind, so it is told — otherwise the next refresh finds the same disagreement and
+        // raises the same notice, and the requirement is that the reader is told once.
+        let held = progress("one", at: 0.9, synced: 0.2)
+        let pull = ProgressPull.merging(remote: [progress("one", at: 0.5)]) { _ in held }
+
+        #expect(pull.conflicts.count == 1)
+        #expect(pull.toSave.first?.position.fraction == 0.9)
+        #expect(pull.toPush.first?.position.fraction == 0.9)
+    }
+
+    @Test("A conflict the server wins is adopted and pushed nothing")
+    func remoteWinningAConflictIsNotPushed() {
+        let held = progress("one", at: 0.5, synced: 0.2)
+        let pull = ProgressPull.merging(remote: [progress("one", at: 0.9)]) { _ in held }
+
+        #expect(pull.conflicts.count == 1)
+        #expect(pull.toPush.isEmpty)
+    }
+
     @Test("A publication finished anywhere stays finished")
     func finishedIsSticky() {
         let held = progress("one", at: 0.5, synced: 0.5)

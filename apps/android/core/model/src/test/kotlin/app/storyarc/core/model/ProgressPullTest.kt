@@ -64,6 +64,28 @@ class ProgressPullTest {
     }
 
     @Test
+    fun `a conflict the local position wins is pushed as well as written`() {
+        // Last synced at 0.2; this device read on to 0.9, another only to 0.5. The server is
+        // behind, so it is told -- otherwise the next refresh finds the same disagreement and
+        // raises the same notice, and the requirement is that the reader is told once.
+        val held = progress("one", 0.9, synced = 0.2)
+        val pull = ProgressPull.merging(listOf(progress("one", 0.5))) { held }
+
+        assertEquals(1, pull.conflicts.size)
+        assertEquals(0.9, pull.toSave.first().position.fraction, 0.001)
+        assertEquals(0.9, pull.toPush.first().position.fraction, 0.001)
+    }
+
+    @Test
+    fun `a conflict the server wins is adopted and pushed nothing`() {
+        val held = progress("one", 0.5, synced = 0.2)
+        val pull = ProgressPull.merging(listOf(progress("one", 0.9))) { held }
+
+        assertEquals(1, pull.conflicts.size)
+        assertTrue(pull.toPush.isEmpty())
+    }
+
+    @Test
     fun `a publication finished anywhere stays finished`() {
         val held = progress("one", 0.5, synced = 0.5)
         val pull = ProgressPull.merging(listOf(progress("one", 0.1, finished = true))) { held }

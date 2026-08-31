@@ -22,6 +22,18 @@ sealed interface ReadingPosition {
             }
             is Reflowable -> progression.coerceIn(0.0, 1.0)
         }
+
+    /**
+     * Whether this describes the same point in a publication as another.
+     *
+     * By [fraction] rather than by case, because that is the currency the whole merge deals
+     * in — and because a store is entitled to keep a synced position as the one number that
+     * survives a change of typography. [app.storyarc.core.persistence.ProgressStore] does
+     * exactly that, and while this was case equality a `Page` position could never equal the
+     * one it had just been stored from, so ADR-0006's first row — remote ahead, local
+     * untouched, adopt quietly — was unreachable. iOS's `matches(_:)` is the same line.
+     */
+    fun matches(other: ReadingPosition): Boolean = fraction == other.fraction
 }
 
 data class ReadingProgress(
@@ -101,7 +113,7 @@ object ProgressMerge {
             return ProgressMergeOutcome.KeepLocalAndPush(local)
         }
 
-        val localMoved = local.syncedPosition?.let { it != local.position } ?: true
+        val localMoved = local.syncedPosition?.let { !it.matches(local.position) } ?: true
         val remoteAhead = remote.position.fraction > local.position.fraction
 
         if (!localMoved) {
@@ -113,7 +125,7 @@ object ProgressMerge {
             }
         }
 
-        val remoteMoved = local.syncedPosition?.let { it != remote.position } ?: true
+        val remoteMoved = local.syncedPosition?.let { !it.matches(remote.position) } ?: true
         if (!remoteMoved) {
             return ProgressMergeOutcome.KeepLocalAndPush(local)
         }

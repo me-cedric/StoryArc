@@ -107,7 +107,13 @@ fun KavitaChapters(
         // other devices is merged into the local store". This is that refresh -- the
         // chapters have just arrived carrying what the server thinks has been read.
         progress?.let { store2 ->
-            conflicts = KavitaSync.pull(volumes.flatMap { it.chapters }, store, store2)
+            conflicts = KavitaSync.pull(
+                volumes.flatMap { it.chapters },
+                store,
+                store2,
+                sourceId,
+                client.address,
+            )
         }
     }
 

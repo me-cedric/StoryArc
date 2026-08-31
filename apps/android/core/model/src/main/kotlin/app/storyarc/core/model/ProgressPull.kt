@@ -57,6 +57,14 @@ data class ProgressPull(
                     is ProgressMergeOutcome.KeepLocalAndPush -> toPush += outcome.progress
                     is ProgressMergeOutcome.Conflict -> {
                         toSave += outcome.resolved
+                        // A conflict the local position won leaves the server behind exactly
+                        // as the plain case above does, and `reading-progress` says a server
+                        // that is behind is pushed to. Left out, the next refresh finds the
+                        // same disagreement and raises the same notice -- and the requirement
+                        // is that the reader is told once.
+                        if (outcome.resolved.position.matches(held.position)) {
+                            toPush += outcome.resolved
+                        }
                         conflicts += Conflict(outcome.resolved, outcome.discarded)
                     }
                 }

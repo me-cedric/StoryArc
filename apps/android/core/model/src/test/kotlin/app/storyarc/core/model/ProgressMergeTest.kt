@@ -104,6 +104,29 @@ class ProgressMergeTest {
     }
 
     @Test
+    fun `a synced position a store kept as a bare fraction still counts as untouched`() {
+        // What the Room row hands back: the fraction survived, the page did not. Compared by
+        // case, this could never equal the position it was stored from, and the first row of
+        // the table above was unreachable.
+        val local = progress(page = 10).copy(
+            syncedPosition = ReadingPosition.Reflowable(ReadingPosition.Page(10, 100).fraction, ""),
+        )
+        val remote = progress(page = 40)
+
+        assertEquals(ProgressMergeOutcome.AdoptRemote(remote), ProgressMerge.merge(local, remote))
+    }
+
+    @Test
+    fun `a synced position kept as a fraction still says when the server has not moved`() {
+        val local = progress(page = 40).copy(
+            syncedPosition = ReadingPosition.Reflowable(ReadingPosition.Page(10, 100).fraction, ""),
+        )
+        val remote = progress(page = 10)
+
+        assertEquals(ProgressMergeOutcome.KeepLocalAndPush(local), ProgressMerge.merge(local, remote))
+    }
+
+    @Test
     fun `first page is zero and last page is one`() {
         assertEquals(0.0, ReadingPosition.Page(0, 100).fraction, 0.0001)
         assertEquals(1.0, ReadingPosition.Page(99, 100).fraction, 0.0001)

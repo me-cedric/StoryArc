@@ -10,17 +10,41 @@
 // here as well as in the client, so the next person inherits the correction.
 //
 // Usage: node scripts/kavita-server.mjs [corpus-directory] [--port 5000]
+//        node scripts/kavita-server.mjs --self-test
 
 import { png } from './png.mjs'
 import { createServer } from 'node:http'
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync, existsSync, writeFileSync, mkdtempSync } from 'node:fs'
 import { join, extname, basename } from 'node:path'
+import { tmpdir } from 'node:os'
 
 const args = process.argv.slice(2)
+const selfTest = args.includes('--self-test')
 const portFlag = args.indexOf('--port')
-const port = portFlag >= 0 ? Number(args[portFlag + 1]) : 5000
-const root = args.find((a) => !a.startsWith('--') && a !== String(port)) ??
-  join(process.env.HOME, 'StoryArcCorpus')
+// Port zero for the self-test: it must not collide with a mock someone is already watching,
+// and it has no reason to be reachable from outside its own process.
+const port = selfTest ? 0 : portFlag >= 0 ? Number(args[portFlag + 1]) : 5000
+
+/**
+ * A corpus of the right shape and none of the right bytes, for the self-test.
+ *
+ * The routes under test never open a file — only `Download/chapter` does, and it hands back
+ * whatever is there. So what matters is the names: two numbered files are one series of two,
+ * which is what the continue point needs to have somewhere to move on to, and they sort
+ * first so that series is the one the drive below picks up. The book makes a second library.
+ */
+const scratchCorpus = () => {
+  const at = mkdtempSync(join(tmpdir(), 'storyarc-kavita-test-'))
+  for (const name of ['Tidal Reach 01.cbz', 'Tidal Reach 02.cbz', 'Winter Field.epub']) {
+    writeFileSync(join(at, name), Buffer.from('not a real publication'))
+  }
+  return at
+}
+
+const root = selfTest
+  ? scratchCorpus()
+  : args.find((a) => !a.startsWith('--') && a !== String(port)) ??
+    join(process.env.HOME, 'StoryArcCorpus')
 
 if (!existsSync(root)) {
   console.error(`no corpus at ${root} — run: node scripts/corpus.mjs ${root}`)
@@ -145,9 +169,11 @@ const authorised = (request) =>
 
 const server = createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`)
-  response.on('finish', () => {
-    console.log(`${response.statusCode} ${request.method} ${request.url}`)
-  })
+  if (!selfTest) {
+    response.on('finish', () => {
+      console.log(`${response.statusCode} ${request.method} ${request.url}`)
+    })
+  }
 
   // Authentication is the one route that does not need a token.
   if (url.pathname === '/api/Plugin/authenticate') {
@@ -418,8 +444,116 @@ const server = createServer((request, response) => {
   send(response, 404, { message: 'no such route' })
 })
 
-server.listen(port, () => {
-  console.log(`kavita mock: http://localhost:${port}`)
-  console.log(`  api key: ${API_KEY}   version: ${VERSION}`)
-  console.log(`  ${libraries.length} libraries, ${series.length} series from ${root}`)
-})
+/**
+ * Drives the progress round trip against this mock, over HTTP, and says what broke.
+ *
+ * The push half of `reading-progress` is a number that crosses a wire and comes back
+ * meaning the same thing, and the one place it can go wrong silently is the off-by-one:
+ * Kavita's `pageNum` is the page the reader is *on*, counted from zero, and its `pagesRead`
+ * is how many they have *read*. A client that confuses the two loses a page on every sync
+ * and no test that never leaves the client can see it. So this leaves the client entirely —
+ * it is the mock talking to itself, which is exactly what makes it a contract rather than a
+ * shared assumption.
+ */
+const drive = async () => {
+  const base = `http://127.0.0.1:${server.address().port}`
+  const failures = []
+  let run = 0
+  const check = (name, ok, saw) => {
+    run += 1
+    if (!ok) failures.push(saw === undefined ? name : `${name} (saw ${JSON.stringify(saw)})`)
+  }
+
+  const post = (path, body, token) => fetch(`${base}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body ?? {}),
+  })
+  const get = (path, token) =>
+    fetch(`${base}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+
+  // A key that is not the key gets nothing, and no route answers without a token.
+  check('a wrong api key is refused',
+    (await post('/api/Plugin/authenticate?apiKey=wrong&pluginName=StoryArc')).status === 401)
+  check('an unauthenticated request is refused',
+    (await get('/api/Library/libraries')).status === 401)
+
+  const authenticated = await post(`/api/Plugin/authenticate?apiKey=${API_KEY}&pluginName=StoryArc`)
+  const account = await authenticated.json()
+  check('the key mints a token', typeof account.token === 'string' && account.token.length > 0)
+  const token = account.token
+
+  const volumes = async (seriesId) => (await get(`/api/Series/volumes?seriesId=${seriesId}`, token)).json()
+  const first = series[0]
+  const chapter = first.chapters[0]
+
+  const before = (await volumes(first.id))[0].chapters[0]
+  check('a chapter nobody has read reports nothing read', before.pagesRead === 0, before.pagesRead)
+  check('a chapter reports how long it is', before.pages === chapter.pages, before.pages)
+
+  // The page the reader is on, counted from zero. Four pages have then been read.
+  await post('/api/Reader/progress', {
+    libraryId: first.libraryId,
+    seriesId: first.id,
+    volumeId: first.id * 100,
+    chapterId: chapter.id,
+    pageNum: 3,
+  }, token)
+  const advanced = (await volumes(first.id))[0].chapters[0]
+  check('page three read is four pages read', advanced.pagesRead === 4, advanced.pagesRead)
+
+  // Which is where the pull's arithmetic comes back the other way: four read is page three.
+  check('four pages read is page three again', advanced.pagesRead - 1 === 3, advanced.pagesRead - 1)
+
+  const resume = await (await get(`/api/Reader/continue-point?seriesId=${first.id}`, token)).json()
+  check('a part-read chapter is still where to continue', resume.id === chapter.id, resume.id)
+
+  await post('/api/Reader/progress', {
+    libraryId: first.libraryId,
+    seriesId: first.id,
+    volumeId: first.id * 100,
+    chapterId: chapter.id,
+    pageNum: chapter.pages - 1,
+  }, token)
+  const finished = (await volumes(first.id))[0].chapters[0]
+  check('the last page read is the whole chapter read', finished.pagesRead === finished.pages,
+    finished.pagesRead)
+  if (first.chapters.length > 1) {
+    const next = await (await get(`/api/Reader/continue-point?seriesId=${first.id}`, token)).json()
+    check('a finished chapter hands the continue point on', next.id === first.chapters[1].id, next.id)
+  }
+
+  // A deliberate mark is not a position, and must move the same number.
+  await post('/api/Reader/mark-chapter-unread', { seriesId: first.id, chapterId: chapter.id }, token)
+  check('unmarking a chapter returns it to nothing read',
+    (await volumes(first.id))[0].chapters[0].pagesRead === 0)
+  await post('/api/Reader/mark-chapter-read', { seriesId: first.id, chapterId: chapter.id }, token)
+  const marked = (await volumes(first.id))[0].chapters[0]
+  check('marking a chapter read reads all of it', marked.pagesRead === marked.pages, marked.pagesRead)
+
+  // And a series' own row adds its chapters up, which is what a library shelf shows.
+  const listed = await (await get(`/api/Series/${first.id}`, token)).json()
+  check('a series counts what its chapters have read',
+    listed.pagesRead === first.chapters.reduce((sum, each) => sum + each.pagesRead, 0),
+    listed.pagesRead)
+
+  server.close()
+  if (failures.length) {
+    console.error(`kavita mock self-test failed: ${failures.join('; ')}`)
+    process.exit(1)
+  }
+  console.log(`kavita mock self-test: ${run} checks passed`)
+}
+
+if (selfTest) {
+  server.listen(0, '127.0.0.1', () => { drive() })
+} else {
+  server.listen(port, () => {
+    console.log(`kavita mock: http://localhost:${port}`)
+    console.log(`  api key: ${API_KEY}   version: ${VERSION}`)
+    console.log(`  ${libraries.length} libraries, ${series.length} series from ${root}`)
+  })
+}

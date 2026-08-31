@@ -72,6 +72,12 @@ public extension ProgressPull {
                 toPush.append(kept)
             case let .conflict(resolved, discarded):
                 toSave.append(resolved)
+                // A conflict the local position won leaves the server behind exactly as the
+                // plain case above does, and `reading-progress` says a server that is behind
+                // is pushed to. Left out, the next refresh finds the same disagreement and
+                // raises the same notice — and the requirement is that the reader is told
+                // once.
+                if resolved.position.matches(held.position) { toPush.append(resolved) }
                 conflicts.append(Conflict(resolved: resolved, discarded: discarded))
             }
         }

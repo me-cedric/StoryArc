@@ -115,7 +115,9 @@ struct KavitaChapterList: View {
                 conflicts = await KavitaSync.pull(
                     volumes.flatMap(\.chapters),
                     in: store,
-                    into: progress
+                    into: progress,
+                    of: sourceId,
+                    to: client.address
                 )
             }
         }
