@@ -44,6 +44,7 @@ import app.storyarc.feature.library.isOnDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 /**
  * Everything readable with no network at all, and whatever is still on its way.
@@ -241,20 +242,72 @@ private suspend fun remove(host: AppHost, download: Download) {
 }
 
 /**
- * The narrowest a cover is drawn in a window this wide.
+ * The font scale at which the reader has left the ordinary range.
+ *
+ * Android's own Font size slider stops at 1.3 outside accessibility settings, and the larger
+ * steps (1.5, 1.8, 2.0) live behind them. Must equal `:feature:library`'s constant of the
+ * same name; `CoverMinimumTest` is what says so.
+ */
+private const val ACCESSIBILITY_FONT_SCALE = 1.3f
+
+/**
+ * How much wider a cover is drawn once the reader is at an accessibility font scale.
+ *
+ * A step, not a scale, and there are exactly two of them: what a cramped caption needs is
+ * one fewer column, and a column is a step. 1.4 takes a ~400 dp phone from three columns to
+ * two and leaves a 360 dp phone at the two it already had. Must equal `:feature:library`'s
+ * constant of the same name.
+ */
+private const val ACCESSIBILITY_COVER_STEP = 1.4f
+
+/**
+ * The narrowest a cover is drawn in a window this wide, for a reader asking for text this
+ * large.
  *
  * `design.md`: "Minimum cover width scales by size class: 104 / 132 / 158 pt", at Material's
  * own medium and expanded breakpoints. The same ladder the library's grid uses — one number
  * for every window is what leaves a tablet showing a wall of phone-sized postage stamps.
+ *
+ * **[fontScale] is the second input and this screen was ignoring it**, so at an accessibility
+ * text size the Downloads shelf kept 104 dp columns while the library shelf widened to 146 —
+ * two shelves in one app laying out differently, and captions wrapping hard inside the narrow
+ * one. iOS had the identical divergence in `OnDeviceShelf` and Apple's audit reported it as
+ * five clipped labels.
+ *
+ * **This is a third copy of a rule that should have one home.** `:feature:library` holds
+ * `coverMinimumWidth`, `coverMaximumWidth` and `BoundedAdaptive`, and all three are
+ * `internal` to that module, so `:app` cannot call them however much it should. The fix is
+ * to move them to `:core:designsystem`, which both modules already depend on and where
+ * `design.md`'s other rules already live — one deletion in each module once somebody owns
+ * both. Until then this copy is kept honest by a test asserting the same table iOS and
+ * `:feature:library` assert.
+ */
+internal fun coverMinimum(windowWidthDp: Int, fontScale: Float): Dp {
+    val tier = when {
+        windowWidthDp >= 840 -> 158.dp
+        windowWidthDp >= 600 -> 132.dp
+        else -> 104.dp
+    }
+    return if (fontScale >= ACCESSIBILITY_FONT_SCALE) {
+        (tier.value * ACCESSIBILITY_COVER_STEP).roundToInt().dp
+    } else {
+        tier
+    }
+}
+
+/**
+ * The same rule, asked of the window this screen is in.
+ *
+ * The *window's* width rather than this shelf's, which is what `:feature:library`'s grid also
+ * asks: 600 and 840 are Material's own window size-class breakpoints, so measuring a content
+ * pane against them would read a 900 dp window behind a navigation rail as a medium one.
  */
 @Composable
 private fun coverMinimum(): Dp {
+    val density = LocalDensity.current
     val width = LocalWindowInfo.current.containerSize.width
-    val dp = with(LocalDensity.current) { width.toDp().value.toInt() }
-    return when {
-        dp >= 840 -> 158.dp
-        dp >= 600 -> 132.dp
-        else -> 104.dp
+    return remember(density, width, density.fontScale) {
+        coverMinimum(with(density) { width.toDp().value.toInt() }, density.fontScale)
     }
 }
 
