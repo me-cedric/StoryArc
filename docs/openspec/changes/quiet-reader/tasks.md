@@ -20,27 +20,27 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
 - [x] 1.6 Both: assert every pre-existing gesture still behaves — edge tap, swipe,
       pinch, drag-zoom, and the right-to-left mirroring. Fewer controls must not
       mean fewer ways in.
-- [~] 1.7 **iOS done, Android outstanding.**
-      `docs/designs/screenshots/{before,after}-2026-08-31d/` — three frames per tree:
-      on arrival, six seconds later untouched, and after a centre tap. Seven controls
-      became two.
-      The "before" is a worktree at `5b7d42a5` built and driven with the same test, and
-      the README says so: §6 wants the "before" captured first and on this change it was
-      not.
+- [x] 1.7 Both platforms captured before and after, in
+      `docs/designs/screenshots/{before,after}-2026-08-31d/`.
+      **iOS:** three frames per tree — on arrival, six seconds later untouched, and after a
+      centre tap. Seven controls became two.
+      **Android:** nine controls and a page slider became two in one
+      `HorizontalFloatingToolbar`.
+      Both "before" frames come from a worktree at `5b7d42a5` built and driven with the
+      same harness, which is weaker than photographing before editing; §6 wants the
+      "before" first and on this change it was not, and the README says so.
       **The pair found two defects no source test could.** The reflowable reader never
-      withdrew its chrome — the arrival frame and the six-seconds-later frame are
-      byte-identical in the "before" tree — which is now fixed and pinned by
+      withdrew its chrome — arrival and six-seconds-later are byte-identical in the
+      "before" tree — now fixed and pinned by
       `ReaderChromeTests.chromeArrivesThenWithdraws`. And `openTheEpubReader` had been
       **silently skipping** since this change landed, because its landmark was the themes
       control that moved into the menu; a skip passes, so `pnpm check` stayed green while
       the theme-sheet capture quietly photographed nothing.
-      *Android outstanding:* two emulators were busy with other agents at the time, and
-      driving a shared device produces garbage. The route (`Comic reader > chrome`)
-      exists, and `pnpm capture:android` installs nothing — build and install first.
-      *Largest text size outstanding on both.*
-
-## 2. Progress sized to the format
-
+      **And it found a limit in the harness.** `pnpm capture:android` cannot photograph
+      transient chrome: it waits for a text node to settle and that wait outlasts the
+      four-second auto-hide, so `Comic reader` and `Comic reader > chrome` return the same
+      SHA-256. These were taken with the navigator plus an immediate `screencap`.
+      *Largest text size still outstanding on both.*
 - [x] 2.1 Both: `ReaderProgressTests` / `ReaderProgressTest` — a reflowable
       publication offers **no slider**, and one line stating progress and what is
       left of the chapter, in words.
@@ -118,9 +118,17 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
 
 ## 6. Docs and close-out
 
-- [ ] 6.1 Update `docs/designs/ui-revamp-2026-08.md` and `docs/openspec/STATUS.md`.
-- [ ] 6.2 Record the connected-button-group replacement for the retired segmented
-      text-size control as its own proposal rather than absorbing it here.
+- [x] 6.1 `docs/openspec/STATUS.md` — its in-flight section now covers all three changes
+      and says plainly that the per-capability rows below it predate the day's merges and
+      are **understated** for five capabilities, rather than implying a fresh audit that
+      was not run. `ui-revamp-2026-08.md` was updated by the agents that did the work.
+- [x] 6.2 `docs/openspec/changes/connected-button-groups/` — proposal written, Android
+      only, `skip_specs: true` with the reason beside it. The point it records is that
+      **nothing in the build will ever mention this**: Material retired the segmented
+      button, and Compose has not deprecated it, so the compiler is silent and will stay
+      silent. There is also no `ConnectedButtonGroup` composable — it is assembled from
+      `ButtonGroupDefaults`' three shape helpers — which is why it is sized as its own
+      change.
 - [ ] 6.3 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
 - [ ] 6.4 `agent-compass openspec-guard . --strict`.

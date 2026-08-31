@@ -1,0 +1,13 @@
+schema: spec-driven
+created: 2026-08-31
+# No delta specs, and deliberately so.
+#
+# No requirement is added or modified: every affected control keeps the behaviour its
+# capability already specifies, and this changes only which Material component draws it.
+# `native-experience` already asks for the platform's current idiom in general terms, and
+# restating "use the component Material currently recommends" per control would be a
+# requirement that goes stale with every Material release.
+#
+# A change that *does* change a requirement carries the delta instead. This is not a
+# default to reach for.
+skip_specs: true
