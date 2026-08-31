@@ -97,6 +97,18 @@ fun PublicationDetailScreen(
     viewModel: LibraryViewModel,
     /** Whether a copy is on this device — a download, an import, or a file in a scanned folder. */
     isOnDevice: Boolean,
+    /**
+     * Whether the shelf is permanently beside this page, as the list half of two panes.
+     *
+     * When it is, the bar draws no back arrow. There is nowhere to go back *to*: the list
+     * the arrow would return to has never left the window, and Material's own
+     * `ListDetailPaneScaffold` hides the affordance for exactly that reason. This page is
+     * composed into a hand-built pair of panes, so it carries the rule itself.
+     *
+     * [onBack] is still called — by the system gesture, and by the "this is gone" screen's
+     * own button, which does have somewhere to go: back to the pane's one sentence.
+     */
+    isBesideList: Boolean = false,
     /** How far a download of this publication has got, or null when none is running. */
     downloadFraction: Float? = null,
     /** Open the book, at the start or where the reader stopped. */
@@ -151,11 +163,13 @@ fun PublicationDetailScreen(
                 title = { DetailTitle(publication) },
                 subtitle = { DetailSubtitle(publication) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.detail_back),
-                        )
+                    if (!isBesideList) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.detail_back),
+                            )
+                        }
                     }
                 },
                 actions = {

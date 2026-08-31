@@ -121,6 +121,11 @@ internal fun AppContent(
                         settings = settings,
                         onSettingsChange = onSettingsChange,
                         onResetSettings = onResetSettings,
+                        // The shelf is in the other half of this window and never leaves
+                        // it, so the page draws no back arrow: there is nothing behind it
+                        // to go back to. See `HostedScreen`'s own parameter for why the
+                        // rule is carried here rather than inherited from a scaffold.
+                        isBesideList = true,
                     )
                 }
             }

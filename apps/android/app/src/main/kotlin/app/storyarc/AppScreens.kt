@@ -50,6 +50,21 @@ internal fun HostedScreen(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     onResetSettings: () -> Unit,
+    /**
+     * Whether this screen is the detail half of two panes, with the shelf permanently
+     * beside it.
+     *
+     * It changes one thing: a screen drawn this way carries no back affordance, because
+     * there is nowhere to go back *to* — the list it would return to has never left the
+     * window. Material's own `ListDetailPaneScaffold` hides it for the same reason;
+     * [app.storyarc.AppContent] composes the two panes by hand, so the rule has to be
+     * carried rather than inherited.
+     *
+     * Back itself still works. The gesture, and the pane's own "this is gone" screen, both
+     * go through [app.storyarc.navigation.AppNavigation.back] as they always did — what is
+     * gone is a button that looked like an exit from a screen nobody entered.
+     */
+    isBesideList: Boolean = false,
 ) {
     val dependencies = host.dependencies
     // Every screen's own back control is the same call the system gesture makes. Not "the
@@ -191,7 +206,11 @@ internal fun HostedScreen(
             onClose = back,
         )
 
-        is Screen.PublicationPage -> PublicationPage(host = host, screen = screen)
+        is Screen.PublicationPage -> PublicationPage(
+            host = host,
+            screen = screen,
+            isBesideList = isBesideList,
+        )
 
         is Screen.Reader -> ReaderHost(host = host, screen = screen, onClose = back)
     }
@@ -210,7 +229,11 @@ internal fun HostedScreen(
  * `null` rather than as a greyed row.
  */
 @Composable
-private fun PublicationPage(host: AppHost, screen: Screen.PublicationPage) {
+private fun PublicationPage(
+    host: AppHost,
+    screen: Screen.PublicationPage,
+    isBesideList: Boolean,
+) {
     val publication = screen.publication
     val downloads by host.downloads
     val scope = rememberCoroutineScope()
@@ -226,6 +249,7 @@ private fun PublicationPage(host: AppHost, screen: Screen.PublicationPage) {
         publication = publication,
         viewModel = host.library,
         isOnDevice = isOnDevice,
+        isBesideList = isBesideList,
         downloadFraction = record?.takeIf { it.state != Download.State.Finished }?.fraction?.toFloat(),
         onRead = { chosen ->
             val path = host.library.location(chosen) ?: return@PublicationDetailScreen
