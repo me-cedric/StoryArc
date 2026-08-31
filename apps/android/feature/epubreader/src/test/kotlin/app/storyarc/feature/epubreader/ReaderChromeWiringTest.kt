@@ -17,40 +17,54 @@ import java.io.File
  * still passes, and a suite that only exercises `ReaderAppearance.of` stays green while the
  * defect is back.
  *
- * **So this test reads the source text, and that is a deliberate second choice.** The
- * honest test is an instrumented one — compose the activity's chrome and measure the
- * surface, the way `ThemeSheetSemanticsTest` composes `StoryArcTheme` directly. That needs
- * a booted emulator, which the unit gates do not have and CI does not run, so it would
- * guard nothing on the path the next hand actually takes. What a `RuntimeShader`-free JVM
- * *can* do is read the file and refuse the one edit that reintroduces the defect. It is a
- * tripwire, not a proof: it says the argument is spelled correctly, never that the pixels
- * came out black. `scripts/line-cap.mjs` is the same kind of gate for the same kind of
- * reason.
+ * **So this test reads the source text, and that is a deliberate second choice.** The honest
+ * test is an instrumented one — compose the activity's chrome and measure the surface, the
+ * way `ThemeSheetSemanticsTest` composes `StoryArcTheme` directly, and this module already
+ * declares the dependencies for it. What the repository has no gate for is *running* one.
+ * `.github/workflows/android.yml` does boot an emulator, on a push to `main`, and the script
+ * it runs there is `:core:format:connectedDebugAndroidTest` and nothing else — so this
+ * module's four `androidTest` classes execute only when somebody runs them by hand, while
+ * the unit gate runs on every pull request. The instrumented measurement is still the test
+ * worth adding, on the day that one script line names this module too. Until then a guard
+ * that runs beats a better one that does not.
  *
- * Delete this the day an instrumented test measures the reader's chrome on a device. Until
- * then it is the only thing in the repository that fails when line 351 goes back.
+ * What a `RuntimeShader`-free JVM can do is read the file and refuse the one edit that
+ * reintroduces the defect. It is a tripwire, not a proof: it says the argument is spelled
+ * correctly, never that the pixels came out black. `scripts/line-cap.mjs` is the same kind
+ * of gate for the same kind of reason. Delete this the day an instrumented test measures the
+ * reader's chrome on a device.
  */
 class ReaderChromeWiringTest {
 
     /**
-     * The activity's source, located by walking up from wherever the test was launched.
+     * The activity's source, at the path the module's build script hands to the test JVM.
      *
-     * Gradle runs a unit test with the module directory as its working directory and an IDE
-     * often does not, so both are tried at every level. Missing is a failure rather than a
-     * skip: a guard that cannot find what it guards has to say so, or it passes forever
-     * after the file is renamed.
+     * Deliberately not discovered. Walking up from the working directory leaves the module:
+     * this repository nests agent worktrees at `.claude/worktrees/<name>/`, so the walk
+     * climbs out of the worktree under test and reads the parent checkout's copy — a guard
+     * passing or failing on source that was never built. [MODULE_DIRECTORY] is set from
+     * `projectDir` in `build.gradle.kts`, which is the module being built by construction,
+     * and the file is declared an input of the test task there — a `Test` task otherwise
+     * depends on its classpath rather than on the sources behind it, so nothing would tie
+     * this task's up-to-date check to what it reads. `:core:format` hands its fixture corpus
+     * over the same way.
+     *
+     * Missing is a failure rather than a skip: a guard that cannot find what it guards has
+     * to say so, or it passes forever after the file is renamed.
      */
     private val source: String by lazy {
-        val relative = "src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt"
-        var directory: File? = File("").absoluteFile
-        while (directory != null) {
-            listOf(relative, "apps/android/feature/epubreader/$relative")
-                .map { File(directory, it) }
-                .firstOrNull { it.isFile }
-                ?.let { return@lazy it.readText() }
-            directory = directory.parentFile
+        val module = System.getProperty(MODULE_DIRECTORY)?.let(::File)
+            ?: error(
+                "$MODULE_DIRECTORY is unset. This test reads the module's own source and" +
+                    " will not go looking for it elsewhere — run it through Gradle" +
+                    " (`pnpm gradle :feature:epubreader:testDebugUnitTest`), which sets the" +
+                    " property from the module directory.",
+            )
+        val file = File(module, ACTIVITY_SOURCE)
+        if (!file.isFile) {
+            error("$ACTIVITY_SOURCE is not under ${module.absolutePath} — has it moved?")
         }
-        error("EpubReaderActivity.kt not found above ${File("").absolutePath}")
+        file.readText()
     }
 
     @Test
@@ -85,5 +99,12 @@ class ReaderChromeWiringTest {
                 " for the reader.",
             !source.contains("AppearanceMode"),
         )
+    }
+
+    private companion object {
+        /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
+        const val MODULE_DIRECTORY = "storyarc.epubreader.projectDir"
+        const val ACTIVITY_SOURCE =
+            "src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt"
     }
 }

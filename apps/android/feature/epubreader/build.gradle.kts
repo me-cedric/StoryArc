@@ -73,6 +73,29 @@ androidComponents {
     }
 }
 
+// `ReaderChromeWiringTest` guards one line of this module's source by reading it as
+// text, so the test JVM is handed the path rather than left to find it. Discovery by
+// walking up from the working directory escapes the module: this repository nests agent
+// worktrees at `.claude/worktrees/<name>/`, so the walk climbs out of the worktree under
+// test and reads the parent checkout's copy of a file that was never built here.
+// Declaring the file as an input is the other half. A `Test` task's inputs are its
+// classpath and its candidate classes, never the module's Kotlin sources, so nothing
+// otherwise ties this task's up-to-date check to the file the test opens and reads.
+// `:core:format` hands its fixture corpus to its own tests the same way.
+tasks.withType<Test>().configureEach {
+    systemProperty("storyarc.epubreader.projectDir", projectDir.absolutePath)
+    // `inputs.files` rather than `inputs.file`: the guarded file going missing should reach
+    // the test, which says what it was looking for, rather than failing input snapshotting
+    // with a path and no explanation.
+    inputs.files(
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt",
+        ),
+    )
+        .withPropertyName("readerChromeWiringSource")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
