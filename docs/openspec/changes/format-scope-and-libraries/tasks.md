@@ -362,15 +362,31 @@ and `image-pages.pdf` (the scanned-comic case), both written by `generate.py`.
       classified without being transferred. What remains is a UI to show it in,
       which does not exist yet.
 - [ ] **5.2** The download-instead-of-stream flow, with the size stated.
-      **Blocked on there being a remote source to download from.** Every source in
-      the app today is local, so there is no flow to enter and nothing whose size
-      could be stated. `offline-downloads` and one of the remote source
-      capabilities have to land first.
+      **The recorded blocker is stale, checked 2026-08-31.** It said "every source
+      in the app today is local, so there is no flow to enter and nothing whose
+      size could be stated". Three remote kinds ship now — `networkShare`,
+      `opdsCatalog` and `kavitaServer` (`Source.swift:6-8`) — `DownloadQueue`
+      has an `enqueue` on both platforms, and an OPDS acquisition states its
+      length in bytes as of this morning, which is the fact the "size stated"
+      half was waiting for.
+      What is actually missing is the reading of it. `.downloadOnly` has exactly
+      one producer, `PublicationIndexer.swift:367`, and **zero** production
+      readers on either platform: a publication that cannot be streamed is
+      classified correctly and then nothing offers to download it instead.
+      Android has one branch at `DetailActions.kt:54` whose sentence renders with
+      no button, because `onDownload` is null on that path. And no size is stated
+      before a single-publication download anywhere — SMB copies the whole file
+      silently with `entry.length` in hand.
 - [ ] **5.3** A downloaded solid archive opens with no notice at all. **True for
       RAR5, false for RAR4** — see the finding below, and note that the finding
       was corrected once a real solid RAR5 could be tested. The format layer is
       ready: `isReadableWhenLocal` refuses solid RAR4 only, and `isStreamable`
       flags both. What is left is the download flow itself.
+      **And this one is vacuously true today**, which is worth saying rather than
+      ticking: no solid-archive or streaming notice exists anywhere in either
+      codebase to suppress, and no test asserts its absence. So the honest way to
+      close it is a test that fails the day somebody adds such a notice, not a
+      tick that reads as a feature.
 
 ## Finding — solid RAR4 is unreadable, solid RAR5 is fine
 
