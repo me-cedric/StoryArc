@@ -85,11 +85,37 @@ sh('shell', 'cmd', 'uimode', 'night', dark ? 'yes' : 'no')
 // first tap lands on a screen that is about to be thrown away.
 sleep(2500)
 
-const { walk } = navigator(sh)
+const { walk, dump } = navigator(sh)
 const missed = walk(steps)
 if (missed !== null) {
     console.error(`Could not reach "${missed}" on the way to ${name}.`)
     console.error('The route map may be stale, or this device has no publication in the state it needs.')
+    process.exit(1)
+}
+
+/**
+ * Waits until the app has actually drawn something, rather than trusting a delay.
+ *
+ * The launch inside `walk` waits a fixed 3.5 seconds, which is plenty for a warm start and
+ * **not** plenty for the first launch after an install. The first Home capture taken with
+ * this script came out as a picture of the splash screen — the orange book on a cream field
+ * — filed under `android-home-default-light.png`, which is precisely the failure this
+ * script's own header claims to prevent and the one `AuditWalk.swift` warns about at length.
+ *
+ * A splash screen is an image and nothing else: no text, no content description. So the
+ * signal is a node carrying either, and it is a signal rather than a guess.
+ */
+const drawn = () => {
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+        const xml = dump()
+        if (/(text|content-desc)="[^"]+"/.test(xml)) return true
+        sleep(1000)
+    }
+    return false
+}
+
+if (!drawn()) {
+    console.error(`${name} drew nothing readable within twelve seconds — the screenshot would be a splash screen.`)
     process.exit(1)
 }
 

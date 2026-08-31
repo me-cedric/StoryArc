@@ -66,3 +66,73 @@ One thing the picture also shows, not fixed here: the author line truncates to `
 while the title above it wraps to two lines and reads whole. That is a `lineLimit`, not a
 clip, and the identifying half of the caption survives — but it is the kind of thing
 `design.md` §3's "no clipping" rule is worth being asked about, and nobody has.
+
+---
+
+# The three Android fixes of 2026-08-31, second batch
+
+`storyarc-j6` emulator. Phone shots at its own 1080×2400 / density 420 (411 dp wide); tablet
+shots at `wm size 1600x2560` and `wm density 240` (1067 dp, past `design.md` §4's 840 dp
+breakpoint). Every shot taken with `pnpm capture:android`, which walks to the screen, sets the
+condition, and puts the device back.
+
+**Every number below was read out of the live accessibility tree, not off the picture.** The
+practice earned itself twice in one afternoon: once when the density regex took the *physical*
+420 instead of the *override* 240 and reported a 168 dp cover as 96, and once when a
+one-column tablet pane looked like it had room for two and the arithmetic said 328 dp wanted
+against 320 available.
+
+## The cover-width rule, one home
+
+| Claim | Measured before | Measured after |
+| --- | --- | --- |
+| Downloads honours the 168 dp maximum at a 1067 dp window | **5 columns, 175 dp**, shelf running to x=1047 | **5 columns, 168 dp**, shelf ending at x=1004 with the leftover as trailing margin |
+| Downloads takes the accessibility step | — | **4 columns, 224 dp** at `font_scale 1.5` |
+| Home's shelves widen with the reader's text | 130 dp at any text size | **130 dp → 182 dp** from `font_scale 1.0` to `1.5` |
+
+`android-downloads-tablet-default-light` / `-dark` and `-scale15-light` are the first two rows;
+`android-home-default-light` and `android-home-scale15-light` / `-dark` are the third.
+
+**What could not be photographed, and why.** The keep-reading *hero* — `homeHeroWidth`, the
+200/240/280 ladder this batch also put on the step — is not on any of these shots, because
+this corpus produces no Keep reading section: `LibraryIndex.continueReading` selects on
+`ReadState.IN_PROGRESS`, and the fixtures that carry progress do not reach that state. Its
+arithmetic is pinned by six unit tests whose mutations were re-run and killed, and the shelf
+half of the same commit is measured above. The hero itself is unphotographed and this says so
+rather than implying the row above covers it.
+
+## The reader's chrome follows the appearance the reader chose
+
+`android-epub-chrome-oled` and `android-epub-chrome-light`, both with the **device in light
+mode** and only the app's own setting changed. The chrome band sampled out of the PNG:
+
+| App appearance | Reader chrome |
+| --- | --- |
+| OLED Dark | `#0E0E0E` |
+| Light | `#F4EEE4` |
+
+Before the fix both were cream, because the reader passed `AppearanceMode.SYSTEM` and followed
+the device. The before-shot is `../before-2026-08-31b/android-epub-chrome-oled.png`, and the
+control beside it — the library drawn true black on the same device at the same moment — is
+what makes it evidence rather than an assertion.
+
+Note what does **not** change: the page stays paper cream under a true-black bar. That is the
+requirement, not a miss. `settings-and-about` keeps the reading theme separate from the app's
+appearance, "because a dark app chrome with a paper-white page is a legitimate preference".
+
+The fixed-layout reader is a separate surface with deliberately dark chrome in every
+appearance, like the comic reader. The first attempt at these shots photographed it by
+accident — `', EPUB'` matched `fixed-layout.epub` first — and would have read as the fix
+failing in Light.
+
+## Home stopped disagreeing with the library about what can be opened
+
+Found while setting these captures up, not looked for. With a picked folder answering, Home
+labelled four part-read publications **"Can't be opened right now"** and went on saying so for
+fifty-two seconds, while the library one tap away drew the same publications undimmed.
+
+`HomeDestination` was answering the question itself, and had both of the mistakes the shared
+rule documents avoiding: it read `SourceConnectionState.canFetch`, which the rule refuses
+because every source is probed on launch and "still asking" is not "cannot be reached", and it
+consulted the format, which the rule refuses because that "would conflate 'your network is
+down' with 'this file is a CB7'". Home asks `isReadableNow` now. Measured after: **0 of 4**.

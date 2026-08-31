@@ -81,23 +81,33 @@ internal fun HomeDestination(host: AppHost) {
             .toMap()
     }
 
-    /**
-     * Whether a publication can be opened at this instant.
-     *
-     * Three ways to be readable and one to be not: it is on the device, it came from no
-     * source at all, or the source it came from is answering. `sources` calls an
-     * unreachable source a normal state rather than a failure, so this decides how a cover
-     * is *drawn*, never whether it is shown.
-     */
     val onDevice = remember(downloads) { downloads.finished.map { it.id }.toSet() }
-    val isReadableNow: (Publication) -> Boolean = { publication ->
-        publication.isOpenable && (
-            publication.id in onDevice ||
-                publication.sourceId == null ||
-                registry.sources.firstOrNull { it.id == publication.sourceId }?.state?.canFetch == true
-            )
-    }
 
+    /**
+     * Whether a publication can be opened at this instant, asked of the library.
+     *
+     * **This screen used to answer it itself, and got both of the two mistakes the shared
+     * rule was written to prevent.** `isReadableNow` in `:feature:library` says in as many
+     * words that it deliberately does not use `SourceConnectionState.canFetch` — every
+     * network source is probed when the library appears, so treating "still asking" as
+     * "cannot be reached" greys the whole shelf on every launch — and deliberately does not
+     * consult the format, because dimming a CB7 as well "would conflate 'your network is
+     * down' with 'this file is a CB7'". Home's own copy used `canFetch` **and**
+     * `publication.isOpenable`.
+     *
+     * Measured on an emulator rather than reasoned about: with a picked folder answering,
+     * Home labelled four part-read publications "Can't be opened right now" and kept doing
+     * so for fifty-two seconds, while the library one tap away drew the same publications
+     * undimmed and openable. Two screens, one question, two answers.
+     *
+     * So Home asks the library now. The lambda stays a lambda because `HomeShelves.assemble`
+     * takes one, which is what let a second implementation slip in behind it.
+     */
+    val isReadableNow: (Publication) -> Boolean = { host.library.isReadableNow(it) }
+
+    // `locations` is part of the library's answer and is not a key here, so the surface is
+    // keyed on the registry and on the publication list that a scan replaces. A scan that
+    // resolves where a publication lives publishes a new list, which is what re-runs this.
     val surface: HomeSurface = remember(publications, progress, onDevice, registry) {
         HomeShelves.assemble(
             publications = publications,
