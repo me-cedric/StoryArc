@@ -22,13 +22,29 @@ code — reading aloud, Kavita server search, the five `sources` gaps, the two `
 defects all landed after it was taken — the code won and the verdict was re-checked by hand
 before it was written down here.
 
+**These counts are summed from the rows below, 2026-08-31, and that is a change worth
+saying out loud.** They used to be maintained by hand and had stopped agreeing with the
+rows: the header claimed 21 `one platform only` while the rows named 17, and claimed 137
+`built and tested` where the rows held 142. Four hands editing rows in one day, each
+adjusting the header from whatever base its worktree was cut at, is how that happens and
+would have kept happening. The header is now derived, so a row and the total cannot drift
+apart again — and it means **the totals below no longer reproduce the 269 figure the
+paragraph above describes**. The rows come to 271. Two verdicts are unaccounted for
+somewhere between the two audit rounds and the double-scored clauses, and rather than move
+a number to make the arithmetic close, this says so.
+
 | Verdict | Count | Means |
 | --- | --- | --- |
-| built and tested | 140 | code on both platforms, and a test on each side asserts it |
-| built, asserted by nothing | 90 | code on both platforms, no test anywhere touches it |
-| one platform only | 20 | code on one side; on the other it is absent, or declared and never reached |
-| missing | 18 | no running implementation on either platform |
+| built and tested | 148 | code on both platforms, and a test on each side asserts it |
+| built, asserted by nothing | 89 | code on both platforms, no test anywhere touches it |
+| one platform only | 17 | code on one side; on the other it is absent, or declared and never reached |
+| missing | 16 | no running implementation on either platform |
 | unclear | 1 | could not be settled from source (`localization`, long-translation layout) |
+
+**Four of the seventeen `one platform only` are not gaps.** The `local-library` spec splits
+*Adding a folder* and *Remembering an opened file* per platform by construction, so each
+consumes a slot while being complete on both sides. The real divergences are thirteen, and
+"Where the two platforms differ" below names them.
 
 **None of those numbers says anyone watched the behaviour happen.** That is a third axis,
 and it is per-row: a great deal of what landed in the last few rounds compiles, lints,
@@ -140,7 +156,7 @@ deliberate — the rest are gaps, not decisions.
 | --- | --- |
 | `pnpm lint` | specs *and changes*, tokens, generated notices, fixtures, the libarchive pin, the iOS lockfile, the corpus, and `strings:ios` |
 | `pnpm check` | `pnpm lint`, then both apps' lint and unit tests |
-| `pnpm smoke:android` | thirteen routes still open without crashing. Needs a device |
+| `pnpm smoke:android` | sixteen routes open without crashing — the three destinations, the publication page, both readers and nine settings screens. Needs a device |
 | `pnpm a11y:android` | unnamed controls, raw values as names, targets under 48dp. Needs a device |
 | `pnpm strings:ios` | every key a Swift source asks for exists, and is translated in all four languages. Needs no device |
 | `pnpm pseudo:android` | nine routes under `en-XA`: text that leaves its row, controls off the display, targets under 48dp. Needs a device |
