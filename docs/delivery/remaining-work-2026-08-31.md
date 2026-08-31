@@ -64,7 +64,7 @@ what was found rather than as what survived.
 | **A device that is ahead now tells the server.** `ProgressPull.toPush` was computed and discarded. Proven against the in-repo Kavita mock, which gained a 13-check self-test wired into `pnpm lint`. The same slice closed a **secret leak**: `KavitaAddress` printed the reader's API key in its default description on both platforms. | §3.6 |
 | **Local and server search results are one ranked list, each row saying where it came from.** Four cross-platform sort divergences were found by measuring and pinned by mirrored tests — scalar against UTF-16 ordering, two different ideas of whitespace, and a case fold Kotlin cannot perform. | §3.12 |
 | **The "Downloaded" filter**, and a reading list that can be sorted and returned to its curated order. | §3.4, §3.11 |
-| **Natural** as a theme, its paper grain, and a live preview in the theme sheet. Three of four blockers on that change's `/opsx:sync`. | reader-theming remainder |
+| **Natural** as a theme and a live preview in the theme sheet — **two** of the four items blocking that change's `/opsx:sync`, not three. Three *tasks* landed; 5.2 and 5.4 are one blocker between them, and a fourth item (a double-page spread curling as one surface) has no task number at all, which is why it keeps vanishing from the count. **The grain does not draw** — see the correction in `after-2026-08-31/README.md`. | reader-theming remainder |
 | **The 800-line cap is counted.** Nothing had ever measured it, which is how five Kotlin files got past it. A ratchet: each is recorded at its length, may shrink, may not grow. | §3, last row |
 | **iOS walks thirteen routes** — three destinations, the publication page, the reader, Settings and its seven groups — against Android's sixteen. That asymmetry is named in STATUS and said to be not deliberate. | §5 |
 | **A test that proves a publication comes back where it was left**, across a real terminate and relaunch. `reading-progress` scores nine of seventeen scenarios as built and asserted by nothing. | §5 |
@@ -101,11 +101,14 @@ would notice.
 | 12 | **iOS: `OnDeviceEmpty` is unreachable** since the Downloads destination replaced the on-device library surface, and the space total can read "Zero KB" under a full shelf. | `LibraryContent.swift:132-137` |
 | 13 | **Nothing counts a line.** `pnpm lint` runs ten checks and none is a line-count gate, which is how five Kotlin files got over the 800-line cap without anyone noticing. The largest is **`ReaderScreen.kt` at 1893**, not `LibraryViewModel.kt` as earlier notes claimed. Swift is clean by exactly one line: its largest file is 400. | `package.json` |
 
-**A spec amendment is owed before `/opsx:sync`.** `reading-progress`'s *Continue from the
-library* ("opens at the stored position without an intermediate screen") and *Restart
-deliberately* ("the library opens a publication when its cover is tapped") both now
-contradict the shipped app, and the `publication-detail` change declares no
-`reading-progress` delta. There is a banner on that change's task list saying so.
+**~~A spec amendment is owed before `/opsx:sync`.~~ Written.** The `reading-progress` delta
+now exists in `publication-detail/specs/`, and the change declares it. Two further clauses
+in the `one-library-three-destinations` delta — that no result is labelled with its source,
+and that arrivals never displace — were **withdrawn**, with the reasoning recorded in that
+change's own `design.md` rather than in a commit message, because `/opsx:sync` erases the
+delta and would take the reasoning with it. A fourth contradiction turned up while doing it:
+`publication-detail`'s own delta listed search among the surfaces that state origin, so two
+unarchived deltas were about to sync into a contradiction with each other.
 
 ---
 
