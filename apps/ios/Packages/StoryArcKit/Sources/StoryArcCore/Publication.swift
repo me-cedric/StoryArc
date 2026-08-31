@@ -239,18 +239,29 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
     /// Whether some pages are missing from what the reader will show.
     public var isPartial: Bool { skippedPageCount > 0 }
 
-    /// Whether the reflowable reader is the one that opens this publication.
+    /// Whether the text in this publication reflows.
     ///
-    /// The rule `StoryArcApp` routes on, written down in the domain because the format
-    /// alone does not answer it and everyone assumes it does. A **fixed-layout** EPUB is
-    /// an EPUB by format and a stack of pictures in fact, so `ebook-reader` sends it to
-    /// the comic reader — which carries no typography controls, because a pre-paginated
-    /// page has no typography to control.
+    /// The same question `TransitionChoices` asks under the same name — there it is a
+    /// parameter, because the axis a publication implies depends on it. Here it is the
+    /// publication's own answer, written down in the domain because the format alone does
+    /// not give it and everyone assumes it does: a **fixed-layout** EPUB is an EPUB by
+    /// format and a stack of pictures in fact.
     ///
-    /// It has a name and a test because the unnamed version fooled two UI audits in one
-    /// afternoon. Both walked to "the first EPUB on the shelf", both landed on a
-    /// pre-paginated one — two of this corpus's five EPUBs are, and they are the two whose
-    /// titles sort first — and so neither ever reached the reader it was named after.
+    /// `StoryArcApp` routes on this, and that is a consequence rather than the definition.
+    /// `ebook-reader` gives a fixed-layout EPUB the pagination, zoom and spread behaviour of
+    /// `comic-reader` and hides the typography controls rather than showing them disabled,
+    /// and this app implements that by opening the comic reader — which has no typography
+    /// controls to hide. The same scenario also asks that background colour, brightness and
+    /// page transition stay available there; brightness and the page transition are, in
+    /// `AdjustmentsSheet` and in `ReaderChrome`'s transition picker, and there is no
+    /// background-colour control in that reader. So this routing satisfies the first half of
+    /// that scenario and leaves the second half open.
+    ///
+    /// It has a name and a test because the unnamed version was a clause in a view body that
+    /// two UI audits walked past. Both asked the shelf for "an EPUB" — a cover's spoken label
+    /// carries the format and says nothing about the layout — so neither run recorded which
+    /// of the two readers it reached. ``ReaderRoutingWiringTests`` guards the routing itself;
+    /// this property's own suite is `IsReflowableTests`.
     public var isReflowable: Bool { format == .epub && !isFixedLayout }
 }
 
