@@ -1,11 +1,10 @@
 package app.storyarc.feature.library
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
@@ -42,9 +41,20 @@ import app.storyarc.core.model.SourceRegistry
  * narrowing choice on a chip row rather than behind an icon — a chip says what it is
  * doing in a word, which is exactly what eight identical orange glyphs could not.
  *
- * The row scrolls sideways rather than wrapping, so a 320 dp window and the largest text
- * size lose nothing: every control stays reachable, which is the half of the top-bar
- * defect that was not about the title.
+ * **The row wraps rather than scrolling sideways, and that is a correction.** It scrolled
+ * before, on the argument that a 320 dp window at the largest text size then lost nothing
+ * because every control stayed reachable. The emulator disagreed:
+ * `docs/designs/screenshots/after-2026-08-31/android-shelf-caption-scale2-light.png` shows
+ * *Filter* half out of the window at `font_scale 2.0` with **nothing on screen saying the
+ * row scrolls**. Reachable through an interaction a reader has no reason to attempt is not
+ * reachable, and `design.md` §3 asks every screen to survive the largest accessibility text
+ * size rather than to survive it for whoever guesses right.
+ *
+ * Wrapping has no affordance to discover: at the largest text size the four controls take
+ * two or three lines and all of them are simply on screen. The cost is a taller header
+ * exactly where the text is largest, which is the trade Material makes for a chip group
+ * too. It does not cover one case — a single chip wider than the window — and no label in
+ * the set reaches that at 320 dp, so nothing is truncated to buy it.
  */
 @Composable
 internal fun LibraryControls(
@@ -61,13 +71,13 @@ internal fun LibraryControls(
     viewModel: LibraryViewModel,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    FlowRow(
         modifier = modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
             .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.xs),
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         AvailabilityChip(availability, onAvailabilityChange)
         SortChip(query, onQueryChange)
@@ -124,24 +134,32 @@ private fun AvailabilityChip(
 private fun SortChip(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
     var open by remember { mutableStateOf(false) }
 
-    FilterChip(
-        // Ordering is always on — there is no unsorted library — so the chip carries the
-        // answer rather than a state. It is never drawn as selected for that reason.
-        selected = false,
-        onClick = { open = true },
-        label = { Text(stringResource(query.sort.labelRes)) },
-    )
-    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-        LibrarySort.entries.forEach { sort ->
-            DropdownMenuItem(
-                text = { Text(stringResource(sort.labelRes)) },
-                leadingIcon = { RadioButton(selected = query.sort == sort, onClick = null) },
-                onClick = { onChange(query.copy(sort = sort)) },
-            )
-        }
-        HorizontalDivider()
-        listOf(true to R.string.library_sort_ascending, false to R.string.library_sort_descending)
-            .forEach { (ascending, label) ->
+    // The chip and its menu are one item of the wrapping row, not two. A `DropdownMenu` is a
+    // popup and measures as nothing, but it still takes a slot -- and a slot of nothing with
+    // the row's spacing either side of it is a gap that can push the next chip onto a line it
+    // did not need. Boxed, it also keeps opening under its own chip, which is what
+    // `ListOrderChips` fixed by putting the menu beside the chip in the first place.
+    Box {
+        FilterChip(
+            // Ordering is always on — there is no unsorted library — so the chip carries the
+            // answer rather than a state. It is never drawn as selected for that reason.
+            selected = false,
+            onClick = { open = true },
+            label = { Text(stringResource(query.sort.labelRes)) },
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            LibrarySort.entries.forEach { sort ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(sort.labelRes)) },
+                    leadingIcon = { RadioButton(selected = query.sort == sort, onClick = null) },
+                    onClick = { onChange(query.copy(sort = sort)) },
+                )
+            }
+            HorizontalDivider()
+            listOf(
+                true to R.string.library_sort_ascending,
+                false to R.string.library_sort_descending,
+            ).forEach { (ascending, label) ->
                 DropdownMenuItem(
                     text = { Text(stringResource(label)) },
                     leadingIcon = {
@@ -150,6 +168,7 @@ private fun SortChip(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
                     onClick = { onChange(query.copy(ascending = ascending)) },
                 )
             }
+        }
     }
 }
 

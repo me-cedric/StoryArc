@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -82,54 +83,61 @@ internal fun FilterChipMenu(
     var section by remember { mutableStateOf<FilterSection?>(null) }
     val active = narrowingCount(query, downloads)
 
-    FilterChip(
-        selected = active > 0,
-        onClick = { open = true },
-        label = {
-            Text(
-                text = if (active > 0) {
-                    // A plural, not a format. "1 filters active" is wrong in every
-                    // language, and the count reaches 1 whenever a reader sets one filter.
-                    pluralStringResource(R.plurals.library_filter_active, active, active)
-                } else {
-                    stringResource(R.string.library_filter)
-                },
-            )
-        },
-    )
-    DropdownMenu(
-        expanded = open,
-        onDismissRequest = {
-            open = false
-            // Reopening lands on the group list rather than wherever the reader was
-            // three taps ago, which they have no reason to remember.
-            section = null
-        },
-    ) {
-        when (val chosen = section) {
-            null -> SectionList(
-                query = query,
-                registry = registry,
-                downloads = downloads,
-                viewModel = viewModel,
-                onOpen = { section = it },
-                onClear = {
-                    onClearFilters()
-                    open = false
-                },
-            )
-
-            else -> {
-                BackItem(chosen) { section = null }
-                SectionValues(
-                    chosen,
-                    query,
-                    registry,
-                    downloads,
-                    viewModel,
-                    onQueryChange,
-                    onDownloadsChange,
+    // The chip and its menu are one item of [LibraryControls]'s wrapping row, not two. A
+    // `DropdownMenu` is a popup and measures as nothing, but it still takes a slot -- and a
+    // slot of nothing with the row's spacing either side of it is a gap that can push the
+    // next chip onto a line it did not need.
+    Box {
+        FilterChip(
+            selected = active > 0,
+            onClick = { open = true },
+            label = {
+                Text(
+                    text = if (active > 0) {
+                        // A plural, not a format. "1 filters active" is wrong in every
+                        // language, and the count reaches 1 whenever a reader sets one
+                        // filter.
+                        pluralStringResource(R.plurals.library_filter_active, active, active)
+                    } else {
+                        stringResource(R.string.library_filter)
+                    },
                 )
+            },
+        )
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = {
+                open = false
+                // Reopening lands on the group list rather than wherever the reader was
+                // three taps ago, which they have no reason to remember.
+                section = null
+            },
+        ) {
+            when (val chosen = section) {
+                null -> SectionList(
+                    query = query,
+                    registry = registry,
+                    downloads = downloads,
+                    viewModel = viewModel,
+                    onOpen = { section = it },
+                    onClear = {
+                        onClearFilters()
+                        open = false
+                    },
+                )
+
+                else -> {
+                    BackItem(chosen) { section = null }
+                    SectionValues(
+                        chosen,
+                        query,
+                        registry,
+                        downloads,
+                        viewModel,
+                        onQueryChange,
+                        onDownloadsChange,
+                    )
+                }
             }
         }
     }
