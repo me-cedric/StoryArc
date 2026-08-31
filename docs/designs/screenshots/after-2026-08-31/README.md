@@ -165,3 +165,25 @@ reader's chosen size.
 
 **Still visible in this capture and not fixed:** the filter chip row above the shelf runs
 off the window with no affordance that it scrolls. It is recorded as its own item.
+
+---
+
+# The shelf's notice: a capsule, with a gap, that recedes
+
+`before-2026-08-31/ios-notice-band-dark` → `ios-notice-capsule-dark` → `ios-notice-receded-dark`,
+all on the booted iPhone 17 Pro in dark mode at the default text size.
+
+The first is a full-bleed band pinned across the window, which was the only rectangle in an
+app whose every other piece of chrome — the tab bar, the search field, the shelf's toolbar
+group — is a floating capsule. It cut the covers either side of it in half.
+
+The second is the same sentence as a capsule that hugs it, with a gap above the tab bar so
+it reads as its own thing rather than a second row of one.
+
+The third is the same screen nine seconds later. It has gone. This is news about a scan that
+has finished, and `native-experience` asks chrome to recede — a sentence parked above the tab
+bar for the rest of the session is furniture, not news.
+
+**Except under VoiceOver**, where it stays. A sentence that fades is a sentence a reader who
+has not yet swiped to it never hears, and the count is stated nowhere else in the app. A
+sighted reader gets a glance and their artwork back; a VoiceOver reader keeps the fact.

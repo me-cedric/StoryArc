@@ -59,16 +59,47 @@ struct ScanningView: View {
 /// full-bleed bar pinned above the tab bar reads as a wall between the reader and the
 /// artwork, which is the opposite of the rule chrome here is held to: it recedes.
 struct ScanSummary: View {
+    /// Long enough to read a short sentence twice, short enough that it is not furniture.
+    private static let dwell = Duration.seconds(6)
+
+    @Environment(\.accessibilityVoiceOverEnabled) private var isSpeaking
+
     let found: Int
     let skipped: Int
 
+    /// Whether the sentence is still on screen. It leaves on its own — see the body.
+    @State private var isShowing = true
+
     var body: some View {
-        Text("library.skipped \(skipped)", bundle: .module)
-            .textRole(.footnote)
-            .storyArcGlassText()
-            .padding(.horizontal, StoryArcSpace.md)
-            .padding(.vertical, StoryArcSpace.sm)
-            .storyArcGlass()
+        Group {
+            if isShowing {
+                Text("library.skipped \(skipped)", bundle: .module)
+                    .textRole(.footnote)
+                    .storyArcGlassText()
+                    .padding(.horizontal, StoryArcSpace.md)
+                    .padding(.vertical, StoryArcSpace.sm)
+                    .storyArcGlass()
+                    // A gap, so the capsule reads as its own thing above the tab bar rather
+                    // than as a second row of it.
+                    .padding(.bottom, StoryArcSpace.sm)
+                    .transition(.opacity)
+            }
+        }
+        // It goes of its own accord, like ``CachedNotice``. This is news about a scan that
+        // has finished, and news that never leaves is furniture — `native-experience` asks
+        // chrome to recede, and a sentence parked above the tab bar for the rest of the
+        // session is the opposite of receding.
+        //
+        // **Except under VoiceOver.** A sentence that fades is a sentence a reader who has
+        // not yet swiped to it never hears, and the count is stated nowhere else. Sighted
+        // readers get a glance and their artwork back; VoiceOver readers keep the fact.
+        .task(id: skipped) {
+            isShowing = true
+            guard !isSpeaking else { return }
+            try? await Task.sleep(for: Self.dwell)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.4)) { isShowing = false }
+        }
     }
 }
 
