@@ -103,6 +103,17 @@ const COVERS = [
 ]
 
 /**
+ * Age ratings, by Kavita's own numbering, cycled across the corpus.
+ *
+ * `Kavita.Models/Entities/Enums/AgeRating.cs`: 0 is `Unknown`, 3 `Everyone`, 8 `Teen`,
+ * 10 `Mature 17+`, 13 `Adults Only 18+`. Zero stays first and deliberately: it is Kavita's
+ * default for a series nobody has rated, and a client that drew "Unknown" as if it were a
+ * rating would be telling a parent the book had been assessed. Every value here used to be
+ * zero, so the whole stated-rating path was served by nothing.
+ */
+const AGE_RATINGS = [0, 3, 8, 10, 13]
+
+/**
  * Metadata the server holds, which the spec says wins over the file's own.
  *
  * Deliberately disagrees with what `ComicInfo.xml` in the corpus says, so a client that
@@ -116,8 +127,9 @@ const metadata = new Map(series.map((each, index) => [each.id, {
   tags: [{ id: 3, title: 'test-corpus' }],
   writers: [{ id: 4, name: 'Ada Lovelace' }],
   publishers: [{ id: 5, name: 'StoryArc Press' }],
-  ageRating: 0,
+  ageRating: AGE_RATINGS[index % AGE_RATINGS.length],
   releaseYear: 2020 + (index % 5),
+  // 0 `OnGoing`, 1 `Hiatus`, 2 `Completed`, from Kavita's `PublicationStatus`.
   publicationStatus: index % 3,
 }]))
 
@@ -539,6 +551,40 @@ const drive = async () => {
   check('a series counts what its chapters have read',
     listed.pagesRead === first.chapters.reduce((sum, each) => sum + each.pagesRead, 0),
     listed.pagesRead)
+
+  // `kavita-server`'s *Metadata* requirement lists seven fields and two of them cross the
+  // wire as bare integers. They were served as a constant zero and a three-cycle, which is
+  // a corpus in which the stated-rating path never happens — so a client that dropped the
+  // rating entirely, which is what both clients did, looked exactly like one that kept it.
+  const held = await Promise.all(
+    series.map(async (each) =>
+      (await get(`/api/Series/metadata?seriesId=${each.id}`, token)).json())
+  )
+  check('the metadata route states an age rating and a publication status',
+    held.every((each) =>
+      typeof each.ageRating === 'number' && typeof each.publicationStatus === 'number'))
+
+  // Kavita's own tables, from `Kavita.Models/Entities/Enums`. A number outside them would be
+  // one no client could name, and the corpus would be asking for a guess.
+  check('every age rating is one Kavita defines',
+    held.every((each) => each.ageRating >= -1 && each.ageRating <= 14),
+    held.map((each) => each.ageRating))
+  check('every publication status is one Kavita defines',
+    held.every((each) => each.publicationStatus >= 0 && each.publicationStatus <= 4),
+    held.map((each) => each.publicationStatus))
+
+  // The two halves of the rating rule, both of which have to be reachable: a series nobody
+  // rated, which must not be drawn as a rating, and a series with a real one, which must.
+  check('at least one series carries no rating at all',
+    held.some((each) => each.ageRating === 0))
+  check('at least one series carries a rating a reader would be shown',
+    held.some((each) => each.ageRating > 0), held.map((each) => each.ageRating))
+
+  // More than one of each, so a client that hardcoded a label is visible rather than lucky.
+  check('the corpus holds more than one age rating',
+    new Set(held.map((each) => each.ageRating)).size > 1)
+  check('the corpus holds more than one publication status',
+    new Set(held.map((each) => each.publicationStatus)).size > 1)
 
   server.close()
   if (failures.length) {

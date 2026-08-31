@@ -208,6 +208,13 @@
     <string name="kavita_error_key_not_stored">Cet appareil n’a pas voulu conserver la clé d’API : le serveur n’a pas été ajouté. Rien n’a été enregistré à moitié.</string>
     <string name="kavita_empty">Cette bibliothèque est vide.</string>
     <string name="kavita_loose_chapters">Chapitres</string>
+    <string name="kavita_status">Statut : %1$s</string>
+    <string name="kavita_status_ongoing">En cours</string>
+    <string name="kavita_status_hiatus">En pause</string>
+    <string name="kavita_status_completed">Terminée</string>
+    <string name="kavita_status_cancelled">Annulée</string>
+    <string name="kavita_status_ended">Achevée</string>
+    <string name="kavita_age_rating">Classification par âge : %1$s</string>
     <string name="catalogue_error_secret_not_stored">Cet appareil n’a pas voulu conserver l’identification : le catalogue n’a pas été ajouté. Rien n’a été enregistré à moitié.</string>
     <string name="kavita_fetching">Téléchargement</string>
     <string name="kavita_continue">Continuer · %1$s</string>

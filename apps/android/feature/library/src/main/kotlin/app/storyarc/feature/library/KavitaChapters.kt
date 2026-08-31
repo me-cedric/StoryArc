@@ -40,8 +40,11 @@ import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.kavita.KavitaChapter
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.kavita.KavitaMetadata
+import app.storyarc.core.kavita.KavitaPublicationStatus
 import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.kavita.KavitaVolume
+import app.storyarc.core.kavita.rating
+import app.storyarc.core.kavita.status
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.persistence.KavitaCardStore
@@ -270,7 +273,21 @@ fun KavitaChapters(
     }
 }
 
-/** The server's own description of a series, which wins over anything inside the file. */
+/**
+ * The server's own description of a series, which wins over anything inside the file.
+ *
+ * All seven of the fields `kavita-server`'s *Metadata* requirement names — "summary, genres,
+ * tags, people, publication status, age rating, and release year". The last two used to be
+ * decoded and dropped: `KavitaMetadata` has carried `ageRating` and `publicationStatus` since
+ * the client was written and nothing read either, so the requirement's list was five sevenths
+ * true and the *Server metadata differs from file metadata* scenario could not be met for
+ * them at all.
+ *
+ * The two arrive as integers and get a named line each rather than joining the run of facts
+ * above. A rating dropped unlabelled into "2020 · Ada Lovelace · Drama · Teen" is a rating a
+ * reader would read as a genre, and this is the one field where being mistaken for something
+ * else matters.
+ */
 @Composable
 private fun KavitaMetadataBlock(metadata: KavitaMetadata) {
     val palette = LocalStoryArcPalette.current
@@ -293,8 +310,37 @@ private fun KavitaMetadataBlock(metadata: KavitaMetadata) {
                 color = palette.textSecondary,
             )
         }
+        metadata.status?.let { status ->
+            Text(
+                text = stringResource(R.string.kavita_status, stringResource(status.label)),
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.textSecondary,
+            )
+        }
+        // Absent unless the server actually stated one. `KavitaMetadata.rating` drops
+        // Kavita's `Unknown` and `Not Applicable`, because a line saying a book had been
+        // rated when nobody rated it is worse than no line.
+        metadata.rating?.let { rating ->
+            Text(
+                // The rating's own label, unchanged: ComicInfo.xml v2.1's vocabulary, which
+                // is where Kavita takes it from. See the note beside `kavita_age_rating`.
+                text = stringResource(R.string.kavita_age_rating, rating.label),
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.textSecondary,
+            )
+        }
     }
 }
+
+/** What this app calls each of Kavita's five states, in the reader's own language. */
+private val KavitaPublicationStatus.label: Int
+    get() = when (this) {
+        KavitaPublicationStatus.ONGOING -> R.string.kavita_status_ongoing
+        KavitaPublicationStatus.HIATUS -> R.string.kavita_status_hiatus
+        KavitaPublicationStatus.COMPLETED -> R.string.kavita_status_completed
+        KavitaPublicationStatus.CANCELLED -> R.string.kavita_status_cancelled
+        KavitaPublicationStatus.ENDED -> R.string.kavita_status_ended
+    }
 
 @Composable
 private fun ChapterRow(

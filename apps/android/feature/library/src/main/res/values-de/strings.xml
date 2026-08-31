@@ -208,6 +208,13 @@
     <string name="kavita_error_key_not_stored">Dieses Gerät wollte den API-Schlüssel nicht speichern, daher wurde der Server nicht hinzugefügt. Es wurde nichts halbfertig gespeichert.</string>
     <string name="kavita_empty">Diese Bibliothek ist leer.</string>
     <string name="kavita_loose_chapters">Kapitel</string>
+    <string name="kavita_status">Status: %1$s</string>
+    <string name="kavita_status_ongoing">Laufend</string>
+    <string name="kavita_status_hiatus">Pausiert</string>
+    <string name="kavita_status_completed">Abgeschlossen</string>
+    <string name="kavita_status_cancelled">Abgebrochen</string>
+    <string name="kavita_status_ended">Beendet</string>
+    <string name="kavita_age_rating">Altersfreigabe: %1$s</string>
     <string name="catalogue_error_secret_not_stored">Dieses Gerät wollte die Anmeldung nicht speichern, daher wurde der Katalog nicht hinzugefügt. Es wurde nichts halbfertig gespeichert.</string>
     <string name="kavita_fetching">Wird heruntergeladen</string>
     <string name="kavita_continue">Weiterlesen · %1$s</string>

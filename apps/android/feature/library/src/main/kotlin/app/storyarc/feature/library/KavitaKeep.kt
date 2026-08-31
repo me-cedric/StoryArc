@@ -133,7 +133,17 @@ object KavitaKeep {
         Kept(publication, destination.absolutePath)
     }.getOrNull()
 
-    /** What the server said, in the shape that survives it going away. */
+    /**
+     * What the server said, in the shape that survives it going away.
+     *
+     * **Five of `kavita-server`'s seven metadata fields, not seven.** The publication status
+     * and the age rating are now shown on the series screen, where the live answer is, and
+     * they do not reach a downloaded copy: `KavitaCard` has no field for either, so
+     * *Reading a downloaded Kavita title offline* still displays the file's `ComicInfo.xml`
+     * for those two while displaying the server's word for the rest. Closing it is two
+     * fields on `KavitaCard` and two lines here — `:core:model`, and iOS's mirror of the
+     * same value, which is why it is named rather than done.
+     */
     private fun card(
         publicationId: String,
         downloadId: String,

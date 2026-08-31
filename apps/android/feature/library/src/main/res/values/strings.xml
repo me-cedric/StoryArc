@@ -208,6 +208,20 @@
     <string name="kavita_error_key_not_stored">This device would not store the API key, so the server was not added. Nothing was saved half-finished.</string>
     <string name="kavita_empty">This library is empty.</string>
     <string name="kavita_loose_chapters">Chapters</string>
+    <string name="kavita_status">Status: %1$s</string>
+    <string name="kavita_status_ongoing">Ongoing</string>
+    <string name="kavita_status_hiatus">On hiatus</string>
+    <string name="kavita_status_completed">Completed</string>
+    <string name="kavita_status_cancelled">Cancelled</string>
+    <string name="kavita_status_ended">Ended</string>
+    <!--
+      The rating's value is not translated. It is an issued mark from a rating scheme —
+      ComicInfo.xml v2.1's own vocabulary, which is where Kavita takes it from — and half of
+      them are codes nobody would translate anyway (G, PG, MA15+, R18+, X18+). A paraphrased
+      rating is a rating no body ever gave, which is the one thing a parental-control line
+      must not say. Only the word introducing it is the app's, so only that is translated.
+    -->
+    <string name="kavita_age_rating">Age rating: %1$s</string>
     <string name="catalogue_error_secret_not_stored">This device would not store the sign-in, so the catalogue was not added. Nothing was saved half-finished.</string>
     <string name="kavita_fetching">Downloading</string>
     <string name="kavita_continue">Continue · %1$s</string>
