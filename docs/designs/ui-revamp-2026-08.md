@@ -263,18 +263,29 @@ TabView {
   navigation bar only, and the sidebar footer on iPad. It is not a tab; it is not
   on the shelf.
 
-**The docked transport (`tabViewBottomAccessory`).** The slot exists and does
-exactly what the Apple Music screenshot shows: above the tab bar at normal size,
-inline when the bar collapses, with the glass capsule for free, keyed off
-`tabViewBottomAccessoryPlacement`. **This design reserves the slot and does not
-fill it in the first pass**, for one honest reason: the only transport StoryArc
-has is EPUB read-aloud, it lives inside the reader
-(`EpubReaderFeature/ReadAloudBar.swift`), and the reader is a `.fullScreenCover`
-(`StoryArcApp.swift`) — speech ends when the reader is dismissed and there is no
-tab bar behind it to dock to. **Making read-aloud outlive the reader is a
-capability change, not a layout change**, and per [AGENTS.md §3](../../AGENTS.md)
-it needs `/opsx:propose` on its own. A "continue reading" dock is a *different*
-product idea and is open question §8.2.
+**The docked transport (`tabViewBottomAccessory`). Built, 2026-08-31.** The slot
+does exactly what the Apple Music screenshot shows: above the tab bar at normal
+size, inline when the bar collapses, with the glass capsule for free, keyed off
+`tabViewBottomAccessoryPlacement`.
+
+This design originally *reserved* the slot and did not fill it, for one honest
+reason: the only transport StoryArc had was EPUB read-aloud, it lived inside the
+reader, and speech ended when the reader was dismissed — there was no tab bar
+behind it to dock to. That reason is gone. `read-aloud-beyond-the-reader` moved
+the session above the screen that starts it (`ReadAloudCentre`), and the slot now
+carries `ReadAloudDock`.
+
+**One thing the design could not have known, and a device settled in one capture:
+an empty `@ViewBuilder` is not an absent accessory.** The first attempt passed
+`tabViewBottomAccessory { if isSpeaking { … } }`, on the reasoning that producing
+no content leaves the slot nothing to make room for. The platform draws the glass
+capsule regardless, so every destination lost that much height while nothing was
+speaking. `tabViewBottomAccessory(isEnabled:)` is the remedy and it is **iOS 26.1
+against this app's 26.0 floor** ([ADR-0003](../decisions/0003-platform-floors.md)),
+so it costs the app's only availability branch. On 26.0 the empty capsule remains.
+
+A "continue reading" dock is still a *different* product idea and is still open
+question §8.2.
 
 ### 3.2 Home — new screen, editorial, generated
 
@@ -1009,6 +1020,14 @@ Android `MaterialTheme.shapes` wiring is one line; and the mislabelled Android e
 > Android capture is still unproven — `adb devices` reports none attached, so an emulator has
 > to be started before that half can be verified. That is a smaller slice zero, still owed.
 >
+> **Settled too, 2026-08-31.** `adb exec-out screencap -p` captures the emulator, and
+> `docs/designs/screenshots/after-2026-08-31/` holds the results. Two things learned in the
+> doing, both now in `scripts/`: `adb` was not on this machine's path and two of the three
+> device scripts could not find it, which `scripts/adb.mjs` fixes; and **an emulator started
+> with `-gpu swiftshader_indirect` takes 75 seconds to launch this app and dies back to the
+> launcher**, which reads exactly like a startup defect and is not one — `-gpu host` starts
+> the same APK in 1.5 seconds. Measure nothing on software GL.
+>
 > The rest of this section stands as written, for its reasoning about what proof means.
 
 
@@ -1047,15 +1066,16 @@ consequence, stated plainly so nobody discovers it at the end:
 
 Ordered by how much each would change the work.
 
-1. **Does `Tab(role: .search)` morph into a search field, or only sit apart?** Apple
-   documents the *separation* and the trailing placement; the *morph into a field on
-   selection* is well attested in practice but I could not source it to Apple
-   directly. It is the exact behaviour the owner described. **Settle it:** boot an
-   iOS 26 simulator, build a four-tab shell, tap the search tab, screenshot. Thirty
-   minutes — once §7.5 is fixed. If it does not morph, the fallback is
-   `.searchable().searchToolbarBehavior(.minimize)`, which Apple *does* document as
-   rendering the field as a button-like control when inactive. (Note: Apple's prose
-   writes `.minimized`; the enum case is `.minimize`.)
+1. ~~**Does `Tab(role: .search)` morph into a search field, or only sit apart?**~~
+   **SETTLED, 2026-08-31, on a booted iPhone 17 Pro: it morphs.** Selecting the
+   search tab replaces the three destinations with a field in place, at the foot of
+   the window, with the library's own icon beside it and a dismiss button at the
+   trailing edge — the exact behaviour the owner described. Apple documents the
+   separation and the trailing placement and not the morph, which is why this was
+   a question; a capture answers it in a way no amount of reading could.
+   `docs/designs/screenshots/after-2026-08-31/` holds it. **The
+   `.searchable().searchToolbarBehavior(.minimize)` fallback is not needed and
+   should not be built.**
 2. **Does the owner want a docked transport at all, and of what?** The Apple Music
    screenshot shows a mini player. StoryArc's only transport is EPUB read-aloud,
    which today dies with the reader. A *continue reading* dock is a different
