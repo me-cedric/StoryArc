@@ -196,11 +196,15 @@ struct PublicationIndexerTests {
 
     // MARK: - Identity
 
-    @Test("Identity is path-keyed during a scan, and matches itself")
+    @Test("A scanned publication records both where it is and what it is")
     func identity() async throws {
         let publication = try await index("comics/natural-sort.cbz")
         #expect(publication.identity.normalizedPath != nil)
+        // The half that was missing: every library publication used to carry a path
+        // and nothing else, so a rename lost the reader's place.
+        #expect(publication.identity.contentDigest != nil)
         #expect(!publication.identity.isEmpty)
+        // And the key it is filed under does not move because the digest arrived.
         #expect(publication.id.hasPrefix("path:"))
     }
 
@@ -218,5 +222,119 @@ struct PublicationIndexerTests {
         #expect(first == again)
         #expect(first != other)
         #expect(first.count == 64)
+    }
+
+    @Test("The awkward archives all digest, and none collides")
+    func awkwardArchivesDigest() async throws {
+        // The digest reads bytes and parses nothing, so the shapes that mislead a ZIP
+        // parser cannot mislead it: a data descriptor zeroes the local headers, ZIP64
+        // moves the end-of-directory record, an archive comment pushes it further, and
+        // a truncated file has no readable directory at all.
+        let paths = [
+            "comics/data-descriptor.cbz",
+            "comics/zip64.cbz",
+            "comics/truncated.cbz",
+            "comics/natural-sort.cbz",
+            "comics/archive-comment.cbz",
+        ]
+        var digests: [String] = []
+        for path in paths {
+            digests.append(try await PublicationIndexer.contentDigest(fileAt: FixtureCorpus.url(path)))
+        }
+        #expect(digests.allSatisfy { $0.count == 64 })
+        #expect(Set(digests).count == paths.count)
+    }
+
+    @Test("An archive too broken to index still has an identity")
+    func truncatedStillDigests() async throws {
+        // `truncated.cbz` is the case that proves bytes beat parsing. Whatever the
+        // library decides to do with it, the reader's place in it is still findable.
+        let digest = try await PublicationIndexer.contentDigest(
+            fileAt: FixtureCorpus.url("comics/truncated.cbz")
+        )
+        #expect(digest.count == 64)
+    }
+
+    @Test("A renamed file is the same publication")
+    func digestSurvivesARename() async throws {
+        // The defect this exists for. A copy at another path under another name is the
+        // same bytes, so the two identities match and the progress store finds one
+        // record — while each is still filed under its own path.
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "storyarc-digest-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let moved = directory.appending(path: "Renamed Entirely.cbz")
+        try FileManager.default.copyItem(at: FixtureCorpus.url("comics/natural-sort.cbz"), to: moved)
+
+        let before = try await index("comics/natural-sort.cbz")
+        let after = try await PublicationIndexer.index(fileAt: moved)
+
+        #expect(before.identity.contentDigest == after.identity.contentDigest)
+        #expect(before.identity.matches(after.identity))
+        #expect(before.id != after.id)
+    }
+
+    @Test("Something with no file of its own has no digest")
+    func directoryHasNoDigest() async throws {
+        // A folder of images. There are no file bytes to hash, and the honest answer is
+        // no digest rather than a digest of a directory entry — which would differ
+        // between two devices holding the same pages.
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "storyarc-nodigest-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let digest = try? await PublicationIndexer.contentDigest(fileAt: directory)
+        #expect(digest == nil)
+    }
+
+    // MARK: - What the digest is computed from
+
+    /// A source both platforms can build byte for byte, so the expectation below is a
+    /// number rather than a description. Deliberately not a fixture: regenerating the
+    /// corpus can change DEFLATE output, and this has to pin the algorithm and only the
+    /// algorithm.
+    private static func pattern(_ count: Int) -> DataSource {
+        DataSource(Data((0..<count).map { UInt8(($0 * 31 + 7) % 251) }))
+    }
+
+    @Test("The digest is length, then head, then tail — pinned to the byte")
+    func digestIsPinned() async throws {
+        // SHA-256 over the length as eight little-endian bytes, the first 512 KB, and
+        // the last 512 KB. **The same literal appears in Android's
+        // `PublicationIndexerTest`.** If one platform's changes, both must — that is
+        // what stops a reader's place from being lost on one platform only.
+        let digest = try await PublicationIndexer.contentDigest(of: Self.pattern(1_100_000))
+        #expect(digest == "434c6d7af16982446617ca1ea7fc5cd0ff1e1d8915ea38628c83b136bf2cb0e6")
+    }
+
+    @Test("A source smaller than the window is hashed once, not twice")
+    func digestOfAShortSource() async throws {
+        // The head already covered every byte there is, so the tail is skipped rather
+        // than folded in again. Mirrored literal, same rule as above.
+        let digest = try await PublicationIndexer.contentDigest(of: Self.pattern(1000))
+        #expect(digest == "b00eef232e60114f7bb29c94548f243823c9c75291714ab0bd2c8787d9a03c5d")
+    }
+
+    @Test("Length is part of the digest, not just the bytes at each end")
+    func lengthChangesTheDigest() async throws {
+        // Identical head, identical tail, one byte longer. Without the length in the
+        // hash these would be the same publication.
+        let shorter = try await PublicationIndexer.contentDigest(of: DataSource(Data(count: 600_000)))
+        let longer = try await PublicationIndexer.contentDigest(of: DataSource(Data(count: 600_001)))
+        #expect(shorter != longer)
+    }
+
+    @Test("Two files differing only in the middle are not told apart")
+    func theAcceptedCollision() async throws {
+        // Asserted rather than left to be discovered. Reading a megabyte instead of
+        // four hundred is what makes this cheap enough to run on every publication a
+        // folder walk finds, and this is the price: a change beyond the first 512 KB
+        // and before the last 512 KB, with the length unmoved, is invisible.
+        var bytes = (0..<1_100_000).map { UInt8(($0 * 31 + 7) % 251) }
+        let original = try await PublicationIndexer.contentDigest(of: DataSource(Data(bytes)))
+        bytes[550_000] = bytes[550_000] &+ 1
+        let altered = try await PublicationIndexer.contentDigest(of: DataSource(Data(bytes)))
+        #expect(original == altered)
     }
 }

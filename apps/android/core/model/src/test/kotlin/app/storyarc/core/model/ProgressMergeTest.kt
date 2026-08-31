@@ -181,6 +181,60 @@ class ProgressMergeTest {
         assertTrue(empty.isEmpty)
         assertFalse(empty.matches(PublicationIdentity(contentDigest = "d1")))
     }
+
+    // The filing key.
+
+    @Test
+    fun `learning a digest does not re-file a publication`() {
+        // Collection members, reading-list entries, a download's id and the folder its
+        // bytes live in, and Kavita's chapter-to-publication table all hold this string.
+        // The scanners produced a path and nothing else until the digest was wired in, so
+        // a key that moved when the digest arrived would empty every shelf and orphan
+        // every downloaded file on one launch.
+        val beforeTheDigest = PublicationIdentity(normalizedPath = "/lib/Bone 01.cbz")
+        val afterTheDigest = beforeTheDigest.recordingDigest("d1")
+
+        assertEquals("d1", afterTheDigest.contentDigest)
+        assertEquals(beforeTheDigest.stableId, afterTheDigest.stableId)
+    }
+
+    @Test
+    fun `a file with no path of its own is still filed under its digest`() {
+        // What a file handed over from outside the app gets: no path this app is entitled
+        // to keep, so the digest is the only key there is.
+        assertEquals("sha:d1", PublicationIdentity(contentDigest = "d1").stableId)
+    }
+
+    @Test
+    fun `a server identifier outranks both, because the server owns its own content`() {
+        val sourceId = UUID.randomUUID()
+        val identity = PublicationIdentity(
+            serverIdentifier = PublicationIdentity.ServerIdentifier(sourceId, "42"),
+            contentDigest = "d1",
+            normalizedPath = "/lib/Bone 01.cbz",
+        )
+
+        assertEquals("srv:$sourceId:42", identity.stableId)
+    }
+
+    @Test
+    fun `a digest already recorded is not overwritten by a later one`() {
+        // Whoever supplied the first one knew something this caller does not — a caller
+        // passing an identity in is entitled to have it respected.
+        val known = PublicationIdentity(contentDigest = "d1", normalizedPath = "/a/b.cbz")
+
+        assertEquals("d1", known.recordingDigest("d2").contentDigest)
+        assertEquals("d1", known.recordingDigest(null).contentDigest)
+    }
+
+    @Test
+    fun `a digest that could not be taken leaves the identity as it was`() {
+        // A directory, or a file that would not open. Indexing must not fail over it: the
+        // publication keys on its path, exactly where it stood before.
+        val pathOnly = PublicationIdentity(normalizedPath = "/a/b.cbz")
+
+        assertEquals(pathOnly, pathOnly.recordingDigest(null))
+    }
 }
 
 class SourceStateTest {

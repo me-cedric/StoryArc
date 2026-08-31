@@ -216,10 +216,14 @@ class PublicationIndexerTest {
     // Identity.
 
     @Test
-    fun `identity is path-keyed during a scan, and matches itself`() = runTest {
+    fun `a scanned publication records both where it is and what it is`() = runTest {
         val publication = index("comics/natural-sort.cbz")
         assertTrue(publication.identity.normalizedPath != null)
+        // The half that was missing: every library publication used to carry a path and
+        // nothing else, so a rename lost the reader's place.
+        assertTrue(publication.identity.contentDigest != null)
         assertFalse(publication.identity.isEmpty)
+        // And the key it is filed under does not move because the digest arrived.
         assertTrue(publication.id.startsWith("path:"))
     }
 
@@ -233,5 +237,126 @@ class PublicationIndexerTest {
         assertEquals(first, again)
         assertTrue(first != other)
         assertEquals(64, first.length)
+    }
+
+    @Test
+    fun `the awkward archives all digest, and none collides`() = runTest {
+        // The digest reads bytes and parses nothing, so the shapes that mislead a ZIP
+        // parser cannot mislead it: a data descriptor zeroes the local headers, ZIP64
+        // moves the end-of-directory record, an archive comment pushes it further, and a
+        // truncated file has no readable directory at all.
+        val paths = listOf(
+            "comics/data-descriptor.cbz",
+            "comics/zip64.cbz",
+            "comics/truncated.cbz",
+            "comics/natural-sort.cbz",
+            "comics/archive-comment.cbz",
+        )
+        val digests = paths.map { PublicationIndexer.contentDigest(FixtureCorpus.file(it)) }
+        digests.forEach { assertEquals(64, it.length) }
+        assertEquals(paths.size, digests.toSet().size)
+    }
+
+    @Test
+    fun `an archive too broken to index still has an identity`() = runTest {
+        // `truncated.cbz` is the case that proves bytes beat parsing. Whatever the
+        // library decides to do with it, the reader's place in it is still findable.
+        val digest = PublicationIndexer.contentDigest(FixtureCorpus.file("comics/truncated.cbz"))
+        assertEquals(64, digest.length)
+    }
+
+    @Test
+    fun `a renamed file is the same publication`() = runTest {
+        // The defect this exists for. A copy at another path under another name is the
+        // same bytes, so the two identities match and the progress store finds one
+        // record — while each is still filed under its own path.
+        val directory = File.createTempFile("storyarc-digest", "").let {
+            it.delete()
+            it.mkdirs()
+            it
+        }
+        try {
+            val moved = File(directory, "Renamed Entirely.cbz")
+            FixtureCorpus.file("comics/natural-sort.cbz").copyTo(moved)
+
+            val before = index("comics/natural-sort.cbz")
+            val after = PublicationIndexer.index(moved)
+
+            assertEquals(before.identity.contentDigest, after.identity.contentDigest)
+            assertTrue(before.identity.matches(after.identity))
+            assertTrue(before.id != after.id)
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `something with no file of its own has no digest`() = runTest {
+        // A folder of images. There are no file bytes to hash, and the honest answer is
+        // no digest rather than a digest of a directory entry — which would differ
+        // between two devices holding the same pages.
+        val directory = File.createTempFile("storyarc-nodigest", "").let {
+            it.delete()
+            it.mkdirs()
+            it
+        }
+        try {
+            val digest = runCatching {
+                PublicationIndexer.contentDigest(directory)
+            }.getOrNull()
+            assertNull(digest)
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
+    // What the digest is computed from.
+
+    /**
+     * A source both platforms can build byte for byte, so the expectation below is a
+     * number rather than a description. Deliberately not a fixture: regenerating the
+     * corpus can change DEFLATE output, and this has to pin the algorithm and only the
+     * algorithm.
+     */
+    private fun pattern(count: Int) = DataSource(ByteArray(count) { ((it * 31 + 7) % 251).toByte() })
+
+    @Test
+    fun `the digest is length, then head, then tail -- pinned to the byte`() = runTest {
+        // SHA-256 over the length as eight little-endian bytes, the first 512 KB, and the
+        // last 512 KB. **The same literal appears in iOS's `PublicationIndexerTests`.**
+        // If one platform's changes, both must — that is what stops a reader's place from
+        // being lost on one platform only.
+        val digest = PublicationIndexer.contentDigest(pattern(1_100_000))
+        assertEquals("434c6d7af16982446617ca1ea7fc5cd0ff1e1d8915ea38628c83b136bf2cb0e6", digest)
+    }
+
+    @Test
+    fun `a source smaller than the window is hashed once, not twice`() = runTest {
+        // The head already covered every byte there is, so the tail is skipped rather
+        // than folded in again. Mirrored literal, same rule as above.
+        val digest = PublicationIndexer.contentDigest(pattern(1000))
+        assertEquals("b00eef232e60114f7bb29c94548f243823c9c75291714ab0bd2c8787d9a03c5d", digest)
+    }
+
+    @Test
+    fun `length is part of the digest, not just the bytes at each end`() = runTest {
+        // Identical head, identical tail, one byte longer. Without the length in the hash
+        // these would be the same publication.
+        val shorter = PublicationIndexer.contentDigest(DataSource(ByteArray(600_000)))
+        val longer = PublicationIndexer.contentDigest(DataSource(ByteArray(600_001)))
+        assertTrue(shorter != longer)
+    }
+
+    @Test
+    fun `two files differing only in the middle are not told apart`() = runTest {
+        // Asserted rather than left to be discovered. Reading a megabyte instead of four
+        // hundred is what makes this cheap enough to run on every publication a folder
+        // walk finds, and this is the price: a change beyond the first 512 KB and before
+        // the last 512 KB, with the length unmoved, is invisible.
+        val bytes = ByteArray(1_100_000) { ((it * 31 + 7) % 251).toByte() }
+        val original = PublicationIndexer.contentDigest(DataSource(bytes))
+        bytes[550_000] = (bytes[550_000] + 1).toByte()
+        val altered = PublicationIndexer.contentDigest(DataSource(bytes))
+        assertEquals(original, altered)
     }
 }

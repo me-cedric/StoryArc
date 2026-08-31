@@ -69,6 +69,13 @@ object PublicationIndexer {
         // is a real path to the same open file, so a compressed CBR on a provider
         // decodes without being copied anywhere first.
         val decoder = decoderPath ?: (source as? UriSource)?.let { File(it.descriptorPath) }
+        // The caller's identity says *where* this came from; the digest says *what* it is.
+        // Recorded together, which is what ADR-0006 asks for whenever both are known — and
+        // here both are, because the source is already open. This is the whole of what a
+        // folder picked through the Storage Access Framework gets: it is reached by `Uri`
+        // and has no `File` to digest separately.
+        @Suppress("NAME_SHADOWING")
+        val identity = identity.recordingDigest(runCatching { contentDigest(source) }.getOrNull())
         val probe = source.read(0, FormatSniffer.PROBE_LENGTH)
 
         return when (FormatSniffer.container(probe)) {
@@ -175,6 +182,7 @@ object PublicationIndexer {
             return comic(
                 ImageFolderArchive.open(file),
                 PublicationFormat.IMAGE_FOLDER,
+                // No file, so no digest. A folder of images keys on its path alone.
                 identityFor(file),
                 filename,
                 fallback,
@@ -182,26 +190,30 @@ object PublicationIndexer {
         }
         if (!file.isFile) throw IndexException.Unreadable("the file is not there")
 
-        val source = FileSource(file)
-        val probe = source.read(0, FormatSniffer.PROBE_LENGTH)
+        // Both reads come off the one handle the sniff below already needs, and it is
+        // closed rather than left to the collector — see [contentDigest].
+        val (identity, probe) = FileSource(file).use { source ->
+            identityFor(file, runCatching { contentDigest(source) }.getOrNull()) to
+                source.read(0, FormatSniffer.PROBE_LENGTH)
+        }
         return when (FormatSniffer.container(probe)) {
-            FormatSniffer.Container.PDF -> pdf(identityFor(file), filename, fallback)
+            FormatSniffer.Container.PDF -> pdf(identity, filename, fallback)
 
             FormatSniffer.Container.ZIP -> {
                 // An EPUB is a ZIP too, and only its contents tell the two apart.
                 val epub = runCatching { EpubReader.open(FileSource(file)) }.getOrNull()
                 if (epub != null) {
-                    book(epub, identityFor(file), filename, fallback)
+                    book(epub, identity, filename, fallback)
                 } else {
-                    comicArchive(file, PublicationFormat.CBZ, filename, fallback)
+                    comicArchive(file, identity, PublicationFormat.CBZ, filename, fallback)
                 }
             }
 
             FormatSniffer.Container.TAR ->
-                comicArchive(file, PublicationFormat.CBT, filename, fallback)
+                comicArchive(file, identity, PublicationFormat.CBT, filename, fallback)
 
             FormatSniffer.Container.RAR ->
-                comicArchive(file, PublicationFormat.CBR, filename, fallback)
+                comicArchive(file, identity, PublicationFormat.CBR, filename, fallback)
 
             FormatSniffer.Container.SEVEN_ZIP ->
                 throw IndexException.Unsupported(PublicationFormat.CB7.displayName)
@@ -214,6 +226,7 @@ object PublicationIndexer {
 
     private suspend fun comicArchive(
         file: File,
+        identity: PublicationIdentity,
         format: PublicationFormat,
         filename: String,
         fallback: FilenameMetadata,
@@ -224,7 +237,7 @@ object PublicationIndexer {
             // Readable as a *record* even though it cannot be opened: the library
             // should list it and say why, not silently drop it.
             return Publication(
-                identity = identityFor(file),
+                identity = identity,
                 format = format,
                 displayTitle = title(null, fallback, filename),
                 series = fallback.series,
@@ -241,7 +254,7 @@ object PublicationIndexer {
         } catch (_: ComicArchiveException) {
             throw IndexException.Unreadable("the archive could not be read")
         }
-        return comic(archive, format, identityFor(file), filename, fallback)
+        return comic(archive, format, identity, filename, fallback)
     }
 
     private fun comic(
@@ -394,42 +407,90 @@ object PublicationIndexer {
     }
 
     /**
-     * An identity keyed on the normalised path.
+     * An identity carrying both what the publication *is* and where it was found.
      *
-     * ADR-0006 prefers a content digest, which survives renames and moves. That is
-     * deliberately not done here: digesting a 400 MB archive during a scan of 10,000
-     * files would break `local-library`'s three-second requirement outright.
-     *
-     * ponytail: the digest belongs to a background pass that fills it in after the
-     * first screen is on-screen, and [PublicationIdentity.matches] already merges
-     * the two when it arrives. Until that pass exists, a moved file loses its place
-     * — which is the honest cost and is recorded here rather than hidden.
+     * ADR-0006's rules 2 and 3 together. The path is what the app files the publication
+     * under ([PublicationIdentity.stableId]); the digest is what recognises it again
+     * after a rename or a move, because [PublicationIdentity.matches] and `ProgressStore`
+     * both try the digest before the path. A `null` digest is the honest answer for
+     * something that has no file of its own — a folder of images — and leaves the path as
+     * the only key, which is what every publication had before the digest was computed at
+     * all.
      */
-    fun identityFor(file: File): PublicationIdentity =
-        PublicationIdentity(normalizedPath = file.absoluteFile.normalize().path)
+    fun identityFor(file: File, digest: String? = null): PublicationIdentity =
+        PublicationIdentity(
+            contentDigest = digest,
+            normalizedPath = file.absoluteFile.normalize().path,
+        )
 
     /**
-     * A content digest for one publication.
+     * How many bytes at each end of a publication the digest reads.
      *
-     * Not called during a scan — see [identityFor]. Offered so the background pass
-     * that upgrades an identity has one implementation to use rather than inventing
-     * its own, and so the two platforms hash the same bytes.
-     *
-     * Hashes the first and last 512 KB plus the file length, not the whole file: a
-     * comic that differs from another in neither its head, its tail, nor its size is
-     * the same comic, and reading gigabytes to prove it is not worth the disk.
+     * ADR-0006 writes the rule as "the file's size plus the first and last 64 KB". The
+     * window here is larger, and is deliberately **not** being reduced to the number in
+     * that sentence: the digest string is a bare hex SHA-256 with no scheme tag, so
+     * changing what it is computed from turns every digest already written into a
+     * stranger, and the records that carry one — a file this app was handed from outside
+     * — have no path to fall back to. Eight times cheaper is not worth losing them. What
+     * ADR-0006 actually decides is the *shape* — size, head, tail, no full read — and
+     * that is unchanged.
      */
-    suspend fun contentDigest(file: File): String {
-        val source = FileSource(file)
-        val window = 512 * 1024
+    private const val DIGEST_WINDOW = 512 * 1024
+
+    /**
+     * A content digest for one publication: what makes a moved file the same file.
+     *
+     * **SHA-256 over three things, in this order:** the source's length as eight
+     * little-endian bytes, its first [DIGEST_WINDOW] bytes, and its last [DIGEST_WINDOW]
+     * bytes — the tail omitted when the source is no longer than the window, because the
+     * head already covered every byte there is.
+     *
+     * *Why not the whole file.* A comic is tens to hundreds of megabytes and this runs
+     * for every publication a folder walk finds. Reading all of it would put gigabytes of
+     * I/O in front of the first screen of covers, which `local-library` gives three
+     * seconds.
+     *
+     * *Why not the name.* The name is the one thing a rename changes, and a rename losing
+     * someone's place is the whole reason this exists.
+     *
+     * *Why the raw bytes and not the archive's contents.* Two entries beyond the central
+     * directory would make this a parse, and AGENTS.md is blunt that the central
+     * directory is a ZIP's only authority — a data descriptor leaves zeros in the local
+     * headers, so a digest built from those would agree between two unrelated archives.
+     * Hashing bytes takes no position on what the container says about itself:
+     * `data-descriptor.cbz` and `truncated.cbz` digest exactly as readily as a well-formed
+     * one, and a file too broken to index still gets an identity.
+     *
+     * *What it cannot tell apart.* Two files of the same length differing only in the
+     * middle. For a comic that means an archive re-compressed at a different level to the
+     * same byte count, which is not a thing that happens by accident — and the accepted
+     * trade for reading a megabyte instead of four hundred. `PublicationIndexerTest`
+     * asserts it rather than leaving it to be discovered.
+     *
+     * *Where the bytes come from.* A [RandomAccessSource], so the caller passes the handle
+     * it already opened to sniff the format and read the central directory: the reads land
+     * on pages the indexer has just touched, and nothing is opened twice. ADR-0008's
+     * interface is what makes that possible, and it is the same reason this works over a
+     * share without a full transfer.
+     */
+    suspend fun contentDigest(source: RandomAccessSource): String {
         val digest = MessageDigest.getInstance("SHA-256")
         digest.update(
             ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(source.length).array(),
         )
-        digest.update(source.read(0, window))
-        if (source.length > window) {
-            digest.update(source.readTail(window).first)
+        digest.update(source.read(0, DIGEST_WINDOW))
+        if (source.length > DIGEST_WINDOW) {
+            digest.update(source.readTail(DIGEST_WINDOW).first)
         }
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
+
+    /**
+     * The digest of a local file. See [contentDigest] for what is hashed.
+     *
+     * Closes the handle it opens. A scan of ten thousand files leaking one descriptor
+     * each would exhaust the process limit long before it finished — the same reason
+     * `LibraryScanner` closes its `UriSource`.
+     */
+    suspend fun contentDigest(file: File): String = FileSource(file).use { contentDigest(it) }
 }

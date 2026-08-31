@@ -2,8 +2,6 @@ public import Foundation
 
 public import StoryArcCore
 
-internal import CryptoKit
-
 /// Turns a file into a `Publication`.
 ///
 /// The seam between the format layer and the library. Everything below it knows
@@ -61,29 +59,41 @@ public enum PublicationIndexer {
             return comic(
                 folder,
                 format: .imageFolder,
-                identity: identity(forPath: url.path),
+                // No file, so no digest. A folder of images keys on its path alone.
+                identity: identity(forPath: url.path, digest: nil),
                 filename: url.lastPathComponent,
                 fallback: FilenameMetadata(filename: url.lastPathComponent)
             )
         }
 
         let source = try FileSource(url: url)
+        // Taken from the handle the sniff below is about to use, so both reads land on
+        // pages this index is touching anyway. See `contentDigest(of:)`.
+        let found = identity(forPath: url.path, digest: try? await contentDigest(of: source))
         let probe = try await source.read(offset: 0, count: FormatSniffer.probeLength)
         let container = FormatSniffer.container(of: probe)
 
         switch container {
         case .pdf:
-            return try pdf(at: url, filename: filename, fallback: fallback)
+            return try pdf(at: url, identity: found, filename: filename, fallback: fallback)
         case .zip:
             // An EPUB is a ZIP too, and only its contents tell the two apart.
             if let epub = try? await EpubReader(source: source) {
-                return await book(epub, at: url, filename: filename, fallback: fallback)
+                return await book(
+                    epub, at: url, identity: found, filename: filename, fallback: fallback
+                )
             }
-            return try await comicArchive(url: url, format: .cbz, filename: filename, fallback: fallback)
+            return try await comicArchive(
+                url: url, identity: found, format: .cbz, filename: filename, fallback: fallback
+            )
         case .tar:
-            return try await comicArchive(url: url, format: .cbt, filename: filename, fallback: fallback)
+            return try await comicArchive(
+                url: url, identity: found, format: .cbt, filename: filename, fallback: fallback
+            )
         case .rar:
-            return try await comicArchive(url: url, format: .cbr, filename: filename, fallback: fallback)
+            return try await comicArchive(
+                url: url, identity: found, format: .cbr, filename: filename, fallback: fallback
+            )
         case .sevenZip:
             throw IndexError.unsupported(format: PublicationFormat.cb7.displayName)
         case nil:
@@ -110,25 +120,32 @@ public enum PublicationIndexer {
         seriesHint: String? = nil
     ) async throws -> Publication {
         let fallback = FilenameMetadata(filename: name, seriesHint: seriesHint)
+        // The caller's identity says *where* this came from; the digest says *what* it
+        // is. Recorded together, which is what ADR-0006 asks for whenever both are
+        // known — and here both are, because the source is already open. A caller that
+        // supplied a digest of its own keeps it.
+        let found = identity.recordingDigest(try? await contentDigest(of: source))
         let probe = try await source.read(offset: 0, count: FormatSniffer.probeLength)
 
         switch FormatSniffer.container(of: probe) {
         case .pdf:
-            guard let decoderPath else { return record(.pdf, identity, name, fallback) }
-            return try pdf(at: decoderPath, filename: name, fallback: fallback)
+            guard let decoderPath else { return record(.pdf, found, name, fallback) }
+            return try pdf(at: decoderPath, identity: found, filename: name, fallback: fallback)
 
         case .zip:
             // An EPUB is a ZIP too, and only its contents tell the two apart.
             if let epub = try? await EpubReader(source: source) {
                 // The EPUB reader wants a file of its own, so a remote one is a record
                 // until it has been fetched. Its metadata is still read from the share.
-                guard let decoderPath else { return record(.epub, identity, name, fallback) }
-                return await book(epub, at: decoderPath, filename: name, fallback: fallback)
+                guard let decoderPath else { return record(.epub, found, name, fallback) }
+                return await book(
+                    epub, at: decoderPath, identity: found, filename: name, fallback: fallback
+                )
             }
             return comic(
                 try await ComicArchiveOpener.open(source: source),
                 format: .cbz,
-                identity: identity,
+                identity: found,
                 filename: name,
                 fallback: fallback
             )
@@ -137,15 +154,16 @@ public enum PublicationIndexer {
             return comic(
                 try await TarComicArchive(source: source),
                 format: .cbt,
-                identity: identity,
+                identity: found,
                 filename: name,
                 fallback: fallback
             )
 
         case .rar:
-            guard let decoderPath else { return record(.cbr, identity, name, fallback) }
+            guard let decoderPath else { return record(.cbr, found, name, fallback) }
             return try await comicArchive(
-                url: decoderPath, format: .cbr, filename: name, fallback: fallback
+                url: decoderPath, identity: found, format: .cbr, filename: name,
+                fallback: fallback
             )
 
         case .sevenZip:
@@ -182,7 +200,11 @@ public enum PublicationIndexer {
     // MARK: - Per-container
 
     private static func comicArchive(
-        url: URL, format: PublicationFormat, filename: String, fallback: FilenameMetadata
+        url: URL,
+        identity: PublicationIdentity,
+        format: PublicationFormat,
+        filename: String,
+        fallback: FilenameMetadata
     ) async throws -> Publication {
         let archive: any ComicArchiveReading
         do {
@@ -191,7 +213,7 @@ public enum PublicationIndexer {
             // Readable as a *record* even though it cannot be opened: the library
             // should list it and say why, not silently drop it.
             return Publication(
-                identity: identity(forPath: url.path),
+                identity: identity,
                 format: format,
                 displayTitle: title(from: nil, fallback: fallback, filename: filename),
                 series: fallback.series,
@@ -211,7 +233,7 @@ public enum PublicationIndexer {
         return comic(
             archive,
             format: format,
-            identity: identity(forPath: url.path),
+            identity: identity,
             filename: filename,
             fallback: fallback
         )
@@ -272,11 +294,15 @@ public enum PublicationIndexer {
     /// from its first spine item, which means reading that item out of the container.
     /// See ``EpubSpineCover``.
     private static func book(
-        _ epub: EpubReader, at url: URL, filename: String, fallback: FilenameMetadata
+        _ epub: EpubReader,
+        at url: URL,
+        identity: PublicationIdentity,
+        filename: String,
+        fallback: FilenameMetadata
     ) async -> Publication {
         let metadata = epub.metadata
         return Publication(
-            identity: identity(forPath: url.path),
+            identity: identity,
             format: .epub,
             displayTitle: metadata.title ?? fallback.series ?? filename,
             // The series the file declares, not its own title. This used to be
@@ -307,7 +333,7 @@ public enum PublicationIndexer {
     }
 
     private static func pdf(
-        at url: URL, filename: String, fallback: FilenameMetadata
+        at url: URL, identity: PublicationIdentity, filename: String, fallback: FilenameMetadata
     ) throws -> Publication {
         let reader: PdfDocumentReader
         do {
@@ -316,7 +342,7 @@ public enum PublicationIndexer {
             throw IndexError.unreadable(reason: "the PDF could not be opened")
         }
         return Publication(
-            identity: identity(forPath: url.path),
+            identity: identity,
             format: .pdf,
             displayTitle: fallback.series ?? filename,
             series: fallback.series,
@@ -356,41 +382,5 @@ public enum PublicationIndexer {
             return number.map { "\(series) #\($0)" } ?? series
         }
         return filename
-    }
-
-    /// An identity keyed on the normalised path.
-    ///
-    /// ADR-0006 prefers a content digest, which survives renames and moves. That is
-    /// deliberately not done here: digesting a 400 MB archive during a scan of
-    /// 10,000 files would break `local-library`'s three-second requirement outright.
-    ///
-    /// ponytail: the digest belongs to a background pass that fills it in after the
-    /// first screen is on-screen, and `PublicationIdentity.matches` already merges
-    /// the two when it arrives. Until that pass exists, a moved file loses its
-    /// place — which is the honest cost and is recorded here rather than hidden.
-    private static func identity(forPath path: String) -> PublicationIdentity {
-        PublicationIdentity(normalizedPath: (path as NSString).standardizingPath)
-    }
-
-    /// A content digest for one publication.
-    ///
-    /// Not called during a scan — see `identity(forPath:)`. Offered so the
-    /// background pass that upgrades an identity has one implementation to use
-    /// rather than inventing its own, and so the two platforms hash the same bytes.
-    ///
-    /// Hashes the first and last 512 KB plus the file length, not the whole file: a
-    /// comic that differs from another in neither its head, its tail, nor its size
-    /// is the same comic, and reading gigabytes to prove it is not worth the disk.
-    public static func contentDigest(fileAt url: URL) async throws -> String {
-        let source = try FileSource(url: url)
-        let window = 512 * 1024
-        var hasher = SHA256()
-        withUnsafeBytes(of: source.length.littleEndian) { hasher.update(bufferPointer: $0) }
-        hasher.update(data: try await source.read(offset: 0, count: window))
-        if source.length > Int64(window) {
-            let (tail, _) = try await source.readTail(count: window)
-            hasher.update(data: tail)
-        }
-        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 }

@@ -46,6 +46,59 @@ struct PublicationIdentityTests {
         #expect(empty.isEmpty)
         #expect(!empty.matches(PublicationIdentity(contentDigest: "d1")))
     }
+
+    // MARK: - The filing key
+
+    @Test("Learning a digest does not re-file a publication")
+    func aDigestDoesNotMoveTheKey() {
+        // Collection members, reading-list entries, a download's id and the folder its
+        // bytes live in, and Kavita's chapter-to-publication table all hold this string.
+        // The scanners produced a path and nothing else until the digest was wired in,
+        // so a key that moved when the digest arrived would empty every shelf and orphan
+        // every downloaded file on one launch.
+        let beforeTheDigest = PublicationIdentity(normalizedPath: "/lib/Bone 01.cbz")
+        let afterTheDigest = beforeTheDigest.recordingDigest("d1")
+
+        #expect(afterTheDigest.contentDigest == "d1")
+        #expect(afterTheDigest.stableID == beforeTheDigest.stableID)
+    }
+
+    @Test("A file with no path of its own is still filed under its digest")
+    func aDigestOnlyIdentityKeysOnItsDigest() {
+        // What a file handed over from outside the app gets: no path this app is
+        // entitled to keep, so the digest is the only key there is.
+        #expect(PublicationIdentity(contentDigest: "d1").stableID == "sha:d1")
+    }
+
+    @Test("A server identifier outranks both, because the server owns its own content")
+    func aServerIdentifierWins() {
+        let identity = PublicationIdentity(
+            serverIdentifier: .init(sourceID: sourceID, remoteID: "42"),
+            contentDigest: "d1",
+            normalizedPath: "/lib/Bone 01.cbz"
+        )
+
+        #expect(identity.stableID == "srv:\(sourceID.uuidString):42")
+    }
+
+    @Test("A digest already recorded is not overwritten by a later one")
+    func recordingDigestKeepsWhatIsThere() {
+        // Whoever supplied the first one knew something this caller does not — a
+        // caller passing an identity in is entitled to have it respected.
+        let known = PublicationIdentity(contentDigest: "d1", normalizedPath: "/a/b.cbz")
+
+        #expect(known.recordingDigest("d2").contentDigest == "d1")
+        #expect(known.recordingDigest(nil).contentDigest == "d1")
+    }
+
+    @Test("A digest that could not be taken leaves the identity as it was")
+    func recordingNothingChangesNothing() {
+        // A directory, or a file that would not open. Indexing must not fail over it:
+        // the publication keys on its path, exactly where it stood before.
+        let pathOnly = PublicationIdentity(normalizedPath: "/a/b.cbz")
+
+        #expect(pathOnly.recordingDigest(nil) == pathOnly)
+    }
 }
 
 @Suite("Source state and reconnection")
