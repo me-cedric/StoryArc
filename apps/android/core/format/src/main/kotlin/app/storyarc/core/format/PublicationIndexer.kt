@@ -78,7 +78,7 @@ object PublicationIndexer {
         val identity = identity.recordingDigest(runCatching { contentDigest(source) }.getOrNull())
         val probe = source.read(0, FormatSniffer.PROBE_LENGTH)
 
-        return when (FormatSniffer.container(probe)) {
+        return when (val container = FormatSniffer.container(probe)) {
             // PdfRenderer needs a real descriptor, which a caller supplies as a
             // path. Without one the row still exists, with no page count — the
             // library can show it and the reader can open it from a local copy.
@@ -101,6 +101,16 @@ object PublicationIndexer {
 
             FormatSniffer.Container.SEVEN_ZIP ->
                 throw IndexException.Unsupported(PublicationFormat.CB7.displayName)
+
+            // See `ComicArchiveOpener.open`. Named rather than reported
+            // unrecognised, and replaced by the player when
+            // `audiobooks-and-playback` lands.
+            FormatSniffer.Container.MP4,
+            FormatSniffer.Container.MP3,
+            FormatSniffer.Container.FLAC,
+            FormatSniffer.Container.OGG,
+            FormatSniffer.Container.PROTECTED_AUDIOBOOK,
+            -> throw IndexException.Unsupported(container.displayName)
 
             null -> throw IndexException.Unreadable("the format was not recognised")
         }
@@ -196,7 +206,7 @@ object PublicationIndexer {
             identityFor(file, runCatching { contentDigest(source) }.getOrNull()) to
                 source.read(0, FormatSniffer.PROBE_LENGTH)
         }
-        return when (FormatSniffer.container(probe)) {
+        return when (val container = FormatSniffer.container(probe)) {
             FormatSniffer.Container.PDF -> pdf(identity, filename, fallback)
 
             FormatSniffer.Container.ZIP -> {
@@ -217,6 +227,16 @@ object PublicationIndexer {
 
             FormatSniffer.Container.SEVEN_ZIP ->
                 throw IndexException.Unsupported(PublicationFormat.CB7.displayName)
+
+            // See `ComicArchiveOpener.open`. Named rather than reported
+            // unrecognised, and replaced by the player when
+            // `audiobooks-and-playback` lands.
+            FormatSniffer.Container.MP4,
+            FormatSniffer.Container.MP3,
+            FormatSniffer.Container.FLAC,
+            FormatSniffer.Container.OGG,
+            FormatSniffer.Container.PROTECTED_AUDIOBOOK,
+            -> throw IndexException.Unsupported(container.displayName)
 
             null -> throw IndexException.Unreadable("the format was not recognised")
         }

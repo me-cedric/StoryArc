@@ -215,6 +215,57 @@ struct FormatSnifferTests {
         }
     }
 
+    @Test(
+        "An audiobook container is recognised from its bytes",
+        arguments: [
+            ("audiobooks/chaptered.m4b", FormatSniffer.Container.mp4),
+            ("audiobooks/unchaptered.m4a", FormatSniffer.Container.mp4),
+            ("audiobooks/id3-chapters.mp3", FormatSniffer.Container.mp3),
+            ("audiobooks/folder-parts/part1.mp3", FormatSniffer.Container.mp3),
+        ]
+    )
+    func audioContainersAreSniffed(file: String, expected: FormatSniffer.Container) throws {
+        // `publication-formats`: "an `.m4b` and an `.m4a` holding the same audio are
+        // treated identically, because the extension is a hint and the contents are
+        // the fact." The first two arguments are that sentence — same container from
+        // two extensions — and they are the reason this is a parameterised test
+        // rather than four assertions.
+        let url = FixtureCorpus.url(file)
+
+        #expect(try FormatSniffer.container(ofFileAt: url) == expected)
+    }
+
+    @Test("A store-protected audiobook is a container of its own, not an unsupported one")
+    func protectedAudiobookIsItsOwnRefusal() throws {
+        // `publication-formats` requires this refusal to be "distinct from an
+        // unsupported container, because the format itself is supported and this
+        // particular file is locked". A distinct case is what makes that structural
+        // rather than a matter of which message a caller happens to choose.
+        //
+        // The fixture holds a decodable AAC stream behind an `aax ` brand — flip the
+        // brand back to `M4A ` and ffprobe reads it as aac. So this can only pass by
+        // reading the brand, which is exactly the behaviour being pinned.
+        let url = FixtureCorpus.url("audiobooks/protected.aax")
+
+        #expect(try FormatSniffer.container(ofFileAt: url) == .protectedAudiobook)
+    }
+
+    @Test("Every audio container knows whether it is audio")
+    func audioContainersSaySo() {
+        // A caller deciding between a reader and a player asks this, and asking it
+        // with a `switch` at each call site is how the two get out of step.
+        for container in [FormatSniffer.Container.mp4, .mp3, .flac, .ogg] {
+            #expect(container.isAudio, "\(container) should be audio")
+        }
+        for container in [FormatSniffer.Container.zip, .rar, .sevenZip, .pdf, .tar] {
+            #expect(!container.isAudio, "\(container) should not be audio")
+        }
+        // Protected audio *is* audio: it is refused for being locked, not for being
+        // the wrong kind of file, and a caller that routed it to a comic reader would
+        // then produce the unsupported-container message the spec forbids here.
+        #expect(FormatSniffer.Container.protectedAudiobook.isAudio)
+    }
+
     @Test("Probing a remote file stays a single small read")
     func probeIsBounded() {
         // `network-share` requires opening a 400 MB archive over SMB without

@@ -362,11 +362,12 @@ public enum ComicArchiveOpener {
             // No URL here, so compressed pages are reported as skipped. The
             // file-based entry point below passes one.
             return try await RarComicArchive(source: source)
-        case .sevenZip, .pdf:
+        case .sevenZip, .pdf, .mp4, .mp3, .flac, .ogg, .protectedAudiobook:
             // `publication-formats` requires a *named* refusal, never a generic
             // parse failure — `Container.displayName` is what carries the name.
-            // 7-Zip is out of scope, and PDF has its own reader rather than an
-            // archive one.
+            // 7-Zip is out of scope, PDF has its own reader, and audio is not an
+            // archive at all — naming it here already beats the unrecognised
+            // container it got before, and is where the player will take over.
             throw ComicArchiveError.unsupportedContainer(container)
         }
     }

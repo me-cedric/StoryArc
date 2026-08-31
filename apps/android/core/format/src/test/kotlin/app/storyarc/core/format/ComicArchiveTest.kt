@@ -244,6 +244,65 @@ class FormatSnifferTest {
     }
 
     @Test
+    fun `an audiobook container is recognised from its bytes`() {
+        // `publication-formats`: "an `.m4b` and an `.m4a` holding the same audio are
+        // treated identically, because the extension is a hint and the contents are
+        // the fact." The first two rows are that sentence — the same container read
+        // from two extensions. iOS's `FormatSnifferTests` asserts the same table.
+        val expected = mapOf(
+            "audiobooks/chaptered.m4b" to FormatSniffer.Container.MP4,
+            "audiobooks/unchaptered.m4a" to FormatSniffer.Container.MP4,
+            "audiobooks/id3-chapters.mp3" to FormatSniffer.Container.MP3,
+            "audiobooks/folder-parts/part1.mp3" to FormatSniffer.Container.MP3,
+        )
+
+        for ((path, container) in expected) {
+            assertEquals(path, container, FormatSniffer.container(FixtureCorpus.file(path)))
+        }
+    }
+
+    @Test
+    fun `a store-protected audiobook is a container of its own, not an unsupported one`() {
+        // `publication-formats` requires this refusal to be "distinct from an
+        // unsupported container, because the format itself is supported and this
+        // particular file is locked". A distinct case is what makes that structural
+        // rather than a matter of which message a caller happens to choose.
+        //
+        // The fixture holds a decodable AAC stream behind an `aax ` brand, so this
+        // can only pass by reading the brand.
+        assertEquals(
+            FormatSniffer.Container.PROTECTED_AUDIOBOOK,
+            FormatSniffer.container(FixtureCorpus.file("audiobooks/protected.aax")),
+        )
+    }
+
+    @Test
+    fun `every audio container knows whether it is audio`() {
+        // A caller deciding between a reader and a player asks this, and asking it
+        // with a `when` at each call site is how the two get out of step.
+        for (container in listOf(
+            FormatSniffer.Container.MP4,
+            FormatSniffer.Container.MP3,
+            FormatSniffer.Container.FLAC,
+            FormatSniffer.Container.OGG,
+            // Protected audio *is* audio: it is refused for being locked, not for
+            // being the wrong kind of file.
+            FormatSniffer.Container.PROTECTED_AUDIOBOOK,
+        )) {
+            assertTrue(container.name, container.isAudio)
+        }
+        for (container in listOf(
+            FormatSniffer.Container.ZIP,
+            FormatSniffer.Container.RAR,
+            FormatSniffer.Container.SEVEN_ZIP,
+            FormatSniffer.Container.PDF,
+            FormatSniffer.Container.TAR,
+        )) {
+            assertFalse(container.name, container.isAudio)
+        }
+    }
+
+    @Test
     fun `probing a remote file stays a single small read`() {
         // `network-share` requires opening a 400 MB archive over SMB without
         // transferring it, and sniffing is the first read. What costs money is

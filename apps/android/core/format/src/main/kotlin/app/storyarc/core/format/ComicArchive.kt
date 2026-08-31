@@ -441,6 +441,21 @@ object ComicArchiveOpener {
             FormatSniffer.Container.SEVEN_ZIP,
             FormatSniffer.Container.PDF,
             -> throw ComicArchiveException.UnsupportedContainer(container)
+
+            // Audio is never a comic archive, and saying so by name is already an
+            // improvement on what these files got before the sniffer knew them: an
+            // unrecognised container, which told the reader nothing.
+            //
+            // This is where `audiobooks-and-playback` hands them to the player
+            // instead. Until that change lands the refusal is *true* — StoryArc does
+            // not play audio yet — which is why it is a refusal and not a `TODO`.
+            FormatSniffer.Container.MP4,
+            FormatSniffer.Container.MP3,
+            FormatSniffer.Container.FLAC,
+            FormatSniffer.Container.OGG,
+            FormatSniffer.Container.PROTECTED_AUDIOBOOK,
+            -> throw ComicArchiveException.UnsupportedContainer(container)
+
             null -> throw ComicArchiveException.UnrecognisedContainer()
         }
     }
