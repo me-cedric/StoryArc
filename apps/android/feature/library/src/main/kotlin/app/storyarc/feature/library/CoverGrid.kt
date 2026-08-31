@@ -571,33 +571,8 @@ private fun cellSubtitle(publication: Publication): String? = when {
     // requires a named refusal, and a grid cell is where a user meets one.
     !publication.isOpenable -> stringResource(R.string.library_cell_cannot_open)
 
-    // The author when the series line would only repeat the title — the same fall-through
-    // the no-series case has always taken.
+    // The same rule the list caption uses, from the same function. A cell headed
+    // `Harbour Lights #1` captioning itself `Harbour Lights #1` was the defect; comparing
+    // the composed line rather than the bare series name is the fix.
     else -> seriesLine(publication) ?: publication.authors.firstOrNull()
-}
-
-/**
- * The line that names the series a publication belongs to, or null when it would only
- * repeat the title back at the reader.
- *
- * Not `@Composable`, and free of the view, so it can be asserted in a plain unit test: this
- * module has no Robolectric and no Compose test rule, and a caption that repeats itself is
- * exactly the kind of thing a test should have caught.
- *
- * The comparison is the whole of the bug this replaces. The condition tested the **bare**
- * series against the title while the line actually returned was the **composed**
- * `"<series> #<number>"` — so a publication titled `Harbour Lights #1` with series
- * `Harbour Lights` and number `1` passed the condition and printed the same words twice,
- * once in primary and once in tertiary, on every cover of a numbered series. Composing
- * first and comparing the string that is really drawn is the fix. iOS's `seriesLine(for:)`
- * is the same function for the same reason.
- *
- * Case-insensitive: a title inferred from a filename is often the series and the number
- * joined back together, and a difference of case between the two is not a second fact
- * about the publication.
- */
-internal fun seriesLine(publication: Publication): String? {
-    val series = publication.series ?: return null
-    val line = publication.number?.let { "$series #$it" } ?: series
-    return if (line.equals(publication.displayTitle, ignoreCase = true)) null else line
 }

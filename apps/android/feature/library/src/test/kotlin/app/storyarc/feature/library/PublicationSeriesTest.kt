@@ -5,6 +5,7 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -14,6 +15,8 @@ import org.junit.Test
  * "In volume and chapter order" is two keys, not one, and getting it wrong is not a
  * cosmetic fault: a set of collected editions interleaved with the issues inside them is a
  * shelf a reader cannot use to find the next thing to read.
+ *
+ * And what a cover or a row says about its series, which is the same file's other job.
  */
 class PublicationSeriesTest {
 
@@ -106,5 +109,53 @@ class PublicationSeriesTest {
         val rest = restOfSeries(here, listOf(here, next, here))
 
         assertEquals(listOf("bone two"), rest.map { it.displayTitle })
+    }
+
+    @Test
+    fun aTitleThatAlreadyCarriesTheSeriesAndNumberGetsNoCaption() {
+        // The defect this function exists for. `Harbour Lights #1` inside the series
+        // `Harbour Lights` differs from its series name, so a bare comparison lets the
+        // caption through and the reader is told the title twice.
+        val issue = issue("Harbour Lights #1", series = "Harbour Lights", number = "1")
+
+        assertNull(seriesLine(issue))
+    }
+
+    @Test
+    fun aTitleThatIsTheSeriesGetsNoCaptionEvenWithANumber() {
+        // Unchanged behaviour, asserted so the fix above cannot quietly turn it into
+        // "Harbour Lights · Harbour Lights #1".
+        val issue = issue("Harbour Lights", series = "Harbour Lights", number = "1")
+
+        assertNull(seriesLine(issue))
+    }
+
+    @Test
+    fun aSeriesTheTitleDoesNotCarryIsStillNamed() {
+        val issue = issue("The Long Way Down", series = "Harbour Lights", number = "4")
+
+        assertEquals("Harbour Lights #4", seriesLine(issue))
+    }
+
+    @Test
+    fun aSeriesWithNoNumberIsNamedOnItsOwn() {
+        val issue = issue("The Long Way Down", series = "Harbour Lights")
+
+        assertEquals("Harbour Lights", seriesLine(issue))
+    }
+
+    @Test
+    fun aBlankSeriesIsNoSeries() {
+        // A blank field is a field the file did not fill in. Left unguarded it captions
+        // every affected row with a bare " #4".
+        assertNull(seriesLine(issue("The Long Way Down", series = "  ", number = "4")))
+        assertNull(seriesLine(issue("The Long Way Down", series = null)))
+    }
+
+    @Test
+    fun aBlankNumberDoesNotEarnAHash() {
+        val issue = issue("The Long Way Down", series = "Harbour Lights", number = " ")
+
+        assertEquals("Harbour Lights", seriesLine(issue))
     }
 }

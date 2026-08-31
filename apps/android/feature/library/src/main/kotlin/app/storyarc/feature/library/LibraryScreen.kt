@@ -357,10 +357,18 @@ fun LibraryScreen(
                 // Stated once, at the end, rather than per file — a messy folder
                 // would otherwise be a wall of notices. But stated: a count that
                 // silently omits what it could not read is a lie.
+                //
+                // Secondary, like the other three branches of this bar. Tertiary is the
+                // tone for a line beside something louder, and this strip holds one thing
+                // at a time — a notice that is the only content of its own bar is not
+                // subordinate to anything. iOS's equivalent moved to secondary for the
+                // readability of a notice under translucent chrome; Compose's `bottomBar`
+                // is opaque and the shelf is inset above it, so this is the consistency
+                // half of that change rather than the contrast half.
                 Text(
                     text = stringResource(R.string.library_skipped, state.skipped),
                     style = MaterialTheme.typography.labelLarge,
-                    color = palette.textTertiary,
+                    color = palette.textSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(StoryArcSpace.sm),
                 )

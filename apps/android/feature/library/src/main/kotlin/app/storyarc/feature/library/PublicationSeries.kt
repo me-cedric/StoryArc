@@ -34,6 +34,34 @@ internal fun restOfSeries(publication: Publication, library: List<Publication>):
 }
 
 /**
+ * The series and the number, when the title is not already both of them.
+ *
+ * The comparison is against the **composed** line rather than the bare series name, and
+ * that is the whole point of the function. A publication filed as `Harbour Lights #1`
+ * inside the series `Harbour Lights` passes a bare comparison — the series and the title
+ * genuinely differ — and the caption then prints the title's own words back at the reader
+ * one line further down. What a caption has to be distinct from is the line above it, so
+ * that is what is compared.
+ *
+ * A publication whose title *is* its series still falls through to its author, because the
+ * composed line for a publication with no number is the bare series, and that comparison
+ * catches it. One comparison rather than two, on the string that is really drawn.
+ *
+ * Case-insensitive, matching `seriesLine(series:number:title:)` on iOS: a title inferred
+ * from a filename is often the series and the number joined back together, and a difference
+ * of case between the two is not a second fact about the publication. The two platforms
+ * answer this identically or the shelf says different things on each.
+ *
+ * One function for the grid caption and the list caption. Two copies of this rule
+ * disagreeing would make the layout toggle change what a publication says it is.
+ */
+internal fun seriesLine(publication: Publication): String? {
+    val series = publication.series?.takeIf { it.isNotBlank() } ?: return null
+    val line = publication.number?.takeIf { it.isNotBlank() }?.let { "$series #$it" } ?: series
+    return line.takeIf { !it.equals(publication.displayTitle, ignoreCase = true) }
+}
+
+/**
  * An issue number as a number, so #10 follows #9.
  *
  * A copy of `LibraryIndex`'s private rule rather than a call to it, because the model

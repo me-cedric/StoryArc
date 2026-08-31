@@ -237,12 +237,11 @@ private fun ListRow(
 private fun rowSubtitle(publication: Publication): String {
     val parts = buildList {
         if (!publication.isOpenable) add(stringResource(R.string.library_cell_cannot_open))
-        val series = publication.series
-        if (series != null && series != publication.displayTitle) {
-            add(publication.number?.let { "$series #$it" } ?: series)
-        } else {
-            publication.authors.firstOrNull()?.let { add(it) }
-        }
+        // `seriesLine` rather than the comparison written out here: it compares the whole
+        // composed line against the title, so a row headed `Harbour Lights #1` does not
+        // caption itself `Harbour Lights #1`.
+        val series = seriesLine(publication)
+        if (series != null) add(series) else publication.authors.firstOrNull()?.let { add(it) }
         add(publication.format.displayName)
     }
     return parts.joinToString(" · ")
