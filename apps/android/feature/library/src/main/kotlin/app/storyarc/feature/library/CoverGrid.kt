@@ -384,6 +384,16 @@ private val MatchKind.labelRes: Int
  * `library-browsing`: "a Continue reading row appears first, ordered by most
  * recently read". Horizontal, because it is a shortcut rather than a second
  * library — a vertical block of it would push the shelf off the screen.
+ *
+ * **The requirement this quotes has moved, and this row has not.**
+ * `one-library-three-destinations` takes *Continue reading* out of `library-browsing`
+ * whole and splits it into `home-screen`'s *Keep reading* and *Up next*, on the argument
+ * that a row inside the library view is hidden the moment a search or a selection starts —
+ * the app withdrawing its only editorial surface exactly when the reader is looking
+ * hardest, which is what the two guards at this row's call site do. iOS acted on that and
+ * passes `continueReading` an empty list from its library. Android still draws the row, so
+ * the two shelves differ here; removing it is a slice with its own screenshots, not a line
+ * to delete in passing.
  */
 @Composable
 private fun ContinueReadingRow(

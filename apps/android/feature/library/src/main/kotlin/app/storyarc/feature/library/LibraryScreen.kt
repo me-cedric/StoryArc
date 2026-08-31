@@ -510,7 +510,15 @@ fun LibraryScreen(
                         // asked for it to go. iOS removed its own.
                         else -> LibraryAway(
                             isEverythingAway = everythingAway(registry),
-                            onRetry = onProbeSources,
+                            // Both halves, as iOS's `retrySources` does: `sources` already
+                            // retries on a backoff while the library is on screen, and this
+                            // is the reader asking now. Asking the servers without walking
+                            // the folders again would leave a reader whose only library is a
+                            // folder pressing a button that cannot change anything.
+                            onRetry = {
+                                onProbeSources()
+                                viewModel?.rescan()
+                            },
                             onOpenComic = { importFile.launch(arrayOf("*/*")) },
                         )
                     }
