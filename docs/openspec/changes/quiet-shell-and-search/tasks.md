@@ -126,6 +126,9 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 
 - [x] 4.1 Update `docs/designs/ui-revamp-2026-08.md` with the search-as-destination
       decision and the reason the earlier `Tab(role: .search)` finding is superseded.
+- [x] 4.1b Rewrite divergence register row 1, which still described both platforms as they
+      were before section 1, and add rows 14–16: the bar's container, the narrowing control,
+      and where recent searches sit.
 - [x] 4.2 Update `docs/openspec/STATUS.md`.
 - [ ] 4.3 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
