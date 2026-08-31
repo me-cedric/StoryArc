@@ -57,7 +57,8 @@
     "Run the smallest set that covers the change — see AGENTS.md §5.",
     "typecheck is null on purpose: Swift and Kotlin type-check as part of their build.",
     "A change to packages/design-tokens must be followed by `pnpm tokens:sync`, and the regenerated app copies committed in the same change.",
-    "A change a user can see also owes a simulator or emulator screenshot — see AGENTS.md §6."
+    "A change a user can see also owes a simulator or emulator screenshot — see AGENTS.md §6.",
+    "After every wave of parallel agents, run `pnpm clean:builds`. `git worktree remove` deletes the checkout and nothing else; each worktree also leaves ~1.5 GB of Xcode DerivedData outside the repository that no git command touches. See AGENTS.md §9."
   ],
   "platforms": {
     "ios": {

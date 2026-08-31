@@ -203,6 +203,19 @@ say so in your report and let the parent decide — do not rebase.
    git branch -D worktree-<dir>
    git worktree prune
    ```
+5. **Reclaim the build data, which git does not.** `git worktree remove` deletes the
+   checkout and nothing else. Xcode keeps build products in
+   `~/Library/Developer/Xcode/DerivedData/<name>-<hash of the project path>`, outside the
+   repository, and that hash differs for every worktree — so each agent leaves roughly
+   **1.5 GB** behind that no git command will ever touch, on top of the ~700 MB inside the
+   checkout. Fifty folders had accumulated before anyone looked: **92 GB, 47 of them
+   orphaned, on a machine with 1.9 GB free.**
+   ```
+   pnpm clean:builds        # or clean:builds:dry to see what would go
+   ```
+   It removes a build folder only when the project it names no longer exists, so it is safe
+   to run while other agents are building. **Run it after every wave**, not at the end of a
+   session — the point of the cycle having an end is that the end happens each time.
 
 **Never remove a worktree whose agent is still running** — `git worktree list` marks those
 `locked`, and removing one destroys uncommitted work. Confirm a branch is merged

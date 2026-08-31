@@ -48,6 +48,8 @@
     "libarchive:pin:selftest": "node scripts/libarchive-pin.mjs --self-test",
     "libarchive:upstream": "node scripts/libarchive-pin.mjs --upstream",
     "gradle": "node scripts/gradle.mjs",
+    "clean:builds": "node scripts/clean-build-data.mjs",
+    "clean:builds:dry": "node scripts/clean-build-data.mjs --dry-run",
     "lines": "node scripts/line-cap.mjs --list",
     "lines:check": "node scripts/line-cap.mjs",
     "lines:selftest": "node scripts/line-cap.mjs --self-test"
