@@ -39,6 +39,23 @@ struct ScanningView: View {
 ///
 /// The cached-shelf notice that used to sit here left for `CachedNotice.swift` when it was
 /// finally mounted; it is a statement about the whole shelf rather than about a scan.
+///
+/// **Secondary, not tertiary.** This was the one branch of the bottom strip drawn in
+/// `textTertiary`, and over bright artwork in light mode it was barely there. `design.md`
+/// §2 contracts that role for "timestamps, disabled, placeholder" — the things a reader is
+/// meant to skip — while `textSecondary` is "metadata, subtitles", which is what a count of
+/// unreadable files is. The strip's other three branches, ``BulkActionBar``,
+/// ``UnavailableFolderNotice`` and ``CachedNotice``, were already secondary; this one was
+/// the odd one out, and Android's shelf makes the same three-to-one split.
+///
+/// Being honest about what that does and does not buy: **no text token is contrast-gated
+/// against glass.** `pnpm tokens:check` measures the three text roles on `surfaceCanvas`,
+/// `surfaceRaised` and `surfaceSunken`, and untinted Liquid Glass is none of them — its
+/// ground is whatever cover art happens to scroll beneath it, and even its declared opaque
+/// fallback, `surfaceOverlay`, is outside the gate. So the move here is to the role with
+/// the most measured headroom on every ramp — 6.36:1 to 8.72:1 against tertiary's 4.94:1 to
+/// 5.87:1 — rather than to a token that certifies this surface, because there is no such
+/// token. Inventing one, or relaxing a floor to make one fit, would be worse than saying so.
 struct ScanSummary: View {
     @Environment(\.theme) private var theme
 
@@ -48,7 +65,7 @@ struct ScanSummary: View {
     var body: some View {
         Text("library.skipped \(skipped)", bundle: .module)
             .textRole(.footnote)
-            .foregroundStyle(theme.palette.textTertiary)
+            .foregroundStyle(theme.palette.textSecondary)
             .padding(.vertical, StoryArcSpace.sm)
             .frame(maxWidth: .infinity)
             .storyArcGlass(in: Rectangle())
