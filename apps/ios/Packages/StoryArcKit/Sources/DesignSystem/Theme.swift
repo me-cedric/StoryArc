@@ -55,16 +55,39 @@ private struct ThemeResolver: ViewModifier {
     /// tier. Read once, here, so every screen below inherits the answer rather than
     /// each one asking the environment and deciding for itself what to do about it.
     @Environment(\.colorSchemeContrast) private var contrast
+    /// Natural, read here rather than passed in. It is a second axis and not part of
+    /// `AppSettings.appearance`, and reading it at the resolver keeps
+    /// `storyArcTheme(appearance:)` a one-argument call at every site. See
+    /// ``NaturalTheme``.
+    @AppStorage(NaturalTheme.storageKey) private var isNatural = false
 
     let appearance: AppearanceMode
 
     func body(content: Content) -> some View {
         let theme = Theme(
-            palette: .resolved(for: colorScheme, appearance: appearance, contrast: contrast)
+            palette: .resolved(
+                for: colorScheme,
+                appearance: appearance,
+                natural: isNatural,
+                contrast: contrast
+            )
         )
         return content
             .environment(\.theme, theme)
             .tint(theme.accent)
             .background(theme.palette.surfaceCanvas)
+            // `settings-and-about`: Natural's grain reaches reading surfaces and nothing
+            // else, so what travels down the tree is the *permission*, not the texture.
+            // The reader asks for it; the shelf and the settings list never do.
+            .environment(\.isNaturalTheme, NaturalTheme.applies(isNatural, under: appearance))
     }
+}
+
+extension EnvironmentValues {
+    /// Whether Natural is in force, for the reading surfaces that carry its grain.
+    ///
+    /// Separate from ``Theme`` because it is not a colour: every other screen resolves
+    /// Natural entirely through the palette, and only a reading surface has anything
+    /// more to do about it.
+    @Entry public var isNaturalTheme = false
 }

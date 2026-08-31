@@ -238,6 +238,12 @@ private fun brandLightScheme() = lightColorScheme(
 fun StoryArcTheme(
     appearance: AppearanceMode = AppearanceMode.SYSTEM,
     useDynamicColor: Boolean = true,
+    /**
+     * Whether Natural is on. A second axis rather than a fifth appearance — see
+     * [NaturalTheme] — read here by default so no call site has to pass it, and a
+     * parameter so a preview or a test can set it without touching stored preferences.
+     */
+    natural: Boolean = rememberNaturalTheme().value,
     content: @Composable () -> Unit,
 ) {
     val darkTheme = when (appearance) {
@@ -246,8 +252,13 @@ fun StoryArcTheme(
         AppearanceMode.DARK, AppearanceMode.OLED_DARK -> true
     }
 
+    // Natural crosses light and dark rather than replacing either, which is what
+    // "carries its own light and dark variants" means. OLED Dark declines it.
+    val isNatural = NaturalTheme.applies(natural, appearance)
+
     val base = when {
         appearance.isTrueBlack -> StoryArcPalette.OledDark
+        isNatural -> if (darkTheme) StoryArcPalette.NaturalDark else StoryArcPalette.NaturalLight
         darkTheme -> StoryArcPalette.Dark
         else -> StoryArcPalette.Light
     }
@@ -264,6 +275,10 @@ fun StoryArcTheme(
         // surfaces from the wallpaper, and a wallpaper-tinted "true black" is neither.
         // The explicit choice wins over the automatic one.
         appearance.isTrueBlack -> brandOledDarkScheme()
+        // And Natural is incompatible with it for the same shape of reason: a
+        // wallpaper-derived wash beside a clay accent is not a coherent theme, and
+        // `design.md` asks Natural's accents to reach the whole app precisely so it is.
+        isNatural -> if (darkTheme) naturalDarkScheme() else naturalLightScheme()
         useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         darkTheme -> brandDarkScheme()
@@ -278,7 +293,13 @@ fun StoryArcTheme(
         if (isHighContrast) it.copy(outlineVariant = it.outline) else it
     }
 
-    CompositionLocalProvider(LocalStoryArcPalette provides palette) {
+    CompositionLocalProvider(
+        LocalStoryArcPalette provides palette,
+        // `settings-and-about`: Natural's grain reaches reading surfaces and nothing
+        // else, so what travels down the tree is the *permission*, not the texture. The
+        // reader asks for it; the shelf and the settings list never do.
+        LocalIsNaturalTheme provides isNatural,
+    ) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
             // The Expressive scheme is the recommended default and is what makes

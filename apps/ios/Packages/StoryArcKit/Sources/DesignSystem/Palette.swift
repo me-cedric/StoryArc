@@ -85,12 +85,25 @@ public struct Palette: Sendable, Equatable {
     /// and nothing about that is the environment's business. Contrast is a parameter
     /// for the same reason, and because it is the one thing about a palette a *test*
     /// has to be able to set.
+    ///
+    /// - Parameter natural: whether the reader chose Natural. A second axis rather than
+    ///   a fifth appearance — see ``NaturalTheme``. It crosses light and dark rather
+    ///   than replacing them, which is what "carries its own light and dark variants"
+    ///   means, and OLED Dark declines it for the reason on `NaturalTheme.isAvailable`.
     public static func resolved(
         for scheme: ColorScheme,
         appearance: AppearanceMode = .system,
+        natural: Bool = false,
         contrast: ColorSchemeContrast = .standard
     ) -> Palette {
-        let base: Palette = appearance.isTrueBlack ? .oledDark : (scheme == .dark ? .dark : .light)
+        let isDark = scheme == .dark
+        let base: Palette = if appearance.isTrueBlack {
+            .oledDark
+        } else if NaturalTheme.applies(natural, under: appearance) {
+            isDark ? .naturalDark : .naturalLight
+        } else {
+            isDark ? .dark : .light
+        }
         return contrast == .increased ? base.strengthened : base
     }
 

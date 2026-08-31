@@ -23,9 +23,13 @@
     <string name="appearance_dark">Dark</string>
     <string name="appearance_oled_dark">OLED Dark</string>
     <string name="appearance_oled_dark_note">True black chrome. The page itself stays just above black, because pure black smears on OLED during a page turn.</string>
+    <string name="appearance_natural">Natural</string>
+    <string name="appearance_natural_note">Paper texture and warm accents. It has its own light and dark, so it follows the appearance above rather than replacing it.</string>
+    <string name="appearance_natural_unavailable">Not available with OLED Dark: warm paper stock and true black are opposite asks, and true black is why you chose that appearance.</string>
     <string name="appearance_dynamic_colour">Take colours from the wallpaper</string>
     <string name="appearance_dynamic_colour_note">On by default. Turn it off for StoryArc’s own palette. Covers keep their neutral ground either way.</string>
     <string name="appearance_dynamic_colour_oled_note">OLED Dark already uses StoryArc’s palette: a wallpaper tint over true black is neither.</string>
+    <string name="appearance_dynamic_colour_natural_note">Natural brings its own warm accents: a wallpaper tint beside them would be two themes at once.</string>
     <string name="appearance_link_theme">Match the reading theme to the app</string>
     <string name="appearance_link_theme_note">Off by default. A dark app with a paper-white page is a legitimate preference.</string>
     <string name="reading_volume_buttons">Volume buttons turn pages</string>

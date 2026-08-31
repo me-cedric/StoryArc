@@ -14,10 +14,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.NaturalTheme
+import app.storyarc.core.designsystem.theme.rememberNaturalTheme
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.AppearanceMode
@@ -52,13 +55,26 @@ internal val AppearanceMode.noteRes: Int?
  * true black and a wallpaper-derived wash are incompatible asks, and the explicit choice
  * wins. `StoryArcTheme` has always decided that -- the switch is inert there whatever it is
  * set to -- so the row says so rather than pretending to control something it does not.
+ *
+ * Natural is the second appearance that makes it inert, and for the same shape of reason:
+ * a wallpaper-derived wash beside a clay accent is not a coherent theme, and `design.md`
+ * asks Natural's accents to reach the whole app precisely so it is one.
  */
-internal fun dynamicColourNoteRes(appearance: AppearanceMode): Int =
-    if (appearance.isTrueBlack) {
-        R.string.appearance_dynamic_colour_oled_note
-    } else {
-        R.string.appearance_dynamic_colour_note
+internal fun dynamicColourNoteRes(appearance: AppearanceMode, isNatural: Boolean = false): Int =
+    when {
+        appearance.isTrueBlack -> R.string.appearance_dynamic_colour_oled_note
+        isNatural -> R.string.appearance_dynamic_colour_natural_note
+        else -> R.string.appearance_dynamic_colour_note
     }
+
+/**
+ * The one-line reason the Natural switch cannot be combined with this appearance, or null
+ * where it can.
+ *
+ * Non-null for OLED Dark alone -- see `NaturalTheme.isAvailable`.
+ */
+internal fun naturalUnavailableRes(appearance: AppearanceMode): Int? =
+    if (NaturalTheme.isAvailable(appearance)) null else R.string.appearance_natural_unavailable
 
 /**
  * Appearance, the colour source, and the one opt-in that ties the appearance to the
@@ -77,6 +93,11 @@ internal fun AppearanceGroup(
     highlight: SettingsAnchor? = null,
 ) {
     val palette = LocalStoryArcPalette.current
+    val context = LocalContext.current
+    // Natural is a second axis rather than a fifth appearance — see `NaturalTheme`. Its
+    // own stored value, read from the same state the theme above reads, so flipping the
+    // switch redresses the app without a restart.
+    val natural = rememberNaturalTheme()
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
         AppearanceMode.entries.forEach { mode ->
@@ -107,10 +128,48 @@ internal fun AppearanceGroup(
             }
         }
 
+        // Natural sits below the four rather than among them: it is a theme that crosses
+        // them, so a fifth radio row would make it an alternative to dark mode — the
+        // choice `settings-and-about` exists to avoid.
+        val naturalUnavailable = naturalUnavailableRes(settings.appearance)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = natural.value,
+                    enabled = naturalUnavailable == null,
+                    role = Role.Switch,
+                    onValueChange = { NaturalTheme.set(context, it) },
+                )
+                .padding(top = StoryArcSpace.md)
+                .settingsHighlight(SettingsAnchor.NATURAL_THEME, highlight),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.appearance_natural),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textPrimary,
+                )
+                Text(
+                    text = stringResource(naturalUnavailable ?: R.string.appearance_natural_note),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = palette.textTertiary,
+                )
+            }
+            Switch(
+                checked = natural.value,
+                onCheckedChange = null,
+                enabled = naturalUnavailable == null,
+            )
+        }
+
         // `native-experience`'s opt-out. Disabled rather than hidden under OLED Dark: the
         // reader's answer is still stored and still shown, and a switch that silently did
-        // nothing would be worse than one that says why it cannot.
-        val dynamicColourApplies = !settings.appearance.isTrueBlack
+        // nothing would be worse than one that says why it cannot. Natural makes it inert
+        // for the same reason, so the same treatment applies.
+        val isNatural = NaturalTheme.applies(natural.value, settings.appearance)
+        val dynamicColourApplies = !settings.appearance.isTrueBlack && !isNatural
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -131,7 +190,7 @@ internal fun AppearanceGroup(
                     color = palette.textPrimary,
                 )
                 Text(
-                    text = stringResource(dynamicColourNoteRes(settings.appearance)),
+                    text = stringResource(dynamicColourNoteRes(settings.appearance, isNatural)),
                     style = MaterialTheme.typography.labelLarge,
                     color = palette.textTertiary,
                 )

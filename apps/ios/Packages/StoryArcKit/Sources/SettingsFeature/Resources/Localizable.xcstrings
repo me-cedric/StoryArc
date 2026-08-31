@@ -436,6 +436,93 @@
         }
       }
     },
+    "appearance.natural": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Natürlich"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Natural"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Natural"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naturel"
+          }
+        }
+      }
+    },
+    "appearance.natural.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Papierstruktur und warme Akzente. Es hat eigene helle und dunkle Varianten und folgt damit dem Erscheinungsbild oben, statt es zu ersetzen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paper texture and warm accents. It has its own light and dark, so it follows the appearance above rather than replacing it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Textura de papel y acentos cálidos. Tiene sus propias variantes clara y oscura, así que sigue la apariencia de arriba en vez de sustituirla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texture papier et accents chauds. Il possède ses propres variantes claire et sombre : il suit l’apparence ci-dessus au lieu de la remplacer."
+          }
+        }
+      }
+    },
+    "appearance.natural.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit OLED-Dunkel nicht verfügbar: warmes Papier und echtes Schwarz sind gegensätzliche Wünsche, und echtes Schwarz ist der Grund für dieses Erscheinungsbild."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not available with OLED Dark: warm paper stock and true black are opposite asks, and true black is why you chose that appearance."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No disponible con Oscuro OLED: un papel cálido y el negro absoluto son peticiones opuestas, y el negro absoluto es el motivo de esa apariencia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indisponible avec Sombre OLED : un papier chaud et le noir absolu sont deux demandes opposées, et le noir absolu est la raison d’être de cette apparence."
+          }
+        }
+      }
+    },
     "appearance.oledDark": {
       "extractionState": "manual",
       "localizations": {

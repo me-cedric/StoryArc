@@ -67,6 +67,8 @@ extension SettingsGroup {
         Entry(terms: ["appearance", "theme", "dark", "light", "night", "oled", "black",
                       "colour", "color"],
               match: SettingMatch(group: .appearance)),
+        Entry(terms: ["natural", "paper", "grain", "texture", "warm"],
+              match: SettingMatch(anchor: .naturalTheme)),
         Entry(terms: ["link", "match", "chrome"], match: SettingMatch(anchor: .linkReadingTheme)),
         Entry(terms: ["reading", "page", "turn"], match: SettingMatch(group: .reading)),
         Entry(terms: ["volume", "buttons", "keys", "page turn"],

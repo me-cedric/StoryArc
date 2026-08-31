@@ -18,6 +18,7 @@ package app.storyarc.feature.settings
  * counterpart, because Material You is Android's and there is nothing there to opt out of.
  */
 internal enum class SettingsAnchor {
+    NATURAL_THEME,
     DYNAMIC_COLOUR,
     LINK_READING_THEME,
     VOLUME_BUTTONS,
@@ -37,7 +38,7 @@ internal enum class SettingsAnchor {
      */
     val group: SettingsGroup
         get() = when (this) {
-            DYNAMIC_COLOUR, LINK_READING_THEME -> SettingsGroup.APPEARANCE
+            NATURAL_THEME, DYNAMIC_COLOUR, LINK_READING_THEME -> SettingsGroup.APPEARANCE
             VOLUME_BUTTONS, READING_DEFAULTS -> SettingsGroup.READING
             DOWNLOADS_WIFI_ONLY, DOWNLOADS_REMOVE_AFTER_FINISHING, DOWNLOADS_LIMIT ->
                 SettingsGroup.DOWNLOADS
@@ -50,6 +51,7 @@ internal enum class SettingsAnchor {
      */
     val titleRes: Int
         get() = when (this) {
+            NATURAL_THEME -> R.string.appearance_natural
             DYNAMIC_COLOUR -> R.string.appearance_dynamic_colour
             LINK_READING_THEME -> R.string.appearance_link_theme
             VOLUME_BUTTONS -> R.string.reading_volume_buttons

@@ -23,9 +23,13 @@
     <string name="appearance_dark">Oscuro</string>
     <string name="appearance_oled_dark">Oscuro OLED</string>
     <string name="appearance_oled_dark_note">Interfaz en negro absoluto. La página se mantiene apenas por encima del negro, porque el negro puro se difumina en OLED al cambiar de página.</string>
+    <string name="appearance_natural">Natural</string>
+    <string name="appearance_natural_note">Textura de papel y acentos cálidos. Tiene sus propias variantes clara y oscura, así que sigue la apariencia de arriba en vez de sustituirla.</string>
+    <string name="appearance_natural_unavailable">No disponible con Oscuro OLED: un papel cálido y el negro absoluto son peticiones opuestas, y el negro absoluto es el motivo de esa apariencia.</string>
     <string name="appearance_dynamic_colour">Tomar los colores del fondo de pantalla</string>
     <string name="appearance_dynamic_colour_note">Activado por defecto. Desactívalo para la paleta propia de StoryArc. Las portadas conservan su fondo neutro en ambos casos.</string>
     <string name="appearance_dynamic_colour_oled_note">Oscuro OLED ya usa la paleta de StoryArc: un tinte del fondo de pantalla sobre negro absoluto no es ninguna de las dos cosas.</string>
+    <string name="appearance_dynamic_colour_natural_note">Natural trae sus propios acentos cálidos: un tinte del fondo de pantalla al lado serían dos temas a la vez.</string>
     <string name="appearance_link_theme">Igualar el tema de lectura a la app</string>
     <string name="appearance_link_theme_note">Desactivado por defecto. Una app oscura con una página blanca es una preferencia legítima.</string>
     <string name="reading_volume_buttons">Los botones de volumen cambian de página</string>

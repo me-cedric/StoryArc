@@ -12,6 +12,10 @@ internal import StoryArcCore
 struct AppearanceSettings: View {
     @Environment(\.theme) private var theme
     @Binding var settings: AppSettings
+    /// Natural, which is a second axis rather than a fifth appearance — see
+    /// `NaturalTheme`. Its own key, written here and read by the theme resolver, so
+    /// the two cannot get out of step and the app target needs no new argument.
+    @AppStorage(NaturalTheme.storageKey) private var isNatural = false
     /// The row a search result pointed at, if the reader arrived through one.
     var highlight: SettingsAnchor?
 
@@ -42,6 +46,28 @@ struct AppearanceSettings: View {
                         settings.appearance == mode ? [.isButton, .isSelected] : .isButton
                     )
                 }
+            }
+
+            // Natural sits below the four rather than among them: it is a theme that
+            // crosses them, so a fifth radio row would make it an alternative to dark
+            // mode — the choice `settings-and-about` exists to avoid.
+            Section {
+                Toggle(isOn: $isNatural) {
+                    VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+                        Text("appearance.natural", bundle: .module)
+                        Text(
+                            settings.appearance.naturalUnavailableKey ?? "appearance.natural.note",
+                            bundle: .module
+                        )
+                        .textRole(.footnote)
+                        .foregroundStyle(theme.palette.textTertiary)
+                    }
+                }
+                // Unavailable with its reason on screen, not hidden and not a live
+                // control that does nothing — the shape `reading-themes` asks of an
+                // axis that cannot reach the page.
+                .disabled(!NaturalTheme.isAvailable(under: settings.appearance))
+                .settingsHighlight(.naturalTheme, when: highlight)
             }
 
             Section {
