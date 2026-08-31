@@ -28,17 +28,23 @@ extension XCTestCase {
     /// shelf is in when a run starts is not something this file can know. Which is the reason
     /// it searches instead of assuming.
     ///
-    /// **Two proofs, and only the second one is about the book.**
+    /// **One proof, and it is about the book.**
     ///
-    /// - `app.buttons["Reading"]` is `theme.title` in `EpubReaderFeature`, drawn as a `Button`
-    ///   in that reader's chrome, so it proves the *reflowable reader* is what opened.
-    ///   Settings carries a row that reads *Reading* as well (`settings.reading`), but a
-    ///   settings row surfaces as a cell or a static text rather than a button — which is what
-    ///   `control(_:in:)` exists for — and this walk never opens Settings.
-    ///   It proves nothing more than the reader: in `EpubReaderView` the chrome is a `ZStack`
-    ///   sibling gated only on `isChromeVisible`, which starts `true`, so it is drawn over the
-    ///   `ProgressView()` and over the failure view just as it is drawn over a page. A comment
-    ///   here once claimed this wait was for the book to open. It never was.
+    /// This used to wait on `app.buttons["Reading"]` first — `theme.title`, a button in the
+    /// EPUB reader's chrome — and that landmark is **gone**. `quiet-reader` cut revealed
+    /// chrome to a way out and a way in, so the themes control is a row inside the menu now
+    /// and there is no *Reading* button over the page to wait for. The wait did not fail: it
+    /// timed out, every EPUB was recorded as never reaching the reader, and the walk **skipped
+    /// with a message blaming the device's fixtures**. A skip passes, so `pnpm check` stayed
+    /// green while `testCaptureThemeSheet`, this walk's other caller, silently stopped
+    /// photographing anything. That is the failure mode this file's own comments warn about,
+    /// arriving through the one route nobody had guarded: a landmark that a legitimate change
+    /// removed.
+    ///
+    /// The web view was always the honest proof, and it is now the only one. Nothing else
+    /// distinguishes the two readers from outside — both draw a *Menu* button and a close, by
+    /// design — so a landmark that is not the web view would be guessing.
+    ///
     /// - A web view proves the book. `NavigatorHost` is what hosts it and it is built only in
     ///   `EpubReaderView`'s `else if let navigator` branch, so with no sheet up a web view
     ///   means the navigator and no web view means the spinner or a `Failure` — and a
@@ -83,10 +89,8 @@ extension XCTestCase {
     /// "this device holds no EPUB" is only said when no depth showed one, because that was the
     /// message a shelf whose EPUBs merely sat low in the window used to get.
     func openTheEpubReader(in app: XCUIApplication) throws {
-        let reading = app.buttons["Reading"]
         var seen: Set<String> = []
         var tried: [String] = []
-        var reachedTheReader: [String] = []
         var withoutAPage: [String] = []
         var attempts = 0
         var isFirstLook = true
@@ -119,8 +123,6 @@ extension XCTestCase {
                 else { continue }
                 action.tap()
 
-                guard reading.waitForExistence(timeout: 15) else { continue }
-                reachedTheReader.append(candidate)
                 if app.webViews.firstMatch.waitForExistence(timeout: 15) { return }
                 withoutAPage.append(candidate)
             }
@@ -139,8 +141,7 @@ extension XCTestCase {
             No EPUB on this device opened a page in the reflowable reader.
             EPUB covers seen: \(seen.sorted())
             Covers tapped: \(tried)
-            Reached the reflowable reader: \(reachedTheReader)
-            Reached it with no page in it: \(withoutAPage)
+            Tapped, but no web view appeared — a comic reader, a spinner, or a failure: \(withoutAPage)
             Buttons on screen: \(app.buttons.allElementsBoundByIndex.map(\.label))
             """
         )

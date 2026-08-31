@@ -159,12 +159,54 @@ final class ScreenshotTests: XCTestCase {
         // for a day. When no EPUB on the device gets there it still skips, and names every
         // one it tried and how far each got.
         try openTheEpubReader(in: app)
-        let reading = app.buttons["Reading"]
-        reading.tap()
+        // Two taps where there used to be one. `quiet-reader` moved the themes control off
+        // the page and into the reader's menu, so reaching the sheet now means revealing
+        // chrome and then choosing a row — and the centre tap is a `coordinate` because the
+        // element under the middle of the page is the web view, whose own tap handling is the
+        // reader's.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let menu = app.buttons["Menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 5), "the reader revealed no menu to open")
+        menu.tap()
+        let themes = app.buttons["Reading themes"]
+        XCTAssertTrue(themes.waitForExistence(timeout: 5), "the menu offered no reading themes")
+        themes.tap()
         // The sheet is a presentation; it animates up over the page.
         _ = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Original")).firstMatch
             .waitForExistence(timeout: 5)
         attach(app.screenshot(), named: name)
+    }
+
+    /// The reflowable reader, photographed on arrival and again after a centre tap.
+    ///
+    /// `quiet-reader` cuts revealed chrome from three surfaces and about eleven controls to
+    /// two — a way out and a way in — so the proof it owes under `AGENTS.md` section 6 is a
+    /// picture of what the reader shows, before and after. Counting controls in a screenshot
+    /// is exactly the comparison a source-level test cannot make.
+    ///
+    /// **Two shots, because a single tap proves nothing on its own.** The old reader drew its
+    /// chrome on arrival (`isChromeVisible` started `true`), so a capture that tapped once
+    /// photographed a *hidden* bar and made the before and the after identically empty — which
+    /// is what the first version of this did, on both trees, and it looked like a successful
+    /// comparison. Photographing arrival and the tap separately means whichever state carries
+    /// the chrome is in the pair, and the pair also shows *when* it is drawn, which is itself
+    /// part of what changed.
+    ///
+    /// The centre tap is a `coordinate` rather than a `tap()` on an element: the page fills
+    /// the screen and the element under the middle of it is the web view, whose own tap
+    /// handling is the reader's. Tapping the element would ask XCTest for a hit point and it
+    /// may pick an edge, which is a page turn.
+    func testCaptureReaderChrome() throws {
+        let app = launch()
+        try openTheEpubReader(in: app)
+        attach(app.screenshot(), named: "reader-on-arrival")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Chrome animates, and fades out again after four seconds of no interaction. A fixed
+        // wait would race that at both ends, so this polls for the frame to settle instead.
+        let settled = XCTestExpectation(description: "chrome animated")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { settled.fulfill() }
+        wait(for: [settled], timeout: 3)
+        attach(app.screenshot(), named: "reader-after-centre-tap")
     }
 
     private func attach(_ shot: XCUIScreenshot, named name: String) {
