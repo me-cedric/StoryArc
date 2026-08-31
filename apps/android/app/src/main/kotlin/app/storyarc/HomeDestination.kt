@@ -140,7 +140,11 @@ internal fun HomeDestination(host: AppHost) {
     HomeScreen(
         surface = surface,
         cover = host.library::cover,
-        onOpen = { publication -> open(host, publication, isReadableNow(publication)) },
+        // A cover leads to the publication's page; Keep reading opens the book. The two
+        // are different verbs and `publication-detail` makes the distinction a requirement
+        // rather than a habit.
+        onOpen = host.openPage,
+        onResume = { publication -> resume(host, publication, isReadableNow(publication)) },
         onShowAll = { section -> showAll(host, section) },
         onOpenFile = { openFile.launch(arrayOf("*/*")) },
         onAddFolder = { pickFolder.launch(null) },
@@ -148,17 +152,20 @@ internal fun HomeDestination(host: AppHost) {
 }
 
 /**
- * What choosing a cover does.
+ * What taking the Keep reading card does.
  *
  * Readable now: straight into the reader at the recorded position, with no intermediate
- * screen, which `home-screen` asks for by name.
+ * screen, which `home-screen` asks for by name and `publication-detail` repeats from the
+ * other side — resuming happens "without this page in between".
  *
  * Not readable now: through [AppHost.browse], the one rule that already decides what an
  * unreachable or refused source leads to. `home-screen` requires the entry to still be
  * offered "with what it needs stated plainly" — and the screen that names the source and
  * offers to try again is exactly that, rather than a tap that does nothing.
+ *
+ * Every other shelf on this surface is covers, and a cover goes to [AppHost.openPage].
  */
-private fun open(host: AppHost, publication: Publication, isReadableNow: Boolean) {
+private fun resume(host: AppHost, publication: Publication, isReadableNow: Boolean) {
     if (isReadableNow) {
         host.library.location(publication)?.let { host.open(publication, it) }
         return

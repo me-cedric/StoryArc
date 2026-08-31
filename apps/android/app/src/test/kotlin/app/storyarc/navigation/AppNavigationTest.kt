@@ -1,6 +1,10 @@
 package app.storyarc.navigation
 
 import androidx.compose.runtime.saveable.SaverScope
+import app.storyarc.core.model.MetadataOrigin
+import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
+import app.storyarc.core.model.PublicationIdentity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -24,6 +28,13 @@ class AppNavigationTest {
     }
 
     private fun collection() = Screen.Collection(UUID.randomUUID())
+
+    private fun publication(title: String) = Publication(
+        identity = PublicationIdentity(contentDigest = title),
+        format = PublicationFormat.CBZ,
+        displayTitle = title,
+        origin = MetadataOrigin.INFERRED,
+    )
 
     @Test
     fun `opens on the home destination with nothing stacked on it`() {
@@ -186,5 +197,55 @@ class AppNavigationTest {
         val navigation = AppNavigation().select(AppDestination.LIBRARY)
 
         assertEquals(navigation, navigation.pop())
+    }
+
+    @Test
+    fun `a cover opens the publication's page inside the destination the reader was in`() {
+        val chosen = publication("bone one")
+
+        val navigation = AppNavigation().select(AppDestination.LIBRARY).openPage(chosen)
+
+        // Inside the library, not somewhere else: `publication-detail` asks for the page to
+        // open "within the destination they were already in".
+        assertEquals(AppDestination.LIBRARY, navigation.destination)
+        assertEquals(Screen.PublicationPage(chosen), navigation.current)
+        // And back is the way they came, which is what makes the shelf's scroll, filters
+        // and selection survive the trip.
+        assertNull(navigation.back().current)
+    }
+
+    @Test
+    fun `the page keeps the navigation control, and the reader does not`() {
+        // A page is somewhere a reader *is*, so a lateral move out of it is one they may
+        // legitimately want. The reader is a task they come back from.
+        val page = Screen.PublicationPage(publication("bone one"))
+
+        assertTrue(AppNavigation().push(page).showsNavigation)
+        assertFalse(AppNavigation().push(Screen.Reader(publication("bone one"), "/x")).showsNavigation)
+    }
+
+    @Test
+    fun `choosing the publication whose page is already showing is not a second page`() {
+        // Its own series shelf can hold it, through a duplicate in the library or a reload
+        // between the tap and the push. Stacking a second copy gives the reader a back press
+        // that appears to do nothing.
+        val chosen = publication("bone one")
+        val navigation = AppNavigation().select(AppDestination.LIBRARY).openPage(chosen)
+
+        assertEquals(navigation, navigation.openPage(chosen))
+    }
+
+    @Test
+    fun `a page opened from a page stacks, so back is the way the reader came`() {
+        val first = publication("bone one")
+        val second = publication("bone two")
+
+        val navigation = AppNavigation()
+            .select(AppDestination.LIBRARY)
+            .openPage(first)
+            .openPage(second)
+
+        assertEquals(Screen.PublicationPage(second), navigation.current)
+        assertEquals(Screen.PublicationPage(first), navigation.back().current)
     }
 }

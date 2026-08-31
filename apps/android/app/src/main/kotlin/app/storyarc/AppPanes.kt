@@ -6,6 +6,7 @@ import app.storyarc.core.designsystem.navigation.StoryArcListDetailPanes
 import app.storyarc.core.designsystem.theme.StoryArcWindowClass
 import app.storyarc.core.designsystem.theme.rememberWindowClass
 import app.storyarc.core.model.AppSettings
+import app.storyarc.feature.library.PublicationPanePlaceholder
 import app.storyarc.navigation.AppDestination
 import app.storyarc.navigation.AppNavigation
 import app.storyarc.navigation.Screen
@@ -18,7 +19,10 @@ import app.storyarc.navigation.Screen
  * booleans. There is no state here: the path is still the only truth, and this reads it.
  */
 internal data class PaneSplit(
-    /** The page beside the shelf, or `null` while only the shelf is showing. */
+    /**
+     * The page beside the shelf, or `null` while the second pane is still showing its one
+     * sentence. Either way there are two panes — see `PublicationPanePlaceholder`.
+     */
     val detail: Screen.PublicationPage?,
 ) {
     companion object {
@@ -94,17 +98,22 @@ internal fun AppContent(
         return
     }
     StoryArcListDetailPanes(
-        showsDetail = split.detail != null,
+        // Always, once the window is wide enough for two. `publication-detail` gives the
+        // empty pane a sentence rather than an empty rectangle, so there is something in it
+        // before a cover is chosen — and the shelf then keeps one width for the whole
+        // visit, instead of reflowing its columns on the first tap and again on the last
+        // press of Back.
+        showsDetail = true,
         listPane = {
             remembered.SaveableStateProvider(PaneSplit.listPaneKey) {
                 Destination(host = host, destination = AppDestination.LIBRARY)
             }
         },
         detailPane = {
-            // Nothing at all rather than a placeholder telling the reader to pick something.
-            // The scaffold has already given the whole width to the shelf, so there is no
-            // empty column here for a sentence to sit in.
-            split.detail?.let { page ->
+            val page = split.detail
+            if (page == null) {
+                PublicationPanePlaceholder()
+            } else {
                 remembered.SaveableStateProvider(navigation.stateKey) {
                     HostedScreen(
                         host = host,

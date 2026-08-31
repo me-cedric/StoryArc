@@ -55,6 +55,16 @@ internal fun HostedScreen(
     // Every screen's own back control is the same call the system gesture makes. Not "the
     // same behaviour" — the same rule, so the two cannot drift apart.
     val back = { host.navigate { back() } }
+    // **Where `host.openPage` is not used, and why.** `publication-detail` puts a page
+    // behind a cover "in the library, in a shelf, in search results or in a collection" —
+    // the four surfaces that show the reader's own library. The three browse screens below
+    // (a catalogue, a Kavita server, a shared folder) show somebody else's, and the
+    // publication they hand over is built on the spot from the file they just fetched
+    // rather than taken from the library. `PublicationDetailScreen` cannot place such a
+    // publication — its own guard draws "this is gone" for anything the library does not
+    // hold — so routing them here would put every remote book behind a page saying it does
+    // not exist. Those paths keep their own detail screens, which `opds-catalog` and
+    // `kavita-server` own, and open the book directly.
     when (screen) {
         is Screen.Catalogue -> CatalogueScreen(host, screen)
 
@@ -124,7 +134,7 @@ internal fun HostedScreen(
         is Screen.Collection -> CollectionDetailScreen(
             viewModel = host.library,
             id = screen.id,
-            onOpen = host.open,
+            onOpen = host.openPage,
             onBack = back,
             onMark = { publication, isRead -> host.mark(publication, isRead) },
         )
@@ -132,7 +142,7 @@ internal fun HostedScreen(
         is Screen.ReadingList -> ReadingListDetailScreen(
             viewModel = host.library,
             id = screen.id,
-            onOpen = host.open,
+            onOpen = host.openPage,
             onBack = back,
             onMark = { publication, isRead -> host.mark(publication, isRead) },
             // `collections-and-reading-lists` offers to copy a local list onto a server.
@@ -221,10 +231,10 @@ private fun PublicationPage(host: AppHost, screen: Screen.PublicationPage) {
             val path = host.library.location(chosen) ?: return@PublicationDetailScreen
             host.open(chosen, path)
         },
-        // A cover leads to a page, and a page's series shelf leads to more pages. Pushed
-        // rather than replaced: the reader walked from one book to another and back is the
-        // way they came.
-        onOpenPage = { chosen -> host.navigate { push(Screen.PublicationPage(chosen)) } },
+        // A cover leads to a page, and a page's series shelf leads to more pages. The same
+        // verb every other cover in the app takes, so the guard against pushing a second
+        // copy of the page the reader is already on applies here too.
+        onOpenPage = host.openPage,
         onMark = { chosen, isRead -> host.mark(chosen, isRead) },
         onDownload = if (isRemote && !isDownloaded) {
             {

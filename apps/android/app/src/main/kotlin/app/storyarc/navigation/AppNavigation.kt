@@ -1,6 +1,7 @@
 package app.storyarc.navigation
 
 import androidx.compose.runtime.saveable.Saver
+import app.storyarc.core.model.Publication
 
 /**
  * Where the app is, whole, in one value.
@@ -67,6 +68,26 @@ data class AppNavigation(
     /** Descend into a screen from wherever the reader is. */
     fun push(screen: Screen): AppNavigation =
         copy(stacks = stacks + (destination to stack + screen))
+
+    /**
+     * A cover was chosen: descend to that publication's page.
+     *
+     * `publication-detail` requires the page to be reachable "from every surface that shows
+     * a publication" and to open "within the destination they were already in", which is
+     * what makes this a [push] rather than a move to a destination of its own.
+     *
+     * Never the page the reader is already on. A page's own series shelf can hold the
+     * publication the page is about — through a duplicate in the library, or through a
+     * reload arriving between the tap and the push — and stacking a second identical page
+     * gives the reader a back press that appears to do nothing. The rule lives here rather
+     * than at the call site because there is one call site today and there will be more.
+     */
+    fun openPage(publication: Publication): AppNavigation =
+        if ((current as? Screen.PublicationPage)?.publication?.id == publication.id) {
+            this
+        } else {
+            push(Screen.PublicationPage(publication))
+        }
 
     /**
      * Replace the screen on top rather than stacking onto it.

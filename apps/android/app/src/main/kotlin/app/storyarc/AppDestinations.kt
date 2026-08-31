@@ -46,7 +46,11 @@ private fun LibraryDestination(host: AppHost) {
     val dependencies = host.dependencies
     LibraryScreen(
         viewModel = host.library,
+        // Two verbs, because `publication-detail` makes them two: `onOpen` is reached only
+        // from the continue-reading row, which offers a resume, and every cover in the grid,
+        // the list and the search results reaches `onOpenPage` instead.
         onOpen = host.open,
+        onOpenPage = host.openPage,
         onOpenSettings = {
             // Re-read on the way in, so a download made since the last look is on the
             // screen rather than one visit behind it.

@@ -148,10 +148,10 @@ internal fun DownloadsDestination(host: AppHost) {
                     OnDeviceCover(
                         publication = publication,
                         viewModel = host.library,
-                        onOpen = {
-                            host.library.location(publication)
-                                ?.let { host.open(publication, it) }
-                        },
+                        // A cover, so the publication's page — the on-device destination is
+                        // a shelf like any other and `publication-detail` puts a page behind
+                        // every cover on one. Nothing here offers to resume.
+                        onOpen = { host.openPage(publication) },
                         // Null for a file the reader picked themselves. A folder they chose
                         // is on this device because they put it there, and an app offering
                         // to delete it from a downloads screen would be reaching outside

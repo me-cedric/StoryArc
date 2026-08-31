@@ -148,6 +148,7 @@ internal fun AppShell(
                 }
             }
         },
+        openPage = { publication -> navigation = navigation.openPage(publication) },
         browse = { source, term ->
             // One tap, three kinds of place, decided by what the source is. The reader
             // picked somewhere to browse, not a protocol.

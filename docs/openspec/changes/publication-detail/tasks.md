@@ -50,47 +50,61 @@ can be pushed onto the existing stack.
       still opens the book directly. Screenshot the two paths from the home
       surface.
 
-      **Routed on iOS, not yet photographed.** The two paths are owed as
-      screenshots and are named in the handoff; Android is this wave's mirror and
-      reports separately.
+      **Routed on both platforms. The screenshots are still owed.**
 
       The page was finished, translated and screenshotted a wave ago and reachable
-      from nothing: `publicationDetail(model:onOpen:onGone:)` had no call sites, so
-      the only `PublicationRoute` push in the app was the series shelf *on the
-      page*. Commit `82ad1d92` had reverted the wiring to avoid a same-wave file
+      from nothing. On iOS `publicationDetail(model:onOpen:onGone:)` had no call
+      sites, so the only `PublicationRoute` push in the app was the series shelf *on
+      the page*; on Android `Screen.PublicationPage` was pushed only from that same
+      shelf. Commit `82ad1d92` had reverted the iOS wiring to avoid a same-wave file
       conflict and said "one line attaches it". It is that line, at six navigation
-      stacks, plus the cells that had to stop opening the reader.
+      stacks, plus the cells that had to stop opening the reader — and its mirror in
+      `AppHost.openPage` beside `AppHost.open`.
 
-      Both halves of the rule are kept, and each of the eight sites was judged
-      rather than swept:
+      Both halves of the rule are kept, and every site was judged rather than swept:
 
-      - **Covers, and they lead here.** `CoverCell` (the library grid, the
+      - **Covers, and they lead here.** iOS: `CoverCell` (the library grid, the
         sectioned shelf, every *see all*, a collection's grid), `ListRow`,
         `HomeShelfCard` (Up next, Recently added, Finished), `OnDeviceShelf`, and a
         search result for a publication the device already holds — which is a cover
-        written as a line, and search is named in the delta.
-      - **A resume affordance, and it still opens the book.** `HomeHero`, which is
-        *Keep reading*. `home-screen` requires it to open "without an intermediate
+        written as a line, and search is named in the delta. Android: the same set,
+        plus the reading-list rows and the page's own series shelf, which now goes
+        through `openPage` so the never-push-the-page-you-are-on guard applies to it
+        too.
+      - **A resume affordance, and it still opens the book.** iOS: `HomeHero`, which
+        is *Keep reading*. `home-screen` requires it to open "without an intermediate
         screen", and a reader who taps a card stating how much is left has decided.
         Its *heading* still leads to `HomeMore` — the library's own grid over the
         same set, which `home-screen` words as "the full list in the library" — so
         the covers there behave like every other cover in that grid. The affordance
-        is the hero, not the set of publications behind it.
+        is the hero, not the set of publications behind it. Android keeps the same
+        two verbs, and adds three more callers of the resume one: the reader's
+        next-in-series offer, a launcher quick action, and a file the system hands
+        over — each a reader asking to read rather than to look.
       - **Neither, and they keep opening the reader.** `CatalogueDetailView`,
-        `KavitaChapterList` and `SmbBrowserView`. A remote catalogue entry, a server
-        chapter and a file on a share are not publications the library holds: each
-        is fetched and indexed *on the tap*, and this page resolves a route against
-        `model.publications`, so routing them here would show the "it is gone"
-        sentence every time. They are also already past the question the page
-        answers — the reader is standing in the library they chose, looking at the
-        thing they asked for. **The page cannot serve those three until a catalogue
-        entry can become a `Publication` before it is fetched**, which is not this
-        change.
+        `KavitaChapterList` and `SmbBrowserView`, and their Android counterparts. A
+        remote catalogue entry, a server chapter and a file on a share are not
+        publications the library holds: each is fetched and indexed *on the tap*, and
+        this page resolves a route against the library's own set, so routing them
+        here would show the "it is gone" sentence every time. They are also already
+        past the question the page answers — the reader is standing in the library
+        they chose, looking at the thing they asked for. **The page cannot serve
+        those three until a catalogue entry can become a `Publication` before it is
+        fetched**, which is not this change. They keep the detail screens
+        `opds-catalog` and `kavita-server` already give them.
 
-      One deletion the rule forced: `ContinueReadingRow`, the grid's own resume
-      affordance. It had moved to Home's hero long ago and every caller had been
-      passing it an empty array since, so it was already dead — and would otherwise
-      have become the one cover on the browse path still opening the reader.
+      Two things the rule forced, one per platform. iOS: `ContinueReadingRow` is
+      deleted — the grid's own resume affordance had moved to Home's hero long ago
+      and every caller had been passing it an empty array since, so it was already
+      dead, and would otherwise have become the one cover on the browse path still
+      opening the reader. Android kept its equivalent row, which is now a
+      cross-platform difference recorded at the site: the requirement moved whole
+      into `home-screen`, iOS passes its library an empty list, and removing
+      Android's needs its own screenshots.
+
+      Android also took the `isOpenable` gate off covers: the page explains a
+      refusal through `PrimaryAction.REFUSED`, so a cover with no way in was the one
+      hole left in "reachable from every surface".
 
       **A spec conflict this surfaced, for whoever syncs the delta.**
       `reading-progress`'s *Continue from the library* says a tap on a part-read
@@ -156,6 +170,16 @@ can be pushed onto the existing stack.
       scaffold. Screenshot expanded width, and the narrow-then-widen path.
 - [x] **4.3** The empty second pane before a publication is chosen — one
       sentence, not an arbitrary publication. Screenshot both platforms.
+      *Done on Android; the screenshot is outstanding.* Android had a third
+      answer to this — hide the pane until something goes in it — and it is out.
+      The scaffold gave the whole width to the shelf, so the shelf reflowed its
+      columns on the reader’s first tap and reflowed back on their last press of
+      Back, which is the library rearranging itself in answer to something that
+      was not about the library. §4.7 of the direction settles it from the other
+      side: “expanded and above: two panes”, and a pane that is only sometimes
+      there is not two panes. So the pane is always drawn at expanded width and
+      `PublicationPanePlaceholder` puts `detail_pane_empty` in it — iOS’s
+      sentence, to the word, in all four locales.
 
       **Answered on iOS, and the answer is that there is no second pane** — so
       there is nothing to screenshot, and the scenario is unmet rather than met.

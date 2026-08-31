@@ -57,6 +57,13 @@ import app.storyarc.core.model.Publication
 internal fun CoverList(
     publications: List<Publication>,
     viewModel: LibraryViewModel,
+    /**
+     * What to do when a row is tapped: show that publication's page.
+     *
+     * The list has no continue-reading row to keep apart from this — it is the shelf drawn
+     * as rows, and every row on it is a cover. See [CoverGrid] for the pair of verbs
+     * `publication-detail` requires.
+     */
     onOpen: (Publication) -> Unit,
     /**
      * What the reader has picked, or null when they are not picking.
@@ -140,8 +147,9 @@ private fun ListRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            // A publication that cannot be read is not tappable. Opening it only
-            // to show the same refusal a second time wastes the user's tap.
+            // Every row is tappable, including one no decoder will open: a tap opens the
+            // publication's page, and the page is where a refusal is explained. The grid's
+            // cell carries the same change and the same reasoning.
             //
             // While the reader is picking, a tap picks -- even one that cannot be opened,
             // which can still be shelved and marked read. The long press is the same one
@@ -151,7 +159,6 @@ private fun ListRow(
             // picking, because the bar below is already offering the same actions for
             // everything that is picked.
             .combinedClickable(
-                enabled = isPicked != null || publication.isOpenable,
                 onClick = { if (isPicked != null) onToggle(publication) else onOpen(publication) },
                 onLongClick = {
                     if (isPicked == null) onAddToShelf?.invoke(publication)

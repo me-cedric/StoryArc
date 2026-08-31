@@ -53,7 +53,14 @@ import java.util.UUID
 fun CollectionDetailScreen(
     viewModel: LibraryViewModel,
     id: UUID,
-    onOpen: (Publication, String) -> Unit,
+    /**
+     * A cover was chosen: that publication's page.
+     *
+     * `publication-detail` names a collection as one of the four surfaces a page is
+     * reached from — "in the library, in a shelf, in search results or in a collection".
+     * Nothing on this screen offers to resume, so there is no second verb here.
+     */
+    onOpen: (Publication) -> Unit,
     onBack: () -> Unit,
     /** Marks a publication read. The app layer owns the secrets the server may need. */
     onMark: (Publication, Boolean) -> Unit = { _, _ -> },
@@ -119,9 +126,7 @@ fun CollectionDetailScreen(
                     publications = members,
                     viewModel = viewModel,
                     continueReading = emptyList(),
-                    onOpen = { publication ->
-                        viewModel.location(publication)?.let { onOpen(publication, it) }
-                    },
+                    onOpen = onOpen,
                 )
             }
         }
@@ -151,7 +156,14 @@ fun CollectionDetailScreen(
 fun ReadingListDetailScreen(
     viewModel: LibraryViewModel,
     id: UUID,
-    onOpen: (Publication, String) -> Unit,
+    /**
+     * An entry was chosen: that publication's page.
+     *
+     * A numbered row here is the list saying *this one*, not *carry on where you were* —
+     * the reader's position in the list is the count above, and the rows themselves are the
+     * shelf. So a row takes the same verb a cover in a collection takes.
+     */
+    onOpen: (Publication) -> Unit,
     onBack: () -> Unit,
     /** Marks a publication read. The app layer owns the secrets the server may need. */
     onMark: (Publication, Boolean) -> Unit = { _, _ -> },
@@ -234,11 +246,7 @@ fun ReadingListDetailScreen(
                         isFinished = entry in finished,
                         canMoveUp = index > 0,
                         canMoveDown = index + 1 < entries.size,
-                        onOpen = {
-                            publication?.let { found ->
-                                viewModel.location(found)?.let { onOpen(found, it) }
-                            }
-                        },
+                        onOpen = { publication?.let(onOpen) },
                         onUp = { viewModel.moveInList(entry, index - 1, id) },
                         onDown = { viewModel.moveInList(entry, index + 2, id) },
                         onRemove = { viewModel.removeFromList(entry, id) },

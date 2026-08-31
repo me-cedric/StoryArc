@@ -68,7 +68,15 @@ internal fun LibrarySearchEntry(
     viewModel: LibraryViewModel,
     query: LibraryQuery,
     recents: RecentSearches,
-    onOpen: (Publication, String) -> Unit,
+    /**
+     * How the app layer reaches a publication's own page.
+     *
+     * A result the device already holds is a cover like any other, and
+     * `publication-detail` puts a page behind a cover chosen "in search results" by name.
+     * A result only a server has is not a publication yet, so it is followed to the server
+     * instead — see [onFollowToSource].
+     */
+    onOpenPage: (Publication) -> Unit,
     /** How the app layer reaches a library that is not on this device, carrying the term. */
     onFollowToSource: (Source, String) -> Unit,
     modifier: Modifier = Modifier,
@@ -108,9 +116,7 @@ internal fun LibrarySearchEntry(
         onClearRecents = viewModel::clearRecentSearches,
         answers = answers,
         onOpenHeld = { id ->
-            viewModel.publications.value.firstOrNull { it.id == id }?.let { publication ->
-                viewModel.location(publication)?.let { onOpen(publication, it) }
-            }
+            viewModel.publications.value.firstOrNull { it.id == id }?.let(onOpenPage)
         },
         // A row a server answered leads to that server, opened on the question rather than at
         // its front door. The reader is not told which server it was until they are standing

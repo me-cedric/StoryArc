@@ -47,6 +47,20 @@ internal class AppHost(
      */
     val open: (Publication, String) -> Unit,
     /**
+     * A cover was chosen: show the publication's own page.
+     *
+     * The other half of [open], and `publication-detail` makes the pair a requirement rather
+     * than a convenience — a page "SHALL be reachable from every surface that shows a
+     * publication, and SHALL be distinguished from resuming, which opens the book directly".
+     * So a cover calls this and a resume affordance calls [open]; nothing decides between
+     * them at the call site by inspecting the publication, because the difference is in the
+     * affordance the reader touched and not in the book.
+     *
+     * Pushed onto the current destination's path rather than opened as a destination of its
+     * own, which is the delta's "opens within the destination they were already in".
+     */
+    val openPage: (Publication) -> Unit,
+    /**
      * Browse a source, or say plainly why it cannot be browsed right now.
      *
      * The second argument is a term the library already had the reader typing, which a

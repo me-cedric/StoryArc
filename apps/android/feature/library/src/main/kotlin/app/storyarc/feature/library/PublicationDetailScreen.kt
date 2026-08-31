@@ -457,3 +457,36 @@ private fun DetailGone(onBack: () -> Unit) {
         }
     }
 }
+
+/**
+ * The second pane, before a publication has been chosen.
+ *
+ * `publication-detail`: "the second pane says so in one sentence rather than showing an
+ * arbitrary publication or an empty rectangle". Both of the things it forbids are worse
+ * than they sound — an arbitrary publication is the app claiming the reader chose
+ * something, and an empty rectangle is half a tablet of nothing with nothing said about it.
+ *
+ * Android had a third answer, which was to hide the pane until something went in it. It is
+ * out because the shelf reflowed when the pane arrived: the column count changed under the
+ * reader on their first tap and changed back on their last press of Back, which is the
+ * library rearranging itself in answer to something that was not about the library. §4.7 of
+ * the direction settles it from the other side — "expanded and above: two panes" — and a
+ * pane that is only sometimes there is not two panes.
+ *
+ * The wording is iOS's, to the word, in the four languages the app speaks. One situation
+ * described twice is how a four-language app comes apart, and this is one situation.
+ */
+@Composable
+fun PublicationPanePlaceholder(modifier: Modifier = Modifier) {
+    val palette = LocalStoryArcPalette.current
+    Column(
+        modifier = modifier.fillMaxSize().padding(StoryArcSpace.xxl),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.detail_pane_empty),
+            style = MaterialTheme.typography.bodyLarge,
+            color = palette.textSecondary,
+        )
+    }
+}

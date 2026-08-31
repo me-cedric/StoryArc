@@ -50,7 +50,11 @@ class PaneSplitTest {
     }
 
     @Test
-    fun `an expanded window shows the shelf alone until a page is opened on it`() {
+    fun `an expanded window is two panes before a page is opened on it`() {
+        // A split with nothing in its second pane, not the absence of a split.
+        // `publication-detail` puts one sentence there rather than an empty rectangle, and
+        // the shelf keeps one width for the whole visit instead of reflowing on the first
+        // tap.
         assertEquals(
             PaneSplit(detail = null),
             PaneSplit.of(library(), StoryArcWindowClass.EXPANDED),

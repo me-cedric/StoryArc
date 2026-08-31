@@ -182,11 +182,23 @@ internal fun CoverGrid(
      */
     groups: List<MatchGroup> = emptyList(),
     /**
-     * What to do when a cover is tapped. The library does not open the reader
-     * itself — a feature module never depends on another feature module, so the
-     * app layer wires the two together.
+     * What to do when a cover is tapped: show that publication's page.
+     *
+     * `publication-detail`: a page is reachable "from every surface that shows a
+     * publication", and choosing a cover is how a reader reaches it. The grid does not know
+     * what a page is any more than it knows what a reader is — a feature module never
+     * depends on another feature module, so the app layer wires the two together.
      */
     onOpen: (Publication) -> Unit,
+    /**
+     * What to do when the reader takes the continue-reading row: open the book.
+     *
+     * The row is the one affordance on this screen that offers to *resume*, and
+     * `publication-detail` keeps resuming and inspecting apart — "the book opens at the
+     * recorded position, without this page in between". A reader who tapped Continue has
+     * already chosen; putting a page in front of them would be asking the question twice.
+     */
+    onResume: (Publication) -> Unit = onOpen,
     /** A long press, where a publication is put on a shelf. Nil where there is nowhere to put it. */
     onAddToShelf: ((Publication) -> Unit)? = null,
     /**
@@ -234,7 +246,13 @@ internal fun CoverGrid(
     ) {
         if (continueReading.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }, key = "continue-reading") {
-                ContinueReadingRow(continueReading, viewModel, onOpen, maxPixelSize, onAddToShelf)
+                ContinueReadingRow(
+                    continueReading,
+                    viewModel,
+                    onResume,
+                    maxPixelSize,
+                    onAddToShelf,
+                )
             }
         }
         // `library-browsing`: while a search is running, results are "grouped by match
@@ -308,7 +326,8 @@ private val MatchKind.labelRes: Int
 private fun ContinueReadingRow(
     publications: List<Publication>,
     viewModel: LibraryViewModel,
-    onOpen: (Publication) -> Unit,
+    /** Opens the book itself. This row is a resume affordance, not a shelf of covers. */
+    onResume: (Publication) -> Unit,
     maxPixelSize: Int,
     /** A long press, where a publication is put on a shelf. Null where there is nowhere to put it. */
     onAddToShelf: ((Publication) -> Unit)? = null,
@@ -332,7 +351,7 @@ private fun ContinueReadingRow(
                 CoverCell(
                     publication,
                     viewModel,
-                    onOpen,
+                    onResume,
                     maxPixelSize,
                     // The same long press the shelf below answers. A publication does not
                     // stop having collections because it is the one you were last
@@ -380,23 +399,26 @@ private fun CoverCell(
         // the title, then the format, then an unlabelled image.
         modifier = modifier
             .fillMaxWidth()
-            // A publication that cannot be read is not tappable. Opening it only
-            // to show the same refusal twice wastes the user's tap.
+            // Every cover is tappable, including one no decoder will open. It used not to
+            // be, and the reasoning was sound while a tap opened the reader: showing the
+            // same refusal a second time wasted the tap. A tap now opens the publication's
+            // page, which is the screen that explains a refusal — `publication-detail`
+            // gives it a primary action reading *Cannot be opened* with the reason under
+            // it, and requires the page to be reachable "from every surface that shows a
+            // publication". A cover with no way in would be the one hole in that.
             .then(
                 when {
                     // While the reader is picking, a tap picks -- even a publication that
                     // cannot be opened, which can still be shelved and marked read. A cover
-                    // that opened the reader mid-selection would throw away every pick.
+                    // that opened a page mid-selection would throw away every pick.
                     isPicked != null -> Modifier.clickable { onToggle(publication) }
 
                     // `collections-and-reading-lists`: a publication "may belong to any
                     // number of collections", and a long press is where a reader says so.
-                    publication.isOpenable -> Modifier.combinedClickable(
+                    else -> Modifier.combinedClickable(
                         onClick = { onOpen(publication) },
                         onLongClick = { onAddToShelf?.invoke(publication) },
                     )
-
-                    else -> Modifier
                 },
             )
             .semantics {

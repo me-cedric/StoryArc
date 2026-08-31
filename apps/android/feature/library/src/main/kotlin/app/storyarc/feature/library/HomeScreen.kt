@@ -82,7 +82,23 @@ enum class HomeSection { KEEP_READING, UP_NEXT, RECENTLY_ADDED, FINISHED }
 fun HomeScreen(
     surface: HomeSurface,
     cover: suspend (Publication, Int) -> Bitmap?,
+    /**
+     * A cover was chosen: that publication's page.
+     *
+     * `publication-detail` requires a page behind every cover and requires it to be
+     * distinguished from resuming. Up next, recently added and finished are shelves of
+     * covers, so they lead here.
+     */
     onOpen: (Publication) -> Unit,
+    /**
+     * Keep reading was chosen: the book itself, at the recorded position.
+     *
+     * The hero is a resume affordance and the delta says so in as many words — chosen from
+     * Keep reading, "the book opens at the recorded position, without this page in
+     * between". `home-screen` asks for the same thing from the other side: straight into
+     * the reader "with no intermediate screen".
+     */
+    onResume: (Publication) -> Unit,
     onShowAll: (HomeSection) -> Unit,
     onOpenFile: () -> Unit,
     onAddFolder: () -> Unit,
@@ -127,7 +143,7 @@ fun HomeScreen(
                 return@LazyColumn
             }
 
-            keepReading(surface, cover, onOpen, onShowAll)
+            keepReading(surface, cover, onResume, onShowAll)
 
             shelf(
                 entries = surface.upNext,
@@ -173,7 +189,8 @@ fun HomeScreen(
 private fun LazyListScope.keepReading(
     surface: HomeSurface,
     cover: suspend (Publication, Int) -> Bitmap?,
-    onOpen: (Publication) -> Unit,
+    /** Opens the book. The hero is the surface's one resume affordance. */
+    onResume: (Publication) -> Unit,
     onShowAll: (HomeSection) -> Unit,
 ) {
     if (surface.keepReading.isEmpty()) return
@@ -190,7 +207,7 @@ private fun LazyListScope.keepReading(
                 width = homeHeroWidth(),
                 modifier = Modifier
                     .padding(horizontal = StoryArcSpace.gutter)
-                    .clickable { onOpen(entry.publication) }
+                    .clickable { onResume(entry.publication) }
                     .homeCardSemantics(entry, label),
             )
         }
@@ -220,7 +237,7 @@ private fun LazyListScope.keepReading(
                 width = width,
                 modifier = Modifier
                     .maskClip(RoundedCornerShape(StoryArcRadius.xl))
-                    .clickable { onOpen(entry.publication) }
+                    .clickable { onResume(entry.publication) }
                     .homeCardSemantics(entry, label),
             )
         }

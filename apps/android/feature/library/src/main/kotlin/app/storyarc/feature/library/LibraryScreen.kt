@@ -77,6 +77,16 @@ fun LibraryScreen(
      */
     onOpen: (Publication, String) -> Unit = { _, _ -> },
     /**
+     * How the app layer reaches a publication's own page.
+     *
+     * The other verb `publication-detail` requires: "a publication's page SHALL be
+     * reachable from every surface that shows a publication, and SHALL be distinguished
+     * from resuming, which opens the book directly". Every cover on this screen — the grid,
+     * the list and the search results — calls this. [onOpen] is left to the one affordance
+     * that offers to resume, the continue-reading row.
+     */
+    onOpenPage: (Publication) -> Unit = {},
+    /**
      * How the app layer reaches Settings.
      *
      * The library does not know what a settings screen is, for the same reason it does
@@ -399,7 +409,7 @@ fun LibraryScreen(
                     viewModel = viewModel,
                     query = query,
                     recents = recentSearches,
-                    onOpen = onOpen,
+                    onOpenPage = onOpenPage,
                     onFollowToSource = onFollowToSource,
                 )
                 LibraryControls(
@@ -449,6 +459,7 @@ fun LibraryScreen(
                             selection = selection,
                             onSelectionChange = { selection = it },
                             onOpen = onOpen,
+                            onOpenPage = onOpenPage,
                             onAddToShelf = { shelving = it },
                         )
 
@@ -564,11 +575,14 @@ private fun Shelf(
     availability: LibraryAvailability,
     selection: LibrarySelection,
     onSelectionChange: (LibrarySelection) -> Unit,
+    /** Opens the book. Reached only from the continue-reading row, which offers a resume. */
     onOpen: (Publication, String) -> Unit,
+    /** Opens a publication's page. Reached from every cover, in either layout. */
+    onOpenPage: (Publication) -> Unit,
     onAddToShelf: (Publication) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        val open: (Publication) -> Unit = { publication ->
+        val resume: (Publication) -> Unit = { publication ->
             viewModel.location(publication)?.let { onOpen(publication, it) }
         }
         if (layout == LibraryLayout.GRID) {
@@ -586,7 +600,8 @@ private fun Shelf(
                 } else {
                     continueReading
                 },
-                onOpen = open,
+                onOpen = onOpenPage,
+                onResume = resume,
                 onAddToShelf = onAddToShelf,
                 selection = selection.ids.takeIf { selection.isActive },
                 onToggle = { onSelectionChange(selection.toggle(it.id)) },
@@ -595,7 +610,7 @@ private fun Shelf(
             CoverList(
                 publications = publications,
                 viewModel = viewModel,
-                onOpen = open,
+                onOpen = onOpenPage,
                 selection = selection.ids.takeIf { selection.isActive },
                 onToggle = { onSelectionChange(selection.toggle(it.id)) },
                 onAddToShelf = onAddToShelf,
