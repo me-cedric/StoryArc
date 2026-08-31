@@ -270,3 +270,33 @@ carrying text, because a splash screen is an image and nothing else.
 became `13/16` the moment `--a11y` was on, because three unnamed views were subtracted from the
 route count. An hour went into chasing that as a regression, and it was one line below the
 comment explaining that conflating these outcomes is how the script had already lied once.
+
+## The Android well, photographed — and the one surface that could not be
+
+`android-downloads-well-default-light`, `-default-dark` and `-scale2-light`, scrolled to where
+the coverless fixtures are. Every one of them draws what the library has drawn all along:
+
+| Cell | Well | Format |
+| --- | --- | --- |
+| `no-pages` | title centred | `CBZ` |
+| `rar4-compressed` | title over two lines | `CBR` |
+| `rar4-solid` | title centred | `CBR` |
+| `rar5-compressed` | title over two lines | `CBR` |
+
+Before this change all four were bare cream boxes. The `-scale2-light` shot is the one that
+settles the layout finding a reviewer raised: at `font_scale 2.0` — beyond the 1.5 the finding
+named — `no-pages` and its `CBZ` are clearly separated, because the label's height is now
+reserved by a `Column` rather than overlaid. The collision cannot come back by arithmetic.
+
+**Home's well is not photographed, and this says so rather than filing a picture that proves
+something else.** Its shelves hold only publications with cover art on this corpus — *Recently
+added* and *Finished* draw `archive-comment`, `data-descriptor` and `double-page-spread`, all
+three of which have artwork — so there is no coverless card on that screen to capture. Home's
+well is proven by `CoverlessWellTest`, which composes the card and asserts both that the title
+appears and that **no** format node exists, and which fails when the branch is neutered. A
+genuine Home capture needs a corpus with a readable coverless publication recent enough to
+reach a shelf.
+
+The earlier `android-home-default-light.png` in this directory is **not** a before-picture of
+this defect and must not be read as one: its cells are cover art dimmed to `AWAY_ALPHA`, which
+is why they look washed beside the Downloads captures of the same publications.
