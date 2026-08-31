@@ -79,7 +79,7 @@ class ReaderAppearanceTest {
     }
 
     @Test
-    fun `OLED Dark blackens the chrome and does not darken the page`() {
+    fun `OLED Dark blackens the chrome and stops short of the reading surface`() {
         val settings = AppSettings(
             appearance = AppearanceMode.OLED_DARK,
             linkReadingThemeToAppearance = true,
@@ -92,5 +92,11 @@ class ReaderAppearanceTest {
         // OLED during a page turn.
         assertTrue(reader.chrome.isTrueBlack)
         assertEquals(ThemePreset.QUIET, reader.linkedPreset)
+
+        // Named for the colour, and only the colour. OLED Dark does reach the page by one
+        // other route -- it withdraws Natural, and Natural's grain with it -- which is the
+        // rule the whole app follows and is pinned in `ReaderNaturalGrainTest`. This test
+        // used to be called "does not darken the page", which read as a promise that nothing
+        // on the page moved at all.
     }
 }

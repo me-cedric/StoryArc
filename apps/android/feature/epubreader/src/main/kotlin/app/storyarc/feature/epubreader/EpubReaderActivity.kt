@@ -294,7 +294,8 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      *
      * Nothing recreates this activity on a language change, so a book left open across a trip
      * to Settings keeps the language it was opened in until it is closed and reopened. See
-     * the note on `useDynamicColor` in `onCreate` for why that trade was taken.
+     * the staleness note on [appearance] for why that trade was taken; the colour scheme and
+     * the interface language go stale by the same route and for the same reason.
      */
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase.speaking(newBase.chosenLanguage()))

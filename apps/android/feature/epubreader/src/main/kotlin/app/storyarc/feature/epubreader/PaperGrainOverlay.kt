@@ -82,6 +82,23 @@ private val SOURCE = """
  * over the words, under the app bars. It draws and nothing else — no clickable, no
  * pointer input — so every tap still reaches the navigator underneath.
  *
+ * **Under OLED Dark there is no grain, even with the Natural switch left on, and that is
+ * the rule rather than an accident of this screen.** `LocalIsNaturalTheme` carries
+ * `NaturalTheme.applies`, which is `isOn && !appearance.isTrueBlack`: Natural does not
+ * combine with OLED Dark anywhere in the app, because `design.md` gives OLED Dark's black
+ * point the standing of a promise about the panel and Natural's canvas is cream at
+ * `#16100C`. Grain is Natural's texture and nothing else's, so where the theme does not
+ * apply the texture has nothing to be the texture of — warm brown specks over a true-black
+ * page, with none of Natural's palette behind them, would be the defect rather than the
+ * feature. The Appearance screen disables the switch under OLED Dark and states the reason,
+ * which is the same answer said in words.
+ *
+ * This reader is the last screen to obey that, and only because it used to build its chrome
+ * with a hardcoded `SYSTEM`: `applies(on, SYSTEM)` is just `on`, so OLED Dark never reached
+ * the test and the grain drew where no other surface would have drawn it. Passing the real
+ * appearance ended that. `ReaderNaturalGrainTest` pins it so the next reading of this note
+ * has something behind it.
+ *
  * **Whether it is drawing is a measurement, not a look**, and the first attempt to judge it
  * on a device got the answer backwards in both directions — first reading the page's own
  * flat cream as grain, then reading real grain as that same flat cream. At a peak alpha of
