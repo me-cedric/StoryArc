@@ -1,5 +1,29 @@
 package app.storyarc.feature.library
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibrarySort
@@ -115,3 +139,95 @@ object ListOrdering {
     fun positions(entries: List<String>): Map<String, Int> =
         entries.withIndex().associate { (index, entry) -> entry to index + 1 }
 }
+
+/**
+ * What a reading list is ordered by, and the way back.
+ *
+ * A chip row, the way `LibraryControls` puts the shelf's own sort on one: a chip says what it
+ * is doing in a word, which is exactly what an unlabelled glyph could not. The first chip is
+ * named for the order the list is in, so it labels the curated order as curated without a
+ * legend — `library-browsing` asks for that and for nothing more elaborate.
+ *
+ * The second chip appears only while a sort is overriding the list, and is the one tap back
+ * that the same requirement asks for. It is named for where it goes rather than for going
+ * there, which is what makes a single tap enough to know what will happen.
+ */
+@Composable
+internal fun ListOrderChips(
+    order: ListOrder,
+    onSortChange: (LibrarySort?) -> Unit,
+    onDirectionChange: (Boolean) -> Unit,
+    onCurated: () -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = StoryArcSpace.xs),
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FilterChip(
+            // Ordering is always on — there is no unordered list — so the chip carries the
+            // answer rather than a state. It is never drawn as selected for that reason,
+            // which is the rule the shelf's own sort chip follows.
+            selected = false,
+            onClick = { open = true },
+            label = { Text(stringResource(order.labelRes)) },
+        )
+        if (!order.isCurated) {
+            FilterChip(
+                selected = false,
+                onClick = onCurated,
+                label = { Text(stringResource(R.string.shelves_list_order)) },
+                leadingIcon = {
+                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = null)
+                },
+            )
+        }
+    }
+
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        ChosenOrderItem(stringResource(R.string.shelves_list_order), order.isCurated) {
+            onSortChange(null)
+        }
+        LibrarySort.entries.forEach { sort ->
+            ChosenOrderItem(stringResource(sort.labelRes), order.sort == sort) {
+                onSortChange(sort)
+            }
+        }
+        // A direction for the curated order would be a control with nothing to reverse.
+        if (!order.isCurated) {
+            HorizontalDivider()
+            listOf(
+                true to R.string.library_sort_ascending,
+                false to R.string.library_sort_descending,
+            ).forEach { (value, label) ->
+                ChosenOrderItem(stringResource(label), order.ascending == value) {
+                    onDirectionChange(value)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChosenOrderItem(label: String, chosen: Boolean, onChoose: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        leadingIcon = { RadioButton(selected = chosen, onClick = null) },
+        onClick = onChoose,
+    )
+}
+
+/**
+ * What the control is called while the list is in this order.
+ *
+ * The control naming the current order is what labels the curated one as curated. Here rather
+ * than on [ListOrder] for the reason `LibrarySort.labelRes` is in `LibraryControls`: naming a
+ * value is presentation, and the value itself carries no resources.
+ */
+private val ListOrder.labelRes: Int
+    get() = sort?.labelRes ?: R.string.shelves_list_order

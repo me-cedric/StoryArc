@@ -1412,7 +1412,7 @@ class LibraryViewModel(
         )
     }
 
-    private fun stateOf(publication: Publication) = LibraryIndex.Progress.of(progress[publication.id])
+    internal fun stateOf(publication: Publication) = LibraryIndex.Progress.of(progress[publication.id])
 
     fun readFraction(publication: Publication): Float? {
         val record = progress[publication.id] ?: return null

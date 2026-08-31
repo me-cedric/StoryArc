@@ -112,3 +112,57 @@ enum ListOrdering {
         )
     }
 }
+
+/// How a reading list is ordered, offered the way the library offers its own sort.
+///
+/// Deliberately the same shape as ``SortMenu`` — two pickers, the field and the direction —
+/// because a reader who has used one has learnt the other. The one addition is the row above
+/// the seven fields: the order the list is in, which is where the menu starts and which is
+/// not a way of sorting at all.
+///
+/// The direction picker appears only once a field is chosen. A direction for the curated
+/// order would be a control with nothing to reverse.
+struct ListOrderMenu: View {
+    @Binding var order: ListOrder
+
+    var body: some View {
+        Menu {
+            Picker(selection: sortBinding) {
+                Text("shelves.list.order", bundle: .module).tag(LibrarySort?.none)
+                ForEach(LibrarySort.allCases, id: \.self) { sort in
+                    Text(sort.titleKey, bundle: .module).tag(LibrarySort?.some(sort))
+                }
+            } label: {
+                Text("library.sort", bundle: .module)
+            }
+
+            if !order.isCurated {
+                Divider()
+
+                Picker(selection: directionBinding) {
+                    Text("library.sort.ascending", bundle: .module).tag(true)
+                    Text("library.sort.descending", bundle: .module).tag(false)
+                } label: {
+                    Text("library.sort.direction", bundle: .module)
+                }
+            }
+        } label: {
+            Label {
+                Text("library.sort", bundle: .module)
+            } icon: {
+                Image(systemName: "arrow.up.arrow.down")
+            }
+        }
+        // Which order it is in, spoken. The glyph says a control is here and cannot say what
+        // it is set to, and DESIGN.md forbids a state carried by appearance alone.
+        .accessibilityValue(Text(order.titleKey, bundle: .module))
+    }
+
+    private var sortBinding: Binding<LibrarySort?> {
+        Binding(get: { order.sort }, set: { order.sort = $0 })
+    }
+
+    private var directionBinding: Binding<Bool> {
+        Binding(get: { order.ascending }, set: { order.ascending = $0 })
+    }
+}

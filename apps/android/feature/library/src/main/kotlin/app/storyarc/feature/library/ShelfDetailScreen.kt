@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.LibrarySort
 import app.storyarc.core.model.Publication
 import java.util.UUID
 
@@ -150,6 +152,9 @@ fun CollectionDetailScreen(
  *
  * Buttons rather than drag: a drag handle in a Compose list is a custom gesture, and two
  * arrows are reachable by a screen reader without one.
+ *
+ * `library-browsing` also asks for the order to be nameable, overridable and returned to;
+ * [ListOrder] holds that rule and [ListOrderChips] is the control.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -181,6 +186,29 @@ fun ReadingListDetailScreen(
     val entries = list?.entries ?: emptyList()
     val finished = viewModel.finishedPublications()
     val position = list?.position { it in finished } ?: 0
+
+    // How the reader has asked to see the list, for as long as they are looking at it.
+    //
+    // `library-browsing` gives a chosen order "that session" and no longer, and this is the
+    // shortest honest reading of it: leaving the list ends the session, and coming back lands
+    // on the order the list carries -- which is the order that means something. Saved rather
+    // than merely remembered so a rotation is not a return. Two values rather than one
+    // `ListOrder`, because an enum and a boolean are both saveable to a `Bundle` on their own
+    // and a data class would need a `Saver` written for it to say the same thing.
+    var sort by rememberSaveable { mutableStateOf<LibrarySort?>(null) }
+    var ascending by rememberSaveable { mutableStateOf(true) }
+    val order = ListOrder(sort = sort, ascending = ascending)
+
+    // What is drawn, and what each row is numbered. The list keeps its own order throughout:
+    // `shown` is a new sequence and `numbers` is read off `entries`.
+    //
+    // Not wrapped in a `remember`: the last-read and progress orders read the view model's
+    // progress map, and a snapshot read taken inside a `remember` neither subscribes nor runs
+    // again — a list sorted by last read would sit at the order it had when the screen opened
+    // and quietly stop agreeing with the ticks beside its own rows. A reading list is tens of
+    // entries, so the pass costs nothing worth that.
+    val shown = ListOrdering.arrange(entries, order, publications, progress = viewModel::stateOf)
+    val numbers = remember(entries) { ListOrdering.positions(entries) }
 
     val snackbars = remember { SnackbarHostState() }
     var undo by remember { mutableStateOf<BulkUndo?>(null) }
@@ -234,18 +262,35 @@ fun ReadingListDetailScreen(
                         ),
                         style = MaterialTheme.typography.labelLarge,
                         color = palette.textSecondary,
-                        modifier = Modifier.padding(bottom = StoryArcSpace.sm),
+                    )
+                    // `library-browsing`: the curated order is "labelled as such -- not
+                    // alphabetical", another field applies for the session, and there is a
+                    // one-tap way back. The chip carries the name of the order it is in,
+                    // which is what does the labelling.
+                    ListOrderChips(
+                        order = order,
+                        onSortChange = { sort = it },
+                        onDirectionChange = { ascending = it },
+                        onCurated = { sort = null },
                     )
                 }
-                itemsIndexed(entries, key = { _, entry -> entry }) { index, entry ->
+                itemsIndexed(shown, key = { _, entry -> entry }) { index, entry ->
                     val publication = publications.firstOrNull { it.id == entry }
                     EntryRow(
-                        number = index + 1,
+                        // The entry's place in the *list*, never its place on screen. Under a
+                        // chosen sort that is the more useful of the two, and it is the
+                        // visible proof that the curated order is still there underneath.
+                        number = numbers[entry] ?: 0,
                         title = publication?.displayTitle ?: entry,
                         isAvailable = publication != null,
                         isFinished = entry in finished,
-                        canMoveUp = index > 0,
-                        canMoveDown = index + 1 < entries.size,
+                        // Moving is offered only in the curated order. `ListOrder` says why
+                        // it has to be: these buttons move an entry by the position it
+                        // occupies as drawn, and that position written into the curated order
+                        // would scramble the thing the reader was promised would not change.
+                        canMoveUp = order.allowsReordering && index > 0,
+                        canMoveDown = order.allowsReordering && index + 1 < shown.size,
+                        isReorderable = order.allowsReordering,
                         onOpen = { publication?.let(onOpen) },
                         onUp = { viewModel.moveInList(entry, index - 1, id) },
                         onDown = { viewModel.moveInList(entry, index + 2, id) },
@@ -288,6 +333,7 @@ private fun EntryRow(
     isFinished: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
+    isReorderable: Boolean,
     onOpen: () -> Unit,
     onUp: () -> Unit,
     onDown: () -> Unit,
@@ -334,19 +380,24 @@ private fun EntryRow(
                 tint = palette.accent,
             )
         }
-        IconButton(onClick = onUp, enabled = canMoveUp) {
-            Icon(
-                Icons.Filled.ArrowUpward,
-                contentDescription = stringResource(R.string.shelves_move_up, title),
-                tint = palette.textSecondary,
-            )
-        }
-        IconButton(onClick = onDown, enabled = canMoveDown) {
-            Icon(
-                Icons.Filled.ArrowDownward,
-                contentDescription = stringResource(R.string.shelves_move_down, title),
-                tint = palette.textSecondary,
-            )
+        // Absent rather than disabled while a sort is overriding the list. Two greyed arrows
+        // on every row would be a control the reader has to work out is unreachable, on the
+        // one screen where a narrow window has the least room to spare.
+        if (isReorderable) {
+            IconButton(onClick = onUp, enabled = canMoveUp) {
+                Icon(
+                    Icons.Filled.ArrowUpward,
+                    contentDescription = stringResource(R.string.shelves_move_up, title),
+                    tint = palette.textSecondary,
+                )
+            }
+            IconButton(onClick = onDown, enabled = canMoveDown) {
+                Icon(
+                    Icons.Filled.ArrowDownward,
+                    contentDescription = stringResource(R.string.shelves_move_down, title),
+                    tint = palette.textSecondary,
+                )
+            }
         }
         IconButton(onClick = onRemove) {
             Icon(
