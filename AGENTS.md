@@ -90,6 +90,22 @@ Demonstrated rather than assumed: a function returning a `String` from an `Int` 
 was added to `ScreenshotTests.swift`, and `pnpm check` exited **0**. `pnpm build:ios:tests`
 exited 65 and named the line. It is in `pnpm check` now, and it costs about thirty seconds.
 
+**Android had the identical hole, and it has already cost this project.** `pnpm test:android`
+runs `test`, which is the JVM unit tests; the sixteen files under `src/androidTest` are
+instrumented and compiled by neither that nor `lint`. This is how `ProgressStoreTest` came to
+sit uncompiled for months with nineteen positional call sites binding the wrong parameter — a
+suite that appeared to cover the app's most consequential behaviour and ran nothing. It was
+found by accident.
+
+Proven the same way: a `String` returned from an `Int` signature in
+`core/persistence/src/androidTest/.../LibraryPreferencesTest.kt` left `pnpm test:android` at
+exit **0**, and `assembleAndroidTest` exited 1 and named the line. `pnpm build:android:tests`
+is in `pnpm check` too.
+
+Neither command runs anything. They compile, which is the part that was missing — a test that
+does not compile is not a failing test, it is an absent one, and absent is what both platforms
+were.
+
 **`openspec validate` is not the completion gate.** It checks the files that are
 present. `openspec status --change <name> --json` checks the files that *should* be,
 and returns `done` / `ready` / `blocked` / `skipped` per artifact plus
@@ -166,6 +182,7 @@ change** — never the whole repository when one module moved.
 | `packages/test-fixtures` | `pnpm fixtures:build`, then **commit the regenerated corpus and manifest**, then run both platforms' format tests |
 | `apps/ios` app target or `project.yml` | `pnpm build:ios` |
 | `apps/ios/UITests` | `pnpm build:ios:tests` — **nothing else compiles them** |
+| Any `src/androidTest` | `pnpm build:android:tests` — **nothing else compiles them either** |
 | One Android module | `pnpm gradle :<module>:lint :<module>:testDebugUnitTest` |
 | Android across modules | `pnpm lint:android && pnpm test:android` |
 | `packages/design-tokens` | `pnpm tokens:sync` — then **commit the regenerated app copies in the same change** |
