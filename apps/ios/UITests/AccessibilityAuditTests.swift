@@ -117,8 +117,18 @@ final class AccessibilityAuditTests: XCTestCase {
         // `coverMinimumWidth(shelfWidth:textSize:)` — the same function the library's two
         // shelves ask — and captions a cover in the same role they do.
         //
-        // **One contrast finding remains**, on `Glasshouse` at y 814.3 in an 874-point
-        // window: the last twenty points of the screen, under the floating glass tab bar.
+        // **Three contrast findings remain, and all three are the same one.** On
+        // `Paper Lanterns` at y 814.3 in an 874-point window, and on the `EPUB` label of two
+        // coverless wells whose frames run to y 806.3 — the last forty points of the screen,
+        // under the floating glass tab bar, which spans roughly y 799 to y 843.
+        //
+        // The two well findings arrived with the shared `CoverlessWell`, which gave this
+        // shelf the placeholder the library had all along, and they were nearly written off
+        // as a regression it had caused. They are not: the audit reports the *well's* frame
+        // — 112.7 × 169 points — rather than the label's, and the label sits at its bottom
+        // edge. Measured against a baseline run on the commit before, Downloads went from
+        // one finding to three; measured against where those findings *are*, all three sit
+        // in the same forty points as each other and as the library's own five.
         // Its own pair is `textPrimary` on `surfaceCanvas`, 16.9:1, so this is the same
         // untinted-glass ground the library's five sit on — see there for why that is the
         // design rather than a defect.
@@ -129,7 +139,12 @@ final class AccessibilityAuditTests: XCTestCase {
         // passed. After the layout fix the shelf reflowed, `Foreign Codec` moved out of the
         // strip and its finding went with it, and `Glasshouse` stayed and kept its. The
         // finding follows the position, not the palette.
-        XCTExpectFailure("One caption under the glass bar. See the report below.")
+        // Broad enough to absorb a fourth finding silently, which is the failure mode this
+        // file warns about elsewhere — and which it just demonstrated: two new findings
+        // landed here and the suite stayed green. The count is checked by reading the run's
+        // own report, and there is no assertion that can do it while the ground under this
+        // shelf is a material no token is gated against.
+        XCTExpectFailure("Three captions under the glass bar. See the report below.")
         let app = launch()
         try XCTUnwrap(destination("Downloads", in: app)).tap()
         try audit(app, named: "Downloads")
