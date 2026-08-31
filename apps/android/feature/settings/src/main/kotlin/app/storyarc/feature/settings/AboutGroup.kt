@@ -35,7 +35,20 @@ internal fun AboutGroup(modifier: Modifier = Modifier) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
     var showing by remember { mutableStateOf<Notice?>(null) }
+    var showingWhatsNew by remember { mutableStateOf(false) }
     val notices = remember { Notices.forAndroid(context.assets) }
+
+    if (showingWhatsNew) {
+        // The whole log, and no store. `settings-and-about`: reaching it this way "does not
+        // change what the app considers seen", and the way that is held is that there is
+        // nothing here able to write.
+        WhatsNewHistory(
+            releases = WhatsNew.releases,
+            onBack = { showingWhatsNew = false },
+            modifier = modifier,
+        )
+        return
+    }
 
     showing?.let { notice ->
         LicenceText(
@@ -73,6 +86,11 @@ internal fun AboutGroup(modifier: Modifier = Modifier) {
         )
 
         Column {
+            // Where a reader who dismissed the sheet too fast finds it again. First in the
+            // list of ways out of this screen, and the only one that stays inside the app.
+            TextButton(onClick = { showingWhatsNew = true }) {
+                Text(stringResource(R.string.whats_new_about))
+            }
             LinkRow(R.string.about_repository, "https://github.com/me-cedric/StoryArc")
             LinkRow(R.string.about_author_link, "https://github.com/me-cedric")
             LinkRow(R.string.about_licence, "https://github.com/me-cedric/StoryArc/blob/main/LICENSE")

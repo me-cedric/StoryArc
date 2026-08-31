@@ -60,6 +60,7 @@ const NAMES = {
     privacy: 'Privacy|Privacidad|Datenschutz|Confidentialité',
     about: 'About|Acerca de|Über|À propos',
     language: 'Language|Idioma|Sprache|Langue',
+    whatsNew: 'What\u2019s new|Novedades|Neuerungen|Nouveautés', //  whats_new_about
     sources: 'Your libraries|Tus bibliotecas|Ihre Bibliotheken|Vos bibliothèques',
     storage: 'Downloads and storage|Descargas y almacenamiento|Downloads und Speicher|Téléchargements et stockage',
 }
@@ -84,6 +85,7 @@ export const ROUTES = [
     ['Settings > Privacy', [NAMES.library, NAMES.more, NAMES.settings, NAMES.privacy]],
     ['Settings > About', [NAMES.library, NAMES.more, NAMES.settings, NAMES.about]],
     ['Settings > About > licence', [NAMES.library, NAMES.more, NAMES.settings, NAMES.about, 'Readium Kotlin Toolkit']],
+    ['Settings > About > what\u2019s new', [NAMES.library, NAMES.more, NAMES.settings, NAMES.about, NAMES.whatsNew]],
     ['Settings > Your libraries', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources]],
     ['Settings > Downloads', [NAMES.library, NAMES.more, NAMES.settings, NAMES.storage]],
     ['Settings > Language', [NAMES.library, NAMES.more, NAMES.settings, NAMES.language]],

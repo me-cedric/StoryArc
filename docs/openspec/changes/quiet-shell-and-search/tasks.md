@@ -78,14 +78,14 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       version, localised in the four shipped languages. Nothing is fetched.
 - [x] 3.3 iOS: present as a `.sheet` with `.presentationDetents([.large])` from
       `AppShell` on first appearance after a version change.
-- [ ] 3.4 Android: present as a `ModalBottomSheet`. Not a full-screen dialog:
+- [x] 3.4 Android: present as a `ModalBottomSheet`. Not a full-screen dialog:
       Material reserves those for multi-step tasks with unsaved state at compact
       widths only, and this app runs on tablets.
-- [ ] 3.5 Both: write the seen flag when the screen is **shown**, not when it is
+- [x] 3.5 Both: write the seen flag when the screen is **shown**, not when it is
       dismissed — a reader who swipes it away has still seen it.
-- [ ] 3.6 Both: reachable afterwards from About, with earlier versions listed, and
+- [x] 3.6 Both: reachable afterwards from About, with earlier versions listed, and
       reaching it that way does not change what is considered seen.
-- [ ] 3.7 Both: assert at the largest accessibility text size that every heading and
+- [x] 3.7 Both: assert at the largest accessibility text size that every heading and
       sentence is readable in full and the dismissing action stays reachable.
       Android: fixed-dp icon column that does not scale with `fontScale`, content
       scrollable, Continue pinned.

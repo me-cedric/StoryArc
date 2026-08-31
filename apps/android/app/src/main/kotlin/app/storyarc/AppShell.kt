@@ -37,6 +37,11 @@ import app.storyarc.feature.library.KavitaLevel
 import app.storyarc.feature.library.KavitaPage
 import app.storyarc.feature.library.LibraryViewModel
 import app.storyarc.feature.library.SmbPage
+import app.storyarc.feature.settings.BuildInfo
+import app.storyarc.feature.settings.WhatsNew
+import app.storyarc.feature.settings.WhatsNewRelease
+import app.storyarc.feature.settings.WhatsNewSheet
+import app.storyarc.feature.settings.WhatsNewStore
 import app.storyarc.navigation.AppDestination
 import app.storyarc.navigation.AppNavigation
 import app.storyarc.navigation.AppSheet
@@ -51,10 +56,14 @@ import app.storyarc.navigation.Screen
  * do" had fourteen answers that had to agree, and a rail whose selected item was re-derived
  * from whichever of four nullables happened to be set.
  *
- * Search is not a fourth destination. Material ranks a search bar above a search
- * destination and permits the destination only for an app whose primary action is
- * searching; browsing is StoryArc's. The search field belongs at the top of Home and the
- * library, which is where the library already carries one.
+ * **Search is the fourth destination**, and this comment used to say the opposite: that
+ * Material ranks a search bar above a search destination and permits the destination only
+ * for an app whose primary action is searching. Material does say that, and the judgement it
+ * conditions is ours — StoryArc's publications arrive from a device, a folder, an OPDS
+ * catalogue, a Kavita server and an SMB share, and no shelf shows all of them at once in a
+ * way a reader can scan. Search is the only surface that spans the sources, so in this app it
+ * is the way in rather than a filter. `quiet-shell-and-search`'s `design.md` sets the
+ * argument out in full.
  */
 @Composable
 internal fun AppShell(
@@ -72,6 +81,25 @@ internal fun AppShell(
         mutableStateOf(AppNavigation())
     }
     var sheet by remember { mutableStateOf<AppSheet?>(null) }
+
+    // What changed in the version just installed, if this launch is the one that says so.
+    //
+    // `settings-and-about`: shown "once, after it has been updated", never on a first ever
+    // launch, and never twice for one version. All three are `WhatsNew.onLaunch`'s answer,
+    // and it is asked **inside `remember`'s initial value**: the version is recorded by the
+    // same call that decides, so a reader who swipes the sheet away — or one who never sees
+    // it because the version had nothing to say — is recorded either way. There is no path
+    // through this that shows the screen without recording it, which is the requirement
+    // stated as "the seen flag is written when the screen is shown, not when it is
+    // dismissed".
+    var whatsNew by remember {
+        mutableStateOf<WhatsNewRelease?>(
+            WhatsNew.onLaunch(
+                installed = BuildInfo.version,
+                store = WhatsNewStore.open(activity.applicationContext),
+            ),
+        )
+    }
     var refusedFile by remember { mutableStateOf<OpenedFile.Outcome?>(null) }
 
     // Re-read on the way in, so a download made while browsing an online library is on this
@@ -269,6 +297,14 @@ internal fun AppShell(
     }
 
     AppSheets(host = host, sheet = sheet)
+
+    // Over whatever the reader landed on, and never blocking: one action dismisses it, the
+    // scrim dismisses it, and back dismisses it. Nothing waits on it and nothing is lost by
+    // ignoring it. A `ModalBottomSheet` rather than a full-screen dialog — see
+    // `WhatsNewSheet`, which carries Material's own reason and the tablet it turns on.
+    whatsNew?.let { release ->
+        WhatsNewSheet(release = release, onDismiss = { whatsNew = null })
+    }
 }
 
 /** What the navigation control calls each destination. Never an icon alone. */
