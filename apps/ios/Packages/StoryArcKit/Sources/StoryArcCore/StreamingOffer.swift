@@ -16,12 +16,14 @@ public import Foundation
 /// > **THEN** it opens directly with no notice, because the constraint was never about the
 /// > format being readable
 ///
-/// ``StreamingCapability`` was the *classification* those scenarios need and had no reader:
-/// it was recorded by ``PublicationIndexer`` and by the scan journal, and no surface on
-/// either platform asked. A share therefore copied the whole file across without saying so
-/// and without naming a size, and handed a container no decoder will open to the reader
-/// anyway once the copy landed. This is the answer that decides both, in one place, so the
-/// two apps decide alike.
+/// ``StreamingCapability`` was the *classification* those scenarios need, and each platform
+/// read it in exactly one place: Android's `primaryActionOf`, on the publication's own page,
+/// answered `NEEDS_DOWNLOAD` for a `downloadOnly` publication; iOS's `SmbBrowserView` branched
+/// on `streaming != .refused` at the tap, which is the line this type replaced. Neither share
+/// browser owed the reader anything for the answer: it copied the whole file across without
+/// saying so and without naming a size, and handed a container no decoder will open to the
+/// reader anyway once the copy landed. This is the answer that decides both, in one place, so
+/// the two apps decide alike. Android keeps the same rule in `StreamingOffer.kt`.
 public enum StreamingOffer: Sendable, Equatable {
     /// Read it where it lies. Also the answer for anything already on the device, which is
     /// the second scenario above: a downloaded solid archive opens with no notice, because

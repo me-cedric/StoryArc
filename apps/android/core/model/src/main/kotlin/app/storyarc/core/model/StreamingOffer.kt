@@ -17,8 +17,10 @@ package app.storyarc.core.model
  * > **THEN** it opens directly with no notice, because the constraint was never about the
  * > format being readable
  *
- * [StreamingCapability] was the *classification* those scenarios need and had one reader:
- * `primaryActionOf`, on the publication's own page. A share decided otherwise -- it copied
+ * [StreamingCapability] was the *classification* those scenarios need, and each platform read
+ * it in exactly one place: `primaryActionOf` here, on the publication's own page, answering
+ * `NEEDS_DOWNLOAD` for a [StreamingCapability.DOWNLOAD_ONLY] publication; `SmbBrowserView` on
+ * iOS, branching on `streaming != .refused` at the tap. A share decided otherwise -- it copied
  * the whole file across whenever the format's decoder wanted a path, without saying so and
  * without naming a size, and handed a container no decoder will open to the reader anyway
  * once the copy landed. This is the answer that decides both, in one place, so the two apps
