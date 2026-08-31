@@ -43,7 +43,6 @@ object KavitaSync {
         if (sent.isFailure) store.hold(unsent)
     }
 
-    /** Sends one deliberate mark, keeping it for later if the server is not there. */
     /**
      * Takes what the server says other devices have read, and merges it in.
      *
@@ -136,6 +135,7 @@ object KavitaSync {
         owed.filter { it.chapterId in delivered }.forEach { progress.save(it.settled) }
     }
 
+    /** Sends one deliberate mark, keeping it for later if the server is not there. */
     suspend fun mark(
         store: KavitaProgressStore,
         address: KavitaAddress?,
