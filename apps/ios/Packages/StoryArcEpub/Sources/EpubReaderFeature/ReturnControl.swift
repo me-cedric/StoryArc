@@ -27,7 +27,11 @@ struct ReturnControl: View {
         Button(action: action) {
             Text("return.title", bundle: .module)
         }
-        .buttonStyle(.glass)
+        // Prominent, not plain. This is an offer to act — the shape the system gives a
+        // *Done* — and `.glassProminent` is the variant meant to carry a tint. On plain
+        // glass the same tint would flatten the material into an opaque pill, which is
+        // the defect `ReaderChrome` explains.
+        .buttonStyle(.glassProminent)
         .tint(theme.accent)
     }
 }

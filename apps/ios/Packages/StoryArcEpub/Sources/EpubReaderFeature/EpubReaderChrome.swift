@@ -33,11 +33,27 @@ extension EpubReaderView {
                     }
                     .labelStyle(.iconOnly)
                 }
-                // The platform's own glass button, rather than glass painted behind a plain
-                // one: it carries the interactive highlight and the Reduce-Transparency
-                // fallback that a hand-rolled pill would not.
+                // The platform's own glass button, and **untinted**. `.tint` on a glass
+                // button tints the *material*, not the glyph — which is why these
+                // photographed as flat white pills with no page showing through them, and
+                // why they did not look like the system's own floating controls.
+                // `DesignSystem/Glass.swift` had already written the rule down: "Untinted,
+                // deliberately: the spec wants the glass to pick up the page beneath it,
+                // and a tint is precisely what stops it doing that", and "a fixed colour
+                // cannot sit on this material" — found once before, on a device, and then
+                // reintroduced here.
+                //
+                // The glyph takes a hierarchical style instead, which resolves against the
+                // material rather than against a stored sRGB value, so it follows a page
+                // that is cream under one theme and near-black under another.
                 .buttonStyle(.glass)
-                .tint(theme.palette.textPrimary)
+                .foregroundStyle(.primary)
+                // Large, which is the scale the system draws floating chrome at — the
+                // controls in Photos' own overlay are half again the size of a toolbar
+                // button, because a control floating over content has no bar to sit in and
+                // has to carry its own presence. At the default size these read as small
+                // pale dots on a page rather than as the platform's own chrome.
+                .controlSize(.large)
 
                 Spacer()
 
@@ -50,7 +66,8 @@ extension EpubReaderView {
                     .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.glass)
-                .tint(theme.palette.textPrimary)
+                .foregroundStyle(.primary)
+                .controlSize(.large)
             }
             .padding(StoryArcSpace.md)
 

@@ -287,6 +287,37 @@ final class ScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "reader-after-centre-tap")
     }
 
+    /// The comic reader's chrome, over a page dark enough to see the glass through.
+    ///
+    /// The reflowable capture above is honest and it cannot prove the *material*: the Paper
+    /// theme is cream, so glass over it is cream, and a control that had been flattened into
+    /// an opaque pill looks nearly the same as one that has not. The owner's own example —
+    /// Photos' overlay — reads as glass because the content behind it is dark.
+    ///
+    /// The comic fixtures are solid procedurally-coloured pages, so this puts the same two
+    /// controls over a saturated one. If the glass is picking up the page, the capsules carry
+    /// its colour; if a `.tint` has come back, they are white again.
+    ///
+    /// `GlassIsUntintedTests` is the guard; this is the picture that made the defect visible
+    /// in the first place.
+    func testCaptureComicReaderChrome() throws {
+        let app = launch()
+        try showTheShelf(in: app)
+        let covers = coversOnScreen(in: app, ofFormat: "CBZ")
+        try XCTSkipIf(covers.isEmpty, "This device's library showed no CBZ cover to open.")
+        covers[0].tap()
+
+        guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 5),
+              let action = app.buttons.matching(opensAPublication)
+                  .allElementsBoundByIndex.first(where: \.isHittable)
+        else { throw XCTSkip("The publication page offered no hittable way to open it.") }
+        action.tap()
+
+        // The reader draws its chrome on arrival, so there is nothing to tap for.
+        settle(2)
+        attach(app.screenshot(), named: "comic-reader-chrome")
+    }
+
     /// Waits, then photographs.
     ///
     /// Chrome animates in and out, and a screenshot taken during either is a picture of a

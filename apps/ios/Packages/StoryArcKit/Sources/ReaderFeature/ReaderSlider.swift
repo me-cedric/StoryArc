@@ -97,8 +97,10 @@ extension ReaderView {
                 }
                 .textRole(.caption)
             }
+            // Untinted: `.tint` on a plain glass button tints the *material*, which is
+            // what made these read as opaque pills instead of glass. See `ReaderChrome`.
             .buttonStyle(.glass)
-            .tint(.white)
+            .foregroundStyle(.primary)
             .padding(.bottom, StoryArcSpace.xl)
             .transition(.opacity)
         }

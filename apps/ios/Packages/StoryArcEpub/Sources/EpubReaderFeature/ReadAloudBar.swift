@@ -56,7 +56,31 @@ struct ReadAloudBar: View {
             }
             .labelStyle(.iconOnly)
         }
-        .buttonStyle(.glass)
-        .tint(tint ?? theme.palette.textPrimary)
+        // **Two glass styles, and which one a control gets is what the tint means.**
+        //
+        // `.tint` on a *plain* glass button tints the material rather than the glyph, so
+        // every one of these read as an opaque pill with no page behind it —
+        // `DesignSystem/Glass.swift` says why that is wrong and this file was doing it to
+        // all four. `.glassProminent` is the variant that is *meant* to be tinted: it is
+        // the filled, emphasised one, the shape the system uses for a *Done* beside plain
+        // glass icon buttons.
+        //
+        // So the caller passing a tint now means "this is the emphasised control" — which
+        // is what it always meant, and only play/pause passes one. The rest are plain
+        // glass with a hierarchical glyph that follows whatever page is underneath.
+        .modifier(TransportGlass(tint: tint))
+    }
+}
+
+/// The two glass styles a transport control can take. See ``ReadAloudBar``.
+private struct TransportGlass: ViewModifier {
+    let tint: Color?
+
+    func body(content: Content) -> some View {
+        if let tint {
+            content.buttonStyle(.glassProminent).tint(tint)
+        } else {
+            content.buttonStyle(.glass).foregroundStyle(.primary)
+        }
     }
 }
