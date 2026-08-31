@@ -47,25 +47,52 @@ const sleep = (ms) => execFileSync('/bin/sleep', [String(ms / 1000)])
  * its content description, so the list reads as what a person would do.
  */
 const ROUTES = [
-  ['Library', []],
-  ['Settings', ['Settings']],
-  ['Settings > Appearance', ['Settings', 'Appearance']],
-  ['Settings > Reading', ['Settings', 'Reading']],
-  ['Settings > Privacy', ['Settings', 'Privacy']],
-  ['Settings > About', ['Settings', 'About']],
-  ['Settings > About > licence', ['Settings', 'About', 'Readium Kotlin Toolkit']],
-  ['Settings > Sources', ['Settings', 'Sources']],
-  ['Settings > Downloads', ['Settings', 'Downloads and storage']],
-  ['Settings > Language', ['Settings', 'Language']],
-  ['Comic reader', ['Bone #1, Bone #1, CBZ']],
-  ['Comic reader > chrome', ['Bone #1, Bone #1, CBZ', '@tap-centre']],
-  ['EPUB reader', ['Fixture Publication, StoryArc Fixtures, EPUB']],
+  ['Home', []],
+  ['Library', ['Library']],
+  ['Downloads', ['Downloads']],
+  // A cover leads to the publication's page now, and the page's own action leads to the
+  // reader. That is two taps where this list used to have one, and the reason the list
+  // said twelve of thirteen routes were unreachable the first time it ran after the
+  // navigation rewrite: it was still describing the app as it had been.
+  ['Publication page', ['Library', ', CBZ']],
+  ['Comic reader', ['Library', ', CBZ', 'Read']],
+  ['Comic reader > chrome', ['Library', ', CBZ', 'Read', '@tap-centre']],
+  ['EPUB reader', ['Library', ', EPUB', 'Read']],
+  // Settings left the browse path in the shell revamp: it is behind the library's
+  // overflow, which is why naming it as a first step found nothing.
+  ['Settings', ['Library', 'More', 'Settings']],
+  ['Settings > Appearance', ['Library', 'More', 'Settings', 'Appearance']],
+  ['Settings > Reading', ['Library', 'More', 'Settings', 'Reading']],
+  ['Settings > Privacy', ['Library', 'More', 'Settings', 'Privacy']],
+  ['Settings > About', ['Library', 'More', 'Settings', 'About']],
+  ['Settings > About > licence', ['Library', 'More', 'Settings', 'About', 'Readium Kotlin Toolkit']],
+  ['Settings > Your libraries', ['Library', 'More', 'Settings', 'Your libraries']],
+  ['Settings > Downloads', ['Library', 'More', 'Settings', 'Downloads and storage']],
+  ['Settings > Language', ['Library', 'More', 'Settings', 'Language']],
 ]
 
+/**
+ * The accessibility tree, retried, because a single attempt lies.
+ *
+ * uiautomator answers `ERROR: null root node returned by UiTestAutomationBridge` and writes
+ * nothing whenever it is asked while a window is animating -- which, in a script whose every
+ * step is a tap followed immediately by a read, is most of the time. The caller then saw an
+ * empty document, concluded the control it wanted was absent, scrolled looking for it, and
+ * eventually reported the route unreachable. Thirteen of sixteen routes failed that way
+ * against an app where every one of them worked.
+ *
+ * So: ask again, and give the window a moment first. Three attempts is enough for a
+ * transition; a screen that cannot be read after that is genuinely not there.
+ */
 const dump = () => {
-  sh('shell', 'uiautomator', 'dump', '/sdcard/smoke.xml')
-  const xml = sh('shell', 'cat', '/sdcard/smoke.xml')
-  return xml.includes('<?xml') ? xml.slice(xml.indexOf('<?xml')) : ''
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (attempt > 0) sleep(900)
+    const dumped = sh('shell', 'uiautomator', 'dump', '/sdcard/smoke.xml')
+    if (!/dumped to/.test(dumped)) continue
+    const xml = sh('shell', 'cat', '/sdcard/smoke.xml')
+    if (xml.includes('<?xml')) return xml.slice(xml.indexOf('<?xml'))
+  }
+  return ''
 }
 
 const centre = (xml, needle) => {
@@ -136,6 +163,29 @@ for (const [name, steps] of routes) {
   }
 }
 
-console.log(`\n${routes.length - failures.length}/${routes.length} routes clean`)
-for (const failure of failures) console.log(`  ${failure}`)
+// Two outcomes, and conflating them is how this script lied the first time it ran after
+// the navigation rewrite: it reported `1/13 routes clean`, which reads as twelve crashes,
+// when there were none and the route map was simply describing an older app.
+//
+// A crash is what this exists to find. A route it could not walk is a question about the
+// map or about what is on the device -- an empty library has no cover to tap, and a
+// publication whose source is unreachable has no `Read` to press -- and it is reported as
+// its own thing, in its own words.
+const crashes = failures.filter((f) => f.includes('CRASHED'))
+const unreachable = failures.filter((f) => !f.includes('CRASHED'))
+
+console.log(`\n${routes.length - failures.length}/${routes.length} routes walked and survived`)
+if (crashes.length) {
+  console.log(`\n${crashes.length} CRASHED:`)
+  for (const failure of crashes) console.log(`  ${failure}`)
+}
+if (unreachable.length) {
+  console.log(`\n${unreachable.length} could not be reached -- the route map may be stale,`)
+  console.log('or this device has no publication in the state the route needs:')
+  for (const failure of unreachable) console.log(`  ${failure}`)
+}
+
+// A crash fails loudly. A route that could not be walked is worth a different exit code,
+// because the two want different things done about them.
+process.exit(crashes.length ? 1 : unreachable.length ? 2 : 0)
 process.exitCode = failures.length > 0 ? 1 : 0
