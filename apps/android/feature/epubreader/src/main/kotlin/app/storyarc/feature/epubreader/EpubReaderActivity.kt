@@ -223,29 +223,32 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * of its answers wants the reader's literal choice and which wants the resolved one,
      * and why the two differ.
      *
-     * **There is one route by which this goes stale, and it is not fixed here.** A reader
-     * can leave an open book by the home button, change appearance or the Material You
-     * opt-out in the other activity, and come back to this one still alive: nothing
-     * recreates it, so it draws the scheme it was built with until the book is closed and
-     * reopened. The same is true of the interface language in `attachBaseContext`, though
-     * for a harder reason: a language needs the activity rebuilt against it, which is why
-     * `MainActivity`'s only `recreate()` call fires on a language change and on nothing
-     * else. Colour needs no such thing. `MainActivity` keeps its settings in a
-     * `mutableStateOf` and `StoryArcTheme` simply recomposes; re-reading the store in
-     * `onResume` into a state this `ComposeView` reads would do the same here, with no
-     * recreation and no re-parse.
+     * **Once is enough, because nothing can change the answer while this activity lives.**
+     * An earlier version of this note said the opposite -- that a reader could leave an open
+     * book by the home button, change appearance in the other activity and come back to this
+     * one still alive -- and the manifests do not bear that out. This activity declares no
+     * `launchMode`, `taskAffinity` or `documentLaunchMode`, and the `intent` above adds no
+     * flags, so it stacks on `MainActivity` in the one task: home backgrounds that task, and
+     * the launcher icon and recents resume its top activity, which is the book. Every route
+     * back to `MainActivity` ends this one first -- back and the close button `finish()`, and
+     * the launcher quick actions carry `CLEAR_TOP or SINGLE_TOP`, which clears everything
+     * above it. Nothing in this module writes appearance either, and the annotation share
+     * sheet sends `text/plain`, which the app's own `SEND` filter does not match.
      *
-     * So this is a gap and not a trade between two evils. What is not free is doing it to
-     * the whole of [ReaderAppearance]: [linkedPreset] is handed to the view model when the
-     * book opens, and refreshing that mid-book would push a reading theme over one the
-     * reader may have picked by hand in the theme sheet since. Refreshing the chrome alone
-     * is the smaller, separable change, and it wants an emulator to judge -- which is where
-     * this stops rather than guessing at it.
+     * A cross-app handover carrying `FLAG_ACTIVITY_NEW_TASK` -- a file manager passing
+     * StoryArc a book while a book is open -- is the one candidate left, and what the
+     * framework does with it for a `standard` activity wants a device rather than a guess.
+     * Re-reading in `onResume` would not be free if it were reachable. `PaperGrainOverlay` is
+     * composed inside this activity's `StoryArcTheme` and lands on the page, and it draws on
+     * `LocalIsNaturalTheme`, which the theme computes from this value -- so a live appearance
+     * adds or withdraws Natural's grain over the reading page mid-book. And a reader who
+     * linked the reading theme to appearance would get a chrome that moved while
+     * [ReaderAppearance.linkedPreset] stayed: the true-black-chrome-over-a-paper-page pairing
+     * `settings-and-about` calls legitimate for the readers who did *not* link the two.
      *
-     * `SYSTEM` is exempt from that staleness, because it is the one value the theme keeps
-     * asking about: `StoryArcTheme` reads the device's own night mode from inside the
-     * composition, so a device that flips theme mid-chapter still takes the reader's chrome
-     * with it.
+     * `SYSTEM` is exempt from all of it, because it is the one value the theme keeps asking
+     * about: `StoryArcTheme` reads the device's own night mode from inside the composition,
+     * so a device that flips theme mid-chapter still takes the reader's chrome with it.
      */
     private val appearance: ReaderAppearance by lazy {
         val settings = SettingsStore.open(applicationContext).settings()
@@ -300,11 +303,12 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * system language the moment a book opened, while every screen behind it was in the
      * reader's.
      *
-     * Nothing recreates this activity on a language change, so a book left open across a trip
-     * to Settings keeps the language it was opened in until it is closed and reopened. The
-     * colour scheme goes stale by that same route -- see the note on [appearance] -- but not
-     * for the same reason: a language is applied here, once, against a context the activity
-     * was built on, so ending this one does need the activity rebuilt.
+     * Nothing recreates this activity on a language change, and that matters less than it
+     * reads: the note on [appearance] establishes that a reader cannot reach Settings with
+     * this activity alive, so there is no trip to come back from. What stays true is the
+     * asymmetry -- a colour is a value the composition reads, while a language is applied
+     * here once against the context the activity was built on, so replacing one does need
+     * the activity rebuilt.
      */
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase.speaking(newBase.chosenLanguage()))

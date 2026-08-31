@@ -297,7 +297,7 @@ Everything here is buildable today. Nothing in it waits on hardware.
 | 12 | **Local and server search results are never merged** into one ranked list | Two places to look for one book. |
 | 13 | **A Kavita reading list opens read-only** — no reorder, online or off | `scripts/kavita-server.mjs` already serves `/api/ReadingList/update-by-multiple`. |
 | 14 | **Kavita's publication status and age rating** are decoded on Android, not on iOS, and displayed on neither | Parental-control adjacent. |
-| 15 | **A theme does not follow a mid-book appearance flip** — `ThemePreset.matching` is a fixed map resolved once at reader construction | |
+| 15 | **A theme does not follow a mid-book appearance flip** — `ThemePreset.matching` is a fixed map resolved once at reader construction | On Android there is no reachable flip to follow: `EpubReaderActivity` stacks on `MainActivity` in one task with no launch flags, so returning to the app resumes the book, and every route to `MainActivity` finishes the reader first. Settle on a device before ranking this. |
 | 16 | **`PredictiveBackHost` is written and called nowhere** — all 11 in-app Android back destinations use a plain `BackHandler` | Pure wiring. |
 | 17 | **The transport line (SMB 2/3, encryption) appears only in the add-share sheet**, never on the source's own detail screen | Answers "is this share encrypted?" where the reader looks. |
 | 18 | **A failed download verification is never re-queued once**, on either platform | The spec asks for it. |
