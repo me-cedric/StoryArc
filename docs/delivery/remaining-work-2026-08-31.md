@@ -56,6 +56,20 @@ what was found rather than as what survived.
 | **The device tooling finds its own tools.** `scripts/adb.mjs` resolves `adb`; `scripts/gradle.mjs` resolves JDK 21, the SDK, and writes the `local.properties` a fresh worktree lacks. Before this, two of the three device scripts could not run on this machine at all and Gradle could not start in a worktree. | §5 |
 | **`pnpm smoke:android` walks 16 of 16 routes**, up from 1 of 13, with no crashes. It had been describing the pre-revamp shell, and reading uiautomator's null dumps as "element absent". | §5 |
 
+### A second round, later the same day
+
+| Closed | Where it was |
+| --- | --- |
+| **Renaming or moving a file no longer loses the reader's place** — `contentDigest` existed on both platforms and nothing called it. It also found that Android's instrumented `ProgressStoreTest` had not compiled since a commit months back: nineteen positional call sites binding the wrong parameter, so nothing it appears to cover had run. | §3.1 |
+| **A device that is ahead now tells the server.** `ProgressPull.toPush` was computed and discarded. Proven against the in-repo Kavita mock, which gained a 13-check self-test wired into `pnpm lint`. The same slice closed a **secret leak**: `KavitaAddress` printed the reader's API key in its default description on both platforms. | §3.6 |
+| **Local and server search results are one ranked list, each row saying where it came from.** Four cross-platform sort divergences were found by measuring and pinned by mirrored tests — scalar against UTF-16 ordering, two different ideas of whitespace, and a case fold Kotlin cannot perform. | §3.12 |
+| **The "Downloaded" filter**, and a reading list that can be sorted and returned to its curated order. | §3.4, §3.11 |
+| **Natural** as a theme, its paper grain, and a live preview in the theme sheet. Three of four blockers on that change's `/opsx:sync`. | reader-theming remainder |
+| **The 800-line cap is counted.** Nothing had ever measured it, which is how five Kotlin files got past it. A ratchet: each is recorded at its length, may shrink, may not grow. | §3, last row |
+| **iOS walks thirteen routes** — three destinations, the publication page, the reader, Settings and its seven groups — against Android's sixteen. That asymmetry is named in STATUS and said to be not deliberate. | §5 |
+| **A test that proves a publication comes back where it was left**, across a real terminate and relaunch. `reading-progress` scores nine of seventeen scenarios as built and asserted by nothing. | §5 |
+| **A fixed-layout EPUB that could never be opened.** The routing was right and the fixture was wrong, so that path had never been exercised against anything it could draw. | not previously recorded |
+
 **And two questions answered by a device rather than by reading**, both now recorded in
 [`ui-revamp-2026-08.md`](../designs/ui-revamp-2026-08.md): `Tab(role: .search)` morphs into
 a field in place, so the documented fallback should not be built; and the OPDS stack works
