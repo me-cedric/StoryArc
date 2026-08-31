@@ -384,6 +384,52 @@ and `image-pages.pdf` (the scanned-comic case), both written by `generate.py`.
       that cannot render page one. The local index is judged before anything opens,
       and the refusal is a named sentence on both sides.
 
+      **The first proof of that second fix was not a proof.** Review reverted the
+      judgement and every test stayed green, on both platforms: the tripwires
+      asserted that `StreamingOffer.of(` appears before `onOpen(` in the file, which
+      is textual order rather than an answer being acted on. Both decisions now live
+      in `ShareOpening.kt` and `ShareOpening.swift` with their callbacks passed in,
+      so `ShareOpeningTest` and `ShareOpeningTests` call them with a publication of
+      their choosing and assert which callback fires and which sentence it carries.
+      The reverting mutation fails `a solid RAR4 that has finished arriving is
+      refused rather than opened` on both. What is left to the text tripwire is the
+      one claim text can make honestly — that the composable and the view delegate
+      rather than deciding — and bypassing the pair fails that.
+
+      **What the offer says, and what the app can honestly claim.** The first
+      wording told the reader the format cannot be read a page at a time. The
+      capability table above contradicts that for CBZ, EPUB, PDF and non-solid CBR,
+      which all stream: the true constraint is that *this platform's decoder for the
+      format wants a file*, and the sentence now says so in all four languages. iOS
+      was also feeding the rule the wrong fact — `catalogued.streaming != .refused`,
+      a capability value standing in for a decoder value. It named the same three
+      formats by coincidence, because `PublicationIndexer` returns a record marked
+      `refused` for a remote PDF, EPUB and CBR; `ShareOpening.needsLocalFile` states
+      the decoder list outright, as Android's already did.
+
+      **A solid RAR4 on a share always costs a whole transfer.** `StreamingOffer.of`
+      answers `Refuse` only when the bytes are local, and both pre-transfer calls
+      pass `isLocal: false`, so the pre-transfer refusal branch is unreachable by
+      construction. That is deliberate and it has a price nothing else states: the
+      flag lives in headers libarchive only reads through a path, so the app cannot
+      know before the copy lands, and the refusal is what the reader gets for four
+      hundred megabytes. Both `ShareOpening` files say so where the branch is wired.
+
+      **The refusal is raised where the reader is looking.** It was a row at the top
+      of a list the reader had scrolled past, with no live region on Android and a
+      footnote on iOS — so neither TalkBack nor VoiceOver said anything, and after a
+      transfer that is the whole of the feedback. What the tap owes the reader is now
+      a dialog on Android and an alert on iOS; a listing that would not load stays
+      inline, where the entries would have been.
+
+      **An unstated size is an absence rather than a zero.** `Download(bytes: nil)`
+      was asserted on both platforms and unreachable in production, and both
+      consumers collapsed it into a non-optional length that formats a zero-length
+      entry as `0 B` — which reads as a free download, the exact thing
+      `offline-downloads` forbids. `statedLength` turns a non-positive length into
+      the absence, and the dialog gained the second body the metered confirmation
+      has had all along.
+
       `StreamingOffer` is the decision, in `StoryArcCore` and `core:model`, with the
       same eight cases asserted on each platform. Two of them are not obvious:
       `refused` is only believed once the bytes are local, because both indexers use
@@ -408,10 +454,21 @@ and `image-pages.pdf` (the scanned-comic case), both written by `generate.py`.
       deleted from that file once already. It becomes worth adding the day a remote
       scan stamps a length.
 
-      Both dialogs are new pixels and neither has been photographed: the download
-      offer over a share, on the emulator and on the simulator, with the size
-      visible. Reaching it needs `pnpm smb` serving a `.cbr` and a device that can
-      be driven — the same constraint 6.3 records for the iOS reader.
+      **Three new strings on Android, four on iOS, each in all four languages.**
+      Android: `smb_download_first_title`, `smb_download_first_body` and
+      `smb_download_first_body_unstated`. iOS: those three plus `smb.cannotOpen`,
+      because Android already had `detail_refused_body` and iOS had no sentence for
+      a refusal on a share.
+
+      **Still owed: pixels.** Three surfaces are new and none has been photographed —
+      the download offer with a size, the same offer with the size unstated, and the
+      refusal after a completed transfer. Reaching any of them needs `pnpm smb`
+      serving a `.cbr` and a device that can be driven, the same constraint 6.3
+      records for the iOS reader. `SmbBrowserView` now stacks two
+      `confirmationDialog`s and one `.alert` on one view, which is the arrangement
+      worth photographing first: `SettingsFeature/PrivacySettings.swift` is the
+      existing two-dialog precedent and `DetailActions.swift` the dialog-beside-alert
+      one, so both halves have a precedent but the combination has none.
 - [x] **5.3** A downloaded solid archive opens with no notice at all. **Done as a
       guard, because the claim was vacuously true.** The premise was checked before
       anything was written: `:feature:reader`, `:feature:epubreader` and iOS's
@@ -422,16 +479,24 @@ and `image-pages.pdf` (the scanned-comic case), both written by `generate.py`.
 
       The positive half is `StreamingOffer.of` answering `Open` for a local
       `downloadOnly` publication, asserted in both offer suites. The half that was
-      missing is anything that fails the day somebody adds the notice, so each
-      platform's comic reader now asserts an absence across its whole source tree:
-      no `StreamingCapability`, `StreamingOffer`, `downloadOnly`, `isSolid` or
-      `isStreamable`. A notice about the container would have to be gated on one of
-      them, because there is nothing else to gate it on — Android's `NetworkNotice`
+      missing is anything that fails the day somebody adds the notice, so all four
+      reader modules now assert an absence across their whole source tree: no
+      `StreamingCapability`, `StreamingOffer`, `downloadOnly`, `isSolid` or
+      `isStreamable`. Four rather than two: review found the premise recorded as
+      checked across three readers while the guard covered `:feature:reader` and
+      iOS's `ReaderFeature` alone. `:feature:epubreader` has the twin of the Android
+      guard; `EpubReaderFeature` is walked from `StoryArcKit` across the package
+      boundary, because `StoryArcEpub`'s own test target needs a simulator and
+      `pnpm test:ios` runs on the host.
+
+      A notice about the container would have to be gated on one of those five
+      names, because there is nothing else to gate it on — Android's `NetworkNotice`
       is gated on how long a page has been blocked on the network, which is a fact
       about now and is null for a file on the device.
 
-      Both suites also assert they found sources, because a guard over an empty list
-      passes forever.
+      Every suite also asserts it found sources, because a guard over an empty list
+      passes forever — and the iOS one names both trees, because a walk over one of
+      two would pass forever for the other.
 
 ## Finding — solid RAR4 is unreadable, solid RAR5 is fine
 
