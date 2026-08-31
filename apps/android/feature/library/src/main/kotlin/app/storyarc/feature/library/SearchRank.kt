@@ -66,8 +66,13 @@ internal object SearchRank {
      * 1. [Strength] — how well the title meets the term.
      * 2. Held before away, per the note above.
      * 3. The shorter title — "Bone" answers "bone" more completely than "Bone Companion".
-     * 4. The folded title, so two rows that are equal by every other key still have one fixed
-     *    order rather than whichever one the answerer happened to send first.
+     * 4. The folded title, compared **code point by code point**, so two rows that are equal
+     *    by every other key still have one fixed order rather than whichever one the answerer
+     *    happened to send first — and the same fixed order on both platforms. Kotlin's
+     *    `compareTo` orders by UTF-16 unit and Swift's `<` by scalar, which disagree the
+     *    moment a title outside the basic plane meets one inside it: a leading surrogate is
+     *    `0xD800`-something and sorts under `U+E000` and above, where the scalar it stands
+     *    for sorts over both.
      */
     fun ordered(rows: List<FoundRow>, term: String): List<FoundRow> {
         val needle = fold(term)
@@ -75,21 +80,25 @@ internal object SearchRank {
         // O(n log n) times, and folding a string is the expensive half of this.
         return rows
             .map { row -> row to key(row, needle) }
-            .sortedWith(
-                compareBy<Pair<FoundRow, Key>> { it.second.strength }
-                    .thenBy { !it.second.isHeld }
-                    .thenBy { it.second.length }
-                    .thenBy { it.second.title },
-            )
+            .sortedWith { left, right -> compare(left.second, right.second) }
             .map { it.first }
     }
 
-    /** Everything the order depends on, computed once. */
-    private data class Key(
+    /**
+     * Everything the order depends on, computed once.
+     *
+     * The title is kept as its code points and never as a `String`, because both remaining
+     * keys are counts and comparisons over them. Kotlin counts a surrogate pair as two UTF-16
+     * units where Swift counts a grapheme cluster as one, and the two order strings
+     * differently as well — a title with an astral character or a flag emoji would land in a
+     * different place on each platform. Code points are the one unit both agree on, and this
+     * is the kind of silent mirror drift this project has already been bitten by once, in
+     * natural sort.
+     */
+    private class Key(
         val strength: Strength,
         val isHeld: Boolean,
-        val length: Int,
-        val title: String,
+        val title: IntArray,
     )
 
     private fun key(row: FoundRow, needle: String): Key {
@@ -97,14 +106,23 @@ internal object SearchRank {
         return Key(
             strength = strength(title, needle),
             isHeld = row.result.publicationId != null,
-            // Code points, not UTF-16 units. Kotlin counts a surrogate pair as two and
-            // Swift counts a grapheme cluster as one, so a title with an astral character
-            // or a flag emoji would order differently on the two platforms — the kind of
-            // silent mirror drift this project has already been bitten by once, in natural
-            // sort.
-            length = title.codePointCount(0, title.length),
-            title = title,
+            title = title.codePoints().toArray(),
         )
+    }
+
+    /** The four keys, in order. iOS's `SearchRank.less` compares the same four. */
+    private fun compare(left: Key, right: Key): Int {
+        if (left.strength != right.strength) return left.strength.compareTo(right.strength)
+        if (left.isHeld != right.isHeld) return if (left.isHeld) -1 else 1
+        if (left.title.size != right.title.size) {
+            return left.title.size.compareTo(right.title.size)
+        }
+        for (index in left.title.indices) {
+            if (left.title[index] != right.title[index]) {
+                return left.title[index].compareTo(right.title[index])
+            }
+        }
+        return 0
     }
 
     /** How well a title meets a term, both already folded. */
@@ -151,9 +169,32 @@ internal object SearchRank {
      * "strasse" where Kotlin cannot. The mirrored tests hold both to the same table.
      */
     fun fold(value: String): String =
-        Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
+        Normalizer.normalize(trimmed(value), Normalizer.Form.NFD)
             .replace(COMBINING_MARKS, "")
             .lowercase(Locale.ROOT)
+
+    /**
+     * The value with its surrounding blank space removed, by a rule both platforms spell out
+     * rather than inherit.
+     *
+     * `String.trim` and iOS's `CharacterSet.whitespacesAndNewlines` are *not* the same set:
+     * `Character.isWhitespace` is false for the non-breaking spaces `U+00A0`, `U+2007` and
+     * `U+202F`, which Foundation trims. A term pasted with a leading non-breaking space —
+     * which is what a copy out of a web page or a PDF often is — would then land in a
+     * different strength tier on each platform.
+     *
+     * So the set is named here instead of borrowed: every separator, and the control
+     * characters that end a line. iOS's `SearchRank.trimmed` names the same one.
+     */
+    private fun trimmed(value: String): String = value.trim(::isBlank)
+
+    private fun isBlank(character: Char): Boolean = when (Character.getType(character)) {
+        Character.SPACE_SEPARATOR.toInt(),
+        Character.LINE_SEPARATOR.toInt(),
+        Character.PARAGRAPH_SEPARATOR.toInt(),
+        -> true
+        else -> character.code in 0x09..0x0D || character.code == 0x85
+    }
 
     private val NOT_A_WORD = Regex("[^\\p{L}\\p{N}]+")
     private val COMBINING_MARKS = Regex("\\p{Mn}+")

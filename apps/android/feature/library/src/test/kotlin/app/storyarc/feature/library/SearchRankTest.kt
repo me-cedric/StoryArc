@@ -74,6 +74,28 @@ class SearchRankTest {
     }
 
     @Test
+    fun `blank space around a term is trimmed by a rule not by a platform default`() {
+        // `String.trim` keeps the non-breaking spaces and Foundation trims them, so a term
+        // pasted out of a web page would otherwise tier differently on the two platforms.
+        assertEquals("bone", SearchRank.fold("\u00A0Bone\u00A0"))
+        assertEquals("bone", SearchRank.fold("\u202FBone\u2007"))
+        assertEquals("bone", SearchRank.fold("\u0085Bone\u2029"))
+    }
+
+    @Test
+    fun `two titles equal on every other key are ordered by code point not by unit`() {
+        // "bone \uFB01" and "bone \uD835\uDD05" are both six code points and both begin
+        // with the term, so the last key decides. Kotlin's `compareTo` orders by UTF-16 unit
+        // and Swift's `<` by scalar, and a leading surrogate sorts under U+FB01 where the
+        // scalar it stands for sorts over it — so the two platforms disagreed here.
+        val ordered = SearchRank.ordered(
+            listOf(away("bone \uD835\uDD05"), away("bone \uFB01")),
+            "bone",
+        )
+        assertEquals(listOf("bone \uFB01", "bone \uD835\uDD05"), ordered.map { it.result.title })
+    }
+
+    @Test
     fun `a word begins after punctuation as well as after a space`() {
         assertEquals(SearchRank.Strength.WORD, strength("Vol.2 Bone", "2"))
         assertEquals(SearchRank.Strength.WORD, strength("d’Artagnan", "artagnan"))

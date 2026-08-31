@@ -80,6 +80,25 @@ struct SearchRankTests {
         #expect(ordered.map(\.result.title) == ["Bone 𝔅", "Bone Up"])
     }
 
+    @Test("Blank space around a term is trimmed by a rule, not by a platform default")
+    func trimIsNamedRatherThanBorrowed() {
+        // Foundation trims the non-breaking spaces and Kotlin's `String.trim` does not, so
+        // a term pasted out of a web page would otherwise tier differently on the two.
+        #expect(SearchRank.fold("\u{00A0}Bone\u{00A0}") == "bone")
+        #expect(SearchRank.fold("\u{202F}Bone\u{2007}") == "bone")
+        #expect(SearchRank.fold("\u{0085}Bone\u{2029}") == "bone")
+    }
+
+    @Test("Two titles equal on every other key are ordered by code point, not by unit")
+    func totalOrderIsByCodePoint() {
+        // "bone \u{FB01}" and "bone \u{1D505}" are both six code points and both begin with
+        // the term, so the last key decides. Swift's `String <` orders by scalar and Kotlin's
+        // `compareTo` by UTF-16 unit, and a leading surrogate sorts under U+FB01 where the
+        // scalar it stands for sorts over it — so the two platforms disagreed here.
+        let ordered = SearchRank.ordered([away("bone \u{1D505}"), away("bone \u{FB01}")], for: "bone")
+        #expect(ordered.map(\.result.title) == ["bone \u{FB01}", "bone \u{1D505}"])
+    }
+
     @Test("A word begins after punctuation as well as after a space")
     func punctuationStartsAWord() {
         let strength = { (title: String, term: String) in

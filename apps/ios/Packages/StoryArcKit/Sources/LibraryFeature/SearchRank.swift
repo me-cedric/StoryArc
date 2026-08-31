@@ -56,8 +56,13 @@ enum SearchRank {
     /// 1. ``Strength`` — how well the title meets the term.
     /// 2. Held before away, per the note above.
     /// 3. The shorter title — "Bone" answers "bone" more completely than "Bone Companion".
-    /// 4. The folded title, so two rows that are equal by every other key still have one
-    ///    fixed order rather than whichever one the answerer happened to send first.
+    /// 4. The folded title, compared **code point by code point**, so two rows that are equal
+    ///    by every other key still have one fixed order rather than whichever one the
+    ///    answerer happened to send first — and the same fixed order on both platforms.
+    ///    Swift's `<` on `String` orders by scalar and Kotlin's `compareTo` by UTF-16 unit,
+    ///    which disagree the moment a title outside the basic plane meets one inside it:
+    ///    a leading surrogate is `0xD800`-something and sorts under `U+E000` and above,
+    ///    where the scalar it stands for sorts over both.
     static func ordered(_ rows: [FoundRow], for term: String) -> [FoundRow] {
         let needle = fold(term)
         // Scored once per row rather than inside the comparator: a sort asks the comparator
@@ -69,11 +74,18 @@ enum SearchRank {
     }
 
     /// Everything the order depends on, computed once.
+    ///
+    /// The title is kept as its code points and never as a `String`, because both remaining
+    /// keys are counts and comparisons over them. Swift counts a grapheme cluster as one
+    /// character where Kotlin counts a UTF-16 unit, and the two order strings differently as
+    /// well — a title with an astral character or a flag emoji would land in a different
+    /// place on each platform. Code points are the one unit both agree on, and this is the
+    /// kind of silent mirror drift this project has already been bitten by once, in natural
+    /// sort.
     private struct Key {
         let strength: Strength
         let isHeld: Bool
-        let length: Int
-        let title: String
+        let title: [UInt32]
     }
 
     private static func key(for row: FoundRow, needle: String) -> Key {
@@ -81,20 +93,15 @@ enum SearchRank {
         return Key(
             strength: strength(ofFolded: title, forFolded: needle),
             isHeld: row.result.publicationID != nil,
-            // Scalars, not characters. Swift counts a grapheme cluster as one and Kotlin
-            // counts a UTF-16 unit, so a title with an astral character or a flag emoji
-            // would order differently on the two platforms — the kind of silent mirror drift
-            // this project has already been bitten by once, in natural sort.
-            length: title.unicodeScalars.count,
-            title: title
+            title: title.unicodeScalars.map(\.value)
         )
     }
 
     private static func less(_ lhs: Key, _ rhs: Key) -> Bool {
         if lhs.strength != rhs.strength { return lhs.strength < rhs.strength }
         if lhs.isHeld != rhs.isHeld { return lhs.isHeld }
-        if lhs.length != rhs.length { return lhs.length < rhs.length }
-        return lhs.title < rhs.title
+        if lhs.title.count != rhs.title.count { return lhs.title.count < rhs.title.count }
+        return lhs.title.lexicographicallyPrecedes(rhs.title)
     }
 
     /// How well a title meets a term, both already folded.
@@ -140,12 +147,36 @@ enum SearchRank {
     /// Android's `SearchRank.fold` performs the same three steps, and the mirrored tests
     /// hold both to the same table — including the two cases above.
     static func fold(_ value: String) -> String {
-        let decomposed = value
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let decomposed = String(String.UnicodeScalarView(trimmed(value)))
             .decomposedStringWithCanonicalMapping
         let base = decomposed.unicodeScalars.filter {
             $0.properties.generalCategory != .nonspacingMark
         }
         return String(String.UnicodeScalarView(base)).lowercased()
+    }
+
+    /// The value with its surrounding blank space removed, by a rule both platforms spell
+    /// out rather than inherit.
+    ///
+    /// `CharacterSet.whitespacesAndNewlines` and Kotlin's `String.trim` are *not* the same
+    /// set: Java's `Character.isWhitespace` is false for the non-breaking spaces `U+00A0`,
+    /// `U+2007` and `U+202F`, which Foundation trims. A term pasted with a leading
+    /// non-breaking space — which is what a copy out of a web page or a PDF often is — would
+    /// then land in a different strength tier on each platform.
+    ///
+    /// So the set is named here instead of borrowed: every separator, and the control
+    /// characters that end a line. Android's `SearchRank.trimmed` names the same one.
+    private static func trimmed(_ value: String) -> [Unicode.Scalar] {
+        var scalars = Array(value.unicodeScalars)
+        while let first = scalars.first, isBlank(first) { scalars.removeFirst() }
+        while let last = scalars.last, isBlank(last) { scalars.removeLast() }
+        return scalars
+    }
+
+    private static func isBlank(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.properties.generalCategory {
+        case .spaceSeparator, .lineSeparator, .paragraphSeparator: true
+        default: (0x09...0x0D).contains(scalar.value) || scalar.value == 0x85
+        }
     }
 }

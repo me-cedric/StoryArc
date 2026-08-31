@@ -33,8 +33,8 @@ dependencies {
     api(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
-    // A working XmlPullParser on the JVM, so the Atom parser can be tested without a
-    // device. Android ships the same implementation.
-    testImplementation("xmlpull:xmlpull:1.1.3.1")
-    testImplementation("net.sf.kxml:kxml2:2.3.0")
+    // A working XmlPullParser on the JVM, so a feed can be parsed in a unit test without a
+    // device. Android ships the same implementation; the catalogue declares the versions.
+    testImplementation(libs.xmlpull)
+    testImplementation(libs.kxml2)
 }

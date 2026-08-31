@@ -45,9 +45,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
-    // A working XmlPullParser on the JVM, so `RemoteSearchOpdsTest` can drive the catalogue
-    // search against a real server on the loopback interface without a device. Android ships
-    // the same implementation, and `:core:catalogue` adds the same pair for the same reason.
-    testImplementation("xmlpull:xmlpull:1.1.3.1")
-    testImplementation("net.sf.kxml:kxml2:2.3.0")
+    // A working XmlPullParser on the JVM, so a feed can be parsed in a unit test without a
+    // device. Android ships the same implementation; the catalogue declares the versions.
+    testImplementation(libs.xmlpull)
+    testImplementation(libs.kxml2)
 }
