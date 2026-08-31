@@ -1,4 +1,4 @@
-package app.storyarc
+package app.storyarc.feature.library
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -15,6 +15,10 @@ import org.junit.Test
  * The case that matters is the share. A publication on a shared folder is in the library, is
  * listed like any other, and is exactly the thing that stops working on a plane; putting one
  * on this shelf would break the destination's only promise on the one journey it exists for.
+ *
+ * The predicate moved into `:feature:library` when the shelf's dimming came to need it too —
+ * see `LibraryMarks`. One rule with two readers, rather than two copies free to disagree
+ * about what "on this device" means.
  */
 class OnDeviceTest {
 

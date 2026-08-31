@@ -77,9 +77,34 @@ emulator** — light and dark, default and largest text size — per
 - [ ] **3.3** The on-device mark on a cover, and dimming for a publication that is
       neither downloaded nor reachable — with the accessibility label carrying the
       fact, not the opacity. Screenshot: a grid with all four combinations of
-      progress and availability.
+      progress and availability. *Android done, screenshot outstanding; iOS shipped
+      earlier.* Both rules are pure and asserted in `LibraryMarksTest` — 13 cases,
+      because the states that matter are reached by pulling a card out or walking
+      out of Wi-Fi range, not by looking at one shelf. The mark is
+      `isKeptOnDevice`: a path comparison against the download store's own
+      directory, which is iOS's rule and its reason — a scanned file is on the
+      device but not *kept*, and only a copy in the app's own storage carries the
+      offline promise. The dimming is `isReadableNow`, and it reaches the grid
+      **and the list**: `library-browsing` does not make dimming a property of a
+      layout. Both facts are spoken — a mark in a corner and a change of opacity
+      are equally invisible to TalkBack. Two deliberate differences from iOS's
+      rule, both in the KDoc: *Connecting* counts as answering, so the shelf does
+      not flash grey on every launch while the sources are probed; and a picked
+      folder whose grant the system has withdrawn dims its files even though their
+      path is local, which is a case iOS does not have.
 - [ ] **3.4** Section headings in a long library, by series where declared and by
       the sort key otherwise. Screenshot: a library of at least 200 publications.
+      *Android done, screenshot outstanding; iOS shipped earlier.*
+      `LibrarySections` is iOS's `LibrarySections` case for case — same threshold
+      of twelve, same three refusals, same demotion of a series the sort scatters —
+      and `LibrarySectionsTest` mirrors its 19 assertions one to one. The one
+      shape difference is the word for everything the library cannot place: iOS
+      reads it out of its own bundle inside the enum, and a Compose module cannot
+      resolve a string without a composition, so it arrives as a parameter from the
+      screen. Drawn as full-span sticky items inside the existing
+      `LazyVerticalGrid` rather than as a second shelf composable: iOS had to split
+      them because its grid lives in its own `ScrollView`, and Compose does not, so
+      the shelf keeps one scroll position, one column rule and one cell.
 - [ ] **3.5** Wire the iOS views that are already written, translated and
       unreachable — recent searches, the cached notice, the scope control in its
       new availability form, and file import from the empty state. No new strings.

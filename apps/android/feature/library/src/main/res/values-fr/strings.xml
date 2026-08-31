@@ -19,6 +19,8 @@
     <string name="source_offline_retry">Réessayer</string>
     <string name="source_state_unauthorized">Connexion requise</string>
     <string name="library_cell_cannot_open">Impossible à ouvrir</string>
+    <string name="library_cell_unavailable">Nécessite que sa bibliothèque soit accessible</string>
+    <string name="library_section_other">Autres</string>
     <string name="library_scanning">Ajout de vos bandes dessinées — %1$d trouvées</string>
     <string name="library_add_folder">Ajouter un dossier</string>
     <string name="library_folder_unavailable">%1$s n’est plus lisible.</string>

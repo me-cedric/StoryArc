@@ -46,9 +46,6 @@ import app.storyarc.core.model.Publication
 /** The proportions of a comic cover, near enough for every publisher. */
 internal const val HOME_COVER_ASPECT = 3f / 2f
 
-/** How dim an entry that cannot be opened right now is drawn. */
-private const val AWAY_ALPHA = 0.45f
-
 /**
  * How tall the text under a cover is.
  *

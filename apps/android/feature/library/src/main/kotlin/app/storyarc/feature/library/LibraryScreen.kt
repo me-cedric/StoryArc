@@ -585,6 +585,21 @@ private fun Shelf(
         val resume: (Publication) -> Unit = { publication ->
             viewModel.location(publication)?.let { onOpen(publication, it) }
         }
+        // The one word a section can need that is not already on a file.
+        val other = stringResource(R.string.library_section_other)
+        // How this shelf divides, or nothing when it is short enough to take in at a glance.
+        //
+        // Never while a search is running: the results are already grouped by why they
+        // matched, and a second set of headings cutting across the first would be two
+        // answers to one question. The threshold and every refusal below it belong to
+        // [LibrarySections]; this only decides that the question is worth asking.
+        val sections = remember(publications, query.sort, groups, other) {
+            if (groups.isNotEmpty() || publications.size <= LibrarySections.THRESHOLD) {
+                emptyList()
+            } else {
+                LibrarySections.divide(publications, query.sort, other)
+            }
+        }
         if (layout == LibraryLayout.GRID) {
             CoverGrid(
                 publications = publications,
@@ -600,6 +615,7 @@ private fun Shelf(
                 } else {
                     continueReading
                 },
+                sections = sections,
                 onOpen = onOpenPage,
                 onResume = resume,
                 onAddToShelf = onAddToShelf,

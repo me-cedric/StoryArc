@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -24,6 +26,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -40,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -54,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.tokens.StoryArcColor
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.MatchGroup
@@ -182,6 +187,19 @@ internal fun CoverGrid(
      */
     groups: List<MatchGroup> = emptyList(),
     /**
+     * The shelf divided into headed runs, or empty when it is one uniform run.
+     *
+     * `library-browsing` asks a long library to be "divided by series where a publication
+     * declares one, and otherwise by the active sort key, with headings that stay visible
+     * while their section is on screen". [LibrarySections] decides *whether* and *how*; this
+     * only draws the answer, and empty is a real answer rather than a missing one.
+     *
+     * Ignored while a search is running: the results are already grouped by why they
+     * matched, and a second set of headings cutting across the first would be two answers to
+     * one question. The caller settles that — see `LibraryScreen`.
+     */
+    sections: List<LibrarySection> = emptyList(),
+    /**
      * What to do when a cover is tapped: show that publication's page.
      *
      * `publication-detail`: a page is reachable "from every surface that shows a
@@ -270,8 +288,20 @@ internal fun CoverGrid(
                 onToggle = onToggle,
             )
         }
-        if (groups.isEmpty()) {
+        if (groups.isEmpty() && sections.isEmpty()) {
             items(publications, key = { it.id }) { cell(it) }
+        } else if (groups.isEmpty()) {
+            // One grid with headings pinned in it, rather than a second composable beside
+            // this one. iOS had to split them — its grid lives inside its own `ScrollView`
+            // and a pinned header has to share the lazy stack with the cells it heads — and
+            // `LazyVerticalGrid` has no such problem: a full-span sticky item is a heading,
+            // and the shelf keeps one scroll position, one column rule and one cell.
+            for (section in sections) {
+                stickyHeader(key = "section-${section.id}") {
+                    SectionHeading(section.title)
+                }
+                items(section.publications, key = { it.id }) { cell(it) }
+            }
         } else {
             for (group in groups) {
                 item(span = { GridItemSpan(maxLineSpan) }, key = "heading-${group.kind}") {
@@ -280,6 +310,39 @@ internal fun CoverGrid(
                 items(group.publications, key = { it.id }) { cell(it) }
             }
         }
+    }
+}
+
+/**
+ * One heading over its part of the shelf.
+ *
+ * On `surfaceOverlay` — the token the design system declares for chrome that has to be
+ * opaque — rather than on the canvas, because a wall of covers slides under this: a
+ * translucent band would show the artwork of whatever happened to be passing beneath the
+ * words. A hairline separates it from the covers below.
+ *
+ * One line, even at the largest text size. A three-line heading pinned to the top of the
+ * shelf would take more of the screen than the section it names. iOS's `SectionHeading` makes
+ * both of the same choices for both of the same reasons.
+ */
+@Composable
+private fun SectionHeading(title: String) {
+    val palette = LocalStoryArcPalette.current
+    Column(modifier = Modifier.fillMaxWidth().background(palette.surfaceOverlay)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = palette.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth().padding(vertical = StoryArcSpace.sm),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(StoryArcSpace.hair)
+                .background(palette.borderSubtle),
+        )
     }
 }
 
@@ -393,6 +456,20 @@ private fun CoverCell(
     }
 
     val subtitle = cellSubtitle(publication)
+    val isKept = viewModel.isOnDevice(publication)
+    val isReadable = viewModel.isReadableNow(publication)
+    // `library-browsing`: a publication that is neither on the device nor currently
+    // reachable "is dimmed and still selectable", and "dimming is the only difference — it
+    // is not moved, grouped apart, or badged as an error". Animated on Material's own
+    // effects spec rather than a fixed duration, the way Home's cards are: a source coming
+    // back should not make a cover flick to full brightness.
+    val dim by animateFloatAsState(
+        targetValue = if (isReadable) 1f else AWAY_ALPHA,
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        label = "cover-cell-dim",
+    )
+    val unavailable = stringResource(R.string.library_cell_unavailable)
+    val downloaded = stringResource(R.string.catalogue_entry_downloaded)
 
     Column(
         // One label for the whole cell. Read as three elements it would announce
@@ -430,6 +507,17 @@ private fun CoverCell(
                     publication.displayTitle,
                     subtitle,
                     publication.format.displayName,
+                    // Spoken for the reason the progress is: a mark in the corner of a cover
+                    // is invisible to TalkBack, and "can I read this on the train" is the
+                    // whole question the mark answers. Spoken even while picking, when the
+                    // mark itself stands down. The wording is the one the catalogue already
+                    // uses for the same state, in the four languages it is already
+                    // translated into.
+                    downloaded.takeIf { isKept },
+                    // And dimming is invisible to TalkBack as well, which is the half of
+                    // this the requirement is explicit about: the accessibility label
+                    // carries the fact, not the opacity.
+                    unavailable.takeIf { !isReadable },
                 ).joinToString(", ")
                 // Spoken, because a tick in the corner of a cover is invisible to
                 // TalkBack and "is this one picked" is the only question selection mode
@@ -442,7 +530,11 @@ private fun CoverCell(
             // 2:3 is the comic and book proportion. Fixing it here means a cell
             // reserves its space before its cover arrives, so the grid does not
             // reflow as images land.
-            modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f),
+            //
+            // The dim is on the artwork alone. The caption under it stays legible, because a
+            // publication a reader cannot open right now is still one they have to be able
+            // to read the title of in order to shelve it or queue it.
+            modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f).alpha(dim),
             // `design.md` §4: art "letterboxes onto `surfaceSunken` rather than being
             // distorted". This is the well the letterbox bars show, which is why it is the
             // sunken role and not the raised one — the cover sits *in* the cell.
@@ -530,6 +622,29 @@ private fun CoverCell(
                     PickMark(isPicked)
                 }
             }
+
+            // `design.md` asks for "downloaded state as a small filled mark in one corner",
+            // and the palette calls `status/downloaded` "the one badge permitted to compete
+            // with cover art".
+            //
+            // Not while picking. `library-browsing` lets a cover carry "at most two marks:
+            // how far the reader has got, and whether it can be read with no network", and
+            // "no third mark is added to a cover for any reason" — so the pick mark is not
+            // an addition to that pair, it is a substitution into it. This one is what
+            // gives, because availability answers a browsing question and the reader has
+            // stopped browsing: the only question selection mode asks is which covers are
+            // picked. The progress rail stays, because it is the rail along the artwork's
+            // foot rather than a second glyph in the corners, and because how far in a cover
+            // is remains how a reader finds the ones they meant to pick.
+            //
+            // Spoken either way, in the label below. A mark withheld to keep the artwork
+            // legible is not a fact withheld. iOS's `CoverCell.showsOnDeviceMark` is the
+            // same rule.
+            if (isPicked == null && isKept) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+                    OnDeviceMark()
+                }
+            }
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair)) {
@@ -585,6 +700,50 @@ internal fun PickMark(isPicked: Boolean, modifier: Modifier = Modifier) {
         modifier = modifier.padding(StoryArcSpace.xs),
     )
 }
+
+/**
+ * Whether this cover can be read with no network, said in one corner.
+ *
+ * `design.md` asks for "downloaded state as a small filled mark in one corner", and the
+ * palette calls `status/downloaded` "the one badge permitted to compete with cover art".
+ * That is the other question a shelf is asked besides how far in the reader got — can I read
+ * this on the train — and it is the axis the library's own scope control is built on, so it
+ * had better be visible on the covers.
+ *
+ * Filled, on its own ground, and the only status colour in the grid. A glyph on a disc reads
+ * over any artwork; an unfilled one is a shape lost in whatever the cover happens to be. The
+ * disc takes `surfaceCanvas` so the mark is legible in both appearances without a shadow.
+ *
+ * It stands down while the reader is picking — see the call site, and iOS's
+ * `CoverCell.showsOnDeviceMark` for the same rule stated as a property.
+ *
+ * No description: the cell speaks this in its own label, and a second announcement would
+ * make one cover two stops for a screen reader.
+ */
+@Composable
+internal fun OnDeviceMark(modifier: Modifier = Modifier) {
+    val palette = LocalStoryArcPalette.current
+    Box(
+        modifier = modifier.padding(StoryArcSpace.xs),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(ON_DEVICE_MARK_SIZE)
+                .clip(CircleShape)
+                .background(palette.surfaceCanvas),
+        )
+        Icon(
+            imageVector = Icons.Filled.CheckCircle,
+            contentDescription = null,
+            tint = StoryArcColor.Status.downloaded,
+            modifier = Modifier.size(ON_DEVICE_MARK_SIZE),
+        )
+    }
+}
+
+/** Large enough to read over artwork, small enough not to be a second thing on the cover. */
+private val ON_DEVICE_MARK_SIZE = 18.dp
 
 /** The second line: what distinguishes this cell from its neighbours. */
 @Composable

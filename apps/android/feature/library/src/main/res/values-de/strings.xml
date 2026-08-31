@@ -19,6 +19,8 @@
     <string name="source_offline_retry">Erneut versuchen</string>
     <string name="source_state_unauthorized">Anmeldung erforderlich</string>
     <string name="library_cell_cannot_open">Kann nicht geöffnet werden</string>
+    <string name="library_cell_unavailable">Die zugehörige Bibliothek muss erreichbar sein</string>
+    <string name="library_section_other">Weitere</string>
     <string name="library_scanning">Ihre Comics werden hinzugefügt – %1$d gefunden</string>
     <string name="library_add_folder">Ordner hinzufügen</string>
     <string name="library_folder_unavailable">%1$s kann nicht mehr gelesen werden.</string>

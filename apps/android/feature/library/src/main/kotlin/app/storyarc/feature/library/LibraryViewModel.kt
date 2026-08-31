@@ -1438,6 +1438,26 @@ class LibraryViewModel(
     /** Where a publication lives, as a path or a document `Uri`. */
     fun location(publication: Publication): String? = locations[publication.id]
 
+    /**
+     * Whether this publication carries the on-device mark.
+     *
+     * The rule is [isKeptOnDevice]; this is the shelf asking it. Here rather than in the cell
+     * because the cell has neither the location table nor the download store, and because a
+     * question asked once per visible cover on every redraw has to be a map lookup and a
+     * string comparison rather than a read of a store.
+     */
+    fun isOnDevice(publication: Publication): Boolean =
+        isKeptOnDevice(locations[publication.id], downloadStore?.directory)
+
+    /**
+     * Whether this publication can be opened at this instant.
+     *
+     * The rule is [isReadableNow]; this is the shelf asking it. It decides an opacity and
+     * never a filter — see the rule for why the difference is the whole requirement.
+     */
+    fun isReadableNow(publication: Publication): Boolean =
+        isReadableNow(publication, locations[publication.id], _registry.value)
+
     /** A folder's name, for the picker list and the unreachable notice. */
     fun nameOf(tree: Uri): String =
         SafTree.displayName(resolver, tree)

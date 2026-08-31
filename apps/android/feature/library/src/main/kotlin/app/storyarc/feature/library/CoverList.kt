@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -29,11 +30,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -144,6 +147,21 @@ private fun ListRow(
         cover = viewModel.cover(publication, maxPixelSize)
     }
 
+    val isKept = viewModel.isOnDevice(publication)
+    val isReadable = viewModel.isReadableNow(publication)
+    // The grid's rule, on the list. `library-browsing` does not make dimming a property of a
+    // layout: a publication that is neither on the device nor currently reachable is dimmed,
+    // and a reader who prefers rows does not stop needing to know which of their books will
+    // open on a train. Same token, same motion spec, same accessibility answer below.
+    val dim by animateFloatAsState(
+        targetValue = if (isReadable) 1f else AWAY_ALPHA,
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        label = "cover-row-dim",
+    )
+    val unavailable = stringResource(R.string.library_cell_unavailable)
+    val downloaded = stringResource(R.string.catalogue_entry_downloaded)
+    val subtitle = rowSubtitle(publication)
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -164,7 +182,22 @@ private fun ListRow(
                     if (isPicked == null) onAddToShelf?.invoke(publication)
                 },
             )
-            .semantics { if (isPicked != null) selected = isPicked }
+            .semantics {
+                // Dimming and a mark in a corner are both invisible to TalkBack, and the two
+                // questions they answer — can I open this now, and can I open it with no
+                // network — are the two a shelf exists to answer. Said rather than only
+                // shown. The row's own text is read as well, so this adds the two facts and
+                // repeats nothing.
+                if (isKept || !isReadable) {
+                    contentDescription = listOfNotNull(
+                        publication.displayTitle,
+                        subtitle,
+                        downloaded.takeIf { isKept },
+                        unavailable.takeIf { !isReadable },
+                    ).joinToString(", ")
+                }
+                if (isPicked != null) selected = isPicked
+            }
             // Material's 48 dp touch-target floor, per `native-experience`.
             .heightIn(min = StoryArcSpace.xxl + StoryArcSpace.lg)
             .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm),
@@ -177,9 +210,18 @@ private fun ListRow(
             modifier = Modifier
                 .width(thumbnailWidth)
                 .aspectRatio(2f / 3f)
-                .clip(androidx.compose.foundation.shape.RoundedCornerShape(StoryArcRadius.sm)),
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(StoryArcRadius.sm))
+                // On the thumbnail alone, as in the grid: the title beside it stays legible,
+                // because a book a reader cannot open right now is still one they have to be
+                // able to read the name of.
+                .alpha(dim),
             contentAlignment = Alignment.Center,
         ) {
+            if (isKept) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+                    OnDeviceMark()
+                }
+            }
             val bitmap = cover
             if (bitmap != null) {
                 Image(
@@ -208,7 +250,7 @@ private fun ListRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = rowSubtitle(publication),
+                text = subtitle,
                 style = MaterialTheme.typography.labelLarge,
                 color = palette.textTertiary,
                 maxLines = 1,

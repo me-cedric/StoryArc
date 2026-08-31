@@ -40,6 +40,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Download
 import app.storyarc.core.persistence.removeAfterFinishing
+import app.storyarc.feature.library.isOnDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -237,21 +238,6 @@ private suspend fun remove(host: AppHost, download: Download) {
     // The library holds a row for every imported copy, and a row whose file has just been
     // moved aside is a book that opens onto nothing.
     host.library.refreshImports()
-}
-
-/**
- * Whether a publication's bytes are on this device.
- *
- * A path or a document URI is; a share is not. `network-share` locations are written as
- * `smb://…`, and a shared folder is precisely the thing that stops working on a plane —
- * which is the one promise this destination makes.
- */
-internal fun isOnDevice(location: String?): Boolean = when {
-    location == null -> false
-    location.startsWith("/") -> true
-    location.startsWith("file://") -> true
-    location.startsWith("content://") -> true
-    else -> false
 }
 
 /**
