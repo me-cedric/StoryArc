@@ -52,8 +52,10 @@ internal fun LibraryControls(
     registry: SourceRegistry,
     layout: LibraryLayout,
     availability: LibraryAvailability,
+    downloads: DownloadFilter,
     onAvailabilityChange: (LibraryAvailability) -> Unit,
     onQueryChange: (LibraryQuery) -> Unit,
+    onDownloadsChange: (DownloadFilter) -> Unit,
     onLayoutChange: (LibraryLayout) -> Unit,
     onClearFilters: () -> Unit,
     viewModel: LibraryViewModel,
@@ -69,7 +71,15 @@ internal fun LibraryControls(
     ) {
         AvailabilityChip(availability, onAvailabilityChange)
         SortChip(query, onQueryChange)
-        FilterChipMenu(query, registry, viewModel, onQueryChange, onClearFilters)
+        FilterChipMenu(
+            query = query,
+            registry = registry,
+            downloads = downloads,
+            viewModel = viewModel,
+            onQueryChange = onQueryChange,
+            onDownloadsChange = onDownloadsChange,
+            onClearFilters = onClearFilters,
+        )
         LayoutToggle(layout, onLayoutChange)
     }
 }

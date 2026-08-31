@@ -187,6 +187,16 @@ fun LibraryScreen(
      */
     var availability by rememberSaveable { mutableStateOf(LibraryAvailability.EVERYTHING) }
 
+    /**
+     * The download group of the filter, which is a facet rather than an axis.
+     *
+     * Beside [availability] and not inside it: [DownloadFilter] sets out why the two are
+     * different questions. Saved the same way, and with the same limit — the query is what
+     * `LibraryPreferences` persists and neither of these is part of it, so both come back
+     * after a rotation and neither survives a cold start yet.
+     */
+    var downloads by rememberSaveable { mutableStateOf(DownloadFilter.EITHER) }
+
     // Android hands a picked folder over as a tree `Uri` and grants access to it
     // only for this process — until the app asks for the grant to be persisted,
     // which can only be done here, with the result in hand. That single call is
@@ -286,10 +296,13 @@ fun LibraryScreen(
     val groups by (viewModel?.matchGroups ?: MutableStateFlow(emptyList<MatchGroup>()))
         .collectAsStateWithLifecycle()
 
-    // The shelf as the primary axis leaves it. One pass over an already-sorted list, so
-    // narrowing and widening never re-orders what the reader is looking at.
-    val shown = remember(visible, availability, registry) {
-        visible.narrowedTo(availability, registry)
+    // The shelf as the primary axis and the download group leave it. One pass each over an
+    // already-sorted list, so narrowing and widening never re-orders what the reader is
+    // looking at.
+    val shown = remember(visible, availability, downloads, registry, viewModel) {
+        visible
+            .narrowedTo(availability, registry)
+            .narrowedTo(downloads) { viewModel?.isOnDevice(it) == true }
     }
 
     val snackbars = remember { SnackbarHostState() }
@@ -415,14 +428,17 @@ fun LibraryScreen(
                     registry = registry,
                     layout = layout,
                     availability = availability,
+                    downloads = downloads,
                     onAvailabilityChange = { availability = it },
                     onQueryChange = viewModel::setQuery,
+                    onDownloadsChange = { downloads = it },
                     onLayoutChange = viewModel::setLayout,
-                    // One action, everything it undoes. The library filter is cleared
-                    // with the rest of them, so there is no state a reader can be left
-                    // in without noticing.
+                    // One action, everything it undoes. The library filter and the download
+                    // group are cleared with the rest of them, so there is no state a reader
+                    // can be left in without noticing.
                     onClearFilters = {
                         availability = LibraryAvailability.EVERYTHING
+                        downloads = DownloadFilter.EITHER
                         viewModel.setQuery(
                             query.withoutFilters().copy(scope = LibraryScope.AllSources),
                         )
@@ -454,6 +470,7 @@ fun LibraryScreen(
                             query = query,
                             layout = layout,
                             availability = availability,
+                            downloads = downloads,
                             selection = selection,
                             onSelectionChange = { selection = it },
                             onOpen = onOpen,
@@ -469,8 +486,12 @@ fun LibraryScreen(
                                 query = query,
                                 isOnDeviceOnly = availability.isNarrowing &&
                                     visible.isNotEmpty(),
+                                // Everything this button claims to undo, the download group
+                                // included. One that left a facet set would leave the shelf
+                                // as empty as it found it.
                                 onClear = {
                                     availability = LibraryAvailability.EVERYTHING
+                                    downloads = DownloadFilter.EITHER
                                     viewModel.setQuery(
                                         query.withoutFilters()
                                             .copy(search = "", scope = LibraryScope.AllSources),
@@ -598,6 +619,7 @@ private fun Shelf(
     query: LibraryQuery,
     layout: LibraryLayout,
     availability: LibraryAvailability,
+    downloads: DownloadFilter,
     selection: LibrarySelection,
     onSelectionChange: (LibrarySelection) -> Unit,
     /** Opens the book. Reached only from the continue-reading row, which offers a resume. */
@@ -634,7 +656,10 @@ private fun Shelf(
                 // reads as a bug. Hidden while picking as well: a cover that opened one
                 // mid-selection would throw away everything the reader had chosen.
                 continueReading = if (
-                    query.isNarrowed || selection.isActive || availability.isNarrowing
+                    query.isNarrowed ||
+                    selection.isActive ||
+                    availability.isNarrowing ||
+                    downloads.isActive
                 ) {
                     emptyList()
                 } else {

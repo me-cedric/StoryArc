@@ -21,12 +21,22 @@ extension LibraryView {
     /// a reader on a plane does not care which of the two put the file there.
     var shown: [Publication] {
         switch surface {
+        // Left alone by both of the narrowings below. This destination *is* a predicate —
+        // `offline-downloads` promises it "is complete and fully functional" with no network
+        // — and a library filter that emptied it would break the one promise it makes.
         case .onDevice: model.visible.filter { model.location(of: $0)?.isFileURL == true }
         // The shelf's primary axis, applied here rather than inside the query: it narrows
         // what this surface lists and nothing else, which is what keeps it from becoming the
         // mode `library-browsing` removed origin for being.
-        case .shelf: model.visible.filter { availability.keeps(model.location(of: $0)) }
-        case .search: model.visible
+        case .shelf:
+            downloads.narrow(
+                model.visible.filter { availability.keeps(model.location(of: $0)) },
+                isDownloaded: model.isOnDevice
+            )
+        // The download group narrows search too, because it is a filter and the other seven
+        // reach search through the query. A facet that stopped at the shelf would be the one
+        // filter in the menu that a search quietly ignored.
+        case .search: downloads.narrow(model.visible, isDownloaded: model.isOnDevice)
         }
     }
 
@@ -131,8 +141,12 @@ extension LibraryView {
                 // offer one action to undo.
                 NarrowedToNothing(
                     query: model.query,
+                    // Everything this button claims to undo, the download group included.
+                    // One that left a facet set would leave the shelf as empty as it found
+                    // it, which is the state `library-browsing` forbids showing silently.
                     clear: {
                         model.clearFilters()
+                        downloads = .either
                         model.query.search = ""
                     },
                     scopeName: model.registry.name(of: model.query.scope.sourceID),

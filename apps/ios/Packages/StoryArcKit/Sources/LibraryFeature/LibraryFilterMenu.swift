@@ -16,6 +16,14 @@ internal import StoryArcCore
 struct FilterMenu: View {
     let model: LibraryModel
 
+    /// The download group, which is not on the query.
+    ///
+    /// ``DownloadFilter`` says why it is not: the query is the value both platforms encode,
+    /// and a case added to it is a change to `StoryArcCore` and to Android's mirror. So the
+    /// screen owns it and this menu is handed it, the way ``ScopeMenu`` is handed the
+    /// availability axis.
+    @Binding var downloads: DownloadFilter
+
     var body: some View {
         Menu {
             group("library.filter.readState", isActive: !model.query.readStates.isEmpty) {
@@ -26,6 +34,7 @@ struct FilterMenu: View {
                 }
             }
 
+            downloadState
             formats
             values("library.filter.language", languageNames, \.languages)
             values("library.filter.publisher", pairs(model.availablePublishers), \.publishers)
@@ -33,10 +42,11 @@ struct FilterMenu: View {
             values("library.filter.tag", pairs(model.availableTags), \.tags)
             decades
 
-            if model.query.hasFilters {
+            if isNarrowing {
                 Divider()
                 Button(role: .destructive) {
                     model.clearFilters()
+                    downloads = .either
                 } label: {
                     Text("library.filter.clear", bundle: .module)
                 }
@@ -46,7 +56,7 @@ struct FilterMenu: View {
                 Text("library.filter", bundle: .module)
             } icon: {
                 Image(
-                    systemName: model.query.hasFilters
+                    systemName: isNarrowing
                         ? "line.3.horizontal.decrease.circle.fill"
                         : "line.3.horizontal.decrease.circle"
                 )
@@ -54,10 +64,26 @@ struct FilterMenu: View {
         }
         // The count, spoken rather than drawn as a badge a menu label cannot carry.
         .accessibilityValue(
-            model.query.hasFilters
-                ? Text("library.filter.active \(model.query.activeFilterCount)", bundle: .module)
+            isNarrowing
+                ? Text("library.filter.active \(narrowingCount)", bundle: .module)
                 : Text(verbatim: "")
         )
+    }
+
+    /// Whether anything in this menu is hiding part of the library.
+    ///
+    /// Not `model.query.hasFilters` alone: the download group is a facet like the other
+    /// seven and is simply kept somewhere else, so a menu that ignored it would draw an
+    /// untouched funnel over a shelf it had just halved.
+    private var isNarrowing: Bool { model.query.hasFilters || downloads.isActive }
+
+    /// How much of the library the reader has hidden, the download group included.
+    ///
+    /// Counted here rather than on the query so the spoken count matches what "Clear
+    /// filters" undoes — a menu saying "2 filters active" that clears three things is one
+    /// nobody trusts twice.
+    private var narrowingCount: Int {
+        model.query.activeFilterCount + (downloads.isActive ? 1 : 0)
     }
 
     // MARK: - Groups
@@ -80,6 +106,29 @@ struct FilterMenu: View {
                 Label { Text(title, bundle: .module) } icon: { Image(systemName: "checkmark") }
             } else {
                 Text(title, bundle: .module)
+            }
+        }
+    }
+
+    /// Whether the app fetched it, per `library-browsing`'s *Filtering offline*.
+    ///
+    /// A radio list rather than the toggles most groups use, and for the reason the decade
+    /// group is one: a publication is downloaded or it is not, so ticking both answers is
+    /// the same as ticking neither. "Downloaded or not" is how the group is turned back
+    /// off, and it is the group's own name because that is exactly what it shows.
+    ///
+    /// Always offered, unlike the groups below it. A library with nothing downloaded still
+    /// answers "Not downloaded" usefully — that is the question asked the night before a
+    /// journey — and an empty result to "Downloaded" is an answer rather than a dead end.
+    @ViewBuilder
+    private var downloadState: some View {
+        group("library.filter.download", isActive: downloads.isActive) {
+            Picker(selection: $downloads) {
+                Text("library.filter.download", bundle: .module).tag(DownloadFilter.either)
+                Text("library.filter.download.yes", bundle: .module).tag(DownloadFilter.downloaded)
+                Text("library.filter.download.no", bundle: .module).tag(DownloadFilter.notDownloaded)
+            } label: {
+                Text("library.filter.download", bundle: .module)
             }
         }
     }

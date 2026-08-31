@@ -29,7 +29,7 @@ import java.util.Locale
 /**
  * One group of alternatives the reader can narrow by.
  *
- * `library-browsing` names ten facets; these are the eight the app can answer. The
+ * `library-browsing` names ten facets; these are the nine the app can answer. The
  * enum exists so the menu can show one group at a time — see [FilterChipMenu].
  *
  * [LIBRARY] leads because it is the newest and the one that changed shape: narrowing to a
@@ -37,10 +37,15 @@ import java.util.Locale
  * silently narrowed the search as well and which a reader could be left in without
  * noticing. It is a filter now, cleared by the same action that clears every other filter
  * and counted in the same badge.
+ *
+ * [DOWNLOAD] sits with [READ_STATE] because the two are the reader's own relationship with a
+ * book rather than anything a file says about itself. It is not the availability chip in the
+ * row above wearing a second name — [DownloadFilter] sets out the difference at length.
  */
 private enum class FilterSection {
     LIBRARY,
     READ_STATE,
+    DOWNLOAD,
     FORMAT,
     LANGUAGE,
     PUBLISHER,
@@ -67,13 +72,15 @@ private enum class FilterSection {
 internal fun FilterChipMenu(
     query: LibraryQuery,
     registry: SourceRegistry,
+    downloads: DownloadFilter,
     viewModel: LibraryViewModel,
     onQueryChange: (LibraryQuery) -> Unit,
+    onDownloadsChange: (DownloadFilter) -> Unit,
     onClearFilters: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     var section by remember { mutableStateOf<FilterSection?>(null) }
-    val active = query.narrowingCount
+    val active = narrowingCount(query, downloads)
 
     FilterChip(
         selected = active > 0,
@@ -103,6 +110,7 @@ internal fun FilterChipMenu(
             null -> SectionList(
                 query = query,
                 registry = registry,
+                downloads = downloads,
                 viewModel = viewModel,
                 onOpen = { section = it },
                 onClear = {
@@ -113,28 +121,40 @@ internal fun FilterChipMenu(
 
             else -> {
                 BackItem(chosen) { section = null }
-                SectionValues(chosen, query, registry, viewModel, onQueryChange)
+                SectionValues(
+                    chosen,
+                    query,
+                    registry,
+                    downloads,
+                    viewModel,
+                    onQueryChange,
+                    onDownloadsChange,
+                )
             }
         }
     }
 }
 
 /**
- * How much of the view the reader has narrowed, the library filter included.
+ * How much of the view the reader has narrowed, the library filter and the download group
+ * included.
  *
  * `LibraryQuery.activeFilterCount` counts the seven facets it holds and cannot count the
- * scope, which is a field beside them rather than one of them. Counted here so the badge
- * matches what "Clear filters" undoes — a chip reading "2 filters active" that clears
- * three things is a chip nobody trusts twice.
+ * other two, which are fields beside it rather than in it. Counted here so the badge matches
+ * what "Clear filters" undoes — a chip reading "2 filters active" that clears three things is
+ * a chip nobody trusts twice.
  */
-private val LibraryQuery.narrowingCount: Int
-    get() = activeFilterCount + if (scope == LibraryScope.AllSources) 0 else 1
+private fun narrowingCount(query: LibraryQuery, downloads: DownloadFilter): Int =
+    query.activeFilterCount +
+        (if (query.scope == LibraryScope.AllSources) 0 else 1) +
+        (if (downloads.isActive) 1 else 0)
 
 /** The groups themselves, each one worth opening only if the library has values for it. */
 @Composable
 private fun SectionList(
     query: LibraryQuery,
     registry: SourceRegistry,
+    downloads: DownloadFilter,
     viewModel: LibraryViewModel,
     onOpen: (FilterSection) -> Unit,
     onClear: () -> Unit,
@@ -145,12 +165,12 @@ private fun SectionList(
         if (section.hasValues(registry, viewModel)) {
             SectionItem(
                 label = stringResource(section.labelRes),
-                isActive = section.isActive(query),
+                isActive = section.isActive(query, downloads),
                 onClick = { onOpen(section) },
             )
         }
     }
-    if (query.narrowingCount > 0) {
+    if (narrowingCount(query, downloads) > 0) {
         HorizontalDivider()
         DropdownMenuItem(
             text = { Text(stringResource(R.string.library_filter_clear)) },
@@ -165,8 +185,10 @@ private fun SectionValues(
     section: FilterSection,
     query: LibraryQuery,
     registry: SourceRegistry,
+    downloads: DownloadFilter,
     viewModel: LibraryViewModel,
     onQueryChange: (LibraryQuery) -> Unit,
+    onDownloadsChange: (DownloadFilter) -> Unit,
 ) {
     when (section) {
         FilterSection.LIBRARY -> LibraryValues(query, registry, onQueryChange)
@@ -176,6 +198,8 @@ private fun SectionValues(
                 onQueryChange(query.copy(readStates = toggled(query.readStates, state)))
             }
         }
+
+        FilterSection.DOWNLOAD -> DownloadValues(downloads, onDownloadsChange)
 
         FilterSection.FORMAT -> viewModel.availableFormats().forEach { format ->
             CheckedItem(format.displayName, format in query.formats) {
@@ -240,6 +264,25 @@ private fun LibraryValues(
         ChosenItem(label = source.displayName, chosen = query.scope == scope) {
             onQueryChange(query.copy(scope = scope))
         }
+    }
+}
+
+/**
+ * Whether the app fetched it, per `library-browsing`'s *Filtering offline*.
+ *
+ * Radio buttons rather than the checkboxes most groups use, and for the reason the decade
+ * group has them: a publication is downloaded or it is not, so ticking both answers is the
+ * same as ticking neither. "Downloaded or not" is how the group is turned back off, and it is
+ * the group's own name because that is exactly what it shows.
+ */
+@Composable
+private fun DownloadValues(downloads: DownloadFilter, onChange: (DownloadFilter) -> Unit) {
+    listOf(
+        DownloadFilter.EITHER to R.string.library_filter_download,
+        DownloadFilter.DOWNLOADED to R.string.library_filter_download_yes,
+        DownloadFilter.NOT_DOWNLOADED to R.string.library_filter_download_no,
+    ).forEach { (value, label) ->
+        ChosenItem(stringResource(label), downloads == value) { onChange(value) }
     }
 }
 
@@ -352,6 +395,7 @@ private val FilterSection.labelRes: Int
     get() = when (this) {
         FilterSection.LIBRARY -> R.string.library_filter_library
         FilterSection.READ_STATE -> R.string.library_filter_read_state
+        FilterSection.DOWNLOAD -> R.string.library_filter_download
         FilterSection.FORMAT -> R.string.library_filter_format
         FilterSection.LANGUAGE -> R.string.library_filter_language
         FilterSection.PUBLISHER -> R.string.library_filter_publisher
@@ -360,9 +404,13 @@ private val FilterSection.labelRes: Int
         FilterSection.DECADE -> R.string.library_filter_decade
     }
 
-private fun FilterSection.isActive(query: LibraryQuery): Boolean = when (this) {
+private fun FilterSection.isActive(
+    query: LibraryQuery,
+    downloads: DownloadFilter,
+): Boolean = when (this) {
     FilterSection.LIBRARY -> query.scope != LibraryScope.AllSources
     FilterSection.READ_STATE -> query.readStates.isNotEmpty()
+    FilterSection.DOWNLOAD -> downloads.isActive
     FilterSection.FORMAT -> query.formats.isNotEmpty()
     FilterSection.LANGUAGE -> query.languages.isNotEmpty()
     FilterSection.PUBLISHER -> query.publishers.isNotEmpty()
@@ -381,6 +429,10 @@ private fun FilterSection.hasValues(
     // Always offered: the three read states exist whether or not anything is in them,
     // and "Unread" over an empty result is an answer rather than a dead end.
     FilterSection.READ_STATE -> true
+    // Always offered too, and for the same reason. A library with nothing downloaded still
+    // answers "Not downloaded" usefully — that is the question asked the night before a
+    // journey, not during one.
+    FilterSection.DOWNLOAD -> true
     FilterSection.FORMAT -> viewModel.availableFormats().isNotEmpty()
     FilterSection.LANGUAGE -> viewModel.availableLanguages().isNotEmpty()
     FilterSection.PUBLISHER -> viewModel.availablePublishers().isNotEmpty()

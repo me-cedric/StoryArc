@@ -41,6 +41,9 @@
     <string name="library_sort_file_size">Size on this device</string>
     <string name="library_filter">Filter</string>
     <string name="library_filter_read_state">Read or unread</string>
+    <string name="library_filter_download">Downloaded or not</string>
+    <string name="library_filter_download_yes">Downloaded</string>
+    <string name="library_filter_download_no">Not downloaded</string>
     <string name="library_filter_format">Kind of file</string>
     <string name="library_filter_language">Language</string>
     <string name="library_filter_publisher">Publisher</string>
@@ -158,6 +161,7 @@
     <string name="shelves_list_empty">Nothing in this list yet. Add books and comics from your library.</string>
     <string name="shelves_list_unavailable">No longer where it used to be</string>
     <string name="shelves_list_progress">%1$d of %2$d read</string>
+    <string name="shelves_list_order">The list’s order</string>
     <string name="shelves_add_to">Add to…</string>
     <string name="shelves_move_up">Move %1$s up</string>
     <string name="shelves_move_down">Move %1$s down</string>

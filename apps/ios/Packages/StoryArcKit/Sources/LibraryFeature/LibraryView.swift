@@ -39,6 +39,15 @@ public struct LibraryView: View {
     @AppStorage(LibraryAvailability.storageKey)
     var availability: LibraryAvailability = .everywhere
 
+    /// The download group of the filter, which is a facet rather than an axis.
+    ///
+    /// Beside ``availability`` and not inside it: ``DownloadFilter`` sets out why the two
+    /// are different questions. Stored the same way, and for the same reason — the query is
+    /// what both platforms encode, and `library-browsing` asks that a filter still be
+    /// applied when the reader comes back.
+    @AppStorage(DownloadFilter.storageKey)
+    var downloads: DownloadFilter = .either
+
     /// Whether the file picker is open for an import.
     ///
     /// The empty states offer "Open a comic" as their primary action — two taps to a

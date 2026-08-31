@@ -59,7 +59,7 @@ extension LibraryView {
                 SortMenu(model: model)
             }
             ToolbarItem(placement: .primaryAction) {
-                FilterMenu(model: model)
+                FilterMenu(model: model, downloads: $downloads)
             }
 
             ToolbarSpacer(.fixed, placement: .primaryAction)

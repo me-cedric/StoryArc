@@ -41,6 +41,9 @@
     <string name="library_sort_file_size">Taille sur cet appareil</string>
     <string name="library_filter">Filtrer</string>
     <string name="library_filter_read_state">Lu ou non lu</string>
+    <string name="library_filter_download">Téléchargé ou non</string>
+    <string name="library_filter_download_yes">Téléchargé</string>
+    <string name="library_filter_download_no">Pas téléchargé</string>
     <string name="library_filter_format">Type de fichier</string>
     <string name="library_filter_language">Langue</string>
     <string name="library_filter_publisher">Éditeur</string>
@@ -158,6 +161,7 @@
     <string name="shelves_list_empty">Rien dans cette liste pour l’instant. Ajoutez des livres et des bandes dessinées depuis votre bibliothèque.</string>
     <string name="shelves_list_unavailable">N’est plus là où il était</string>
     <string name="shelves_list_progress">%1$d sur %2$d lus</string>
+    <string name="shelves_list_order">L’ordre de la liste</string>
     <string name="shelves_add_to">Ajouter à…</string>
     <string name="shelves_move_up">Déplacer %1$s vers le haut</string>
     <string name="shelves_move_down">Déplacer %1$s vers le bas</string>
