@@ -7,6 +7,7 @@
 // simulator or an emulator, with no account anywhere.
 //
 // Usage: node scripts/opds-server.mjs [corpus-directory] [--port 4444]
+//        node scripts/opds-server.mjs --self-test
 //
 // Routes, each one a case the spec names:
 //   /opds            navigation feed, Atom (OPDS 1.2)
@@ -17,19 +18,51 @@
 //   /bearer          401 until Bearer storyarc-token
 //   /page            an HTML page, so the "that is not a feed" path is reachable
 //   /empty           a 200 with no body
-//   /files/<name>    the publication itself
+//   /files/<name>    the publication itself, byte-served — see `byteRange` below
+//   /redirect/<name> a 302 to the file, so a redirect mid-stream is reachable
 //   /covers/<name>   a cover image
+//
+// `/files/<name>` answers `Range`, which is what ADR-0008 needs a server to do: the first
+// page of a 400 MB archive is three ranged reads, not 400 MB. It also answers it *badly*
+// on demand, because a reader on someone's NAS meets servers that do — see `LIES`.
 
-import { createServer } from 'node:http'
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
+import { createServer, get as httpGet } from 'node:http'
+import { readFileSync, readdirSync, statSync, existsSync, writeFileSync, mkdtempSync } from 'node:fs'
 import { join, extname, basename } from 'node:path'
+import { tmpdir } from 'node:os'
 import { deflateSync } from 'node:zlib'
 
 const args = process.argv.slice(2)
+const selfTest = args.includes('--self-test')
 const portFlag = args.indexOf('--port')
-const port = portFlag >= 0 ? Number(args[portFlag + 1]) : 4444
-const root = args.find((a) => !a.startsWith('--') && a !== String(port)) ??
-  join(process.env.HOME, 'StoryArcCorpus')
+// Port zero for the self-test: it must not collide with a mock someone is already watching,
+// and it has no reason to be reachable from outside its own process.
+const port = selfTest ? 0 : portFlag >= 0 ? Number(args[portFlag + 1]) : 4444
+
+/**
+ * A corpus of known sizes and predictable bytes, for the self-test.
+ *
+ * Byte `n` of every file is `n % 251`, which makes a range verifiable on its own terms:
+ * the answer to `bytes=1000-1015` is arithmetic rather than a second read of the same
+ * server agreeing with the first. 251 rather than 256 so the pattern does not repeat on a
+ * power-of-two boundary — an off-by-a-block bug would land on identical bytes and pass.
+ */
+const scratchCorpus = () => {
+  const at = mkdtempSync(join(tmpdir(), 'storyarc-opds-test-'))
+  for (const [name, size] of [
+    ['Tidal Reach 01.cbz', 4096],
+    ['Tidal Reach 02.cbz', 100],
+    ['Winter Field.epub', 7],
+  ]) {
+    writeFileSync(at + '/' + name, Buffer.from(Array.from({ length: size }, (_, n) => n % 251)))
+  }
+  return at
+}
+
+const root = selfTest
+  ? scratchCorpus()
+  : args.find((a) => !a.startsWith('--') && a !== String(port)) ??
+    join(process.env.HOME, 'StoryArcCorpus')
 
 if (!existsSync(root)) {
   console.error(`no corpus at ${root} — run: node scripts/corpus.mjs ${root}`)
@@ -53,6 +86,7 @@ const entries = readdirSync(root)
   .map((name, index) => {
     const stem = basename(name, extname(name))
     const numbered = /^(.*?)\s+(\d+)$/.exec(stem)
+    const facts = statSync(join(root, name))
     return {
       id: `urn:storyarc:${index + 1}`,
       file: name,
@@ -60,7 +94,11 @@ const entries = readdirSync(root)
       series: numbered?.[1],
       index: numbered ? Number(numbered[2]) : undefined,
       type: TYPES[extname(name).toLowerCase()] ?? 'application/octet-stream',
-      updated: statSync(join(root, name)).mtime.toISOString().replace(/\.\d+Z$/, 'Z'),
+      // What the acquisition link declares. `offline-downloads` requires a queued download
+      // to show "its size", and a size nobody sends is a size the app can only learn by
+      // starting the transfer it was meant to describe.
+      size: facts.size,
+      updated: facts.mtime.toISOString().replace(/\.\d+Z$/, 'Z'),
     }
   })
 
@@ -213,7 +251,8 @@ ${page === 0 && !query && title === 'All publications' ? `  <entry>
     <link rel="http://opds-spec.org/image/thumbnail"
           href="/covers/${encodeURIComponent(entry.file)}" type="image/png"/>
     <link rel="http://opds-spec.org/acquisition"
-          href="/files/${encodeURIComponent(entry.file)}" type="${entry.type}"/>
+          href="/files/${encodeURIComponent(entry.file)}" type="${entry.type}"
+          length="${entry.size}"/>
   </entry>`).join('\n')}
 </feed>
 `
@@ -241,6 +280,10 @@ function jsonPublication(entry) {
         rel: 'http://opds-spec.org/acquisition',
         href: `/files/${encodeURIComponent(entry.file)}`,
         type: entry.type,
+        // The Readium Link Object's own field — "original size of the resource in bytes".
+        // OPDS 1.2 spells the same fact `length` on the Atom link; there is no third
+        // spelling, and a mock that invented one would teach the parser a fiction.
+        size: entry.size,
       },
     ],
   }
@@ -289,6 +332,119 @@ function jsonFeed(base) {
     ],
     publications: entries.map(jsonPublication),
   }, null, 2)
+}
+
+/**
+ * One `Range` header, as a byte window into a body of `length` bytes.
+ *
+ * Null when there is nothing to honour — no header, or a header this mock does not speak.
+ * RFC 9110 lets a server ignore a range it does not understand and answer 200 with the
+ * whole resource, so a multi-range request lands here as null on purpose: that is the
+ * behaviour a client meets in the wild, and it has to survive it rather than assume a 206.
+ *
+ * `unsatisfiable` is the third answer and a distinct one: bytes that are not there are a
+ * 416, not a 404 and not a short 206.
+ */
+export function byteRange(header, length) {
+  if (!header) return null
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim())
+  if (!match) return null
+  const [, from, to] = match
+  if (from === '' && to === '') return null
+  if (from === '') {
+    // `bytes=-500` is the last 500 bytes, and a suffix longer than the file is the file.
+    const count = Number(to)
+    if (count === 0) return { unsatisfiable: true }
+    return { start: Math.max(0, length - count), end: length - 1 }
+  }
+  const start = Number(from)
+  // A start at or past the end has no bytes to give. A zero-length body does not either,
+  // which is why this is `>=` and why an empty file answers 416 to every range.
+  if (start >= length) return { unsatisfiable: true }
+  const end = to === '' ? length - 1 : Math.min(Number(to), length - 1)
+  if (end < start) return { unsatisfiable: true }
+  return { start, end }
+}
+
+/**
+ * The ways this mock will answer a range wrongly, on request.
+ *
+ * Every one of these is something a real server, a proxy, or a captive portal has been
+ * seen to do, and each is a case rather than a crash: the reader degrades to what the app
+ * already does — download first, or say the source is unreachable — and never shows a page
+ * built out of the wrong bytes. A client that only ever meets a correct server is a client
+ * nobody has tested against the servers that exist.
+ */
+const LIES = {
+  /** A 200 with the whole body where a 206 was asked for. Legal, and a client must cope. */
+  ignore: 'answers 200 with the whole resource, ignoring the range',
+  /** A 200 whose body is only the requested slice. The status and the bytes disagree. */
+  status: 'answers 200 but sends only the requested slice',
+  /** A 206 whose `Content-Range` names a total that is not the real length. */
+  total: 'answers 206 with the wrong total in Content-Range',
+  /** A 206 with correct headers and the bytes from somewhere else. */
+  offset: 'answers 206 with the bytes of a different range',
+  /** A 206 whose body is shorter than its own `Content-Range` claims. */
+  short: 'answers 206 with fewer bytes than it promised',
+  /** A 206 that stops writing halfway and destroys the socket. */
+  cut: 'answers 206 and drops the connection mid-body',
+}
+
+/**
+ * Sends `body`, honouring `Range`, and lying about it when asked to.
+ *
+ * The `Accept-Ranges: bytes` here is the advertisement ADR-0008 needs: without it a client
+ * has no way to know a ranged read is worth attempting, and `offline-downloads` has to
+ * state whether an interrupted download resumed or restarted.
+ */
+function sendBytes(request, response, type, body, { lie, ranges } = {}) {
+  const headers = {
+    'Content-Type': type,
+    'Cache-Control': 'no-store',
+    'Accept-Ranges': ranges === 'off' ? 'none' : 'bytes',
+  }
+  const whole = () => {
+    response.writeHead(200, { ...headers, 'Content-Length': String(body.length) })
+    response.end(body)
+  }
+
+  const window = ranges === 'off' ? null : byteRange(request.headers.range, body.length)
+  if (!window || lie === 'ignore') return whole()
+  if (window.unsatisfiable) {
+    response.writeHead(416, { ...headers, 'Content-Range': `bytes */${body.length}` })
+    return response.end()
+  }
+
+  const { start, end } = window
+  const count = end - start + 1
+  if (lie === 'status') {
+    response.writeHead(200, { ...headers, 'Content-Length': String(count) })
+    return response.end(body.subarray(start, end + 1))
+  }
+
+  // The bytes actually sent, which are the right ones unless asked otherwise. `offset`
+  // shifts the window by a block without touching the headers, so the response is
+  // well-formed and wrong — the failure a client cannot detect from the status line alone.
+  const shifted = lie === 'offset' ? Math.min(start + 64, Math.max(0, body.length - count)) : start
+  // `short` sends fewer bytes and *declares* fewer, so the message itself is well-formed
+  // and only `Content-Range` is a lie. A body that contradicted its own `Content-Length`
+  // would break at the transport instead, which is the case `cut` covers — and a source
+  // that cannot tell the two apart cannot say whether the server or the link is at fault.
+  const sending = lie === 'short' ? Math.max(0, count - 1) : count
+  const slice = body.subarray(shifted, shifted + sending)
+  const total = lie === 'total' ? body.length + 1024 : body.length
+  response.writeHead(206, {
+    ...headers,
+    'Content-Range': `bytes ${start}-${end}/${total}`,
+    'Content-Length': String(sending),
+  })
+  if (lie === 'cut') {
+    // Destroyed from the write callback, not straight after it: destroying while bytes are
+    // still buffered resets the connection before the client sees the status line, which
+    // is a different failure — no answer at all, rather than an answer that stops.
+    return response.write(slice.subarray(0, Math.ceil(sending / 2)), () => response.destroy())
+  }
+  response.end(slice)
 }
 
 function authorized(request, expected) {
@@ -403,6 +559,15 @@ const server = createServer((request, response) => {
     return send(200, entry.type, readFileSync(join(root, entry.file)))
   }
 
+  // A 302 to the file. `offline-downloads` has to survive a source that answers a range
+  // request with a redirect — a captive portal, or a server that has moved the file — and
+  // "survive" means degrading, not rendering whatever came back from the new address.
+  if (url.pathname.startsWith('/redirect/')) {
+    const name = url.pathname.slice('/redirect/'.length)
+    response.writeHead(302, { Location: `/files/${name}${url.search}`, 'Cache-Control': 'no-store' })
+    return response.end()
+  }
+
   if (url.pathname.startsWith('/files/')) {
     const name = decodeURIComponent(url.pathname.slice('/files/'.length))
     const entry = entries.find((each) => each.file === name)
@@ -413,11 +578,19 @@ const server = createServer((request, response) => {
     // backgrounded, which makes background transfer and pause both untestable. This
     // makes a download last long enough to interrupt.
     const slow = Number(url.searchParams.get('slow') ?? 0)
-    if (!slow) return send(200, entry.type, body)
+    if (!slow) {
+      return sendBytes(request, response, entry.type, body, {
+        lie: url.searchParams.get('lie'),
+        ranges: url.searchParams.get('ranges'),
+      })
+    }
+    // The slow path sends the whole body, whatever was asked for: it exists to be
+    // interrupted, and a range would make it finish sooner, which is the opposite.
     response.writeHead(200, {
       'Content-Type': entry.type,
       'Content-Length': String(body.length),
       'Cache-Control': 'no-store',
+      'Accept-Ranges': 'bytes',
     })
     const chunks = 20
     const size = Math.ceil(body.length / chunks)
@@ -434,8 +607,147 @@ const server = createServer((request, response) => {
   send(404, 'text/plain', 'no such route')
 })
 
-server.listen(port, () => {
-  console.log(`opds: http://localhost:${port}/opds  (${entries.length} publications from ${root})`)
-  console.log(`      /opds2 for OPDS 2.0, /private for Basic ada:lovelace,`)
-  console.log(`      /bearer for Bearer storyarc-token, /page and /empty for the refusals`)
-})
+/**
+ * Drives the byte-serving against this mock, over HTTP, and says what broke.
+ *
+ * ADR-0008 turns "read one page of a 400 MB archive" into three ranged reads, and every one
+ * of them is a promise this server has to keep: the bytes at the offset asked for, a total
+ * that is the real total, a 416 rather than a short 206 for bytes that are not there. None
+ * of that is visible from a parser unit test, because a parser is handed bytes rather than
+ * fetching them — so this leaves the client entirely and is the mock talking to itself,
+ * which is what makes it a contract rather than a shared assumption.
+ *
+ * The lies are checked as carefully as the truths. A mock that cannot misbehave on demand
+ * cannot show that the reader degrades instead of rendering the wrong page.
+ */
+const drive = async () => {
+  const base = `http://127.0.0.1:${server.address().port}`
+  const failures = []
+  let run = 0
+  const check = (name, ok, saw) => {
+    run += 1
+    if (!ok) failures.push(saw === undefined ? name : `${name} (saw ${JSON.stringify(saw)})`)
+  }
+
+  const subject = entries.find((entry) => entry.size === 4096)
+  const path = `/files/${encodeURIComponent(subject.file)}`
+  const expected = readFileSync(join(root, subject.file))
+  const get = (suffix, range) =>
+    fetch(`${base}${suffix}`, { headers: range ? { Range: range } : {} })
+  const bytes = async (answer) => Buffer.from(await answer.arrayBuffer())
+
+  // Both dialects state the size, because a queue that cannot say how big a download is
+  // cannot ask a reader to confirm it on a metered connection.
+  const atom = await (await get('/opds/all')).text()
+  check('the atom acquisition link declares its length',
+    atom.includes(`length="${subject.size}"`))
+  const json = await (await get('/opds2')).json()
+  const link = json.publications
+    .flatMap((each) => each.links)
+    .find((each) => each.href.includes(encodeURIComponent(subject.file)))
+  check('the opds 2.0 acquisition link declares its size', link?.size === subject.size, link?.size)
+
+  const plain = await get(path)
+  check('a file advertises that it takes ranges',
+    plain.headers.get('accept-ranges') === 'bytes', plain.headers.get('accept-ranges'))
+  check('a file with no range asked is whole',
+    (await bytes(plain)).equals(expected))
+
+  const head = await get(path, 'bytes=0-15')
+  check('a range is answered 206', head.status === 206, head.status)
+  check('a 206 says which bytes it is',
+    head.headers.get('content-range') === `bytes 0-15/${subject.size}`,
+    head.headers.get('content-range'))
+  check('a range is the bytes asked for', (await bytes(head)).equals(expected.subarray(0, 16)))
+
+  // The read ADR-0008 actually makes first: the tail, where a ZIP keeps its central
+  // directory. An open-ended range and a suffix range are two spellings of it, and a
+  // server that gets either wrong makes every archive unreadable at the first request.
+  const openEnded = await get(path, `bytes=${subject.size - 16}-`)
+  check('an open-ended range runs to the end',
+    (await bytes(openEnded)).equals(expected.subarray(subject.size - 16)))
+  const suffix = await get(path, 'bytes=-16')
+  check('a suffix range is the last bytes',
+    (await bytes(suffix)).equals(expected.subarray(subject.size - 16)))
+  const oversized = await get(path, `bytes=-${subject.size + 500}`)
+  check('a suffix longer than the file is the file',
+    (await bytes(oversized)).equals(expected))
+
+  // Bytes that are not there are a 416 with the real length in it, which is how a client
+  // learns the length it guessed at was wrong without downloading anything.
+  const past = await get(path, `bytes=${subject.size}-`)
+  check('a range past the end is 416', past.status === 416, past.status)
+  check('a 416 still states the length',
+    past.headers.get('content-range') === `bytes */${subject.size}`,
+    past.headers.get('content-range'))
+  check('a backwards range is 416', (await get(path, 'bytes=40-20')).status === 416)
+  // A file shorter than one read, which is the whole corpus on a bad day.
+  const tiny = entries.find((entry) => entry.size === 7)
+  const tinyTail = await bytes(await get(`/files/${encodeURIComponent(tiny.file)}`, 'bytes=-64'))
+  check('a suffix range on a tiny file is the whole file',
+    tinyTail.length === tiny.size, tinyTail.length)
+
+  // And now the lies, each one a case rather than a crash.
+  const lie = (name, range = 'bytes=0-15') => get(`${path}?lie=${name}`, range)
+  const ignored = await get(`${path}?ranges=off`, 'bytes=0-15')
+  check('a server that refuses ranges says so',
+    ignored.status === 200 && ignored.headers.get('accept-ranges') === 'none',
+    ignored.headers.get('accept-ranges'))
+  check('a server that refuses ranges sends everything',
+    (await bytes(ignored)).equals(expected))
+  const ignoring = await lie('ignore')
+  check('a 200 instead of a 206 carries the whole resource',
+    ignoring.status === 200 && (await bytes(ignoring)).equals(expected), ignoring.status)
+  const mismatched = await lie('status')
+  check('a 200 carrying only a slice is reachable',
+    mismatched.status === 200 && (await bytes(mismatched)).length === 16, mismatched.status)
+  const wrongTotal = await lie('total')
+  check('a wrong total in Content-Range is reachable',
+    wrongTotal.headers.get('content-range') === `bytes 0-15/${subject.size + 1024}`,
+    wrongTotal.headers.get('content-range'))
+  const wrongBytes = await lie('offset')
+  check('a well-formed 206 with the wrong bytes is reachable',
+    !(await bytes(wrongBytes)).equals(expected.subarray(0, 16)))
+  const shortBody = await bytes(await lie('short'))
+  check('a 206 shorter than it promised is reachable', shortBody.length === 15, shortBody.length)
+  // Read with the raw client rather than `fetch`: a body that stops mid-stream is the
+  // event under test, and `IncomingMessage.complete` states it plainly where `fetch` only
+  // throws. `complete` false with bytes already read is precisely "the source stopped
+  // answering half way through", which the reader has to treat as a normal state.
+  const cut = await new Promise((resolve) => {
+    const asked = httpGet(`${base}${path}?lie=cut`, { headers: { Range: 'bytes=0-15' } }, (answer) => {
+      let read = 0
+      answer.on('data', (chunk) => { read += chunk.length })
+      const done = () => resolve({ status: answer.statusCode, read, complete: answer.complete })
+      answer.on('end', done)
+      answer.on('error', done)
+      answer.on('aborted', done)
+    })
+    asked.on('error', () => resolve({ status: 0, read: 0, complete: false }))
+  })
+  check('a connection dropped mid-body is reachable', !cut.complete && cut.read < 16, cut)
+
+  const moved = await fetch(`${base}/redirect/${encodeURIComponent(subject.file)}`, {
+    redirect: 'manual',
+  })
+  check('a redirect mid-stream is reachable', moved.status === 302, moved.status)
+
+  server.close()
+  if (failures.length) {
+    console.error(`opds mock self-test failed: ${failures.join('; ')}`)
+    process.exit(1)
+  }
+  console.log(`opds mock self-test: ${run} checks passed`)
+}
+
+if (selfTest) {
+  server.listen(0, '127.0.0.1', () => { drive() })
+} else {
+  server.listen(port, () => {
+    console.log(`opds: http://localhost:${port}/opds  (${entries.length} publications from ${root})`)
+    console.log(`      /opds2 for OPDS 2.0, /private for Basic ada:lovelace,`)
+    console.log(`      /bearer for Bearer storyarc-token, /page and /empty for the refusals`)
+    console.log(`      /files/<name> takes Range; add ?lie=<${Object.keys(LIES).join('|')}>`)
+    console.log(`      or ?ranges=off to watch the app meet a server that answers badly`)
+  })
+}
