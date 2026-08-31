@@ -218,6 +218,82 @@ final class AccessibilityAuditTests: XCTestCase {
         try audit(app, named: "Reader")
     }
 
+    /// Settings and each of its seven groups, walked in one test.
+    ///
+    /// **This is a crash walk as much as an audit.** `pnpm smoke:android` opens sixteen
+    /// routes on a device and asks logcat whether the process died; iOS has had no
+    /// counterpart, and `docs/openspec/STATUS.md` names that asymmetry and says explicitly
+    /// that it is *not* a deliberate divergence — it is where the tooling happened to get
+    /// built. Reaching a screen at all is most of the value; auditing it once there is the
+    /// rest, and costs one line.
+    ///
+    /// One test rather than seven, because each group is one tap and one tap back, and
+    /// seven launches to save six taps is thirty seconds of nothing.
+    ///
+    /// The groups are named by their English labels. That is a real dependency and the
+    /// reason `pseudo-locale.mjs` navigates by position instead: this suite runs in the
+    /// development language, and if that ever stops being true, this is what will say so.
+    func testSettingsPassesTheAudit() throws {
+        let app = launch()
+
+        let gear = try XCTUnwrap(control("Settings", in: app), "Home has no way into Settings.")
+        gear.tap()
+        try reportOnly(app, named: "Settings")
+
+        // The English labels, exactly. `Downloads and storage` is not `Downloads` — the tab
+        // bar has a destination by that name and the settings group does not, and asking
+        // for the short one walked five groups and then stopped.
+        let groups = [
+            "Your libraries", "Appearance", "Reading",
+            "Downloads and storage", "Language", "Privacy", "About",
+        ]
+        for group in groups {
+            let row = try XCTUnwrap(control(group, in: app), "Settings has no row called \(group). Renamed?")
+            row.tap()
+            try reportOnly(app, named: "Settings > \(group)")
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+        }
+    }
+
+    /// Audits a screen and prints what it found, **without failing**.
+    ///
+    /// Eight screens in one test, and `XCTExpectFailure` covers a whole test — so an
+    /// expectation broad enough to absorb the contrast findings on all eight is broad
+    /// enough to absorb a navigation failure too, silently. It did, on the first run: seven
+    /// `XCTFail`s saying "Settings has no row called …" were swallowed whole and the test
+    /// reported success. That is the same failure mode this file warns about elsewhere, and
+    /// it is worse here because the thing being hidden was the walk itself.
+    ///
+    /// So the audit reports and the walk asserts. The findings are printed for a reader of
+    /// the log; the only thing that can fail this test is failing to reach a screen — which
+    /// is what a crash walk is for, and what `pnpm smoke:android` does on the other
+    /// platform. When the contrast findings under the glass bar are settled, this can
+    /// become `audit` and gain an expectation of its own.
+    private func reportOnly(_ app: XCUIApplication, named screen: String) throws {
+        var found: [String] = []
+        try app.performAccessibilityAudit { issue in
+            let element = issue.element?.debugDescription ?? "no element reported"
+            found.append("  • \(issue.compactDescription)\n    \(element)")
+            return true
+        }
+        if !found.isEmpty {
+            print("Accessibility audit — \(screen): \(found.count) issue(s), reported not failed")
+            for line in found { print(line) }
+        }
+    }
+
+    /// A named control, whatever kind of element the platform made of it.
+    ///
+    /// A settings row is a `NavigationLink` inside a `List`, which surfaces as a cell or a
+    /// static text rather than a button — asking only for a button found none of the seven.
+    private func control(_ name: String, in app: XCUIApplication) -> XCUIElement? {
+        for candidate in [app.buttons[name], app.cells[name], app.staticTexts[name]]
+        where candidate.waitForExistence(timeout: 5) && candidate.isHittable {
+            return candidate
+        }
+        return nil
+    }
+
     /// Opens the first publication on the shelf and returns the page's primary action.
     ///
     /// **It proves it arrived, and that is the whole point of it.** The first version of
