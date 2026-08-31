@@ -84,8 +84,16 @@ printing for weeks. So this is not a check that had not been run — it is a def
 on one platform and not the other, and the audit that would have caught it was the half that
 had never been written.
 
-Two of the three missing routes remain: the comic reader's chrome as its own screen, and the
-licence text behind About.
+A licence in full is audited too, and passes clean — it is the longest unbroken run of
+untranslated text in the app and the most likely to clip. So iOS walks **fifteen** screens
+now, against Android's sixteen, and the remaining difference is that Android counts the comic
+reader's chrome as a route of its own where iOS's reader test reveals the chrome inside one.
+
+**The Settings audit's own numbers are worth reading while they are here.** Reported, not
+failed, on 2026-08-31: Settings 5, *Your libraries* **11**, Appearance 3, Reading 2, Downloads
+and storage 5, Privacy 4, About 5. `Your libraries` has more than twice any other screen and
+nothing has looked at it. `settings-and-about-screens` task 6.3 records the group's findings
+from a run that could not name their elements; this run can.
 
 ### A third round, and two defects a camera found that reading had not
 

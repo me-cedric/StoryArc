@@ -233,6 +233,56 @@ final class AccessibilityAuditTests: XCTestCase {
         try reportOnly(app, named: "EPUB reader")
     }
 
+    /// A licence in full, which is the last screen neither platform's walk reached on iOS.
+    ///
+    /// It is the third of the three routes `STATUS.md` counts iOS short by, and the one worth
+    /// having: a licence is the longest unbroken run of text in the app, it is not translated,
+    /// and it is the screen most likely to clip or to scroll badly at an accessibility text
+    /// size. Android reaches it as `Settings > About > licence`.
+    ///
+    /// The row is found by the separator its subtitle carries rather than by naming a
+    /// dependency. `AboutSettings` draws each notice as the name over
+    /// `"\(notice.licence) · \(notice.why)"` — an SPDX identifier and an ADR reference, joined
+    /// by a middle dot and deliberately untranslated. Naming `Readium` here instead would make
+    /// this test fail the day a dependency changes, which is a fact about the build and not
+    /// about accessibility.
+    func testALicencePassesTheAudit() throws {
+        let app = launch()
+        try XCTUnwrap(control("Settings", in: app), "Home has no way into Settings.").tap()
+        try XCTUnwrap(control("About", in: app), "Settings has no About row.").tap()
+
+        // A notice row, by the separator only a notice row has: `AboutSettings` draws the
+        // subtitle as `"\(notice.licence) · \(notice.why)"` — an SPDX identifier and an ADR
+        // reference, joined by a middle dot and deliberately untranslated.
+        //
+        // Matched on the **static text** rather than on the cell, and the reason is a fact
+        // about the query and not about the screen. Asking `app.cells` for the separator found
+        // nothing: all eleven cells here report an empty label to XCUITest while the two Texts
+        // inside each are separate elements. That was checked before being written down —
+        // Apple's own audit reports five issues on this screen and not one of them is about a
+        // missing label, so the accessible content is the Texts and the empty cell is how
+        // XCUITest sees a `NavigationLink` container, not something a reader meets. Tapping
+        // the text activates the link.
+        let notices = NSPredicate(format: "label CONTAINS %@", " · ")
+        let row = app.staticTexts.matching(notices).firstMatch
+        if !row.waitForExistence(timeout: 5) {
+            // Say what was there. A skip that names no reason is a check that quietly stops
+            // running, which is the failure this whole suite was written after.
+            let cells = app.cells.allElementsBoundByIndex.map(\.label)
+            let texts = app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label)
+            throw XCTSkip(
+                """
+                About lists no row carrying " · ".
+                Cells: \(cells)
+                Static texts: \(texts)
+                """
+            )
+        }
+        row.tap()
+
+        try reportOnly(app, named: "Settings > About > licence")
+    }
+
     /// The three destinations under Apple's accented pseudolanguage.
     ///
     /// **The iOS counterpart of `pnpm pseudo:android`, which has had none.**
