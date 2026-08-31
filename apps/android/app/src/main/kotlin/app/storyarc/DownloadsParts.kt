@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import app.storyarc.core.designsystem.cover.CoverlessWell
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -71,10 +72,15 @@ private const val COVER_PIXELS = 512
  *
  * Its own cell rather than `feature/library`'s, for the same reason [HomeDestination]'s is:
  * the library's `CoverGrid` is internal to that module and carries a selection model, a
- * match-group layout and a bulk-action path that none of them belong here. The two rules
- * that matter are `design.md`'s and are held here as they are held there — a 4 dp radius
- * because a comic cover is printed stock, and letterboxing onto `surfaceSunken` rather than
- * cropping the artwork.
+ * match-group layout and a bulk-action path that none of them belong here. The three rules
+ * that matter are held here as they are held there — a 4 dp radius because a comic cover is
+ * printed stock, letterboxing onto `surfaceSunken` rather than cropping the artwork, and the
+ * well that stands in for artwork that does not exist.
+ *
+ * The first two are `design.md`'s and were copied. The third could not be: it was written
+ * inside `CoverGrid`'s private cell, so this file simply did without it and drew an empty
+ * box. It is `:core:designsystem`'s `CoverlessWell` now, and this cell asks — the same move,
+ * and the same reason, as `rememberCoverColumns`.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -107,12 +113,28 @@ internal fun OnDeviceCover(
                 .background(palette.surfaceSunken),
             contentAlignment = Alignment.Center,
         ) {
-            cover?.let {
+            val art = cover
+            if (art != null) {
                 Image(
-                    bitmap = it.asImageBitmap(),
+                    bitmap = art.asImageBitmap(),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                // The third rule this cell holds as the library holds it, and the one it
+                // was missing. There was no else branch here at all, so a publication with
+                // no artwork was a bare `surfaceSunken` rectangle — on a shelf whose own
+                // requirement, `offline-downloads`' "Everything on this device", asks for
+                // "the same grid, the same cells" as the library. A cell that says nothing
+                // about the book it stands for is not the same cell.
+                //
+                // With the format, because the library's cell names it and this cell is
+                // meant to be that cell: `no-pages` reads `no-pages` / `CBZ` here exactly
+                // as it does one destination away.
+                CoverlessWell(
+                    title = publication.displayTitle,
+                    format = publication.format.displayName,
                 )
             }
 

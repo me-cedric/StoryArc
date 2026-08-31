@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.cover.CoverlessWell
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcColor
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
@@ -139,13 +140,25 @@ private fun DetailSeriesCell(
             shape = RoundedCornerShape(StoryArcRadius.cover),
             modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f),
         ) {
-            cover?.let {
+            val art = cover
+            if (art != null) {
                 Image(
-                    bitmap = it.asImageBitmap(),
+                    bitmap = art.asImageBitmap(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
+            } else {
+                // The same well the library shelf draws, which this cell used to leave
+                // empty. The caption below says `#3` or the title, and the title is the
+                // longer answer — a run of unmarked volumes is exactly where a reader is
+                // trying to tell one from another.
+                //
+                // No format, for the reason Home passes none: nothing on this shelf names
+                // one. Its two caption lines are the volume number and the read state, and
+                // a well stands in for missing artwork rather than introducing a field the
+                // surface around it does not carry.
+                CoverlessWell(title = publication.displayTitle, format = null)
             }
         }
         Text(

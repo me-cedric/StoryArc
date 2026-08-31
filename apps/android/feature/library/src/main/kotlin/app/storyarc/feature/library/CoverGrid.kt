@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.cover.CoverlessWell
 import app.storyarc.core.designsystem.grid.coverMaximumWidth
 import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.grid.steppedForFontScale
@@ -492,27 +493,15 @@ private fun CoverCell(
                 // card in that wall had in common. The title is what tells them apart.
                 // The format stays, smaller, because it is still the answer to "why is
                 // there no picture".
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        text = publication.displayTitle,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = palette.textSecondary,
-                        textAlign = TextAlign.Center,
-                        maxLines = 4,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(horizontal = StoryArcSpace.sm),
-                    )
-                    Text(
-                        text = publication.format.displayName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.textTertiary,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = StoryArcSpace.xs),
-                    )
-                }
+                //
+                // This shelf is where that argument was made and it is no longer where the
+                // view lives: `CoverlessWell` in `:core:designsystem` draws it now, because
+                // this cell is private to this module and three other shelves that should
+                // have been drawing the same thing were drawing nothing.
+                CoverlessWell(
+                    title = publication.displayTitle,
+                    format = publication.format.displayName,
+                )
             }
 
             // `library-browsing`: "its cover carries an unobtrusive progress

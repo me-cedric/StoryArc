@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.storyarc.core.designsystem.cover.CoverlessWell
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -87,13 +88,21 @@ internal fun HomeCoverArt(
             .background(palette.surfaceSunken),
         contentAlignment = Alignment.Center,
     ) {
-        bitmap?.let {
+        val art = bitmap
+        if (art != null) {
             Image(
-                bitmap = it.asImageBitmap(),
+                bitmap = art.asImageBitmap(),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
+        } else {
+            // This branch used to be absent, so a publication with no artwork was a bare
+            // `surfaceSunken` rectangle on the one surface whose whole job is to hand the
+            // reader back a book they already know. The title is what identifies it; no
+            // format, because nothing on Home names one — its captions are the title and
+            // either what is left to read or why the book is away.
+            CoverlessWell(title = publication.displayTitle, format = null)
         }
     }
 }
