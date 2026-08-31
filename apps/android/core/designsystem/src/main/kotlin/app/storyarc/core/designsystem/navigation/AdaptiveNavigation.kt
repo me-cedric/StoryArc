@@ -8,7 +8,9 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.NavigationItemIconPosition
 import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarArrangement
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.WideNavigationRail
@@ -184,13 +186,14 @@ fun AdaptiveNavigationShell(
                     }
                 }
 
-                else -> ShortNavigationBar {
+                else -> ShortNavigationBar(arrangement = type.barArrangement) {
                     entries.forEach { entry ->
                         ShortNavigationBarItem(
                             selected = entry.selected,
                             onClick = entry.onSelect,
                             icon = { Icon(entry.icon, contentDescription = null) },
                             label = { EntryLabel(entry, type.pinsLabelFontScale) },
+                            iconPosition = type.barIconPosition,
                         )
                     }
                 }
@@ -268,6 +271,49 @@ private const val NavigationLabelFontScale = 1f
  */
 internal val NavigationSuiteType.pinsLabelFontScale: Boolean
     get() = this != NavigationSuiteType.WideNavigationRailExpanded
+
+/**
+ * Where a bar item's icon sits relative to its label, for this width class.
+ *
+ * Material: *"Use vertical items in compact windows … horizontal items in medium windows"*.
+ * A medium window is wide enough that stacking an icon over a label wastes the height and
+ * leaves four items looking like a phone's bar stretched, which is what it was.
+ *
+ * **This is not inherited.** `NavigationSuiteScaffold` derives it from the width class for
+ * you; [AdaptiveNavigationShell] uses [NavigationSuiteScaffoldLayout] and composes its own
+ * items — the trade that lets one list of [NavigationEntry] build all three controls — so
+ * the guideline arrives here or not at all. It did not, until it did.
+ *
+ * The rails answer `Top` and never read it: [WideNavigationRailItem] takes no icon position,
+ * and `railExpanded` is what decides its own layout. They are answered rather than excluded
+ * so the `when` is total and a width class added by a future alpha is a compile error here
+ * rather than a silent default at a call site.
+ */
+internal val NavigationSuiteType.barIconPosition: NavigationItemIconPosition
+    get() = when (this) {
+        NavigationSuiteType.ShortNavigationBarMedium -> NavigationItemIconPosition.Start
+        else -> NavigationItemIconPosition.Top
+    }
+
+/**
+ * How a bar distributes its items across its own width, for this width class.
+ *
+ * The companion of [barIconPosition] and the same Material sentence: horizontal items in a
+ * medium window are centred as a group, because spreading four of them edge to edge across a
+ * window that wide puts each label under an icon it no longer sits beside and leaves gaps a
+ * reader reads as a mistake. A compact bar keeps `EqualWeight` — a phone's width divided by
+ * the destinations is exactly the arithmetic [NavigationLabelFontScale] exists to survive.
+ *
+ * `ShortNavigationBar` takes this and takes **no `shape`** — verified with `javap` over
+ * `material3.aar` at 1.5.0-alpha26. That absence is why the Android bar is edge-to-edge with
+ * no capsule and no inset while iOS's floats: on this side a capsule is not discouraged, it
+ * is inexpressible.
+ */
+internal val NavigationSuiteType.barArrangement: ShortNavigationBarArrangement
+    get() = when (this) {
+        NavigationSuiteType.ShortNavigationBarMedium -> ShortNavigationBarArrangement.Centered
+        else -> ShortNavigationBarArrangement.EqualWeight
+    }
 
 /**
  * The density a navigation label measures against.

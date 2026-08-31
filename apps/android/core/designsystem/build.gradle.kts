@@ -55,3 +55,29 @@ dependencies {
 
     testImplementation(libs.junit)
 }
+
+// `AdaptiveNavigationTest` reads this module's own source to check that the bar's icon
+// position and arrangement are actually *passed*, not merely computed correctly — the two
+// property assertions beside it stay green if both arguments are deleted from the call site.
+//
+// The path is handed over rather than discovered, for the reason `:feature:epubreader`
+// records at length: walking up from the working directory escapes the module, because this
+// repository nests agent worktrees at `.claude/worktrees/<name>/`, and the walk then reads
+// the parent checkout's copy of a file that was never built here.
+//
+// Declaring the file as an input is the other half. A `Test` task's inputs are its classpath
+// and its candidate classes, never the module's Kotlin sources, so nothing otherwise ties
+// this task's up-to-date check to the file the test opens and reads.
+tasks.withType<Test>().configureEach {
+    systemProperty("storyarc.designsystem.projectDir", projectDir.absolutePath)
+    // `inputs.files` rather than `inputs.file`: the guarded file going missing should reach
+    // the test, which says what it was looking for, rather than failing input snapshotting
+    // with a path and no explanation.
+    inputs.files(
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/core/designsystem/navigation/AdaptiveNavigation.kt",
+        ),
+    )
+        .withPropertyName("adaptiveNavigationWiringSource")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}

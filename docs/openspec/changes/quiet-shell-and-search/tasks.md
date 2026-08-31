@@ -23,7 +23,7 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       the Kotlin enum, so the two platforms' sets stay in step.
 - [ ] 1.6 Android: add the destination to the enum and to `AdaptiveNavigation.kt`'s
       item list, which builds bar, collapsed rail and expanded rail from one list.
-- [ ] 1.7 Android: `AdaptiveNavigationTest` — at `ShortNavigationBarMedium`, assert
+- [x] 1.7 Android: `AdaptiveNavigationTest` — at `ShortNavigationBarMedium`, assert
       `iconPosition = NavigationItemIconPosition.Start` and
       `arrangement = ShortNavigationBarArrangement.Centered`. Material requires
       horizontal items in medium windows and the file composes its own items, so it
