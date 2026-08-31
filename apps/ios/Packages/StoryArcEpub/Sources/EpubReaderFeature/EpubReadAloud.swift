@@ -1,7 +1,5 @@
 public import Foundation
 
-internal import AVFoundation
-internal import MediaPlayer
 internal import UIKit
 
 internal import ReadiumNavigator
@@ -10,82 +8,75 @@ internal import ReadiumShared
 internal import DesignSystem
 public import StoryArcCore
 
-// The book, read out loud.
+// The book, read out loud — as the reader screen sees it.
 //
 // `ebook-reader`: speech "begins at the current position, the spoken sentence is
-// highlighted, and the page follows", it keeps going when the app is backgrounded, and
-// the platform's media controls carry the title and offer play, pause and sentence skip.
+// highlighted, and the page follows", it keeps going when the app is backgrounded, and the
+// session "SHALL outlive the screen it was started from".
 //
-// Readium's `PublicationSpeechSynthesizer` does the part that is genuinely hard: walking
-// the publication's content across resource boundaries, splitting it into sentences with
-// the publication's own language, and handing back a `Locator` for each one. It also owns
-// the `AVAudioSession`, which is why nothing here activates one. What is left is this
-// app's: where to start, what to draw, where to move the page, what the lock screen says,
-// and what an interruption does — the last of which lives in ``ReadAloudSession``.
+// That last clause is why almost nothing is left in this file. The session used to live on
+// ``EpubReaderModel``, so dismissing the reader ended it; it now lives in
+// ``ReadAloudCentre``, and what remains here is the half that genuinely needs a screen:
+// starting from where the reader is, drawing the sentence, moving the page to it, and
+// handing the session over rather than killing it on the way out.
 //
-// Android's `ReadAloudController` does the same job against the platform engine.
+// Readium's `PublicationSpeechSynthesizer` still does the part that is genuinely hard:
+// walking the publication's content across resource boundaries, splitting it into sentences
+// with the publication's own language, and handing back a `Locator` for each one. It also
+// owns the `AVAudioSession`, which is why nothing here activates one.
+//
+// Android's `ReadAloudController` does the same job against the platform engine, and
+// `ReadAloudHost` there holds it above the activity for the same reason this holds nothing.
 
 public extension EpubReaderModel {
 
     /// The group Readium draws the spoken sentence under.
     ///
-    /// Its own group, beside `annotations`: the highlight follows the voice and is
-    /// withdrawn when the voice stops, and neither of those should disturb a mark the
-    /// reader made.
+    /// Its own group, beside `annotations`: the highlight follows the voice and is withdrawn
+    /// when the voice stops, and neither of those should disturb a mark the reader made.
     private static var spokenGroup: String { "spoken" }
 
-    /// Starts speaking from where the reader is.
+    /// Starts speaking from where the reader is, and hands the session up.
     ///
     /// The current locator, not the top of the resource. A reader who presses play in the
-    /// middle of a chapter means "from here", and starting at the chapter's first
-    /// paragraph would make them listen back to what they have read.
+    /// middle of a chapter means "from here", and starting at the chapter's first paragraph
+    /// would make them listen back to what they have read.
+    ///
+    /// Everything the session will need once this screen is gone goes across in this one
+    /// call — including where to write the position, because after it the reader is free to
+    /// disappear and the voice is not.
     func startReadAloud() {
         guard let speech else { return }
-        setUpRemoteCommands()
-        readAloud = readAloud.started()
-        speech.start(from: locator)
-        publishNowPlaying()
+        ReadAloudCentre.shared.begin(
+            SpokenBook(publication: publication, url: url, chapter: chapterTitle),
+            speaking: speech,
+            recording: SpokenPosition(
+                identity: publication.identity,
+                readingOrder: readingOrder,
+                store: progress
+            ),
+            drawnBy: self,
+            from: locator
+        )
     }
 
     /// Pause and play, from the reader's own control.
-    func toggleReadAloud() {
-        guard let speech else { return }
-        if readAloud.isSpeaking {
-            readAloud = readAloud.pausedByReader()
-            speech.pause()
-        } else {
-            readAloud = readAloud.resumed()
-            speech.resume()
-        }
-        publishNowPlaying()
-    }
+    func toggleReadAloud() { ReadAloudCentre.shared.toggle() }
 
     /// Stops, clears the highlight, and hands the lock screen back.
-    func stopReadAloud() {
-        readAloud = readAloud.stopped()
-        speech?.stop()
-        spoken = nil
-        clearSpokenHighlight()
-        clearNowPlaying()
-    }
+    func stopReadAloud() { ReadAloudCentre.shared.end() }
 
     /// The next sentence, and the one before.
     ///
     /// Sentences rather than chapters: the spec calls it "sentence skip", and a reader
     /// reaching for skip during speech means the sentence they are on, not the chapter.
-    func skipSentence(forward: Bool) {
-        guard readAloud.isActive, let speech else { return }
-        // Skipping while paused starts speaking again, which is what the gesture means:
-        // nobody skips a sentence in order to keep hearing silence.
-        readAloud = readAloud.started()
-        if forward { speech.next() } else { speech.previous() }
-        publishNowPlaying()
-    }
+    func skipSentence(forward: Bool) { ReadAloudCentre.shared.skip(forward: forward) }
 }
 
 extension EpubReaderModel {
 
-    /// Builds the synthesizer once the publication is open.
+    /// Builds the synthesizer once the publication is open, or picks up the one already
+    /// speaking this book.
     ///
     /// Called from ``EpubReaderModel/open()``'s tail rather than from `init`: there is no
     /// publication to speak before then, and `PublicationSpeechSynthesizer` refuses to be
@@ -93,56 +84,50 @@ extension EpubReaderModel {
     /// ``EpubReaderModel/canReadAloud`` needs.
     ///
     /// A fixed-layout EPUB never reaches this reader, and a reflowable one Readium can
-    /// extract no content from is left with no control at all: `ebook-reader` says a
-    /// control a platform cannot honour is absent rather than empty, and this app does
-    /// not ship a play button that refuses.
+    /// extract no content from is left with no control at all: `ebook-reader` says a control
+    /// a platform cannot honour is absent rather than empty, and this app does not ship a
+    /// play button that refuses.
     func prepareReadAloud(_ opened: ReadiumShared.Publication) {
-        let listener = SpeechObserver(model: self)
-        speechObserver = listener
-        speech = PublicationSpeechSynthesizer(publication: opened, delegate: listener)
+        let centre = ReadAloudCentre.shared
+        let handover = SessionHandover.opening(publication.id, whileSpeaking: centre.book?.id)
+
+        // One book at a time. `ebook-reader`: opening a different publication "ends the
+        // session at a sentence boundary and the position it reached is recorded before the
+        // new publication opens" — and the sentence locator the voice is on *is* a sentence
+        // boundary, which is what makes ending here honest rather than abrupt.
+        if handover == .displace { centre.end() }
+
+        // Built even when the session being adopted below is already speaking this book:
+        // that session has a synthesizer of its own, but the moment a listener ends it this
+        // screen is the one holding the play button, and a play button with no engine
+        // behind it is the control `ebook-reader` refuses to ship.
+        speech = PublicationSpeechSynthesizer(publication: opened, delegate: centre.speechDelegate)
         canReadAloud = speech != nil
-        guard canReadAloud else { return }
-        observeInterruptions()
+
+        guard handover == .adopt else { return }
+        // The book on screen is the book being spoken. No restart: the reader takes over
+        // drawing the sentence the voice is already on, and the voice never notices.
+        canReadAloud = true
+        centre.adopt(self)
+        Task { await centre.redrawSpokenSentence() }
     }
 
-    /// What the voice is on, so the transport can say it and the page can follow it.
-    func speechAdvanced(to state: PublicationSpeechSynthesizer.State) async {
-        switch state {
-        case .stopped:
-            // Readium stops itself at the end of the publication. Everything the reader's
-            // own stop does has to happen here too, or the lock screen keeps offering to
-            // play a book that has run out of words.
-            guard readAloud.isActive else { return }
-            stopReadAloud()
-
-        case let .paused(utterance):
-            spoken = utterance.locator
-            await followSpokenSentence()
-
-        case let .playing(utterance, range):
-            // The range is the word being said inside the sentence. The sentence is what
-            // gets drawn: a highlight that moved word by word over a paragraph is a
-            // karaoke line, and this is a book.
-            spoken = utterance.locator
-            chapterTitle = utterance.locator.title ?? chapterTitle
-            _ = range
-            await followSpokenSentence()
-        }
-        publishNowPlaying()
-    }
-
-    /// Draws the sentence and brings the page to it.
-    private func followSpokenSentence() async {
-        guard let spoken, let navigator else { return }
+    /// Draws the sentence being spoken and brings the page to it.
+    ///
+    /// Called by ``ReadAloudCentre`` while this reader is the one on screen. When no reader
+    /// is, nothing is drawn and nothing needs to be: the voice carries on, and the sentence
+    /// is drawn again by whichever reader next adopts the session.
+    func drawSpokenSentence(_ sentence: Locator) async {
+        guard let navigator else { return }
         (navigator as (any DecorableNavigator)?)?.apply(
             decorations: [
                 Decoration(
                     id: "spoken",
-                    locator: spoken,
+                    locator: sentence,
                     // The reader's own accent, at the weight a highlight uses. Underline
-                    // rather than a block of colour would compete with the marks the
-                    // reader made; a tint at the same weight reads as "this is where the
-                    // voice is" without looking like something they can go back to.
+                    // rather than a block of colour would compete with the marks the reader
+                    // made; a tint at the same weight reads as "this is where the voice is"
+                    // without looking like something they can go back to.
                     style: .highlight(
                         tint: UIColor(
                             red: SpokenHighlight.red,
@@ -156,205 +141,31 @@ extension EpubReaderModel {
             ],
             in: Self.spokenGroup
         )
-        // The page follows the voice, which is also what keeps the position record
-        // honest: `reading-progress` writes on every navigator move, so a book listened
-        // to for an hour resumes where the listening got to rather than where the reading
-        // stopped.
-        _ = await navigator.go(to: spoken, options: NavigatorGoOptions(animated: false))
+        // The page follows the voice, which is also what keeps this screen's own position
+        // record honest: `reading-progress` writes on every navigator move. The session
+        // writes for itself as well, because a listener with no reader on screen has no
+        // navigator to move — see ``SpokenPosition``.
+        _ = await navigator.go(to: sentence, options: NavigatorGoOptions(animated: false))
     }
 
-    private func clearSpokenHighlight() {
+    /// Takes the spoken highlight off the page when the voice stops.
+    func withdrawSpokenHighlight() {
         (navigator as (any DecorableNavigator)?)?.apply(decorations: [], in: Self.spokenGroup)
     }
-}
 
-// MARK: - The lock screen
-
-extension EpubReaderModel {
-
-    /// What the publication is called while it is being spoken.
-    var spokenLabel: SpokenLabel {
-        SpokenLabel.of(
-            title: publication.displayTitle,
-            chapter: chapterTitle,
-            author: publication.authors.first
-        )
-    }
-
-    /// Puts the book on the lock screen and in Control Centre.
+    /// Called when the screen goes away.
     ///
-    /// No duration and no elapsed time: a book has no seconds, and a scrubber that
-    /// pretended otherwise would be a control the reader could drag to a place this
-    /// reader cannot honour.
+    /// It lets go of the session; it does not end it. `ebook-reader`: closing the
+    /// publication while the voice is speaking leaves speech running and returns the
+    /// listener "to whatever they were doing in the app rather than being kept in the book".
+    /// This method used to call `stopReadAloud`, and that one line was the whole defect —
+    /// leaving the book was leaving the audio.
     ///
-    /// Deliberately **not** `MPNowPlayingInfoPropertyIsLiveStream`. It is the obvious
-    /// flag for something with no duration, and on a locked simulator it drew the title
-    /// and the chapter over a "LIVE" bar with no transport at all — iOS reads a live
-    /// stream as something with no next and no previous, which is exactly the sentence
-    /// skip `ebook-reader` asks the lock screen for.
-    func publishNowPlaying() {
-        let label = spokenLabel
-        var info: [String: Any] = [
-            MPMediaItemPropertyTitle: label.title,
-            MPNowPlayingInfoPropertyPlaybackRate: readAloud.isSpeaking ? 1.0 : 0.0,
-        ]
-        if let detail = label.detail {
-            info[MPMediaItemPropertyArtist] = detail
-        }
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
-        MPNowPlayingInfoCenter.default().playbackState = readAloud.isSpeaking ? .playing : .paused
-    }
-
-    func clearNowPlaying() {
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-        MPNowPlayingInfoCenter.default().playbackState = .stopped
-        let centre = MPRemoteCommandCenter.shared()
-        for command in [
-            centre.playCommand, centre.pauseCommand, centre.togglePlayPauseCommand,
-            centre.nextTrackCommand, centre.previousTrackCommand,
-        ] {
-            command.isEnabled = false
-        }
-    }
-
-    /// Wires the lock screen's buttons to this reader.
-    ///
-    /// Registered when speech starts rather than when the book opens: a reader who never
-    /// presses play should not have their book appear in Control Centre.
-    func setUpRemoteCommands() {
-        let centre = MPRemoteCommandCenter.shared()
-        centre.playCommand.isEnabled = true
-        centre.pauseCommand.isEnabled = true
-        centre.togglePlayPauseCommand.isEnabled = true
-        // Sentence skip, in the buttons the platform gives an audio app for it. A book
-        // has no tracks, so these are the only two controls a lock screen offers that
-        // mean "move by one unit of the thing being played".
-        centre.nextTrackCommand.isEnabled = true
-        centre.previousTrackCommand.isEnabled = true
-
-        centre.playCommand.addTarget { [weak self] _ in
-            guard let self, !readAloud.isSpeaking else { return .commandFailed }
-            toggleReadAloud()
-            return .success
-        }
-        centre.pauseCommand.addTarget { [weak self] _ in
-            guard let self, readAloud.isSpeaking else { return .commandFailed }
-            toggleReadAloud()
-            return .success
-        }
-        centre.togglePlayPauseCommand.addTarget { [weak self] _ in
-            guard let self else { return .commandFailed }
-            toggleReadAloud()
-            return .success
-        }
-        centre.nextTrackCommand.addTarget { [weak self] _ in
-            guard let self else { return .commandFailed }
-            skipSentence(forward: true)
-            return .success
-        }
-        centre.previousTrackCommand.addTarget { [weak self] _ in
-            guard let self else { return .commandFailed }
-            skipSentence(forward: false)
-            return .success
-        }
-    }
-}
-
-// MARK: - Interruptions
-
-extension EpubReaderModel {
-
-    /// Listens for the audio being taken away and given back.
-    ///
-    /// `AVAudioSession.interruptionNotification` is the whole contract on iOS: a call, a
-    /// timer, Siri, another app. The session itself is Readium's — it activates and
-    /// deactivates one around each utterance — so this observes rather than manages.
-    ///
-    /// What happens next is ``ReadAloudSession``'s decision, not this method's.
-    func observeInterruptions() {
-        guard interruptions == nil else { return }
-        interruptions = NotificationCenter.default.addObserver(
-            forName: AVAudioSession.interruptionNotification,
-            object: AVAudioSession.sharedInstance(),
-            queue: .main
-        ) { [weak self] note in
-            guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
-                  let type = AVAudioSession.InterruptionType(rawValue: raw)
-            else { return }
-            let optionsRaw = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
-            let mayResume = AVAudioSession.InterruptionOptions(rawValue: optionsRaw)
-                .contains(.shouldResume)
-            MainActor.assumeIsolated {
-                self?.handleInterruption(type, mayResume: mayResume)
-            }
-        }
-    }
-
-    private func handleInterruption(
-        _ type: AVAudioSession.InterruptionType,
-        mayResume: Bool
-    ) {
-        switch type {
-        case .began:
-            guard readAloud.isSpeaking else { return }
-            readAloud = readAloud.interrupted()
-            speech?.pause()
-            publishNowPlaying()
-
-        case .ended:
-            let next = readAloud.interruptionEnded(mayResume: mayResume)
-            guard next != readAloud else { return }
-            readAloud = next
-            speech?.resume()
-            publishNowPlaying()
-
-        @unknown default:
-            return
-        }
-    }
-
-    /// Called when the screen goes away, so nothing outlives the book it is reading.
-    func endReadAloud() {
-        if let interruptions {
-            NotificationCenter.default.removeObserver(interruptions)
-            self.interruptions = nil
-        }
-        guard readAloud.isActive else { return }
-        stopReadAloud()
-    }
-}
-
-/// Readium's speech delegate, held by the model.
-///
-/// A separate object for the reason `NavigatorObserver` is one: the protocol comes from a
-/// module this package imports internally, and a `public` type cannot conform to it
-/// without re-exporting Readium to everything above.
-@MainActor
-final class SpeechObserver: PublicationSpeechSynthesizerDelegate {
-    private weak var model: EpubReaderModel?
-
-    init(model: EpubReaderModel) {
-        self.model = model
-    }
-
-    func publicationSpeechSynthesizer(
-        _ synthesizer: PublicationSpeechSynthesizer,
-        stateDidChange state: PublicationSpeechSynthesizer.State
-    ) {
-        Task { await model?.speechAdvanced(to: state) }
-    }
-
-    /// A sentence the engine could not say.
-    ///
-    /// Not turned into `failure`: the book is open and readable, and one unsupported
-    /// language in one utterance is not a reason to replace the page with an error. The
-    /// session is stopped instead, so the reader gets their play button back rather than
-    /// a transport that does nothing.
-    func publicationSpeechSynthesizer(
-        _ synthesizer: PublicationSpeechSynthesizer,
-        utterance: PublicationSpeechSynthesizer.Utterance,
-        didFailWithError error: PublicationSpeechSynthesizer.Error
-    ) {
-        Task { @MainActor in model?.stopReadAloud() }
+    /// A reader that never started a session, or whose session was displaced by another
+    /// book, releases nothing: ``ReadAloudCentre/release(_:)`` only lets go of the screen it
+    /// is actually being drawn by.
+    func detachReadAloud() {
+        ReadAloudCentre.shared.release(self)
+        speech = nil
     }
 }

@@ -138,16 +138,18 @@ public final class EpubReaderModel {
 
     /// Whether the voice is running, and what silenced it if it is not.
     ///
-    /// `ebook-reader`'s reading-aloud requirement. The transitions are
-    /// ``ReadAloudSession``'s, so the one decision in this that is not the platform's is
-    /// asserted without a speaker.
-    var readAloud = ReadAloudSession()
-
-    /// The sentence being spoken, or `nil` when nothing is.
+    /// Read from ``ReadAloudCentre`` rather than stored here, which is the whole of
+    /// `ebook-reader`'s "the session SHALL outlive the screen it was started from": this
+    /// screen observes the session, and does not own it.
     ///
-    /// Kept because the highlight and the page both follow it, and because Readium
-    /// reports it once per utterance rather than continuously.
-    var spoken: Locator?
+    /// Idle unless the book being spoken is *this* one. A reader looking at one book while
+    /// another is being read aloud gets no transport in its chrome — the transport for the
+    /// book being spoken is the one outside the reader, and a bar in here would offer to
+    /// pause a book that is not on screen.
+    var readAloud: ReadAloudSession {
+        let centre = ReadAloudCentre.shared
+        return centre.book?.id == publication.id ? centre.session : ReadAloudSession()
+    }
 
     /// Whether this book can be spoken at all, and therefore whether the control appears.
     ///
@@ -161,13 +163,11 @@ public final class EpubReaderModel {
     ///
     /// Built at open time rather than on the first press: the control has to know whether
     /// to appear at all before anyone touches it.
+    ///
+    /// Held only until a session starts. ``ReadAloudCentre`` takes a strong reference of its
+    /// own when the session begins, which is what lets this screen — and this property —
+    /// go while the voice carries on.
     @ObservationIgnored var speech: PublicationSpeechSynthesizer?
-
-    /// The synthesizer's delegate, held for the reason the navigator's observer is.
-    @ObservationIgnored var speechObserver: SpeechObserver?
-
-    /// The audio-interruption observation, so it can be taken down with the screen.
-    @ObservationIgnored var interruptions: (any NSObjectProtocol)?
 
     /// The navigator's delegate, held separately.
     ///

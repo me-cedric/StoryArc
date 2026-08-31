@@ -1,4 +1,7 @@
+import Foundation
 import Testing
+
+import StoryArcCore
 
 @testable import EpubReaderFeature
 
@@ -110,4 +113,90 @@ struct ReadAloudSessionTests {
         #expect(SpokenLabel.of(title: "Sea Room", chapter: nil, author: nil).detail == nil)
         #expect(SpokenLabel.of(title: "Sea Room", chapter: "", author: " ").detail == nil)
     }
+
+    // MARK: - Audio taken, and audio taken for good
+
+    /// The case that used to have no branch at all: the audio comes back but the platform
+    /// says the voice may not, and the session sat paused with nothing able to start it.
+    @Test("Audio taken for good ends the session rather than leaving it paused")
+    func takenForGood() {
+        #expect(speaking.interrupted().endingInterruption(mayResume: false) == .lost)
+    }
+
+    @Test("Audio given back starts an interruption's own pause again")
+    func givenBack() {
+        #expect(speaking.interrupted().endingInterruption(mayResume: true) == .resume)
+    }
+
+    /// Both halves of the same sentence in `ebook-reader`: a reader's pause is never
+    /// *resumed* by an interruption ending, and audio taken for good still ends the
+    /// session — because a session nothing can start is the thing the spec forbids.
+    @Test("An interruption ending never restarts a pause the reader made")
+    func readerPauseIsNotResumed() {
+        let paused = speaking.pausedByReader()
+        #expect(paused.endingInterruption(mayResume: true) == .nothing)
+        #expect(paused.endingInterruption(mayResume: false) == .lost)
+    }
+
+    @Test("Nothing happens to a session that was never running")
+    func idleIsNotInterrupted() {
+        #expect(idle.endingInterruption(mayResume: true) == .nothing)
+        #expect(idle.endingInterruption(mayResume: false) == .nothing)
+    }
+
+    // MARK: - One book at a time
+
+    @Test("Opening a publication while nothing speaks starts silent")
+    func handoverFromSilence() {
+        #expect(SessionHandover.opening("sea-room", whileSpeaking: nil) == .none)
+    }
+
+    /// Closing the publication mid-sentence and coming back to it: the reader picks the
+    /// voice up rather than starting a second session on the same book.
+    @Test("Reopening the book being spoken adopts the session")
+    func handoverToTheSameBook() {
+        #expect(SessionHandover.opening("sea-room", whileSpeaking: "sea-room") == .adopt)
+    }
+
+    @Test("Opening a different book displaces the voice")
+    func handoverToAnotherBook() {
+        #expect(SessionHandover.opening("the-peregrine", whileSpeaking: "sea-room") == .displace)
+    }
+
+    // MARK: - Where the listening got to
+
+    private let sentence = #"{"href":"/chapter-4.xhtml","type":"text/html"}"#
+
+    /// The path that can lose an hour. What the session hands the progress store is the
+    /// sentence the voice reached, as an opaque locator — never a page number, which a
+    /// reflowable book does not have.
+    @Test("The reached position is recorded as the sentence, not as a page")
+    func reachedPositionIsRecorded() {
+        let record = ReachedPosition(locator: sentence, progression: 0.42)
+            .record(for: identity, at: moment)
+        #expect(record.identity == identity)
+        #expect(record.position == .reflowable(progression: 0.42, locator: sentence))
+        #expect(record.updatedAt == moment)
+        #expect(!record.isFinished)
+    }
+
+    /// The end of the publication is the end of the content, not a page count.
+    @Test("Listening to the last sentence finishes the book")
+    func reachedTheEnd() {
+        let end = ReachedPosition(locator: sentence, progression: 1)
+        let nearlyThere = ReachedPosition(locator: sentence, progression: 0.9989)
+        #expect(end.record(for: identity, at: moment).isFinished)
+        #expect(!nearlyThere.record(for: identity, at: moment).isFinished)
+    }
+
+    /// A session the process is reclaimed under writes nothing more, so what was written
+    /// on the way has to stand on its own — and an empty locator would stand for nothing.
+    @Test("A sentence with no locator is not written over a good position")
+    func nothingWorthRecording() {
+        #expect(!ReachedPosition(locator: "", progression: 0.42).isRecordable)
+        #expect(ReachedPosition(locator: sentence, progression: 0).isRecordable)
+    }
+
+    private let identity = PublicationIdentity(normalizedPath: "/books/sea-room.epub")
+    private let moment = Date(timeIntervalSince1970: 1_700_000_000)
 }

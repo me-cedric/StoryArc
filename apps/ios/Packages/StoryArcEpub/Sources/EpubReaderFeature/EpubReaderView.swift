@@ -224,11 +224,12 @@ public struct EpubReaderView: View {
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
-            // The voice does not outlive the book it is reading. Backgrounding keeps it —
-            // that is the whole point — but closing the reader takes the lock-screen
-            // controls down with it, because a transport for a book nobody has open is a
-            // control that cannot be honoured.
-            model.endReadAloud()
+            // The voice outlives this screen. `ebook-reader`: closing the publication while
+            // it is being read leaves speech running and returns the listener "to whatever
+            // they were doing in the app rather than being kept in the book" — so this lets
+            // go of the session rather than ending it. Ending it here is what made leaving
+            // the book the same act as leaving the audio.
+            model.detachReadAloud()
             // `reading-themes`: the system brightness "is not permanently
             // modified". iOS's brightness is global, so leaving has to put it back
             // — Android's is a window attribute and reverts by itself.
