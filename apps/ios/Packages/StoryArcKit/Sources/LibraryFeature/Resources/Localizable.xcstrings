@@ -6925,6 +6925,93 @@
         }
       }
     },
+    "shelves.cover": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titelbild wählen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a cover"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir una portada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir une couverture"
+          }
+        }
+      }
+    },
+    "shelves.cover.about": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen Sie eines davon, oder lassen Sie die Sammlung ihre ersten vier Titelbilder zeigen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick one of these, or let the collection show its first four covers."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige una, o deja que la colección muestre sus cuatro primeras portadas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez-en une, ou laissez la collection montrer ses quatre premières couvertures."
+          }
+        }
+      }
+    },
+    "shelves.cover.composite": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die ersten vier Titelbilder"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The first four covers"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las cuatro primeras portadas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les quatre premières couvertures"
+          }
+        }
+      }
+    },
     "shelves.create": {
       "extractionState": "manual",
       "localizations": {
@@ -6979,6 +7066,93 @@
           "stringUnit": {
             "state": "translated",
             "value": "Supprimer"
+          }
+        }
+      }
+    },
+    "shelves.delete.collection.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Bücher und Comics darin bleiben in Ihrer Bibliothek. Nur die Sammlung verschwindet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The books and comics in it stay in your library. Only the collection goes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los libros y cómics que contiene siguen en tu biblioteca. Solo desaparece la colección."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les livres et les bandes dessinées qu’elle contient restent dans votre bibliothèque. Seule la collection disparaît."
+          }
+        }
+      }
+    },
+    "shelves.delete.list.body": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Bücher und Comics darin bleiben in Ihrer Bibliothek. Nur die Leseliste verschwindet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The books and comics in it stay in your library. Only the reading list goes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los libros y cómics que contiene siguen en tu biblioteca. Solo desaparece la lista de lectura."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les livres et les bandes dessinées qu’elle contient restent dans votre bibliothèque. Seule la liste de lecture disparaît."
+          }
+        }
+      }
+    },
+    "shelves.delete.title %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ löschen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@”?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar «%@»?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer « %@ » ?"
           }
         }
       }

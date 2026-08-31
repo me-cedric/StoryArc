@@ -242,6 +242,26 @@ extension LibraryModel {
         shelves = shelves.deleting(list: id)
         shelvesStore?.save(shelves)
     }
+
+    /// Deletes a shelf the reader has confirmed, and not one they have not.
+    ///
+    /// Internal because ``ShelfDeletion`` is: a confirmation that has been answered is this
+    /// module's own business, and the two calls above remain the way anything outside it
+    /// deletes a shelf.
+    func delete(_ deletion: ShelfDeletion) {
+        shelves = deletion.apply(to: shelves)
+        shelvesStore?.save(shelves)
+    }
+
+    /// Gives a collection a cover of its own, or hands it back to the composite with `nil`.
+    ///
+    /// `collections-and-reading-lists` makes the composite what a collection wears "unless
+    /// the user sets a specific one". ``Shelves/settingCover(_:on:)`` has always been able to
+    /// store the choice; this is the first thing that asks it to.
+    func setCover(_ member: String?, onCollection id: UUID) {
+        shelves = shelves.settingCover(member, on: id)
+        shelvesStore?.save(shelves)
+    }
 }
 
 extension LibraryModel {

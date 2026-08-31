@@ -14,6 +14,9 @@ struct CollectionDetail: View {
     let id: UUID
     let onOpen: (Publication, URL) -> Void
 
+    /// Whether the reader is choosing which cover this collection wears.
+    @State private var isChoosingCover = false
+
     var body: some View {
         let collection = model.shelves.collections.first { $0.id == self.id }
         let members = model.publications.filter { collection?.members.contains($0.id) == true }
@@ -44,6 +47,30 @@ struct CollectionDetail: View {
         // marked read. Membership rather than the grid: a publication whose file has gone is
         // still a member, and marking it read is still what the reader asked for.
         .shelfBulkActions(model: model, members: collection?.members ?? [])
+        // "unless the user sets a specific one". The offer lives here rather than on the
+        // shelf card, because choosing between four covers and one is a question about what
+        // is inside the collection, and this is the screen showing what is inside it. A
+        // collection holding nothing has nothing to offer, so it does not ask.
+        .toolbar {
+            if collection?.members.isEmpty == false {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isChoosingCover = true
+                    } label: {
+                        Label {
+                            Text("shelves.cover", bundle: .module)
+                        } icon: {
+                            Image(systemName: "square.grid.2x2")
+                        }
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $isChoosingCover) {
+            if let collection {
+                ShelfCoverPicker(model: model, collection: collection)
+            }
+        }
     }
 }
 

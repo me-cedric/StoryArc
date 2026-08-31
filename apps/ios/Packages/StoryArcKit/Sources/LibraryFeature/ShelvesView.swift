@@ -37,6 +37,13 @@ public struct ShelvesView: View {
     /// alert above it.
     @State private var edits = ShelfEditQueue()
 
+    /// The shelf a reader has asked to delete and not yet answered for.
+    ///
+    /// `collections-and-reading-lists`: deleting a collection is confirmed, and the
+    /// confirmation "states plainly that the publications themselves are not deleted". This
+    /// is the gap between the two — while it holds something, nothing has been written.
+    @State private var deleting: ShelfDeletion?
+
     /// Which kind the "new" sheet is making.
     private enum Kind: String, Identifiable {
         case collection
@@ -129,6 +136,7 @@ public struct ShelvesView: View {
                 bundle: .module
             )
         }
+        .shelfDeletionConfirmation($deleting, model: model)
     }
 
     // MARK: Sections
@@ -165,7 +173,7 @@ public struct ShelvesView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .contextMenu { deleteButton { model.delete(collection: collection.id) } }
+                        .contextMenu { deleteButton { deleting = ShelfDeletion(collection) } }
                     }
                     ForEach(server) { shelf in
                         NavigationLink {
@@ -220,7 +228,7 @@ public struct ShelvesView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .contextMenu { deleteButton { model.delete(list: list.id) } }
+                        .contextMenu { deleteButton { deleting = ShelfDeletion(list) } }
                     }
                     ForEach(server) { shelf in
                         NavigationLink {
