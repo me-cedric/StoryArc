@@ -76,7 +76,6 @@ struct ReadingListDetail: View {
 
     let model: LibraryModel
     let id: UUID
-    let onOpen: (Publication, URL) -> Void
 
     /// How the reader has asked to see the list, for as long as they are looking at it.
     ///
@@ -196,10 +195,17 @@ struct ReadingListDetail: View {
     private func row(_ entry: String, number: Int, isFinished: Bool) -> some View {
         let publication = model.publications.first { $0.id == entry }
 
-        Button {
-            guard let publication, let url = model.location(of: publication) else { return }
-            onOpen(publication, url)
-        } label: {
+        // The page, not the reader — which is what Android's equivalent does
+        // (`AppScreens.kt`) and what `publication-detail` asks of "every surface that shows
+        // a publication". The rule's own exception is a **resume affordance**, and this row
+        // is not one: it carries a number, a title and a finished mark, with no cover, no
+        // progress and no *Continue* wording. Nothing about it says a reader has already
+        // decided to read this one now, so sending them straight into the reader was the app
+        // deciding for them.
+        //
+        // An entry whose publication is gone stays disabled below, so the destination is
+        // always a publication the library still holds.
+        NavigationLink(value: publication.map(PublicationRoute.init)) {
             HStack(spacing: StoryArcSpace.md) {
                 Text("\(number)")
                     .textRole(.footnote)

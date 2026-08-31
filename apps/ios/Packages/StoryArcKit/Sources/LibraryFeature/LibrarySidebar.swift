@@ -165,7 +165,7 @@ public struct LibrarySidebar<Value: Hashable>: TabContent {
             ForEach(model.shelves.lists.prefix(Self.inlineShelfLimit)) { list in
                 Tab(value: value(.list(list.id))) {
                     NavigationStack {
-                        ReadingListDetail(model: model, id: list.id, onOpen: onOpen)
+                        ReadingListDetail(model: model, id: list.id)
                     }
                 } label: {
                     Label {

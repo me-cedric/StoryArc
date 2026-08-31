@@ -46,14 +46,23 @@ struct CoverCell: View {
     /// page is made of. It is also what gets the cell the system's own link behaviour, which
     /// a tap gesture never had.
     ///
-    /// Two cases still do not navigate, and neither is new. While the reader is picking, a
-    /// tap picks — opening a page mid-selection would throw away everything chosen so far.
-    /// And a publication that cannot be read at all is not tappable: `publication-formats`
-    /// requires a named refusal, the caption already carries it, and a page whose one action
-    /// is unavailable is a second place to read the same refusal.
+    /// One case still does not navigate: while the reader is picking, a tap picks, because
+    /// opening a page mid-selection would throw away everything chosen so far.
+    ///
+    /// **A publication no decoder can open used to be untappable too, and that was wrong.**
+    /// The argument was that `publication-formats` requires a named refusal, the caption
+    /// already carries it, and the page would be "a second place to read the same refusal".
+    /// It is not a second place — it is the place. `publication-detail` requires the page
+    /// reachable "from every surface that shows a publication", and the page answers a
+    /// refusal properly: `DetailActions` draws **no primary action at all** for one
+    /// (`primary` returns `EmptyView`) and states the named refusal under it. A cover that
+    /// leads nowhere is a cover a reader taps twice and then wonders about.
+    ///
+    /// Android removed this same gate, for this reason, and the two platforms had been
+    /// disagreeing about the one case the page was extended to cover.
     var body: some View {
         Group {
-            if isPicked == nil, publication.isOpenable {
+            if isPicked == nil {
                 NavigationLink(value: PublicationRoute(publication)) { cell }
                     .buttonStyle(.plain)
             } else {

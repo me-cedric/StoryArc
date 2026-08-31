@@ -109,19 +109,21 @@ private struct HomeShelfCard: View {
     /// every cover that is not a resume affordance to the page. `Keep reading` is the
     /// affordance that does resume, and it is ``HomeHero``, which still opens the book.
     ///
-    /// A publication that cannot be opened right now stays on the shelf, dimmed, and does
-    /// not lead anywhere: `home-screen` requires it kept and stated, and the page's own
-    /// primary action is the thing that cannot be honoured, so there is nothing there to
-    /// offer yet. That is the one place this differs from the library's grid, where the same
-    /// publication is dimmed for availability rather than refused for format.
+    /// A publication that cannot be opened right now stays on the shelf, dimmed — and it
+    /// **leads to the page**, which it did not before. `home-screen` requires it kept and
+    /// stated, and the old argument was that the page's primary action is the thing that
+    /// cannot be honoured, so there was nothing to offer there. There is: the page states
+    /// *why* it cannot be opened, which is the one question a dimmed card raises and the
+    /// shelf itself cannot answer. `publication-detail` requires the page reachable "from
+    /// every surface that shows a publication", and this was the surface it was not reachable
+    /// from.
+    ///
+    /// This is also what removed the last divergence with the library's grid, where the same
+    /// publication was already tappable.
     var body: some View {
         Group {
-            if isReadable {
-                NavigationLink(value: PublicationRoute(publication)) { card }
-                    .buttonStyle(.plain)
-            } else {
-                card
-            }
+            NavigationLink(value: PublicationRoute(publication)) { card }
+                .buttonStyle(.plain)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel([publication.displayTitle, subtitle].compactMap { $0 }.joined(separator: ", "))

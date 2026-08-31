@@ -211,7 +211,7 @@ public struct ShelvesView: View {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: StoryArcSpace.xl) {
                     ForEach(local) { list in
                         NavigationLink {
-                            ReadingListDetail(model: model, id: list.id, onOpen: onOpen)
+                            ReadingListDetail(model: model, id: list.id)
                         } label: {
                             // A list's tiles are its first four entries in *its* order, and
                             // its rail is how far through that order the reader is — the
