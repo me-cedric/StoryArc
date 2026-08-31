@@ -104,7 +104,8 @@ path where origin is named.
 #### Scenario: What the line never says
 - **WHEN** that line is composed
 - **THEN** it never names a protocol, a transport, a server product, a file path, a URL or an identifier
-- **AND** no other surface on the browse path — the home surface, the library, the on-device destination, search, shelves — states origin at all
+- **AND** no other surface on the browse path — the home surface, the library, the on-device destination, shelves — states origin at all
+- **AND** search results are the single exception, and only where more than one place could have answered the query, per [`library-browsing`](../library-browsing/spec.md): a search row is the choice itself, since a row a library supplied need not lead to this page at all, so the seam has nowhere else to be named
 
 #### Scenario: The same publication in two places
 - **WHEN** the library holds the same publication from more than one source

@@ -120,6 +120,19 @@ the shelf and the reader.
 
 ## Risks
 
+**Search turned out to be an exception, and the delta had ruled it out.** The
+provenance clause listed `search` among the surfaces that state origin nowhere.
+Search shipped naming the library each row came from, and it is right to: a
+search row is the choice itself — a row a library supplied leads to that
+library's own browser rather than here — so there is no page in between for the
+seam to be named on, and an unlabelled merge was photographed deleting a
+catalogue's only answer because two rows that read alike look like a duplicate.
+The clause now excepts search, and only where more than one place could have
+answered. The full reasoning is in
+[`one-library-three-destinations`](../one-library-three-destinations/design.md),
+whose own delta said the opposite and was settled the same day; that change owns
+`library-browsing` and this one only had to stop contradicting it.
+
 **The provenance line carries the whole argument, and it is one line.** If it is
 wrong the seam leaks: too technical and the browse path has a protocol name on it
 after all; too vague and a reader with the same volume in two places cannot tell
