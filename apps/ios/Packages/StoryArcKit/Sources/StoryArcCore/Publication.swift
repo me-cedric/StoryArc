@@ -238,6 +238,20 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
 
     /// Whether some pages are missing from what the reader will show.
     public var isPartial: Bool { skippedPageCount > 0 }
+
+    /// Whether the reflowable reader is the one that opens this publication.
+    ///
+    /// The rule `StoryArcApp` routes on, written down in the domain because the format
+    /// alone does not answer it and everyone assumes it does. A **fixed-layout** EPUB is
+    /// an EPUB by format and a stack of pictures in fact, so `ebook-reader` sends it to
+    /// the comic reader — which carries no typography controls, because a pre-paginated
+    /// page has no typography to control.
+    ///
+    /// It has a name and a test because the unnamed version fooled two UI audits in one
+    /// afternoon. Both walked to "the first EPUB on the shelf", both landed on a
+    /// pre-paginated one — two of this corpus's five EPUBs are, and they are the two whose
+    /// titles sort first — and so neither ever reached the reader it was named after.
+    public var isReflowable: Bool { format == .epub && !isFixedLayout }
 }
 
 /// The container formats a publication can arrive in.

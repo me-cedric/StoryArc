@@ -255,7 +255,7 @@ struct StoryArcApp: App {
                 // needs none. A fixed-layout EPUB is the third case and belongs
                 // with the comic reader — it has pages, at a fixed aspect ratio —
                 // which is what `ebook-reader` asks for.
-                if selection.publication.format == .epub, !selection.publication.isFixedLayout {
+                if selection.publication.isReflowable {
                     EpubReaderView(
                         publication: selection.publication,
                         url: selection.url,
