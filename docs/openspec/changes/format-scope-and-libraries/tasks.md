@@ -361,32 +361,77 @@ and `image-pages.pdf` (the scanned-comic case), both written by `generate.py`.
       it from what the container reported — all from headers, so a remote CBR is
       classified without being transferred. What remains is a UI to show it in,
       which does not exist yet.
-- [ ] **5.2** The download-instead-of-stream flow, with the size stated.
-      **The recorded blocker is stale, checked 2026-08-31.** It said "every source
-      in the app today is local, so there is no flow to enter and nothing whose
-      size could be stated". Three remote kinds ship now — `networkShare`,
-      `opdsCatalog` and `kavitaServer` (`Source.swift:6-8`) — `DownloadQueue`
-      has an `enqueue` on both platforms, and an OPDS acquisition states its
-      length in bytes as of this morning, which is the fact the "size stated"
-      half was waiting for.
-      What is actually missing is the reading of it. `.downloadOnly` has exactly
-      one producer, `PublicationIndexer.swift:367`, and **zero** production
-      readers on either platform: a publication that cannot be streamed is
-      classified correctly and then nothing offers to download it instead.
-      Android has one branch at `DetailActions.kt:54` whose sentence renders with
-      no button, because `onDownload` is null on that path. And no size is stated
-      before a single-publication download anywhere — SMB copies the whole file
-      silently with `entry.length` in hand.
-- [ ] **5.3** A downloaded solid archive opens with no notice at all. **True for
-      RAR5, false for RAR4** — see the finding below, and note that the finding
-      was corrected once a real solid RAR5 could be tested. The format layer is
-      ready: `isReadableWhenLocal` refuses solid RAR4 only, and `isStreamable`
-      flags both. What is left is the download flow itself.
-      **And this one is vacuously true today**, which is worth saying rather than
-      ticking: no solid-archive or streaming notice exists anywhere in either
-      codebase to suppress, and no test asserts its absence. So the honest way to
-      close it is a test that fails the day somebody adds such a notice, not a
-      tick that reads as a feature.
+- [x] **5.2** The download-instead-of-stream flow, with the size stated. **Done,
+      and the gap was not where the note said.** The recorded blocker — "every
+      source in the app today is local" — went stale: `Source` has `networkShare`,
+      `opdsCatalog` and `kavitaServer`, all three are built, and an SMB directory
+      entry has stated its length all along.
+
+      **The real gap was that the app already transferred whole publications and
+      never said so.** Both share browsers copied the file down the moment the
+      format's decoder wanted a path — `SmbBrowserView.open(_:)` on the record
+      `PublicationIndexer` hands back, `openFromShare` on `needsLocalFile(format)`
+      — with `entry.length` in hand and nothing shown. A four-hundred-megabyte
+      comic came across in silence. `publication-formats` asks for a sentence, a
+      size and an offer, so the copy is offered now and taken only on the answer.
+      The size goes through each platform's own byte formatter, the one the metered
+      confirmation and the storage rows already use.
+
+      **A second defect in the same flow, found while reading it.** Both browsers
+      opened whatever came back from the copy. A solid RAR4 indexes as `refused`
+      only once its bytes are local — libarchive reads `FHD_SOLID` through a path —
+      so a reader who had just waited for the whole transfer was taken to a reader
+      that cannot render page one. The local index is judged before anything opens,
+      and the refusal is a named sentence on both sides.
+
+      `StreamingOffer` is the decision, in `StoryArcCore` and `core:model`, with the
+      same eight cases asserted on each platform. Two of them are not obvious:
+      `refused` is only believed once the bytes are local, because both indexers use
+      it remotely to mean "its pages cannot be reached from here" and taking that at
+      face value would decline to fetch the very publication this task is about; and
+      a download-only publication already on the device is `Open`, which is 5.3
+      falling out of the same rule rather than a second one.
+
+      **Three things in the briefing that were checked and were wrong.** Android's
+      `DetailActions.kt:54` branch does render a button: `AppScreens.kt:263` passes
+      a non-null `onDownload` for any remote publication that is not downloaded.
+      iOS did have one production reader of `streaming` — `SmbBrowserView`, on
+      `.refused`. And a size *is* stated before a single-publication download, in
+      the metered confirmation on both platforms; what had none was the share.
+
+      **Deliberately not done: the size on the publication page's *needs download*
+      sentence.** `Publication.fileSize` is stamped by the local walk and by nothing
+      else on either platform, so a publication whose location is remote — the only
+      kind that reaches `NEEDS_DOWNLOAD` — carries no size to state.
+      `offline-downloads` prefers an honest absence to an invented figure, and a
+      string that can never render is what `DetailActions.kt`'s own KDoc says was
+      deleted from that file once already. It becomes worth adding the day a remote
+      scan stamps a length.
+
+      Both dialogs are new pixels and neither has been photographed: the download
+      offer over a share, on the emulator and on the simulator, with the size
+      visible. Reaching it needs `pnpm smb` serving a `.cbr` and a device that can
+      be driven — the same constraint 6.3 records for the iOS reader.
+- [x] **5.3** A downloaded solid archive opens with no notice at all. **Done as a
+      guard, because the claim was vacuously true.** The premise was checked before
+      anything was written: `:feature:reader`, `:feature:epubreader` and iOS's
+      `ReaderFeature` name no streaming capability at all, and no user-visible
+      string in either app mentions a solid archive. There was nothing to suppress,
+      so nothing could measure a suppression — and ticking the box would have ticked
+      a coincidence.
+
+      The positive half is `StreamingOffer.of` answering `Open` for a local
+      `downloadOnly` publication, asserted in both offer suites. The half that was
+      missing is anything that fails the day somebody adds the notice, so each
+      platform's comic reader now asserts an absence across its whole source tree:
+      no `StreamingCapability`, `StreamingOffer`, `downloadOnly`, `isSolid` or
+      `isStreamable`. A notice about the container would have to be gated on one of
+      them, because there is nothing else to gate it on — Android's `NetworkNotice`
+      is gated on how long a page has been blocked on the network, which is a fact
+      about now and is null for a file on the device.
+
+      Both suites also assert they found sources, because a guard over an empty list
+      passes forever.
 
 ## Finding — solid RAR4 is unreadable, solid RAR5 is fine
 
