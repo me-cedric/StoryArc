@@ -68,9 +68,12 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
       `Switch`, `toggleable` on the item.
 - [x] 3.10 Both: split level two into its own file. This is also the way off the
       800-line ratchet for `ThemeSheet.kt`.
-- [ ] 3.11 Both: assert both levels at the largest accessibility text size — no label
+- [x] 3.11 Both: assert both levels at the largest accessibility text size — no label
       truncated to fit its value, the surface scrolls, the action opening the axes
-      stays reachable.
+      stays reachable. **Asserted at the source, not photographed.** The scroll, the
+      absence of a line limit on the axis rows and the minimum gap between a name and
+      its value are what a guard can check; that nothing *looks* truncated at 200% is
+      what a screenshot proves, and 1.7 still owes that.
 
 ## 4. Reset by name
 

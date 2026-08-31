@@ -286,6 +286,45 @@ class ThemeSheetTest {
         )
     }
 
+    @Test
+    fun `both levels survive the largest accessibility text size`() {
+        val one = code("ThemeSheet.kt")
+        val two = code("ThemeAxesScreen.kt")
+
+        // `ebook-reader`, *Both levels at the largest text size*: "every preset name, axis
+        // label and value is readable in full, the surface scrolls if it must, and the action
+        // that opens the axes stays reachable AND no label is truncated to fit its value."
+        //
+        // Three things a source guard can check, and a screenshot is what proves the fourth.
+        for ((name, level) in listOf("Level one" to one, "Level two" to two)) {
+            assertTrue(
+                "$name does not scroll. At the largest accessibility text size the preset" +
+                    " grid alone is taller than a phone, so the action that opens the axes" +
+                    " would be off the bottom of a surface that cannot move.",
+                level.contains("verticalScroll(rememberScrollState())"),
+            )
+        }
+
+        assertTrue(
+            "The preset grid is a lazy grid again. Rows rather than `LazyVerticalGrid` is not" +
+                " a style choice: a lazy grid costs a *fixed height*, and at twice the system" +
+                " text size that clipped the label off the bottom of every card.",
+            !one.contains("LazyVerticalGrid"),
+        )
+        assertTrue(
+            "An axis row limits its label to one line. `ebook-reader`: \"no label is" +
+                " truncated to fit its value beside it\" — the name and the value share a" +
+                " row, so a line limit on the name is exactly how the truncation happens.",
+            !two.contains("maxLines = 1"),
+        )
+        assertTrue(
+            "The axis name does not take the room it needs. `Modifier.weight(1f)` on the name" +
+                " is what pushes the value to the end of the row instead of letting it" +
+                " squeeze the name out.",
+            two.contains("modifier = Modifier.weight(1f),"),
+        )
+    }
+
     private companion object {
         /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
         const val MODULE_DIRECTORY = "storyarc.epubreader.projectDir"

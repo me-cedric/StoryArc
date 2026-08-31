@@ -268,4 +268,48 @@ struct ThemeSheetTests {
             """
         )
     }
+
+    @Test("Both levels survive the largest accessibility text size")
+    func bothLevelsScaleUp() throws {
+        let one = try code(of: "ThemeSheet.swift")
+        let two = try code(of: "ThemeAxesSheet.swift")
+        let sliders = try code(of: "ThemeAxisSliders.swift")
+
+        // `ebook-reader`, *Both levels at the largest text size*: "every preset name, axis
+        // label and value is readable in full, the surface scrolls if it must, and the action
+        // that opens the axes stays reachable **AND** no label is truncated to fit its value."
+        //
+        // Three things a source guard can actually check, and a screenshot is what proves the
+        // fourth. The two that matter most are the scroll — without it the action under the
+        // grid is simply off the bottom of the sheet at twice the text size — and the absence
+        // of a line limit on the axis rows, which is the mechanism by which a label gets
+        // truncated to fit its value.
+        for level in [(name: "Level one", code: one), (name: "Level two", code: two)] {
+            #expect(
+                level.code.contains("ScrollView {"),
+                """
+                \(level.name) does not scroll. At the largest accessibility text size the        \
+                preset grid alone is taller than a phone, so the action that opens the axes      \
+                would be off the bottom of a surface that cannot move.
+                """
+            )
+        }
+
+        #expect(
+            !sliders.contains("lineLimit(1)"),
+            """
+            An axis row limits its label to one line. `ebook-reader`: "no label is \
+            truncated to fit its value beside it" — the name and the value share a row, so \
+            a line limit on the name is exactly how the truncation happens.
+            """
+        )
+        #expect(
+            sliders.contains("Spacer(minLength: StoryArcSpace.sm)"),
+            """
+            The axis row has no minimum gap between its name and its value. Without one \
+            the two run together at a large text size, which is the same defect as a \
+            truncation wearing a different name.
+            """
+        )
+    }
 }
