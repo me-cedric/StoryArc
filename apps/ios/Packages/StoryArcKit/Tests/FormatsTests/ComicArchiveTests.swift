@@ -150,6 +150,26 @@ struct ComicArchiveTests {
 
         #expect(readable.count == archive.pages.count)
     }
+
+    @Test("A password-protected archive is named as protected, and nothing is prompted for")
+    func passwordProtectedIsRefusedByItsDeclaration() async throws {
+        // `publication-formats`: "the app states that the archive is protected and
+        // does not prompt for a password, because StoryArc does not manage archive
+        // passwords." Both readers have refused on general-purpose bit 0 since they
+        // were written — `ZipCentralDirectory.swift:63` — and a verify pass on
+        // `format-scope-and-libraries` found the scenario asserted by **no test on
+        // either platform**. This is that test; `ComicArchiveTest.kt` is its twin.
+        //
+        // The fixture is real ZipCrypto over our own pages, not bit 0 set on
+        // plaintext, and that is deliberate. A fixture whose bytes are readable
+        // anyway cannot tell a correct refusal from a decoder that happened to cope,
+        // so it would pass against an implementation that never checked the flag.
+        let url = FixtureCorpus.url("comics/password-protected.cbz")
+
+        await #expect(throws: ComicArchiveError.passwordProtected) {
+            try await ComicArchiveOpener.open(fileAt: url)
+        }
+    }
 }
 
 @Suite("Container sniffing")

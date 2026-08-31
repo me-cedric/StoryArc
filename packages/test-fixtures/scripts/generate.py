@@ -221,6 +221,130 @@ register(
     compressionMethods=["stored"],
 )
 
+# ── 7b. ZipCrypto encryption ─────────────────────────────────────────────────
+# `publication-formats` says an archive requiring a password is reported as
+# protected and **not prompted for**, because StoryArc does not manage archive
+# passwords. Both readers already refuse on general-purpose bit 0
+# (`ZipCentralDirectory.swift`, `ZipReader.kt`) and neither had a fixture to prove
+# it — a verify pass on `format-scope-and-libraries` found the scenario asserted by
+# no test on either platform.
+#
+# This is real ZipCrypto, not a flag flipped on plaintext. That matters for the same
+# reason `protected.aax` still decodes: a refusal has to come from the *declaration*,
+# and a fixture whose bytes are readable anyway cannot tell a correct refusal from a
+# decoder that happened to cope. Verified against the system `unzip`, which accepts
+# the password below and rejects a wrong one.
+#
+# The entries are STORED, so unlike every DEFLATE fixture here this one **is**
+# byte-identical on any machine.
+
+ZIPCRYPTO_PASSWORD = b"storyarc"
+
+_CRC_TABLE = []
+for _i in range(256):
+    _c = _i
+    for _ in range(8):
+        _c = (_c >> 1) ^ 0xEDB88320 if _c & 1 else _c >> 1
+    _CRC_TABLE.append(_c)
+
+
+def _pkware_crc(crc: int, byte: int) -> int:
+    """CRC-32 without zlib's pre- and post-inversion, which is what PKWARE keys use."""
+    return (crc >> 8) ^ _CRC_TABLE[(crc ^ byte) & 0xFF]
+
+
+class _ZipCryptoKeys:
+    """The three-word PKWARE key schedule, from APPNOTE.TXT section 6.1."""
+
+    def __init__(self, password: bytes) -> None:
+        self.words = [0x12345678, 0x23456789, 0x34567890]
+        for byte in password:
+            self.update(byte)
+
+    def update(self, byte: int) -> None:
+        w = self.words
+        w[0] = _pkware_crc(w[0], byte)
+        w[1] = (((w[1] + (w[0] & 0xFF)) & 0xFFFFFFFF) * 134775813 + 1) & 0xFFFFFFFF
+        w[2] = _pkware_crc(w[2], (w[1] >> 24) & 0xFF)
+
+    def stream_byte(self) -> int:
+        temp = (self.words[2] | 2) & 0xFFFF
+        return ((temp * (temp ^ 1)) >> 8) & 0xFF
+
+
+def _zipcrypto(plain: bytes, password: bytes, check: int) -> bytes:
+    """The 12-byte encryption header plus the ciphertext.
+
+    The header's last byte is the high byte of the entry's CRC, which is how a
+    reader tells a wrong password from a right one before decompressing anything.
+    """
+    keys = _ZipCryptoKeys(password)
+    out = bytearray()
+    for byte in bytes(11) + bytes([check]) + plain:
+        out.append(byte ^ keys.stream_byte())
+        keys.update(byte)
+    return bytes(out)
+
+
+def write_encrypted_archive(name: str, entries: list[tuple[str, bytes]]) -> None:
+    """A ZIP of STORED, ZipCrypto-encrypted entries, written by hand.
+
+    `zipfile` cannot write encrypted entries at all, and post-processing one it
+    wrote would mean patching every central-directory offset after the first entry
+    grew by twelve bytes. Writing the structures directly is shorter and the offsets
+    are then correct by construction.
+    """
+    if not WRITE:
+        return
+    body = bytearray()
+    central = bytearray()
+    for entry_name, data in entries:
+        crc = zlib.crc32(data) & 0xFFFFFFFF
+        cipher = _zipcrypto(data, ZIPCRYPTO_PASSWORD, (crc >> 24) & 0xFF)
+        raw_name = entry_name.encode()
+        offset = len(body)
+        flags = 0x0001  # bit 0 — "the entry is encrypted". The whole point.
+        body += (
+            struct.pack(
+                "<IHHHHHIIIHH", 0x04034B50, 20, flags, 0, 0, 0,
+                crc, len(cipher), len(data), len(raw_name), 0,
+            )
+            + raw_name
+            + cipher
+        )
+        central += (
+            struct.pack(
+                "<IHHHHHHIIIHHHHHII", 0x02014B50, 20, 20, flags, 0, 0, 0,
+                crc, len(cipher), len(data), len(raw_name), 0, 0, 0, 0, 0, offset,
+            )
+            + raw_name
+        )
+    cd_offset = len(body)
+    body += central
+    body += struct.pack(
+        "<IHHHHIIH", 0x06054B50, 0, 0, len(entries), len(entries),
+        len(central), cd_offset, 0,
+    )
+    (COMICS / name).write_bytes(bytes(body))
+
+
+write_encrypted_archive(
+    "password-protected.cbz",
+    [(f"page{index}.png", page(index)) for index in (1, 2)],
+)
+fixtures.append(
+    {
+        "file": "comics/password-protected.cbz",
+        "pins": "an archive requiring a password is reported as protected, and no password is prompted for",
+        "expectedRefusal": "passwordProtected",
+        "expectedPageCount": 0,
+        "expectedPageOrder": [],
+        "encryption": "zipcrypto",
+        "compressionMethods": ["stored"],
+        "note": "Real ZipCrypto over our own fixture pages, not a flag set on plaintext — a fixture whose bytes are readable anyway cannot tell a correct refusal from a decoder that coped. Checked against the system unzip: it accepts the password and rejects a wrong one. STORED entries, so this fixture is byte-identical on any machine.",
+    }
+)
+
 # ── 8. Zip64 structures ──────────────────────────────────────────────────────
 # Zip64 extra fields, without a 4 GB file: `force_zip64` writes the 64-bit
 # structures for a small entry, which is exactly the parsing path we need to

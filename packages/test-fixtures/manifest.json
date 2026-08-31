@@ -103,6 +103,18 @@
       ]
     },
     {
+      "file": "comics/password-protected.cbz",
+      "pins": "an archive requiring a password is reported as protected, and no password is prompted for",
+      "expectedRefusal": "passwordProtected",
+      "expectedPageCount": 0,
+      "expectedPageOrder": [],
+      "encryption": "zipcrypto",
+      "compressionMethods": [
+        "stored"
+      ],
+      "note": "Real ZipCrypto over our own fixture pages, not a flag set on plaintext \u2014 a fixture whose bytes are readable anyway cannot tell a correct refusal from a decoder that coped. Checked against the system unzip: it accepts the password and rejects a wrong one. STORED entries, so this fixture is byte-identical on any machine."
+    },
+    {
       "file": "comics/zip64.cbz",
       "pins": "Zip64 extra fields parse \u2014 64-bit sizes and offsets",
       "expectedPageCount": 3,

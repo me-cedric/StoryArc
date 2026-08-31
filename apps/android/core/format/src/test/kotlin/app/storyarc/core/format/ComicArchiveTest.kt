@@ -161,6 +161,29 @@ class ComicArchiveTest {
             assertEquals(archive.pages.size, archive.readableData(archive.pages).size)
         }
     }
+
+    @Test
+    fun `a password-protected archive is named as protected, and nothing is prompted for`() {
+        // `publication-formats`: "the app states that the archive is protected and
+        // does not prompt for a password, because StoryArc does not manage archive
+        // passwords." Both readers have refused on general-purpose bit 0 since they
+        // were written — `ZipReader.kt:170` — and a verify pass on
+        // `format-scope-and-libraries` found the scenario asserted by **no test on
+        // either platform**. This is that test; iOS's `ComicArchiveTests` is its twin.
+        //
+        // The fixture is real ZipCrypto over our own pages, not bit 0 set on
+        // plaintext, and that is deliberate. A fixture whose bytes are readable
+        // anyway cannot tell a correct refusal from a decoder that happened to cope,
+        // so it would pass against an implementation that never checked the flag.
+        // `assertThrows` over the file's own `runBlocking` idiom, matching the
+        // unreadable-RAR test above: it names the expected type, so a refusal of the
+        // wrong kind fails as loudly as no refusal at all.
+        assertThrows(ComicArchiveException.PasswordProtected::class.java) {
+            kotlinx.coroutines.runBlocking {
+                ComicArchiveOpener.open(FixtureCorpus.file("comics/password-protected.cbz"))
+            }
+        }
+    }
 }
 
 class FormatSnifferTest {
