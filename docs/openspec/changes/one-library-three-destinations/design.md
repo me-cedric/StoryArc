@@ -64,6 +64,99 @@ and takes over the screen* — and each expresses it with its own control. Putti
 a separated circular search button into a Material navigation bar would read as a
 port, which is the failure this whole revamp exists to fix.
 
+## Two clauses this delta wrote, and why both were withdrawn
+
+Settled **2026-08-31**, after search shipped on both platforms. Recorded here
+rather than in a commit message because `/opsx:sync` erases the delta and keeps
+nothing that explains it.
+
+Both clauses were in *Mixed local and server search*. Both contradicted the main
+spec or the app, and search had been built following the **main spec** — the main
+spec is the contract and a delta is a proposal, so the code was right to. A sync
+would have reverted shipped, tested behaviour in one case and shipped a promise
+the code cannot keep in the other.
+
+### "No result is labelled with the source that supplied it" — withdrawn
+
+The main spec asks for results "each labelled with its source". The clause said
+the opposite, and its reasoning was the revamp's own: origin is invisible on the
+browse path, and the publication's page is the one place that names it.
+
+That reasoning holds for a **shelf** and fails for a **search**, and the
+difference is what the reader asked.
+
+- A shelf is a wall of covers, and the reader is telling books apart by artwork.
+  A source line under each one competes with the one thing doing the work. The
+  argument is sound and *Unified library* keeps it.
+- A search is a list of rows answering a question more than one place can answer.
+  Here origin is not decoration; it is part of the answer. And a search result is
+  the **choice itself** — a row a server supplied leads to that server's own
+  browser, not to the publication page, so there is no page in between for the
+  seam to be named on.
+
+The evidence for it is on disk rather than in an argument.
+`docs/designs/screenshots/after-2026-08-31/ios-search-remote-and-away-dark.png`
+is a search with a catalogue and a folder configured. The server's log records
+`200 GET /opds/all?q=Fine%20Print`. The catalogue's one match never reaches the
+screen: it had the title the device already held, and the unlabelled merge folded
+it out of existence with nothing on screen to say a catalogue had answered. That
+is what an unlabelled list costs — with no label, two rows that read alike look
+like a bug, so the merge deletes one; with a label, they are two facts a reader
+can tell apart.
+
+**What replaces it is narrower than the main spec, not a straight revert.** The
+label is drawn when more than one *place* could have answered, the places being
+the origins of what the device matched plus every library asked, decided once
+when the question is put rather than as answers land. So the delta's intent
+survives where it was right: a reader with one library sees no origin anywhere,
+because there was never a question. The rule is deliberately **not** the shelf's
+— the shelf gates on more than one *source configured*, and one server plus files
+another app handed over is one source, which hid the label in the commonest mixed
+search there is.
+
+Two consequences, both taken:
+
+- The fold rule is now a clause of its own. It is the half that makes the label
+  more than decoration, and it is the half that was photographed failing.
+- [`publication-detail`](../publication-detail/proposal.md)'s own delta named
+  `search` among the surfaces that "state origin at all", which this decision
+  makes false. That clause was corrected in the same pass; the two changes are
+  independent proposals and were about to sync into a contradiction.
+
+### "The arrival of remote results never reorders or displaces a result the reader is already reaching for" — withdrawn as unkeepable, replaced by what is true
+
+This clause is in no main spec. It was a promise the delta invented, and the
+implementation cannot keep it as written while also keeping a requirement the
+same spec already makes.
+
+Results are partitioned by match kind, because *Typing a query* asks for exactly
+that — "grouped by match kind — series, publication, person, tag". Ranking runs
+**across** kinds within one answer. So a late row whose kind already has a
+heading lands inside that heading and pushes every later heading down by as many
+rows as arrived. A result can move *down*.
+
+The only way to fix the position is to append every late row at the very bottom
+under a fresh heading of its own kind — and that shatters the device's own answer
+into repeated headings before a server has said anything, because the device's
+answer is already interleaved across kinds. One heading per kind and a fixed
+position are not both available. The heading rule is the one a spec already
+requires, so it wins.
+
+**The honest promise, which the code does keep and which is now the clause:** no
+result is removed, replaced or reordered against another. A result never moves
+up, never past another result, and never under a different heading.
+
+**What is genuinely lost, named rather than buried.** The clause's concern was a
+reader's finger, not a data structure, and a list that pushes rows down under a
+reader who is reaching for one is still a small betrayal. The data layer is
+already append-only, which is the half a view cannot do for itself; the other
+half is scroll anchoring in each platform's own list, so what is on screen stays
+where the reader is looking when rows arrive above it. That is a view-level
+behaviour, it is buildable on both platforms, and it is **not specified here** —
+writing it into this clause would have put an unimplemented promise into a
+delta whose whole problem was unimplemented promises. It belongs to whoever next
+opens search.
+
 ## What must be rewritten before any of it
 
 **Android navigation, entirely.** `MainActivity.kt` is 1168 lines holding roughly

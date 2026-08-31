@@ -71,7 +71,14 @@ waits on a server.**
 - **Unified library** — the library is one library and stays one library. Scoping
   to a single source stops being a mode.
 - **Search** — results are grouped by what the match is, never by which server
-  answered, and remote results arrive late without holding up local ones.
+  answered, and remote results arrive late without holding up local ones. Each
+  row still names the library that supplied it, where more than one place could
+  have answered: this delta first said it should not, and that clause was
+  **withdrawn on 2026-08-31** along with a second one promising that a late
+  answer never moves a row at all. The design document says why, at *Two clauses
+  this delta wrote, and why both were withdrawn* — read it before restoring
+  either, because the first was photographed deleting a catalogue's only answer
+  and the second cannot be kept alongside one heading per match kind.
 - **Filtering** — availability becomes the primary axis, and source survives as
   one filter among the others.
 - **Presentation** — a cover carries at most two marks, progress and

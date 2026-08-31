@@ -52,8 +52,9 @@ group results by what the match is rather than by which source answered.
 #### Scenario: Mixed local and server search
 - **WHEN** a query spans a server source and a local folder
 - **THEN** locally held results render immediately and remote results fill in as they arrive, merged into the same ranked groups
-- **AND** no result is labelled with the source that supplied it
-- **AND** the arrival of remote results never reorders or displaces a result the reader is already reaching for
+- **AND** each result names the library that supplied it, but only where more than one place could have answered — what the device itself matched counting as one place, and each library asked as another — because where only one place could answer, every row would carry the same words
+- **AND** two libraries that both hold the same publication produce two results and never one: a duplicate is folded only where the same library answered twice
+- **AND** a late answer only ever adds, so no result is removed, replaced or reordered against another: a result can be pushed down by rows arriving above it, and never moves up, never past another result, and never under a different heading
 
 #### Scenario: A source is slow or cannot answer
 - **WHEN** a source is slow, or fails to answer a query
