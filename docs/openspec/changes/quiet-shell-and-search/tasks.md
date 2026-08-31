@@ -29,7 +29,7 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       horizontal items in medium windows and the file composes its own items, so it
       inherits neither.
 - [x] 1.8 Android: pass both. Gates: `pnpm gradle`, `pnpm build:android:tests`.
-- [ ] 1.9 Both: `pnpm capture:ios` / `pnpm capture:android home` before and after,
+- [x] 1.9 Both: `pnpm capture:ios` / `pnpm capture:android home` before and after,
       into `docs/designs/screenshots/`, at default and largest text size. §6 owes a
       control shot for a visible change.
 
