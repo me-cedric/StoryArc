@@ -163,4 +163,19 @@
     <string name="downloads_remove_body_imported">Cela supprime la copie de %1$s conservée par StoryArc et libère %2$s. Le fichier d’origine ailleurs sur votre appareil n’est pas touché.</string>
 
     <string name="downloads_manage_in_destination">Tout ce qui est sur cet appareil, et tout ce qui arrive encore, se trouve dans T\u00e9l\u00e9chargements.</string>
+
+    <!-- What's new. Shown once after an update, and reachable from About afterwards. -->
+    <string name="whats_new_title">Nouveaut\u00e9s de StoryArc</string>
+    <string name="whats_new_version">Version %1$s</string>
+    <string name="whats_new_continue">Continuer</string>
+    <string name="whats_new_about">Nouveaut\u00e9s</string>
+    <string name="whats_new_earlier">Versions pr\u00e9c\u00e9dentes</string>
+    <string name="whats_new_0_1_0_sources_title">Toutes vos biblioth\u00e8ques</string>
+    <string name="whats_new_0_1_0_sources_body">Les dossiers de cet appareil, les catalogues OPDS, les serveurs Kavita et les partages r\u00e9seau, sur une seule \u00e9tag\u00e8re.</string>
+    <string name="whats_new_0_1_0_reading_title">Fait pour \u00eatre lu</string>
+    <string name="whats_new_0_1_0_reading_body">Cinq polices, six th\u00e8mes de lecture, et une page qui se tourne comme du papier.</string>
+    <string name="whats_new_0_1_0_place_title">Votre page est retenue</string>
+    <string name="whats_new_0_1_0_place_body">L\u2019endroit o\u00f9 vous vous \u00eates arr\u00eat\u00e9 est retrouv\u00e9 m\u00eame apr\u00e8s un fichier renomm\u00e9 ou d\u00e9plac\u00e9, et votre serveur Kavita en est inform\u00e9.</string>
+    <string name="whats_new_0_1_0_private_title">Rien ne quitte l\u2019appareil</string>
+    <string name="whats_new_0_1_0_private_body">Pas de compte, pas de statistiques. StoryArc ne parle qu\u2019aux biblioth\u00e8ques que vous avez ajout\u00e9es.</string>
 </resources>

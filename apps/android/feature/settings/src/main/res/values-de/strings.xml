@@ -163,4 +163,19 @@
     <string name="downloads_remove_body_imported">Dies löscht die von StoryArc aufbewahrte Kopie von %1$s und gibt %2$s frei. Die Originaldatei anderswo auf Ihrem Gerät bleibt unberührt.</string>
 
     <string name="downloads_manage_in_destination">Alles auf diesem Ger\u00e4t, und alles, was noch ankommt, finden Sie unter Downloads.</string>
+
+    <!-- What's new. Shown once after an update, and reachable from About afterwards. -->
+    <string name="whats_new_title">Neu in StoryArc</string>
+    <string name="whats_new_version">Version %1$s</string>
+    <string name="whats_new_continue">Weiter</string>
+    <string name="whats_new_about">Neuerungen</string>
+    <string name="whats_new_earlier">Fr\u00fchere Versionen</string>
+    <string name="whats_new_0_1_0_sources_title">Alle Ihre Bibliotheken</string>
+    <string name="whats_new_0_1_0_sources_body">Ordner auf diesem Ger\u00e4t, OPDS-Kataloge, Kavita-Server und Netzwerkfreigaben, in einem Regal.</string>
+    <string name="whats_new_0_1_0_reading_title">Zum Lesen gemacht</string>
+    <string name="whats_new_0_1_0_reading_body">F\u00fcnf Schriften, sechs Lesethemen und eine Seite, die sich wie Papier umbl\u00e4ttert.</string>
+    <string name="whats_new_0_1_0_place_title">Ihre Stelle bleibt erhalten</string>
+    <string name="whats_new_0_1_0_place_body">Wo Sie aufgeh\u00f6rt haben, wird auch nach einer Umbenennung oder Verschiebung wiedergefunden, und Ihr Kavita-Server erf\u00e4hrt davon.</string>
+    <string name="whats_new_0_1_0_private_title">Nichts verl\u00e4sst das Ger\u00e4t</string>
+    <string name="whats_new_0_1_0_private_body">Kein Konto, keine Analyse. StoryArc spricht nur mit den Bibliotheken, die Sie selbst hinzugef\u00fcgt haben.</string>
 </resources>

@@ -168,4 +168,19 @@
     <string name="downloads_remove_body_imported">This deletes the copy of %1$s that StoryArc keeps, freeing %2$s. The original file elsewhere on your device is not touched.</string>
 
     <string name="downloads_manage_in_destination">Everything on this device, and anything still arriving, is in Downloads.</string>
+
+    <!-- What's new. Shown once after an update, and reachable from About afterwards. -->
+    <string name="whats_new_title">What\u2019s New in StoryArc</string>
+    <string name="whats_new_version">Version %1$s</string>
+    <string name="whats_new_continue">Continue</string>
+    <string name="whats_new_about">What\u2019s new</string>
+    <string name="whats_new_earlier">Earlier versions</string>
+    <string name="whats_new_0_1_0_sources_title">Every library you have</string>
+    <string name="whats_new_0_1_0_sources_body">Folders on this device, OPDS catalogues, Kavita servers and network shares, all on one shelf.</string>
+    <string name="whats_new_0_1_0_reading_title">Made to be read</string>
+    <string name="whats_new_0_1_0_reading_body">Five typefaces, six reading themes, and a page that turns like paper.</string>
+    <string name="whats_new_0_1_0_place_title">Your place is kept</string>
+    <string name="whats_new_0_1_0_place_body">Where you stopped is found again after a file is renamed or moved, and your Kavita server is told.</string>
+    <string name="whats_new_0_1_0_private_title">Nothing leaves the device</string>
+    <string name="whats_new_0_1_0_private_body">No account, no analytics. StoryArc talks only to the libraries you added yourself.</string>
 </resources>

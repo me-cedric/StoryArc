@@ -70,11 +70,11 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 
 ## 3. What's new
 
-- [ ] 3.1 Both: `WhatsNewTests` / `WhatsNewTest` — first launch ever shows nothing
+- [x] 3.1 Both: `WhatsNewTests` / `WhatsNewTest` — first launch ever shows nothing
       and records the version as seen; a version change shows the entry once; a
       second launch at the same version shows nothing; a version with no entry shows
       nothing and still records.
-- [ ] 3.2 Both: the changelog entries ship with the app as a resource, keyed by
+- [x] 3.2 Both: the changelog entries ship with the app as a resource, keyed by
       version, localised in the four shipped languages. Nothing is fetched.
 - [ ] 3.3 iOS: present as a `.sheet` with `.presentationDetents([.large])` from
       `AppShell` on first appearance after a version change.

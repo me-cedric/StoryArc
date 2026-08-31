@@ -163,4 +163,19 @@
     <string name="downloads_remove_body_imported">Esto elimina la copia de %1$s que guarda StoryArc y libera %2$s. El archivo original en otro lugar de su dispositivo no se toca.</string>
 
     <string name="downloads_manage_in_destination">Todo lo que hay en este dispositivo, y todo lo que a\u00fan est\u00e1 llegando, est\u00e1 en Descargas.</string>
+
+    <!-- What's new. Shown once after an update, and reachable from About afterwards. -->
+    <string name="whats_new_title">Novedades de StoryArc</string>
+    <string name="whats_new_version">Versi\u00f3n %1$s</string>
+    <string name="whats_new_continue">Continuar</string>
+    <string name="whats_new_about">Novedades</string>
+    <string name="whats_new_earlier">Versiones anteriores</string>
+    <string name="whats_new_0_1_0_sources_title">Todas sus bibliotecas</string>
+    <string name="whats_new_0_1_0_sources_body">Carpetas de este dispositivo, cat\u00e1logos OPDS, servidores Kavita y recursos compartidos en red, en un solo estante.</string>
+    <string name="whats_new_0_1_0_reading_title">Hecho para leerse</string>
+    <string name="whats_new_0_1_0_reading_body">Cinco tipograf\u00edas, seis temas de lectura y una p\u00e1gina que se pasa como el papel.</string>
+    <string name="whats_new_0_1_0_place_title">Su punto de lectura se conserva</string>
+    <string name="whats_new_0_1_0_place_body">Donde lo dej\u00f3 se vuelve a encontrar aunque el archivo cambie de nombre o de sitio, y su servidor Kavita se entera.</string>
+    <string name="whats_new_0_1_0_private_title">Nada sale del dispositivo</string>
+    <string name="whats_new_0_1_0_private_body">Sin cuenta y sin anal\u00edticas. StoryArc solo habla con las bibliotecas que usted a\u00f1adi\u00f3.</string>
 </resources>

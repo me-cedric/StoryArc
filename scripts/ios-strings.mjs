@@ -46,12 +46,25 @@ const POSITIONAL = /%\d+\$/
 /**
  * A localised lookup in Swift source.
  *
- * Matches `Text("…"` and `String(localized: "…"`, which is every way this codebase asks
- * for a string. Deliberately not a Swift parser: the key is always a literal that starts
- * the argument, because a `LocalizedStringKey` built any other way cannot be extracted by
- * Xcode either and would be a defect in its own right.
+ * Matches `Text("…"`, `String(localized: "…"` and `LocalizedStringKey("…"`, which is every
+ * way this codebase asks for a string. Deliberately not a Swift parser: the key is always a
+ * literal that starts the argument, because a `LocalizedStringKey` built any other way
+ * cannot be extracted by Xcode either and would be a defect in its own right.
+ *
+ * The third form arrived with the what's-new log, which is a list of *values* carrying two
+ * keys each rather than a view carrying two `Text`s. Written as a bare `String` those keys
+ * would be invisible here — a typo in one would render the key to a reader and no gate
+ * would say so, which is the whole failure this file exists to stop.
+ *
+ * **That third form takes a static literal only**, which is the second capture group and
+ * why it refuses a `\(`. `LocalizedStringKey("reading.matte.\(key)")` picks one of eight
+ * keys at run time, and its skeleton `reading.matte.%` is a key no catalogue defines or
+ * should; reading it as a lookup reports a defect in code that is correct. The first two
+ * forms keep accepting interpolation, because there SwiftUI derives the key from the
+ * literal and the catalogue really does hold the interpolated shape.
  */
-const LOOKUP = /(?:Text\(\s*|String\(\s*localized:\s*)"((?:[^"\\]|\\.)*)"/g
+const LOOKUP =
+    /(?:Text\(\s*|String\(\s*localized:\s*)"((?:[^"\\]|\\.)*)"|LocalizedStringKey\(\s*"((?:[^"\\]|\\[^(])*)"/g
 
 /** Anything that consumes one argument, positional or not, of any type. */
 const SPECIFIER = /%(?:\d+\$)?(?:@|lld|ld|d|f|lf)/g
@@ -156,7 +169,8 @@ export const check = (root) => {
 
         for (const source of sources) {
             const seen = new Set()
-            for (const [, literal] of readFileSync(source, 'utf8').matchAll(LOOKUP)) {
+            for (const [, interpolated, staticKey] of readFileSync(source, 'utf8').matchAll(LOOKUP)) {
+                const literal = interpolated ?? staticKey
                 // A literal without a dotted head is a sentence typed inline rather than a
                 // key. `Text(verbatim:)` never reaches the catalogue and is already excluded
                 // by the pattern; this catches the rest.
@@ -190,6 +204,27 @@ const selfTest = () => {
     ]) {
         const got = derivedSkeleton(literal)
         if (got !== expected) fail(`derivedSkeleton(${literal}) = "${got}", expected "${expected}"`)
+    }
+
+    // Every call form the scan knows, so a new one cannot be added to LOOKUP without a
+    // case here — and an old one cannot be dropped from it in silence.
+    for (const [source, expected] of [
+        ['Text("settings.reset", bundle: .module)', 'settings.reset'],
+        ['String(localized: "settings.reset", bundle: .module)', 'settings.reset'],
+        ['title: LocalizedStringKey("whatsnew.0-1-0.sources.title"),', 'whatsnew.0-1-0.sources.title'],
+    ]) {
+        const found = [...source.matchAll(LOOKUP)].map(([, a, b]) => a ?? b)
+        if (found.length !== 1 || found[0] !== expected) {
+            fail(`LOOKUP over ${source} found ${JSON.stringify(found)}, expected ["${expected}"]`)
+        }
+    }
+    if ([...'Text(verbatim: "a plain sentence")'.matchAll(LOOKUP)].length !== 0) {
+        fail('LOOKUP matches Text(verbatim:), which never reaches the catalogue')
+    }
+    // A key assembled at run time is not a lookup this file can check, and reading it as
+    // one reports `reading.matte.%` against a catalogue that correctly has no such key.
+    if ([...'LocalizedStringKey("reading.matte.\\(key)")'.matchAll(LOOKUP)].length !== 0) {
+        fail('LOOKUP reads an interpolated LocalizedStringKey as a static key')
     }
 
     if (POSITIONAL.test('about.version %@ %@')) fail('POSITIONAL fires on a derived key')
