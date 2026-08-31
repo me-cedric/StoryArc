@@ -87,7 +87,13 @@ const crashes = failures.filter((f) => f.includes('CRASHED'))
 const accessibility = failures.filter((f) => /: (UNNAMED|RAW-VALUE|SMALL)\b/.test(f))
 const unreachable = failures.filter((f) => !crashes.includes(f) && !accessibility.includes(f))
 
-console.log(`\n${routes.length - failures.length}/${routes.length} routes walked and survived`)
+// Counted from the routes, not from the failures. Subtracting every failure conflated the
+// three kinds all over again, one line below the comment saying not to: with `--a11y` on,
+// three accessibility problems on two screens made a clean walk of sixteen routes report
+// `13/16`, which reads as three screens that could not be reached. Somebody chased that as
+// a regression for an hour. A screen with an unnamed view is a screen this walk *reached*.
+const walked = routes.length - crashes.length - unreachable.length
+console.log(`\n${walked}/${routes.length} routes walked and survived`)
 if (crashes.length) {
   console.log(`\n${crashes.length} CRASHED:`)
   for (const failure of crashes) console.log(`  ${failure}`)
