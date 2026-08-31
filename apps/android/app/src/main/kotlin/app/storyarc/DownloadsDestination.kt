@@ -99,12 +99,29 @@ internal fun DownloadsDestination(host: AppHost) {
         snackbarHost = { SnackbarHost(snackbars) },
     ) { padding ->
         LazyVerticalGrid(
-            // The library shelf's own rule, asked rather than restated here. This grid used
-            // `GridCells.Adaptive`, which takes a lower bound and no upper one, so it drew
-            // 175 dp covers on a 1067 dp emulator while the library's stopped at the 168 dp
-            // maximum — the readable-range clause of `library-browsing`, held on one shelf
-            // and not the other. The spacing matches for the same reason: two shelves of one
-            // library that answer the same window differently read as two apps.
+            // The library shelf's own rule, asked rather than restated here.
+            //
+            // What entitles this destination to the library's rule is this destination's own
+            // spec, not the library's: `offline-downloads`, "Everything on this device" —
+            // added by the in-flight `one-library-three-destinations` change, which is what
+            // this file exists for — says it is "presented with the same grid, the same cells
+            // and the same publication pages as the library". The rule that grid follows is
+            // `library-browsing`'s Adaptive-columns scenario.
+            //
+            // This grid used `GridCells.Adaptive`, which takes a lower bound and no upper one.
+            // At the 158 dp tier a 971 dp surface divides into five columns of 175 dp, and the
+            // library's stopped at the 168 dp maximum: the readable-range half of that
+            // scenario, held on one shelf and not the other.
+            //
+            // The spacing below matches the library grid's for the same reason — two shelves
+            // of one library that answer the same window differently read as two apps — and
+            // that means `md` 12, not the `coverGap` 14 the tokens define for exactly this
+            // gap. This shelf used `coverGap` and was moved *off* it, because the grid it has
+            // to match had already drifted onto `md`. `coverGap` keeps two callers, both
+            // horizontal runs rather than grids: Home's shelves and a publication page's
+            // series shelf. Which of the two spacings is right is open, and written down in
+            // `design.md` §4 rather than left silent — a token dropped without a word is the
+            // drift this file was rewritten to stop.
             columns = rememberCoverColumns(),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(

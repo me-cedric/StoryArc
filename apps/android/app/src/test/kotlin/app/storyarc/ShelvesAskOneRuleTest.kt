@@ -16,8 +16,14 @@ import org.junit.Test
  * declined to call it. `rememberCoverColumns` is `@Composable`, and neither `:app` nor
  * `:feature:library` declares Robolectric or a Compose test rule in `testImplementation` — the
  * only suites that could compose it are instrumented, which do not run in the unit gate. So
- * the honest reach is the source itself. It is cheap, it names the rule it enforces, and it
- * fails the moment a shelf stops asking.
+ * the honest reach is the source itself. It is cheap, and it names the rule it enforces.
+ *
+ * Reading files Gradle does not know about is how a source-reading test goes quietly stale:
+ * `:app`'s classpath does not carry another module's *test* sources, so appending the ladder
+ * to one of those left `:app:testDebugUnitTest` UP-TO-DATE with the third assertion violated.
+ * `app/build.gradle.kts` now declares every `.kt` under the Gradle root as an input of this
+ * task, which is what makes "it fails the moment a shelf stops asking" true on an incremental
+ * run and not only on a clean one.
  *
  * What it deliberately does **not** assert is that the two shelves show the same number of
  * columns. They cannot, and a test saying so would be asserting something untrue of the app:
@@ -28,13 +34,16 @@ import org.junit.Test
 class ShelvesAskOneRuleTest {
 
     /**
-     * The grids that lay out the reader's own publications, and the whole of that list.
+     * The two full grids of the reader's own publications, and the whole of *that* list.
      *
-     * Both were written against `design.md` §4 and one of them held a copy of it. The three
-     * remote-browsing grids — `CatalogueBrowserScreen`, `KavitaBrowserScreen`,
-     * `KavitaShelfScreens` — are covers too and are *not* here: they still ask for a bare
-     * `GridCells.Adaptive(140.dp)` with no upper bound and no accessibility step, which is a
-     * live gap recorded in `design.md` §4 rather than one this file pretends is closed.
+     * Both were written against `design.md` §4 and one of them held a copy of it. This is not
+     * every cover in the app and must not be read as one: eight further surfaces state widths
+     * of their own and take no accessibility step — `CatalogueBrowserScreen`,
+     * `KavitaBrowserScreen`, `KavitaShelfScreens`, `CatalogueGroups`, `ShelfCoverChoice`,
+     * `DetailSeriesShelf`, `ShelvesScreen` and `CoverList`. `design.md` §4 tabulates all
+     * eight with what each states and how the list was arrived at. They are a live gap, not
+     * one this file pretends is closed, and adding one here without converting it would fail
+     * rather than pass.
      */
     private val shelves = listOf(
         "app/src/main/kotlin/app/storyarc/DownloadsDestination.kt",

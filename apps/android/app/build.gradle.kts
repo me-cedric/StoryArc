@@ -116,3 +116,28 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
+/*
+ * `ShelvesAskOneRuleTest` reads Kotlin source, so Kotlin source is one of its inputs.
+ *
+ * Gradle knows nothing about a file a test opens by path: it tracks the classpath, and every
+ * module's *test* sources are outside `:app`'s. So appending the cover ladder to, say,
+ * `:core:designsystem`'s test sources left `:app:testDebugUnitTest` UP-TO-DATE with the
+ * assertion violated — reproduced, and it is what this declaration fixes. Declaring the tree
+ * makes the task re-run when any of it changes, which is the only thing that makes the test's
+ * own promise — that it fails the moment a shelf stops asking — true on an incremental build.
+ *
+ * The tree is the same one the test walks: every `.kt` under the Gradle root, `build/`
+ * excluded because it holds generated and copied sources nothing a reviewer writes.
+ * Relative path sensitivity, so moving the checkout does not invalidate it.
+ */
+tasks.withType<Test>().configureEach {
+    inputs.files(
+        fileTree(rootDir) {
+            include("**/*.kt")
+            exclude("**/build/**")
+        },
+    )
+        .withPropertyName("androidKotlinSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}

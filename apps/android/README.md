@@ -37,10 +37,18 @@ the rule was `internal` to `:feature:library` the Downloads shelf carried its ow
 copy of `design.md` §4's ladder. A copy drifts one clause at a time, and this one
 had twice: `b2ededa4` fixed the font scale *in the copy* rather than removing the
 copy, and the missing upper bound was still open — 175 dp covers on a 1067 dp
-emulator against a 168 dp maximum. A shelf of the reader's own publications calls
-`rememberCoverColumns` and states nothing itself; `:app`'s `ShelvesAskOneRuleTest`
-reads the call sites to keep it that way. The three remote-browsing grids in
-`:feature:library` are not on the rule yet — `design.md` §4 names them.
+emulator against a 168 dp maximum. Those two shelves now call
+`rememberCoverColumns` and state nothing themselves, and `:app`'s
+`ShelvesAskOneRuleTest` names them by path and reads their call sites to keep it
+that way.
+
+**It is those two, and not every cover in the app.** Eight further surfaces still
+give a cover a width of their own — three remote grids, a remote row, the
+shelf-cover picker, a publication page's series shelf, the shelves lattice and
+the library's list-view thumbnail. `design.md` §4 lists all eight in a table with
+what each states. Home's own two runs are a third case again: they read the same
+accessibility step through `:core:designsystem`, but the Keep reading card keeps
+tiers of its own because it is a card, not a grid cell.
 
 Every module compiles with `allWarningsAsErrors`, and `:app` runs Lint with
 `warningsAsErrors`.
