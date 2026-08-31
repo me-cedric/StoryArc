@@ -193,3 +193,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.storyarc.StoryArcUITests
         TEST_TARGET_NAME: StoryArc
+        # Without this the target cannot be code-signed and the build fails before a
+        # single test runs -- "Cannot code sign because the target does not have an
+        # Info.plist file and one is not being generated automatically". A UI test bundle
+        # has no plist of its own in this repository and does not want one; Xcode
+        # generates what it needs. This is why the audit below had never been run.
+        GENERATE_INFOPLIST_FILE: true

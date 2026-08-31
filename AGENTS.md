@@ -168,6 +168,13 @@ Parallel agents each get their own git worktree and a branch. The worktree is a 
 checkout, and once Gradle and SwiftPM have built in it, roughly **700 MB** — four agents is
 three gigabytes. So the cycle has an end, and the end is part of the task.
 
+**Check what your worktree branched from, before anything else.** A worktree is not
+always cut from the tip: two agents in one wave started 14 and 15 commits behind `main`,
+and one of them had been briefed to build on a function that did not exist at its base.
+`git log --oneline main..HEAD` and `HEAD..main` answer it in a second. If your branch has
+no commits of its own, `git merge --ff-only main` before you start; if it already has some,
+say so in your report and let the parent decide — do not rebase.
+
 **While you are working in one:**
 
 - **Commit each coherent piece as you finish it.** A mirrored pure type with its tests is a
