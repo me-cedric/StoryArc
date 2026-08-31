@@ -142,7 +142,10 @@ class MainActivity : ComponentActivity() {
                 if (settings.language != language) recreate()
             }
 
-            StoryArcTheme(appearance = settings.appearance, useDynamicColor = true) {
+            StoryArcTheme(
+                appearance = settings.appearance,
+                useDynamicColor = settings.useDynamicColor,
+            ) {
                 // Provided around the whole app so both readers can fill it in, and so
                 // `onKeyDown` has something to read. Volume-down turns forward, which is the
                 // convention every reader app that offers this uses — down is "next", like a

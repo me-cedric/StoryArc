@@ -23,6 +23,9 @@
     <string name="appearance_dark">Dunkel</string>
     <string name="appearance_oled_dark">OLED-Dunkel</string>
     <string name="appearance_oled_dark_note">Bedienoberfläche in echtem Schwarz. Die Seite bleibt knapp darüber, weil reines Schwarz auf OLED beim Seitenwechsel schmiert.</string>
+    <string name="appearance_dynamic_colour">Farben vom Hintergrundbild nehmen</string>
+    <string name="appearance_dynamic_colour_note">Standardmäßig an. Ausschalten für StoryArcs eigene Palette. Cover behalten so oder so ihren neutralen Grund.</string>
+    <string name="appearance_dynamic_colour_oled_note">OLED-Dunkel nutzt bereits StoryArcs Palette: ein Hintergrundbild-Ton über echtem Schwarz ist keines von beiden.</string>
     <string name="appearance_link_theme">Lesethema an die App anpassen</string>
     <string name="appearance_link_theme_note">Standardmäßig aus. Eine dunkle App mit einer papierweißen Seite ist eine legitime Vorliebe.</string>
     <string name="reading_volume_buttons">Lautstärketasten blättern</string>

@@ -14,9 +14,11 @@ package app.storyarc.feature.settings
  * licences and "Language" is the whole group, so both stay group matches — pointing at
  * them would be pointing at a screen, which arriving there already does.
  *
- * Mirrored case for case by iOS's `SettingsAnchor`.
+ * Mirrored case for case by iOS's `SettingsAnchor` bar one: `DYNAMIC_COLOUR` has no iOS
+ * counterpart, because Material You is Android's and there is nothing there to opt out of.
  */
 internal enum class SettingsAnchor {
+    DYNAMIC_COLOUR,
     LINK_READING_THEME,
     VOLUME_BUTTONS,
     READING_DEFAULTS,
@@ -35,7 +37,7 @@ internal enum class SettingsAnchor {
      */
     val group: SettingsGroup
         get() = when (this) {
-            LINK_READING_THEME -> SettingsGroup.APPEARANCE
+            DYNAMIC_COLOUR, LINK_READING_THEME -> SettingsGroup.APPEARANCE
             VOLUME_BUTTONS, READING_DEFAULTS -> SettingsGroup.READING
             DOWNLOADS_WIFI_ONLY, DOWNLOADS_REMOVE_AFTER_FINISHING, DOWNLOADS_LIMIT ->
                 SettingsGroup.DOWNLOADS
@@ -48,6 +50,7 @@ internal enum class SettingsAnchor {
      */
     val titleRes: Int
         get() = when (this) {
+            DYNAMIC_COLOUR -> R.string.appearance_dynamic_colour
             LINK_READING_THEME -> R.string.appearance_link_theme
             VOLUME_BUTTONS -> R.string.reading_volume_buttons
             READING_DEFAULTS -> R.string.reading_defaults

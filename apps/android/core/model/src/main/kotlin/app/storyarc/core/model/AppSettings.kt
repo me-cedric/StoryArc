@@ -52,6 +52,23 @@ data class AppSettings(
      * "its progress is kept, and the removal is undoable for 10 seconds".
      */
     val removeDownloadsAfterFinishing: Boolean = false,
+    /**
+     * Whether the chrome takes its colours from the wallpaper.
+     *
+     * `native-experience`: the scheme "derives from the user's wallpaper by default, with a
+     * setting to use the StoryArc palette instead". On by default, which is the half that
+     * was already true -- the opt-out is the half that was not, and until it existed the
+     * only way back to the brand palette was to choose OLED Dark, which is a different
+     * setting meaning a different thing.
+     *
+     * Read only where [appearance] is not OLED Dark. True black and a wallpaper-derived
+     * wash are incompatible asks and the explicit choice wins; `StoryArcTheme` decides
+     * that, once, so no call site has to remember it.
+     *
+     * Android-only in effect. iOS has no dynamic colour to opt out of, so there is
+     * deliberately no counterpart in `AppSettings.swift`.
+     */
+    val useDynamicColor: Boolean = true,
 ) {
     companion object {
         /**

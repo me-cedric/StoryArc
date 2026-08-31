@@ -41,10 +41,29 @@ internal val AppearanceMode.noteRes: Int?
     get() = if (this == AppearanceMode.OLED_DARK) R.string.appearance_oled_dark_note else null
 
 /**
- * Appearance, and the one opt-in that ties it to the reading theme.
+ * Which of the two colour sources dresses the chrome, and what it is called.
  *
- * The two are separate by default and the spec says why: "a dark app chrome with a
- * paper-white page is a legitimate preference". The switch is the "single opt-in setting"
+ * `native-experience`: the scheme "derives from the user's wallpaper by default, with a
+ * setting to use the StoryArc palette instead". Null while the switch means what it says.
+ *
+ * Non-null under OLED Dark alone, and for the same reason [noteRes] is: true black and a
+ * wallpaper-derived wash are incompatible asks, and the explicit choice wins. `StoryArcTheme`
+ * has always decided that -- the switch is inert there whatever it is set to -- so the row
+ * says so rather than pretending to control something it does not.
+ */
+internal fun dynamicColourNoteRes(appearance: AppearanceMode): Int =
+    if (appearance.isTrueBlack) {
+        R.string.appearance_dynamic_colour_oled_note
+    } else {
+        R.string.appearance_dynamic_colour_note
+    }
+
+/**
+ * Appearance, the colour source, and the one opt-in that ties the appearance to the
+ * reading theme.
+ *
+ * The last two are separate by default and the spec says why: "a dark app chrome with a
+ * paper-white page is a legitimate preference". That switch is the "single opt-in setting"
  * the same requirement then allows for readers who want them linked.
  */
 @Composable
@@ -84,6 +103,42 @@ internal fun AppearanceGroup(
                     }
                 }
             }
+        }
+
+        // `native-experience`'s opt-out. Disabled rather than hidden under OLED Dark: the
+        // reader's answer is still stored and still shown, and a switch that silently did
+        // nothing would be worse than one that says why it cannot.
+        val dynamicColourApplies = !settings.appearance.isTrueBlack
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = settings.useDynamicColor,
+                    enabled = dynamicColourApplies,
+                    role = Role.Switch,
+                    onValueChange = { onChange(settings.copy(useDynamicColor = it)) },
+                )
+                .padding(top = StoryArcSpace.md)
+                .settingsHighlight(SettingsAnchor.DYNAMIC_COLOUR, highlight),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.appearance_dynamic_colour),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textPrimary,
+                )
+                Text(
+                    text = stringResource(dynamicColourNoteRes(settings.appearance)),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = palette.textTertiary,
+                )
+            }
+            Switch(
+                checked = settings.useDynamicColor,
+                onCheckedChange = null,
+                enabled = dynamicColourApplies,
+            )
         }
 
         // The row is the toggleable, not the switch inside it. A switch on its own is

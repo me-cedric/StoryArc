@@ -23,6 +23,9 @@
     <string name="appearance_dark">Sombre</string>
     <string name="appearance_oled_dark">Sombre OLED</string>
     <string name="appearance_oled_dark_note">Interface en noir absolu. La page reste juste au-dessus du noir : le noir pur bave sur OLED pendant une tourne de page.</string>
+    <string name="appearance_dynamic_colour">Prendre les couleurs du fond d’écran</string>
+    <string name="appearance_dynamic_colour_note">Activé par défaut. Désactivez-le pour la palette propre à StoryArc. Les couvertures gardent leur fond neutre dans les deux cas.</string>
+    <string name="appearance_dynamic_colour_oled_note">Sombre OLED utilise déjà la palette de StoryArc : une teinte de fond d’écran sur du noir absolu n’est ni l’un ni l’autre.</string>
     <string name="appearance_link_theme">Accorder le thème de lecture à l’application</string>
     <string name="appearance_link_theme_note">Désactivé par défaut. Une application sombre avec une page blanche est une préférence légitime.</string>
     <string name="reading_volume_buttons">Les touches de volume tournent les pages</string>

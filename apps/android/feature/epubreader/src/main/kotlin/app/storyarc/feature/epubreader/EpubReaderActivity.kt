@@ -315,9 +315,17 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             )
         }
 
+        // `native-experience`'s Material You opt-out, read once. Nothing can change it while
+        // a book is open -- settings live in the other activity -- and this screen is started
+        // fresh from a library that has already been rebuilt against the new answer.
+        val useDynamicColor = SettingsStore.open(applicationContext).settings().useDynamicColor
+
         val chrome = ComposeView(this).apply {
             setContent {
-                StoryArcTheme(appearance = AppearanceMode.SYSTEM, useDynamicColor = true) {
+                StoryArcTheme(
+                    appearance = AppearanceMode.SYSTEM,
+                    useDynamicColor = useDynamicColor,
+                ) {
                     val progression by model.progression.collectAsStateWithLifecycle()
                     val chapter by model.chapterTitle.collectAsStateWithLifecycle()
                     val failure by model.failure.collectAsStateWithLifecycle()

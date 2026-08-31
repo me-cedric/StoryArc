@@ -183,6 +183,8 @@ internal val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
         SettingMatch.of(SettingsGroup.SOURCES),
     listOf("appearance", "theme", "dark", "light", "night", "oled", "black", "colour", "color") to
         SettingMatch.of(SettingsGroup.APPEARANCE),
+    listOf("dynamic", "wallpaper", "material you", "brand", "palette") to
+        SettingMatch.of(SettingsAnchor.DYNAMIC_COLOUR),
     listOf("link", "match", "chrome") to SettingMatch.of(SettingsAnchor.LINK_READING_THEME),
     listOf("reading", "page", "turn") to SettingMatch.of(SettingsGroup.READING),
     listOf("volume", "buttons", "keys", "page turn") to
