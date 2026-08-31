@@ -52,6 +52,12 @@ struct ScanningView: View {
 /// `surfaceRaised` and `surfaceSunken`, and untinted Liquid Glass is none of them.
 /// ``View/storyArcGlassText(_:)`` carries the whole argument, and the app's own neutral
 /// comes back with the opaque fallback.
+///
+/// **A capsule that hugs its sentence, not a band across the window.** Every other piece of
+/// chrome this app draws is a floating capsule — the tab bar, the search field, the toolbar
+/// group at the top of the shelf — and this strip was the only rectangle in the app. A
+/// full-bleed bar pinned above the tab bar reads as a wall between the reader and the
+/// artwork, which is the opposite of the rule chrome here is held to: it recedes.
 struct ScanSummary: View {
     let found: Int
     let skipped: Int
@@ -60,9 +66,9 @@ struct ScanSummary: View {
         Text("library.skipped \(skipped)", bundle: .module)
             .textRole(.footnote)
             .storyArcGlassText()
+            .padding(.horizontal, StoryArcSpace.md)
             .padding(.vertical, StoryArcSpace.sm)
-            .frame(maxWidth: .infinity)
-            .storyArcGlass(in: Rectangle())
+            .storyArcGlass()
     }
 }
 
@@ -245,8 +251,12 @@ struct UnavailableFolderNotice: View {
                     .textRole(.footnote)
             }
         }
-        .padding(.horizontal, StoryArcSpace.gutter)
+        .padding(.horizontal, StoryArcSpace.md)
         .padding(.vertical, StoryArcSpace.sm)
-        .storyArcGlass(in: Rectangle())
+        // A capsule like the rest of this app's chrome — see ``ScanSummary``. It keeps its
+        // width here, because a sentence with an action beside it needs the room the
+        // sentence takes; what it stops doing is running to both edges of the window.
+        .storyArcGlass()
+        .padding(.horizontal, StoryArcSpace.gutter)
     }
 }
