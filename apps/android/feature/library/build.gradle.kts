@@ -74,6 +74,9 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    // `runTest`, for the two suspend decisions behind the share browser. See
+    // `ShareOpeningTest`.
+    testImplementation(libs.kotlinx.coroutines.test)
     // A composition on the JVM, for layout claims the unit gate has to be able to check.
     // See `ListOrderChipsWrapTest`.
     testImplementation(libs.robolectric)

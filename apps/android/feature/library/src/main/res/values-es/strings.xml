@@ -263,7 +263,8 @@
     <string name="smb_metered_body">Esta conexión está medida o el ahorro de datos está activado. Leer «%1$s» consumirá datos del recurso.</string>
     <string name="smb_metered_continue">Leerlo</string>
     <string name="smb_download_first_title">¿Descargarla primero?</string>
-    <string name="smb_download_first_body">«%1$s» no se puede leer página a página. Primero tiene que llegar el archivo completo: %2$s.</string>
+    <string name="smb_download_first_body">«%1$s» no se puede abrir directamente desde el recurso compartido: este formato necesita un archivo en el dispositivo. Ocupa %2$s.</string>
+    <string name="smb_download_first_body_unstated">«%1$s» no se puede abrir directamente desde el recurso compartido: este formato necesita un archivo en el dispositivo. El recurso no indica su tamaño.</string>
     <string name="smb_found">En esta red</string>
     <string name="smb_error_encryption">Este servidor requiere cifrado SMB 3, que StoryArc aún no admite. Configura el cifrado del servidor como activado en lugar de obligatorio.</string>
     <string name="downloads_undo">Deshacer</string>

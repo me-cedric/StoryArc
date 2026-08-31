@@ -6,23 +6,30 @@ import org.junit.Test
 import java.io.File
 
 /**
- * That the share browser still *asks* before it fetches a whole publication.
+ * That the share browser still *asks* before it fetches a whole publication, and still routes
+ * both decisions through the pair a test can drive.
  *
  * `StreamingOfferTest` pins the rule -- what the app owes a reader for a publication it cannot
- * read where it lies. It cannot pin the wiring, and the wiring is where the defect lived:
- * `openFromShare` copied the entire file down whenever the format's decoder wanted a path,
- * with `entry.length` already in hand and nothing said to the reader. Putting that copy back
- * inside the tap leaves `StreamingOffer` compiled, used elsewhere, and every one of its own
- * tests green.
+ * read where it lies. `ShareOpeningTest` pins what the browser feeds that rule and what it
+ * does with the answer, by calling `offerOrOpen` and `openWhatArrived` directly. Neither can
+ * pin the wiring, and the wiring is where the defect lived: `openFromShare` copied the entire
+ * file down whenever the format's decoder wanted a path, with `entry.length` already in hand
+ * and nothing said to the reader.
  *
  * **So this test reads the source text, and that is a deliberate second choice**, for
  * `:feature:epubreader`'s `ReaderChromeWiringTest`'s reason. The honest test drives the
  * browser against a real share and watches what crosses the wire, which needs `pnpm smb`
  * and a booted emulator; `.github/workflows/android.yml` boots one for
  * `:core:format:connectedDebugAndroidTest` and nothing else. A guard that runs beats a better
- * one that does not. It is a tripwire, not a proof: it says the transfer is behind the
- * reader's answer, never that the dialog rendered. iOS keeps the same guard in
- * `SmbTransferWiringTests.swift`.
+ * one that does not.
+ *
+ * **What it is allowed to assert, and what it is not.** Its earlier form claimed to check
+ * that "what arrives is judged before the reader is sent to it" and actually checked that
+ * `StreamingOffer.of(` appeared before `onOpen(` in the file. Deleting the judgement and
+ * calling `onOpen` unconditionally kept that order and passed. Textual order is not a
+ * behaviour, so the behaviour is asserted in `ShareOpeningTest` and what is left here is the
+ * one thing text can honestly say: that the composable delegates instead of deciding for
+ * itself. iOS keeps the same guard in `SmbTransferWiringTests.swift`.
  */
 class SmbTransferWiringTest {
 
@@ -74,14 +81,32 @@ class SmbTransferWiringTest {
     }
 
     @Test
-    fun `the offer that does the deciding is the shared rule`() {
-        // Twice: once for what was found on the share, once for what arrived from it.
-        val decisions = source.split("StreamingOffer.of(").size - 1
+    fun `both decisions go through the pair that is tested`() {
+        // Once for what was found on the share, once for what arrived from it. Deciding
+        // inline again is what put the judgement somewhere only a text search could reach.
         assertEquals(
-            "SmbBrowserScreen should ask StreamingOffer twice — what to do with what it found" +
-                " on the share, and whether what arrived can be opened.",
-            2,
-            decisions,
+            "The tap should reach offerOrOpen, which ShareOpeningTest drives.",
+            1,
+            source.split("offerOrOpen(").size - 1,
+        )
+        assertEquals(
+            "The transfer's answer should reach openWhatArrived, which ShareOpeningTest" +
+                " drives.",
+            1,
+            source.split("openWhatArrived(").size - 1,
+        )
+    }
+
+    @Test
+    fun `the browser never opens a publication it decided about itself`() {
+        // The mutation this test exists for: calling `onOpen(publication, local)` from the
+        // composable bypasses the tested decision entirely, and `ShareOpeningTest` would stay
+        // green because the function it drives is still correct. `onOpen = onOpen` as an
+        // argument is not a call and does not match.
+        assertTrue(
+            "SmbBrowserScreen invokes onOpen itself. Opening belongs to offerOrOpen and" +
+                " openWhatArrived, which judge the publication first — see ShareOpeningTest.",
+            !source.contains("onOpen("),
         )
     }
 
@@ -96,17 +121,13 @@ class SmbTransferWiringTest {
     }
 
     @Test
-    fun `what arrives is judged before the reader is sent to it`() {
-        val transfer = source.substring(source.indexOf("fun transfer("))
-        val decision = transfer.indexOf("StreamingOffer.of(")
-        val opening = transfer.indexOf("onOpen(")
-        // A solid RAR4 indexes as REFUSED only once its bytes are local, so this order is the
-        // whole of "does not hold for solid RAR4, which is refused whether local or remote".
-        // Opening first is what used to send a reader who had waited for the file to a reader
-        // that cannot render page one.
+    fun `a share that stated no size has a sentence of its own`() {
+        // `offline-downloads` asks for an absence rather than a zero, and the dialog formats
+        // a non-optional Long — so without this branch a zero-length entry reads "0 B".
         assertTrue(
-            "transfer opens the publication before asking whether it can be opened.",
-            decision >= 0 && opening >= 0 && decision < opening,
+            "The download offer must have the second body the metered confirmation already" +
+                " has, for the entry whose length the share did not state.",
+            source.contains("R.string.smb_download_first_body_unstated"),
         )
     }
 

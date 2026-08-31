@@ -44,9 +44,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.model.Publication
-import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
-import app.storyarc.core.model.StreamingOffer
 import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.smb.SmbClient
 import app.storyarc.core.smb.SmbEntry
@@ -69,8 +67,8 @@ import kotlinx.coroutines.withContext
  * libarchive both want a real file, so those have to be copied down first -- and the copy is
  * *offered* rather than taken. `publication-formats` asks the app to say "the format has to be
  * downloaded before it can be read", state the size, and offer it; this screen used to fetch
- * four hundred megabytes in silence with `entry.length` already in hand. [StreamingOffer] is
- * where that is decided, and iOS's `SmbBrowserView` decides it the same way.
+ * four hundred megabytes in silence with `entry.length` already in hand. `ShareOpening.kt` is
+ * where both decisions live, and iOS's `SmbBrowserView` decides them the same way.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -102,27 +100,21 @@ fun SmbBrowserScreen(
 
     // Indexes from the share's own headers, then does what the offer says. The tap and the
     // metered confirmation both arrive here, so the decision is written once.
+    //
+    // Both decisions live in `ShareOpening.kt` rather than here, and that is the point: a JVM
+    // gate can only read a composable as text, and `ShareOpeningTest` drives these two
+    // functions with a publication of its choosing instead.
     fun openOrOffer(entry: SmbEntry) {
         scope.launch {
             opening = entry.path
-            runCatching { indexOnShare(client, address, entry) }
-                .onSuccess { (publication, remotePath) ->
-                    val offer = StreamingOffer.of(
-                        streaming = publication.streaming,
-                        isLocal = false,
-                        readsWhereItLies = !needsLocalFile(publication.format),
-                        bytes = entry.length,
-                    )
-                    when (offer) {
-                        is StreamingOffer.Open -> onOpen(publication, remotePath)
-                        is StreamingOffer.Download ->
-                            transferring = TransferAsk(entry, offer.bytes ?: entry.length)
-                        is StreamingOffer.Refuse -> failure = R.string.detail_refused_body
-                    }
-                }
-                // Said out loud rather than swallowed. A tap that does nothing is the worst
-                // answer a screen can give.
-                .onFailure { failure = R.string.smb_error_unexpected }
+            offerOrOpen(
+                index = { indexOnShare(client, address, entry) },
+                length = entry.length,
+                onOpen = onOpen,
+                onOffer = { bytes -> transferring = TransferAsk(entry, bytes) },
+                onRefuse = { failure = R.string.detail_refused_body },
+                onFailure = { failure = it },
+            )
             opening = null
         }
     }
@@ -131,26 +123,12 @@ fun SmbBrowserScreen(
     fun transfer(entry: SmbEntry) {
         scope.launch {
             opening = entry.path
-            runCatching { fetchAndIndex(context, client, address, entry) }
-                .onSuccess { (publication, local) ->
-                    // The first moment the container can say what it really is: a solid RAR5
-                    // becomes DOWNLOAD_ONLY and opens, a solid RAR4 becomes REFUSED and does
-                    // not. This used to open whatever came back, so a reader who had just
-                    // waited for the whole file was taken to a reader that cannot render
-                    // page one.
-                    val offer = StreamingOffer.of(
-                        streaming = publication.streaming,
-                        isLocal = true,
-                        readsWhereItLies = true,
-                        bytes = entry.length,
-                    )
-                    if (offer is StreamingOffer.Refuse) {
-                        failure = R.string.detail_refused_body
-                    } else {
-                        onOpen(publication, local)
-                    }
-                }
-                .onFailure { failure = R.string.smb_error_unexpected }
+            openWhatArrived(
+                fetch = { fetchAndIndex(context, client, address, entry) },
+                onOpen = onOpen,
+                onRefuse = { failure = R.string.detail_refused_body },
+                onFailure = { failure = it },
+            )
             opening = null
         }
     }
@@ -242,13 +220,19 @@ fun SmbBrowserScreen(
             title = { Text(stringResource(R.string.smb_download_first_title)) },
             text = {
                 Text(
-                    stringResource(
-                        R.string.smb_download_first_body,
-                        ask.entry.name,
-                        // The same call the metered confirmation, the Downloads destination
-                        // and the storage rows already use.
-                        Formatter.formatShortFileSize(context, ask.bytes),
-                    ),
+                    // Two bodies, for `MeteredConfirmation`'s reason: a share that named no
+                    // length is said in words rather than shown as `0 B`.
+                    if (ask.bytes != null) {
+                        stringResource(
+                            R.string.smb_download_first_body,
+                            ask.entry.name,
+                            // The same call the metered confirmation, the Downloads
+                            // destination and the storage rows already use.
+                            Formatter.formatShortFileSize(context, ask.bytes),
+                        )
+                    } else {
+                        stringResource(R.string.smb_download_first_body_unstated, ask.entry.name)
+                    },
                 )
             },
             confirmButton = {
@@ -278,10 +262,11 @@ fun SmbBrowserScreen(
 private data class TransferAsk(
     val entry: SmbEntry,
     /**
-     * What the share said the file weighs. `publication-formats` requires the size to be
-     * stated, and a directory entry is where it comes from.
+     * What the share said the file weighs, or null when it said nothing worth repeating.
+     * `publication-formats` requires the size to be stated and a directory entry is where it
+     * comes from; [statedLength] is where an unusable one becomes an absence.
      */
-    val bytes: Long,
+    val bytes: Long?,
 )
 
 @Composable
@@ -371,15 +356,3 @@ private suspend fun fetchAndIndex(
         decoderPath = local,
     ) to local.absolutePath
 }
-
-/**
- * Whether a format's decoder insists on a real file.
- *
- * `PdfRenderer` needs a descriptor and libarchive needs a path, so those two are offered as a
- * download. Everything else is read where it lies.
- *
- * The platform half of [StreamingOffer]'s `readsWhereItLies`: what a container reported about
- * itself is the same question on both apps, and which decoders can work from a source is not.
- */
-private fun needsLocalFile(format: PublicationFormat): Boolean =
-    format == PublicationFormat.PDF || format == PublicationFormat.CBR

@@ -270,7 +270,8 @@
     <string name="smb_metered_body">This connection is metered or data saver is on. Reading “%1$s” will use data from the share.</string>
     <string name="smb_metered_continue">Read it</string>
     <string name="smb_download_first_title">Download it first?</string>
-    <string name="smb_download_first_body">“%1$s” cannot be read a page at a time. The whole file has to come across first — %2$s.</string>
+    <string name="smb_download_first_body">“%1$s” cannot be opened straight from the share: this format needs a file on the device. It is %2$s.</string>
+    <string name="smb_download_first_body_unstated">“%1$s” cannot be opened straight from the share: this format needs a file on the device. The share does not state its size.</string>
     <string name="smb_found">On this network</string>
     <string name="smb_error_encryption">This server requires SMB 3 encryption, which StoryArc cannot do yet. Set encryption on the server to enabled rather than required.</string>
     <string name="downloads_undo">Undo</string>
