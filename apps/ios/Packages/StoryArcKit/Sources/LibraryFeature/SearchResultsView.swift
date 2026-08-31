@@ -96,6 +96,11 @@ struct SearchResultsView: View {
     /// has: the page re-reads it from the model, so a row that has gone stale between the
     /// search and the tap resolves to nothing and says so, instead of opening a page about a
     /// publication the library no longer holds.
+    ///
+    /// The held row now draws the system's disclosure indicator and the followed row does
+    /// not, which is a distinction worth having rather than one to hide: one pushes onto this
+    /// stack and comes back, the other leaves for a server's own browser. See ``ListRow`` for
+    /// why the indicator is kept.
     @ViewBuilder
     private func row(_ result: SearchResult) -> some View {
         if let held = result.publicationID {

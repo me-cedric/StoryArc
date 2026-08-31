@@ -92,6 +92,12 @@ struct ListRow: View {
     /// behaviour while the list kept it would make "what does a tap do" depend on a layout
     /// toggle. While the reader is picking, a tap still picks; a publication nothing can
     /// open is still not tappable.
+    ///
+    /// A link inside a `List` draws the system's disclosure indicator, and it is kept rather
+    /// than fought. There is no public way to suppress it short of going back to a `Button`
+    /// and navigating by hand, and the chevron is now *true*: the row leads somewhere the
+    /// reader can come back from. It was absent before because the row opened a full-screen
+    /// reader, which is the one place a chevron would have been a lie.
     var body: some View {
         Group {
             if isPicked == nil, publication.isOpenable {
