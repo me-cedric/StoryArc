@@ -31,14 +31,24 @@ creep — see [`design.md`](design.md).
       an unsupported container. Assert no key prompt appears.
 - [ ] 2.5 Both: a truncated audiobook plays what it can and states how much it could
       not, in the player's controls, without interrupting playback.
-- [ ] 2.6 Add audiobook fixtures to the shared corpus, including a chaptered M4B, an
-      unchaptered single file and a folder — and a locked-file *stub* for 2.4 that
-      carries the signature without carrying anyone's content.
+- [x] 2.6 Add audiobook fixtures to the shared corpus: a chaptered M4B, the same
+      chapters as ID3 CHAP frames, an unchaptered single file, a folder of parts
+      whose names defeat lexical sort, a folder mixing audio and images, a truncated
+      M4B, and a locked-file *stub* for 2.4 carrying the signature and nobody's
+      content. Seven fixtures, 100 kB, byte-deterministic.
+      `packages/test-fixtures/scripts/generate.py`, `manifest.json`, `README.md`.
+      Two things the work turned up and the corpus now records: the first truncated
+      fixture had no `moov` at all — ffmpeg writes it last, so a cut file pinned
+      "damaged beyond opening" instead of "plays what it can", and `+faststart`
+      fixed it; and `protected.aax` still holds a **decodable** stream, so the
+      refusal has to come from the brand rather than from a decoder choking.
 - [ ] 2.7 iOS: `AVURLAsset` + `loadChapterMetadataGroups`. Android: media3 ExoPlayer.
 - [ ] 2.8 Android: bump media3 to **1.11.0** and declare `media3-exoplayer` and
-      `media3-session` explicitly in the version catalog. M4B chapter marks are
-      absent at 1.10.0 — verified by unzipping the cached 1.10.0 AARs — and Readium
-      only puts 1.10.0 on the classpath at runtime scope.
+      `media3-session` explicitly in the version catalog. Readium only puts 1.10.0 on
+      the classpath at runtime scope. **Nothing else in this section is blocked on
+      the bump** — see `design.md`: ID3 chapters already parse at 1.10.0, so the
+      MP3-folder path, detection and the unchaptered case all land without it, and
+      the bump buys M4B's own chapter atom and nothing else.
 
 ## 3. The platform session
 

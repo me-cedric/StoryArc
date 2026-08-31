@@ -486,6 +486,85 @@
       "expectedRefusal": "no package document"
     }
   ],
+  "audiobooks": [
+    {
+      "file": "audiobooks/chaptered.m4b",
+      "pins": "an M4B's chapter marks come from the container's own atom",
+      "container": "mp4",
+      "expectedPartCount": 3,
+      "expectedPartTitles": [
+        "One",
+        "Two",
+        "Three"
+      ],
+      "expectedDurationSeconds": 6,
+      "chapterSource": "container",
+      "note": "MP4 chapter atoms are the form media3 cannot read below 1.11.0, so this fixture is what proves the bump landed."
+    },
+    {
+      "file": "audiobooks/id3-chapters.mp3",
+      "pins": "the same three chapters as ID3 CHAP frames, which are readable without the media3 bump",
+      "container": "mp3",
+      "expectedPartCount": 3,
+      "expectedPartTitles": [
+        "One",
+        "Two",
+        "Three"
+      ],
+      "expectedDurationSeconds": 6,
+      "chapterSource": "id3",
+      "note": "Carried alongside the M4B on purpose: the two containers fail differently and a corpus with only one would hide it."
+    },
+    {
+      "file": "audiobooks/unchaptered.m4a",
+      "pins": "an audiobook with no chapter markers opens, and nothing is reported as missing",
+      "container": "mp4",
+      "expectedPartCount": 1,
+      "expectedPartTitles": [],
+      "expectedDurationSeconds": 5,
+      "chapterSource": null,
+      "note": "Also pins that an .m4a and an .m4b holding the same audio are treated identically \u2014 the extension is a hint and the contents are the fact."
+    },
+    {
+      "file": "audiobooks/folder-parts",
+      "pins": "a folder of audio files is one audiobook, and part10 sorts after part2",
+      "container": "folder",
+      "expectedPartCount": 3,
+      "expectedPartOrder": [
+        "part1.mp3",
+        "part2.mp3",
+        "part10.mp3"
+      ],
+      "expectedDurationSeconds": 3,
+      "chapterSource": "parts"
+    },
+    {
+      "file": "audiobooks/mixed-folder",
+      "pins": "a folder holding both audio and images is the kind the majority of its entries are",
+      "container": "folder",
+      "expectedKind": "audiobook",
+      "expectedPartCount": 2,
+      "expectedPartOrder": [
+        "part1.mp3",
+        "part2.mp3"
+      ],
+      "note": "Two audio files against one image. `publication-formats` requires the app to state which kind it chose rather than choosing silently."
+    },
+    {
+      "file": "audiobooks/protected.aax",
+      "pins": "a protected audiobook is refused by name, with no prompt for a key or an account",
+      "container": "mp4",
+      "expectedRefusal": "contentProtection",
+      "note": "4 KB of an unencrypted fixture with the ftyp brand rewritten to `aax `. Because the source carries `+faststart`, this stub still holds a valid header and a decodable AAC stream \u2014 rewrite the brand back to `M4A ` and ffprobe reads it as aac. That is deliberate: it means the refusal has to come from the **brand**, and a decoder that merely choked on a broken file would not satisfy it. There is no encrypted audio, no key, no account and nobody's recording here, because StoryArc neither implements nor circumvents a content protection."
+    },
+    {
+      "file": "audiobooks/truncated.m4b",
+      "pins": "a truncated audiobook plays what it can and states how much it could not",
+      "container": "mp4",
+      "truncatedFrom": "audiobooks/chaptered.m4b",
+      "note": "Cut to 60% of the whole, so the header parses and the stream does not finish."
+    }
+  ],
   "pdfs": [
     {
       "file": "comics/text-pages.pdf",

@@ -15,13 +15,15 @@ packages/test-fixtures/
 ├── scripts/generate.py    the generator — fixtures are generated, not hand-authored
 ├── manifest.json          every fixture and what a correct parse yields
 ├── comics/                23 archives and 2 PDFs, 38 kB total
-└── ebooks/                6 EPUBs, 11 kB total
+├── ebooks/                6 EPUBs, 11 kB total
+└── audiobooks/            7 audiobooks, 100 kB total
 ```
 
 ## Status
 
-**23 comic archives, two PDFs and six EPUBs**, covering ZIP, RAR4, RAR5, TAR,
-PDF, EPUB 2, EPUB 3, fixed-layout EPUB, and the 7-Zip refusal.
+**23 comic archives, two PDFs, six EPUBs and seven audiobooks**, covering ZIP,
+RAR4, RAR5, TAR, PDF, EPUB 2, EPUB 3, fixed-layout EPUB, M4B, MP3, a folder of
+parts, and two named refusals — 7-Zip and a store's content protection.
 
 ### ZIP
 
@@ -129,6 +131,32 @@ by design**: it pins solid RAR5 *parsing* and the solid flag, not a solid comic
 opening. `generate.py` registers it in the manifest and `--check` verifies it
 exists, but nothing regenerates it.
 
+### Audiobooks
+
+| Fixture | Pins |
+| --- | --- |
+| `chaptered.m4b` | an M4B's chapter marks come from the container's own atom |
+| `id3-chapters.mp3` | the same three chapters as ID3 CHAP frames |
+| `unchaptered.m4a` | an audiobook with no markers opens, and nothing is reported as missing |
+| `folder-parts/` | a folder of audio files is one audiobook, and part10 sorts after part2 |
+| `mixed-folder/` | a folder of both audio and images is the kind the majority of its entries are |
+| `protected.aax` | a protected audiobook is refused **by brand**, with no prompt for a key |
+| `truncated.m4b` | a cut audiobook plays what it can and states how much it could not |
+
+Two of these carry a detail worth knowing before reading a test that uses them.
+
+**The chaptered pair is a pair on purpose.** MP4 chapter atoms and ID3 CHAP frames
+fail differently: media3 reads CHAP frames at 1.10.0 and reads no MP4 chapter atom
+below 1.11.0. A corpus carrying only one container would hide that, and the
+audiobooks change's `design.md` records how it was found.
+
+**`protected.aax` still holds a decodable stream, and that is the point.** It is
+4 kB of an unencrypted fixture with the `ftyp` brand rewritten to `aax `; rewrite
+the brand back to `M4A ` and `ffprobe` reads it as AAC. So the refusal has to come
+from the brand, and a decoder that merely choked on a broken file would not satisfy
+the test. There is no encrypted audio, no key, no account and nobody's recording in
+this repository — StoryArc neither implements nor circumvents a content protection.
+
 ## Not everything in the corpus is a file
 
 `manifest.json` also carries a **`filenames`** table: eight input strings with the
@@ -161,6 +189,24 @@ the drift it is looking for.
 
 Colours are distinct per page index, so a wrong page order is visible rather
 than merely failing an assertion.
+
+## Audio needs ffmpeg to *write*, and nothing to *read*
+
+The audio family is the one thing here not hand-written, because a decodable AAC
+frame is not something to encode by hand in a fixture script and a fixture the
+platform decoders refuse is worse than no fixture. `ffmpeg` writes them, with
+`-bitexact` on both the container and the codec, and two runs on the same machine
+produce identical bytes.
+
+That does not make `ffmpeg` a requirement of this repository:
+
+- The output is **committed**, exactly like the archives, so nothing that reads the
+  corpus needs it.
+- `--check` never rewrites audio, for the same reason it never rewrites a DEFLATE
+  archive: a different encoder build would produce different bytes and report a
+  false staleness. So `pnpm lint` passes with no ffmpeg installed.
+- On a machine without `ffmpeg`, the audio section is skipped and everything else
+  still regenerates.
 
 ## Rules for a fixture
 

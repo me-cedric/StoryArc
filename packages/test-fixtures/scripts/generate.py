@@ -18,13 +18,29 @@ import argparse
 import io
 import json
 import pathlib
+import shutil
 import struct
+import subprocess
 import tarfile
 import zipfile
 import zlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 COMICS = ROOT / "comics"
+AUDIOBOOKS = ROOT / "audiobooks"
+
+# Audio is the one family here that is not hand-written, and the reason is honest:
+# a decodable AAC frame is not something to encode by hand in a fixture script, and
+# a fixture the platform decoders refuse is worse than no fixture. `ffmpeg` writes
+# them, deterministically, with `-bitexact` on both the container and the codec.
+#
+# That does NOT make ffmpeg a requirement of this repository. The output is
+# committed, exactly like the archives, so nothing that reads the corpus needs it;
+# and `--check` never rewrites audio, for the same reason it never rewrites a
+# DEFLATE archive — a different encoder build would produce different bytes and
+# report a false staleness. On a machine without ffmpeg the audio section is
+# skipped with a note and everything else still regenerates.
+FFMPEG = shutil.which("ffmpeg")
 
 _parser = argparse.ArgumentParser()
 _parser.add_argument("--check", action="store_true", help="fail if committed output is stale")
@@ -617,6 +633,218 @@ epub(
 # publication for this would put a book in the library that cannot be opened, so
 # the reader has to name the problem instead.
 epub("no-package.epub", [])
+
+# --------------------------------------------------------------------------------
+# Audiobooks
+#
+# `publication-formats` gained three audio entries and one named refusal, and none
+# of them can be asserted against a comic. Every file below is a sine tone: no
+# recording, no voice, nothing anybody owns.
+# --------------------------------------------------------------------------------
+
+# Sample rate and bitrate are as low as the encoders accept while still decoding
+# everywhere, because the corpus is committed and a fixture nobody looks at should
+# not weigh more than a page of one that gets read.
+AUDIO_RATE = 22050
+AUDIO_KBPS = 24
+
+
+def _chapter_metadata(title: str, chapters: list[tuple[str, int, int]]) -> str:
+    """An FFMETADATA document. Milliseconds, because that is what a listener reads."""
+    parts = [";FFMETADATA1", f"title={title}", "artist=StoryArc Fixtures", ""]
+    for name, start_ms, end_ms in chapters:
+        parts += [
+            "[CHAPTER]",
+            "TIMEBASE=1/1000",
+            f"START={start_ms}",
+            f"END={end_ms}",
+            f"title={name}",
+            "",
+        ]
+    return "\n".join(parts)
+
+
+def audio(
+    name: str,
+    *,
+    seconds: float,
+    codec: str,
+    hz: int = 220,
+    chapters: list[tuple[str, int, int]] | None = None,
+    title: str = "Fixture Audiobook",
+    extra: list[str] | None = None,
+) -> None:
+    """One audio fixture, written only when there is an ffmpeg to write it with."""
+    if not (WRITE and FFMPEG):
+        return
+    path = AUDIOBOOKS / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    command = [
+        FFMPEG, "-hide_banner", "-loglevel", "error", "-y",
+        # Both flags, both layers: one strips the container's encoder string, the
+        # other the codec's. Without the pair the bytes drift between ffmpeg builds
+        # and the committed fixture churns on every contributor's machine.
+        "-fflags", "+bitexact", "-flags", "+bitexact",
+        "-f", "lavfi",
+        "-i", f"sine=frequency={hz}:duration={seconds}:sample_rate={AUDIO_RATE}",
+    ]
+    if chapters:
+        meta = AUDIOBOOKS / ".chapters.ffmetadata"
+        meta.write_text(_chapter_metadata(title, chapters))
+        command += ["-i", str(meta), "-map_metadata", "1"]
+    command += ["-ac", "1", "-c:a", codec, "-b:a", f"{AUDIO_KBPS}k", "-bitexact"]
+    command += extra or []
+    command += [str(path)]
+    subprocess.run(command, check=True)
+    meta = AUDIOBOOKS / ".chapters.ffmetadata"
+    if meta.exists():
+        meta.unlink()
+
+
+THREE_CHAPTERS = [("One", 0, 2000), ("Two", 2000, 4000), ("Three", 4000, 6000)]
+
+# The chaptered M4B. Its chapter marks live in an MP4 atom, which is the form
+# media3 cannot read below 1.11.0 — see the audiobooks change's design.md.
+#
+# `+faststart` moves the `moov` atom to the front, which is what a real audiobook
+# meant to be streamed carries — and it is also what makes `truncated.m4b` below
+# test the behaviour it claims to. Without it ffmpeg writes `moov` last, a cut file
+# has no header at all, and the fixture pins "damaged beyond opening" rather than
+# "plays what it can". The first version of this fixture did exactly that.
+audio(
+    "chaptered.m4b",
+    seconds=6,
+    codec="aac",
+    chapters=THREE_CHAPTERS,
+    extra=["-movflags", "+faststart"],
+)
+
+# The same three chapters as ID3 CHAP frames, which media3 **can** read at 1.10.0.
+# Having both is the point: the two containers fail differently and a corpus that
+# only carried one would hide it.
+audio(
+    "id3-chapters.mp3",
+    seconds=6,
+    codec="libmp3lame",
+    hz=180,
+    chapters=THREE_CHAPTERS,
+    extra=["-write_id3v2", "1"],
+)
+
+# No chapters at all. `publication-formats` says this opens and reports nothing as
+# missing, because an unchaptered audiobook is a normal audiobook.
+audio(
+    "unchaptered.m4a",
+    seconds=5,
+    codec="aac",
+    hz=260,
+    title="No Chapters",
+    extra=["-movflags", "+faststart"],
+)
+
+# A folder of parts, named so that natural sort is the only ordering that works —
+# the same trap `natural-sort.cbz` sets for pages.
+for index, tone in ((1, 200), (2, 240), (10, 300)):
+    audio(f"folder-parts/part{index}.mp3", seconds=1, codec="libmp3lame", hz=tone)
+
+# Two audio files and one image: the majority decides, and the app says which it
+# chose. Written last so the image lands in a directory that already exists.
+for index, tone in ((1, 210), (2, 250)):
+    audio(f"mixed-folder/part{index}.mp3", seconds=1, codec="libmp3lame", hz=tone)
+if WRITE:
+    (AUDIOBOOKS / "mixed-folder").mkdir(parents=True, exist_ok=True)
+    (AUDIOBOOKS / "mixed-folder" / "cover.png").write_bytes(page(1))
+
+# A file the app must refuse **by name**, and the least of a file that can be.
+#
+# It is an MP4 whose brand says `aax `, and it carries no encrypted audio, no key,
+# no account and nobody's recording — because the behaviour under test is the
+# refusal, and a refusal needs a signature to recognise and nothing behind it.
+# StoryArc does not implement, circumvent or advise on removing a content
+# protection, so a fixture that carried real protected audio would be the one file
+# in this corpus the project has an actual reason not to have.
+if WRITE and FFMPEG:
+    stub = AUDIOBOOKS / "unchaptered.m4a"
+    if stub.exists():
+        raw = bytearray(stub.read_bytes())
+        # The major brand sits at bytes 8..12 of the leading `ftyp` box.
+        raw[8:12] = b"aax "
+        (AUDIOBOOKS / "protected.aax").write_bytes(bytes(raw[: 4 * 1024]))
+
+# Cut mid-stream, after the header and before the end. `publication-formats` says
+# the app plays what it can and states how much it could not, by the same rule that
+# opens a comic missing pages.
+if WRITE and FFMPEG:
+    whole = (AUDIOBOOKS / "chaptered.m4b")
+    if whole.exists():
+        data = whole.read_bytes()
+        (AUDIOBOOKS / "truncated.m4b").write_bytes(data[: int(len(data) * 0.6)])
+
+
+audiobooks: list[dict] = [
+    {
+        "file": "audiobooks/chaptered.m4b",
+        "pins": "an M4B's chapter marks come from the container's own atom",
+        "container": "mp4",
+        "expectedPartCount": 3,
+        "expectedPartTitles": ["One", "Two", "Three"],
+        "expectedDurationSeconds": 6,
+        "chapterSource": "container",
+        "note": "MP4 chapter atoms are the form media3 cannot read below 1.11.0, so this fixture is what proves the bump landed.",
+    },
+    {
+        "file": "audiobooks/id3-chapters.mp3",
+        "pins": "the same three chapters as ID3 CHAP frames, which are readable without the media3 bump",
+        "container": "mp3",
+        "expectedPartCount": 3,
+        "expectedPartTitles": ["One", "Two", "Three"],
+        "expectedDurationSeconds": 6,
+        "chapterSource": "id3",
+        "note": "Carried alongside the M4B on purpose: the two containers fail differently and a corpus with only one would hide it.",
+    },
+    {
+        "file": "audiobooks/unchaptered.m4a",
+        "pins": "an audiobook with no chapter markers opens, and nothing is reported as missing",
+        "container": "mp4",
+        "expectedPartCount": 1,
+        "expectedPartTitles": [],
+        "expectedDurationSeconds": 5,
+        "chapterSource": None,
+        "note": "Also pins that an .m4a and an .m4b holding the same audio are treated identically — the extension is a hint and the contents are the fact.",
+    },
+    {
+        "file": "audiobooks/folder-parts",
+        "pins": "a folder of audio files is one audiobook, and part10 sorts after part2",
+        "container": "folder",
+        "expectedPartCount": 3,
+        "expectedPartOrder": ["part1.mp3", "part2.mp3", "part10.mp3"],
+        "expectedDurationSeconds": 3,
+        "chapterSource": "parts",
+    },
+    {
+        "file": "audiobooks/mixed-folder",
+        "pins": "a folder holding both audio and images is the kind the majority of its entries are",
+        "container": "folder",
+        "expectedKind": "audiobook",
+        "expectedPartCount": 2,
+        "expectedPartOrder": ["part1.mp3", "part2.mp3"],
+        "note": "Two audio files against one image. `publication-formats` requires the app to state which kind it chose rather than choosing silently.",
+    },
+    {
+        "file": "audiobooks/protected.aax",
+        "pins": "a protected audiobook is refused by name, with no prompt for a key or an account",
+        "container": "mp4",
+        "expectedRefusal": "contentProtection",
+        "note": "4 KB of an unencrypted fixture with the ftyp brand rewritten to `aax `. Because the source carries `+faststart`, this stub still holds a valid header and a decodable AAC stream — rewrite the brand back to `M4A ` and ffprobe reads it as aac. That is deliberate: it means the refusal has to come from the **brand**, and a decoder that merely choked on a broken file would not satisfy it. There is no encrypted audio, no key, no account and nobody's recording here, because StoryArc neither implements nor circumvents a content protection.",
+    },
+    {
+        "file": "audiobooks/truncated.m4b",
+        "pins": "a truncated audiobook plays what it can and states how much it could not",
+        "container": "mp4",
+        "truncatedFrom": "audiobooks/chaptered.m4b",
+        "note": "Cut to 60% of the whole, so the header parses and the stream does not finish.",
+    },
+]
 
 ebooks: list[dict] = [
     {
@@ -1437,6 +1665,7 @@ manifest = {
     "pageAspect": {"portrait": [PAGE_W, PAGE_H], "spread": [SPREAD_W, SPREAD_H]},
     "comics": fixtures,
     "ebooks": ebooks,
+    "audiobooks": audiobooks,
     "pdfs": PDFS,
     "$filenamesNote": "Cases for filename metadata inference, which needs no file on disk — it is a pure function over a string. Both platforms assert this same table so neither invents its own idea of what a common naming pattern is. Every value inferred from a filename must be marked inferred, so an authoritative source can replace it later without a conflict prompt.",
     "filenames": FILENAME_CASES,
