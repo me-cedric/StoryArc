@@ -226,4 +226,46 @@ struct ThemeSheetTests {
             """
         )
     }
+
+    @Test("The reset takes the same path a type-size change does, and leaves the sheet up")
+    func theResetKeepsTheReadingPosition() throws {
+        let model = try code(of: "EpubReaderModel.swift")
+
+        // `reading-themes`: "the reading position is preserved to the paragraph across the
+        // repagination, exactly as a type-size change is". It *is* a type-size change as far
+        // as the renderer is concerned — both go through `applyTheme()`, which reads the
+        // locator before submitting preferences and goes back to it afterwards, because
+        // Readium lands on the progression rather than the paragraph. Asserting the shared
+        // path is what stops a reset that submits preferences directly and skips the return.
+        #expect(
+            model.contains("public func restoreTheme() {"),
+            "`restoreTheme` has moved; this guard names it"
+        )
+        let restore = try #require(model.range(of: "public func restoreTheme() {"))
+        let body = model[restore.upperBound...].prefix(while: { $0 != "}" })
+        #expect(
+            body.contains("applyTheme()"),
+            """
+            `restoreTheme` no longer goes through `applyTheme()`. That function is where \
+            the reading position survives the repagination — it reads the locator, submits \
+            the preferences, and goes back to it, because Readium lands on the progression \
+            rather than the paragraph. `reading-themes` requires the reset to preserve the \
+            position "exactly as a type-size change is", and a type-size change is the \
+            other caller.
+            """
+        )
+
+        let sheet = try code(of: "ThemeAxesSheet.swift")
+        let reset = try #require(sheet.range(of: "private var reset: some View {"))
+        let resetBody = sheet[reset.upperBound...].prefix(400)
+        #expect(
+            !resetBody.contains("dismiss()"),
+            """
+            The reset dismisses level two. `reading-themes` asks for the change to be \
+            "visible behind the sheet without the sheet being dismissed" — and the specimen \
+            at the top of level two is the nearer proof, because it repaints as the values \
+            go back.
+            """
+        )
+    }
 }

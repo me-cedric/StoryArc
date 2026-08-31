@@ -272,6 +272,20 @@ class ThemeSheetTest {
         )
     }
 
+    @Test
+    fun `the reset leaves the destination up, so the specimen shows the change`() {
+        val level = code("ThemeAxesScreen.kt")
+        val reset = level.substringAfter("private fun ResetToPreset(").substringBefore("\n}")
+
+        assertTrue(
+            "The reset closes the destination. `reading-themes` asks for the change to be" +
+                " \"visible behind the sheet without the sheet being dismissed\" — and the" +
+                " specimen at the top of this screen is the nearer proof, because it repaints" +
+                " as the values go back.",
+            !reset.contains("onClose"),
+        )
+    }
+
     private companion object {
         /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
         const val MODULE_DIRECTORY = "storyarc.epubreader.projectDir"

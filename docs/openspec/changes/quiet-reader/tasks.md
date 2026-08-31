@@ -80,7 +80,7 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
       per-series memory and the global default alone.
 - [x] 4.2 Both: the reset action is **absent** for an unmodified preset, not present
       and inert.
-- [ ] 4.3 Both: reset preserves the reading position to the paragraph across the
+- [x] 4.3 Both: reset preserves the reading position to the paragraph across the
       repagination, and is visible behind the sheet without dismissing it.
 - [x] 4.4 Both: a plain low-emphasis text button, no confirmation. Material has no
       reset-to-defaults pattern; `design.md` says so rather than miscasting the
