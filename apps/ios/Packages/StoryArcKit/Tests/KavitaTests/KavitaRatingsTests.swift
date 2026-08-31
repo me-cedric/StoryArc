@@ -98,19 +98,32 @@ struct KavitaRatingsTests {
     /// The fields have to survive the decode the client actually does, which is the half that
     /// was missing: the model had no `ageRating` and no `publicationStatus`, so a server that
     /// sent both was parsed into a value that could not carry either.
-    @Test("The two fields survive the decode, and their absence reads as Kavita's own default")
+    ///
+    /// **The absence is not a default, and the first version of this test said it was.** It
+    /// asserted `absent.publicationStatus == 0` and `absent.status == .ongoing`, with a comment
+    /// arguing that "an absent field and a server that never set one read alike, which is what
+    /// they are". They are not. Kavita's zero there is `OnGoing` — a state a curator chose —
+    /// so reading an omitted field as zero makes the app state that the series is running on
+    /// the server's behalf. A reviewer found it; the field is optional now and this test
+    /// asserts the correction rather than the mistake.
+    ///
+    /// `ageRating` genuinely does default: Kavita's own zero is `Unknown`, which already means
+    /// nobody has rated it. Two fields, two shapes, and the difference is the whole point.
+    @Test("The two fields survive the decode, and an absent status is not a stated one")
     func decoding() throws {
         let sent = try decode(#"{ "seriesId": 7, "ageRating": 10, "publicationStatus": 2 }"#)
         #expect(sent.rating == .mature17Plus)
         #expect(sent.status == .completed)
 
-        // Kavita omits what a series does not have, and `0` is its default for both — so an
-        // absent field and a server that never set one read alike, which is what they are.
         let absent = try decode(#"{ "seriesId": 7 }"#)
-        #expect(absent.ageRating == 0)
-        #expect(absent.publicationStatus == 0)
+        #expect(absent.ageRating == 0, "Kavita's own zero, which is Unknown")
+        #expect(absent.publicationStatus == nil, "no number at all, rather than OnGoing")
         #expect(absent.rating == nil, "Unknown is not a rating")
-        #expect(absent.status == .ongoing, "OnGoing is Kavita's default and a real state")
+        #expect(absent.status == nil, "a server that said nothing has not said OnGoing")
+
+        // And a server that really does say OnGoing still reads as OnGoing.
+        let stated = try decode(#"{ "seriesId": 7, "publicationStatus": 0 }"#)
+        #expect(stated.status == .ongoing)
     }
 
     // MARK: - Private
