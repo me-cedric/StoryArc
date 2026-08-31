@@ -16,29 +16,49 @@ import Testing
 /// anything that fails the day somebody adds the notice, and a scenario nothing can fail is a
 /// scenario nothing protects.
 ///
-/// So the assertion is an absence, across the module that opens comics. The reader is handed a
-/// URL and a `Publication`; it has no business reading how that publication was obtained. A
-/// notice about the container would be gated on the capability, and would therefore have to
-/// name it. Android keeps the same guard in `SolidArchiveHasNoNoticeTest.kt`.
+/// So the assertion is an absence, across **both** modules that open a publication. The reader
+/// is handed a URL and a `Publication`; it has no business reading how that publication was
+/// obtained. A notice about the container would be gated on the capability, and would therefore
+/// have to name it. Android keeps the same guard in `SolidArchiveHasNoNoticeTest.kt`, once per
+/// reader module.
+///
+/// **Why the reflowable reader is walked from here.** The 5.3 note records the premise as
+/// checked across `:feature:reader`, `:feature:epubreader` and iOS's `ReaderFeature`, and the
+/// first version of this guard covered two of the three. `EpubReaderFeature` lives in the
+/// sibling `StoryArcEpub` package, whose own test target needs a simulator — `pnpm test:ios`
+/// runs `swift test` in `StoryArcKit` on the host and never reaches it. A guard that runs beats
+/// a better one that does not, so this suite reaches across the package boundary instead. A
+/// reflowable EPUB is also the publication most likely to be fetched whole before it opens, so
+/// it is the likeliest home for a notice about how it got here.
 @Suite("A publication that is already on the device opens with no notice")
 struct SolidArchiveHasNoNoticeTests {
 
-    /// Every Swift source in `ReaderFeature`, reached from this file rather than discovered.
+    /// Every Swift source in both readers, reached from this file rather than discovered.
     ///
     /// Built from `#filePath`, which is this test's own compiled path and therefore inside the
     /// package under test by construction. Walking up looking for a marker would leave it:
-    /// this repository nests agent worktrees at `.claude/worktrees/<name>/`.
+    /// this repository nests agent worktrees at `.claude/worktrees/<name>/`. `StoryArcEpub` is
+    /// reached as `../StoryArcEpub` from that same anchor, which is where `Package.swift`
+    /// declares it as a path dependency.
     private static let sources: [URL] = {
         let package = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let tree = package.appending(path: "Sources/ReaderFeature")
-        guard let walk = FileManager.default.enumerator(at: tree, includingPropertiesForKeys: nil)
-        else {
-            fatalError("Sources/ReaderFeature is not at \(tree.path) — has it moved?")
+        let trees = [
+            package.appending(path: "Sources/ReaderFeature"),
+            package
+                .deletingLastPathComponent()
+                .appending(path: "StoryArcEpub/Sources/EpubReaderFeature"),
+        ]
+        return trees.flatMap { tree in
+            guard let walk = FileManager.default.enumerator(
+                at: tree, includingPropertiesForKeys: nil
+            ) else {
+                fatalError("\(tree.lastPathComponent) is not at \(tree.path) — has it moved?")
+            }
+            return walk.compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" }
         }
-        return walk.compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" }
     }()
 
     /// What a notice about the container would have to mention to decide when to appear.
@@ -53,11 +73,21 @@ struct SolidArchiveHasNoNoticeTests {
         "isStreamable",
     ]
 
-    @Test("The reader has sources to read")
+    @Test("Both readers have sources to read")
     func thereAreSources() {
-        // A guard over an empty list passes forever. This is the one assertion that fails if
-        // the walk stops finding anything.
-        #expect(Self.sources.count > 5, "No Swift sources found under Sources/ReaderFeature")
+        // A guard over an empty list passes forever, and a guard over *one* of two trees
+        // passes forever for the other. Both are named, so a missing one is a failure rather
+        // than a quieter pass.
+        #expect(Self.sources.count > 5, "No Swift sources found under either reader")
+        // `/ReaderFeature/` does not match `/EpubReaderFeature/`, so the two are counted apart.
+        #expect(
+            Self.sources.contains { $0.path.contains("/ReaderFeature/") },
+            "Nothing was walked in Sources/ReaderFeature — has it moved?"
+        )
+        #expect(
+            Self.sources.contains { $0.path.contains("/EpubReaderFeature/") },
+            "Nothing was walked in StoryArcEpub/Sources/EpubReaderFeature — has it moved?"
+        )
     }
 
     @Test("The reader says nothing about how a publication was obtained")

@@ -94,6 +94,12 @@ tasks.withType<Test>().configureEach {
     )
         .withPropertyName("readerChromeWiringSource")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // `SolidArchiveHasNoNoticeTest` asserts an *absence* across this module's whole source
+    // tree, so the tree itself is the input: this guard is only worth having if adding a file
+    // re-runs it. `:feature:reader` declares its twin the same way.
+    inputs.files(layout.projectDirectory.dir("src/main/kotlin"))
+        .withPropertyName("solidArchiveNoticeSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {
