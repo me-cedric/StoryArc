@@ -87,6 +87,15 @@ creep — see [`design.md`](design.md).
       routes audio to a `Publication` at **both** entry points, and asks `FolderKind`
       which kind a directory is instead of assuming a comic. `AudiobookIndexingTest`
       drives the corpus.
+      **`LibraryScanner` had a gate of its own that none of that reached**, and only the
+      emulator showed it: a candidate-extension pre-filter with no audio in it, and a
+      folder rule that counted images alone. Both are audio-aware now in all four places
+      that have to agree — the `File` walk, the SAF walk, and the two snapshot listings
+      the reconcile compares — and the SAF folder path asks `FolderKind` the same question
+      the `File` path already asked. Four cases in `LibraryScannerTest`, two of them
+      mutation-checked. Verified on `storyarc-j6`: every fixture appears with the right
+      format label, and an `.m4a` shows as **M4B**, which is the treated-identically
+      scenario arriving as a row in a real library.
       **One containers-not-extensions decision worth naming**, because a flat `AUDIOBOOK`
       case was the obvious alternative: `local-library`'s imported copies work a file's
       extension back out of its media type, so one case would have written a copied MP3
@@ -126,7 +135,19 @@ creep — see [`design.md`](design.md).
       the comment deleted rather than the defect fixed, so it strips comments and matches
       what a prompt is *built* out of. Mutation-checked twice: pointing the dialog's branch
       at `open_in_unsupported` fails the guard, and throwing `Unsupported` from the indexer
-      fails `AudiobookIndexingTest`. iOS half outstanding.
+      fails `AudiobookIndexingTest`.
+      **And a second gap the device found, which the unit tests could not.** The sniffer
+      names a locked file by its brand — but `LibraryScanner` never opened one. Its cheap
+      extension pre-filter had no `.aax` in it, so a scanned folder dropped every protected
+      audiobook in silence, which is precisely the outcome "refused by name" forbids. The
+      extension is now a *hint about what is worth opening*, kept apart from the playable
+      set so a locked file cannot become a folder's chapter, and the brand is still the
+      fact. `LibraryScannerTest` asserts the skip carries the protection as its reason;
+      the emulator now reports "1 couldn't be opened" where it previously showed nothing —
+      `docs/designs/screenshots/audiobooks-2026-09-01/07-protected-counted-light.png`.
+      **Still partial:** on the *scan* path the reason is carried by `ScanEvent.Skipped`
+      and the library shows only a count. The words land on the open-with path, which is
+      where a reader who chose the file is looking. iOS half outstanding.
 - [~] 2.5 Both: a truncated audiobook plays what it can and states how much it could
       not, in the player's controls, without interrupting playback.
       **iOS half done, and the other half is named rather than claimed.** A *folder* with an

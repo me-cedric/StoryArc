@@ -78,6 +78,19 @@ object LibraryScanner {
     private val AUDIO_EXTENSIONS = FolderKind.AUDIO_EXTENSIONS
 
     /**
+     * Audio that is worth **opening** and is not worth playing.
+     *
+     * A locked audiobook. `publication-formats` requires it to be refused *by name*, and a
+     * cheap extension pre-filter is exactly how a file that must be named gets silently
+     * dropped instead — which is what happened to every `.aax` until this line existed.
+     *
+     * Treated as a per-file candidate and never as folder media: a locked file must not
+     * make a directory into an audiobook, and must not become one of its chapters. It is
+     * opened, sniffed, and refused by its brand.
+     */
+    private val PROTECTED_EXTENSIONS = FormatSniffer.PROTECTED_AUDIO_EXTENSIONS
+
+    /**
      * Publications in [folder], emitted as they are found.
      *
      * Depth-first and alphabetical, so the order a user sees matches the order they
@@ -218,7 +231,10 @@ object LibraryScanner {
         val media = files.filter {
             it.extension.lowercase() in IMAGE_EXTENSIONS || it.extension.lowercase() in AUDIO_EXTENSIONS
         }
-        val audio = files.filter { it.extension.lowercase() in AUDIO_EXTENSIONS }
+        val audio = files.filter {
+            it.extension.lowercase() in AUDIO_EXTENSIONS ||
+                it.extension.lowercase() in PROTECTED_EXTENSIONS
+        }
 
         // The listing and the walk must make the same decisions or reconciling finds a
         // difference on every launch. Both branches below mirror `walk` exactly.
@@ -248,7 +264,10 @@ object LibraryScanner {
         val media = files.filter {
             extensionOf(it.name) in IMAGE_EXTENSIONS || extensionOf(it.name) in AUDIO_EXTENSIONS
         }
-        val audio = files.filter { extensionOf(it.name) in AUDIO_EXTENSIONS }
+        val audio = files.filter {
+            extensionOf(it.name) in AUDIO_EXTENSIONS ||
+                extensionOf(it.name) in PROTECTED_EXTENSIONS
+        }
 
         // Mirrors `walkTree`, for the reason `list` gives.
         if (publications.isEmpty() && media.isNotEmpty()) {
@@ -319,7 +338,10 @@ object LibraryScanner {
         val mediaFiles = files.filter {
             it.extension.lowercase() in IMAGE_EXTENSIONS || it.extension.lowercase() in AUDIO_EXTENSIONS
         }
-        val audioFiles = files.filter { it.extension.lowercase() in AUDIO_EXTENSIONS }
+        val audioFiles = files.filter {
+            it.extension.lowercase() in AUDIO_EXTENSIONS ||
+                it.extension.lowercase() in PROTECTED_EXTENSIONS
+        }
 
         // A directory holding media and no publications is itself one publication.
         // A directory holding publications is a shelf. Deciding per directory is
@@ -379,7 +401,10 @@ object LibraryScanner {
         val media = files.filter {
             extensionOf(it.name) in IMAGE_EXTENSIONS || extensionOf(it.name) in AUDIO_EXTENSIONS
         }
-        val audio = files.filter { extensionOf(it.name) in AUDIO_EXTENSIONS }
+        val audio = files.filter {
+            extensionOf(it.name) in AUDIO_EXTENSIONS ||
+                extensionOf(it.name) in PROTECTED_EXTENSIONS
+        }
 
         // The same rule as the `File` walk above, and it has to be the same rule: a folder
         // reached through the Storage Access Framework is the same folder.

@@ -95,6 +95,23 @@ object FormatSniffer {
     private val PROTECTED_BRANDS = setOf("aax ", "aaxc")
 
     /**
+     * Extensions a locked audiobook usually carries.
+     *
+     * **A hint about which files are worth opening, never the decision.** The brand at
+     * offset 8 is what refuses a file; this is what gets it as far as being read, and the
+     * two are not the same job. A `.aax` renamed to `.m4b` is still refused by brand, and a
+     * `.m4b` renamed to `.aax` still opens.
+     *
+     * It exists because a cheap pre-filter can silently drop a file that a spec requires to
+     * be **named**: `publication-formats` says a protected audiobook is refused by name,
+     * and `LibraryScanner` skipped every `.aax` without a word until this set was there for
+     * it to consult. Deliberately not in [FolderKind.AUDIO_EXTENSIONS] — a locked file is
+     * not a playable part, so it must not make a folder into an audiobook or become one of
+     * its chapters.
+     */
+    val PROTECTED_AUDIO_EXTENSIONS = setOf("aax", "aaxc")
+
+    /**
      * The container a byte prefix identifies, or `null` when nothing matches.
      *
      * EPUB and CBZ are both ZIP; distinguishing them needs the archive's

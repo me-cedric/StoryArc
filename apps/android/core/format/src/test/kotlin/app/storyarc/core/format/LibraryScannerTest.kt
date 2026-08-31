@@ -236,6 +236,81 @@ class LibraryScannerTest {
         )
     }
 
+    // Audiobooks, and the gate that used to stop them.
+    //
+    // `PublicationIndexer` learned to build an audiobook before the scanner learned to
+    // hand it one: a candidate-extension pre-filter with no audio in it, and a folder rule
+    // that counted only images. Both branches are asserted here because the walk decides
+    // things the indexer never sees.
+
+    @Test
+    fun `a folder of only audio is one audiobook, not a shelf of one-part books`() = runTest {
+        // `publication-formats`: a folder of ordered audio "is treated as a single
+        // audiobook whose parts play in that order". Put the parts in
+        // `CANDIDATE_EXTENSIONS` and this becomes three publications of one track each,
+        // which is the failure this pins.
+        val root = temp.newFolder()
+        val folder = File(root, "Sea Room").apply { mkdirs() }
+        for (part in listOf("part1.mp3", "part2.mp3", "part10.mp3")) {
+            File(corpus, "audiobooks/folder-parts/$part").copyTo(File(folder, part))
+        }
+
+        val publications = LibraryScanner.scanAll(root)
+
+        assertEquals(1, publications.size)
+        assertEquals(PublicationFormat.AUDIO_FOLDER, publications.single().format)
+        assertEquals(3, publications.single().pageCount)
+    }
+
+    @Test
+    fun `audio beside containers is a publication of its own`() = runTest {
+        // The other branch, and the reason it exists: a lone `.m4b` in a folder of comics
+        // is a book, and before this it was skipped without a word. A directory holding
+        // containers takes the per-file path, so the audio has to be named there too.
+        val root = temp.newFolder()
+        File(corpus, "comics/natural-sort.cbz").copyTo(File(root, "natural-sort.cbz"))
+        File(corpus, "audiobooks/chaptered.m4b").copyTo(File(root, "chaptered.m4b"))
+
+        val formats = LibraryScanner.scanAll(root).map { it.format }.toSet()
+
+        assertTrue("the comic is gone", PublicationFormat.CBZ in formats)
+        assertTrue("the audiobook was skipped", PublicationFormat.M4B in formats)
+    }
+
+    @Test
+    fun `images beside containers are still not publications`() = runTest {
+        // The asymmetry above is deliberate, so it is pinned rather than left to be read
+        // as an oversight. An `.m4b` is a whole publication in one file, exactly like a
+        // `.cbz`; a loose `.png` beside a pile of comics is a cover or a scan artefact.
+        val root = temp.newFolder()
+        File(corpus, "comics/natural-sort.cbz").copyTo(File(root, "natural-sort.cbz"))
+        File(root, "loose-page.png").writeBytes(PNG)
+
+        val publications = LibraryScanner.scanAll(root)
+
+        assertEquals(1, publications.size)
+        assertEquals(PublicationFormat.CBZ, publications.single().format)
+    }
+
+    @Test
+    fun `a protected audiobook is skipped by name rather than listed`() = runTest {
+        // `publication-formats`: the refusal is "distinct from an unsupported container".
+        // The scan reports it as skipped with the protection as the reason, and the
+        // library does not offer a row that cannot be opened.
+        val root = temp.newFolder()
+        File(corpus, "comics/natural-sort.cbz").copyTo(File(root, "natural-sort.cbz"))
+        File(corpus, "audiobooks/protected.aax").copyTo(File(root, "protected.aax"))
+
+        val events = LibraryScanner.scan(root, emptySet()).toList()
+        val skipped = events.filterIsInstance<ScanEvent.Skipped>()
+
+        assertEquals(1, skipped.size)
+        assertTrue(
+            "the reason does not name the protection: ${skipped.single().reason}",
+            skipped.single().reason.contains("content protection"),
+        )
+    }
+
     private companion object {
         /** A 2x3 PNG, the same shape every committed fixture page uses. */
         val PNG = byteArrayOf(
