@@ -13,24 +13,14 @@ public import StoryArcCore
 
 extension LibraryModel {
 
-    /// What a publication's source is called, or `nil` when saying so would add nothing.
-    ///
-    /// **The cover grid no longer asks.** `library-browsing` now requires that "nothing on
-    /// the shelf states which source a publication came from": origin stopped being how a
-    /// reader narrows the library, so a grey line naming a server under every cover was the
-    /// management surface leaking into the discovery one — and with source demoted from a
-    /// scope to a filter, the gate below opens *more* often, not less. Nothing is lost. The
-    /// publication's own page carries exactly one provenance line, drawn by
-    /// ``DetailProvenanceLine``, and that is the only place on the browse path where origin
-    /// is named.
-    ///
-    /// What survives of the old rule — a name only when more than one source is configured,
-    /// and never in a view whose own selector has already answered the question — still
-    /// governs the callers that remain.
-    public func sourceName(of publication: Publication) -> String? {
-        guard registry.attributesPublications, query.scope == .allSources else { return nil }
-        return registry.name(of: publication.sourceID)
-    }
+    // `sourceName(of:)` used to be here, and there is deliberately nothing in its place.
+    // `library-browsing` requires that "nothing on the shelf states which source a
+    // publication came from", so the grid stopped asking, then the list did, then the
+    // spoken labels did — and the method was left behind with a doc comment describing
+    // "the callers that remain", of which there were none. Origin has exactly one home
+    // now, the provenance line on the publication's own page, and that line reads the
+    // registry itself. A public lookup that answers a question no surface is allowed to
+    // ask is an invitation to put the leak back.
 
     /// Where a publication's file is, so the app layer can hand it to a reader.
     public func location(of publication: Publication) -> URL? {

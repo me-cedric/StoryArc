@@ -11,12 +11,17 @@ internal import StoryArcCore
 /// cells it heads. So this is the sectioned shelf and `CoverGrid` stays the uniform one:
 /// short libraries, the on-device destination and search results, none of which divide.
 ///
-/// The cells are `CoverCell`, unchanged. The one duplication with `CoverGrid` is the column
-/// rule below, which is a `design.md` sentence rather than a layout opinion; the slice that
-/// owns `CoverGrid` should lift it into one place both can read.
+/// The cells are `CoverCell`, unchanged, and so is the column rule: both shelves ask
+/// ``coverMinimumWidth(shelfWidth:textSize:)``. This file used to carry its own copy of the
+/// 104 / 132 / 158 tier switch, which is how it missed the second input when `CoverGrid`
+/// gained one — a reader at an accessibility text size got the truncated captions back the
+/// moment their library grew long enough to be divided into sections.
 struct SectionedShelf: View {
     @Environment(\.theme) private var theme
     @Environment(\.displayScale) private var displayScale
+    /// How large the reader has asked for text to be. The second input to the cover size —
+    /// see ``coverMinimumWidth(shelfWidth:textSize:)``.
+    @Environment(\.dynamicTypeSize) private var textSize
 
     let sections: [LibrarySection]
     let model: LibraryModel
@@ -39,16 +44,11 @@ struct SectionedShelf: View {
     /// a size class is coarse, and a shelf pushed into a narrower column is not a phone.
     @State private var width: CGFloat = 0
 
-    /// The width at or above which the shelf stops being a widened phone.
-    private static let confidentShelfWidth: CGFloat = 900
-
-    /// `design.md`: "Minimum cover width scales by size class: 104 / 132 / 158 pt."
+    /// `design.md`: "Minimum cover width scales by size class: 104 / 132 / 158 pt", one step
+    /// wider once the reader is at an accessibility text size. The same function the plain
+    /// grid asks, so the two shelves cannot answer the column question differently again.
     private var minimumWidth: CGFloat {
-        switch width {
-        case ..<StoryArcWindowClass.sidebarWidthThreshold: 104
-        case ..<Self.confidentShelfWidth: 132
-        default: 158
-        }
+        coverMinimumWidth(shelfWidth: width, textSize: textSize)
     }
 
     /// Headroom over the minimum, so the last column grows into the leftover instead of
