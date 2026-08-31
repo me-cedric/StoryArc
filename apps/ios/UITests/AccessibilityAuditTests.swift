@@ -25,24 +25,36 @@ final class AccessibilityAuditTests: XCTestCase {
         continueAfterFailure = true
     }
 
-    /// Audits the library, which is the first thing anyone sees.
+    /// Audits Home, which is the first thing anyone sees.
     ///
-    /// **Three contrast issues remain**, and the audit is the only thing that knows which
-    /// elements they are. It ran for the first time on 2026-08-31: until then the target
-    /// could not be code-signed at all — `project.yml` gave it no `Info.plist` and did not
-    /// ask Xcode to generate one — so the build failed before a single test started, and
-    /// this expectation had never once been evaluated.
+    /// **Three contrast issues remain, and all three are the audit measuring the wrong
+    /// thing.** Each is a `HomeShelfCard` for `Moonfall #1`, `#2` and `#3`, reported at
+    /// `{132.0, 224.0}` — the whole card. `HomeShelfCard` takes
+    /// `.accessibilityElement(children: .combine)` so VoiceOver reads a cover and its
+    /// caption as one publication rather than as an unlabelled image followed by a title,
+    /// and combining makes the element's frame the card's frame. Of those 224 points, 198
+    /// are `HomeArtwork` — real cover art — and roughly 20 are the caption. So the check
+    /// samples a frame that is seven-eighths photograph and reports the result as a text
+    /// contrast ratio.
     ///
-    /// The annotation used to name `ScanSummary`'s `textTertiary` on `storyArcGlass` as
-    /// the whole of it. That one is fixed: text on glass now takes the material's own
-    /// hierarchy rather than a fixed palette colour. Three failures survived it, which is
-    /// exactly why the reason is no longer allowed to name a cause — an expectation that
-    /// names one defect and silently absorbs three is worse than no expectation at all.
+    /// The caption itself is `textPrimary` on `surfaceCanvas`, which is **16.9:1 in light
+    /// and 16.8:1 in dark** — the highest-contrast pair the palette owns, and four times
+    /// the 4.5:1 floor. A palette cannot fail a contrast check at 16.9:1; something drawn
+    /// over it can, and here nothing is: the frame is simply not the text's frame.
+    ///
+    /// Not fixable without making it worse. Un-combining the card would clear the finding
+    /// and give VoiceOver three elements per cover, one of them an unlabelled decorative
+    /// image — trading a real reader's experience for a green report.
+    ///
+    /// It ran for the first time on 2026-08-31: until then the target could not be
+    /// code-signed at all — `project.yml` gave it no `Info.plist` and did not ask Xcode to
+    /// generate one — so the build failed before a single test started, and this
+    /// expectation had never once been evaluated.
     ///
     /// `XCTExpectFailure` rather than a disabled test, so this starts failing the moment
-    /// the last of them is fixed and this annotation is left behind.
+    /// the audit's verdict changes and this annotation is left behind.
     func testHomePassesTheAudit() throws {
-        XCTExpectFailure("Contrast issues remain on Home. Read the report below for which.")
+        XCTExpectFailure("Three combined cover cells, whose frame is mostly artwork. See the report below.")
         let app = launch()
         try audit(app, named: "Home")
     }
@@ -53,20 +65,38 @@ final class AccessibilityAuditTests: XCTestCase {
     /// library and the shell revamp moved Home in front of it, so the one audit this
     /// project had quietly stopped covering the screen it was named after.
     func testLibraryPassesTheAudit() throws {
-        // Nine issues on first run, 2026-08-31, printed in full by `audit`. Two kinds:
+        // **Five contrast issues remain, and every one of them is a caption in the bottom
+        // strip of the window.** `Blackwater #3`, `Bright Panels` and `Broken Transfer` at
+        // y 762.3; `Ada Lovelace` at 780; the coverless well's `EPUB` at 740. The window is
+        // 874 points tall, so all five sit in its last 134 points — under the floating glass
+        // tab bar and the soft scroll-edge effect that fades content into it. Every caption
+        // higher up the same shelf, in the same roles, on the same surfaces, passes.
         //
-        // - **Contrast, eight of them**, and seven sit in the bottom 260 pt of the window
-        //   — under the floating glass tab bar and the scan summary. Untinted glass takes
-        //   its luminance from the cover behind it, so the audit cannot bound the contrast
-        //   of anything it overlaps, and text that scrolls under the bar is text the audit
-        //   fails. This is the same finding the token gate already has a hole for: no text
-        //   role is measured against glass, because glass is not one of the three opaque
-        //   surfaces it measures.
-        // - **"Dynamic Type font sizes are partially unsupported"** on a coverless card's
-        //   title, which is a real and separate defect: that title carries
-        //   `minimumScaleFactor`, and shrinking text below the reader's chosen size is
-        //   precisely what `design.md` forbids.
-        XCTExpectFailure("Contrast under the glass bar, and one minimumScaleFactor. See the report below.")
+        // The palette settles it. `textPrimary` on `surfaceCanvas` measures **16.9:1** in
+        // light and **16.8:1** in dark; the worst pair in the whole set, `textTertiary` on
+        // `surfaceRaised` in dark, is **4.97:1**. Nothing here is close to failing 4.5:1 on
+        // its own ground. What the check is sampling is the ground the *chrome* puts over
+        // it: untinted Liquid Glass takes its luminance from whichever cover is passing
+        // beneath, so the contrast of anything it overlaps is not a bounded quantity.
+        // `design.md` §5 asks for exactly that — chrome that "picks up the cover" — and
+        // AGENTS.md §2 makes it a non-negotiable, so this is the design behaving.
+        //
+        // Nothing is permanently obscured: the shelf scrolls, and any caption reported here
+        // clears the bar at a different offset. The audit samples one offset.
+        //
+        // What is *not* here any more: the ninth issue of the 2026-08-31 run, **"Dynamic
+        // Type font sizes are partially unsupported"** on the coverless card `Bright
+        // Panels`. That was real — the well's stand-in title carried
+        // `minimumScaleFactor(0.6)`, which shrinks the reader's chosen size by up to forty
+        // per cent and shrinks it hardest for the reader who asked for the largest, which
+        // is what `design.md` §3 forbids. The scale factor is gone from both wells that had
+        // it; see `coverlessWellDrawsTitle(at:)`.
+        //
+        // The count moves with the app's state rather than with the code: a run that lands
+        // while `ScanSummary` is on screen adds that sentence's own element to the strip.
+        // Nine issues were reported on 2026-08-31 and five on the runs since; the kinds are
+        // what this expectation names, not the number.
+        XCTExpectFailure("Five captions in the strip under the glass bar. See the report below.")
         let app = launch()
         try XCTUnwrap(destination("Library", in: app)).tap()
         try audit(app, named: "Library")
@@ -74,12 +104,32 @@ final class AccessibilityAuditTests: XCTestCase {
 
     /// What is readable with no network. The third destination, and the smallest.
     func testDownloadsPassesTheAudit() throws {
-        // Seven issues on first run, 2026-08-31. Five are **"Text clipped"** on shelf
-        // captions, each 18 pt tall — a caption given one line's height and asked to draw
-        // two. That is a layout defect and not a glass one, and it is the most fixable
-        // thing this audit has ever reported. The remaining two are the same
-        // under-the-bar contrast as the library.
-        XCTExpectFailure("Five clipped captions and two under the glass bar. See the report below.")
+        // Seven issues on 2026-08-31, one since.
+        //
+        // **The five "Text clipped" findings are fixed.** They were on `OnDeviceShelf`
+        // captions, each reported 18 points tall — one line's height for a caption that
+        // had to draw two. The cause was not the caption: this shelf held its own copy of
+        // the cover-width rule, `sizeClass == .regular ? 158 : 104`, which is `design.md`
+        // §4's tiers with the reader's text size left out and the shelf's real width never
+        // measured. A lazy grid sizes a cell against the column's *maximum* and then draws
+        // it at the column's real width, so a caption that fitted one line at 168 points
+        // and needed two at 111 was handed one line and clipped. It now asks
+        // `coverMinimumWidth(shelfWidth:textSize:)` — the same function the library's two
+        // shelves ask — and captions a cover in the same role they do.
+        //
+        // **One contrast finding remains**, on `Glasshouse` at y 814.3 in an 874-point
+        // window: the last twenty points of the screen, under the floating glass tab bar.
+        // Its own pair is `textPrimary` on `surfaceCanvas`, 16.9:1, so this is the same
+        // untinted-glass ground the library's five sit on — see there for why that is the
+        // design rather than a defect.
+        //
+        // The two runs are the proof of that, and they are the reason this one is written
+        // off rather than shrugged at. On 2026-08-31 `Foreign Codec` and `Glasshouse` both
+        // failed contrast at y 813, while the identical role and colour at y 395 and y 604
+        // passed. After the layout fix the shelf reflowed, `Foreign Codec` moved out of the
+        // strip and its finding went with it, and `Glasshouse` stayed and kept its. The
+        // finding follows the position, not the palette.
+        XCTExpectFailure("One caption under the glass bar. See the report below.")
         let app = launch()
         try XCTUnwrap(destination("Downloads", in: app)).tap()
         try audit(app, named: "Downloads")
@@ -94,11 +144,6 @@ final class AccessibilityAuditTests: XCTestCase {
 
     // MARK: - Private
 
-    /// Launches the app, optionally at a chosen text size.
-    ///
-    /// The size arrives as a launch argument rather than by driving the Settings app: it is
-    /// the documented way to force a content-size category in a UI test, and it applies
-    /// before the first frame, so nothing is measured at the default size first.
     /// Runs the audit and prints what it found before letting it fail.
     ///
     /// `performAccessibilityAudit()` on its own reports "Contrast failed" and nothing else
@@ -139,6 +184,11 @@ final class AccessibilityAuditTests: XCTestCase {
         return nil
     }
 
+    /// Launches the app, optionally at a chosen text size.
+    ///
+    /// The size arrives as a launch argument rather than by driving the Settings app: it is
+    /// the documented way to force a content-size category in a UI test, and it applies
+    /// before the first frame, so nothing is measured at the default size first.
     private func launch(contentSize: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         if let contentSize {
