@@ -76,16 +76,21 @@ final class ScreenshotTests: XCTestCase {
     /// The theme sheet and its six presets, which `reader-theming-and-page-transitions`
     /// task 7.4 asks for and which has been recorded as impossible on this platform.
     ///
-    /// That task says "iOS cannot be captured: the simulator accepts no injected input, so the
+    /// That task said "iOS cannot be captured: the simulator accepts no injected input, so the
     /// reader cannot be reached to open the sheet", and `apps/ios/README.md` records the three
-    /// approaches that were tried. The obstacle was real and it is gone: a UI test injects
-    /// input through XCUITest rather than through the Simulator's window, so the reader is
-    /// reachable the same way the accessibility audit reaches it.
+    /// approaches that were tried. Neither half of that survives. Input was never the
+    /// obstacle: a UI test injects through XCUITest rather than through the Simulator's
+    /// window. Nor was the reader unreachable, which is what it was narrowed to next — the
+    /// walk was reaching a *fixed-layout* EPUB and opening the comic reader with it, twenty
+    /// seconds at a time.
     ///
     /// The sheet lives in the **EPUB** reader, not the comic reader, because a reading theme
     /// applies to reflowable text. Its control is labelled *Reading* — `theme.title` in
-    /// `EpubReaderFeature` — and it is absent rather than disabled on a publication with no
-    /// text Readium can lay out, which is why a fixed-layout EPUB cannot be used for this.
+    /// `EpubReaderFeature`. A fixed-layout EPUB cannot be used for this, and the reason is
+    /// one screen earlier than it looks: the app does not open one in the EPUB reader at all.
+    /// `Publication.isReflowable` sends it to the comic reader, which has no theme control to
+    /// disable. Asking the shelf for "an EPUB" is therefore not enough — see
+    /// ``openTheEpubReader(in:)``, which is what made this capture possible.
     ///
     /// All six presets are in one shot deliberately, following the Android captures: the grid
     /// draws each preset in its own colours *and* its own typeface, and that is the thing worth
@@ -106,32 +111,16 @@ final class ScreenshotTests: XCTestCase {
 
     private func captureThemeSheet(contentSize: String?, named name: String) throws {
         let app = launch(contentSize: contentSize)
-        let action = try openFirstPublication(in: app, ofFormat: "EPUB")
-        action.tap()
-
-        // Wait for the control itself, not for `otherElements.firstMatch` — that exists on
-        // every screen and returns instantly, so the first version of this walked on while the
-        // publication page was still up, tapped its middle, and reported no theme sheet on a
-        // screen that never had one. The reader shows its chrome for four seconds when it
-        // opens, so the control is there without any tap; the tap below is only for the case
-        // where opening took longer than the chrome lasts.
+        // Waits for the control itself, not for `otherElements.firstMatch` — that exists on
+        // every screen and returns instantly, so the first version of this walked on while
+        // the publication page was still up, tapped its middle, and reported no theme sheet
+        // on a screen that never had one. And it opens EPUBs until one of them lands in the
+        // reflowable reader, because a cover cannot say which of the two readers it opens:
+        // the version that stopped at the first EPUB found a pre-paginated one, opened the
+        // comic reader, and skipped every run for a day. When no EPUB on the device opens
+        // the reflowable reader it still skips, and names every one it tried.
+        try openTheEpubReader(in: app)
         let reading = app.buttons["Reading"]
-        if !reading.waitForExistence(timeout: 15) {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        }
-
-        if !reading.waitForExistence(timeout: 5) {
-            // Say what was on screen. A skip that names no reason is a check that quietly
-            // stops running, and this one has a history of being called impossible.
-            throw XCTSkip(
-                """
-                No Reading control on this reader, so no theme sheet to capture.
-                Buttons: \(app.buttons.allElementsBoundByIndex.map(\.label))
-                Texts: \(app.staticTexts.allElementsBoundByIndex.prefix(14).map(\.label))
-                Action was: \(action.label), hittable: \(action.isHittable)
-                """
-            )
-        }
         reading.tap()
         // The sheet is a presentation; it animates up over the page.
         _ = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Original")).firstMatch

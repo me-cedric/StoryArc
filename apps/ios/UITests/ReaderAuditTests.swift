@@ -68,45 +68,28 @@ final class ReaderAuditTests: XCTestCase {
     /// because of a fixture is a suite nobody believes twice. The walk is what is asserted —
     /// reaching a reflowable book at all — and `XCTSkip` covers a device with no EPUB on it.
     func testEpubReaderPassesTheAudit() throws {
-        let app = launch()
-        try openFirstPublication(in: app, ofFormat: "EPUB")
-        try openTheReader(in: app)
-
-        // **It proves it arrived.** The first version of this tapped the action element
-        // `openFirstPublication` returned and audited whatever was on screen, and that element
-        // is not always hittable — the publication page has duplicate entries in its
-        // hierarchy and `firstMatch` can bind to one that cannot be tapped. So it reported
-        // "zero findings on the EPUB reader" while sitting on the publication page, which is
-        // the failure `AuditWalk.swift` warns about at length and which it committed itself.
+        // **It proves it arrived, twice over, and the second proof is why this test ran for
+        // a day without measuring the reader.**
         //
-        // The reader is identified by the one control only it has, the same way the
-        // publication page is identified by its action.
+        // The first version tapped the action element `openFirstPublication` returned and
+        // audited whatever was on screen. That element is not always hittable — the
+        // publication page has duplicate entries in its hierarchy and `firstMatch` can bind
+        // to one that cannot be tapped — so it reported "zero findings on the EPUB reader"
+        // while sitting on the publication page.
+        //
+        // The version after it tapped a hittable action and then waited for the theme
+        // control, and skipped for twenty seconds' worth of waiting every time. That was
+        // honest and it was reported as "the EPUB reader does not reach a state with its own
+        // controls on this simulator". It does. What it asked the shelf for was an *EPUB*,
+        // and two of this corpus's five are pre-paginated and sort first — so it opened the
+        // **comic** reader, which has no theme control and never will.
+        //
+        // `openTheEpubReader` is the fix: it keeps opening EPUBs until the reader it lands
+        // in is the one with the control on it.
+        let app = launch()
+        try openTheEpubReader(in: app)
+
         try reportOnly(app, named: "EPUB reader")
-    }
-
-    /// Opens the reader from a publication page, and proves it opened.
-    ///
-    /// Re-queries for a *hittable* action rather than tapping the element the walk returned:
-    /// `firstMatch` resolves to the first in the hierarchy, and on this page that is not
-    /// always the one a finger could reach.
-    private func openTheReader(in app: XCUIApplication) throws {
-        let opens = NSPredicate(format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue'")
-        let action = try XCTUnwrap(
-            app.buttons.matching(opens).allElementsBoundByIndex.first { $0.isHittable },
-            "The publication page offers no action a finger could reach."
-        )
-        action.tap()
-
-        // The reader shows its chrome for four seconds when it opens, so its own controls are
-        // there without a tap. `Reading` is the theme control, and only the EPUB reader has it.
-        let reading = app.buttons["Reading"]
-        if !reading.waitForExistence(timeout: 15) {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        }
-        try XCTSkipUnless(
-            reading.waitForExistence(timeout: 5),
-            "This EPUB's reader never appeared, so there is nothing here to audit."
-        )
     }
 
 }

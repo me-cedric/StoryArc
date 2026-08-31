@@ -120,36 +120,28 @@ extension XCTestCase {
     /// `named` reopens a particular publication. "The first cover" is not a stable identity
     /// across two launches of a shelf that can reorder between them.
     ///
-    /// `ofFormat` picks one the app will open with a particular reader, which is what lets a
-    /// caller audit the **EPUB** reader rather than whichever reader the first cover happens
-    /// to reach. A cover's spoken label ends with its format, so the shelf can be asked. It
-    /// matches the label rather than the fixture's name for the same reason `named` exists:
-    /// which fixtures a device holds is not this file's business.
+    /// `ofFormat` narrows to a format, and that is **all** it does. It matches the cover's
+    /// spoken label rather than a fixture's name, for the same reason `named` exists: which
+    /// fixtures a device holds is not this file's business.
+    ///
+    /// It is not a way of choosing a reader, and it was read as one. A cover says `EPUB`
+    /// whether the book is reflowable or pre-paginated, and the app opens those in two
+    /// different readers — so a caller after the EPUB reader wants
+    /// ``openTheEpubReader(in:)``, which checks the reader it arrived in.
     @discardableResult
     func openFirstPublication(
         in app: XCUIApplication,
         named wanted: String? = nil,
         ofFormat format: String? = nil
     ) throws -> XCUIElement {
-        try XCTUnwrap(destination("Library", in: app)).tap()
-
-        let shelf = app.buttons.element(boundBy: 0)
-        try XCTSkipUnless(shelf.waitForExistence(timeout: 10), "The library never drew a shelf.")
-
-        // Below the toolbar and above the tab bar: everything between is content.
-        let covers = app.buttons.allElementsBoundByIndex
-            .filter { $0.isHittable && $0.frame.minY > 150 && $0.frame.maxY < app.frame.height - 100 }
-            .filter { !$0.label.contains("100 percent read") }
-            .filter { wanted == nil || $0.label == wanted }
-            .filter { cover in format.map { cover.label.contains(", \($0)") } ?? true }
+        let covers = try coversOnTheShelf(in: app, named: wanted, ofFormat: format)
         try XCTSkipUnless(
             !covers.isEmpty,
             format.map { "This device's library holds no \($0) to open." }
                 ?? "This device's library has no cover to open."
         )
 
-        let opens = NSPredicate(format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue'")
-        let action = app.buttons.matching(opens).firstMatch
+        let action = app.buttons.matching(opensAPublication).firstMatch
         for cover in covers.prefix(3) {
             cover.tap()
             if action.waitForExistence(timeout: 5) { return action }
@@ -157,6 +149,97 @@ extension XCTestCase {
             app.navigationBars.buttons.element(boundBy: 0).tap()
         }
         throw XCTSkip("No publication on this device opens a page with an action on it.")
+    }
+
+    /// Every cover on the shelf a walk may open, in the order the shelf drew them.
+    ///
+    /// Split out of ``openFirstPublication(in:named:ofFormat:)`` so that
+    /// ``openTheEpubReader(in:)`` can ask the same question — which covers are candidates —
+    /// rather than growing a second answer to it. Each filter above is a lesson; two copies
+    /// of them would be two sets of lessons, and this file exists because that already
+    /// happened once.
+    func coversOnTheShelf(
+        in app: XCUIApplication,
+        named wanted: String? = nil,
+        ofFormat format: String? = nil
+    ) throws -> [XCUIElement] {
+        try XCTUnwrap(destination("Library", in: app)).tap()
+
+        let shelf = app.buttons.element(boundBy: 0)
+        try XCTSkipUnless(shelf.waitForExistence(timeout: 10), "The library never drew a shelf.")
+
+        // Below the toolbar and above the tab bar: everything between is content.
+        return app.buttons.allElementsBoundByIndex
+            .filter { $0.isHittable && $0.frame.minY > 150 && $0.frame.maxY < app.frame.height - 100 }
+            .filter { !$0.label.contains("100 percent read") }
+            .filter { wanted == nil || $0.label == wanted }
+            .filter { cover in format.map { cover.label.contains(", \($0)") } ?? true }
+    }
+
+    /// A publication page's primary action, whichever of its two names it is wearing.
+    ///
+    /// *Read* on a publication nobody has opened and *Continue reading* on one somebody
+    /// has. In one place, because the two copies of this walk each had their own and one of
+    /// them matched `label IN {'Read', 'Continue'}`, which finds neither.
+    var opensAPublication: NSPredicate {
+        NSPredicate(format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue'")
+    }
+
+    /// Opens the **reflowable** EPUB reader, and proves that is the reader it opened.
+    ///
+    /// `ofFormat: "EPUB"` is as close as the shelf can get and it is not close enough. A
+    /// cover's spoken label carries its format and says nothing about how the book is laid
+    /// out, while the app sends a **fixed-layout** EPUB to the *comic* reader — see
+    /// `Publication.isReflowable`, which `ebook-reader` asks for, because a pre-paginated
+    /// page has no typography to control and so no typography controls to audit.
+    ///
+    /// On this corpus "the first EPUB on the shelf" is not a coin toss but a certainty:
+    /// `Bright Panels` and `Glasshouse` are both pre-paginated, and both sort before
+    /// `Harbour Lights 01`, `Harbour Lights 02` and `The Long Field`, which are not. A walk
+    /// that stops at the first EPUB reaches the comic reader every time and finds no theme
+    /// control there — which is how the EPUB reader came to be written down as unreachable
+    /// on a simulator, with two suites skipping to say so and a task list recording it as a
+    /// platform limit.
+    ///
+    /// So this opens EPUBs in turn and stops at the one whose reader carries the theme
+    /// control, which is the one control no other screen in the app has. Relaunching
+    /// between attempts rather than closing the reader: leaving is a full-screen cover's
+    /// own business, the comic reader's chrome fades after four seconds, and a launch is a
+    /// single call that cannot half-succeed.
+    ///
+    /// One candidate skipping does not end the walk, and the skip at the end names every
+    /// publication that was opened and every button that was on screen when it gave up. A
+    /// check that gives up quietly is a check whose next reader derives all of this again.
+    func openTheEpubReader(in app: XCUIApplication) throws {
+        let candidates = try coversOnTheShelf(in: app, ofFormat: "EPUB").map(\.label)
+        try XCTSkipUnless(!candidates.isEmpty, "This device's library holds no EPUB to open.")
+
+        // `theme.title` in `EpubReaderFeature`, drawn as part of the chrome whether or not
+        // the book has finished opening.
+        let reading = app.buttons["Reading"]
+        var opened: [String] = []
+        for (attempt, candidate) in candidates.prefix(3).enumerated() {
+            if attempt > 0 { app.launch() }
+            // A hittable action, not the first in the hierarchy: this page has duplicate
+            // entries and `firstMatch` can bind to one no finger could reach.
+            guard (try? openFirstPublication(in: app, named: candidate)) != nil,
+                  let action = app.buttons.matching(opensAPublication)
+                      .allElementsBoundByIndex.first(where: \.isHittable)
+            else { continue }
+            action.tap()
+            opened.append(candidate)
+            // The reader's chrome is up when it appears and only a tap takes it away, so
+            // this waits for the book to open rather than for a fade to be interrupted.
+            if reading.waitForExistence(timeout: 15) { return }
+        }
+        throw XCTSkip(
+            """
+            No EPUB on this device opened the reflowable reader.
+            Opened: \(opened)
+            Not opened: \(candidates.prefix(3).filter { !opened.contains($0) })
+            Buttons on screen: \(app.buttons.allElementsBoundByIndex.map(\.label))
+            """
+        )
     }
 
     /// One of the shell's three destinations, wherever the platform decided to draw it.
