@@ -136,13 +136,17 @@ object KavitaKeep {
     /**
      * What the server said, in the shape that survives it going away.
      *
-     * **Five of `kavita-server`'s seven metadata fields, not seven.** The publication status
-     * and the age rating are now shown on the series screen, where the live answer is, and
-     * they do not reach a downloaded copy: `KavitaCard` has no field for either, so
-     * *Reading a downloaded Kavita title offline* still displays the file's `ComicInfo.xml`
-     * for those two while displaying the server's word for the rest. Closing it is two
-     * fields on `KavitaCard` and two lines here — `:core:model`, and iOS's mirror of the
-     * same value, which is why it is named rather than done.
+     * **All seven of `kavita-server`'s metadata fields** -- "summary, genres, tags, people,
+     * publication status, age rating, and release year". The last two were the gap: the
+     * series screen showed them from the live answer and [KavitaCard] had no field for
+     * either, so *Reading a downloaded Kavita title offline* fell back to the file's
+     * `ComicInfo.xml` for exactly those two while preferring the server's word for the rest.
+     *
+     * The two defaults are not the same shape, and that is deliberate. A rating the server
+     * did not state is Kavita's own `Unknown`, which is zero and draws no line. A *status* it
+     * did not state has no number of its own -- zero is `OnGoing`, a real state -- so the
+     * card carries -1, outside Kavita's table, rather than telling a reader a series is
+     * running on a server's behalf.
      */
     private fun card(
         publicationId: String,
@@ -164,5 +168,7 @@ object KavitaKeep {
         people = metadata?.people.orEmpty(),
         subjects = metadata?.subjects.orEmpty(),
         releaseYear = metadata?.releaseYear ?: 0,
+        ageRating = metadata?.ageRating ?: 0,
+        publicationStatus = metadata?.publicationStatus ?: -1,
     )
 }

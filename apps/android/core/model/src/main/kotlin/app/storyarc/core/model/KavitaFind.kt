@@ -102,6 +102,28 @@ data class KavitaCard(
     /** Genres and tags read as one list; the distinction is Kavita's, not the reader's. */
     val subjects: List<String> = emptyList(),
     val releaseYear: Int = 0,
+    /**
+     * Kavita's own `ageRating` number, so the rating outlives the server.
+     *
+     * The number rather than a name, because `:core:model` is where a card lives and the
+     * table that reads it is Kavita's: `KavitaAgeRating` in `:core:kavita` turns this into a
+     * label, and `KavitaCard.rating` applies the same two rules the live answer gets.
+     *
+     * Zero is Kavita's own `Unknown`, which is not a rating and draws no line -- so it is
+     * both the right default for a card written before this field existed and the right
+     * value for a keep whose server had no metadata to give.
+     */
+    val ageRating: Int = 0,
+    /**
+     * Kavita's own `publicationStatus` number, or -1 for a card that never recorded one.
+     *
+     * **The sentinel is the point.** Kavita's own range is 0 to 4 and *zero means OnGoing* --
+     * a real state a curator chose, not an absence. A card written before this field existed
+     * would decode zero and the screen would state that the series is running, which the
+     * server may never have said. -1 is outside Kavita's table, so `KavitaPublicationStatus`
+     * reads it as a number it has never heard of and the line is left unsaid.
+     */
+    val publicationStatus: Int = -1,
 ) {
     /**
      * Everything a one-line summary row shows, already in order.
@@ -130,6 +152,11 @@ data class KavitaCard(
      * A field the card is silent about keeps what the file said. The server not having a
      * summary is not the server saying there is none, and blanking a description the file does
      * have would be losing information in the name of preferring a source.
+     *
+     * [ageRating] and [publicationStatus] do not pass through here, and cannot: [Publication]
+     * has no slot for either, and no local file states them. They stay on the card and the
+     * screen reads them from it -- the same shape the live path uses, where they are named
+     * lines rather than members of the run of facts.
      */
     fun appliedTo(publication: Publication): Publication = publication.copy(
         displayTitle = chapterName.ifEmpty { publication.displayTitle },

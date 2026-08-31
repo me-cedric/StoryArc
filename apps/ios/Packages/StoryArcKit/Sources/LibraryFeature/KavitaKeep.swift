@@ -162,6 +162,18 @@ enum KavitaKeep {
     }
 
     /// What the server said, in the shape that survives it going away.
+    ///
+    /// **All seven of `kavita-server`'s metadata fields** — "summary, genres, tags, people,
+    /// publication status, age rating, and release year". The last two were the gap:
+    /// `KavitaCard` had no field for either, so *Reading a downloaded Kavita title offline*
+    /// fell back to the file's `ComicInfo.xml` for exactly those two while preferring the
+    /// server's word for the rest.
+    ///
+    /// The two defaults are not the same shape, and that is deliberate. A rating the server
+    /// did not state is Kavita's own `Unknown`, which is zero and draws no line. A *status*
+    /// it did not state has no number of its own — zero is `OnGoing`, a real state — so the
+    /// card carries -1, outside Kavita's table, rather than telling a reader a series is
+    /// running on a server's behalf.
     private static func card(
         _ publicationId: String,
         downloadId: String,
@@ -179,7 +191,9 @@ enum KavitaKeep {
             summary: subject.metadata?.summary,
             people: subject.metadata?.people ?? [],
             subjects: subject.metadata?.subjects ?? [],
-            releaseYear: subject.metadata?.releaseYear ?? 0
+            releaseYear: subject.metadata?.releaseYear ?? 0,
+            ageRating: subject.metadata?.ageRating ?? 0,
+            publicationStatus: subject.metadata?.publicationStatus ?? -1
         )
     }
 }

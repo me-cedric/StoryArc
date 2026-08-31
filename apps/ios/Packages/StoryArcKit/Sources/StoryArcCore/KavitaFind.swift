@@ -100,6 +100,26 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
 
     public let releaseYear: Int
 
+    /// Kavita's own `ageRating` number, so the rating outlives the server.
+    ///
+    /// The number rather than a name, because `StoryArcCore` is where a card lives and the
+    /// table that reads it is Kavita's: `KavitaAgeRating` in the `Kavita` module turns this
+    /// into a label, and `KavitaCard.rating` applies the same two rules the live answer gets.
+    ///
+    /// Zero is Kavita's own `Unknown`, which is not a rating and draws no line — so it is
+    /// both the right default for a card written before this field existed and the right
+    /// value for a keep whose server had no metadata to give.
+    public let ageRating: Int
+
+    /// Kavita's own `publicationStatus` number, or -1 for a card that never recorded one.
+    ///
+    /// **The sentinel is the point.** Kavita's own range is 0 to 4 and *zero means OnGoing* —
+    /// a real state a curator chose, not an absence. A card written before this field existed
+    /// would decode zero and the screen would state that the series is running, which the
+    /// server may never have said. -1 is outside Kavita's table, so `KavitaPublicationStatus`
+    /// reads it as a number it has never heard of and the line is left unsaid.
+    public let publicationStatus: Int
+
     public var id: String { publicationId }
 
     public init(
@@ -114,7 +134,9 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
         summary: String? = nil,
         people: [String] = [],
         subjects: [String] = [],
-        releaseYear: Int = 0
+        releaseYear: Int = 0,
+        ageRating: Int = 0,
+        publicationStatus: Int = -1
     ) {
         self.publicationId = publicationId
         self.downloadId = downloadId
@@ -128,6 +150,8 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
         self.people = people
         self.subjects = subjects
         self.releaseYear = releaseYear
+        self.ageRating = ageRating
+        self.publicationStatus = publicationStatus
     }
 
     /// Reads a card that was written by an older build of this app.
@@ -159,11 +183,15 @@ public struct KavitaCard: Sendable, Equatable, Codable, Identifiable {
         people = try container.decodeIfPresent([String].self, forKey: .people) ?? []
         subjects = try container.decodeIfPresent([String].self, forKey: .subjects) ?? []
         releaseYear = try container.decodeIfPresent(Int.self, forKey: .releaseYear) ?? 0
+        ageRating = try container.decodeIfPresent(Int.self, forKey: .ageRating) ?? 0
+        publicationStatus = try container
+            .decodeIfPresent(Int.self, forKey: .publicationStatus) ?? -1
     }
 
     private enum CodingKeys: String, CodingKey {
         case publicationId, downloadId, sourceId, libraryId, seriesId, chapterId
         case seriesName, chapterName, summary, people, subjects, releaseYear
+        case ageRating, publicationStatus
     }
 
     /// Everything a one-line summary row shows, already in order.

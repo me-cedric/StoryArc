@@ -1,5 +1,6 @@
 package app.storyarc.core.kavita
 
+import app.storyarc.core.model.KavitaCard
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -108,5 +109,43 @@ class KavitaRatingsTest {
 
         assertEquals(KavitaAgeRating.TEEN, decoded.rating)
         assertEquals(KavitaPublicationStatus.COMPLETED, decoded.status)
+    }
+
+    @Test
+    fun `a card states the two the same way a live answer does`() {
+        // *Reading a downloaded Kavita title offline* is the live path with the card in place
+        // of the response, so the two rules have to be the same two rules.
+        val card = KavitaCard(
+            publicationId = "p1",
+            sourceId = "s",
+            seriesId = 7,
+            chapterId = 1,
+            seriesName = "Tidal Reach",
+            chapterName = "The Harbour",
+            ageRating = 10,
+            publicationStatus = 2,
+        )
+        assertEquals(KavitaAgeRating.MATURE_17_PLUS, card.rating)
+        assertEquals(KavitaPublicationStatus.COMPLETED, card.status)
+    }
+
+    @Test
+    fun `a card that recorded neither number states neither`() {
+        // The defaults, which are two different shapes on purpose: zero is Kavita's own
+        // `Unknown` rating, and -1 is outside Kavita's status table because zero there is
+        // `OnGoing` -- a state a curator chose, which a card must not claim on a server's
+        // behalf.
+        val bare = KavitaCard(
+            publicationId = "p1",
+            sourceId = "s",
+            seriesId = 7,
+            chapterId = 1,
+            seriesName = "Tidal Reach",
+            chapterName = "The Harbour",
+        )
+        assertEquals(0, bare.ageRating)
+        assertEquals(-1, bare.publicationStatus)
+        assertNull(bare.rating)
+        assertNull(bare.status)
     }
 }

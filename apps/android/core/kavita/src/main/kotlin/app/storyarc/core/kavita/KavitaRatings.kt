@@ -1,5 +1,7 @@
 package app.storyarc.core.kavita
 
+import app.storyarc.core.model.KavitaCard
+
 /**
  * The two fields of [KavitaMetadata] that arrive as bare integers.
  *
@@ -95,4 +97,25 @@ val KavitaMetadata.rating: KavitaAgeRating?
 
 /** The state this metadata puts the series in, or `null` when the number is unrecognised. */
 val KavitaMetadata.status: KavitaPublicationStatus?
+    get() = KavitaPublicationStatus.of(publicationStatus)
+
+/**
+ * The rating the card kept, or `null` when it kept none.
+ *
+ * The same two rules as [KavitaMetadata.rating], applied to what was written down. That is
+ * the whole shape of *Reading a downloaded Kavita title offline*: the offline path is the
+ * live path with the card in place of the response.
+ */
+val KavitaCard.rating: KavitaAgeRating?
+    get() = KavitaAgeRating.of(ageRating)?.takeIf { it.isStated }
+
+/**
+ * The state the card kept, or `null` when it kept none.
+ *
+ * Null covers two things and has to: a number Kavita has never defined, and the -1
+ * [KavitaCard.publicationStatus] carries for a card written before the field existed. Zero
+ * is *OnGoing*, so a card that fell back to it would state that the series is running on a
+ * server's behalf.
+ */
+val KavitaCard.status: KavitaPublicationStatus?
     get() = KavitaPublicationStatus.of(publicationStatus)

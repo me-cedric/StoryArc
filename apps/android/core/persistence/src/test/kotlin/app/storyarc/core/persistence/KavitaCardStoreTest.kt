@@ -8,7 +8,7 @@ import org.junit.Test
 /**
  * What a Kavita server said, kept so a download can be read without it.
  *
- * iOS's `KavitaCardStoreTests` makes the same five claims in the same order.
+ * iOS's `KavitaCardStoreTests` makes the same six claims in the same order.
  */
 class KavitaCardStoreTest {
 
@@ -32,6 +32,10 @@ class KavitaCardStoreTest {
         people = listOf("Ada Okonkwo"),
         subjects = listOf("Adventure"),
         releaseYear = 1998,
+        // Kavita's own numbers: 10 is `Mature 17+` and 2 is `Completed`. Neither is a
+        // default, so a field dropped anywhere on the way to disk reads as one that is.
+        ageRating = 10,
+        publicationStatus = 2,
     )
 
     @Test
@@ -45,6 +49,10 @@ class KavitaCardStoreTest {
         assertEquals(3, read.libraryId)
         assertEquals("download-p1", read.downloadId)
         assertEquals(listOf("1998", "Ada Okonkwo", "Adventure"), read.facts)
+        // The two `kavita-server`'s *Metadata* requirement names that no local file states.
+        // Round trip, not field: they are only useful if they come back off the disk.
+        assertEquals(10, read.ageRating)
+        assertEquals(2, read.publicationStatus)
     }
 
     @Test
@@ -83,5 +91,27 @@ class KavitaCardStoreTest {
         store.save(card("p3", source = "b"))
         store.removeAll("a")
         assertEquals(listOf("p3"), store.all().map { it.publicationId })
+    }
+
+    @Test
+    fun `a card written before the two numbers existed states neither`() {
+        // The bytes an older build left in the preferences, not a re-encoded value. A
+        // `@Serializable` property with a default is filled in when the key is missing --
+        // and the *values* those defaults carry are the claim: zero is Kavita's `Unknown`
+        // rating, which draws no line, and -1 is outside Kavita's status table. Zero would
+        // have been `OnGoing`, so a card that fell back to it would tell a reader the series
+        // is running on a server's behalf.
+        val preferences = FakePreferences()
+        preferences.edit().putString(
+            "cards",
+            """{"p1":{"publicationId":"p1","sourceId":"s","seriesId":7,"chapterId":1,""" +
+                """"seriesName":"Tidal Reach","chapterName":"The Harbour","releaseYear":1998}}""",
+        ).apply()
+
+        val read = KavitaCardStore(preferences).card("p1")
+        assertNotNull(read)
+        assertEquals("Tidal Reach", read!!.seriesName)
+        assertEquals(0, read.ageRating)
+        assertEquals(-1, read.publicationStatus)
     }
 }
