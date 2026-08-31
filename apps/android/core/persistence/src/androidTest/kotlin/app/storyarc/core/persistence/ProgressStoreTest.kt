@@ -44,7 +44,9 @@ class ProgressStoreTest {
     fun aSavedPositionComesBack() = runTest {
         val store = store()
         val id = identity(path = "/books/one.cbz")
-        store.save(ReadingProgress(id, ReadingPosition.Page(4, 20), false, 1_000))
+        store.save(
+            ReadingProgress(id, ReadingPosition.Page(4, 20), false, updatedAtEpochMillis = 1_000),
+        )
 
         val found = store.progress(id)
         assertEquals(ReadingPosition.Page(4, 20), found?.position)
@@ -62,8 +64,12 @@ class ProgressStoreTest {
     fun savingAgainReplacesRatherThanAdding() = runTest {
         val store = store()
         val id = identity(path = "/books/one.cbz")
-        store.save(ReadingProgress(id, ReadingPosition.Page(1, 20), false, 1_000))
-        store.save(ReadingProgress(id, ReadingPosition.Page(9, 20), false, 2_000))
+        store.save(
+            ReadingProgress(id, ReadingPosition.Page(1, 20), false, updatedAtEpochMillis = 1_000),
+        )
+        store.save(
+            ReadingProgress(id, ReadingPosition.Page(9, 20), false, updatedAtEpochMillis = 2_000),
+        )
 
         assertEquals(ReadingPosition.Page(9, 20), store.progress(id)?.position)
         assertEquals(1, store.recent().size)
@@ -78,13 +84,14 @@ class ProgressStoreTest {
         val store = store()
         store.save(
             ReadingProgress(
-                identity(path = "/books/one.cbz"), ReadingPosition.Page(3, 10), false, 1_000,
+                identity(path = "/books/one.cbz"), ReadingPosition.Page(3, 10), false,
+                updatedAtEpochMillis = 1_000,
             ),
         )
         store.save(
             ReadingProgress(
                 identity(digest = "abc123", path = "/books/one.cbz"),
-                ReadingPosition.Page(5, 10), false, 2_000,
+                ReadingPosition.Page(5, 10), false, updatedAtEpochMillis = 2_000,
             ),
         )
 
@@ -102,7 +109,7 @@ class ProgressStoreTest {
         store.save(
             ReadingProgress(
                 identity(server = source to "chapter-9", digest = "abc123"),
-                ReadingPosition.Page(7, 30), false, 1_000,
+                ReadingPosition.Page(7, 30), false, updatedAtEpochMillis = 1_000,
             ),
         )
 
@@ -117,8 +124,18 @@ class ProgressStoreTest {
     @Test
     fun twoDifferentPublicationsStayTwoRecords() = runTest {
         val store = store()
-        store.save(ReadingProgress(identity(path = "/a.cbz"), ReadingPosition.Page(1, 5), false, 1))
-        store.save(ReadingProgress(identity(path = "/b.cbz"), ReadingPosition.Page(2, 5), false, 2))
+        store.save(
+            ReadingProgress(
+                identity(path = "/a.cbz"), ReadingPosition.Page(1, 5), false,
+                updatedAtEpochMillis = 1,
+            ),
+        )
+        store.save(
+            ReadingProgress(
+                identity(path = "/b.cbz"), ReadingPosition.Page(2, 5), false,
+                updatedAtEpochMillis = 2,
+            ),
+        )
         assertEquals(2, store.recent().size)
     }
 
@@ -130,8 +147,12 @@ class ProgressStoreTest {
         // it to a routine save is not something a user would ever want.
         val store = store()
         val id = identity(path = "/books/done.cbz")
-        store.save(ReadingProgress(id, ReadingPosition.Page(19, 20), true, 1_000))
-        store.save(ReadingProgress(id, ReadingPosition.Page(2, 20), false, 2_000))
+        store.save(
+            ReadingProgress(id, ReadingPosition.Page(19, 20), true, updatedAtEpochMillis = 1_000),
+        )
+        store.save(
+            ReadingProgress(id, ReadingPosition.Page(2, 20), false, updatedAtEpochMillis = 2_000),
+        )
 
         val found = store.progress(id)
         assertEquals(true, found?.isFinished)
@@ -143,7 +164,9 @@ class ProgressStoreTest {
     fun forgettingAPublicationRemovesIt() = runTest {
         val store = store()
         val id = identity(path = "/books/one.cbz")
-        store.save(ReadingProgress(id, ReadingPosition.Page(1, 5), false, 1_000))
+        store.save(
+            ReadingProgress(id, ReadingPosition.Page(1, 5), false, updatedAtEpochMillis = 1_000),
+        )
         store.forget(id)
         assertNull(store.progress(id))
     }
@@ -155,8 +178,18 @@ class ProgressStoreTest {
         // What library-browsing's "Continue reading" row is built from, so the order
         // is the feature rather than an implementation detail.
         val store = store()
-        store.save(ReadingProgress(identity(path = "/old.cbz"), ReadingPosition.Page(1, 5), false, 1_000))
-        store.save(ReadingProgress(identity(path = "/new.cbz"), ReadingPosition.Page(1, 5), false, 2_000))
+        store.save(
+            ReadingProgress(
+                identity(path = "/old.cbz"), ReadingPosition.Page(1, 5), false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+        store.save(
+            ReadingProgress(
+                identity(path = "/new.cbz"), ReadingPosition.Page(1, 5), false,
+                updatedAtEpochMillis = 2_000,
+            ),
+        )
         assertEquals("/new.cbz", store.recent().first().identity.normalizedPath)
     }
 
@@ -167,7 +200,7 @@ class ProgressStoreTest {
             store.save(
                 ReadingProgress(
                     identity(path = "/$index.cbz"), ReadingPosition.Page(1, 5), false,
-                    index.toLong(),
+                    updatedAtEpochMillis = index.toLong(),
                 ),
             )
         }
@@ -181,8 +214,90 @@ class ProgressStoreTest {
         val store = store()
         val id = identity(path = "/book.epub")
         val position = ReadingPosition.Reflowable(0.42, "ch3#p7")
-        store.save(ReadingProgress(id, position, false, 1_000))
+        store.save(ReadingProgress(id, position, false, updatedAtEpochMillis = 1_000))
         assertTrue(store.progress(id)?.position is ReadingPosition.Reflowable)
         assertEquals(position, store.progress(id)?.position)
+    }
+
+    // Positions recorded before a digest existed.
+
+    @Test
+    fun linkMigratesAPathOnlyRecord() = runTest {
+        // The migration, end to end. Every position in the shipped app was written
+        // against a path and nothing else, because nothing ever produced a digest.
+        val store = store()
+        store.save(
+            ReadingProgress(
+                identity(path = "/books/Bone 01.cbz"), ReadingPosition.Page(9, 30), false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+
+        // The next scan finds the same file and now knows what it is.
+        store.link(identity(digest = "d1", path = "/books/Bone 01.cbz"))
+        // Then the reader renames it.
+        val renamed = identity(digest = "d1", path = "/books/Bone Volume One.cbz")
+
+        assertEquals(ReadingPosition.Page(9, 30), store.progress(renamed)?.position)
+    }
+
+    @Test
+    fun withoutLinkARenameIsStillLost() = runTest {
+        // Why `link` exists rather than leaving it to `save`. This is the state of the
+        // app before this change, pinned so the migration cannot be quietly dropped.
+        val store = store()
+        store.save(
+            ReadingProgress(
+                identity(path = "/books/Bone 01.cbz"), ReadingPosition.Page(9, 30), false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+
+        assertNull(store.progress(identity(digest = "d1", path = "/books/Bone Volume One.cbz")))
+    }
+
+    @Test
+    fun linkLeavesTheReadingAlone() = runTest {
+        // A backfill that touched `updatedAt` would reorder "Continue reading" for the
+        // whole library on the first launch after the digest arrived.
+        val store = store()
+        store.save(
+            ReadingProgress(
+                identity(path = "/books/one.cbz"), ReadingPosition.Page(4, 20), true,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+
+        store.link(identity(digest = "d1", path = "/books/one.cbz"))
+
+        val read = store.progress(identity(digest = "d1"))
+        assertEquals(1_000L, read?.updatedAtEpochMillis)
+        assertEquals(ReadingPosition.Page(4, 20), read?.position)
+        assertEquals(true, read?.isFinished)
+    }
+
+    @Test
+    fun linkOnlyTouchesWhatExists() = runTest {
+        // A whole library can be passed through this on every scan. Most of it has no
+        // reading position at all, and none of it should gain one.
+        val store = store()
+
+        assertEquals(false, store.link(identity(digest = "d1", path = "/books/unread.cbz")))
+        assertNull(store.progress(identity(digest = "d1")))
+    }
+
+    @Test
+    fun linkIsIdempotent() = runTest {
+        val store = store()
+        store.save(
+            ReadingProgress(
+                identity(path = "/books/one.cbz"), ReadingPosition.Page(1, 5), false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+
+        val learned = identity(digest = "d1", path = "/books/one.cbz")
+        assertEquals(true, store.link(learned))
+        assertEquals(false, store.link(learned))
     }
 }

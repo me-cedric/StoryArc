@@ -211,6 +211,36 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
     }
 
     /**
+     * Records what else is known about a publication already in the store, changing
+     * nothing about the reading.
+     *
+     * **The migration for every position written before a content digest existed.** Those
+     * records carry a path and nothing else, so the first rename loses them — which is the
+     * whole defect. [save] fills the missing components in too, but only when the reader
+     * opens the publication again; a reader who tidies their folder first would never get
+     * that far. Handing a scan's identities through here closes the window: the digest is
+     * attached the moment the library learns it, before anything has had a chance to move.
+     *
+     * Deliberately touches neither `updatedAt` nor the position. Learning a file's digest
+     * is not reading it, and a backfill that restamped the date would reorder "Continue
+     * reading" for the whole library on one launch.
+     *
+     * Returns whether a record was found and something was actually new about it, so a
+     * caller can pass a whole library through it without writing on every launch.
+     */
+    suspend fun link(identity: PublicationIdentity): Boolean = withContext(Dispatchers.IO) {
+        val existing = existing(identity) ?: return@withContext false
+        val row = existing.copy(
+            serverKey = existing.serverKey ?: serverKey(identity),
+            contentDigest = existing.contentDigest ?: identity.contentDigest,
+            normalizedPath = existing.normalizedPath ?: identity.normalizedPath,
+        )
+        if (row == existing) return@withContext false
+        database.progress().update(row)
+        true
+    }
+
+    /**
      * Everything recorded, most recently read first.
      *
      * What `library-browsing`'s "Continue reading" row is built from.

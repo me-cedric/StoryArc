@@ -236,4 +236,84 @@ struct ProgressStoreTests {
         #expect(read?.identity.serverIdentifier == identity.serverIdentifier)
     }
 
+    // MARK: - Positions recorded before a digest existed
+
+    @Test("A position written against a path alone survives a rename once linked")
+    func linkMigratesAPathOnlyRecord() async throws {
+        // The migration, end to end. Every position in the shipped app was written
+        // against a path and nothing else, because nothing ever produced a digest.
+        let store = try store()
+        let old = identity(path: "/books/Bone 01.cbz")
+        try await store.save(
+            ReadingProgress(identity: old, position: .page(index: 9, of: 30), updatedAt: .now)
+        )
+
+        // The next scan finds the same file and now knows what it is.
+        try await store.link(identity(digest: "d1", path: "/books/Bone 01.cbz"))
+        // Then the reader renames it.
+        let renamed = identity(digest: "d1", path: "/books/Bone Volume One.cbz")
+
+        #expect(try await store.progress(for: renamed)?.position == .page(index: 9, of: 30))
+    }
+
+    @Test("Without the link, a rename before the next read still loses the place")
+    func withoutLinkARenameIsStillLost() async throws {
+        // Why `link` exists rather than leaving it to `save`. This is the state of the
+        // app before this change, pinned so the migration cannot be quietly dropped.
+        let store = try store()
+        try await store.save(
+            ReadingProgress(
+                identity: identity(path: "/books/Bone 01.cbz"),
+                position: .page(index: 9, of: 30),
+                updatedAt: .now
+            )
+        )
+
+        let renamed = identity(digest: "d1", path: "/books/Bone Volume One.cbz")
+        #expect(try await store.progress(for: renamed) == nil)
+    }
+
+    @Test("Linking does not restamp the record, because learning is not reading")
+    func linkLeavesTheReadingAlone() async throws {
+        // A backfill that touched `updatedAt` would reorder "Continue reading" for the
+        // whole library on the first launch after the digest arrived.
+        let store = try store()
+        let when = Date(timeIntervalSince1970: 1_000)
+        let old = identity(path: "/books/one.cbz")
+        try await store.save(
+            ReadingProgress(
+                identity: old, position: .page(index: 4, of: 20), isFinished: true, updatedAt: when
+            )
+        )
+
+        try await store.link(identity(digest: "d1", path: "/books/one.cbz"))
+
+        let read = try await store.progress(for: identity(digest: "d1"))
+        #expect(read?.updatedAt == when)
+        #expect(read?.position == .page(index: 4, of: 20))
+        #expect(read?.isFinished == true)
+    }
+
+    @Test("Linking a publication nobody has read writes nothing")
+    func linkOnlyTouchesWhatExists() async throws {
+        // A whole library can be passed through this on every scan. Most of it has no
+        // reading position at all, and none of it should gain one.
+        let store = try store()
+
+        #expect(try await store.link(identity(digest: "d1", path: "/books/unread.cbz")) == false)
+        #expect(try await store.progress(for: identity(digest: "d1")) == nil)
+    }
+
+    @Test("Linking twice writes once")
+    func linkIsIdempotent() async throws {
+        let store = try store()
+        let old = identity(path: "/books/one.cbz")
+        try await store.save(
+            ReadingProgress(identity: old, position: .page(index: 1, of: 5), updatedAt: .now)
+        )
+
+        let learned = identity(digest: "d1", path: "/books/one.cbz")
+        #expect(try await store.link(learned) == true)
+        #expect(try await store.link(learned) == false)
+    }
 }

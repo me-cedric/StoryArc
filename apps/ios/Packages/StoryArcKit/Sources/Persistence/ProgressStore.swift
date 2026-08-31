@@ -163,6 +163,44 @@ public actor ProgressStore {
         try context.save()
     }
 
+    /// Records what else is known about a publication already in the store, changing
+    /// nothing about the reading.
+    ///
+    /// **The migration for every position written before a content digest existed.**
+    /// Those records carry a path and nothing else, so the first rename loses them —
+    /// which is the whole defect. ``save(_:)`` fills the missing components in too, but
+    /// only when the reader opens the publication again; a reader who tidies their
+    /// folder first would never get that far. Handing a scan's identities through here
+    /// closes the window: the digest is attached the moment the library learns it,
+    /// before anything has had a chance to move.
+    ///
+    /// Deliberately touches neither `updatedAt` nor the position. Learning a file's
+    /// digest is not reading it, and a backfill that restamped the date would reorder
+    /// "Continue reading" for the whole library on one launch.
+    ///
+    /// Returns whether a record was found and something was actually new about it, so a
+    /// caller can pass a whole library through it without writing on every launch.
+    @discardableResult
+    public func link(_ identity: PublicationIdentity) throws -> Bool {
+        guard let record = try existing(for: identity) else { return false }
+        var changed = false
+        if record.serverKey == nil, let key = Self.serverKey(identity) {
+            record.serverKey = key
+            changed = true
+        }
+        if record.contentDigest == nil, let digest = identity.contentDigest {
+            record.contentDigest = digest
+            changed = true
+        }
+        if record.normalizedPath == nil, let path = identity.normalizedPath {
+            record.normalizedPath = path
+            changed = true
+        }
+        guard changed else { return false }
+        try context.save()
+        return true
+    }
+
     /// Everything recorded, most recently read first.
     ///
     /// What `library-browsing`'s "Continue reading" row is built from.
