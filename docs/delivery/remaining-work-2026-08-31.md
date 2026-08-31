@@ -70,6 +70,25 @@ what was found rather than as what survived.
 | **A test that proves a publication comes back where it was left**, across a real terminate and relaunch. `reading-progress` scores nine of seventeen scenarios as built and asserted by nothing. | §5 |
 | **A fixed-layout EPUB that could never be opened.** The routing was right and the fixture was wrong, so that path had never been exercised against anything it could draw. | not previously recorded |
 
+### A third round, and two defects a camera found that reading had not
+
+| Found | What it is |
+| --- | --- |
+| **The Downloads shelf draws nothing where a coverless publication should be.** `OnDeviceCover` in `app/DownloadsParts.kt` renders `cover?.let { Image(…) }` inside a sunken box, and nothing whatever when the cover is null — while the library's own cell draws the title and the format badge. Nine of the twelve fixtures on the emulator have no cover art, so most of the screen is empty rectangles. It is also what `pnpm smoke:android:a11y` had been reporting for weeks as `Downloads: UNNAMED View` and `SMALL View 114.3x14.1dp ""`, which nobody had connected to a missing placeholder. |
+| **A tablet spends half the library's list pane on nothing.** Measured from the live accessibility tree at a 1067 dp window: the pane is **360 dp**, and it draws **one 168 dp cover** — about 150 dp of it unused — while Downloads on the same device draws five at 175 dp. |
+
+The second one is a trade-off rather than a slip, and the measurement is what makes it
+arguable either way. Two columns genuinely do **not** fit: the cover tier is chosen from the
+*window* width, a 1067 dp window is expanded, its tier is 158 dp, and `2 × 158 + 12` is 328
+against 320 dp of available pane. The arithmetic is right; the *input* is the question. The
+decision to measure the window rather than the pane is deliberate and recorded — it stops a
+900 dp window behind a navigation rail reading as a medium one — and on a two-pane tablet it
+costs half the pane, because there the window is four times what the shelf actually gets.
+
+Both are the same root as the cover-width entry above: a second shelf reimplementing the
+first instead of asking it. The **width** half is fixed. The **cell** is not, and neither is
+the choice of what to measure.
+
 **And two questions answered by a device rather than by reading**, both now recorded in
 [`ui-revamp-2026-08.md`](../designs/ui-revamp-2026-08.md): `Tab(role: .search)` morphs into
 a field in place, so the documented fallback should not be built; and the OPDS stack works
