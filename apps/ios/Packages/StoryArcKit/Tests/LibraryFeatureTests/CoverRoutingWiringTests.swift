@@ -86,7 +86,10 @@ struct CoverRoutingWiringTests {
         )
         #expect(
             !guardLine.contains("isReadable"),
-            "\(file) gates its link on readability again: \(guardLine). A dimmed cover still has a page to explain itself."
+            """
+            \(file) gates its link on readability again: \(guardLine)
+            A dimmed cover still has a page to explain itself.
+            """
         )
     }
 
