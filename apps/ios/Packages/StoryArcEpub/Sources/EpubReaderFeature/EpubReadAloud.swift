@@ -6,6 +6,7 @@ internal import ReadiumNavigator
 internal import ReadiumShared
 
 internal import DesignSystem
+internal import Playback
 public import StoryArcCore
 
 // The book, read out loud — as the reader screen sees it.
@@ -89,7 +90,7 @@ extension EpubReaderModel {
     /// play button that refuses.
     func prepareReadAloud(_ opened: ReadiumShared.Publication) {
         let centre = ReadAloudCentre.shared
-        let handover = SessionHandover.opening(publication.id, whileSpeaking: centre.book?.id)
+        let handover = SessionHandover.opening(publication.id, whilePlaying: centre.book?.id)
 
         // One book at a time. `ebook-reader`: opening a different publication "ends the
         // session at a sentence boundary and the position it reached is recorded before the

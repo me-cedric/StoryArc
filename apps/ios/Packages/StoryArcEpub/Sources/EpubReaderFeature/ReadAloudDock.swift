@@ -1,6 +1,7 @@
 public import SwiftUI
 
 internal import DesignSystem
+internal import Playback
 public import StoryArcCore
 
 /// The transport that outlives the reader, docked with the app's own navigation.
@@ -57,7 +58,7 @@ public struct ReadAloudDock: View {
         }
     }
 
-    private func dock(_ transport: ReadAloudTransport) -> some View {
+    private func dock(_ transport: CompactPlayer) -> some View {
         HStack(spacing: StoryArcSpace.sm) {
             wayBack(transport)
             controls(transport)
@@ -77,7 +78,7 @@ public struct ReadAloudDock: View {
     /// opening the book that is already being spoken is what ``SessionHandover`` answers
     /// with `adopt`, and the reader then picks up the sentence the voice is on. Restarting
     /// it from a position this view had to carry would be a second session on one book.
-    private func wayBack(_ transport: ReadAloudTransport) -> some View {
+    private func wayBack(_ transport: CompactPlayer) -> some View {
         Button {
             onReturn(transport.book.publication, transport.book.url)
         } label: {
@@ -111,13 +112,13 @@ public struct ReadAloudDock: View {
     /// with three destinations and a search button already in it, and four more glyphs
     /// there would leave the title no room at all. Skipping a sentence survives one scroll
     /// upwards, and on the lock screen, which is where the platform puts it.
-    private func controls(_ transport: ReadAloudTransport) -> some View {
+    private func controls(_ transport: CompactPlayer) -> some View {
         let centre = ReadAloudCentre.shared
         return HStack(spacing: isInline ? StoryArcSpace.xs : StoryArcSpace.sm) {
             if !isInline {
                 button(.previous) { centre.skip(forward: false) }
             }
-            button(.toggle(isSpeaking: transport.isSpeaking), tint: theme.accent) {
+            button(.toggle(isSpeaking: transport.isPlaying), tint: theme.accent) {
                 centre.toggle()
             }
             if !isInline {

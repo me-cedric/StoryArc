@@ -3,8 +3,9 @@ public import Foundation
 internal import ReadiumNavigator
 internal import ReadiumShared
 
-public import Persistence
-public import StoryArcCore
+internal import Persistence
+public import Playback
+internal import StoryArcCore
 
 /// The voice, which outlives the screen that started it.
 ///
@@ -48,8 +49,8 @@ public final class ReadAloudCentre {
     /// Internal, and deliberately: what silenced the voice is this module's business, and a
     /// transport above it needs only the two answers below. Exposing the cause would invite
     /// a surface outside to decide what a pause means, which is the one decision
-    /// ``ReadAloudSession`` exists to keep in one place.
-    private(set) var session = ReadAloudSession()
+    /// ``PlaybackSession`` exists to keep in one place.
+    private(set) var session = PlaybackSession()
 
     /// The book being spoken, or `nil` when nothing is.
     ///
@@ -68,14 +69,14 @@ public final class ReadAloudCentre {
     public var isRunning: Bool { session.isActive }
 
     /// Whether a sentence is being spoken right now.
-    public var isSpeaking: Bool { session.isSpeaking }
+    public var isSpeaking: Bool { session.isPlaying }
 
     /// Everything a docked transport draws, or `nil` when there is nothing to draw.
     ///
-    /// The transport reads this; the shell reads ``isRunning``. See ``ReadAloudTransport``
+    /// The transport reads this; the shell reads ``isRunning``. See ``CompactPlayer``
     /// for why absence is a value rather than a hidden view.
-    public var transport: ReadAloudTransport? {
-        ReadAloudTransport.of(session, speaking: book)
+    public var transport: CompactPlayer? {
+        CompactPlayer.of(session, playing: book)
     }
 
     // MARK: - What it holds
@@ -163,8 +164,8 @@ public final class ReadAloudCentre {
     /// Pause and play, from wherever the listener reached for it.
     public func toggle() {
         guard let speech else { return }
-        if session.isSpeaking {
-            session = session.pausedByReader()
+        if session.isPlaying {
+            session = session.pausedByListener()
             speech.pause()
         } else {
             session = session.resumed()
@@ -190,14 +191,14 @@ public final class ReadAloudCentre {
     // MARK: - What the platform does to it
 
     /// What the end of an interruption means, asked of the session rather than decided
-    /// inside the audio callback. See ``ReadAloudSession/endingInterruption(mayResume:)``.
+    /// inside the audio callback. See ``PlaybackSession/endingInterruption(mayResume:)``.
     func endingInterruption(mayResume: Bool) -> InterruptionOutcome {
         session.endingInterruption(mayResume: mayResume)
     }
 
     /// Something else took the audio: a call, another app, a spoken direction.
     func interrupt() {
-        guard session.isSpeaking else { return }
+        guard session.isPlaying else { return }
         session = session.interrupted()
         speech?.pause()
         publishNowPlaying()
@@ -224,7 +225,7 @@ public final class ReadAloudCentre {
     /// The position first, always. `ebook-reader`: when the session cannot continue "the
     /// position the voice reached is recorded first" — and a teardown that cleared the
     /// cursor before writing it would lose exactly the hour this change exists to keep.
-    private func finish(with next: ReadAloudSession) {
+    private func finish(with next: PlaybackSession) {
         guard session.isActive || book != nil else { return }
         recordReached()
         session = next
@@ -266,7 +267,7 @@ public final class ReadAloudCentre {
 
     private func reached(_ locator: Locator) async {
         spoken = locator
-        book?.chapter = locator.title ?? book?.chapter
+        book = book?.naming(locator.title ?? book?.chapter)
         recordReached()
         await follower?.drawSpokenSentence(locator)
     }

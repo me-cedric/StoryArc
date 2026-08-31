@@ -7,6 +7,7 @@ internal import ReadiumShared
 internal import ReadiumStreamer
 
 public import Persistence
+internal import Playback
 public import StoryArcCore
 
 /// One EPUB, open for reading.
@@ -154,9 +155,9 @@ public final class EpubReaderModel {
     /// another is being read aloud gets no transport in its chrome — the transport for the
     /// book being spoken is the one outside the reader, and a bar in here would offer to
     /// pause a book that is not on screen.
-    var readAloud: ReadAloudSession {
+    var readAloud: PlaybackSession {
         let centre = ReadAloudCentre.shared
-        return centre.book?.id == publication.id ? centre.session : ReadAloudSession()
+        return centre.book?.id == publication.id ? centre.session : PlaybackSession()
     }
 
     /// Whether this book can be spoken at all, and therefore whether the control appears.

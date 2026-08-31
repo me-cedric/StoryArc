@@ -5,6 +5,8 @@ internal import MediaPlayer
 
 internal import ReadiumNavigator
 
+internal import Playback
+
 // The platform seam of a read-aloud session: what the lock screen says, what its buttons
 // reach, and what happens when something else takes the audio.
 //
@@ -114,7 +116,7 @@ extension ReadAloudCentre {
     /// timer, Siri, another app. The session itself is Readium's — it activates and
     /// deactivates one around each utterance — so this observes rather than manages.
     ///
-    /// What happens next is ``ReadAloudSession``'s decision, not this method's.
+    /// What happens next is ``PlaybackSession``'s decision, not this method's.
     func observeInterruptions() {
         guard interruptions == nil else { return }
         interruptions = NotificationCenter.default.addObserver(
@@ -152,7 +154,7 @@ extension ReadAloudCentre {
             interrupt()
 
         case .ended:
-            // The three answers are ``ReadAloudSession/endingInterruption(mayResume:)``'s,
+            // The three answers are ``PlaybackSession/endingInterruption(mayResume:)``'s,
             // not this method's. Before it existed there were two branches here, and an
             // `.ended` without `.shouldResume` matched neither: the session sat paused with
             // nothing able to start it and no position written, and the only way out was to

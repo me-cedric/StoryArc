@@ -8,14 +8,29 @@ creep — see [`design.md`](design.md).
 
 ## 1. The shared player model
 
-- [ ] 1.1 Both: `PlaybackSessionTests` / `PlaybackSessionTest` — one session type
+- [~] 1.1 Both: `PlaybackSessionTests` / `PlaybackSessionTest` — one session type
       with two sources, and the surfaces cannot tell which is behind them. Assert by
       driving the same assertions over both.
-- [ ] 1.2 Both: parts, position, duration and speed as the design's table defines
+      **iOS done.** A new `Playback` target in `StoryArcKit` — host-testable, so
+      `pnpm test:ios` covers it with no simulator. `PlaybackSource` has two places the
+      sources may differ (a part's duration, and what a skip moves) and **no `kind`,
+      no `isNarrated` and nothing a view can switch on**; `PlayerCentre` is the one
+      session object. Nine of the sixteen tests are parameterised over both source
+      kinds, which is what "driving the same assertions over both" means here.
+      *The Android half is not started.*
+- [~] 1.2 Both: parts, position, duration and speed as the design's table defines
       them. Assert that a source with **no known duration** reports position without
       a total rather than inventing one.
-- [ ] 1.3 Both: starting a second publication stops the first, records its position
+      **iOS done.** `PlaybackTime` carries `total: TimeInterval?` and `isScrubbable`,
+      and `PlayerCentre.scrub(to:)` refuses to reach a source that cannot answer — so
+      the scrubber is *absent* rather than present and refusing. Mutation-checked:
+      making `isScrubbable` always true fails both the spoken-duration test and the
+      scrub test. *The Android half is not started.*
+- [~] 1.3 Both: starting a second publication stops the first, records its position
       first, and does not resume it when the second ends.
+      **iOS done.** `PlayerCentre.begin` calls `end()` first, and `end()` writes the
+      position before it clears anything. Mutation-checked: deleting that call fails
+      the displacement test. *The Android half is not started.*
 
 ## 2. Audiobooks open
 

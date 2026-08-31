@@ -1,0 +1,111 @@
+public import Foundation
+
+public import StoryArcCore
+
+/// What the lock screen says while a book is playing.
+///
+/// `audio-playback` requires the system's own media controls to show "the publication, the
+/// chapter", and a second line is what every media control has room for. The chapter is the
+/// better answer — it is what has changed since the listener last looked — and the author is
+/// the fallback, because a publication that declares no navigation still has one.
+///
+/// The compact bar says the same two things the lock screen does, and the spec requires
+/// them to match, so both read this one value.
+public struct SpokenLabel: Equatable, Sendable {
+    public let title: String
+    public let detail: String?
+
+    public static func of(title: String, chapter: String?, author: String?) -> SpokenLabel {
+        SpokenLabel(
+            title: title,
+            detail: chapter.flatMap(nonEmpty) ?? author.flatMap(nonEmpty)
+        )
+    }
+
+    public init(title: String, detail: String?) {
+        self.title = title
+        self.detail = detail
+    }
+
+    private static func nonEmpty(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+/// A book being played: what to say about it, and the way back to it.
+///
+/// Held by ``PlayerCentre`` rather than by a screen, because the session outlives every
+/// screen and the compact bar that offers the way back is drawn by something above them all.
+/// The URL travels with the publication for exactly that reason: whoever offers "back to the
+/// book" has to open the same bytes without asking a reader that has gone.
+///
+/// It says nothing about *which* kind of audio it is. `audio-playback`: "the synthesised
+/// voice is named once on the publication's own page rather than in the player" — so the
+/// player's own model has no field for it, which is the strongest form of that promise.
+public struct SpokenBook: Equatable, Sendable, Identifiable {
+    public let publication: Publication
+    /// Where the bytes are, so the way back opens the book rather than a search for it.
+    public let url: URL
+    /// The part the audio is in, which is the line both the bar and the lock screen have
+    /// room for. Set through ``naming(_:)`` as the audio moves.
+    public private(set) var chapter: String?
+
+    public var id: String { publication.id }
+
+    /// What the compact bar and the media controls both say.
+    public var label: SpokenLabel {
+        SpokenLabel.of(
+            title: publication.displayTitle,
+            chapter: chapter,
+            author: publication.authors.first
+        )
+    }
+
+    public init(publication: Publication, url: URL, chapter: String? = nil) {
+        self.publication = publication
+        self.url = url
+        self.chapter = chapter
+    }
+
+    /// The same book, in a different part.
+    ///
+    /// A returned copy rather than a settable property: the chapter is the *only* thing
+    /// about a playing book that changes, and every other field would be wrong to change
+    /// after the session began. Naming the one mutation makes that structural.
+    public func naming(_ chapter: String?) -> SpokenBook {
+        SpokenBook(publication: publication, url: url, chapter: chapter)
+    }
+}
+
+/// What the compact bar shows — and whether there is one at all.
+///
+/// **`nil` is the requirement, not a convenience.** `audio-playback`: when no session is
+/// active "the compact bar is absent rather than present and empty, and the space it
+/// occupied returns to the content". Absent is not hidden, not disabled and not empty: there
+/// is no value, so the shell has nothing to put in its accessory slot and the slot does not
+/// open. Holding that as a value rather than as an `if` inside a view body is what lets a
+/// test assert it — the rule is the one a later layout change breaks most easily, and a tab
+/// bar cannot be unit-tested.
+///
+/// Its words come from ``SpokenBook/label`` — the same value the lock screen is given —
+/// because the spec requires the two to match.
+public struct CompactPlayer: Equatable, Sendable {
+    /// The book being played, carried whole because the way back has to open the same bytes
+    /// without asking a screen that has gone. See ``SpokenBook/url``.
+    public let book: SpokenBook
+    /// Whether audio is coming out, which is the only question the play button asks.
+    public let isPlaying: Bool
+
+    /// What the bar says, which is what the media controls say.
+    public var label: SpokenLabel { book.label }
+
+    /// - Returns: `nil` when there is no session to control — including a session that has
+    ///   just ended, whether the listener ended it, the audio was taken for good, or the
+    ///   book ran out. All three leave an inactive session, and all three are required to
+    ///   withdraw the bar.
+    public static func of(_ session: PlaybackSession, playing book: SpokenBook?) -> CompactPlayer? {
+        guard session.isActive, let book else { return nil }
+        return CompactPlayer(book: book, isPlaying: session.isPlaying)
+    }
+}

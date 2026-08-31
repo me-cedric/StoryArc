@@ -16,6 +16,7 @@ let package = Package(
     products: [
         .library(name: "DesignSystem", targets: ["DesignSystem"]),
         .library(name: "Formats", targets: ["Formats"]),
+        .library(name: "Playback", targets: ["Playback"]),
         .library(name: "StoryArcCore", targets: ["StoryArcCore"]),
         .library(name: "LibraryFeature", targets: ["LibraryFeature"]),
         .library(name: "ReaderFeature", targets: ["ReaderFeature"]),
@@ -80,6 +81,20 @@ let package = Package(
             dependencies: ["DesignSystem", "StoryArcCore", "Formats", "Persistence"],
             resources: [.process("Resources")]
         ),
+        // The player's model, with no engine in it. Here rather than beside the
+        // read-aloud session in `StoryArcEpub` because ADR-0005 keeps Readium behind that
+        // package and this has to be visible to a narrated source that has never heard of
+        // Readium — and because a session state machine asserted on the host is worth more
+        // than one that needs a simulator.
+        .target(
+            name: "Playback",
+            dependencies: ["StoryArcCore"],
+            // One string, and it has to be one answer: an unnamed part is called "Part 3"
+            // on the compact bar and on the lock screen, and `audio-playback` requires
+            // those two to match. A model target carrying a catalogue is unusual here, and
+            // that requirement is why.
+            resources: [.process("Resources")]
+        ),
         // ADR-0006 names SwiftData here and Room on Android. The schema semantics
         // are shared; the implementations are not.
         .target(name: "Persistence", dependencies: ["StoryArcCore"]),
@@ -100,6 +115,7 @@ let package = Package(
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem"]),
         .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),
         .testTarget(name: "FormatsTests", dependencies: ["Formats"]),
+        .testTarget(name: "PlaybackTests", dependencies: ["Playback"]),
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
         .testTarget(name: "CatalogueTests", dependencies: ["Catalogue"]),
         .testTarget(name: "KavitaTests", dependencies: ["Kavita"]),

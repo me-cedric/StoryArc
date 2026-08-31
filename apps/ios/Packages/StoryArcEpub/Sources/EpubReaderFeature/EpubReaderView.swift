@@ -322,7 +322,7 @@ public struct EpubReaderView: View {
 
             if model.readAloud.isActive {
                 ReadAloudBar(
-                    isSpeaking: model.readAloud.isSpeaking,
+                    isSpeaking: model.readAloud.isPlaying,
                     onPrevious: { model.skipSentence(forward: false) },
                     onToggle: { model.toggleReadAloud() },
                     onNext: { model.skipSentence(forward: true) },

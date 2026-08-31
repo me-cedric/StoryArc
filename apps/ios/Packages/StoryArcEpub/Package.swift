@@ -39,6 +39,10 @@ let package = Package(
                 .product(name: "DesignSystem", package: "StoryArcKit"),
                 .product(name: "StoryArcCore", package: "StoryArcKit"),
                 .product(name: "Persistence", package: "StoryArcKit"),
+                // The player's model. `ReadAloudCentre` used to own its own pause
+                // table; `audiobooks-and-playback` gives the same table to a narrated
+                // source, so it lives there and this package uses it.
+                .product(name: "Playback", package: "StoryArcKit"),
                 .product(name: "ReadiumShared", package: "swift-toolkit"),
                 .product(name: "ReadiumStreamer", package: "swift-toolkit"),
                 .product(name: "ReadiumNavigator", package: "swift-toolkit"),
