@@ -356,3 +356,30 @@ drawing over the bars.
 has none — its own slice named that as out of its file set. Judging it needs the EPUB reader
 with Natural on, in both appearances, and again with Reduce Transparency on, where the
 texture must vanish and the palette must stay.
+
+---
+
+# The paper grain, judged
+
+`android-reader-natural-light` is the EPUB reader with Natural on, light, at the default
+text size. `android-grain-1to1-light` is a 760 × 200 crop of its lower margin **at native
+pixels** — grain does not survive resampling, so a downscaled screenshot of it is a
+screenshot of nothing.
+
+Task 0.5 asked for a prototype to be "judged" and had stayed unticked because nobody had
+looked at one. Here is the judgement:
+
+**It reads as paper stock rather than as noise, and the numbers are right.** The specks are
+sub-pixel to a pixel across, which gives a tooth rather than dots — the failure mode the
+implementing note named as the risk either side of a 1.5-device-pixel cell. The peak alpha
+of 0.045, which that note flagged as its lowest-confidence number and the first to move, is
+well judged on this screen: visible when you look for it, invisible when you are reading,
+and the *0% read* pill sits on it cleanly without the texture intruding.
+
+It also stops where it should. The plate in the capture above carries **no** grain — the
+texture is on the reading surface around it and does not cross the artwork, which is what
+"reading surfaces only" has to mean in a reader whose pages are sometimes pictures.
+
+**Not yet judged:** the same two with Reduce Transparency on, where the texture must vanish
+and the palette must stay; and dark, where a light-on-dark speck is a different judgement
+from a dark-on-light one.
