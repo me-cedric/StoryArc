@@ -155,9 +155,9 @@ private fun DetailSeriesCell(
                 // trying to tell one from another.
                 //
                 // No format, for the reason Home passes none: nothing on this shelf names
-                // one. Its two caption lines are the volume number and the read state, and
-                // a well stands in for missing artwork rather than introducing a field the
-                // surface around it does not carry.
+                // one. Its two caption lines are the volume and the read state, and a well
+                // stands in for missing artwork rather than introducing a field the surface
+                // around it does not carry.
                 CoverlessWell(title = publication.displayTitle, format = null)
             }
         }
