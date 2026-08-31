@@ -233,3 +233,32 @@ or the folder is unmounted.
 
 So the facet's result is a strict subset of the scope's, which keeps *Filtering offline*'s
 clause true of it while the two controls answer different questions.
+
+---
+
+# Both in-repo servers, connected from the app
+
+`scripts/opds-server.mjs` and `scripts/kavita-server.mjs` serve the fixture corpus and had
+never been reached from the app on a device — the source stack was proven by unit tests and
+by `curl`, and not by a reader typing an address.
+
+| Capture | What the server saw |
+| --- | --- |
+| `ios-opds-connected-dark` | *Connected to StoryArc Test Catalogue.* Two `200 GET /opds` in the server's log — the app fetched the feed and read its title out of it. |
+| `ios-kavita-signed-in-dark` | *Signed in as ada · Kavita 0.8.3.* `POST /api/Plugin/authenticate?apiKey=…&pluginName=StoryArc` then `GET /api/Server/server-info`. Both the username and the version come from the mock, so this is the real handshake and the real version floor, not a hard-coded string. |
+| `ios-search-remote-and-away-dark` | A search with both servers configured. The local match is listed under *Titles*; the unreachable share reads **"Attic NAS didn't answer — Try again"** in grey with a retry, which is non-negotiable #3 held on a device: an unreachable source is grey, never red, and the library stays browsable. The server's log shows `GET /opds/all?q=Fine%20Print` arriving. |
+
+## What the third capture also proves is missing
+
+The catalogue was queried, answered, and **its results are not on the screen.** Only the
+local match is. That is `library-browsing`'s *Mixed local and server search* — server and
+local results merged into one ranked list, each labelled — which `STATUS.md` scores as
+missing on both platforms. The fetch half works; the merge half does not exist. This is the
+capture to compare against when it does.
+
+## One environment note
+
+Typing into the simulator on this machine goes through the host's French keyboard layout —
+`http://127.0.0.1:4444/opds` arrives as `httpM==&éè:à:à:&M''''=opds`. Use
+`xcrun simctl pbcopy <udid>` and then Cmd+A / Cmd+V driven at the Simulator process. A long
+press does not raise the paste menu reliably on iOS 26.
