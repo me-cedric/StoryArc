@@ -210,16 +210,19 @@ struct CoverCell: View {
     }
 
     /// The second line: what distinguishes this row from its neighbours.
-    private var subtitle: String? {
+    ///
+    /// Internal rather than private so the fall-through can be asserted without a window:
+    /// which of the two facts a cover states under its title is the substance of the
+    /// caption, and a view body is not somewhere that can be checked.
+    var subtitle: String? {
         if !publication.isOpenable {
             // Said plainly rather than shown as a broken cover. `publication-formats`
             // requires a named refusal, and a grid cell is where a user meets it.
             return String(localized: "library.cell.cannotOpen", bundle: .module, locale: .storyArc)
         }
-        if let series = publication.series, series != publication.displayTitle {
-            return publication.number.map { "\(series) #\($0)" } ?? series
-        }
-        return publication.authors.first
+        // The author when the series line would only repeat the title — the same
+        // fall-through the no-series case has always taken.
+        return seriesLine(for: publication) ?? publication.authors.first
     }
 
     private var accessibilityLabel: String {
@@ -254,4 +257,30 @@ struct CoverCell: View {
         // the one provenance line, for every reader alike.
         return parts.joined(separator: ", ")
     }
+}
+
+/// The line that names the series a publication belongs to, or `nil` when it would only
+/// repeat the title back at the reader.
+///
+/// Free and pure so it can be asserted without a view, and shared so the grid, the list and
+/// their spoken labels cannot drift apart: one composition, one comparison, one answer.
+///
+/// The comparison is the whole of the bug this replaces. The guard tested the **bare**
+/// series against the title while the line actually returned was the **composed**
+/// `"<series> #<number>"` — so a publication titled `Ashfall #1` with series `Ashfall` and
+/// number `1` passed the guard and printed the same words twice, once in primary and once
+/// in tertiary, on every cover of a numbered series. Composing first and comparing the
+/// string that is really drawn is the fix. ``HomeRow`` was already written this way; the
+/// shelf and the list were not.
+///
+/// Case-insensitive, for ``HomeRow``'s reason: a title inferred from a filename is often
+/// the series and the number joined back together, and a difference of case between the two
+/// is not a second fact about the publication.
+func seriesLine(for publication: Publication) -> String? {
+    guard let series = publication.series else { return nil }
+    let line = publication.number.map { "\(series) #\($0)" } ?? series
+    guard line.caseInsensitiveCompare(publication.displayTitle) != .orderedSame else {
+        return nil
+    }
+    return line
 }

@@ -175,8 +175,12 @@ struct ListRow: View {
         if !publication.isOpenable {
             parts.append(String(localized: "library.cell.cannotOpen", bundle: .module, locale: .storyArc))
         }
-        if let series = publication.series, series != publication.displayTitle {
-            parts.append(publication.number.map { "\(series) #\($0)" } ?? series)
+        // ``seriesLine(for:)`` rather than the composition spelled out again: the row used
+        // to compare the bare series against the title and then print the series *and the
+        // number*, so a row titled `Ashfall #1` read `Ashfall #1 · Ashfall #1 · CBZ`. One
+        // function, so the grid and the list cannot answer this differently again.
+        if let series = seriesLine(for: publication) {
+            parts.append(series)
         } else if let author = publication.authors.first {
             parts.append(author)
         }
