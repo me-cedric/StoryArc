@@ -79,6 +79,17 @@ and made the CLI answer `No changes exist` on a repository with six active chang
 `pnpm spec:guard` now fails on a second root. **Print the resolved root in your
 handoff.**
 
+**Neither `pnpm test:ios` nor `pnpm build:ios` compiles the UI tests.** `test:ios` runs
+`StoryArcKit`'s host suites and `build:ios` builds the app target; `StoryArcUITests` is
+neither. So roughly three hundred lines of `apps/ios/UITests` — the accessibility audits,
+the reader audits, the screenshot captures and the walk they all share — were compiled by
+no gate at all, and a syntax error in any of them would have surfaced only when somebody
+ran the tests by hand.
+
+Demonstrated rather than assumed: a function returning a `String` from an `Int` signature
+was added to `ScreenshotTests.swift`, and `pnpm check` exited **0**. `pnpm build:ios:tests`
+exited 65 and named the line. It is in `pnpm check` now, and it costs about thirty seconds.
+
 **`openspec validate` is not the completion gate.** It checks the files that are
 present. `openspec status --change <name> --json` checks the files that *should* be,
 and returns `done` / `ready` / `blocked` / `skipped` per artifact plus
@@ -154,6 +165,7 @@ change** — never the whole repository when one module moved.
 | `apps/ios/Packages/StoryArcKit` | `pnpm test:ios` (host, no simulator) |
 | `packages/test-fixtures` | `pnpm fixtures:build`, then **commit the regenerated corpus and manifest**, then run both platforms' format tests |
 | `apps/ios` app target or `project.yml` | `pnpm build:ios` |
+| `apps/ios/UITests` | `pnpm build:ios:tests` — **nothing else compiles them** |
 | One Android module | `pnpm gradle :<module>:lint :<module>:testDebugUnitTest` |
 | Android across modules | `pnpm lint:android && pnpm test:android` |
 | `packages/design-tokens` | `pnpm tokens:sync` — then **commit the regenerated app copies in the same change** |
