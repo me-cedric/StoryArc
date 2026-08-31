@@ -81,7 +81,11 @@ enum SearchRank {
         return Key(
             strength: strength(ofFolded: title, forFolded: needle),
             isHeld: row.result.publicationID != nil,
-            length: title.count,
+            // Scalars, not characters. Swift counts a grapheme cluster as one and Kotlin
+            // counts a UTF-16 unit, so a title with an astral character or a flag emoji
+            // would order differently on the two platforms — the kind of silent mirror drift
+            // this project has already been bitten by once, in natural sort.
+            length: title.unicodeScalars.count,
             title: title
         )
     }
@@ -114,18 +118,34 @@ enum SearchRank {
         folded.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
     }
 
-    /// Case and accents removed, so "Café" answers "cafe" and "CAFE".
+    /// Case and accents removed, and nothing else, so "Café" answers "cafe" and "CAFE".
     ///
-    /// `locale: nil` rather than the reader's: this is a comparison key, not a sort the
-    /// reader reads, and a locale-sensitive fold would make the same two rows compare
-    /// differently on two devices. Alphabetical *display* order is `LibraryIndex.arrange`'s
-    /// job and does use the reader's collation.
+    /// Three steps in this order, spelled out rather than delegated: decompose, drop the
+    /// non-spacing marks, lower-case without a locale.
     ///
-    /// Android's `SearchRank.fold` strips the same two things with `Normalizer` and
-    /// `lowercase(Locale.ROOT)`, and the mirrored tests hold both to the same table.
+    /// **`String.folding(options:)` is deliberately not used, and this is the interesting
+    /// part.** It performs a *full* case fold: it turns "Straße" into "strasse" and the "ﬁ"
+    /// ligature into "fi". Kotlin has no equivalent — `lowercase` leaves both alone — so a
+    /// fold written the obvious way on each platform would rank a German title one way on
+    /// iOS and another on Android, silently, for the readers most likely to have such a
+    /// title. The mirror is worth more than the extra match: this only decides *order*,
+    /// because which rows arrive at all is the local index's job and the server's, so a
+    /// "Straße" row is still on screen either way.
+    ///
+    /// No locale, on either side: this is a comparison key, not a sort the reader reads, and
+    /// a locale-sensitive fold would make the same two rows compare differently on two
+    /// devices. Alphabetical *display* order is `LibraryIndex.arrange`'s job and does use
+    /// the reader's collation.
+    ///
+    /// Android's `SearchRank.fold` performs the same three steps, and the mirrored tests
+    /// hold both to the same table — including the two cases above.
     static func fold(_ value: String) -> String {
-        value
+        let decomposed = value
             .trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+            .decomposedStringWithCanonicalMapping
+        let base = decomposed.unicodeScalars.filter {
+            $0.properties.generalCategory != .nonspacingMark
+        }
+        return String(String.UnicodeScalarView(base)).lowercased()
     }
 }

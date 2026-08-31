@@ -51,6 +51,29 @@ class SearchRankTest {
     }
 
     @Test
+    fun `the fold takes case and accents and nothing else`() {
+        // The mirror's tightest joint. iOS's `String.folding(options:)` would give "strasse"
+        // and "file" here and Kotlin's `lowercase` cannot, so a fold written the obvious way
+        // on each platform would rank a German title differently on the two. iOS's
+        // `SearchRankTests` asserts this same table.
+        assertEquals("cafe", SearchRank.fold("Café"))
+        assertEquals("cafe", SearchRank.fold("CAFÉ"))
+        assertEquals("bone", SearchRank.fold("  Bone  "))
+        assertEquals("straße", SearchRank.fold("Straße"))
+        assertEquals("ﬁle", SearchRank.fold("ﬁle"))
+        assertEquals("istanbul", SearchRank.fold("İstanbul"))
+    }
+
+    @Test
+    fun `a title outside the basic plane is as long on one platform as the other`() {
+        // Kotlin counts a UTF-16 unit and Swift a grapheme cluster; both count a code point
+        // the same. "Bone 𝔅" is six code points and seven UTF-16 units, so counted the wrong
+        // way it ties with "Bone Up" and the two platforms break the tie differently.
+        val ordered = SearchRank.ordered(listOf(away("Bone Up"), away("Bone 𝔅")), "bone")
+        assertEquals(listOf("Bone 𝔅", "Bone Up"), ordered.map { it.result.title })
+    }
+
+    @Test
     fun `a word begins after punctuation as well as after a space`() {
         assertEquals(SearchRank.Strength.WORD, strength("Vol.2 Bone", "2"))
         assertEquals(SearchRank.Strength.WORD, strength("d’Artagnan", "artagnan"))

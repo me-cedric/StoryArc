@@ -97,7 +97,12 @@ internal object SearchRank {
         return Key(
             strength = strength(title, needle),
             isHeld = row.result.publicationId != null,
-            length = title.length,
+            // Code points, not UTF-16 units. Kotlin counts a surrogate pair as two and
+            // Swift counts a grapheme cluster as one, so a title with an astral character
+            // or a flag emoji would order differently on the two platforms — the kind of
+            // silent mirror drift this project has already been bitten by once, in natural
+            // sort.
+            length = title.codePointCount(0, title.length),
             title = title,
         )
     }
@@ -129,15 +134,21 @@ internal object SearchRank {
         folded.split(NOT_A_WORD).filter { it.isNotEmpty() }
 
     /**
-     * Case and accents removed, so "Café" answers "cafe" and "CAFE".
+     * Case and accents removed, and nothing else, so "Café" answers "cafe" and "CAFE".
+     *
+     * Three steps in this order: decompose, drop the non-spacing marks, lower-case without a
+     * locale. NFD rather than NFKD, so the "ﬁ" ligature and a fullwidth letter are left as
+     * they are — iOS reaches the same answer with the same three steps, and a compatibility
+     * decomposition here would be a fourth thing one platform did and the other did not.
      *
      * [Locale.ROOT] rather than the reader's: this is a comparison key, not a sort the reader
      * reads, and a locale-sensitive fold would make the same two rows compare differently on
-     * two devices. Alphabetical *display* order is `LibraryIndex.arrange`'s job and does use
-     * the reader's collation.
+     * two devices — Turkish alone would see to that. Alphabetical *display* order is
+     * `LibraryIndex.arrange`'s job and does use the reader's collation.
      *
-     * iOS's `SearchRank.fold` strips the same two things with `folding(options:)`, and the
-     * mirrored tests hold both to the same table.
+     * iOS's `SearchRank.fold` performs the same three steps, and its own doc comment records
+     * why it does not use `String.folding(options:)`, which would have turned "Straße" into
+     * "strasse" where Kotlin cannot. The mirrored tests hold both to the same table.
      */
     fun fold(value: String): String =
         Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
