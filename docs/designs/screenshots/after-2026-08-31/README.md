@@ -187,3 +187,28 @@ bar for the rest of the session is furniture, not news.
 **Except under VoiceOver**, where it stays. A sentence that fades is a sentence a reader who
 has not yet swiped to it never hears, and the count is stated nowhere else in the app. A
 sighted reader gets a glance and their artwork back; a VoiceOver reader keeps the fact.
+
+---
+
+# The Android tablet, seen on a device at last
+
+This was one of the three follow-ups the previous session left open: the tablet layouts
+were merged and gated, and only iOS had been driven. `adb shell wm size 1600x2560` and
+`wm density 200` put the emulator over Material's expanded breakpoint; `wm size reset` and
+`wm density reset` put it back.
+
+| Capture | What it shows |
+| --- | --- |
+| `android-tablet-rail-home-light` | The expanded `WideNavigationRail`, labelled, carrying five destinations — the three the phone has plus Shelves and Settings, which is the point of the extra room. |
+| `android-tablet-empty-pane-light` | The library as two panes with nothing chosen, and the sentence that was written for it this wave: *"Choose a cover to see what it is and where it came from."* iOS wrote that sentence a wave earlier and has no pane to put it in; Android had the pane and no sentence. |
+| `android-tablet-two-panes-light` | A cover chosen. The shelf keeps its scroll and its filters; the page fills the second pane with its hero, its one action and its provenance line. |
+
+## Two things these show and this wave does not fix
+
+1. **The detail pane draws a back arrow.** With the list permanently beside it there is
+   nothing to go back *to*, and Material's own `ListDetailPaneScaffold` hides that
+   affordance when both panes are visible. Here the pane is hand-composed, so it does not.
+2. **Home on a tablet is mostly empty.** One shelf of five covers across the top and
+   nothing under it. That is open question §8.3 of the direction document — *what fills
+   Home on day three* — showing itself at a width where there is much more day three to
+   fill.
