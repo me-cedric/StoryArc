@@ -203,6 +203,36 @@ final class AccessibilityAuditTests: XCTestCase {
         try reportOnly(app, named: "Reader")
     }
 
+    /// The reflowable EPUB reader, which this suite has never looked at.
+    ///
+    /// `testReaderPassesTheAudit` above ends by saying so: its two "Potentially inaccessible
+    /// text" findings are what a scanned comic *is* — lettering inside a photograph, with no
+    /// text ever delivered to the app — and "the same check on the **EPUB** reader would be a
+    /// real finding, since there the words are real text in a WebView." So the two readers
+    /// cannot share a verdict, and this is the second one.
+    ///
+    /// It also closes half of an asymmetry `STATUS.md` calls not deliberate: Android's crash
+    /// walk reaches sixteen screens and iOS's audit reached thirteen, and the EPUB reader was
+    /// one of the three missing. Android's own scanner reports that screen as
+    /// `EPUB reader: UNNAMED WebView at [0,371][1080,2028]`, so there is a specific thing to
+    /// look for here rather than a hope that nothing turns up.
+    ///
+    /// Reported rather than failed, like the comic reader and for the same reason: what is on
+    /// this screen is whichever EPUB the device happens to hold, and a suite that fails
+    /// because of a fixture is a suite nobody believes twice. The walk is what is asserted —
+    /// reaching a reflowable book at all — and `XCTSkip` covers a device with no EPUB on it.
+    func testEpubReaderPassesTheAudit() throws {
+        let app = launch()
+        let action = try openFirstPublication(in: app, ofFormat: "EPUB")
+        action.tap()
+
+        // The chrome fades after four seconds. Bring it back, or this audits a page of text
+        // with no controls on it and reports that all is well with a screen half measured.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+
+        try reportOnly(app, named: "EPUB reader")
+    }
+
     /// The three destinations under Apple's accented pseudolanguage.
     ///
     /// **The iOS counterpart of `pnpm pseudo:android`, which has had none.**

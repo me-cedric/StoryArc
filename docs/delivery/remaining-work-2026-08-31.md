@@ -70,6 +70,23 @@ what was found rather than as what survived.
 | **A test that proves a publication comes back where it was left**, across a real terminate and relaunch. `reading-progress` scores nine of seventeen scenarios as built and asserted by nothing. | §5 |
 | **A fixed-layout EPUB that could never be opened.** The routing was right and the fixture was wrong, so that path had never been exercised against anything it could draw. | not previously recorded |
 
+### The EPUB reader, audited on iOS for the first time — and a real divergence
+
+`AccessibilityAuditTests` had thirteen routes against Android's sixteen, and its own comment
+named the EPUB reader as one of the three missing: the comic reader's two "Potentially
+inaccessible text" findings are what a scanned comic *is*, and "the same check on the **EPUB**
+reader would be a real finding, since there the words are real text in a WebView."
+
+It now has that test, and the result is the interesting part: **iOS's EPUB reader reports zero
+findings.** Android's own scanner reports the same screen as
+`EPUB reader: UNNAMED WebView at [0,371][1080,2028]`, which `pnpm smoke:android:a11y` has been
+printing for weeks. So this is not a check that had not been run — it is a defect that exists
+on one platform and not the other, and the audit that would have caught it was the half that
+had never been written.
+
+Two of the three missing routes remain: the comic reader's chrome as its own screen, and the
+licence text behind About.
+
 ### A third round, and two defects a camera found that reading had not
 
 | Found | What it is |

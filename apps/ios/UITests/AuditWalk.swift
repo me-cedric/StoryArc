@@ -119,8 +119,18 @@ extension XCTestCase {
     ///
     /// `named` reopens a particular publication. "The first cover" is not a stable identity
     /// across two launches of a shelf that can reorder between them.
+    ///
+    /// `ofFormat` picks one the app will open with a particular reader, which is what lets a
+    /// caller audit the **EPUB** reader rather than whichever reader the first cover happens
+    /// to reach. A cover's spoken label ends with its format, so the shelf can be asked. It
+    /// matches the label rather than the fixture's name for the same reason `named` exists:
+    /// which fixtures a device holds is not this file's business.
     @discardableResult
-    func openFirstPublication(in app: XCUIApplication, named wanted: String? = nil) throws -> XCUIElement {
+    func openFirstPublication(
+        in app: XCUIApplication,
+        named wanted: String? = nil,
+        ofFormat format: String? = nil
+    ) throws -> XCUIElement {
         try XCTUnwrap(destination("Library", in: app)).tap()
 
         let shelf = app.buttons.element(boundBy: 0)
@@ -131,7 +141,12 @@ extension XCTestCase {
             .filter { $0.isHittable && $0.frame.minY > 150 && $0.frame.maxY < app.frame.height - 100 }
             .filter { !$0.label.contains("100 percent read") }
             .filter { wanted == nil || $0.label == wanted }
-        try XCTSkipUnless(!covers.isEmpty, "This device's library has no cover to open.")
+            .filter { cover in format.map { cover.label.contains(", \($0)") } ?? true }
+        try XCTSkipUnless(
+            !covers.isEmpty,
+            format.map { "This device's library holds no \($0) to open." }
+                ?? "This device's library has no cover to open."
+        )
 
         let opens = NSPredicate(format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue'")
         let action = app.buttons.matching(opens).firstMatch
