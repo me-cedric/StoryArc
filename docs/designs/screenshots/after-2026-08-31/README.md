@@ -396,6 +396,19 @@ nothing.** The re-test needs no accessibility setting at all — grain's dark ti
 nine times harder than its light tint pushes, so a single 1:1 capture has a **skew of about
 −1.1** where anything symmetric sits near zero. Measure skew, not just spread.
 
+**Measured, on the capture in this directory.** Rec.601 luma over a 600 × 120 patch of the
+reader's lower margin:
+
+| | mean | sd | skew |
+| --- | --- | --- | --- |
+| predicted from the shader | 239.49 | 1.894 | ≈ −1.1 |
+| **measured** | **240.16** | **1.919** | **−1.095** |
+| a flat fill would be | — | 0 | 0 |
+
+Skew to within half a percent of prediction, and a spread that a flat fill cannot produce at
+all. **The grain is drawing and its signature is the shader's own.** Task 0.5 is judged: it
+is there, it is right, and it took a number rather than an eye to say so.
+
 **And one thing the first reading got wrong that survives all this.** I wrote that the plate
 carried no grain and took it as proof the texture does not cross artwork. `PaperGrainOverlay`
 is a full-screen `drawRect` with no image awareness: inside an EPUB it **does** cross any
