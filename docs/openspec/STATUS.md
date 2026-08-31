@@ -105,11 +105,12 @@ equal, and every one of them is named in its own row above. These are the diverg
 are deliberate — the rest are gaps, not decisions.
 
 Twenty until 2026-08-31, when Kavita's publication status and age rating became built on
-both. The count moves in both directions and this one is worth watching: the same day's iOS
-audit of the EPUB reader found a divergence nobody had counted, because Android's scanner
-reports that screen's WebView as unnamed and iOS reports nothing on it. A divergence that no
-check on either platform was looking for does not appear in a number until somebody writes
-the check.
+both. The count moves in both directions, and the day's other attempt at moving it is a
+caution rather than a data point: an iOS audit of the EPUB reader was written, reported zero
+findings, and had in fact measured the publication page — the action element it tapped was not
+hittable. It now proves it arrived and skips instead, so iOS's EPUB reader is **unaudited**
+and Android's unnamed WebView on that screen stands unmatched. A number that moves because a
+check measured the wrong screen has not moved.
 
 1. **Volume-button page turns are Android-only.** Deliberate: iOS cannot capture the
    volume buttons within App Store rules, and the app says so rather than shipping a dead

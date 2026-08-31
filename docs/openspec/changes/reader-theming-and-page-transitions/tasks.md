@@ -1074,9 +1074,25 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       first impression of a project that reads books, curls pages and carries five
       typefaces.
 
-      iOS cannot be captured: the simulator accepts no injected input, so the reader
-      cannot be reached to open the sheet. `apps/ios/README.md` records the three
-      approaches that were tried.
+      **Half of the recorded iOS blocker is gone and the other half is now named,
+      checked 2026-08-31.** It said "the simulator accepts no injected input, so the
+      reader cannot be reached to open the sheet". Input is no longer the obstacle:
+      `apps/ios/UITests/ScreenshotTests.swift` drives the app through XCUITest rather
+      than through the Simulator's window, and `pnpm capture:ios` has taken the
+      library, Home, Downloads and the shelf at AX5 this way.
+
+      What actually blocks it is narrower: **the EPUB reader does not reach a state
+      with its own controls on this simulator.** A hittable *Read* is found on the
+      publication page and tapped, and the theme control — labelled *Reading*, and the
+      only control the EPUB reader has that no other screen does — never appears within
+      twenty seconds. No crash, no log. The capture test is written and skips with that
+      reason rather than being absent.
+
+      This was found the hard way. An accessibility audit of the same reader, written
+      the same afternoon, reported **zero findings** — and had measured the publication
+      page, because the action element it tapped was not hittable. Both tests now
+      identify the reader by its own control before measuring anything, which is what
+      `AuditWalk.swift` says at length and what neither of them did at first.
 - [ ] **7.5** Record the curl: a screen recording on each platform, because a
       still frame cannot show interruptibility or finger tracking.
 - [ ] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce

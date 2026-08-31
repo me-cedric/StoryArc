@@ -98,12 +98,19 @@ named the EPUB reader as one of the three missing: the comic reader's two "Poten
 inaccessible text" findings are what a scanned comic *is*, and "the same check on the **EPUB**
 reader would be a real finding, since there the words are real text in a WebView."
 
-It now has that test, and the result is the interesting part: **iOS's EPUB reader reports zero
-findings.** Android's own scanner reports the same screen as
-`EPUB reader: UNNAMED WebView at [0,371][1080,2028]`, which `pnpm smoke:android:a11y` has been
-printing for weeks. So this is not a check that had not been run — it is a defect that exists
-on one platform and not the other, and the audit that would have caught it was the half that
-had never been written.
+It now has that test, and **the first result it gave was wrong, in the exact way this suite
+exists to prevent.** It reported zero findings on the EPUB reader while sitting on the
+publication page: `openFirstPublication` returns the action element it found, that page has
+duplicate entries in its accessibility hierarchy, `firstMatch` bound to one that was not
+hittable, and the tap did nothing. `AuditWalk.swift` warns about precisely this — "a check
+that can silently measure the wrong screen is worse than no check" — and the new test
+committed it within the hour of being written.
+
+The test now identifies the reader by the one control only it has, the theme control labelled
+*Reading*, and **skips rather than reporting a clean**. On this simulator it skips: a hittable
+action is found and tapped and the EPUB reader does not reach a state with its own controls
+within twenty seconds. So iOS's EPUB reader is **unaudited**, not clean, and Android's
+`EPUB reader: UNNAMED WebView at [0,371][1080,2028]` stands unmatched rather than answered.
 
 A licence in full is audited too, and passes clean — it is the longest unbroken run of
 untranslated text in the app and the most likely to clip. So iOS walks **fifteen** screens

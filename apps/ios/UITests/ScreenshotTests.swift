@@ -73,6 +73,72 @@ final class ScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "library-ax5")
     }
 
+    /// The theme sheet and its six presets, which `reader-theming-and-page-transitions`
+    /// task 7.4 asks for and which has been recorded as impossible on this platform.
+    ///
+    /// That task says "iOS cannot be captured: the simulator accepts no injected input, so the
+    /// reader cannot be reached to open the sheet", and `apps/ios/README.md` records the three
+    /// approaches that were tried. The obstacle was real and it is gone: a UI test injects
+    /// input through XCUITest rather than through the Simulator's window, so the reader is
+    /// reachable the same way the accessibility audit reaches it.
+    ///
+    /// The sheet lives in the **EPUB** reader, not the comic reader, because a reading theme
+    /// applies to reflowable text. Its control is labelled *Reading* — `theme.title` in
+    /// `EpubReaderFeature` — and it is absent rather than disabled on a publication with no
+    /// text Readium can lay out, which is why a fixed-layout EPUB cannot be used for this.
+    ///
+    /// All six presets are in one shot deliberately, following the Android captures: the grid
+    /// draws each preset in its own colours *and* its own typeface, and that is the thing worth
+    /// proving. Six separate screenshots would prove less.
+    func testCaptureThemeSheet() throws {
+        try captureThemeSheet(contentSize: nil, named: "theme-sheet")
+    }
+
+    /// The same sheet at the largest accessibility text size, which is the half task 7.4 names
+    /// separately — a specimen is a picture of a typeface in a card of fixed height, and that
+    /// is exactly the shape that clips when the reader's type grows.
+    func testCaptureThemeSheetAtLargestText() throws {
+        try captureThemeSheet(
+            contentSize: "UICTContentSizeCategoryAccessibilityXXXL",
+            named: "theme-sheet-largest"
+        )
+    }
+
+    private func captureThemeSheet(contentSize: String?, named name: String) throws {
+        let app = launch(contentSize: contentSize)
+        let action = try openFirstPublication(in: app, ofFormat: "EPUB")
+        action.tap()
+
+        // Wait for the control itself, not for `otherElements.firstMatch` — that exists on
+        // every screen and returns instantly, so the first version of this walked on while the
+        // publication page was still up, tapped its middle, and reported no theme sheet on a
+        // screen that never had one. The reader shows its chrome for four seconds when it
+        // opens, so the control is there without any tap; the tap below is only for the case
+        // where opening took longer than the chrome lasts.
+        let reading = app.buttons["Reading"]
+        if !reading.waitForExistence(timeout: 15) {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
+
+        if !reading.waitForExistence(timeout: 5) {
+            // Say what was on screen. A skip that names no reason is a check that quietly
+            // stops running, and this one has a history of being called impossible.
+            throw XCTSkip(
+                """
+                No Reading control on this reader, so no theme sheet to capture.
+                Buttons: \(app.buttons.allElementsBoundByIndex.map(\.label))
+                Texts: \(app.staticTexts.allElementsBoundByIndex.prefix(14).map(\.label))
+                Action was: \(action.label), hittable: \(action.isHittable)
+                """
+            )
+        }
+        reading.tap()
+        // The sheet is a presentation; it animates up over the page.
+        _ = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Original")).firstMatch
+            .waitForExistence(timeout: 5)
+        attach(app.screenshot(), named: name)
+    }
+
     private func attach(_ shot: XCUIScreenshot, named name: String) {
         let attachment = XCTAttachment(screenshot: shot)
         attachment.name = name
