@@ -1118,8 +1118,9 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
       compiles them, and with that line present it answers `** TEST BUILD FAILED **`.
       Every change to `apps/ios/UITests` before this one was unverified by every gate the
-      project runs. Until that command is in `pnpm check`, "the UI tests compile" is a
-      claim about a command somebody remembered to type.
+      project ran. `main` has since made it a gate — `pnpm build:ios:tests`, in `pnpm
+      check`, alongside `pnpm build:android:tests` for the same hole on the other platform
+      — so this note records what was missing rather than what is.
 
       `pnpm capture:ios --out docs/designs/screenshots/<batch>` writes `ios-theme-sheet.png`
       and `ios-theme-sheet-largest.png`. That is two of the four Android has: these two
