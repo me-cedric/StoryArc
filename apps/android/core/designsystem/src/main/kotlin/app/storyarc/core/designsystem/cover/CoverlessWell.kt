@@ -9,10 +9,10 @@
  *
  * `android-downloads-tablet-default-light.png` in
  * `docs/designs/screenshots/after-2026-08-31b/` is what that looks like. Five of the
- * twenty-five cells fully on screen — `no-pages` and four of the six `rar4`/`rar5`
- * fixtures — are the bare
- * `surfaceSunken` cream, near-indistinguishable from the page behind them, while every cell
- * around them carries artwork. Home's and the series shelf's halves are the same omission in
+ * twenty-five cells fully on screen — `no-pages` and four of the six `rar4`/`rar5` fixtures —
+ * are the bare `surfaceSunken` cream, near-indistinguishable from the page behind them, while
+ * every cell around them carries artwork. Home's and the series shelf's halves are the same
+ * omission in
  * the source; no committed capture happens to show either of them holding a coverless
  * publication, which is a good part of why they went unremarked for as long as the Downloads
  * one did.
@@ -30,7 +30,7 @@
  *
  * **The one thing that genuinely differs between the four is whether the format is named** —
  * one nullable string, rather than four opinions about a text role and a padding. iOS reached
- * the same conclusion, in `CoverlessWell.swift`, and its parameter list is the same pair.
+ * the same conclusion, in `CoverlessWell.swift`, whose two parameters are these two.
  *
  * Four further wells in this app are **not** this one and are left alone deliberately:
  *
@@ -77,10 +77,12 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
  * @param title what the publication is called. This is what the reader is actually looking
  *   for — a wall of coverless cells all say the same format, and the title is the only thing
  *   that tells them apart.
- * @param format the format's name, or `null` on a surface that does not name one. Home's
- *   cards and a series shelf pass `null`: no Home surface names a format anywhere, and a run
- *   of five volumes of one series repeating `CBZ` five times distinguishes nothing, while the
- *   page above it already names the format once.
+ * @param format the format's name, or `null` on a surface that does not name one. The library
+ *   shelf and the Downloads shelf name it; Home's cards and a publication page's series shelf
+ *   do not, because nothing else on either of those surfaces names a format either — their
+ *   captions are the title with, respectively, what is left to read and the volume's read
+ *   state. A well stands in for artwork that is missing; it does not introduce a field its
+ *   neighbours do not carry.
  */
 @Composable
 fun CoverlessWell(title: String, format: String?, modifier: Modifier = Modifier) {
