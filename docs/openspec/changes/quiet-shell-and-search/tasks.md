@@ -92,9 +92,9 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 
 ## 4. Docs and close-out
 
-- [ ] 4.1 Update `docs/designs/ui-revamp-2026-08.md` with the search-as-destination
+- [x] 4.1 Update `docs/designs/ui-revamp-2026-08.md` with the search-as-destination
       decision and the reason the earlier `Tab(role: .search)` finding is superseded.
-- [ ] 4.2 Update `docs/openspec/STATUS.md`.
+- [x] 4.2 Update `docs/openspec/STATUS.md`.
 - [ ] 4.3 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
 - [ ] 4.4 `agent-compass openspec-guard . --strict`.

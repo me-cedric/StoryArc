@@ -78,6 +78,49 @@ some do, **absent** when none do. All fifteen are `partial`. Two rows were wrong
 | `reading-themes` | partial | **Split out of `ebook-reader` when the reader-theming change was synced on 2026-08-30, so this row is new and its scenarios were scored under their old home.** Eleven axes, six presets named rather than numbered -- Original, Quiet, Paper, Bold, Calm, Focus, which replaced the Paper/Sepia/Night/High Contrast the spec had named for months while the code shipped something else. The presets are drawn as specimens of real letterforms rather than the letters "Aa", because that is what shipped and the spec now says so. **Outstanding: the live preview inside the theme sheet** (task 3.6) -- the preset cards preview each theme's colours and face, and the page *behind* the sheet updates live, but there is no preview within the sheet itself; and **the reader-chosen light/dark pair**, where `ThemePreset.matching` is a fixed Light-to-Paper and any-dark-to-Quiet mapping with no setting for a pair, and the link is resolved when the reader is constructed rather than when the system flips, so a switch to dark mid-book does nothing until the book is reopened. Not audited scenario by scenario in its own right; the verdicts above were taken against `ebook-reader` before the split |
 | `page-transitions` | partial | **Split out of `comic-reader` and `ebook-reader` when the reader-theming change was synced on 2026-08-30, so this row is new.** Slide, fast fade, page curl and continuous scroll, chosen per shelf and remembered there. **The curl is interruptible as of this session** -- both readers previously stopped the running settle and then computed the new drag from zero, so a settle halted at 0.8 jumped to 0.1, which is the snap the scenario exists to forbid; the arithmetic now lives in `CurlTurn`, a mirrored pure type, and carries the base. Fixing it surfaced three more: an Android tap during a settle froze the page mid-curl, Android's flick test was unsigned so a fast backward drag completed the turn, and iOS could not read where the page stood at all because `withAnimation` sets state to its destination immediately. **Outstanding: curl on reflowable content** (nothing rasterises a reflowable page, and both readers refuse it and say why), and **a double-page spread curling as one surface** -- the curl container takes one decoded page and knows nothing of the spread layout the paged and scroll containers use. Hardware input is specified as it shipped: where a platform does not let an app observe the volume buttons, no setting is offered and the reason is stated once |
 
+## In flight: `quiet-shell-and-search`, sections 1 and 2
+
+Recorded here rather than as a capability row, because two of the three capabilities it
+touches — `navigation-shell` and `home-screen` — **have no main spec at all**. They are new
+capabilities that `one-library-three-destinations` introduces and has not synced, so there is
+nothing for a row to be a status *of* yet. When either change syncs, this becomes rows.
+
+**Section 1 is complete on both platforms.** Search is a fourth destination rather than a
+role: iOS drew it as `Tab(role: .search)`, which morphs the tab into a text field in place, so
+the bar changed shape under the reader's thumb and there was nowhere to land; Android had no
+search in its navigation at all. Both now draw four destinations, and both were photographed
+before and after — [`before-2026-08-31c/`](../designs/screenshots/before-2026-08-31c/README.md)
+and [`after-2026-08-31c/`](../designs/screenshots/after-2026-08-31c/README.md). The Android bar
+stays edge-to-edge and iOS keeps its floating capsule; that divergence is structural rather
+than stylistic — `ShortNavigationBar` exposes no `shape` parameter.
+
+Task 1.7 fixed a guideline that had been unmet since the shell was written: at
+`ShortNavigationBarMedium` Material requires horizontal, centred items, and
+`AdaptiveNavigation.kt` composes its own items so it inherited neither.
+
+**Section 2 is complete on iOS and partial on Android.**
+
+| | iOS | Android |
+| --- | --- | --- |
+| The search bar on its own page | yes | yes |
+| Scope stated and narrowable, persisted | yes | yes |
+| Narrowing stops the fan-out, not just the rows | yes | **no** — the chips are drawn and carried, and nothing reads them yet |
+| Suggestions before a query | yes | **no** — the page below the bar is empty |
+| Nothing-to-suggest state | yes | **no** |
+
+The Android page's body is deliberately empty and says so in its own source. What is missing
+is `SearchAtRest`'s counterpart: the at-rest offer of something to continue, something never
+opened and a next volume. The arithmetic for it exists only on iOS
+(`SearchSuggestions.swift`), and it is not a mirrored pure type — it is a composition over
+`HomeShelves`, so the Android side is its own work over `LibraryIndex` there.
+
+**Section 3 — what's new — is not started on either platform.** There is still no changelog
+surface in the app.
+
+The suggestions are a **product choice, not a Material or HIG pattern**. Material knows only
+historical suggestions before typing, and nothing in either codebase claims a guideline for
+continue-reading, never-opened or next-in-series.
+
 ## What blocks what
 
 `sources` is the keystone. Five capabilities wait on it, and so do the three open tasks

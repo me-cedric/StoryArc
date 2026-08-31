@@ -238,21 +238,50 @@ TabView {
     Tab("Library",   systemImage: "books.vertical")    { LibraryScreen() }
     Tab("Downloads", systemImage: "arrow.down.circle") { OnThisDeviceScreen() }
 
-    Tab(role: .search) { NavigationStack { SearchScreen() } }
+    Tab("Search",    systemImage: "magnifyingglass")   { SearchScreen() }
 }
 .tabViewStyle(.sidebarAdaptable)
 .tabBarMinimizeBehavior(.onScrollDown)
 ```
 
-- **`Tab(role: .search)` is the owner's requirement, and it is one line.** The
-  system separates a search-role tab from the others and places it at the trailing
-  edge — the circular button set apart in the Apple Music screenshot. It is also
-  the bar Panels ships (Reading Now · Library · Store · Settings + a separate
-  circular Search), which is the reference app the owner named.
-- **Three content tabs, not five.** The HIG says avoid too many tabs and keep them
-  consistent between iPhone and iPad. Home / Library / Downloads is the reader's
-  relationship to their books — *what I'm in the middle of*, *everything I have*,
-  *what works on a plane* — and no fourth axis earns a permanent seat.
+> ### The search role is superseded. Built and then removed, 2026-08-31.
+>
+> **What this section used to say**, and it was two bullets:
+>
+> > **`Tab(role: .search)` is the owner's requirement, and it is one line.** The system
+> > separates a search-role tab from the others and places it at the trailing edge — the
+> > circular button set apart in the Apple Music screenshot. It is also the bar Panels ships
+> > (Reading Now · Library · Store · Settings + a separate circular Search), which is the
+> > reference app the owner named.
+> >
+> > **Three content tabs, not five.** The HIG says avoid too many tabs and keep them
+> > consistent between iPhone and iPad. Home / Library / Downloads is the reader's
+> > relationship to their books — *what I'm in the middle of*, *everything I have*, *what
+> > works on a plane* — and no fourth axis earns a permanent seat.
+>
+> **What a device showed.** It was built, and the role does more than set the tab apart: it
+> **morphs the tab into a text field in place**. So the bar changed shape under the reader's
+> thumb, and — the part that matters — there was no screen behind it. Nothing could be offered
+> before a letter was typed, which is exactly what the search page of every reading app a
+> reader already knows is for. The requirement was written about a *control* and got the
+> control it asked for.
+>
+> **What replaced it.** `navigation-shell` is rewritten as an outcome: search "SHALL be a place
+> a reader arrives at, and no control SHALL change shape or position to become it". Search is a
+> fourth plain `Tab`, drawn like its three neighbours, leading to a page that offers recent
+> searches, something to continue, something never opened and a next volume.
+>
+> **The second bullet survives its own argument.** *No fourth axis earns a permanent seat* was
+> about **axes of the library**, and search is not one — it is the only surface that spans the
+> sources, and in this app the publications arrive from a device, a folder, an OPDS catalogue,
+> a Kavita server and an SMB share with no shelf showing all of them at once. The HIG's advice
+> against too many tabs is satisfied at four; Material's range on the mirrored side is 3–5 for
+> a bar and 3–7 for a collapsed rail.
+>
+> The change is [`quiet-shell-and-search`](../openspec/changes/quiet-shell-and-search/design.md),
+> and the pictures are in
+> [`after-2026-08-31c/`](screenshots/after-2026-08-31c/README.md) — the before shot is the
+> circular button outside the capsule, leading nowhere.
 - **`.tabBarMinimizeBehavior(.onScrollDown)`** so the bar recedes as covers scroll.
   This is the whole point of the material: chrome that gets out of the artwork's way.
 - **Choose the standard search tab, not `Tab(role: .prominent)`** (WWDC26). Apple's
@@ -518,29 +547,48 @@ NavigationSuiteScaffold(
 ) { … }
 ```
 
-**Three destinations: Home, Library, Downloads. Search is not one of them.**
+**Four destinations: Home, Library, Downloads, Search.**
 
-Material's search guidance ranks the entry points: a **search bar** for searching
-content in a view; a **search app bar** when search is the primary global function;
-a **search icon button** when search is secondary. It *permits* the iOS shape —
-"if search is the primary action, focused search can be a standalone destination
-reached from a navigation bar" — but that is the exception clause, and StoryArc's
-primary action is browsing, not searching. Material also caps a navigation bar at
-three to five destinations, always labelled.
+> ### This said three, and search was not one of them. Superseded 2026-08-31.
+>
+> **What it used to say:**
+>
+> > Material's search guidance ranks the entry points: a **search bar** for searching content
+> > in a view; a **search app bar** when search is the primary global function; a **search icon
+> > button** when search is secondary. It *permits* the iOS shape — "if search is the primary
+> > action, focused search can be a standalone destination reached from a navigation bar" — but
+> > that is the exception clause, and StoryArc's primary action is browsing, not searching.
+> >
+> > So on Android, search is a **top search bar** on Home and Library.
+>
+> **The quotation is accurate and still stands.** What changed is the judgement the clause
+> hands us. StoryArc's publications arrive from a device, a folder, an OPDS catalogue, a Kavita
+> server and an SMB share, and **no shelf shows all of them at once in a way a reader can
+> scan** — search is the only surface that spans the sources. In an app whose library is one
+> folder, search is a filter; in this one it is the way in. A field belonging to the library
+> also made searching something a reader does *to* the shelf.
+>
+> Four sits inside Material's own range for both controls the list builds: 3–5 for the
+> navigation bar, 3–7 for the collapsed rail. Nothing about the count is strained.
 
-So on Android, search is a **top search bar** on Home and Library:
-`TopSearchBar` + `SearchBarState`, expanding to
-`ExpandedFullScreenContainedSearchBar` on compact and
-`ExpandedDockedSearchBarWithGap` on medium and up — both non-experimental since
-material3 1.5.0-alpha23/24. Container is `surfaceContainerHigh`, and M3 warns not
-to place `surfaceContainerHigh` on a `surfaceContainer` background, so the page
-ground stays a step apart.
+The bar itself is unchanged and now lives on the search screen: `AppBarWithSearch` in
+`Scaffold(topBar =)`, expanding to `ExpandedFullScreenContainedSearchBar` on compact and
+`ExpandedDockedSearchBarWithGap` on medium and up. `TopSearchBar` was renamed
+`AppBarWithSearch` in material3 1.5.0-alpha26; same control, same slot. Each expanded bar takes
+**its own state factory** — `rememberContainedSearchBarState` and
+`rememberSearchBarWithGapState` — because only those carry the content-fade specs their own bar
+reads, and one shared `rememberSearchBarState` cannot be right for both.
 
-**Why this is the right divergence, in one sentence for the owner:** both platforms
-are being asked for the same *behaviour* — search is one tap away and takes over
-the screen — and each expresses it with its own control; putting an iOS-shaped
-floating circular search button into an M3 navigation bar would read as a port,
-which is exactly the failure this revamp exists to fix.
+**The divergence that is still live, in one sentence for the owner:** both platforms now make
+search a destination, and they disagree about the *container* — iOS floats a capsule inset from
+the edges, Android's bar spans the window edge to edge with no capsule, no inset and no
+rounding, because `ShortNavigationBar` exposes no `shape` parameter at all. On that side the
+capsule is not discouraged; it is inexpressible. Putting an iOS-shaped floating pill into an M3
+navigation bar would read as a port, which is exactly the failure this revamp exists to fix.
+
+The scope control diverges too: a segmented scope bar on iOS, filter chips on Android, because
+Material retired the segmented button in the Expressive update and its replacement is specified
+for a fixed set of two to five views — our sources are an open, growing set.
 
 **Navigation must be rewritten first.** The boolean cascade in `MainActivity.kt`
 (§2.1) blocks per-destination predictive back, state restoration, deep links and
