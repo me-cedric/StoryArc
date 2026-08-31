@@ -19,7 +19,7 @@
     "tokens:verify": "node scripts/verify-tokens-in-sync.mjs",
     "spec:validate": "cd docs && openspec validate --all",
     "spec:list": "cd docs && openspec list --specs",
-    "lint": "pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm kavita:check && pnpm strings:ios",
+    "lint": "pnpm lines:check && pnpm tokens:check && pnpm spec:validate && pnpm tokens:verify && pnpm fixtures:check && pnpm notices:check && pnpm libarchive:pin && pnpm lockfile:ios && pnpm corpus:check && pnpm kavita:check && pnpm strings:ios",
     "lint:ios": "swiftlint lint --strict",
     "lint:android": "node scripts/gradle.mjs lint",
     "test:ios": "cd apps/ios/Packages/StoryArcKit && swift test",
@@ -47,7 +47,10 @@
     "libarchive:pin": "node scripts/libarchive-pin.mjs --check",
     "libarchive:pin:selftest": "node scripts/libarchive-pin.mjs --self-test",
     "libarchive:upstream": "node scripts/libarchive-pin.mjs --upstream",
-    "gradle": "node scripts/gradle.mjs"
+    "gradle": "node scripts/gradle.mjs",
+    "lines": "node scripts/line-cap.mjs --list",
+    "lines:check": "node scripts/line-cap.mjs",
+    "lines:selftest": "node scripts/line-cap.mjs --self-test"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",

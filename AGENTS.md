@@ -83,6 +83,7 @@ change** — never the whole repository when one module moved.
 | Android across modules | `pnpm lint:android && pnpm test:android` |
 | `packages/design-tokens` | `pnpm tokens:sync` — then **commit the regenerated app copies in the same change** |
 | `docs/openspec/specs` | `pnpm spec:validate` |
+| Any Swift or Kotlin file | `pnpm lines:check` — part of `pnpm lint`. The 800-line cap is a ratchet: five files are already over it and recorded in `scripts/line-cap.mjs` with the length they had, so they may shrink and may not grow. A sixth crossing fails the build. |
 
 **Android needs a JDK 21 and an SDK, and neither is on the path by default.**
 `pnpm gradle <task>` (and `pnpm lint:android` / `test:android` / `build:android`) find
