@@ -24,8 +24,24 @@ struct FilterMenu: View {
     /// availability axis.
     @Binding var downloads: DownloadFilter
 
+    /// The primary axis, cleared with the filters and counted with none of them.
+    ///
+    /// See ``LibraryNarrowing/activeCount``: availability has a control of its own that states it
+    /// while it is set, so it is not part of the badge — and *Clear filters* still puts it
+    /// back, because a cleared shelf that is still showing only what is on this device is a
+    /// shelf as empty as the reader found it.
+    @Binding var availability: LibraryAvailability
+
     var body: some View {
         Menu {
+            // First, as on Android, and for the reason its own `FilterSection` gives:
+            // narrowing to one library is the newest of these groups and the one that
+            // changed shape. It was a scope with a control of its own in the toolbar, which
+            // silently narrowed the search as well and which a reader could be left in
+            // without noticing. It is a filter now — cleared by the action that clears every
+            // other filter, and counted in the same badge.
+            libraries
+
             group("library.filter.readState", isActive: !model.query.readStates.isEmpty) {
                 ForEach(ReadState.allCases, id: \.self) { state in
                     Toggle(isOn: readState(state)) {
@@ -42,12 +58,9 @@ struct FilterMenu: View {
             values("library.filter.tag", pairs(model.availableTags), \.tags)
             decades
 
-            if isNarrowing {
+            if narrowing.isActive {
                 Divider()
-                Button(role: .destructive) {
-                    model.clearFilters()
-                    downloads = .either
-                } label: {
+                Button(role: .destructive, action: clear) {
                     Text("library.filter.clear", bundle: .module)
                 }
             }
@@ -56,7 +69,7 @@ struct FilterMenu: View {
                 Text("library.filter", bundle: .module)
             } icon: {
                 Image(
-                    systemName: isNarrowing
+                    systemName: narrowing.isActive
                         ? "line.3.horizontal.decrease.circle.fill"
                         : "line.3.horizontal.decrease.circle"
                 )
@@ -64,29 +77,69 @@ struct FilterMenu: View {
         }
         // The count, spoken rather than drawn as a badge a menu label cannot carry.
         .accessibilityValue(
-            isNarrowing
-                ? Text("library.filter.active \(narrowingCount)", bundle: .module)
+            narrowing.isActive
+                ? Text("library.filter.active \(narrowing.activeCount)", bundle: .module)
                 : Text(verbatim: "")
         )
     }
 
-    /// Whether anything in this menu is hiding part of the library.
+    /// Everything this control narrows by, and what it says about it.
     ///
-    /// Not `model.query.hasFilters` alone: the download group is a facet like the other
-    /// seven and is simply kept somewhere else, so a menu that ignored it would draw an
-    /// untouched funnel over a shelf it had just halved.
-    private var isNarrowing: Bool { model.query.hasFilters || downloads.isActive }
+    /// Not `model.query` alone: the library narrowing, the download group and the
+    /// availability axis are kept in three places for three good reasons, and until
+    /// ``LibraryNarrowing`` existed each call site joined them up for itself — which is how
+    /// the count came to omit the one narrowing a reader could not otherwise see.
+    private var narrowing: LibraryNarrowing {
+        LibraryNarrowing(query: model.query, downloads: downloads, availability: availability)
+    }
 
-    /// How much of the library the reader has hidden, the download group included.
-    ///
-    /// Counted here rather than on the query so the spoken count matches what "Clear
-    /// filters" undoes — a menu saying "2 filters active" that clears three things is one
-    /// nobody trusts twice.
-    private var narrowingCount: Int {
-        model.query.activeFilterCount + (downloads.isActive ? 1 : 0)
+    /// One action, everything it undoes.
+    private func clear() {
+        let cleared = narrowing.cleared()
+        model.query = cleared.query
+        downloads = cleared.downloads
+        availability = cleared.availability
     }
 
     // MARK: - Groups
+
+    /// Which library, when there is more than one to choose between.
+    ///
+    /// A radio list rather than the checkboxes most groups use: the shelf shows one library
+    /// or all of them, so ticking two answers would be the same as ticking neither. "Any
+    /// library" is how the group is turned back off, which is the same act as unticking the
+    /// last value anywhere else.
+    @ViewBuilder
+    private var libraries: some View {
+        let offered = LibraryNarrowing.offeredLibraries(in: model.registry)
+        if !offered.isEmpty {
+            group("library.filter.library", isActive: narrowing.isScoped) {
+                Picker(selection: scope) {
+                    ForEach(offered, id: \.self) { scope in
+                        name(of: scope).tag(scope)
+                    }
+                } label: {
+                    Text("library.filter.library", bundle: .module)
+                }
+            }
+        }
+    }
+
+    /// What one library is called in the group.
+    ///
+    /// "Any library" rather than "Everywhere" for the unnarrowed case: the word belongs to
+    /// the availability axis in the control next door, and two rows reading "Everywhere" in
+    /// one toolbar would be two different promises wearing one name.
+    private func name(of scope: LibraryScope) -> Text {
+        guard let name = model.registry.name(of: scope.sourceID) else {
+            return Text("library.availability.from.all", bundle: .module)
+        }
+        return Text(name)
+    }
+
+    private var scope: Binding<LibraryScope> {
+        Binding(get: { model.query.scope }, set: { model.query.scope = $0 })
+    }
 
     /// One group of alternatives, and whether the reader has set any of them.
     ///

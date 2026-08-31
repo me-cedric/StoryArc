@@ -123,14 +123,15 @@ struct NarrowedToNothing: View {
                 .multilineTextAlignment(.center)
 
             // The likelier of the two undos, so it comes first: a reader who narrowed the
-            // shelf and found nothing usually wants the narrowing lifted, not their filters
-            // cleared.
+            // shelf to what is on this device and found nothing usually wants that lifted,
+            // not their filters cleared.
+            //
+            // One label, because there is now one thing this widens. It used to fall through
+            // to widening a *scope* to every source; that narrowing is a filter now and the
+            // button below is what undoes it.
             if let widen {
                 Button(action: widen) {
-                    Text(
-                        isNarrowedToDevice ? "library.availability.widen" : "library.search.widen",
-                        bundle: .module
-                    )
+                    Text("library.availability.widen", bundle: .module)
                 }
                 .buttonStyle(.borderedProminent)
             }

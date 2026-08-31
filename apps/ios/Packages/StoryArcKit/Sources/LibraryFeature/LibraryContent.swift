@@ -64,13 +64,33 @@ extension LibraryView {
         surface == .shelf && availability == .onThisDevice && !model.visible.isEmpty
     }
 
-    /// The one action that puts the shelf back, or `nil` when it is already as wide as it
-    /// goes. The device axis is undone before the library filter, because it is the one the
-    /// reader set most recently and the one that hides the most.
+    /// The one action that puts the shelf back, or `nil` when the axis is already as wide as
+    /// it goes.
+    ///
+    /// The availability axis and nothing else. It used to fall through to widening the scope
+    /// to every source, from the days when narrowing to one library *was* a scope; that
+    /// narrowing is a filter now, so *Clear filters* below is what undoes it and a second
+    /// button offering half of the same thing would be two answers to one question. Android's
+    /// own empty state offers the widen on the same single condition.
     var widening: (() -> Void)? {
-        if isNarrowedToDevice { return { availability = .everywhere } }
-        if model.query.scope == .allSources { return nil }
-        return { model.widenToAllSources() }
+        isNarrowedToDevice ? { availability = .everywhere } : nil
+    }
+
+    /// Undoes every narrowing at once, the search included.
+    ///
+    /// The search is cleared here and not in the filter menu, and the difference is
+    /// deliberate: this button is offered to a reader looking at nothing, so it undoes
+    /// everything that could be hiding a match — which is what the amended *No results*
+    /// scenario asks of the empty state.
+    func clearEverything() {
+        let cleared = LibraryNarrowing(
+            query: model.query,
+            downloads: downloads,
+            availability: availability
+        ).cleared(includingSearch: true)
+        model.query = cleared.query
+        downloads = cleared.downloads
+        availability = cleared.availability
     }
 
     /// Asks every source again, and walks the folders again.
@@ -134,14 +154,13 @@ extension LibraryView {
                 // offer one action to undo.
                 NarrowedToNothing(
                     query: model.query,
-                    // Everything this button claims to undo, the download group included.
-                    // One that left a facet set would leave the shelf as empty as it found
+                    // Everything this button claims to undo — the library narrowing, the
+                    // download group and the availability axis with the seven facets. One
+                    // that left any of them set would leave the shelf as empty as it found
                     // it, which is the state `library-browsing` forbids showing silently.
-                    clear: {
-                        model.clearFilters()
-                        downloads = .either
-                        model.query.search = ""
-                    },
+                    // The rule is ``LibraryNarrowing/cleared(includingSearch:)``, shared with
+                    // the filter menu so the two cannot answer it differently.
+                    clear: clearEverything,
                     scopeName: model.registry.name(of: model.query.scope.sourceID),
                     // The device axis wins the sentence when it is the thing narrowing the
                     // shelf: a reader who asked for what works on a plane and got nothing

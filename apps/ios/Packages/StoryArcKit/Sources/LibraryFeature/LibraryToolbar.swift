@@ -50,7 +50,7 @@ extension LibraryView {
             // Always offered, unlike the source selector it replaced: availability is a
             // question every library can answer, including one with a single folder in it.
             ToolbarItem(placement: .primaryAction) {
-                ScopeMenu(model: model, availability: $availability)
+                ScopeMenu(availability: $availability)
             }
             ToolbarItem(placement: .primaryAction) {
                 LayoutToggle(model: model)
@@ -59,7 +59,7 @@ extension LibraryView {
                 SortMenu(model: model)
             }
             ToolbarItem(placement: .primaryAction) {
-                FilterMenu(model: model, downloads: $downloads)
+                FilterMenu(model: model, downloads: $downloads, availability: $availability)
             }
 
             ToolbarSpacer(.fixed, placement: .primaryAction)

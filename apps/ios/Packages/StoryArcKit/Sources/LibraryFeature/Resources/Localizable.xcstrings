@@ -3727,35 +3727,6 @@
         }
       }
     },
-    "library.availability.from": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Von"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "From"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Depuis"
-          }
-        }
-      }
-    },
     "library.availability.from.all": {
       "extractionState": "manual",
       "localizations": {
@@ -4996,6 +4967,35 @@
         }
       }
     },
+    "library.filter.library": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welche Bibliothek"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which library"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qué biblioteca"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quelle bibliothèque"
+          }
+        }
+      }
+    },
     "library.filter.publisher": {
       "extractionState": "manual",
       "localizations": {
@@ -5953,35 +5953,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Effacer les recherches récentes"
-          }
-        }
-      }
-    },
-    "library.search.widen": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Überall suchen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search everything"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Buscar en todo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chercher partout"
           }
         }
       }

@@ -372,13 +372,10 @@ public final class LibraryModel {
         .of(progress[publication.id])
     }
 
-    /// Shows every source again.
-    ///
-    /// `library-browsing` asks the no-results state to "offer to widen the scope to all
-    /// sources if the search was scoped", which is a different offer from clearing the
-    /// filters: the reader who scoped to one server and found nothing usually wants the
-    /// same words put to the rest of their library, not their filters undone.
-    public func widenToAllSources() {
-        query.scope = .allSources
-    }
+    // `widenToAllSources` used to be here. It existed for the *No results* offer to "widen
+    // the scope to all sources if the search was scoped" — a sentence the
+    // `one-library-three-destinations` amendment replaced, because narrowing to one library
+    // stopped being a scope. It is a filter now, so the offer is *Clear filters*, which
+    // undoes it along with everything else that could be hiding a match. The rule is
+    // ``LibraryNarrowing/cleared(includingSearch:)``.
 }

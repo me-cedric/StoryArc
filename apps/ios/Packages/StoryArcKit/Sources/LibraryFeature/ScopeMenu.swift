@@ -85,35 +85,24 @@ enum LibraryAvailability: String, CaseIterable, Sendable {
     }
 }
 
-/// What the shelf is showing: on which availability, and — secondarily — from where.
+/// What the shelf is showing, on the one axis that is a mode rather than a filter.
 ///
-/// One control with two pickers rather than two toolbar items, because they answer the same
-/// question at two strengths. Availability is first and always offered; *From* appears only
-/// when there is more than one library to choose between, and `library-browsing` is explicit
-/// that it "does not survive as a mode" — it narrows the shelf and nothing else.
+/// Everything, or only what opens with no network. `library-browsing` makes that the
+/// library's primary axis and asks that the choice "persists until changed, **and is visible
+/// while it is active**" — which is why this control's own icon states it, and why it is not
+/// counted in the filter control's badge.
 ///
-/// Before this it was a source selector alone: origin as a scope, which the same requirement
-/// removed because "a scope is a mode a reader can be stuck in and it silently narrowed
-/// search as well".
+/// **It used to carry a second picker, *From*, and that was the defect.** Narrowing to one
+/// library was written here as a scope: a mode with a control in the toolbar, which silently
+/// narrowed the search as well and which nothing on screen offered to undo — the filter
+/// menu's count did not know the field existed and *Clear filters* left it set. The amendment
+/// to `library-browsing` is explicit that the narrowing "is offered by name as a filter …
+/// and not as a scope the view is in", so it lives in ``FilterMenu`` now, counted and cleared
+/// with everything else. Android moved it for the same reason and says so in its own
+/// `FilterSection`.
 struct ScopeMenu: View {
-    let model: LibraryModel
-
     /// The primary axis, owned by the screen so it survives the menu closing.
     @Binding var availability: LibraryAvailability
-
-    /// The libraries worth putting in front of a reader, or nothing at all.
-    ///
-    /// Empty below two libraries: a picker offering "Any library" and the one there is asks
-    /// a question with a single answer. Android gates its own selector on
-    /// `attributesPublications`; this is the same gate, and keeping it here — beside the
-    /// menu it governs — is what lets the toolbar and this view agree without either
-    /// restating the rule.
-    ///
-    /// The registry's own order, because `SourceRegistry.scopes` makes that order meaningful
-    /// and a selector that reshuffled it would undo an arrangement the reader made by hand.
-    static func offered(in registry: SourceRegistry) -> [LibraryScope] {
-        registry.attributesPublications ? registry.scopes : []
-    }
 
     var body: some View {
         Menu {
@@ -129,19 +118,6 @@ struct ScopeMenu: View {
             } label: {
                 Text("library.scope", bundle: .module)
             }
-
-            let libraries = Self.offered(in: model.registry)
-            if !libraries.isEmpty {
-                Divider()
-
-                Picker(selection: scopeBinding) {
-                    ForEach(libraries, id: \.self) { scope in
-                        name(of: scope).tag(scope)
-                    }
-                } label: {
-                    Text("library.availability.from", bundle: .module)
-                }
-            }
         } label: {
             Label {
                 Text("library.scope", bundle: .module)
@@ -151,30 +127,6 @@ struct ScopeMenu: View {
         }
         // What it is narrowed to, spoken. The icon says that a narrowing is set and cannot
         // say which one, and DESIGN.md forbids a state carried by appearance alone.
-        .accessibilityValue(spokenValue)
-    }
-
-    private var scopeBinding: Binding<LibraryScope> {
-        Binding(get: { model.query.scope }, set: { model.query.scope = $0 })
-    }
-
-    /// Both halves, in the order the menu offers them, and the second only when it is set.
-    private var spokenValue: Text {
-        guard let library = model.registry.name(of: model.query.scope.sourceID) else {
-            return Text(availability.titleKey, bundle: .module)
-        }
-        return Text(availability.titleKey, bundle: .module) + Text(", ") + Text(library)
-    }
-
-    /// What one library is called in the *From* picker.
-    ///
-    /// "Any library" rather than "Everywhere" for the unnarrowed case: the word now belongs
-    /// to the availability axis above, and two rows reading "Everywhere" in one menu would
-    /// be two different promises wearing one name.
-    private func name(of scope: LibraryScope) -> Text {
-        guard let name = model.registry.name(of: scope.sourceID) else {
-            return Text("library.availability.from.all", bundle: .module)
-        }
-        return Text(name)
+        .accessibilityValue(Text(availability.titleKey, bundle: .module))
     }
 }
