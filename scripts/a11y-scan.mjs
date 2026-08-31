@@ -31,6 +31,7 @@
  *   node scripts/a11y-scan.mjs --self-test  check the checks still fire
  */
 import { readFileSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 
 import { adbRunner } from './adb.mjs'
 
@@ -104,7 +105,15 @@ const nameOf = (node) =>
 const subtreeName = (node) =>
   nameOf(node) || node.children.map(subtreeName).find(Boolean) || ''
 
-const scan = (xml, dpi) => {
+/**
+ * Every accessibility problem on one screen.
+ *
+ * Exported so `smoke-android.mjs` can run it at each of the sixteen routes it already
+ * walks. This script on its own reads whatever screen happens to be in front of it, which
+ * makes it a check of one screen chosen by whoever ran it — and the route walk was already
+ * paying the cost of reaching all sixteen and then only asking whether the process had died.
+ */
+export const scan = (xml, dpi) => {
   const scale = dpi / 160
   const tree = parse(xml)
   const screen = tree.children[0] ? boxOf(tree.children[0]) : null
@@ -176,15 +185,20 @@ const selfTest = () => {
   process.exitCode = ok ? 0 : 1
 }
 
-const [file] = process.argv.slice(2)
-if (file === '--self-test') {
-  selfTest()
-} else {
-  const xml = file ? readFileSync(file, 'utf8') : liveDump()
-  const dpi = file ? 420 : density()
-  const { count, problems } = scan(xml, dpi)
+// Only when run as a command. `smoke-android.mjs` imports `scan` to inspect each of the
+// routes it walks, and an import that reads `process.argv` and touches a device on the way
+// in is an import that fails on somebody else's flags — which is exactly what it did.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  const [file] = process.argv.slice(2)
+  if (file === '--self-test') {
+    selfTest()
+  } else {
+    const xml = file ? readFileSync(file, 'utf8') : liveDump()
+    const dpi = file ? 420 : density()
+    const { count, problems } = scan(xml, dpi)
 
-  console.log(`${count} nodes, ${problems.length} problems  (density ${dpi}dpi)`)
-  for (const problem of problems) console.log(`  ${problem}`)
-  process.exitCode = problems.length > 0 ? 1 : 0
+    console.log(`${count} nodes, ${problems.length} problems  (density ${dpi}dpi)`)
+    for (const problem of problems) console.log(`  ${problem}`)
+    process.exitCode = problems.length > 0 ? 1 : 0
+  }
 }

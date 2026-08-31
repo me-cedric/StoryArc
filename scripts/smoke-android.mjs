@@ -18,6 +18,7 @@
 import { execFileSync } from 'node:child_process'
 
 import { adbRunner, hasDevice, resolveAdb } from './adb.mjs'
+import { scan } from './a11y-scan.mjs'
 
 const PKG = 'app.storyarc.debug'
 const ACTIVITY = `${PKG}/app.storyarc.MainActivity`
@@ -116,7 +117,11 @@ const tap = (x, y) => {
   sleep(1700)
 }
 
-const filter = process.argv[2]
+// `--a11y` also inspects each screen it reaches. Off by default, so a crash walk stays a
+// crash walk and its exit code keeps meaning what it has always meant.
+const wantsAccessibility = process.argv.includes('--a11y')
+const density = Number(/(\d+)/.exec(sh('shell', 'wm', 'density'))?.[1] ?? 420)
+const filter = process.argv.filter((a) => !a.startsWith('--'))[2]
 const routes = filter ? ROUTES.filter(([name]) => name.includes(filter)) : ROUTES
 const failures = []
 
@@ -151,6 +156,16 @@ for (const [name, steps] of routes) {
     tap(...spot)
   }
 
+  // The screen is already here and already dumped. Asking whether anything on it is
+  // unnamed, raw or too small to hit costs one more read of a tree this walk has in hand —
+  // and `a11y-scan.mjs` on its own only ever sees whichever screen was in front of whoever
+  // ran it. Sixteen routes checked is what iOS's own audit now does per screen.
+  if (reached && wantsAccessibility) {
+    const { problems } = scan(dump(), density)
+    for (const problem of problems) failures.push(`${name}: ${problem}`)
+    if (problems.length > 0) console.log(`  a11y   ${name}: ${problems.length} problem(s)`)
+  }
+
   const crash = sh('logcat', '-d', '-b', 'crash')
   const fatal = /FATAL EXCEPTION/.test(crash) && crash.includes(PKG)
   if (fatal) {
@@ -172,12 +187,17 @@ for (const [name, steps] of routes) {
 // publication whose source is unreachable has no `Read` to press -- and it is reported as
 // its own thing, in its own words.
 const crashes = failures.filter((f) => f.includes('CRASHED'))
-const unreachable = failures.filter((f) => !f.includes('CRASHED'))
+const accessibility = failures.filter((f) => /: (UNNAMED|RAW-VALUE|SMALL)\b/.test(f))
+const unreachable = failures.filter((f) => !crashes.includes(f) && !accessibility.includes(f))
 
 console.log(`\n${routes.length - failures.length}/${routes.length} routes walked and survived`)
 if (crashes.length) {
   console.log(`\n${crashes.length} CRASHED:`)
   for (const failure of crashes) console.log(`  ${failure}`)
+}
+if (accessibility.length) {
+  console.log(`\n${accessibility.length} accessibility problem(s) across the routes:`)
+  for (const problem of accessibility) console.log(`  ${problem}`)
 }
 if (unreachable.length) {
   console.log(`\n${unreachable.length} could not be reached -- the route map may be stale,`)
@@ -187,5 +207,5 @@ if (unreachable.length) {
 
 // A crash fails loudly. A route that could not be walked is worth a different exit code,
 // because the two want different things done about them.
-process.exit(crashes.length ? 1 : unreachable.length ? 2 : 0)
+process.exit(crashes.length ? 1 : unreachable.length ? 2 : accessibility.length ? 3 : 0)
 process.exitCode = failures.length > 0 ? 1 : 0

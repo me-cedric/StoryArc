@@ -32,6 +32,7 @@
     "fixtures:build": "python3 packages/test-fixtures/scripts/generate.py",
     "fixtures:check": "python3 packages/test-fixtures/scripts/generate.py --check",
     "smoke:android": "node scripts/smoke-android.mjs",
+    "smoke:android:a11y": "node scripts/smoke-android.mjs --a11y",
     "notices": "node scripts/notices.mjs",
     "corpus": "node scripts/corpus.mjs",
     "opds": "node scripts/opds-server.mjs",
