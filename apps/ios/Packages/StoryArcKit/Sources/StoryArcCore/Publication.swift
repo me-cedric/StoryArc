@@ -257,6 +257,13 @@ public struct Publication: Sendable, Equatable, Identifiable, Codable {
     /// background-colour control in that reader. So this routing satisfies the first half of
     /// that scenario and leaves the second half open.
     ///
+    /// **Android has the rule and not the name.** `AppShell.kt` still writes
+    /// `publication.format == PublicationFormat.EPUB && !publication.isFixedLayout` inline in
+    /// the branch that starts the activity, and `grep -rn isReflowable apps/android` finds
+    /// only `TransitionChoices`. One rule, one protection: the Kotlin side has neither the
+    /// property nor a guard, and this note is here so the next hand to touch either does not
+    /// have to notice on its own.
+    ///
     /// It has a name and a test because the unnamed version was a clause in a view body that
     /// two UI audits walked past. Both asked the shelf for "an EPUB" — a cover's spoken label
     /// carries the format and says nothing about the layout — so neither run recorded which
