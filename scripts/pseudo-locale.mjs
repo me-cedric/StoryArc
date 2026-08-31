@@ -29,9 +29,10 @@
  *   node scripts/pseudo-locale.mjs --self-test  check the checks still fire
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { adbRunner, resolveAdb } from './adb.mjs'
 
 const PKG = 'app.storyarc.debug'
 const ACTIVITY = `${PKG}/app.storyarc.MainActivity`
@@ -39,21 +40,11 @@ const PSEUDO = 'en-XA'
 const MIN_DP = 48
 const SHOTS = 'artifacts/pseudo-locale'
 
-/**
- * The SDK's adb if it is there, otherwise whatever is on PATH.
- *
- * Two locations, because the SDK lands in one place when Android Studio installs it and
- * another when Homebrew does. Preferring the bare name first looks harmless and is not:
- * the child process does not always inherit a shell's PATH, so `adb` resolves to nothing
- * and every swallowed ENOENT reads as "every screen is fine".
- */
-const CANDIDATES = [
-    join(homedir(), 'Library/Android/sdk/platform-tools/adb'),
-    '/opt/homebrew/share/android-commandlinetools/platform-tools/adb',
-]
-const adb = CANDIDATES.find(existsSync) ?? 'adb'
+// Where adb is lives in scripts/adb.mjs, which asks the project's own `sdk.dir` before
+// it guesses at an install location.
+const adb = resolveAdb()
 
-const sh = (...args) => execFileSync(adb, args, { encoding: 'utf8', maxBuffer: 1 << 26 })
+const sh = adbRunner(adb)
 
 const settle = (ms) => execFileSync(adb, ['shell', `sleep ${ms / 1000}`], { encoding: 'utf8' })
 
