@@ -38,6 +38,16 @@ data class BackPreview(
     val originX: Float,
     val cornerRadius: Float,
 ) {
+    /**
+     * Whether this frame has to be clipped to its rounded corners.
+     *
+     * Only while it matters. A clip costs a layer, and a screen at rest would pay it on
+     * every frame of every scroll for corners that are not rounded and a shrink that is not
+     * happening. Named here rather than written inline in the host's `graphicsLayer`,
+     * because a branch inside a composable is a branch no unit test can reach.
+     */
+    val needsClip: Boolean get() = scale < 1f
+
     companion object {
         /** A screen nobody is swiping. */
         val settled = BackPreview(scale = 1f, originX = 0.5f, cornerRadius = 0f)
@@ -100,6 +110,12 @@ private val LocalBackGesture = staticCompositionLocalOf<BackGestureState?> { nul
  * One host around the whole navigation area rather than one per screen. Exactly one
  * screen is composed at a time, so exactly one handler is ever enabled, and a single
  * transform is both cheaper and impossible to apply twice by accident.
+ *
+ * **Installed once so far, around `SettingsScreen`** — the three-level navigation area that
+ * already owned the app's only two [PredictiveBack] handlers, and that therefore had the
+ * callbacks firing with nothing drawn. Nesting a second host higher up is safe rather than
+ * a conflict: the composition local is static, so the innermost host owns any handler below
+ * it, and each still applies its transform exactly once.
  */
 @Composable
 fun PredictiveBackHost(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
@@ -114,9 +130,7 @@ fun PredictiveBackHost(modifier: Modifier = Modifier, content: @Composable () ->
                     scaleY = preview.scale
                     transformOrigin = TransformOrigin(preview.originX, 0.5f)
                     shape = RoundedCornerShape(preview.cornerRadius.dp)
-                    // Only while it matters: a clip on a screen at rest costs a layer
-                    // for nothing, on every frame of every scroll.
-                    clip = preview.scale < 1f
+                    clip = preview.needsClip
                 },
         ) {
             content()

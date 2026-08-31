@@ -1,6 +1,7 @@
 package app.storyarc.core.designsystem.back
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -51,6 +52,22 @@ class BackPreviewTest {
 
         assertTrue(early.scale > late.scale)
         assertTrue(early.cornerRadius < late.cornerRadius)
+    }
+
+    @Test
+    fun `a screen at rest pays for no clip`() {
+        // The clip exists to round the corners of a shrinking screen. A screen that is not
+        // shrinking has square corners and nothing to hide, and a layer it does not need
+        // would be paid for on every frame of every scroll behind it.
+        assertFalse(backPreview(0f, fromLeftEdge = true).needsClip)
+        assertFalse(BackPreview.settled.needsClip)
+    }
+
+    @Test
+    fun `a screen that has begun to leave is clipped to its corners`() {
+        assertTrue(backPreview(0.01f, fromLeftEdge = true).needsClip)
+        assertTrue(backPreview(0.5f, fromLeftEdge = false).needsClip)
+        assertTrue(backPreview(1f, fromLeftEdge = true).needsClip)
     }
 
     private companion object {

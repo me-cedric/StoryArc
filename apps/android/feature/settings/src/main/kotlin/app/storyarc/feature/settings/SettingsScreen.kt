@@ -1,6 +1,7 @@
 package app.storyarc.feature.settings
 
 import app.storyarc.core.designsystem.back.PredictiveBack
+import app.storyarc.core.designsystem.back.PredictiveBackHost
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -123,60 +124,73 @@ fun SettingsScreen(
     var openSource by remember { mutableStateOf<UUID?>(null) }
     val diagnosed = sources.firstOrNull { it.id == openSource }
 
-    // Enabled only inside a group, so the system back goes *up one level* rather than
-    // out of Settings. The host's own handler closes Settings, and the innermost enabled
-    // handler wins — which is how one gesture means three things without any of them
-    // knowing about the others: a source's screen goes back to the group, the group goes
-    // back to the list, and the list closes Settings.
-    PredictiveBack(enabled = open != null) { open = null }
-    PredictiveBack(enabled = openSource != null) { openSource = null }
+    // `native-experience` asks for predictive back on Android, and the manifest opt-in is
+    // only the half the system can do for itself: it draws the way out of the *app*. These
+    // three levels are the app's own state, so the preview of one of them leaving is the
+    // app's own to draw -- and until this host existed above them, the two handlers below
+    // fired their callbacks and animated nothing, exactly as `PredictiveBack`'s KDoc warns.
+    //
+    // Around the whole of Settings rather than around each level, because that is the shape
+    // the host is written for: exactly one of the three screens below is composed at a time,
+    // so exactly one handler is ever enabled and one transform can never be applied twice.
+    PredictiveBackHost {
+        // Enabled only inside a group, so the system back goes *up one level* rather than
+        // out of Settings. The app shell's own handler closes Settings, and the innermost
+        // enabled handler wins — which is how one gesture means three things without any of
+        // them knowing about the others: a source's screen goes back to the group, the
+        // group goes back to the list, and the list closes Settings.
+        PredictiveBack(enabled = open != null) { open = null }
+        PredictiveBack(enabled = openSource != null) { openSource = null }
 
-    if (diagnosed != null) {
-        SourceDetailScreen(
-            source = diagnosed,
-            diagnosis = SourceDiagnosis.of(
-                diagnosed,
-                itemCount = itemCount(diagnosed),
-                downloads = downloads.downloads,
-                // "On this device" is the app's own imported copies, not a source the
-                // reader added, so it is not one they can remove. The same exception the
-                // list makes, asked once so the two cannot disagree.
-                isRemovable = diagnosed.id != ImportedCopies.SOURCE_ID,
-            ),
-            onAction = { onSourceAction(diagnosed, it) },
-            onBack = { openSource = null },
-            modifier = modifier,
-        )
-        return
-    }
-
-    when (val match = open) {
-        null -> GroupList(
-            settings = settings,
-            summary = LibrarySummary(sources.size, bytesOnDisk),
-            onOpen = { open = it },
-            onReset = onReset,
-            onClose = onClose,
-            modifier = modifier,
-        )
-        else -> GroupDetail(
-            group = match.group,
-            highlight = match.anchor,
-            settings = settings,
-            onChange = onChange,
-            readerStore = readerStore,
-            onBack = { open = null },
-            modifier = modifier,
-            sources = sources,
-            itemCount = itemCount,
-            onRemoveSource = onRemoveSource,
-            onRenameSource = onRenameSource,
-            onReorderSource = onReorderSource,
-            onOpenSource = { openSource = it.id },
-            downloads = downloads,
-            bytesOnDisk = bytesOnDisk,
-            onClearDownloads = onClearDownloads,
-        )
+        // A `when` rather than the early return this used to take: everything the gesture
+        // can leave has to be composed *inside* the host, or the transform has nothing to
+        // apply itself to.
+        if (diagnosed != null) {
+            SourceDetailScreen(
+                source = diagnosed,
+                diagnosis = SourceDiagnosis.of(
+                    diagnosed,
+                    itemCount = itemCount(diagnosed),
+                    downloads = downloads.downloads,
+                    // "On this device" is the app's own imported copies, not a source the
+                    // reader added, so it is not one they can remove. The same exception the
+                    // list makes, asked once so the two cannot disagree.
+                    isRemovable = diagnosed.id != ImportedCopies.SOURCE_ID,
+                ),
+                onAction = { onSourceAction(diagnosed, it) },
+                onBack = { openSource = null },
+                modifier = modifier,
+            )
+        } else {
+            when (val match = open) {
+                null -> GroupList(
+                    settings = settings,
+                    summary = LibrarySummary(sources.size, bytesOnDisk),
+                    onOpen = { open = it },
+                    onReset = onReset,
+                    onClose = onClose,
+                    modifier = modifier,
+                )
+                else -> GroupDetail(
+                    group = match.group,
+                    highlight = match.anchor,
+                    settings = settings,
+                    onChange = onChange,
+                    readerStore = readerStore,
+                    onBack = { open = null },
+                    modifier = modifier,
+                    sources = sources,
+                    itemCount = itemCount,
+                    onRemoveSource = onRemoveSource,
+                    onRenameSource = onRenameSource,
+                    onReorderSource = onReorderSource,
+                    onOpenSource = { openSource = it.id },
+                    downloads = downloads,
+                    bytesOnDisk = bytesOnDisk,
+                    onClearDownloads = onClearDownloads,
+                )
+            }
+        }
     }
 }
 
