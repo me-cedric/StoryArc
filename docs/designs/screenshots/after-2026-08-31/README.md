@@ -248,13 +248,39 @@ by `curl`, and not by a reader typing an address.
 | `ios-kavita-signed-in-dark` | *Signed in as ada · Kavita 0.8.3.* `POST /api/Plugin/authenticate?apiKey=…&pluginName=StoryArc` then `GET /api/Server/server-info`. Both the username and the version come from the mock, so this is the real handshake and the real version floor, not a hard-coded string. |
 | `ios-search-remote-and-away-dark` | A search with both servers configured. The local match is listed under *Titles*; the unreachable share reads **"Attic NAS didn't answer — Try again"** in grey with a retry, which is non-negotiable #3 held on a device: an unreachable source is grey, never red, and the library stays browsable. The server's log shows `GET /opds/all?q=Fine%20Print` arriving. |
 
-## What the third capture also proves is missing
+## What the third capture proved was missing — and what was done about it
 
-The catalogue was queried, answered, and **its results are not on the screen.** Only the
-local match is. That is `library-browsing`'s *Mixed local and server search* — server and
-local results merged into one ranked list, each labelled — which `STATUS.md` scores as
-missing on both platforms. The fetch half works; the merge half does not exist. This is the
-capture to compare against when it does.
+The catalogue was queried, answered, and **its results were not on the screen.** Only the
+local match was. That is `library-browsing`'s *Mixed local and server search* — server and
+local results merged into one ranked list, each labelled — which `STATUS.md` scored as
+missing on both platforms.
+
+**It was built the same day, and the capture is what made the cause findable.** The merge
+half was not missing: `LibrarySearch` already fanned one query out to every library and
+already merged the answers. What was missing was the scenario's other two words — *ranked*,
+and *each labelled* — and the symptom had a precise cause: the merge folded any remote row
+whose title matched a row already on screen, **across libraries**. The feed returns exactly
+one entry titled `Fine Print`, the device held a book of that title, so the catalogue's
+entire answer was folded out of existence with nothing on screen to say a catalogue had
+replied.
+
+What shipped: a ranking that scores title strength first and place only as a tie-break —
+because the reader asked for a book, not for a place — applied per answer as it lands and
+never across answers, so a late server reply cannot reorder what the reader is already
+reaching for. A row says where it came from when **more than one place could have
+answered**, which is a different question from the shelf's "more than one source is
+configured": one library answering both locally and remotely is still one place, because a
+download carries its library's identity.
+
+Four cross-platform divergences were found by measuring rather than by reading, and all
+four are now pinned by mirrored tests: Swift's `String <` orders by unicode scalar and
+Kotlin's `compareTo` by UTF-16 unit; `.whitespacesAndNewlines` strips non-breaking spaces
+where `String.trim()` keeps them; `String.folding` case-folds `Straße` to `strasse` where
+Kotlin's `lowercase` cannot; and one length key counted grapheme clusters against UTF-16
+units. The same search term ranked differently on the two platforms in each case.
+
+**This capture is still the "before".** The "after" — two rows under *Titles*, one reading
+*From Attic NAS* and one *From StoryArc Test Catalogue* — is owed and not yet taken.
 
 ## One environment note
 
