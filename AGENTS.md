@@ -57,6 +57,81 @@ wrong even if it compiles and passes tests.
 3. **Check the other platform.** A capability change usually obliges both apps.
    You do not have to implement both — you *do* have to say in the handoff what
    the state of the other one is.
+4. **Read the capability's row in [`STATUS.md`](docs/openspec/STATUS.md)** before you
+   claim something is missing. Several capabilities are further along than an older
+   proposal assumes — `source-lifecycle` proposed building a lifecycle that had
+   since been built on both platforms — and proposing to build what exists wastes
+   the whole change.
+
+## 3b. The OpenSpec lifecycle — the rules that bind you
+
+The contract lives in an OpenSpec root, and OpenSpec is not just a directory
+layout: it is a chain of artifacts with a machine-readable gate. These are the
+rules. The generic reference is
+[`docs/agent-compass/docs/workflows/openspec.md`](docs/agent-compass/docs/workflows/openspec.md).
+
+**One root, and it is `docs/openspec`.** Declared as `paths.openspec` in
+`agent-compass.commands.json`. The CLI resolves the *nearest* root from its working
+directory, so **every `openspec` command runs from `docs/`** — `cd docs` first, or
+use the `pnpm spec:*` scripts. This is not pedantry: an empty `openspec/` at the
+repository root, left behind when the root moved in `e419dc89`, captured resolution
+and made the CLI answer `No changes exist` on a repository with six active changes.
+`pnpm spec:guard` now fails on a second root. **Print the resolved root in your
+handoff.**
+
+**`openspec validate` is not the completion gate.** It checks the files that are
+present. `openspec status --change <name> --json` checks the files that *should* be,
+and returns `done` / `ready` / `blocked` / `skipped` per artifact plus
+`isPlanningComplete`. A change holding a `proposal.md` and nothing else reports
+`23 passed` and is half-planned. `source-lifecycle` sat that way from 2026-08-27.
+
+**Write only the artifact the gate calls `ready`.** `/opsx:continue` does exactly
+that. A `tasks.md` written while `design` is `blocked` is a task list for a plan
+that does not exist, and the plan written afterwards will not match it.
+
+| The artifact | Holds | Never holds |
+| --- | --- | --- |
+| `proposal.md` | Why, what changes, which capabilities, non-goals | A technical decision |
+| `specs/<capability>/spec.md` | Requirements as user-observable behaviour, with scenarios | A class, framework or library name |
+| `design.md` | The concrete approach per platform, with versions | A requirement the spec does not state |
+| `tasks.md` | Ordered, test-first tasks naming the file or command each touches | An estimate |
+
+The twelve workflows are all installed: `explore`, `new`, `propose`, `ff`,
+`continue`, `update`, `apply`, `verify`, `sync`, `archive`, `bulk-archive`,
+`onboard`. Six of them were missing until now, `verify` and `continue` among them,
+because `openspec update` needs the root at `<project>/openspec` and cannot see
+both this root and the agent directories at once. `pnpm openspec:workflows`
+generates them from the installed CLI's own templates and
+`pnpm openspec:workflows:check` fails `pnpm lint` when a CLI upgrade moves one.
+
+**Five rules with no exceptions:**
+
+1. **A planning workflow never edits code**, even when the request that triggered
+   it asked for a feature. Finish the artifacts, stop, and wait for `/opsx:apply`.
+2. **Tick a task the moment its validation passes**, not at the end. A list ticked
+   at the end is a claim, not a record. Say in the task list what a tick means —
+   `source-lifecycle`'s says a tick means the code exists and something asserts it,
+   and does *not* mean anyone watched it work.
+3. **Never hand-edit a main spec** under `docs/openspec/specs/`. `/opsx:sync` and
+   `/opsx:archive` own that file. A hand edit makes the change's delta unmergeable
+   and loses the record of why the behaviour changed.
+4. **`/opsx:verify` before `/opsx:archive`**, and update the capability's `STATUS.md`
+   row from the verify report in the same pass.
+5. **When the implementation contradicts `design.md`, the artifact is what is
+   wrong.** Run `/opsx:update`. Do not absorb the delta into a bigger diff.
+
+**A change with no delta declares it.** `skip_specs: true` in the change's
+`.openspec.yaml`, with the reason written in a comment beside it — the next reader
+cannot tell a deliberate skip from a forgotten delta. `source-lifecycle` is the
+worked example.
+
+**The rules above are also in `docs/openspec/config.yaml`**, under `rules.<artifact>`
+and `operations.<op>.guidance`, which is what makes them reach you through
+`openspec instructions` at the moment you write that artifact rather than only here.
+When you add a rule about how an artifact is written, add it there. **Quote any list
+item containing `": "`** — an unquoted colon makes YAML read the item as a mapping,
+the whole config fails to parse, and the CLI's answer is the misleading
+`No changes exist`. `pnpm spec:guard` fails on that too.
 
 ## 4. Platform floors
 
@@ -83,6 +158,9 @@ change** — never the whole repository when one module moved.
 | Android across modules | `pnpm lint:android && pnpm test:android` |
 | `packages/design-tokens` | `pnpm tokens:sync` — then **commit the regenerated app copies in the same change** |
 | `docs/openspec/specs` | `pnpm spec:validate` |
+| `docs/openspec/changes` | `pnpm spec:validate && pnpm spec:guard` — validate checks the files that are there, the guard checks the ones that should be |
+| `docs/openspec/config.yaml` | `pnpm spec:guard` — a broken list item makes the CLI report an empty project |
+| The `@fission-ai/openspec` version | `pnpm openspec:workflows` then commit the regenerated workflow files |
 | Any Swift or Kotlin file | `pnpm lines:check` — part of `pnpm lint`. The 800-line cap is a ratchet: five files are already over it and recorded in `scripts/line-cap.mjs` with the length they had, so they may shrink and may not grow. A sixth crossing fails the build. |
 
 **Android needs a JDK 21 and an SDK, and neither is on the path by default.**

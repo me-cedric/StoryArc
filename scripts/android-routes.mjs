@@ -31,29 +31,62 @@ export const sleep = (ms) => execFileSync('/bin/sleep', [String(ms / 1000)])
  * read for an unrelated screenshot, and `AuditWalk.swift` carries the same note about the
  * same defect on iOS, where it had already cost a suite its meaning.
  */
+/**
+ * A step's name in each of the four languages this app ships.
+ *
+ * The route map was English-only, and that is a real limit rather than a tidiness point: it
+ * blocked the Spanish captures the chip-row work needed, and `capture-android.mjs` failed at
+ * its first step with "could not reach Library" against an app set to Spanish, where the tab
+ * reads *Biblioteca*.
+ *
+ * Every value is read out of the module's own `values-<locale>` string files rather than translated
+ * here — the key is named beside each so the next reader can check it, and a walk that
+ * invented its own translation would pass against an app that says something else.
+ */
+const NAMES = {
+    home: 'Home|Inicio|Start|Accueil', //                         destination_home
+    library: 'Library|Biblioteca|Bibliothek|Bibliothèque', //      destination_library
+    downloads: 'Downloads|Descargas|Téléchargements', //           destination_downloads (de is "Downloads")
+    more: 'More|Más|Mehr|Plus', //                                 library_more
+    settings: 'Settings|Ajustes|Einstellungen|Réglages', //        settings_title
+    // A publication nobody has opened offers Read; a part-read one offers Continue. Both keys
+    // are `detail_action_*` on the publication page — **not** `library_continue_reading`, whose
+    // Spanish is "Continuar leyendo" where the page's button says "Seguir". Using the wrong key
+    // cost the two comic-reader routes on the first Spanish walk, and the walk said so by
+    // printing the whole alternatives list it could not find.
+    read: 'Read|Leer|Lesen|Lire|Continue|Seguir|Weiterlesen|Reprendre', // detail_action_read + detail_action_continue
+    appearance: 'Appearance|Apariencia|Erscheinungsbild|Apparence',
+    reading: 'Reading|Lectura|Lesen|Lecture',
+    privacy: 'Privacy|Privacidad|Datenschutz|Confidentialité',
+    about: 'About|Acerca de|Über|À propos',
+    language: 'Language|Idioma|Sprache|Langue',
+    sources: 'Your libraries|Tus bibliotecas|Ihre Bibliotheken|Vos bibliothèques',
+    storage: 'Downloads and storage|Descargas y almacenamiento|Downloads und Speicher|Téléchargements et stockage',
+}
+
 export const ROUTES = [
     ['Home', []],
-    ['Library', ['Library']],
-    ['Downloads', ['Downloads']],
+    ['Library', [NAMES.library]],
+    ['Downloads', [NAMES.downloads]],
     // A cover leads to the publication's page now, and the page's own action leads to the
     // reader. That is two taps where this list used to have one, and the reason the list
     // said twelve of thirteen routes were unreachable the first time it ran after the
     // navigation rewrite: it was still describing the app as it had been.
-    ['Publication page', ['Library', ', CBZ']],
-    ['Comic reader', ['Library', ', CBZ', 'Read|Continue']],
-    ['Comic reader > chrome', ['Library', ', CBZ', 'Read|Continue', '@tap-centre']],
-    ['EPUB reader', ['Library', ', EPUB', 'Read|Continue']],
+    ['Publication page', [NAMES.library, ', CBZ']],
+    ['Comic reader', [NAMES.library, ', CBZ', NAMES.read]],
+    ['Comic reader > chrome', [NAMES.library, ', CBZ', NAMES.read, '@tap-centre']],
+    ['EPUB reader', [NAMES.library, ', EPUB', NAMES.read]],
     // Settings left the browse path in the shell revamp: it is behind the library's
     // overflow, which is why naming it as a first step found nothing.
-    ['Settings', ['Library', 'More', 'Settings']],
-    ['Settings > Appearance', ['Library', 'More', 'Settings', 'Appearance']],
-    ['Settings > Reading', ['Library', 'More', 'Settings', 'Reading']],
-    ['Settings > Privacy', ['Library', 'More', 'Settings', 'Privacy']],
-    ['Settings > About', ['Library', 'More', 'Settings', 'About']],
-    ['Settings > About > licence', ['Library', 'More', 'Settings', 'About', 'Readium Kotlin Toolkit']],
-    ['Settings > Your libraries', ['Library', 'More', 'Settings', 'Your libraries']],
-    ['Settings > Downloads', ['Library', 'More', 'Settings', 'Downloads and storage']],
-    ['Settings > Language', ['Library', 'More', 'Settings', 'Language']],
+    ['Settings', [NAMES.library, NAMES.more, NAMES.settings]],
+    ['Settings > Appearance', [NAMES.library, NAMES.more, NAMES.settings, NAMES.appearance]],
+    ['Settings > Reading', [NAMES.library, NAMES.more, NAMES.settings, NAMES.reading]],
+    ['Settings > Privacy', [NAMES.library, NAMES.more, NAMES.settings, NAMES.privacy]],
+    ['Settings > About', [NAMES.library, NAMES.more, NAMES.settings, NAMES.about]],
+    ['Settings > About > licence', [NAMES.library, NAMES.more, NAMES.settings, NAMES.about, 'Readium Kotlin Toolkit']],
+    ['Settings > Your libraries', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources]],
+    ['Settings > Downloads', [NAMES.library, NAMES.more, NAMES.settings, NAMES.storage]],
+    ['Settings > Language', [NAMES.library, NAMES.more, NAMES.settings, NAMES.language]],
 ]
 
 /**

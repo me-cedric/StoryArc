@@ -17,6 +17,21 @@ context: |
   - Every capability that ships on both platforms needs its requirements to hold
     on both, or to say explicitly which platform they apply to.
 
+  How this root works, and the three ways an agent gets it wrong:
+  - The OpenSpec root is docs/openspec, declared as paths.openspec in
+    agent-compass.commands.json. The CLI resolves the *nearest* root from its
+    working directory, so every openspec command runs from docs/ — `cd docs`
+    first, or use the pnpm spec:* scripts. Print the resolved root in your report.
+  - `openspec validate` is not the completion gate. It checks the files that are
+    present; `openspec status --change <name> --json` checks the files that should
+    be. A change holding a proposal and nothing else validates clean.
+  - Write only the artifact the status gate calls `ready`. Use /opsx:continue.
+    A tasks.md written while design is `blocked` is a task list for a plan that
+    does not exist yet, and the plan written afterwards will not match it.
+
+  `pnpm spec:guard` enforces the chain. It runs inside `pnpm lint`, so a
+  half-planned change fails the contract gate rather than sitting for weeks.
+
   Language: en
   All artifacts must be written in en.
   Keep OpenSpec structural headings and SHALL/MUST keywords in English.
@@ -28,17 +43,37 @@ rules:
   proposal:
     - State which platforms the change affects. "Both" is an answer; silence is not.
     - Include a Non-goals section.
+    - Read docs/openspec/STATUS.md for the capability before you claim something is missing. Several capabilities are further along than an older proposal assumes, and proposing to build what exists wastes the whole change.
+    - Do not write a technical decision here. It belongs in design.md.
   specs:
     - Requirements describe user-observable behaviour. No class, framework or library names.
     - Every requirement needs at least one scenario covering the failure or offline path.
+    - 'Write "[NEEDS CLARIFICATION: question]" for an unknown. Never guess one.'
+    - 'A change that adds and modifies no requirement carries no delta. Declare skip_specs: true in .openspec.yaml and write the reason in a comment beside it — the next reader cannot tell a deliberate skip from a forgotten delta.'
+    - Never hand-edit a main spec under specs/. /opsx:sync and /opsx:archive own that file; a hand edit makes the delta unmergeable and loses the history.
   design:
     - Name the concrete library or API per platform, with the version, and label anything unverified as Assumed.
     - State the accessibility consequence of the design, not only the happy path.
+    - Where the code already took a decision this change describes, record it with the file that proves it rather than restating it as future work.
+    - Put a genuinely deferrable unknown in Open Questions. A decision you skipped is not an open question — ask instead of guessing.
   tasks:
-    - A task that changes a screen owes a simulator or emulator screenshot, not a preview.
+    - A task that changes a screen owes a simulator or emulator screenshot, not a preview. Capture light and dark, at default and largest text size.
+    - A screenshot that could look the same for a boring reason needs a control captured at the same moment on the same device.
+    - Put the test task before the implementation task.
+    - Name the file or the command each task touches, and how to verify it.
+    - Tick a box only when the code exists and something asserts it. Say in the task list what a tick does and does not mean.
+    - Do not write an estimate here.
 
 operations:
   apply:
     guidance:
-      - Run the platform's own lint, typecheck and test commands from agent-compass.commands.json.
+      - Run the platform's own lint, typecheck and test commands from agent-compass.commands.json. Run the smallest set that covers the change, never the whole repository when one module moved.
+      - Tick a task in tasks.md as soon as its validation passes, not at the end. A list ticked at the end is a claim, not a record.
+      - When the implementation contradicts design.md, the artifact is what is wrong. Stop and run /opsx:update rather than absorbing the delta into a bigger diff.
+      - When a task needs work the specs do not describe, surface the added scope and ask. Never narrow, defer or except specified behaviour to make a task fit.
       - Report validation honestly against the Completion Gate in AGENTS.md.
+  archive:
+    guidance:
+      - Run /opsx:verify first and resolve or record every CRITICAL. A ticked task list records that an agent believed it was finished; verify reads the requirements against the code.
+      - Update the capability's row in docs/openspec/STATUS.md from the verify report, in the same pass. A status document that lags is worse than none, because it is believed.
+      - Archiving is what updates the main specs. Confirm `pnpm spec:guard` reports no error for the change first.

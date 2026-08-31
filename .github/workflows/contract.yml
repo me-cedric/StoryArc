@@ -32,6 +32,23 @@ jobs:
       - name: Validate capability specs
         run: pnpm spec:validate
 
+      - name: The OpenSpec artifact chain is complete
+        # `spec:validate` checks the files a change has; this checks the files it
+        # should have. A change holding a proposal and nothing else passes the
+        # first and fails the second — which is how `source-lifecycle` sat
+        # half-planned from 2026-08-27 with the gate reporting green.
+        run: pnpm spec:guard
+
+      - name: The OpenSpec agent workflows match the installed CLI
+        # `openspec update` cannot serve this repository — it needs the root at
+        # <project>/openspec and the agent directories in the same place, and this
+        # root is docs/openspec. Six of the twelve workflows were missing for that
+        # reason. This fails when a CLI upgrade moves one.
+        run: pnpm openspec:workflows:check
+
+      - name: The workflow generator's own checks still fire
+        run: pnpm openspec:workflows:selftest
+
       - name: Design token contrast gate
         # Fails on any text/surface pair below its WCAG floor, and on any
         # colour that falls outside the sRGB gamut.

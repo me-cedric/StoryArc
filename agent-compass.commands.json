@@ -1,6 +1,10 @@
 {
   "schema": 1,
   "packageManager": "pnpm",
+  "paths": {
+    "openspec": "docs/openspec",
+    "decisions": "docs/decisions"
+  },
   "install": "pnpm install",
   "check": "pnpm check",
   "agentConformance": "node docs/agent-compass/scripts/agent-conformance.mjs --root . --write",
@@ -54,11 +58,11 @@
   "runbook": null,
   "notes": [
     "Agents must use this file before inventing validation commands.",
-    "Run the smallest set that covers the change — see AGENTS.md §5.",
+    "Run the smallest set that covers the change \u2014 see AGENTS.md \u00a75.",
     "typecheck is null on purpose: Swift and Kotlin type-check as part of their build.",
     "A change to packages/design-tokens must be followed by `pnpm tokens:sync`, and the regenerated app copies committed in the same change.",
-    "A change a user can see also owes a simulator or emulator screenshot — see AGENTS.md §6.",
-    "After every wave of parallel agents, run `pnpm clean:builds`. `git worktree remove` deletes the checkout and nothing else; each worktree also leaves ~1.5 GB of Xcode DerivedData outside the repository that no git command touches. See AGENTS.md §9."
+    "A change a user can see also owes a simulator or emulator screenshot \u2014 see AGENTS.md \u00a76.",
+    "After every wave of parallel agents, run `pnpm clean:builds`. `git worktree remove` deletes the checkout and nothing else; each worktree also leaves ~1.5 GB of Xcode DerivedData outside the repository that no git command touches. See AGENTS.md \u00a79."
   ],
   "platforms": {
     "ios": {
@@ -68,7 +72,7 @@
       "generateProject": "cd apps/ios && xcodegen generate",
       "screenshot": "xcrun simctl io booted screenshot shot.png",
       "notes": [
-        "swift test runs the pure-Swift targets on the host — no simulator needed.",
+        "swift test runs the pure-Swift targets on the host \u2014 no simulator needed.",
         "StoryArc.xcodeproj is generated from project.yml and gitignored. Never hand-edit it.",
         "swiftlint runs from the repository root on purpose. `cd apps/ios` first and it stops finding .swiftlint.yml, falls back to the default rule set, and reports hundreds of violations for rules this project disables on purpose."
       ]
@@ -93,5 +97,7 @@
       "tokensVerify": "pnpm tokens:verify",
       "fixturesCheck": "pnpm fixtures:check"
     }
-  }
+  },
+  "specGuard": "pnpm spec:guard",
+  "specWorkflows": "pnpm openspec:workflows"
 }
