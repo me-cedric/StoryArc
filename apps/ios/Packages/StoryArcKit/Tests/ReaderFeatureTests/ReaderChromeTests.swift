@@ -44,6 +44,18 @@ struct ReaderChromeTests {
         package.appending(path: "Sources/ReaderFeature/ReaderChrome.swift")
     }
 
+    /// The comic reader's view, which owns whether its chrome is drawn.
+    private static var comicReaderView: URL {
+        package.appending(path: "Sources/ReaderFeature/ReaderView.swift")
+    }
+
+    /// The reflowable reader's view, for the same reason.
+    private static var reflowableReaderView: URL {
+        package
+            .deletingLastPathComponent()
+            .appending(path: "StoryArcEpub/Sources/EpubReaderFeature/EpubReaderView.swift")
+    }
+
     /// The reflowable reader's chrome.
     ///
     /// `StoryArcEpub` is reached as `../StoryArcEpub`, which is where `Package.swift`
@@ -144,6 +156,44 @@ struct ReaderChromeTests {
                 """
             )
         }
+    }
+
+    /// The two controls are shown on arrival and take themselves away.
+    ///
+    /// Pinned because a screenshot pair caught the opposite of what the requirement said.
+    /// *Entering the reader* read "chrome is hidden", and **no reader had ever done that** —
+    /// all four start it visible and withdraw it after a timeout, and no source-level test
+    /// looked at the arrival frame, so the divergence outlived every gate the requirement
+    /// has had. The delta now describes what happens and says why it is the better half:
+    /// a reader who has just opened a book has not yet learned that a centre tap brings the
+    /// way out back, and showing it once is the only place that can be taught.
+    ///
+    /// So this asserts the **decision**, not the accident. If either reader is ever changed
+    /// to start hidden, this fails and whoever did it has to change the requirement too,
+    /// rather than the two drifting apart again in silence.
+    @Test(
+        "Both readers show the two controls on arrival, and both take them away by themselves",
+        arguments: [
+            (Self.comicReaderView, "wantsChrome", "The comic reader"),
+            (Self.reflowableReaderView, "isChromeVisible", "The reflowable reader"),
+        ]
+    )
+    func chromeArrivesThenWithdraws(view: URL, state: String, reader: String) throws {
+        let source = try code(of: view)
+
+        #expect(
+            source.contains("\(state) = true"),
+            """
+            \(reader) no longer shows its controls on arrival.
+            That is a requirement change and not a tidy-up — see quiet-reader's comic-reader delta.
+            """
+        )
+        // And it still takes them away without being asked. A reader that showed them on
+        // arrival and kept them would satisfy the line above and none of the intent.
+        #expect(
+            source.contains("\(state) = false"),
+            "\(reader) never withdraws its controls, so the page is never alone."
+        )
     }
 
     @Test("The comic reader reveals a way out and a way in, and nothing else")

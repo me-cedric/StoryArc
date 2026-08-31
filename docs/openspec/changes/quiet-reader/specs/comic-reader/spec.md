@@ -15,7 +15,24 @@ everything the reader can do with it. No third control appears over the page.
 
 #### Scenario: Entering the reader
 - **WHEN** a publication opens
-- **THEN** the page fills the screen, chrome is hidden, and the system status and home indicators dim per platform convention
+- **THEN** the page fills the screen, the system status and home indicators dim per platform convention, and the two controls are shown once and then withdraw themselves within a few seconds without being asked
+- **AND** they are not shown again until a centre tap asks for them
+
+> **This sentence used to say "chrome is hidden", and the screenshots caught that no
+> reader had ever done it.** All four — both platforms, both readers — start with chrome
+> visible and withdraw it after four seconds, and no source-level test looks at the
+> arrival frame, so the divergence survived every gate for as long as the requirement has
+> existed. See [`before-2026-08-31d`](../../../../designs/screenshots/after-2026-08-31d/README.md).
+>
+> The behaviour is the half that is right, and the sentence is the half being fixed. A
+> reader who has just opened a book has not yet learned that a centre tap brings back the
+> way out; showing it once and taking it away teaches that in the only place it can be
+> taught, and costs four seconds of a page nobody is reading yet. Apple Books, which this
+> change follows, does the same. A requirement that forbids it would make the app harder
+> to leave in exchange for a purity no reader asked for.
+>
+> What is kept is the part that matters: the controls go **by themselves**, and nothing
+> is drawn over the page again until it is asked for.
 
 #### Scenario: Revealing controls
 - **WHEN** a user taps the centre of the screen

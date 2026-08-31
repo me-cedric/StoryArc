@@ -200,13 +200,33 @@ final class ScreenshotTests: XCTestCase {
         let app = launch()
         try openTheEpubReader(in: app)
         attach(app.screenshot(), named: "reader-on-arrival")
+
+        // Untouched, past the countdown. This is the frame that proves `comic-reader`'s
+        // "they fade out again after 4 seconds of no interaction", and the order matters:
+        // taken after the centre tap it proved nothing, because the tap had already hidden
+        // the chrome. The reflowable reader only ever *toggled* until this change, so on
+        // that reader an empty frame here is the whole fix.
+        settle(6)
+        attach(app.screenshot(), named: "reader-after-the-countdown")
+
+        // And a tap brings them back. The centre tap is a `coordinate` rather than a
+        // `tap()` on an element: the page fills the screen and the element under the middle
+        // of it is the web view, whose own tap handling is the reader's. Tapping the element
+        // would ask XCTest for a hit point and it may pick an edge, which is a page turn.
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        // Chrome animates, and fades out again after four seconds of no interaction. A fixed
-        // wait would race that at both ends, so this polls for the frame to settle instead.
-        let settled = XCTestExpectation(description: "chrome animated")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { settled.fulfill() }
-        wait(for: [settled], timeout: 3)
+        settle(1)
         attach(app.screenshot(), named: "reader-after-centre-tap")
+    }
+
+    /// Waits, then photographs.
+    ///
+    /// Chrome animates in and out, and a screenshot taken during either is a picture of a
+    /// half-faded bar. `Thread.sleep` blocks the main actor and starves the run loop the
+    /// animation needs, so this parks on an expectation instead.
+    private func settle(_ seconds: TimeInterval) {
+        let settled = XCTestExpectation(description: "waited \(seconds)s")
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { settled.fulfill() }
+        wait(for: [settled], timeout: seconds + 3)
     }
 
     private func attach(_ shot: XCUIScreenshot, named name: String) {

@@ -41,6 +41,16 @@ public struct EpubReaderView: View {
     /// one is everything else. See `EpubReaderMenu.swift`.
     @State var isShowingMenu = false
 
+    /// What restarts the four-second countdown.
+    ///
+    /// Every value the guard above reads. Without the sheets in it, opening the menu and
+    /// closing it again would leave a countdown that had already been cancelled and never
+    /// restarted, so the chrome would stay up for ever — which is the bug this whole task
+    /// is fixing, arriving by a different door.
+    private var chromeTimerKey: String {
+        "\(isChromeVisible)-\(isShowingMenu)-\(isShowingTheme)-\(isShowingContents)-\(model.failure != nil)"
+    }
+
     @State private var editingNote: Annotation?
     @State private var noteText = ""
     /// What the device's brightness was before the reader touched it.
@@ -107,6 +117,27 @@ public struct EpubReaderView: View {
 
             // Not the chrome, and on screen on their own terms — see ``transientOverlays``.
             transientOverlays
+        }
+        // The controls take themselves away, which until now only the comic reader did.
+        //
+        // `comic-reader`, *Revealing controls*: "they fade out again after 4 seconds of no
+        // interaction". This reader only ever **toggled** — it showed its chrome on arrival
+        // and kept it there until a centre tap, so the page was never alone unless the
+        // reader asked for it, which is the opposite of the requirement. A screenshot pair
+        // is what found it; no source-level test had ever looked at the arrival frame.
+        //
+        // The guards mirror `ReaderView`'s, and each is the same rule for the same reason:
+        // a sheet that sits over the page means the reader has not stopped interacting, and
+        // chrome hidden four seconds after a failure leaves a page that can only be escaped
+        // by force-quitting the app.
+        .task(id: chromeTimerKey) {
+            guard isChromeVisible,
+                  !isShowingMenu, !isShowingTheme, !isShowingContents,
+                  model.failure == nil
+            else { return }
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible = false }
         }
         // Everything the five pills used to do. `comic-reader` allows two controls over the
         // page, and this is what the second one opens.
