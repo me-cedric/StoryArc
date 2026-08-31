@@ -44,12 +44,14 @@ internal val AppearanceMode.noteRes: Int?
  * Which of the two colour sources dresses the chrome, and what it is called.
  *
  * `native-experience`: the scheme "derives from the user's wallpaper by default, with a
- * setting to use the StoryArc palette instead". Null while the switch means what it says.
+ * setting to use the StoryArc palette instead". Always a note rather than sometimes one --
+ * unlike [noteRes], which is null for the three appearances that are what their names say --
+ * because this row has something to explain in both of its states.
  *
- * Non-null under OLED Dark alone, and for the same reason [noteRes] is: true black and a
- * wallpaper-derived wash are incompatible asks, and the explicit choice wins. `StoryArcTheme`
- * has always decided that -- the switch is inert there whatever it is set to -- so the row
- * says so rather than pretending to control something it does not.
+ * Under OLED Dark it explains an absence, for the same reason [noteRes] speaks up there:
+ * true black and a wallpaper-derived wash are incompatible asks, and the explicit choice
+ * wins. `StoryArcTheme` has always decided that -- the switch is inert there whatever it is
+ * set to -- so the row says so rather than pretending to control something it does not.
  */
 internal fun dynamicColourNoteRes(appearance: AppearanceMode): Int =
     if (appearance.isTrueBlack) {
