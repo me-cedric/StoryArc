@@ -89,7 +89,16 @@ fun SmbBrowserScreen(
     // The string is resolved in the body rather than here: a resource read off
     // `LocalContext` is not configuration-aware, so what is kept is which message, not its
     // text at the moment it happened.
+    //
+    // Two of them, because they are seen in different places. A listing that would not load
+    // is explained where the entries would have been. What the app owes the reader about a
+    // publication they *tapped* is a dialog: this row used to carry both, and a reader who
+    // scrolled down a folder to reach the file saw nothing change at the top of a list they
+    // had scrolled past -- and TalkBack said nothing either, because a `Text` appearing in a
+    // `LazyColumn` is not an announcement. After a four-hundred-megabyte transfer that ends
+    // in a refusal, that was the whole of the feedback.
     var failure by remember(path) { mutableStateOf<Int?>(null) }
+    var notice by remember(path) { mutableStateOf<Int?>(null) }
     var opening by remember(path) { mutableStateOf<String?>(null) }
     // `network-share`: on a metered connection the reader confirms before the app spends
     // their data. Held rather than acted on, because the answer is theirs to give.
@@ -112,7 +121,7 @@ fun SmbBrowserScreen(
                 length = entry.length,
                 onOpen = onOpen,
                 onOffer = { bytes -> transferring = TransferAsk(entry, bytes) },
-                onSay = { said -> failure = said },
+                onSay = { said -> notice = said },
             )
             opening = null
         }
@@ -125,7 +134,7 @@ fun SmbBrowserScreen(
             openWhatArrived(
                 fetch = { fetchAndIndex(context, client, address, entry) },
                 onOpen = onOpen,
-                onSay = { said -> failure = said },
+                onSay = { said -> notice = said },
             )
             opening = null
         }
@@ -204,6 +213,21 @@ fun SmbBrowserScreen(
             dismissButton = {
                 TextButton(onClick = { confirming = null }) {
                     Text(stringResource(R.string.shelves_cancel))
+                }
+            },
+        )
+    }
+
+    // What the tap turned out to owe the reader: the refusal `publication-formats` asks to be
+    // named, or an error. No title: the sentence is the whole message, and Material3 makes the
+    // title optional for exactly that. `LibraryScreen`'s import failure is the same shape.
+    notice?.let { message ->
+        AlertDialog(
+            onDismissRequest = { notice = null },
+            text = { Text(stringResource(message)) },
+            confirmButton = {
+                TextButton(onClick = { notice = null }) {
+                    Text(stringResource(R.string.library_import_dismiss))
                 }
             },
         )

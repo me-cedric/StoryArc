@@ -21,7 +21,16 @@ public struct SmbBrowserView: View {
     private let onOpen: (Publication, URL) -> Void
 
     @State private var entries: [SmbEntry] = []
+    /// Why the listing is empty, explained where the entries would have been.
     @State private var failure: LocalizedStringResource?
+    /// What the app owes the reader about a publication they *tapped*, raised as an alert.
+    ///
+    /// Both used to be the footnote above the list, and a reader who scrolled down a folder
+    /// to reach the file saw nothing change at the top of a list they had scrolled past —
+    /// VoiceOver said nothing either, because a `Text` appearing in a `List` is not an
+    /// announcement. After a four-hundred-megabyte transfer that ends in a refusal, that was
+    /// the whole of the feedback. An alert is announced, and cannot be scrolled away from.
+    @State private var notice: LocalizedStringResource?
     @State private var opening: String?
     /// `network-share`: on a metered connection the reader confirms before the app spends
     /// their data. Held rather than acted on, because the answer is theirs to give.
@@ -160,6 +169,21 @@ public struct SmbBrowserView: View {
                 Text("smb.downloadFirst.bodyUnstated \(named)", bundle: .module)
             }
         }
+        // What the tap turned out to owe the reader: the refusal `publication-formats` asks to
+        // be named, or an error. The sentence is the alert's title, which is what VoiceOver
+        // reads first — `AddToShelfMenu.refusedByServer(_:model:publication:)` is the same
+        // shape.
+        .alert(
+            notice.map { Text($0) } ?? Text(verbatim: ""),
+            isPresented: Binding(
+                get: { notice != nil },
+                set: { if !$0 { notice = nil } }
+            )
+        ) {
+            Button { notice = nil } label: {
+                Text("library.import.dismiss", bundle: .module)
+            }
+        }
         .task(id: path) {
             guard entries.isEmpty else { return }
             do {
@@ -205,7 +229,7 @@ public struct SmbBrowserView: View {
             length: entry.length,
             onOpen: onOpen,
             onOffer: { bytes in transferring = TransferAsk(entry: entry, bytes: bytes) },
-            onSay: { said in failure = said }
+            onSay: { said in notice = said }
         )
     }
 
@@ -242,7 +266,7 @@ public struct SmbBrowserView: View {
                 return (try await PublicationIndexer.index(fileAt: local), local)
             },
             onOpen: onOpen,
-            onSay: { said in failure = said }
+            onSay: { said in notice = said }
         )
     }
 }
