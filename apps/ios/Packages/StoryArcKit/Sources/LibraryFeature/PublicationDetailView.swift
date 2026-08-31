@@ -66,6 +66,11 @@ public struct PublicationDetailView: View {
                         onRead: read
                     )
                     summary
+                    // The two of `kavita-server`'s seven metadata fields that
+                    // ``Publication`` has no slot for. Absent for everything that is not a
+                    // kept Kavita chapter, which is most of the shelf. See
+                    // ``KavitaCardFacts``.
+                    KavitaCardFacts(publicationId: publication.id)
                 }
                 .frame(maxWidth: SidebarLayout.maxContentWidth)
                 .frame(maxWidth: .infinity)

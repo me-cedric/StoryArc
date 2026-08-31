@@ -40,7 +40,6 @@ import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.kavita.KavitaChapter
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.kavita.KavitaMetadata
-import app.storyarc.core.kavita.KavitaPublicationStatus
 import app.storyarc.core.kavita.KavitaSeries
 import app.storyarc.core.kavita.KavitaVolume
 import app.storyarc.core.kavita.rating
@@ -331,16 +330,6 @@ private fun KavitaMetadataBlock(metadata: KavitaMetadata) {
         }
     }
 }
-
-/** What this app calls each of Kavita's five states, in the reader's own language. */
-private val KavitaPublicationStatus.label: Int
-    get() = when (this) {
-        KavitaPublicationStatus.ONGOING -> R.string.kavita_status_ongoing
-        KavitaPublicationStatus.HIATUS -> R.string.kavita_status_hiatus
-        KavitaPublicationStatus.COMPLETED -> R.string.kavita_status_completed
-        KavitaPublicationStatus.CANCELLED -> R.string.kavita_status_cancelled
-        KavitaPublicationStatus.ENDED -> R.string.kavita_status_ended
-    }
 
 @Composable
 private fun ChapterRow(

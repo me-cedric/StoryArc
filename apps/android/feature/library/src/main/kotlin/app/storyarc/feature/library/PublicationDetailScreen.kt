@@ -278,8 +278,12 @@ fun PublicationDetailScreen(
  * the delta puts it and why every other browse surface is allowed to say nothing about
  * origin at all.
  */
+// `internal` rather than `private` for one reason, and it is the wiring: `KavitaCardFactsTest`
+// composes this pane to assert that a downloaded Kavita title's status and rating actually
+// reach the page. Asserting the block draws them in isolation would leave the one edit that
+// reintroduces the defect -- deleting the call below -- passing every test in the module.
 @Composable
-private fun DetailMainPane(
+internal fun DetailMainPane(
     publication: Publication,
     cover: Bitmap?,
     accent: DetailAccent?,
@@ -327,6 +331,11 @@ private fun DetailMainPane(
                 color = palette.textSecondary,
             )
         }
+
+        // The two of `kavita-server`'s seven metadata fields that `Publication` has no slot
+        // for. Absent for everything that is not a kept Kavita chapter, which is most of the
+        // shelf. See `KavitaCardFacts`.
+        KavitaCardFacts(publication.id)
 
         ProvenanceLine(provenance)
     }
