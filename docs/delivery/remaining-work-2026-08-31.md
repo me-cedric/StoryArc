@@ -114,6 +114,41 @@ unarchived deltas were about to sync into a contradiction with each other.
 
 ---
 
+## 0d. Where the session that wrote this document got to
+
+126 commits in one day, across six waves of parallel agents. Everything below is on `main`,
+gated, and the tree is clean. `pnpm check` passes end to end: 23 spec items, 0 SwiftLint
+violations across 493 files, 1323 Swift tests, both Android modules green. The line cap is
+counted for the first time and four files are on its ratchet.
+
+**What changed most:** a whole screen that no reader could reach now has callers on both
+platforms; renaming a file no longer loses your place; a device that is ahead tells the
+server; local and server search results are one ranked list; the queue can no longer fill
+your disk; Natural is a theme with a grain that is now measured rather than believed; and
+the specs and the app agree again after four contradictions were found and resolved.
+
+**What the verification tooling can do now that it could not this morning.** Two of the
+three Android device scripts could not find `adb` on this machine at all, and Gradle could
+not start in a fresh worktree — both resolve their own tools now. `pnpm smoke:android` went
+from **1 of 13 routes to 16 of 16**, having been describing the pre-revamp app. And the iOS
+UI-test target **had never once built** — no `Info.plist`, no generation flag — so its single
+accessibility expectation had never been evaluated. iOS now walks thirteen routes, audits
+five screens, runs a pseudo-locale pass under `en-XA`, and asserts that a publication comes
+back where it was left across a real terminate and relaunch.
+
+**Three things this session got wrong and corrected in the repository**, because a work list
+that only records successes is a work list that teaches nothing:
+
+1. A count of "three of four blockers" that was three *tasks* and two blockers.
+2. A grain judgement made by eye, then a correction that was itself wrong — the A/B used a
+   setting the app reads only below API 34, so both captures were grained and identical. An
+   A/B that changes nothing looks exactly like an A/B of nothing. Settled by arithmetic:
+   skew −1.095 against a predicted −1.1.
+3. A refactor of the UI-test walk that moved four tests into an extension where XCTest does
+   not discover them. Eight tests became four and nothing failed.
+
+---
+
 ## 1. The single largest gap: a whole screen nobody can reach
 
 The publication page — hero, cover-derived wash, title block, primary action, overflow,
