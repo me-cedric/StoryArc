@@ -1074,25 +1074,40 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       first impression of a project that reads books, curls pages and carries five
       typefaces.
 
-      **Half of the recorded iOS blocker is gone and the other half is now named,
-      checked 2026-08-31.** It said "the simulator accepts no injected input, so the
-      reader cannot be reached to open the sheet". Input is no longer the obstacle:
-      `apps/ios/UITests/ScreenshotTests.swift` drives the app through XCUITest rather
-      than through the Simulator's window, and `pnpm capture:ios` has taken the
-      library, Home, Downloads and the shelf at AX5 this way.
+      **Neither recorded iOS blocker survives, checked 2026-08-31.** The first said
+      "the simulator accepts no injected input, so the reader cannot be reached to open
+      the sheet". Input was never the obstacle: `apps/ios/UITests/ScreenshotTests.swift`
+      drives the app through XCUITest rather than through the Simulator's window, and
+      `pnpm capture:ios` has taken the library, Home, Downloads and the shelf at AX5
+      this way.
 
-      What actually blocks it is narrower: **the EPUB reader does not reach a state
-      with its own controls on this simulator.** A hittable *Read* is found on the
-      publication page and tapped, and the theme control — labelled *Reading*, and the
-      only control the EPUB reader has that no other screen does — never appears within
-      twenty seconds. No crash, no log. The capture test is written and skips with that
-      reason rather than being absent.
+      The second replaced it and was narrower and also wrong: "the EPUB reader does not
+      reach a state with its own controls on this simulator", because the theme control
+      — labelled *Reading* — never appeared within twenty seconds of tapping a hittable
+      *Read*. **The EPUB reader was never the screen that opened.** The walk asked the
+      shelf for an `EPUB`, and a cover's spoken label carries the format and says nothing
+      about the layout — so it matched a **fixed-layout** EPUB, which
+      `Publication.isReflowable` sends to the *comic* reader, which has no theme control
+      and never will. `Bright Panels` and `Glasshouse` are both `pre-paginated` in
+      `scripts/corpus.mjs`, and both sort before the three reflowable EPUBs, so the first
+      EPUB on a title-sorted shelf was always the wrong one.
 
-      This was found the hard way. An accessibility audit of the same reader, written
-      the same afternoon, reported **zero findings** — and had measured the publication
-      page, because the action element it tapped was not hittable. Both tests now
-      identify the reader by its own control before measuring anything, which is what
-      `AuditWalk.swift` says at length and what neither of them did at first.
+      `AuditWalk.openTheEpubReader` opens EPUBs in turn until the reader it lands in
+      carries that control. Both suites use it, both compile, and **neither has been run
+      on a booted simulator yet** — that run is what closes this task.
+
+      `pnpm capture:ios --out docs/designs/screenshots/<batch>` writes `ios-theme-sheet.png`
+      and `ios-theme-sheet-largest.png`. That is two of the four Android has: these two
+      tests take no appearance, so **dark is not covered on iOS** and the task is not
+      finished by running them. `launch(contentSize:language:)` would need an appearance
+      argument, or the shots need the device set to dark first.
+
+      This was found the hard way twice. An accessibility audit of the same reader,
+      written the same afternoon, reported **zero findings** — and had measured the
+      publication page, because the action element it tapped was not hittable. Its
+      replacement then measured the comic reader while reporting on the EPUB reader. A
+      walk that can arrive somewhere else has to check where it arrived, every time, and
+      "the format the shelf says" is not that check.
 - [ ] **7.5** Record the curl: a screen recording on each platform, because a
       still frame cannot show interruptibility or finger tracking.
 - [ ] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce
