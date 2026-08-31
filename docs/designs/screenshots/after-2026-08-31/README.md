@@ -111,3 +111,35 @@ The wash card fills most of the window with a format glyph in the middle of it a
 action pinned to the foot, so roughly three fifths of the page is empty. Task 2.4 asks in as
 many words whether "the composition has to hold up with a title and a placeholder". On this
 evidence it does not, and that is a layout decision rather than a bug to patch.
+
+---
+
+# What Apple's audit found, and what it looks like fixed
+
+The iOS UI-test target had never built — `project.yml` gave it no `Info.plist` and did not ask
+Xcode to generate one, so `xcodebuild test` failed before a single test ran and the
+`XCTExpectFailure` it carried had never once been evaluated. Its first real run reported
+**nineteen issues** across the three destinations.
+
+| Capture | What it shows |
+| --- | --- |
+| `ios-downloads-ax5-{light,dark}` | Downloads at the largest text size. The audit reported **five `Text clipped` findings** here — captions handed an 18.0 pt frame for two lines of text. The shelf held a private copy of the cover-width rule that ignored the reader's text size and never measured its own width, so a lazy grid sized each cell against the column's *maximum* and drew it at the column's *real* width. It asks the shared rule now; Downloads went from seven audit issues to one. |
+| `ios-coverless-well-ax5-light` | A publication with no cover art, at the largest text size. Its well used to shrink the title with `minimumScaleFactor(0.6)` — which `design.md` §3 forbids in as many words — and the audit called it *"Dynamic Type font sizes are partially unsupported"*. The well now carries the format alone and the title is stated in full underneath, at the size the reader asked for. |
+
+## The contrast findings that remain, and why they stand
+
+Nine of the nineteen were `Contrast failed` and every one was judged a false positive, with
+the reasoning recorded in the test's own expectations rather than here:
+
+- **Home's three** are cover cells, and `.accessibilityElement(children: .combine)` makes the
+  artwork and the caption one element — so the check samples a frame that is seven-eighths
+  photograph. Un-combining would clear the report and hand VoiceOver an unlabelled decorative
+  image per cover: a green audit bought with a real reader's experience.
+- **The rest sit in the last 134 pt of the window**, under the floating glass bar. Untinted
+  glass takes its luminance from whichever cover is passing, so contrast under it is not a
+  bounded quantity. The proof is positional rather than argued: the same text role and colour
+  failed at y 813 and passed at y 395 and y 604 in the same run, and when the layout reflowed,
+  the findings moved with the elements rather than staying with the palette.
+
+The palette itself is not in question — `textPrimary` on `surfaceCanvas` measures 16.9:1 in
+light and 16.8:1 in dark, and the worst pair anywhere in the set is 4.97:1.
