@@ -91,9 +91,22 @@ reader's chrome as a route of its own where iOS's reader test reveals the chrome
 
 **The Settings audit's own numbers are worth reading while they are here.** Reported, not
 failed, on 2026-08-31: Settings 5, *Your libraries* **11**, Appearance 3, Reading 2, Downloads
-and storage 5, Privacy 4, About 5. `Your libraries` has more than twice any other screen and
-nothing has looked at it. `settings-and-about-screens` task 6.3 records the group's findings
-from a run that could not name their elements; this run can.
+and storage 5, Privacy 4, About 5. `Your libraries` has more than twice any other screen, and
+this run can name their elements where the run behind `settings-and-about-screens` task 6.3
+could not.
+
+Named, they turn out to be **one disagreement rather than eleven defects**: almost all are
+`Contrast nearly passed` on `0 titles` and `Connecting` in `SourcesSettings.row`, repeated once
+per source, drawn in `textTertiary` at `.footnote`. That pair is gated and passes —
+`pnpm tokens:check` measures it at **4.94:1 to 5.97:1** against AA's 4.5:1 for text that size,
+a margin of 0.44 to 1.47 in every palette on every surface. Apple's check is stricter than the
+standard and "nearly passed" is its word for that.
+
+So the entry is closed as *not a defect*, and the reasoning is in the audit test rather than
+only here, because the obvious reading of eleven findings is that something is broken.
+Promoting those texts to `textSecondary` would silence the warning by flattening a three-step
+hierarchy to two while the measured standard was already met. What is genuinely unexamined on
+that screen is everything except its contrast.
 
 ### A third round, and two defects a camera found that reading had not
 

@@ -328,6 +328,32 @@ final class AccessibilityAuditTests: XCTestCase {
     /// The groups are named by their English labels. That is a real dependency and the
     /// reason `pseudo-locale.mjs` navigates by position instead: this suite runs in the
     /// development language, and if that ever stops being true, this is what will say so.
+    /// Settings and its seven groups.
+    ///
+    /// **Eleven of these findings are one disagreement, and it is not a defect.** The audit
+    /// reports 5 on Settings, **11** on *Your libraries*, 3 on Appearance, 2 on Reading, 5 on
+    /// Downloads and storage, 4 on Privacy and 5 on About (2026-08-31). The eleven are almost
+    /// all `Contrast nearly passed` on one row's secondary text — `0 titles` and `Connecting`
+    /// in `SourcesSettings.row`, repeated once per source — drawn in `textTertiary` at
+    /// `.footnote`.
+    ///
+    /// That pair is gated and it passes. `pnpm tokens:check` measures `textTertiary` against
+    /// all three surfaces in all five palettes and reports **4.94:1 to 5.97:1** against the
+    /// 4.5:1 that WCAG AA asks for text this size — a margin of 0.44 to 1.47 everywhere, never
+    /// a failure. Apple's check is stricter than the standard, which is its right, and
+    /// "nearly passed" is the word it uses for exactly that.
+    ///
+    /// So the fix is **not** to promote those texts to `textSecondary`. That would silence the
+    /// warning by flattening a three-step type hierarchy to two, on a screen where the quiet
+    /// step is doing its job — and it would be done to satisfy a heuristic while the measured
+    /// standard was already met. The one place a token *was* promoted for contrast this month
+    /// was different in kind: `textTertiary` over untinted Liquid Glass, which is not one of
+    /// the three surfaces `tokens:check` measures and so is gated by nothing at all.
+    ///
+    /// Written down here because the obvious reading of eleven findings is that something is
+    /// broken, and the next person to open this file should not spend the afternoon proving
+    /// otherwise. What is genuinely unexamined on *Your libraries* is everything except its
+    /// contrast.
     func testSettingsPassesTheAudit() throws {
         let app = launch()
 
