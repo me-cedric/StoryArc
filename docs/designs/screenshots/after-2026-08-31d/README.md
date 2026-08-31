@@ -13,16 +13,36 @@ caveats. This is what changed.
 | `android-search-at-rest-scale2-light` | Empty at the largest accessibility text size. | The same sections at that size, headings on two lines and unclipped, covers reflowed by the shelf's own width ladder. |
 | `android-search-scope-chips-squeezed-scale2` → `android-search-at-rest-scale2-light` | *On this device* broken over four lines with a lone "e" on the last. | The chip on its own line, one line, whole. A `Row` gives its second child whatever width the first left; a wrapping row gives it its own line. |
 
-## The section that is absent, and is the point
+## All three sections, and what is in each
 
-There is **no *You have never opened these*** heading in the seeded shots, and there should not
-be. Every publication in that library is either part-read, finished, or the next volume in a
-series — and *next in a series* wins over *never opened*, so nothing is left for the third
-section. `navigation-shell` asks the screen to say so "rather than drawing empty headings", and
-a section with nothing in it being **absent** rather than present-and-empty is what that looks
-like. A shot with three headings and two runs of covers would have been the failure.
+`android-search-at-rest-light-scrolled` is the same page scrolled to the foot of it. The seeded
+library is seven files, and each section holds exactly what the rules say it should:
 
-The same rule, from the other end, is `SearchAtRestTest`'s first assertion.
+- **Pick up where you left off** — *Harbour Lights*, read two pages into by hand on the device.
+- **Next in a series you have read** — *Cinder Season*, Ashfall Wake #2, because #1 was marked
+  read. **Not #3**, which is also unread: `HomeShelves.upNext` offers the lowest unread issue
+  after the highest finished one, and one per series.
+- **You have never opened these** — *Under Glass* (Ashfall Wake #3), *Paper Moon*, *The
+  Glasswright*, *Tin Kingdom*. Note what is **not** in it: *Cinder Season*, which is unread and
+  is offered one heading up. `SearchSuggestions` removes it there rather than offering the same
+  book twice under a heading that says less about it.
+
+A first draft of this file claimed the third section was absent. It is not, and the scrolled
+shot is why the claim was checked rather than left standing — three unread books were sitting
+below the fold of the shot that was being read as evidence.
+
+## One thing the screenshots found that no test had
+
+Every card under *You have never opened these* announced itself to a screen reader as
+"…. Part-read". `homeRemainingText` falls back to that sentence for a publication that declares
+no page count, which is true of every shelf Home draws it for and false of two of the three
+sections here. Read off the device's own accessibility tree, not off a picture. Fixed, and
+`SearchAtRestTest` now asserts both halves — a never-opened card announces its title alone, a
+part-read one still says how much is left.
+
+**The same defect is still on Home**, on Up next, Recently added and Finished, and is not fixed
+here: `homeRemainingText` is shared, and changing what three of Home's shelves announce inside a
+change about search would be a second change wearing this one's clothes. Named in the handoff.
 
 ## Nothing to suggest
 

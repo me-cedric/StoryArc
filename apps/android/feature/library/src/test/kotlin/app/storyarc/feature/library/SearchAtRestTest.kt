@@ -122,6 +122,30 @@ class SearchAtRestTest {
         assertEquals("Tin Kingdom", opened)
     }
 
+    @Test
+    fun `a book the reader has never opened is not announced as part-read`() {
+        // `homeRemainingText`'s fallback for a publication that declares no page count is
+        // "part-read", which is true of every shelf Home draws it for and false of two of the
+        // three sections here. Found on a device: every card under *You have never opened
+        // these* announced itself as part-read.
+        show(SearchSuggestions(neverOpened = listOf(entry("Tin Kingdom"))))
+
+        compose.onNodeWithContentDescription("Tin Kingdom").assertExists()
+    }
+
+    @Test
+    fun `a book part-way through still says how much is left`() {
+        show(
+            SearchSuggestions(
+                inProgress = listOf(entry("Harbour Lights", fraction = 0.4, pagesRemaining = 12)),
+            ),
+        )
+
+        compose.onNodeWithContentDescription("Harbour Lights", substring = true)
+            .assertExists()
+        compose.onNodeWithContentDescription("Harbour Lights").assertDoesNotExist()
+    }
+
     // Fixtures
 
     /** Every label this screen can draw, read out of the resources it actually uses. */
@@ -170,7 +194,11 @@ class SearchAtRestTest {
         return labels
     }
 
-    private fun entry(title: String) = HomeEntry(
+    private fun entry(
+        title: String,
+        fraction: Double = 0.0,
+        pagesRemaining: Int? = null,
+    ) = HomeEntry(
         publication = Publication(
             identity = PublicationIdentity(normalizedPath = "/library/$title.cbz"),
             format = PublicationFormat.CBZ,
@@ -178,7 +206,7 @@ class SearchAtRestTest {
             origin = MetadataOrigin.EMBEDDED,
         ),
         isReadableNow = true,
-        pagesRemaining = null,
-        fraction = 0.0,
+        pagesRemaining = pagesRemaining,
+        fraction = fraction,
     )
 }

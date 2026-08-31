@@ -117,7 +117,13 @@ private fun LazyListScope.shelf(
             modifier = Modifier.fillMaxWidth(),
         ) {
             items(entries, key = { it.id }) { entry ->
-                val label = homeRemainingText(entry)
+                // `homeRemainingText` answers *how much is left*, and its fallback for a
+                // publication that declares no page count is "part-read" — true of everything
+                // Home draws it for, and false of two of the three sections here. A book the
+                // reader has never opened is announced by its title alone rather than by a
+                // claim about reading they have not done. Measured on a device: every card
+                // under *You have never opened these* read "…. Part-read" before this.
+                val label = if (entry.fraction > 0.0) homeRemainingText(entry) else ""
                 HomeShelfCell(
                     entry = entry,
                     cover = cover,

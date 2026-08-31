@@ -80,6 +80,11 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 - [x] 2.11d Android: the scope chips wrap. At `font_scale 2.0` in a 320 dp window a plain
       `Row` drew *On this device* over four lines with a lone "e" on the last —
       photographed, fixed, photographed again.
+- [x] 2.11e Android: a suggestion the reader has never opened announces its title alone. Read
+      off the device's accessibility tree: every card under *You have never opened these* said
+      "…. Part-read", because `homeRemainingText`'s fallback is true of every shelf Home draws
+      it for and false of two of the three here. **Home still has it** on Up next, Recently
+      added and Finished; that is its own change.
 - [x] 2.12 Android: the scope chips reach the fan-out. `SearchScopeTest` — narrowing asks
       nobody, drops what cannot be read with no network, empties no heading over it, and
       leaves `waiting` and `silent` empty; `LibraryPreferencesTest` — the choice is written

@@ -259,11 +259,14 @@ internal fun HomeShelfCell(
 @Composable
 internal fun Modifier.homeCardSemantics(entry: HomeEntry, label: String): Modifier {
     val away = stringResource(R.string.home_away)
-    val description = if (entry.isReadableNow) {
-        "${entry.publication.displayTitle}. $label"
-    } else {
-        "${entry.publication.displayTitle}. $label. $away"
-    }
+    // Assembled from the parts that have something to say. A blank `label` is dropped rather
+    // than joined, so a card with nothing to report about reading announces its title instead
+    // of the title followed by a full stop and a silence. Home never passes one — its shelves
+    // always have an answer — but the search page's *never opened* section does, and the
+    // alternative there was every unread book announcing itself as part-read.
+    val description = listOf(entry.publication.displayTitle, label, if (entry.isReadableNow) "" else away)
+        .filter { it.isNotBlank() }
+        .joinToString(". ")
     return clearAndSetSemantics { contentDescription = description }
 }
 
