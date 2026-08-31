@@ -124,6 +124,7 @@
     <string name="sources_detail_error_unreachable">No answer since %1$s</string>
     <string name="sources_detail_items">In your library</string>
     <string name="sources_detail_downloaded">Downloaded</string>
+    <string name="sources_detail_progress_local_only">This source cannot store reading progress, so your place is kept on this device only.</string>
     <string name="sources_detail_open">Open %1$s</string>
     <string name="sources_action_reconnect">Sign in again</string>
     <string name="sources_action_test">Test connection</string>

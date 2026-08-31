@@ -119,6 +119,7 @@
     <string name="sources_detail_error_unreachable">Keine Antwort seit %1$s</string>
     <string name="sources_detail_items">In Ihrer Bibliothek</string>
     <string name="sources_detail_downloaded">Heruntergeladen</string>
+    <string name="sources_detail_progress_local_only">Diese Quelle kann den Lesefortschritt nicht speichern, deshalb bleibt Ihre Position nur auf diesem Gerät.</string>
     <string name="sources_detail_open">%1$s öffnen</string>
     <string name="sources_action_reconnect">Erneut anmelden</string>
     <string name="sources_action_test">Verbindung testen</string>

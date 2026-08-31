@@ -30,6 +30,28 @@ enum class SourceKind {
             LOCAL_FOLDER -> false
             NETWORK_SHARE, OPDS_CATALOG, KAVITA_SERVER -> true
         }
+
+    /**
+     * Whether a reading position recorded here can also be held by the source itself.
+     *
+     * `reading-progress`' *Source cannot store progress* asks the source detail screen to
+     * state that progress "does not sync" when the source has no mechanism for it, and three
+     * of these four have none: a folder and an SMB share are files on a disk, and OPDS is a
+     * catalogue format with no notion of a read position. Kavita is the one that keeps one,
+     * and `KavitaSync` in `feature:library` is the only thing in either app that pushes or
+     * pulls a position — ADR-0006 is built on that asymmetry, which is why progress is
+     * local-first and sync is a projection outward.
+     *
+     * A property here rather than a comparison in each app's detail screen, for the reason
+     * [isBrowsable] gives above: two copies of the same four-way answer is how one of them
+     * ends up wrong. iOS's `SourceKind.syncsReadingProgress` answers the same four the same
+     * way.
+     */
+    val syncsReadingProgress: Boolean
+        get() = when (this) {
+            LOCAL_FOLDER, NETWORK_SHARE, OPDS_CATALOG -> false
+            KAVITA_SERVER -> true
+        }
 }
 
 /**

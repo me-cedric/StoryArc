@@ -175,6 +175,20 @@ internal fun SourceDetailScreen(
                 value = Formatter.formatFileSize(context, diagnosis.downloadedBytes),
             )
 
+            // `reading-progress`' *Source cannot store progress*: a source with no progress
+            // mechanism keeps positions locally only, "and the source detail screen states
+            // that progress for it does not sync". Under the fields rather than beside them,
+            // because it is a fact about the source rather than a value that changes — and it
+            // belongs on this screen rather than in the list, which describes what a kind of
+            // source *is* before one exists.
+            if (!source.kind.syncsReadingProgress) {
+                Text(
+                    text = stringResource(R.string.sources_detail_progress_local_only),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textSecondary,
+                )
+            }
+
             diagnosis.actions.forEach { action ->
                 TextButton(
                     onClick = {

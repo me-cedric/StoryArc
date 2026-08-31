@@ -3763,6 +3763,35 @@
         }
       }
     },
+    "sources.detail.progressLocalOnly": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Quelle kann den Lesefortschritt nicht speichern, deshalb bleibt Ihre Position nur auf diesem Gerät."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This source cannot store reading progress, so your place is kept on this device only."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta fuente no puede guardar el progreso de lectura, así que su posición se queda solo en este dispositivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette source ne peut pas enregistrer la progression de lecture, votre position reste donc uniquement sur cet appareil."
+          }
+        }
+      }
+    },
     "sources.detail.status": {
       "extractionState": "manual",
       "localizations": {
