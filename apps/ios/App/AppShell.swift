@@ -3,6 +3,7 @@ import SwiftUI
 import EpubReaderFeature
 import LibraryFeature
 import Persistence
+import SettingsFeature
 import StoryArcCore
 
 /// The four destinations, as the platform's own tab bar.
@@ -82,6 +83,21 @@ struct AppShell: View {
     /// the launch named somewhere else.
     @Binding var tab: Selection
 
+    /// What changed in the version just installed, if this launch is the one that says so.
+    ///
+    /// `settings-and-about`: shown "once, after it has been updated", never on a first ever
+    /// launch, and never twice for one version. All three are ``WhatsNew/onLaunch(store:)``'s
+    /// answer, and it is asked **here, in the initial value of the state** rather than in a
+    /// `.task`: the version is recorded by the same call that decides, so a reader who swipes
+    /// the sheet away — or one who never sees it because the version had nothing to say — is
+    /// recorded either way. There is no path through this that shows the screen without
+    /// recording it, which is the requirement stated as "the seen flag is written when the
+    /// screen is shown, not when it is dismissed".
+    ///
+    /// It is the shell's rather than `StoryArcApp`'s because this is what a reader lands on,
+    /// and `design.md` puts the presentation here.
+    @State private var whatsNew: WhatsNewRelease? = WhatsNew.onLaunch()
+
     let model: LibraryModel
     let progress: ProgressStore?
     let onOpen: (Publication, URL) -> Void
@@ -155,6 +171,20 @@ struct AppShell: View {
         // the voice is on and the voice never notices. There is no second path back, and
         // that is the point — the one that exists is the one Phase 1 tested.
         .modifier(ReadAloudAccessory(isSpeaking: isReadingAloud, onReturn: onOpen))
+        // What changed, once, over whatever the reader landed on.
+        //
+        // `.large` and one detent, because the content is a heading and four rows: a medium
+        // detent would show two of them and a drag handle, which reads as a card the reader
+        // has to open rather than a thing the app is telling them. `design.md` settles it,
+        // and Android's `ModalBottomSheet` is capped and expandable for the reason Material
+        // gives there — the two platforms are deliberately not the same shape here.
+        //
+        // Never blocking: dismissing it needs one action and the tab bar is behind it, not
+        // gone. Nothing waits on it and nothing is lost by ignoring it.
+        .sheet(item: $whatsNew) { release in
+            WhatsNewSheet(release: release) { whatsNew = nil }
+                .presentationDetents([.large])
+        }
         // `navigation-shell`: leaving search returns the reader to the destination they
         // were on "with its scroll position and filters intact". The query narrows the one
         // library, so a term left behind would follow them onto the shelf and leave it

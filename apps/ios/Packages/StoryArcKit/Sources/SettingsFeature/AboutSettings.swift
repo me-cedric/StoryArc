@@ -27,6 +27,21 @@ struct AboutSettings: View {
                     .foregroundStyle(theme.palette.textSecondary)
             }
 
+            // Where a reader who swiped the sheet away too fast finds it again.
+            // `settings-and-about` puts it here rather than in its own group: it is a fact
+            // about this build, like the version two rows up, and it is read once.
+            //
+            // A `NavigationLink` and nothing else — no store, no version, no flag. "Reaching
+            // it that way does not change what the app considers seen", and the way that is
+            // held is that there is nothing here able to write.
+            Section {
+                NavigationLink {
+                    WhatsNewHistory()
+                } label: {
+                    Text("whatsnew.about", bundle: .module)
+                }
+            }
+
             Section {
                 Link(destination: BuildInfo.repository) {
                     Text("about.repository", bundle: .module)

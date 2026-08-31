@@ -76,7 +76,7 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       nothing and still records.
 - [x] 3.2 Both: the changelog entries ship with the app as a resource, keyed by
       version, localised in the four shipped languages. Nothing is fetched.
-- [ ] 3.3 iOS: present as a `.sheet` with `.presentationDetents([.large])` from
+- [x] 3.3 iOS: present as a `.sheet` with `.presentationDetents([.large])` from
       `AppShell` on first appearance after a version change.
 - [ ] 3.4 Android: present as a `ModalBottomSheet`. Not a full-screen dialog:
       Material reserves those for multi-step tasks with unsaved state at compact
