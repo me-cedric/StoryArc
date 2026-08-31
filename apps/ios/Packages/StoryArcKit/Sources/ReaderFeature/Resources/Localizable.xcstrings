@@ -474,25 +474,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieser Comic hat keine Seiten, die StoryArc anzeigen kann."
+            "value": "Hier gibt es keine Seiten, die StoryArc anzeigen kann."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This comic has no pages StoryArc can show."
+            "value": "There are no pages here StoryArc can show."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este cómic no tiene páginas que StoryArc pueda mostrar."
+            "value": "Aquí no hay páginas que StoryArc pueda mostrar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cette bande dessinée n’a aucune page que StoryArc puisse afficher."
+            "value": "Il n’y a ici aucune page que StoryArc puisse afficher."
           }
         }
       }

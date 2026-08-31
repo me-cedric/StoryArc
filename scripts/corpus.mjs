@@ -90,6 +90,8 @@ function epub(out, { title, series, index, chapters, fixed }) {
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
     ${spine.map((id) => `<item id="${id}" href="${id}.xhtml"
       media-type="application/xhtml+xml"/>`).join('\n    ')}
+    ${fixed ? spine.map((id) => `<item id="${id}-img" href="${id}.png"
+      media-type="image/png"/>`).join('\n    ') : ''}
   </manifest>
   <spine>${spine.map((id) => `<itemref idref="${id}"/>`).join('')}</spine>
 </package>`),
@@ -102,14 +104,35 @@ function epub(out, { title, series, index, chapters, fixed }) {
 ${spine.map((id, i) => `<li><a href="${id}.xhtml">Chapter ${i + 1}</a></li>`).join('\n')}
 </ol></nav></body></html>`),
     },
+    // A fixed-layout book is a **picture per page**, and that is the whole difference.
+    // This generator used to write the same wall of sentences either way and only add
+    // `rendition:layout` to the metadata, which made `Bright Panels.epub` a pre-paginated
+    // *text* book -- legal EPUB, and nothing like what the app routes a fixed-layout
+    // publication to an image reader in order to show. The consequence was found on a
+    // simulator: opening it landed on "This comic has no pages StoryArc can show", because
+    // there were genuinely no images in it, so the fixed-layout path had never once been
+    // exercised against something it could draw.
     ...spine.map((id, i) => ({
       name: `OEBPS/${id}.xhtml`,
-      body: Buffer.from(`<?xml version="1.0" encoding="utf-8"?>
+      body: Buffer.from(fixed
+        ? `<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Page ${i + 1}</title>
+<meta name="viewport" content="width=600, height=900"/></head>
+<body style="margin:0"><img src="${id}.png" alt="Page ${i + 1}" width="600" height="900"/></body>
+</html>`
+        : `<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter ${i + 1}</title></head>
 <body><h1>Chapter ${i + 1}</h1>
 ${Array.from({ length: 14 }, (_, p) => `<p>${'Sentence '.repeat(24)}${i + 1}.${p + 1}</p>`).join('\n')}
 </body></html>`),
     })),
+    // The plates themselves, at the viewport the pages declare.
+    ...(fixed
+      ? spine.map((id, i) => ({
+          name: `OEBPS/${id}.png`,
+          body: png(600, 900, PALETTE[i % PALETTE.length]),
+        }))
+      : []),
   ]
   archive(files, (scratch, names) => {
     execFileSync('zip', ['-q', '-X', '-0', out, 'mimetype'], { cwd: scratch })

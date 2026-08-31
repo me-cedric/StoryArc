@@ -31,7 +31,7 @@
     <string name="reader_transition_reduce_motion">Unavailable while your system is set to remove animations.</string>
     <string name="reader_transition_no_curl">Curl is not offered here: this device cannot draw it smoothly enough to be worth it.</string>
     <string name="reader_transition_reflowable">Not available for books whose text resizes.</string>
-    <string name="reader_empty">This comic has no pages StoryArc can show.</string>
+    <string name="reader_empty">There are no pages here StoryArc can show.</string>
     <string name="reader_offline_brief">Waiting for the network…</string>
     <string name="reader_offline_long">This comic is in a shared folder that cannot be reached. Pages already read are still here.</string>
     <string name="reader_offline_download">Download it</string>

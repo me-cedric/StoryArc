@@ -31,7 +31,7 @@
     <string name="reader_transition_reduce_motion">Indisponible tant que votre système supprime les animations.</string>
     <string name="reader_transition_no_curl">La pliure n’est pas proposée ici : cet appareil ne peut pas la dessiner assez fluidement.</string>
     <string name="reader_transition_reflowable">Non disponible pour les livres dont le texte se redimensionne.</string>
-    <string name="reader_empty">Cette bande dessinée n’a aucune page que StoryArc puisse afficher.</string>
+    <string name="reader_empty">Il n’y a ici aucune page que StoryArc puisse afficher.</string>
     <string name="reader_offline_brief">En attente du réseau…</string>
     <string name="reader_offline_long">Cette bande dessinée est dans un dossier partagé injoignable. Les pages déjà lues sont toujours là.</string>
     <string name="reader_offline_download">La télécharger</string>

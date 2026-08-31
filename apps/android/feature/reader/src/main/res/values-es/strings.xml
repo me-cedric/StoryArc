@@ -31,7 +31,7 @@
     <string name="reader_transition_reduce_motion">No disponible mientras su sistema elimina las animaciones.</string>
     <string name="reader_transition_no_curl">El doblez no se ofrece aquí: este dispositivo no puede dibujarlo con suficiente fluidez.</string>
     <string name="reader_transition_reflowable">No disponible para libros cuyo texto cambia de tamaño.</string>
-    <string name="reader_empty">Este cómic no tiene páginas que StoryArc pueda mostrar.</string>
+    <string name="reader_empty">Aquí no hay páginas que StoryArc pueda mostrar.</string>
     <string name="reader_offline_brief">Esperando la red…</string>
     <string name="reader_offline_long">Este cómic está en una carpeta compartida a la que no se puede acceder. Las páginas ya leídas siguen aquí.</string>
     <string name="reader_offline_download">Descargarla</string>
