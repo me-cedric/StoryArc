@@ -1,22 +1,30 @@
 import Foundation
 import Testing
 
-/// That the share browser still *asks* before it fetches a whole publication.
+/// That the share browser still *asks* before it fetches a whole publication, and still routes
+/// both decisions through the pair a test can drive.
 ///
 /// ``StreamingOfferTests`` pins the rule — what the app owes a reader for a publication it
-/// cannot read where it lies. It cannot pin the wiring, and the wiring is where the defect
-/// lived: `SmbBrowserView.open(_:)` fetched the entire file the moment `PublicationIndexer`
-/// handed back a record, with `entry.length` already in hand and nothing said to the reader.
-/// Putting that read back leaves `StreamingOffer` compiled, used elsewhere, and every one of
-/// its own tests green.
+/// cannot read where it lies. ``ShareOpeningTests`` pins what the browser feeds that rule and
+/// what it does with the answer, by calling `ShareOpening.offerOrOpen` and
+/// `ShareOpening.openWhatArrived` directly. Neither can pin the wiring, and the wiring is where
+/// the defect lived: `SmbBrowserView.open(_:)` fetched the entire file the moment
+/// `PublicationIndexer` handed back a record, with `entry.length` already in hand and nothing
+/// said to the reader.
 ///
 /// **So this test reads the source text, and that is a deliberate second choice.** The honest
 /// test drives the browser against a share and watches what crosses the wire, which needs a
 /// server and a booted simulator; Android's `ReaderChromeWiringTest` reached the same answer
 /// for the same reason and says so at greater length. A guard that runs beats a better one
-/// that does not. It is a tripwire, not a proof: it says the fetch is behind the reader's
-/// answer, never that the dialog rendered. Delete it the day `pnpm smb` and a simulator are
-/// part of a suite that runs.
+/// that does not. Delete it the day `pnpm smb` and a simulator are part of a suite that runs.
+///
+/// **What it is allowed to assert, and what it is not.** Its earlier form claimed to check that
+/// "what arrives is judged before the reader is sent to it" and actually checked that
+/// `StreamingOffer.of(` appeared before `onOpen(` in the file. Replacing the judgement with
+/// `_ = offer; onOpen(publication, local)` kept that order and passed. Textual order is not a
+/// behaviour, so the behaviour is asserted in ``ShareOpeningTests`` and what is left here is
+/// the one thing text can honestly say: that the view delegates instead of deciding for
+/// itself.
 @Suite("The share browser offers the transfer rather than taking it")
 struct SmbTransferWiringTests {
 
@@ -65,15 +73,35 @@ struct SmbTransferWiringTests {
         )
     }
 
-    @Test("The offer that does the deciding is the shared rule")
-    func theOfferIsTheRule() {
-        // Twice: once before anything is transferred, once against the local copy afterwards.
-        let decisions = Self.source.components(separatedBy: "StreamingOffer.of(").count - 1
+    @Test("Both decisions go through the pair that is tested")
+    func bothDecisionsAreDelegated() {
+        // Once for what was found on the share, once for what arrived from it. Deciding
+        // inline again is what put the judgement somewhere only a text search could reach.
         #expect(
-            decisions == 2,
+            Self.source.components(separatedBy: "ShareOpening.offerOrOpen(").count - 1 == 1,
+            "The tap should reach ShareOpening.offerOrOpen, which ShareOpeningTests drives."
+        )
+        #expect(
+            Self.source.components(separatedBy: "ShareOpening.openWhatArrived(").count - 1 == 1,
             """
-            SmbBrowserView should ask StreamingOffer twice — what to do with what it found on \
-            the share, and whether what arrived can be opened. Found \(decisions).
+            The transfer's answer should reach ShareOpening.openWhatArrived, which \
+            ShareOpeningTests drives.
+            """
+        )
+    }
+
+    @Test("The browser never opens a publication it decided about itself")
+    func theViewDoesNotOpenAnything() {
+        // The mutation this test exists for: calling `onOpen(publication, local)` from the
+        // view bypasses the tested decision entirely, and ``ShareOpeningTests`` would stay
+        // green because the function it drives is still correct. `onOpen: onOpen` as an
+        // argument is not a call and does not match.
+        #expect(
+            !Self.source.contains("onOpen("),
+            """
+            SmbBrowserView invokes onOpen itself. Opening belongs to ShareOpening.offerOrOpen \
+            and ShareOpening.openWhatArrived, which judge the publication first — see \
+            ShareOpeningTests.
             """
         )
     }
@@ -91,27 +119,16 @@ struct SmbTransferWiringTests {
         )
     }
 
-    @Test("What arrives is judged before the reader is sent to it")
-    func whatArrivesIsJudged() {
-        guard let transfer = Self.source.range(of: "private func transfer(_ entry: SmbEntry)")
-        else {
-            Issue.record("SmbBrowserView no longer has transfer(_:)")
-            return
-        }
-        let body = Self.source[transfer.lowerBound...]
-        guard let decision = body.range(of: "StreamingOffer.of("),
-              let opening = body.range(of: "onOpen(")
-        else {
-            Issue.record("transfer(_:) neither decides nor opens")
-            return
-        }
-        // A solid RAR4 indexes as `refused` only once its bytes are local, so this order is
-        // the whole of "does not hold for solid RAR4, which is refused whether local or
-        // remote". Opening first is what used to send a reader who had waited for the file
-        // to a reader that cannot render page one.
+    @Test("A share that stated no size has a sentence of its own")
+    func theUnstatedSizeIsSaid() {
+        // `offline-downloads` asks for an absence rather than a zero, and `formattedBytes`
+        // takes a non-optional — so without this branch a zero-length entry reads as a zero.
         #expect(
-            decision.lowerBound < opening.lowerBound,
-            "transfer(_:) opens the publication before asking whether it can be opened."
+            Self.source.contains("smb.downloadFirst.bodyUnstated"),
+            """
+            The download offer must have the second body the metered confirmation already \
+            has, for the entry whose length the share did not state.
+            """
         )
     }
 }

@@ -32,8 +32,7 @@ class ShareOpeningTest {
         var opened: Pair<Publication, String>? = null
         var offered: Long? = null
         var offerMade = false
-        var refused = false
-        var failed: Int? = null
+        var said: Int? = null
     }
 
     private suspend fun openingFromShare(
@@ -46,8 +45,7 @@ class ShareOpeningTest {
             length = length,
             onOpen = { found, path -> answers.opened = found to path },
             onOffer = { bytes -> answers.offerMade = true; answers.offered = bytes },
-            onRefuse = { answers.refused = true },
-            onFailure = { answers.failed = it },
+            onSay = { said -> answers.said = said },
         )
         return answers
     }
@@ -57,8 +55,7 @@ class ShareOpeningTest {
         openWhatArrived(
             fetch = { publication to LOCAL_PATH },
             onOpen = { found, path -> answers.opened = found to path },
-            onRefuse = { answers.refused = true },
-            onFailure = { answers.failed = it },
+            onSay = { said -> answers.said = said },
         )
         return answers
     }
@@ -78,7 +75,11 @@ class ShareOpeningTest {
                 " it. `publication-formats` asks for the refusal to be named instead.",
             answers.opened,
         )
-        assertTrue("The refusal was not raised.", answers.refused)
+        assertEquals(
+            "The refusal `publication-formats` asks to be named was not the sentence shown.",
+            CANNOT_OPEN,
+            answers.said,
+        )
     }
 
     @Test
@@ -91,7 +92,7 @@ class ShareOpeningTest {
         )
 
         assertEquals(LOCAL_PATH, answers.opened?.second)
-        assertTrue("A downloaded solid RAR5 got a notice.", !answers.refused)
+        assertNull("A downloaded solid RAR5 got a notice.", answers.said)
     }
 
     @Test
@@ -100,11 +101,10 @@ class ShareOpeningTest {
         openWhatArrived(
             fetch = { error("the share dropped the connection") },
             onOpen = { found, path -> answers.opened = found to path },
-            onRefuse = { answers.refused = true },
-            onFailure = { answers.failed = it },
+            onSay = { said -> answers.said = said },
         )
 
-        assertEquals(R.string.smb_error_unexpected, answers.failed)
+        assertEquals(UNEXPECTED, answers.said)
         assertNull(answers.opened)
     }
 
@@ -159,11 +159,10 @@ class ShareOpeningTest {
             length = 10L,
             onOpen = { found, path -> answers.opened = found to path },
             onOffer = { bytes -> answers.offerMade = true; answers.offered = bytes },
-            onRefuse = { answers.refused = true },
-            onFailure = { answers.failed = it },
+            onSay = { said -> answers.said = said },
         )
 
-        assertEquals(R.string.smb_error_unexpected, answers.failed)
+        assertEquals(UNEXPECTED, answers.said)
         assertTrue("A failed index still offered a transfer.", !answers.offerMade)
     }
 
@@ -176,8 +175,11 @@ class ShareOpeningTest {
             publication(format = PublicationFormat.CBR, streaming = StreamingCapability.REFUSED),
         )
 
-        assertTrue("A remote record marked REFUSED was declined before any file existed.", answers.offerMade)
-        assertTrue(!answers.refused)
+        assertTrue(
+            "A remote record marked REFUSED was declined before any file existed.",
+            answers.offerMade,
+        )
+        assertNull(answers.said)
     }
 
     // --- The fact the rule is fed ---------------------------------------------------------

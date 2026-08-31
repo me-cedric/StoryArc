@@ -38,9 +38,11 @@ public struct SmbBrowserView: View {
     /// the work that discovered them.
     private struct TransferAsk: Identifiable, Equatable {
         let entry: SmbEntry
-        /// What the share said the file weighs. `publication-formats` requires the size to be
-        /// stated, and a directory entry is where it comes from.
-        let bytes: Int64
+        /// What the share said the file weighs, or `nil` when it said nothing worth repeating.
+        /// `publication-formats` requires the size to be stated and a directory entry is where
+        /// it comes from; ``ShareOpening/statedLength(_:)`` is where an unusable one becomes an
+        /// absence.
+        let bytes: Int64?
 
         var id: String { entry.path }
     }
@@ -150,8 +152,13 @@ public struct SmbBrowserView: View {
             // reason: `scripts/ios-strings.mjs` derives the key by reading the literal, and a
             // nested quote ends the literal early.
             let named = transferring?.entry.name ?? ""
-            let size = formattedBytes(transferring?.bytes ?? 0)
-            Text("smb.downloadFirst.body \(named) \(size)", bundle: .module)
+            // Two bodies, for `MeteredConfirmation`'s reason: a share that named no length is
+            // said in words rather than shown as a zero.
+            if let bytes = transferring?.bytes {
+                Text("smb.downloadFirst.body \(named) \(formattedBytes(bytes))", bundle: .module)
+            } else {
+                Text("smb.downloadFirst.bodyUnstated \(named)", bundle: .module)
+            }
         }
         .task(id: path) {
             guard entries.isEmpty else { return }
@@ -159,7 +166,7 @@ public struct SmbBrowserView: View {
                 entries = try await SmbClient(address: address).list(path)
                 failure = nil
             } catch {
-                failure = unexpected
+                failure = ShareOpening.unexpected
             }
         }
     }
@@ -176,42 +183,30 @@ public struct SmbBrowserView: View {
     /// a share came across in silence with its length already in hand.
     /// `publication-formats` asks for the opposite — "the app says the format has to be
     /// downloaded before it can be read, states the size, and offers to download it" — and
-    /// ``StreamingOffer`` is where that is decided.
+    /// ``ShareOpening/offerOrOpen(index:length:onOpen:onOffer:onRefuse:onFailure:)`` is where
+    /// that is decided, so that a test can drive the decision without a share.
     private func open(_ entry: SmbEntry) async {
         opening = entry.path
         defer { opening = nil }
 
-        do {
-            let client = SmbClient(address: address)
-            let remote = URL(string: "\(SmbLocator.write(address))/\(entry.path)")
-                ?? URL(fileURLWithPath: entry.path)
-            let source = try await client.open(entry.path)
-            let identity = PublicationIdentity(normalizedPath: remote.absoluteString)
-
-            let catalogued = try await PublicationIndexer.index(
-                source: source,
-                name: entry.name,
-                identity: identity
-            )
-            switch StreamingOffer.of(
-                streaming: catalogued.streaming,
-                isLocal: false,
-                // A record is how `PublicationIndexer` says the decoder needs a file: a
-                // remote PDF, EPUB or CBR comes back `refused` with its pages unreached.
-                // Anything else was read from the share's own headers and can go on being.
-                readsWhereItLies: catalogued.streaming != .refused,
-                bytes: entry.length
-            ) {
-            case .open:
-                onOpen(catalogued, remote)
-            case .download(let bytes):
-                transferring = TransferAsk(entry: entry, bytes: bytes ?? entry.length)
-            case .refuse:
-                failure = cannotOpen
-            }
-        } catch {
-            failure = unexpected
-        }
+        await ShareOpening.offerOrOpen(
+            index: {
+                let client = SmbClient(address: address)
+                let remote = URL(string: "\(SmbLocator.write(address))/\(entry.path)")
+                    ?? URL(fileURLWithPath: entry.path)
+                let source = try await client.open(entry.path)
+                let catalogued = try await PublicationIndexer.index(
+                    source: source,
+                    name: entry.name,
+                    identity: PublicationIdentity(normalizedPath: remote.absoluteString)
+                )
+                return (catalogued, remote)
+            },
+            length: entry.length,
+            onOpen: onOpen,
+            onOffer: { bytes in transferring = TransferAsk(entry: entry, bytes: bytes) },
+            onSay: { said in failure = said }
+        )
     }
 
     /// Fetches the whole file, then opens the publication from the copy.
@@ -226,45 +221,28 @@ public struct SmbBrowserView: View {
         opening = entry.path
         defer { opening = nil }
 
-        do {
-            let source = try await SmbClient(address: address).open(entry.path)
-            let directory = URL.cachesDirectory.appending(path: "Smb", directoryHint: .isDirectory)
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            // The server named this file. `cacheLocation` is what keeps its name from
-            // being a place — see `SmbEntry`.
-            guard let local = entry.cacheLocation(in: directory) else {
-                throw SmbError.unexpected(detail: "unusable entry name")
-            }
-            let existing = try? local.resourceValues(forKeys: [.fileSizeKey]).fileSize
-            if existing.map({ Int64($0) }) != entry.length {
-                try await source.read(offset: 0, count: Int(entry.length))
-                    .write(to: local, options: .atomic)
-            }
-            let publication = try await PublicationIndexer.index(fileAt: local)
-            let offer = StreamingOffer.of(
-                streaming: publication.streaming,
-                isLocal: true,
-                readsWhereItLies: true,
-                bytes: entry.length
-            )
-            if offer == .refuse {
-                failure = cannotOpen
-            } else {
-                onOpen(publication, local)
-            }
-        } catch {
-            failure = unexpected
-        }
-    }
-
-    /// Said out loud rather than swallowed. A tap that does nothing is the worst answer a
-    /// screen can give.
-    private var unexpected: LocalizedStringResource {
-        LocalizedStringResource("smb.error.unexpected", bundle: .atURL(Bundle.module.bundleURL))
-    }
-
-    /// The refusal `publication-formats` requires to be named rather than retried.
-    private var cannotOpen: LocalizedStringResource {
-        LocalizedStringResource("smb.cannotOpen", bundle: .atURL(Bundle.module.bundleURL))
+        await ShareOpening.openWhatArrived(
+            fetch: {
+                let source = try await SmbClient(address: address).open(entry.path)
+                let directory = URL.cachesDirectory
+                    .appending(path: "Smb", directoryHint: .isDirectory)
+                try FileManager.default.createDirectory(
+                    at: directory, withIntermediateDirectories: true
+                )
+                // The server named this file. `cacheLocation` is what keeps its name from
+                // being a place — see `SmbEntry`.
+                guard let local = entry.cacheLocation(in: directory) else {
+                    throw SmbError.unexpected(detail: "unusable entry name")
+                }
+                let existing = try? local.resourceValues(forKeys: [.fileSizeKey]).fileSize
+                if existing.map({ Int64($0) }) != entry.length {
+                    try await source.read(offset: 0, count: Int(entry.length))
+                        .write(to: local, options: .atomic)
+                }
+                return (try await PublicationIndexer.index(fileAt: local), local)
+            },
+            onOpen: onOpen,
+            onSay: { said in failure = said }
+        )
     }
 }

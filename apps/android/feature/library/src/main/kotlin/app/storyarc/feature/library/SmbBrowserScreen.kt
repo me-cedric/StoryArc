@@ -112,8 +112,7 @@ fun SmbBrowserScreen(
                 length = entry.length,
                 onOpen = onOpen,
                 onOffer = { bytes -> transferring = TransferAsk(entry, bytes) },
-                onRefuse = { failure = R.string.detail_refused_body },
-                onFailure = { failure = it },
+                onSay = { said -> failure = said },
             )
             opening = null
         }
@@ -126,8 +125,7 @@ fun SmbBrowserScreen(
             openWhatArrived(
                 fetch = { fetchAndIndex(context, client, address, entry) },
                 onOpen = onOpen,
-                onRefuse = { failure = R.string.detail_refused_body },
-                onFailure = { failure = it },
+                onSay = { said -> failure = said },
             )
             opening = null
         }

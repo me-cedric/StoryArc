@@ -8668,31 +8668,61 @@
       }
     },
     "smb.downloadFirst.body %@ %@": {
-      "comment": "The share browser, before a publication that cannot be read a page at a time is transferred. First the publication's name, then its size as the share stated it.",
+      "comment": "The share browser, before a publication whose decoder needs a file on the device is transferred. First the publication's name, then its size as the share stated it.",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "„%1$@“ lässt sich nicht Seite für Seite lesen. Erst muss die ganze Datei herüberkommen — %2$@."
+            "value": "„%1$@“ lässt sich nicht direkt von der Freigabe öffnen: dieses Format braucht eine Datei auf dem Gerät. Sie ist %2$@ groß."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "“%1$@” cannot be read a page at a time. The whole file has to come across first — %2$@."
+            "value": "“%1$@” cannot be opened straight from the share: this format needs a file on the device. It is %2$@."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "«%1$@» no se puede leer página a página. Primero tiene que llegar el archivo completo: %2$@."
+            "value": "«%1$@» no se puede abrir directamente desde el recurso compartido: este formato necesita un archivo en el dispositivo. Ocupa %2$@."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "« %1$@ » ne se lit pas page par page. Le fichier entier doit d’abord être transféré — %2$@."
+            "value": "« %1$@ » ne peut pas s’ouvrir directement depuis le partage : ce format exige un fichier sur l’appareil. Il pèse %2$@."
+          }
+        }
+      }
+    },
+    "smb.downloadFirst.bodyUnstated %@": {
+      "comment": "The same offer as `smb.downloadFirst.body`, for the entry whose length the share did not state. `offline-downloads` requires an unknown size to be an absence rather than a zero.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ lässt sich nicht direkt von der Freigabe öffnen: dieses Format braucht eine Datei auf dem Gerät. Die Freigabe nennt keine Dateigröße."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” cannot be opened straight from the share: this format needs a file on the device. The share does not state its size."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no se puede abrir directamente desde el recurso compartido: este formato necesita un archivo en el dispositivo. El recurso no indica su tamaño."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » ne peut pas s’ouvrir directement depuis le partage : ce format exige un fichier sur l’appareil. Le partage n’indique pas sa taille."
           }
         }
       }

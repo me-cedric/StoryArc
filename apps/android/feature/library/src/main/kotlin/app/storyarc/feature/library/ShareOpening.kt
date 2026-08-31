@@ -50,9 +50,9 @@ internal fun statedLength(length: Long): Long? = length.takeIf { it > 0L }
  * Nothing is transferred here: [index] reads headers over the share, which is what lets the
  * caller state a size while it asks whether the transfer may happen at all.
  *
- * [onRefuse] is unreachable while the bytes are remote and is wired anyway -- see
- * [StreamingOffer.of], which only believes `REFUSED` once a file exists to judge. A solid RAR4
- * on a share therefore costs a whole transfer before the app can say it cannot be opened,
+ * The [CANNOT_OPEN] branch is unreachable while the bytes are remote and is wired anyway --
+ * see [StreamingOffer.of], which only believes `REFUSED` once a file exists to judge. A solid
+ * RAR4 on a share therefore costs a whole transfer before the app can say it cannot be opened,
  * because libarchive reads `FHD_SOLID` through a path and nothing over the share can.
  */
 internal suspend fun offerOrOpen(
@@ -60,8 +60,7 @@ internal suspend fun offerOrOpen(
     length: Long,
     onOpen: (Publication, String) -> Unit,
     onOffer: (Long?) -> Unit,
-    onRefuse: () -> Unit,
-    onFailure: (Int) -> Unit,
+    onSay: (Int) -> Unit,
 ) {
     runCatching { index() }
         .onSuccess { (publication, remotePath) ->
@@ -74,12 +73,10 @@ internal suspend fun offerOrOpen(
             when (offer) {
                 is StreamingOffer.Open -> onOpen(publication, remotePath)
                 is StreamingOffer.Download -> onOffer(offer.bytes)
-                is StreamingOffer.Refuse -> onRefuse()
+                is StreamingOffer.Refuse -> onSay(CANNOT_OPEN)
             }
         }
-        // Said out loud rather than swallowed. A tap that does nothing is the worst answer a
-        // screen can give.
-        .onFailure { onFailure(R.string.smb_error_unexpected) }
+        .onFailure { onSay(UNEXPECTED) }
 }
 
 /**
@@ -96,8 +93,7 @@ internal suspend fun offerOrOpen(
 internal suspend fun openWhatArrived(
     fetch: suspend () -> Pair<Publication, String>,
     onOpen: (Publication, String) -> Unit,
-    onRefuse: () -> Unit,
-    onFailure: (Int) -> Unit,
+    onSay: (Int) -> Unit,
 ) {
     runCatching { fetch() }
         .onSuccess { (publication, local) ->
@@ -107,7 +103,22 @@ internal suspend fun openWhatArrived(
                 readsWhereItLies = true,
                 bytes = null,
             )
-            if (offer is StreamingOffer.Refuse) onRefuse() else onOpen(publication, local)
+            if (offer is StreamingOffer.Refuse) onSay(CANNOT_OPEN) else onOpen(publication, local)
         }
-        .onFailure { onFailure(R.string.smb_error_unexpected) }
+        .onFailure { onSay(UNEXPECTED) }
 }
+
+/**
+ * The refusal `publication-formats` requires to be named rather than retried.
+ *
+ * Named here rather than in the composable, so that the decision owns the sentence it leads to
+ * and [ShareOpeningTest] can assert *which* sentence a publication earns. iOS keeps the pair as
+ * `ShareOpening.cannotOpen` and `ShareOpening.unexpected` for the same reason.
+ */
+internal val CANNOT_OPEN: Int = R.string.detail_refused_body
+
+/**
+ * Said out loud rather than swallowed. A tap that does nothing is the worst answer a screen can
+ * give.
+ */
+internal val UNEXPECTED: Int = R.string.smb_error_unexpected
