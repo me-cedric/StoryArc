@@ -30,6 +30,23 @@ import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.util.Url
 
 /**
+ * The four ways of asking *where in this book do I go*.
+ *
+ * `ebook-reader` puts bookmarks "alongside the table of contents", and searching inside the
+ * book is another way of asking the same question. One sheet with four panels rather than
+ * four sheets, because a reader who opened the wrong one would have to close it to ask again.
+ *
+ * A type rather than an `Int`, because `EpubMenuSheet` names one per row: that is what turns
+ * four panels into four one-action doors, and `tab == 2` is not a name.
+ */
+internal enum class ContentsTab {
+    CONTENTS,
+    BOOKMARKS,
+    SEARCH,
+    ANNOTATIONS,
+}
+
+/**
  * The publication's own navigation, to its full depth.
  *
  * `ebook-reader` asks for the publication's own navigation rather than a list this app

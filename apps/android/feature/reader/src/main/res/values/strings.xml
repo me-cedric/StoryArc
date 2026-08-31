@@ -2,6 +2,12 @@
 <resources>
     <string name="reader_page">%1$d of %2$d</string>
     <string name="reader_close">Close</string>
+    <string name="reader_menu">Menu</string>
+    <string name="reader_menu_contents">Contents</string>
+    <string name="reader_menu_bookmarks">Bookmarks</string>
+    <string name="reader_menu_search">Search</string>
+    <string name="reader_menu_themes">Appearance</string>
+    <string name="reader_menu_settings">Settings</string>
     <string name="reader_page_label">Page %1$d of %2$d</string>
     <string name="reader_page_slider">Page slider</string>
     <string name="reader_page_unavailable">This page could not be read</string>

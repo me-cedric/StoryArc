@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="epub_close">Cerrar</string>
+    <string name="epub_menu">Menú</string>
+    <string name="epub_progress_chapter">%1$d%% leído · %2$s</string>
+    <string name="reader_menu_contents">Contenido</string>
+    <string name="reader_menu_bookmarks">Marcadores</string>
+    <string name="reader_menu_search">Buscar</string>
+    <string name="reader_menu_themes">Temas de lectura</string>
+    <string name="reader_menu_settings">Ajustes</string>
     <string name="epub_progress">%1$d%% leído</string>
     <string name="epub_failure_unreachable">No se puede acceder a este libro.</string>
     <string name="epub_failure_unreadable">No se ha podido abrir este libro.</string>

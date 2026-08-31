@@ -393,6 +393,15 @@ private fun Pager(
     /** Whether the find sheet -- search and marks -- is open. */
     var isFindingText by rememberSaveable { mutableStateOf(false) }
 
+    /**
+     * Which of the find sheet's two panels it opens on.
+     *
+     * The menu has a row for bookmarks and a row for search, and `comic-reader` requires
+     * every control to be "reachable from here in one action". One sheet with a segmented
+     * control at the top is two actions unless the row says which panel it wants.
+     */
+    var pdfTextTab by rememberSaveable { mutableStateOf(PdfTextTab.SEARCH) }
+
     /** The mark a note is being written on, or nothing. */
     var noting by remember { mutableStateOf<Annotation?>(null) }
 
@@ -499,6 +508,15 @@ private fun Pager(
      * takes the menu with it — the tap that follows lands on the page and turns it.
      */
     var isMenuOpen by remember { mutableStateOf(false) }
+
+    /**
+     * Whether the reader's menu is open.
+     *
+     * The other half of the two-control chrome: one button leaves the publication and this
+     * one is everything else. `rememberSaveable`, because a rotation while the menu is open
+     * should not close it — the reader may have turned the device *to see* what a choice did.
+     */
+    var isReaderMenuOpen by rememberSaveable { mutableStateOf(false) }
 
     /** Set when the reader turns past the last page. */
     var hasReachedEnd by remember { mutableStateOf(false) }
@@ -922,173 +940,38 @@ private fun Pager(
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
-                // Inside the system bars. The reader draws edge to edge so the page fills the
-                // screen, and without this the top row sat under the status bar's own gesture
-                // strip: the system took the touch and the buttons were all but unreachable.
-                // Measured on an emulator, where only the lowest sliver of each button worked.
-                Box(Modifier.fillMaxSize().safeDrawingPadding()) {
-                    CloseButton(onClose)
-                    if (count > 1) {
-                        ThumbnailToggle(
-                            isOpen = isBrowsingThumbnails,
-                            onToggle = { isBrowsingThumbnails = !isBrowsingThumbnails },
-                            modifier = Modifier.align(Alignment.TopCenter),
-                        )
-                    }
-                    ReaderToolCluster(
-                        choices = choices,
-                        showsSeparator = settings.showsPageSeparator,
-                        onToggleSeparator = viewModel::choosePageSeparator,
-                        // A scroll row is an axis choice: recording it as one is what makes the
-                        // override stick, rather than leaving the axis implied and the mode
-                        // disagreeing with it.
-                        onChooseTransition = { mode ->
-                            val axis = mode.scrollAxis
-                            if (axis != null) viewModel.choose(axis) else viewModel.choose(mode)
-                        },
-                        fit = fit,
-                        onChooseFit = onFitChange,
-                        hasPairs = layout.hasPairs,
-                        isOffset = settings.offsetsSpreads,
-                        onToggleOffset = { viewModel.chooseSpreadOffset(!settings.offsetsSpreads) },
-                        adjustmentsAreNeutral = adjustments.isNeutral,
-                        onAdjust = { isAdjusting = true },
-                        hasPdfText = pdfText != null,
-                        onFindText = { isFindingText = true },
-                        onMenuOpenChange = { isMenuOpen = it },
-                        modifier = Modifier.align(Alignment.TopEnd),
-                    )
-
-                    Column(
-                        // A band, for the same reason the pills carry a scrim: the page number
-                        // and the slider thumb are white and the page under them can be white.
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .background(LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f))
-                            .padding(horizontal = StoryArcSpace.md, vertical = StoryArcSpace.lg),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        // Only where there is no pane to hold it. On a wide window the same pages
-                        // are already beside the artwork, and drawing both would be the browser
-                        // twice.
-                        if (isBrowsingThumbnails && !usesThumbnailPane) {
-                            ThumbnailStrip(
-                                viewModel = viewModel,
-                                pageCount = count,
-                                currentIndex = modelIndex(paging.current),
-                                onSelect = { index ->
-                                    isBrowsingThumbnails = false
-                                    // A jump, like the slider's: it leaves the same mark, so the
-                                    // way back from a mis-tap in a three-hundred-page strip is
-                                    // one control.
-                                    jump(index)
-                                },
-                                modifier = Modifier.padding(bottom = StoryArcSpace.sm),
-                            )
-                        }
-
-                        // Down here with the page count rather than in the top row, which on a
-                        // phone is already the way out of the reader and three controls wide.
-                        ReaderLayoutCluster(
-                            direction = direction,
-                            onChooseDirection = viewModel::choose,
-                            isOrientationLocked = isOrientationLocked,
-                            onToggleOrientation = { isOrientationLocked = !isOrientationLocked },
-                            onMenuOpenChange = { isMenuOpen = it },
-                        )
-
-                        ChapterRow(
-                            previous = previousInSeries,
-                            next = nextInSeries,
-                            onOpen = onOpen,
-                        )
-
-                        // The scrub target while a drag is in progress, and where the reader
-                        // actually is otherwise. `comic-reader` asks for "the page number and
-                        // total" beside the thumbnail, and during a drag the number a reader
-                        // wants is the one they are heading for.
-                        val sliderIndex = scrubbing ?: modelIndex(paging.current)
-
-                        scrubbing?.let { target ->
-                            ScrubThumbnail(
-                                viewModel = viewModel,
-                                index = target,
-                                modifier = Modifier.padding(bottom = StoryArcSpace.xs),
-                            )
-                        }
-
-                        Surface(
-                            color = Color.White.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(percent = 50),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.reader_page, sliderIndex + 1, count),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = Color.White,
-                                modifier = Modifier.padding(
-                                    horizontal = StoryArcSpace.md,
-                                    vertical = StoryArcSpace.xs,
-                                ),
-                            )
-                        }
-
-                        if (count > 1) {
-                            val sliderName = stringResource(R.string.reader_page_slider)
-                            val pageLabel = stringResource(R.string.reader_page, sliderIndex + 1, count)
-                            // Bound to the *publication's* page number, not the pager's
-                            // position. In right-to-left the two run opposite ways, and a
-                            // slider whose left end is the last page would be a puzzle.
-                            //
-                            // The drag writes to `scrubbing` and the release moves the reader,
-                            // which is what `comic-reader` asks for and also what stops a scrub
-                            // across a long comic asking the archive for every page on the way.
-                            // TalkBack's own adjustment lands here too: Compose calls the
-                            // finished callback after an accessibility action, so a stepped
-                            // slider still turns the page.
-                            Slider(
-                                value = sliderIndex.toFloat(),
-                                onValueChange = { value -> scrubbing = value.roundToInt() },
-                                onValueChangeFinished = {
-                                    scrubbing?.let(::jump)
-                                    scrubbing = null
-                                },
-                                valueRange = 0f..(count - 1).toFloat(),
-                                steps = (count - 2).coerceAtLeast(0),
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color.White,
-                                    activeTrackColor = Color.White,
-                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f),
-                                ),
-                                // Named, and reading the page rather than the range percent
-                                // Compose announces by default.
-                                modifier = Modifier.fillMaxWidth().semantics {
-                                    contentDescription = sliderName
-                                    stateDescription = pageLabel
-                                },
-                            )
-                        }
-
-                        // The way back from a jump. It names the page rather than saying "Back",
-                        // because by the time a reader notices they have lost their place they no
-                        // longer remember what it was.
-                        pageReturn.mark?.let { mark ->
-                            TextButton(
-                                onClick = ::returnFromJump,
-                                colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Undo,
-                                    contentDescription = null,
-                                    modifier = Modifier.padding(end = StoryArcSpace.xs),
-                                )
-                                Text(stringResource(R.string.reader_return, mark + 1))
-                            }
-                        }
-
-                        SkippedNotice(skipped)
-                    }
+                // Two controls, and everything the other nine used to do is one tap behind
+                // the second of them. See `ReaderChrome.kt` and `ReaderMenuSheet.kt`.
+                ReaderChrome(onClose = onClose, onOpenMenu = { isReaderMenuOpen = true })
             }
+
+            // The way back from a jump, over the page.
+            //
+            // **Why this one control is over the page and the count is still two.** The
+            // two-control count in `comic-reader` is about what a *centre tap reveals*; this
+            // is armed by a jump the reader just made and disarmed by taking it. The scenario
+            // that asks for it puts it after the menu has been dismissed by the same gesture
+            // — "releasing jumps there and dismisses the menu, with a control to return to
+            // the previous position" — so there is nowhere else it can be.
+            //
+            // It names the page rather than saying "Back", because by the time a reader
+            // notices they have lost their place they no longer remember what it was.
+            pageReturn.mark?.let { mark ->
+                TextButton(
+                    onClick = ::returnFromJump,
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .safeDrawingPadding()
+                        .padding(bottom = StoryArcSpace.xxl),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Undo,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = StoryArcSpace.xs),
+                    )
+                    Text(stringResource(R.string.reader_return, mark + 1))
+                }
             }
         }
     }
@@ -1117,6 +1000,73 @@ private fun Pager(
         )
     } else {
         PageSurface()
+    }
+
+    if (isReaderMenuOpen) {
+        ReaderMenuSheet(
+            viewModel = viewModel,
+            facts = ReaderMenuFacts(
+                pageIndex = modelIndex(paging.current),
+                pageCount = count,
+                skippedPageCount = skipped,
+                choices = choices,
+                showsSeparator = settings.showsPageSeparator,
+                fit = fit,
+                direction = direction,
+                hasPairs = layout.hasPairs,
+                isOffset = settings.offsetsSpreads,
+                isOrientationLocked = isOrientationLocked,
+                hasPdfText = pdfText != null,
+                // Only where there is no pane to hold it. On a wide window the same pages are
+                // already beside the artwork, and drawing both would be the browser twice.
+                showsThumbnailStrip = isBrowsingThumbnails && !usesThumbnailPane,
+                previousInSeries = previousInSeries,
+                nextInSeries = nextInSeries,
+            ),
+            actions = ReaderMenuActions(
+                onDismiss = { isReaderMenuOpen = false },
+                onOpenThumbnails = {
+                    isBrowsingThumbnails = !isBrowsingThumbnails
+                    // The pane is beside the page, so the menu has to get out of the way to
+                    // let the reader see it. The strip is inside the menu and does not.
+                    if (usesThumbnailPane) isReaderMenuOpen = false
+                },
+                onOpenText = { tab ->
+                    pdfTextTab = tab
+                    isReaderMenuOpen = false
+                    isFindingText = true
+                },
+                onAdjust = {
+                    isReaderMenuOpen = false
+                    isAdjusting = true
+                },
+                // A scroll row is an axis choice: recording it as one is what makes the
+                // override stick, rather than leaving the axis implied and the mode
+                // disagreeing with it.
+                onChooseTransition = { mode ->
+                    val axis = mode.scrollAxis
+                    if (axis != null) viewModel.choose(axis) else viewModel.choose(mode)
+                },
+                onToggleSeparator = viewModel::choosePageSeparator,
+                onChooseFit = onFitChange,
+                onChooseDirection = viewModel::choose,
+                onToggleOffset = viewModel::chooseSpreadOffset,
+                onToggleOrientation = { isOrientationLocked = it },
+                onScrub = { scrubbing = it },
+                onJump = { index ->
+                    jump(index)
+                    // `comic-reader`: "releasing jumps there and dismisses the menu". The menu
+                    // leaving is what makes the jump land on the page the reader was aiming at
+                    // rather than behind a bottom sheet.
+                    isReaderMenuOpen = false
+                },
+                onOpenPublication = { publication ->
+                    isReaderMenuOpen = false
+                    onOpen(publication)
+                },
+            ),
+            scrubbing = scrubbing,
+        )
     }
 
     if (hasReachedEnd) {
@@ -1179,6 +1129,7 @@ private fun Pager(
                 onSearch = {
                     val words = selected.text
                     text.clearSelection()
+                    pdfTextTab = PdfTextTab.SEARCH
                     isFindingText = true
                     scope.launch { text.search(words, pageLabel) }
                 },
@@ -1190,6 +1141,7 @@ private fun Pager(
     if (isFindingText && text != null) {
         ModalBottomSheet(onDismissRequest = { isFindingText = false }) {
             PdfTextSheet(
+                opensOn = pdfTextTab,
                 state = text,
                 matches = pdfMatches,
                 isSearching = isPdfSearching,
@@ -1251,42 +1203,6 @@ private fun shareAnnotations(context: android.content.Context, document: String)
             null,
         ),
     )
-}
-
-/**
- * How many entries the archive could not give us, when any.
- *
- * `publication-formats`: a damaged archive opens "whatever pages it can read and states
- * how many were skipped, rather than refusing the whole publication". The opening half
- * was already true and the *stating* half was not — the count reached the view model and
- * stopped there, so a reader met a comic that was quietly eight pages short and had
- * nothing to tell them why.
- *
- * In the chrome rather than over the artwork: it is a fact about the file, not about the
- * page in front of the reader, and the non-negotiable is that chrome recedes. So it
- * arrives with the controls, sits under the page counter it qualifies, and leaves with
- * them four seconds later.
- *
- * iOS's `skippedNotice` is the same line in the same place.
- */
-@Composable
-private fun SkippedNotice(count: Int) {
-    if (count <= 0) return
-    Surface(
-        color = Color.White.copy(alpha = 0.2f),
-        shape = RoundedCornerShape(percent = 50),
-        modifier = Modifier.padding(top = StoryArcSpace.xs),
-    ) {
-        Text(
-            text = pluralStringResource(R.plurals.reader_skipped, count, count),
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
-            modifier = Modifier.padding(
-                horizontal = StoryArcSpace.md,
-                vertical = StoryArcSpace.xs,
-            ),
-        )
-    }
 }
 
 /**
@@ -1561,69 +1477,6 @@ private fun PointerInputScope.isEdgeTap(point: Offset, area: IntSize): Boolean {
 }
 
 /**
- * Moving between the publications of a series, from inside the reader.
- *
- * `comic-reader`: "WHEN a publication has internal chapter markers, or is one chapter of
- * a series THEN the reader offers previous and next chapter actions without returning to
- * the library". A local library knows the second of those two — a series and its order —
- * so a chapter here is a publication, and the row is absent entirely for a book that
- * belongs to no series.
- *
- * iOS's `chapterRow` is the same row.
- */
-@Composable
-private fun ChapterRow(
-    previous: Publication?,
-    next: Publication?,
-    onOpen: (Publication) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (previous == null && next == null) return
-    Row(
-        modifier = modifier.padding(bottom = StoryArcSpace.xs),
-        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-    ) {
-        ChapterButton(previous, Icons.Filled.SkipPrevious, R.string.reader_chapter_previous, onOpen)
-        ChapterButton(next, Icons.Filled.SkipNext, R.string.reader_chapter_next, onOpen)
-    }
-}
-
-/**
- * One chapter button, disabled at the end of the run rather than absent.
- *
- * The first and the last issue of a series each have one neighbour, and a row that
- * changed shape between them would move the other button under the finger. A disabled
- * control also says there is nothing that way, which a missing one does not.
- *
- * Skip-previous and skip-next rather than a chevron: this is the track-skip idiom, and it
- * does not mirror for a right-to-left publication — the series still runs from its first
- * issue to its last whichever way its pages do.
- */
-@Composable
-private fun ChapterButton(
-    destination: Publication?,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    labelRes: Int,
-    onOpen: (Publication) -> Unit,
-) {
-    IconButton(
-        onClick = { destination?.let(onOpen) },
-        enabled = destination != null,
-    ) {
-        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
-            Icon(
-                imageVector = icon,
-                contentDescription = stringResource(labelRes),
-                // Dimmed rather than gone: an end of the run reads as "nothing that way",
-                // which a control that vanished would not say at all.
-                tint = if (destination != null) Color.White else Color.White.copy(alpha = 0.35f),
-                modifier = Modifier.padding(StoryArcSpace.sm),
-            )
-        }
-    }
-}
-
-/**
  * The break between two pages in a continuous scroll.
  *
  * `comic-reader`: pages are "stitched with no gap by default, with an option to show a
@@ -1667,25 +1520,6 @@ private fun PageSeparator(
                 )
                 .background(LocalStoryArcPalette.current.borderSubtle),
         )
-    }
-}
-
-/** Opens and closes the page strip. */
-@Composable
-private fun ThumbnailToggle(
-    isOpen: Boolean,
-    onToggle: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    IconButton(onClick = onToggle, modifier = modifier.padding(StoryArcSpace.md)) {
-        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
-            Icon(
-                imageVector = Icons.Filled.GridView,
-                contentDescription = stringResource(R.string.reader_thumbnails),
-                tint = if (isOpen) LocalStoryArcPalette.current.accent else Color.White,
-                modifier = Modifier.padding(StoryArcSpace.sm),
-            )
-        }
     }
 }
 

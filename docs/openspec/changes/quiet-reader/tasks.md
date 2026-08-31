@@ -10,14 +10,14 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
       slider is among them. Fails against today's three bars.
 - [x] 1.2 iOS: collapse the reader's top bar, bottom bar and slider into one overlay
       of two buttons on `.regularMaterial`.
-- [ ] 1.3 Android: `ReaderChromeTest` — the same two-control assertion against the
+- [x] 1.3 Android: `ReaderChromeTest` — the same two-control assertion against the
       `HorizontalFloatingToolbar` the reader already uses.
-- [ ] 1.4 Android: collapse the same three surfaces.
-- [ ] 1.5 Both: `ReaderMenuTests` / `ReaderMenuTest` — the menu offers contents,
+- [x] 1.4 Android: collapse the same three surfaces.
+- [x] 1.5 Both: `ReaderMenuTests` / `ReaderMenuTest` — the menu offers contents,
       bookmarks, search-in-publication, themes and settings, each with a text label,
       and every control reachable before this change is reachable in one action.
       This is the test that stops the declutter from removing a capability.
-- [ ] 1.6 Both: assert every pre-existing gesture still behaves — edge tap, swipe,
+- [x] 1.6 Both: assert every pre-existing gesture still behaves — edge tap, swipe,
       pinch, drag-zoom, and the right-to-left mirroring. Fewer controls must not
       mean fewer ways in.
 - [ ] 1.7 Both: capture the reader before and after, at default and largest text

@@ -399,6 +399,11 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     var isShowingTheme by remember { mutableStateOf(false) }
                     var isShowingContents by remember { mutableStateOf(false) }
 
+                    // The other half of the two-control chrome: one button leaves the book
+                    // and this one is everything else. See `EpubMenuSheet.kt`.
+                    var isShowingMenu by remember { mutableStateOf(false) }
+                    var contentsTab by remember { mutableStateOf(ContentsTab.CONTENTS) }
+
                     // `reading-themes`: reader-local. A window attribute rather than
                     // the system setting, so it reverts when this screen goes away.
                     LaunchedEffect(brightness) {
@@ -493,6 +498,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                             },
                             onRemoveBookmark = { model.removeBookmark(it.id) },
                             onDismiss = { isShowingContents = false },
+                            opensOn = contentsTab,
                         )
                     }
 
@@ -524,24 +530,51 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                         )
                     }
 
+                    if (isShowingMenu) {
+                        EpubMenuSheet(
+                            facts = EpubMenuFacts(
+                                chapter = chapter,
+                                progression = progression,
+                                isPageBookmarked = isPageBookmarked,
+                                isContentsReady = contents != null,
+                                canReadAloud = canSpeak,
+                                isReadingAloud = isThisBook && spoken.isActive,
+                            ),
+                            actions = EpubMenuActions(
+                                onDismiss = { isShowingMenu = false },
+                                onOpenContents = { panel ->
+                                    contentsTab = panel
+                                    isShowingMenu = false
+                                    isShowingContents = true
+                                },
+                                onToggleBookmark = { model.toggleBookmark() },
+                                onOpenTheme = {
+                                    isShowingMenu = false
+                                    isShowingTheme = true
+                                },
+                                onStartReadAloud = {
+                                    isShowingMenu = false
+                                    startReadAloud()
+                                },
+                                onStopReadAloud = ReadAloudHost::end,
+                            ),
+                        )
+                    }
+
                     EpubChrome(
-                        title = intent.getStringExtra(EXTRA_TITLE).orEmpty(),
-                        chapter = chapter,
-                        progression = progression,
                         failure = failure,
                         isVisible = isVisible,
-                        isContentsReady = contents != null,
-                        isPageBookmarked = isPageBookmarked,
+                        onClose = { finish() },
+                        onOpenMenu = { isShowingMenu = true },
+                    )
+
+                    // Not the chrome, and on screen on their own terms — see
+                    // `EpubReaderOverlays.kt`.
+                    EpubReaderOverlays(
                         canReturn = returnPoint != null,
-                        canReadAloud = canSpeak,
+                        onReturn = { model.takeReturnPoint()?.let { goToLocator(it, remember = false) } },
                         isReadingAloud = isThisBook && spoken.isActive,
                         isSpeaking = isThisBook && spoken.isSpeaking,
-                        onReturn = { model.takeReturnPoint()?.let { goToLocator(it, remember = false) } },
-                        onClose = { finish() },
-                        onToggleBookmark = { model.toggleBookmark() },
-                        onOpenContents = { isShowingContents = true },
-                        onOpenTheme = { isShowingTheme = true },
-                        onStartReadAloud = ::startReadAloud,
                         onToggleReadAloud = ReadAloudHost::toggle,
                         onSkipSentence = ReadAloudHost::skip,
                         onStopReadAloud = ReadAloudHost::end,
@@ -969,77 +1002,5 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
         model.markReturnPoint()
         navigator.go(link, animated = false)
-    }
-}
-
-/** The table of contents, in the same modal bottom sheet the theme sheet uses. */
-@OptIn(ExperimentalMaterial3Api::class)
-@androidx.compose.runtime.Composable
-private fun ContentsBottomSheet(
-    entries: List<Link>,
-    currentResource: Url?,
-    bookmarks: List<Bookmark>,
-    matches: List<SearchMatch>,
-    isSearching: Boolean,
-    annotations: List<Annotation>,
-    onGo: (Link) -> Unit,
-    onGoToBookmark: (Bookmark) -> Unit,
-    onRemoveBookmark: (Bookmark) -> Unit,
-    onSearch: (String) -> Unit,
-    onGoToMatch: (SearchMatch) -> Unit,
-    onGoToAnnotation: (Annotation) -> Unit,
-    onEditAnnotation: (Annotation) -> Unit,
-    onRemoveAnnotation: (Annotation) -> Unit,
-    onExportAnnotations: (AnnotationExport.Format) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    // `ebook-reader` puts bookmarks "alongside the table of contents", and searching inside
-    // the book is the third way of asking the same question — where in this book do I go.
-    // One sheet rather than three, because a reader who opened the wrong one would have to
-    // close it to ask again.
-    var tab by remember { mutableIntStateOf(0) }
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        PrimaryTabRow(selectedTabIndex = tab) {
-            listOf(
-                R.string.epub_contents,
-                R.string.epub_bookmarks,
-                R.string.epub_search,
-                R.string.annotations_title,
-            )
-                .forEachIndexed { index, label ->
-                    Tab(
-                        selected = tab == index,
-                        onClick = { tab = index },
-                        text = { Text(stringResource(label)) },
-                    )
-                }
-        }
-
-        when (tab) {
-            1 -> Bookmarks(
-                bookmarks = bookmarks,
-                onGo = onGoToBookmark,
-                onRemove = onRemoveBookmark,
-            )
-            2 -> SearchInBook(
-                matches = matches,
-                isSearching = isSearching,
-                onSearch = onSearch,
-                onGo = onGoToMatch,
-            )
-            3 -> Annotations(
-                annotations = annotations,
-                onGo = onGoToAnnotation,
-                onEdit = onEditAnnotation,
-                onRemove = onRemoveAnnotation,
-                onExport = onExportAnnotations,
-            )
-            else -> TableOfContents(
-                entries = entries,
-                currentResource = currentResource,
-                onGo = onGo,
-            )
-        }
     }
 }

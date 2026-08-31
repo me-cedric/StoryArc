@@ -78,8 +78,16 @@ internal fun PdfTextSheet(
     onRemove: (Annotation) -> Unit,
     onExport: (AnnotationExport.Format) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Which panel the sheet opens on.
+     *
+     * The reader's menu has a row for search and a row for bookmarks, and `comic-reader`
+     * requires each control to be "reachable from here in one action". A sheet that always
+     * opened on search would make one of the two rows cost two.
+     */
+    opensOn: PdfTextTab = PdfTextTab.SEARCH,
 ) {
-    var tab by remember { mutableStateOf(PdfTextTab.SEARCH) }
+    var tab by remember(opensOn) { mutableStateOf(opensOn) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         SingleChoiceSegmentedButtonRow(

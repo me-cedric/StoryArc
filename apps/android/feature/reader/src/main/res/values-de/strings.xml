@@ -2,6 +2,12 @@
 <resources>
     <string name="reader_page">%1$d von %2$d</string>
     <string name="reader_close">Schließen</string>
+    <string name="reader_menu">Menü</string>
+    <string name="reader_menu_contents">Inhalt</string>
+    <string name="reader_menu_bookmarks">Lesezeichen</string>
+    <string name="reader_menu_search">Suchen</string>
+    <string name="reader_menu_themes">Darstellung</string>
+    <string name="reader_menu_settings">Einstellungen</string>
     <string name="reader_page_label">Seite %1$d von %2$d</string>
     <string name="reader_page_slider">Seitenregler</string>
     <string name="reader_page_unavailable">Diese Seite konnte nicht gelesen werden</string>
