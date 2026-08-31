@@ -212,3 +212,24 @@ were merged and gated, and only iOS had been driven. `adb shell wm size 1600x256
    nothing under it. That is open question §8.3 of the direction document — *what fills
    Home on day three* — showing itself at a width where there is much more day three to
    fill.
+
+---
+
+# The download facet, in the filter menu
+
+`ios-filter-downloaded-facet-dark` — *Downloaded or not*, second in the library's filter
+menu, on the booted iPhone 17 Pro. `library-browsing`'s *Filtering offline* scenario was
+scored **missing on both platforms**, and its recorded blocker — that the library is
+assembled from a scan which never consults the record of downloaded files — was already gone.
+
+**It is not the availability scope said twice, and the spec is what settles that.** The
+scope in the toolbar asks *will this open on a plane*: a folder the reader picked answers
+yes, as much as a download the app fetched. The facet asks the narrower question
+`offline-downloads` owns — *did this app fetch it and is it keeping it* — which is a path
+comparison against the download store's own directory, the same line the shelf already
+draws for the mark on a cover. A file a folder walk found answers yes to the first and no
+to the second, and the difference matters exactly when the card is pulled, the grant lapses
+or the folder is unmounted.
+
+So the facet's result is a strict subset of the scope's, which keeps *Filtering offline*'s
+clause true of it while the two controls answer different questions.
