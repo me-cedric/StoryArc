@@ -68,8 +68,7 @@ final class ReaderAuditTests: XCTestCase {
     /// because of a fixture is a suite nobody believes twice. The walk is what is asserted —
     /// reaching a reflowable book at all — and `XCTSkip` covers a device with no EPUB on it.
     func testEpubReaderPassesTheAudit() throws {
-        // **It proves it arrived, twice over, and the second proof is why this test ran for
-        // a day without measuring the reader.**
+        // **It proves it arrived, and it has been wrong about that twice.**
         //
         // The first version tapped the action element `openFirstPublication` returned and
         // audited whatever was on screen. That element is not always hittable — the
@@ -77,15 +76,17 @@ final class ReaderAuditTests: XCTestCase {
         // to one that cannot be tapped — so it reported "zero findings on the EPUB reader"
         // while sitting on the publication page.
         //
-        // The version after it tapped a hittable action and then waited for the theme
-        // control, and skipped for twenty seconds' worth of waiting every time. That was
-        // honest and it was reported as "the EPUB reader does not reach a state with its own
-        // controls on this simulator". It does. What it asked the shelf for was an *EPUB*,
-        // and two of this corpus's five are pre-paginated and sort first — so it opened the
-        // **comic** reader, which has no theme control and never will.
+        // The second tapped a hittable action, waited twenty seconds for the theme control,
+        // and skipped. That skip was honest and its conclusion was not: it was written down
+        // as "the EPUB reader does not reach a state with its own controls on this
+        // simulator". What this asked the shelf for was an *EPUB*, and a cover says its
+        // format and nothing about its layout — so a **fixed-layout** one satisfies it, and
+        // the app opens that in the *comic* reader, which has no theme control and never
+        // will. Two of this corpus's five EPUBs are pre-paginated and both sort first.
         //
-        // `openTheEpubReader` is the fix: it keeps opening EPUBs until the reader it lands
-        // in is the one with the control on it.
+        // What the reflowable reader does on a simulator is still unmeasured. This is the
+        // walk that can find out: it keeps opening EPUBs until the reader it lands in is
+        // the one carrying that control, and says what it saw if none of them is.
         let app = launch()
         try openTheEpubReader(in: app)
 

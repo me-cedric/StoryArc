@@ -78,11 +78,14 @@ final class ScreenshotTests: XCTestCase {
     ///
     /// That task said "iOS cannot be captured: the simulator accepts no injected input, so the
     /// reader cannot be reached to open the sheet", and `apps/ios/README.md` records the three
-    /// approaches that were tried. Neither half of that survives. Input was never the
-    /// obstacle: a UI test injects through XCUITest rather than through the Simulator's
-    /// window. Nor was the reader unreachable, which is what it was narrowed to next — the
-    /// walk was reaching a *fixed-layout* EPUB and opening the comic reader with it, twenty
-    /// seconds at a time.
+    /// approaches that were tried. Input was never the obstacle: a UI test injects through
+    /// XCUITest rather than through the Simulator's window.
+    ///
+    /// What the blocker was narrowed to next — "the EPUB reader does not reach a state with
+    /// its own controls" — does not follow either, because the walk could not have been in
+    /// that reader. It asked for an EPUB, and a **fixed-layout** EPUB satisfies that and
+    /// opens the *comic* reader, which has no theme control at all. Whether the reflowable
+    /// reader has a problem of its own is a thing no run has measured yet.
     ///
     /// The sheet lives in the **EPUB** reader, not the comic reader, because a reading theme
     /// applies to reflowable text. Its control is labelled *Reading* — `theme.title` in

@@ -1081,16 +1081,18 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       `pnpm capture:ios` has taken the library, Home, Downloads and the shelf at AX5
       this way.
 
-      The second replaced it and was narrower and also wrong: "the EPUB reader does not
-      reach a state with its own controls on this simulator", because the theme control
-      — labelled *Reading* — never appeared within twenty seconds of tapping a hittable
-      *Read*. **The EPUB reader was never the screen that opened.** The walk asked the
-      shelf for an `EPUB`, and a cover's spoken label carries the format and says nothing
-      about the layout — so it matched a **fixed-layout** EPUB, which
-      `Publication.isReflowable` sends to the *comic* reader, which has no theme control
-      and never will. `Bright Panels` and `Glasshouse` are both `pre-paginated` in
-      `scripts/corpus.mjs`, and both sort before the three reflowable EPUBs, so the first
-      EPUB on a title-sorted shelf was always the wrong one.
+      The second replaced it and is narrower and does not follow: "the EPUB reader does
+      not reach a state with its own controls on this simulator", because the theme
+      control — labelled *Reading* — never appeared within twenty seconds of tapping a
+      hittable *Read*. **The walk was not in that reader, so the run says nothing about
+      it.** It asked the shelf for an `EPUB`, and a cover's spoken label carries the
+      format and says nothing about the layout — so a **fixed-layout** EPUB satisfies it,
+      and `Publication.isReflowable` sends one of those to the *comic* reader, which has
+      no theme control and never will. `Bright Panels` and `Glasshouse` are both
+      `pre-paginated` in `scripts/corpus.mjs` and both sort before the three reflowable
+      EPUBs, so the first EPUB on a title-sorted shelf is always one that opens the wrong
+      reader. That is enough to explain every symptom recorded — no control, no crash, no
+      log — with nothing wrong in the reader at all.
 
       `AuditWalk.openTheEpubReader` opens EPUBs in turn until the reader it lands in
       carries that control. Both suites use it, both compile, and **neither has been run
