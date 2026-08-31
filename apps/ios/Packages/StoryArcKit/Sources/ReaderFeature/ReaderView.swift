@@ -1,9 +1,5 @@
 public import SwiftUI
 
-#if os(iOS)
-internal import UIKit
-#endif
-
 internal import DesignSystem
 public import Persistence
 public import StoryArcCore
@@ -224,6 +220,19 @@ public struct ReaderView: View {
     /// Whether the find sheet — search, marks, contents — is open.
     @State var isFindingText = false
 
+    /// Which of the find sheet's three lists it opens on.
+    ///
+    /// The menu has a row for bookmarks and a row for search, and `comic-reader` requires
+    /// every control to be "reachable from here in one action". One sheet with a segmented
+    /// control at the top is two actions unless the row says which tab it wants.
+    @State var findingTab: PdfTextTab = .search
+
+    /// Whether the reader's menu is open.
+    ///
+    /// The other half of the two-control chrome: one button leaves the publication and this
+    /// one is everything else. See `ReaderMenu.swift`.
+    @State var isShowingMenu = false
+
     /// The mark a note is being written on, or nothing.
     @State var noting: Annotation?
 
@@ -316,7 +325,8 @@ public struct ReaderView: View {
                 // Not while the adjustment controls are open: they sit over the page with
                 // the chrome behind them, and a reader dragging a slider has not stopped
                 // interacting just because they have not touched the page.
-                guard isChromeVisible, !isBrowsingThumbnails, !isAdjusting, model.failure == nil
+                guard isChromeVisible, !isBrowsingThumbnails, !isAdjusting, !isShowingMenu,
+                      model.failure == nil
                 else { return }
                 try? await Task.sleep(for: .seconds(4))
                 guard !Task.isCancelled else { return }
@@ -349,6 +359,14 @@ public struct ReaderView: View {
         // The selection menu, the find sheet, and the one sentence a PDF with no text gets.
         // Empty for everything else, which is most of what this reader opens.
         .overlay { pdfTextControls }
+        // Everything the eleven icons used to do. `comic-reader` allows two controls over
+        // the page, and this is what the second one opens.
+        .sheet(isPresented: $isShowingMenu) { readerMenu }
+        // Reached from the menu's contents row, on a surface of its own now that there is no
+        // bottom bar for it to sit above.
+        .sheet(isPresented: $isBrowsingThumbnails) { thumbnailSheet }
+        // Armed by a jump, not by the centre tap — see ``returnOffer``.
+        .overlay(alignment: .bottom) { returnOffer }
         // Over the page rather than in place of it: `network-share` requires pages already
         // read to stay readable while the network is away.
         .overlay(alignment: .bottom) {
@@ -366,25 +384,13 @@ public struct ReaderView: View {
         .onKeyPress(.pageUp) { turn(by: -1); return .handled }
         .onKeyPress(.pageDown) { turn(by: 1); return .handled }
         .onKeyPress(.space) { turn(by: 1); return .handled }
-        // The package builds for macOS too, so the pure-Swift targets can be
-        // tested on the host without a simulator. These are touch-only.
-        #if os(iOS)
-        .statusBarHidden(!isChromeVisible)
-        .toolbar(.hidden, for: .navigationBar)
-        // `comic-reader`: "the screen does not auto-lock while a page is visible,
-        // and normal locking resumes on leaving". A long look at one page is
-        // reading, not idling.
-        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
-        .onDisappear {
-            UIApplication.shared.isIdleTimerDisabled = false
-            // However the reader left — the close button, the end screen, a swipe — the
-            // rest of the app follows the device again, which is the other half of what
-            // `comic-reader` asks of the lock.
-            ReaderOrientation.release()
-        }
-        .onChange(of: isOrientationLocked) { _, isLocked in
-            if isLocked { ReaderOrientation.hold() } else { ReaderOrientation.release() }
-        }
-        #endif
+        // The status bar, the idle timer and the orientation lock — see
+        // ``ReaderSystemChrome``, which is where the `#if os(iOS)` around all three lives.
+        .modifier(
+            ReaderSystemChrome(
+                isChromeVisible: isChromeVisible,
+                isOrientationLocked: isOrientationLocked
+            )
+        )
     }
 }

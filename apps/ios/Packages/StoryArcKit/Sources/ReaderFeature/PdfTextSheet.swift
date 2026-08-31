@@ -37,7 +37,18 @@ struct PdfTextSheet: View {
     /// Where to turn to. The page, because that is what a PDF locator names.
     let onGo: (Int) -> Void
 
-    @State private var tab: PdfTextTab = .search
+    @State private var tab: PdfTextTab
+
+    /// Which list the sheet opens on.
+    ///
+    /// The reader's menu has a row for bookmarks, one for search and one for contents, and
+    /// `comic-reader` requires each to be "reachable from here in one action". A sheet that
+    /// always opened on search would make two of the three rows cost two.
+    init(model: PdfTextModel, opensOn tab: PdfTextTab = .search, onGo: @escaping (Int) -> Void) {
+        self.model = model
+        self.onGo = onGo
+        _tab = State(initialValue: tab)
+    }
 
     /// Contents only where there is one. `ebook-reader` asks for the publication's own
     /// navigation "to its full depth"; a PDF that carries none has no depth to show, and an

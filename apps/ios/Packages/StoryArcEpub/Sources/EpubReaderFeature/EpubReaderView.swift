@@ -19,13 +19,28 @@ public import StoryArcCore
 /// `reader-theming-and-page-transitions` change, and a sheet of sliders that does
 /// nothing would be worse than no sheet at all.
 public struct EpubReaderView: View {
-    @Environment(\.theme) private var theme
-    @Environment(\.dismiss) private var dismiss
+    // Internal rather than private throughout: the chrome, the menu and the progress line
+    // are extensions in their own files, and a `private` member cannot be reached from one.
+    @Environment(\.theme) var theme
+    @Environment(\.dismiss) var dismiss
 
-    @State private var model: EpubReaderModel
+    @State var model: EpubReaderModel
     @State private var isChromeVisible = true
-    @State private var isShowingTheme = false
-    @State private var isShowingContents = false
+    @State var isShowingTheme = false
+    @State var isShowingContents = false
+
+    /// Which of the contents sheet's four panels it opens on.
+    ///
+    /// The menu has a row per panel, and `comic-reader` requires each control to be
+    /// "reachable from here in one action".
+    @State var contentsTab: ContentsTab = .contents
+
+    /// Whether the reader's menu is open.
+    ///
+    /// The other half of the two-control chrome: one button leaves the publication and this
+    /// one is everything else. See `EpubReaderMenu.swift`.
+    @State var isShowingMenu = false
+
     @State private var editingNote: Annotation?
     @State private var noteText = ""
     /// What the device's brightness was before the reader touched it.
@@ -89,7 +104,13 @@ public struct EpubReaderView: View {
             if isChromeVisible {
                 GlassEffectContainer(spacing: StoryArcSpace.md) { chrome }
             }
+
+            // Not the chrome, and on screen on their own terms — see ``transientOverlays``.
+            transientOverlays
         }
+        // Everything the five pills used to do. `comic-reader` allows two controls over the
+        // page, and this is what the second one opens.
+        .sheet(isPresented: $isShowingMenu) { readerMenu }
         // A popover, not a sheet — and on a phone the platform turns it back into
         // one. `native-experience` asks for "popover anchored to its control, reader
         // visible beside it" on a tablet and a detented sheet on a phone, which is
@@ -155,6 +176,7 @@ public struct EpubReaderView: View {
                 onSearch: {
                     let words = model.selection?.locator.text.highlight
                     model.selection = nil
+                    contentsTab = .search
                     isShowingContents = true
                     Task { if let words { await model.search(words) } }
                 }
@@ -213,7 +235,7 @@ public struct EpubReaderView: View {
             attachmentAnchor: .rect(.bounds),
             arrowEdge: .top
         ) {
-            TableOfContentsSheet(model: model)
+            TableOfContentsSheet(model: model, opensOn: contentsTab)
                 .presentationCompactAdaptation(.sheet)
                 .presentationDetents([.medium, .large])
                 .frame(idealWidth: 380, idealHeight: 620)
@@ -247,117 +269,26 @@ public struct EpubReaderView: View {
         }
     }
 
-    private var chrome: some View {
+    /// What is over the page and is not the chrome.
+    ///
+    /// **Why these two are not a third revealed control.** `comic-reader`'s count is about
+    /// what a centre tap reveals. The return offer is armed by a long jump the reader just
+    /// made and disarmed by taking it; the transport exists only while a voice is speaking,
+    /// and `read-aloud` requires it to be reachable while the reader is looking at the page.
+    /// Neither arrives with the chrome and neither survives the thing that armed it.
+    private var transientOverlays: some View {
         VStack {
-            HStack {
-                Button { dismiss() } label: {
-                    Label {
-                        Text("epub.close", bundle: .module)
-                    } icon: {
-                        Image(systemName: "xmark")
-                    }
-                    .labelStyle(.iconOnly)
-                }
-                // The platform's own glass button, rather than glass painted
-                // behind a plain one: it carries the interactive highlight and the
-                // Reduce-Transparency fallback that a hand-rolled pill would not.
-                .buttonStyle(.glass)
-                .tint(theme.palette.textPrimary)
-
-                Spacer()
-
-                // One control, filled or not, rather than an add beside a remove:
-                // `ebook-reader` marks a *position*, and a position is either marked or it
-                // is not. The icon carries that state and the label says which way pressing
-                // it goes, so VoiceOver is not left to infer it from a picture.
-                Button { Task { await model.toggleBookmark() } } label: {
-                    Label {
-                        Text(model.isPageBookmarked
-                            ? "bookmarks.remove"
-                            : "bookmarks.add", bundle: .module)
-                    } icon: {
-                        Image(systemName: model.isPageBookmarked ? "bookmark.fill" : "bookmark")
-                    }
-                    .labelStyle(.iconOnly)
-                }
-                .buttonStyle(.glass)
-                .tint(model.isPageBookmarked ? theme.accent : theme.palette.textPrimary)
-
-                Button { isShowingContents = true } label: {
-                    Label {
-                        Text("contents.title", bundle: .module)
-                    } icon: {
-                        Image(systemName: "list.bullet")
-                    }
-                    .labelStyle(.iconOnly)
-                }
-                .buttonStyle(.glass)
-                .tint(theme.palette.textPrimary)
-
-                Button { isShowingTheme = true } label: {
-                    Label {
-                        Text("theme.title", bundle: .module)
-                    } icon: {
-                        Image(systemName: "textformat")
-                    }
-                    .labelStyle(.iconOnly)
-                }
-                .buttonStyle(.glass)
-                .tint(theme.palette.textPrimary)
-
-                // Absent, not disabled, when the publication has no text Readium can
-                // extract. `ebook-reader` says a control a platform cannot honour is
-                // "absent rather than empty", and this app does not ship a button that
-                // does nothing.
-                if model.canReadAloud {
-                    Button {
-                        if model.readAloud.isActive {
-                            model.stopReadAloud()
-                        } else {
-                            model.startReadAloud()
-                        }
-                    } label: {
-                        Label {
-                            Text(model.readAloud.isActive
-                                ? "readaloud.stop"
-                                : "readaloud.start", bundle: .module)
-                        } icon: {
-                            Image(systemName: model.readAloud.isActive
-                                ? "speaker.wave.2.fill"
-                                : "speaker.wave.2")
-                        }
-                        .labelStyle(.iconOnly)
-                    }
-                    .buttonStyle(.glass)
-                    .tint(model.readAloud.isActive ? theme.accent : theme.palette.textPrimary)
-                }
-
-                if let chapter = model.chapterTitle {
-                    Text(chapter)
-                        .textRole(.footnote)
-                        .foregroundStyle(theme.palette.textSecondary)
-                        .lineLimit(1)
-                        .padding(.horizontal, StoryArcSpace.md)
-                        .padding(.vertical, StoryArcSpace.xs)
-                        .storyArcGlass()
-                }
-            }
-            .padding(StoryArcSpace.md)
-
             Spacer()
 
-            // Offered after any long jump, taken once, and never re-armed by its own
-            // use — see ``EpubReaderModel/returnToWhereTheyWere()``. Above the transport
-            // because it is about where the reader just was, and the transport is about
-            // what the voice is doing now.
+            // Offered after any long jump, taken once, and never re-armed by its own use —
+            // see ``EpubReaderModel/returnToWhereTheyWere()``. Above the transport because it
+            // is about where the reader just was, and the transport is about what the voice
+            // is doing now.
             if model.returnPoint != nil {
                 ReturnControl { Task { await model.returnToWhereTheyWere() } }
                     .padding(.bottom, StoryArcSpace.sm)
             }
 
-            // Above the percentage rather than among the buttons at the top, because it
-            // comes and goes and a control that appeared up there would move the four
-            // that are always present.
             if model.readAloud.isActive {
                 ReadAloudBar(
                     isSpeaking: model.readAloud.isSpeaking,
@@ -366,20 +297,8 @@ public struct EpubReaderView: View {
                     onNext: { model.skipSentence(forward: true) },
                     onStop: { model.stopReadAloud() }
                 )
-                .padding(.bottom, StoryArcSpace.sm)
-            }
-
-            // A percentage, never a page number. `ebook-reader` is explicit that a
-            // reflowable page count is a function of the type size and must not be
-            // presented as an identity.
-            Text("epub.progress \(Int((model.progression * 100).rounded()))", bundle: .module)
-                .textRole(.footnote)
-                .monospacedDigit()
-                .foregroundStyle(theme.palette.textSecondary)
-                .padding(.horizontal, StoryArcSpace.md)
-                .padding(.vertical, StoryArcSpace.xs)
-                .storyArcGlass()
                 .padding(.bottom, StoryArcSpace.lg)
+            }
         }
         .transition(.opacity)
     }

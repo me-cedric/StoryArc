@@ -47,7 +47,11 @@ struct ThumbnailStrip: View {
         }
         // No fixed height: a horizontal ScrollView takes its content's height, and a
         // pinned 112 pt clipped the page number away at a large text size.
-        .storyArcGlass(in: Rectangle())
+        //
+        // No glass either, since `comic-reader` moved the browser off the page and into the
+        // menu's own surface. Glass is for a shape floating over artwork; painted onto a
+        // sheet it is a second material over a first one, and the cells' own theme colours
+        // are already sized for that background.
     }
 }
 

@@ -13,30 +13,30 @@ internal import StoryArcCore
 //
 // Internal members rather than private, because `ReaderView.chrome` is in another file.
 extension ReaderView {
-    /// Previous and next chapter, or nothing at all when there is no series.
+    /// Previous and next chapter, as two named menu rows.
+    ///
+    /// Two icon-only glass pills over the page until now. Named here, because the neighbour
+    /// of a chapter is a *publication* and its title is the only thing that says which one
+    /// pressing this opens.
     @ViewBuilder
     var chapterRow: some View {
-        if previousInSeries != nil || nextInSeries != nil {
-            HStack(spacing: StoryArcSpace.sm) {
-                chapterButton(
-                    previousInSeries,
-                    systemImage: "backward.end",
-                    titleKey: "reader.chapter.previous"
-                )
-                chapterButton(
-                    nextInSeries,
-                    systemImage: "forward.end",
-                    titleKey: "reader.chapter.next"
-                )
-            }
-        }
+        chapterButton(
+            previousInSeries,
+            systemImage: "backward.end",
+            titleKey: "reader.chapter.previous"
+        )
+        chapterButton(
+            nextInSeries,
+            systemImage: "forward.end",
+            titleKey: "reader.chapter.next"
+        )
     }
 
-    /// One chapter button, disabled at the end of the run rather than absent.
+    /// One chapter row, disabled at the end of the run rather than absent.
     ///
-    /// The first and the last issue of a series each have one neighbour, and a row that
-    /// changed shape between them would move the other button under the finger. A
-    /// disabled control also says there is nothing that way, which a missing one does not.
+    /// The first and the last issue of a series each have one neighbour, and a section that
+    /// changed shape between them would move the other row under the finger. A disabled
+    /// control also says there is nothing that way, which a missing one does not.
     ///
     /// `backward.end` and `forward.end` rather than a chevron: this is the track-skip
     /// idiom, and it does not have to mirror for a right-to-left publication — the
@@ -48,17 +48,22 @@ extension ReaderView {
     ) -> some View {
         Button {
             guard let destination else { return }
+            isShowingMenu = false
             onOpen(destination)
         } label: {
-            Label {
-                Text(titleKey, bundle: .module)
-            } icon: {
-                Image(systemName: systemImage)
+            LabeledContent {
+                if let destination {
+                    Text(verbatim: destination.displayTitle)
+                        .lineLimit(1)
+                }
+            } label: {
+                Label {
+                    Text(titleKey, bundle: .module)
+                } icon: {
+                    Image(systemName: systemImage)
+                }
             }
-            .labelStyle(.iconOnly)
         }
-        .buttonStyle(.glass)
-        .tint(.white)
         .disabled(destination == nil)
     }
 }

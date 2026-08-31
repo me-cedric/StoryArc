@@ -5,10 +5,10 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
 
 ## 1. Two controls over the page
 
-- [ ] 1.1 iOS: `ReaderChromeTests` — with chrome revealed, exactly two controls are
+- [x] 1.1 iOS: `ReaderChromeTests` — with chrome revealed, exactly two controls are
       hittable over the page, and neither a title, a page number, a percentage nor a
       slider is among them. Fails against today's three bars.
-- [ ] 1.2 iOS: collapse the reader's top bar, bottom bar and slider into one overlay
+- [x] 1.2 iOS: collapse the reader's top bar, bottom bar and slider into one overlay
       of two buttons on `.regularMaterial`.
 - [ ] 1.3 Android: `ReaderChromeTest` — the same two-control assertion against the
       `HorizontalFloatingToolbar` the reader already uses.

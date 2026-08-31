@@ -104,6 +104,23 @@ extension EpubReaderModel {
 /// with the current position highlighted". Presented the way ``ThemeSheet`` is —
 /// a popover the platform turns into a detented sheet on a phone — so the reader's
 /// two panels open and close alike.
+/// The four ways of asking *where in this book do I go*.
+///
+/// Internal rather than `fileprivate`, because `EpubReaderMenu` names one per row: that is
+/// what turns four tabs into four one-action doors.
+enum ContentsTab: Hashable {
+    case contents, bookmarks, search, annotations
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .contents: "contents.title"
+        case .bookmarks: "bookmarks.title"
+        case .search: "search.title"
+        case .annotations: "annotations.title"
+        }
+    }
+}
+
 struct TableOfContentsSheet: View {
     @Environment(\.theme) private var theme
     @Environment(\.dismiss) private var dismiss
@@ -116,19 +133,17 @@ struct TableOfContentsSheet: View {
     /// the book is the third way of asking the same question — where in this book do I go.
     /// One sheet with a picker rather than three sheets, because a reader who opened the
     /// wrong one would have to close it to ask again.
-    @State private var tab = Tab.contents
+    @State private var tab: ContentsTab
 
-    fileprivate enum Tab: Hashable {
-        case contents, bookmarks, search, annotations
-
-        var title: LocalizedStringKey {
-            switch self {
-            case .contents: "contents.title"
-            case .bookmarks: "bookmarks.title"
-            case .search: "search.title"
-            case .annotations: "annotations.title"
-            }
-        }
+    /// Which panel the sheet opens on.
+    ///
+    /// The reader's menu has a row for contents, one for bookmarks, one for search and one
+    /// for highlights, and `comic-reader` requires each to be "reachable from here in one
+    /// action". A sheet that always opened on contents would make three of the four cost
+    /// two.
+    init(model: EpubReaderModel, opensOn tab: ContentsTab = .contents) {
+        self.model = model
+        _tab = State(initialValue: tab)
     }
 
     var body: some View {
@@ -137,7 +152,10 @@ struct TableOfContentsSheet: View {
         return NavigationStack {
             VStack(spacing: 0) {
                 Picker("", selection: $tab) {
-                    ForEach([Tab.contents, .bookmarks, .search, .annotations], id: \.self) { choice in
+                    ForEach(
+                        [ContentsTab.contents, .bookmarks, .search, .annotations],
+                        id: \.self
+                    ) { choice in
                         Text(choice.title, bundle: .module).tag(choice)
                     }
                 }

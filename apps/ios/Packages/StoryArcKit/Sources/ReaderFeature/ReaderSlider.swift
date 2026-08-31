@@ -22,20 +22,18 @@ extension ReaderView {
     /// heading for.
     var sliderIndex: Int { scrubbing ?? model.currentIndex }
 
-    var pageCount: some View {
-        pageCountLabel
-            .padding(.horizontal, StoryArcSpace.md)
-            .padding(.vertical, StoryArcSpace.xs)
-            .storyArcGlass()
-    }
-
     var pageCountLabel: some View {
         Text("reader.page \(sliderIndex + 1) \(model.pages.count)", bundle: .module)
             .textRole(.footnote)
             .monospacedDigit()
-            .foregroundStyle(.white)
+            .foregroundStyle(.secondary)
     }
 
+    /// The slider, on a menu row rather than over the page.
+    ///
+    /// `comic-reader`: "the page slider SHALL live in the reader's menu rather than over the
+    /// page". Everything else about it is unchanged — the drag scrubs, the thumbnail follows,
+    /// and only the release moves the reader.
     var pageSliderRow: some View {
         VStack(spacing: StoryArcSpace.xs) {
             if let scrubbing {
@@ -59,41 +57,51 @@ extension ReaderView {
                     guard !editing else { return }
                     if let target = scrubbing { jump(to: target) }
                     withAnimation(.easeInOut(duration: 0.15)) { scrubbing = nil }
+                    // `comic-reader`: "releasing jumps there and dismisses the menu, with a
+                    // control to return to the previous position". The menu leaving is what
+                    // makes the jump land on the page the reader was aiming at rather than
+                    // behind a half-height sheet; the way back is ``returnOffer``, over the
+                    // page, because by then there is no menu left to put it in.
+                    isShowingMenu = false
                 }
             )
-            .tint(.white)
             // The visible count is a sibling element, so the slider owns no name
             // and no unit of its own. VoiceOver otherwise says "12, adjustable".
             .accessibilityLabel(Text("reader.page.slider", bundle: .module))
             .accessibilityValue(
                 Text("reader.page \(sliderIndex + 1) \(model.pages.count)", bundle: .module)
             )
-
-            if let mark = pageReturn.mark {
-                returnButton(to: mark)
-            }
         }
-        .padding(.horizontal, StoryArcSpace.gutter)
-        .padding(.vertical, StoryArcSpace.sm)
-        .storyArcGlass(in: RoundedRectangle(cornerRadius: StoryArcRadius.lg))
     }
 
-    /// The way back from a jump.
+    /// The way back from a jump, over the page.
     ///
-    /// It names the page rather than saying "Back", because by the time a reader
-    /// notices they have lost their place they no longer remember what it was.
-    private func returnButton(to mark: Int) -> some View {
-        Button { returnFromJump() } label: {
-            Label {
-                Text("reader.return \(mark + 1)", bundle: .module)
-                    .monospacedDigit()
-            } icon: {
-                Image(systemName: "arrow.uturn.backward")
+    /// **Why this one control is over the page and the count is still two.** The two-control
+    /// count in `comic-reader` is about what a *centre tap reveals*; this is armed by a jump
+    /// the reader just made and disarmed by taking it. The scenario that asks for it puts it
+    /// after the menu has been dismissed by the same gesture — "releasing jumps there and
+    /// dismisses the menu, with a control to return to the previous position" — so there is
+    /// nowhere else it can be. The reflowable reader already offers its own the same way.
+    ///
+    /// It names the page rather than saying "Back", because by the time a reader notices they
+    /// have lost their place they no longer remember what it was.
+    @ViewBuilder
+    var returnOffer: some View {
+        if let mark = pageReturn.mark {
+            Button { returnFromJump() } label: {
+                Label {
+                    Text("reader.return \(mark + 1)", bundle: .module)
+                        .monospacedDigit()
+                } icon: {
+                    Image(systemName: "arrow.uturn.backward")
+                }
+                .textRole(.caption)
             }
-            .textRole(.caption)
+            .buttonStyle(.glass)
+            .tint(.white)
+            .padding(.bottom, StoryArcSpace.xl)
+            .transition(.opacity)
         }
-        .buttonStyle(.glass)
-        .tint(.white)
     }
 
     /// What the slider writes to, which is not always the reader's position.

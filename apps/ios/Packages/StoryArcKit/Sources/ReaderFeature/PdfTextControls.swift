@@ -47,7 +47,7 @@ extension ReaderView {
         .task(id: model.currentIndex) { await pdfText?.resolveMarks(onPage: model.currentIndex) }
         .sheet(isPresented: $isFindingText) {
             if let pdfText {
-                PdfTextSheet(model: pdfText) { page in goToPage(page) }
+                PdfTextSheet(model: pdfText, opensOn: findingTab) { page in goToPage(page) }
             }
         }
         .sheet(item: $noting) { annotation in
@@ -124,6 +124,7 @@ extension ReaderView {
     private func searchForSelection(in pdfText: PdfTextModel) {
         let words = pdfText.selection?.text ?? ""
         pdfText.clearSelection()
+        findingTab = .search
         isFindingText = true
         Task { await pdfText.search(words) }
     }

@@ -79,7 +79,11 @@ extension ReaderView {
         // strip with it.
         // A scrub counts too, and now moves nothing until it is released — without this
         // a slow drag hides the slider under the finger.
+        // The menu counts too, and for the strongest version of the same reason: a reader
+        // choosing a reading direction has not stopped interacting, and the chrome timing
+        // out under the sheet would leave them with no way back to it when the sheet closes.
         "\(isChromeVisible)-\(displayIndex)-\(isBrowsingThumbnails)-\(isAdjusting)"
+            + "-\(isShowingMenu)"
             + "-\(scrubbing ?? -1)"
     }
 }
