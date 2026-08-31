@@ -1,11 +1,10 @@
 package app.storyarc.feature.library
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.DropdownMenu
@@ -151,6 +150,25 @@ object ListOrdering {
  * The second chip appears only while a sort is overriding the list, and is the one tap back
  * that the same requirement asks for. It is named for where it goes rather than for going
  * there, which is what makes a single tap enough to know what will happen.
+ *
+ * **The row wraps rather than scrolling sideways, and that is the same correction
+ * `LibraryControls` already made.** This row scrolled, on the argument every chip stayed
+ * reachable; the shelf's own chip row scrolled on that argument too, and the emulator
+ * settled it — `android-shelf-caption-scale2-light.png` caught *Filter* half out of the
+ * window at `font_scale 2.0` with nothing on screen saying the row scrolled. Reachable
+ * through an interaction a reader has no reason to attempt is not reachable, and
+ * `design.md` §3 asks every screen to survive the largest accessibility text size rather
+ * than to survive it for whoever guesses right.
+ *
+ * This row is the worse of the two for it, which is why it did not get to keep the scroll:
+ * both its chips are named *the list's order* — `Reihenfolge der Liste` in German — so at an
+ * accessibility text size it is two of the longest labels in the module on one line, and the
+ * second of them is the way back that the reader is most likely to be looking for.
+ *
+ * Wrapping has no affordance to discover: the chips take a second line and both are simply
+ * on screen. It also settles the focus question a fade would have left open — nothing is
+ * scrolled out of view, so there is no off-screen chip for TalkBack or a keyboard to have to
+ * bring back.
  */
 @Composable
 internal fun ListOrderChips(
@@ -161,42 +179,49 @@ internal fun ListOrderChips(
 ) {
     var open by remember { mutableStateOf(false) }
 
-    Row(
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
             .padding(vertical = StoryArcSpace.xs),
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        FilterChip(
-            // Ordering is always on — there is no unordered list — so the chip carries the
-            // answer rather than a state. It is never drawn as selected for that reason,
-            // which is the rule the shelf's own sort chip follows.
-            selected = false,
-            onClick = { open = true },
-            label = { Text(stringResource(order.labelRes)) },
-        )
-        // Inside the row and next to the chip it belongs to, so the menu opens under that
-        // chip rather than under the start of the row — the same arrangement `SortChip` uses.
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            ChosenOrderItem(stringResource(R.string.shelves_list_order), order.isCurated) {
-                onSortChange(null)
-            }
-            LibrarySort.entries.forEach { sort ->
-                ChosenOrderItem(stringResource(sort.labelRes), order.sort == sort) {
-                    onSortChange(sort)
+        // The chip and its menu are one item of the wrapping row, not two. A `DropdownMenu`
+        // is a popup and measures as nothing, but it still takes a slot -- and in a `Row`
+        // that cost nothing, which is why the menu sat beside the chip here first. In a
+        // `FlowRow` a slot of nothing with the row's spacing either side of it is a gap that
+        // can push the next chip onto a line it did not need. Boxed, it keeps opening under
+        // its own chip, which is the arrangement `SortChip` settled on for both reasons.
+        Box {
+            FilterChip(
+                // Ordering is always on — there is no unordered list — so the chip carries
+                // the answer rather than a state. It is never drawn as selected for that
+                // reason, which is the rule the shelf's own sort chip follows.
+                selected = false,
+                onClick = { open = true },
+                label = { Text(stringResource(order.labelRes)) },
+            )
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                ChosenOrderItem(stringResource(R.string.shelves_list_order), order.isCurated) {
+                    onSortChange(null)
                 }
-            }
-            // A direction for the curated order would be a control with nothing to reverse.
-            if (!order.isCurated) {
-                HorizontalDivider()
-                listOf(
-                    true to R.string.library_sort_ascending,
-                    false to R.string.library_sort_descending,
-                ).forEach { (value, label) ->
-                    ChosenOrderItem(stringResource(label), order.ascending == value) {
-                        onDirectionChange(value)
+                LibrarySort.entries.forEach { sort ->
+                    ChosenOrderItem(stringResource(sort.labelRes), order.sort == sort) {
+                        onSortChange(sort)
+                    }
+                }
+                // A direction for the curated order would be a control with nothing to
+                // reverse.
+                if (!order.isCurated) {
+                    HorizontalDivider()
+                    listOf(
+                        true to R.string.library_sort_ascending,
+                        false to R.string.library_sort_descending,
+                    ).forEach { (value, label) ->
+                        ChosenOrderItem(stringResource(label), order.ascending == value) {
+                            onDirectionChange(value)
+                        }
                     }
                 }
             }
