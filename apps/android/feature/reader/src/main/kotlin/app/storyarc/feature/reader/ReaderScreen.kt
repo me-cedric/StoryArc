@@ -486,6 +486,11 @@ private fun Pager(
     // again after four seconds of no interaction.
     var isChromeVisible by remember { mutableStateOf(true) }
 
+    // And the system's bars go with them, so "nothing is on screen while reading" is true
+    // of the clock too. One state drives both — see `SystemBarsFollowChrome`, which also
+    // hands the window back when the reader leaves.
+    SystemBarsFollowChrome(isChromeVisible)
+
     /**
      * Whether a menu is open over the chrome.
      *

@@ -32,6 +32,10 @@ dependencies {
     // `LocalActivity`, to hold the screen at one orientation. `comic-reader`'s lock is
     // an activity-level request and there is nowhere else in Compose to make it.
     implementation(libs.androidx.activity.compose)
+    // `WindowInsetsControllerCompat`, to take the system bars away with the chrome. It
+    // arrives transitively through the line above; declared here because this module
+    // calls it, and a transitive it happens to get is not a dependency it has.
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
