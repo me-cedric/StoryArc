@@ -424,6 +424,16 @@ class EpubReaderViewModel(
         return runCatching { Locator.fromJSON(JSONObject(position.locator)) }.getOrNull()
     }
 
+    /**
+     * Where a read-aloud session writes the position it reaches.
+     *
+     * Handed out as a value rather than kept, because the session outlives this view model:
+     * [ReadAloudHost] holds it and writes through it on every sentence, long after the
+     * screen this belongs to has gone. Everything it needs is copied here, so the write
+     * never reaches back into a model that may already be closed.
+     */
+    internal fun spokenPosition(): SpokenPosition = SpokenPosition(identity, readingOrder, progress)
+
     /** Follows the navigator and writes every move down. */
     fun follow(locators: StateFlow<Locator>) {
         scope.launch {

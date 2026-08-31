@@ -9,6 +9,8 @@ import android.speech.tts.UtteranceProgressListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +24,7 @@ import org.readium.r2.shared.publication.Publication
  *
  * `ebook-reader`: speech "begins at the current position, the spoken sentence is
  * highlighted, and the page follows", it keeps going when the app is backgrounded, and the
- * platform's media controls carry the title and offer play, pause and sentence skip.
+ * session "SHALL outlive the screen it was started from".
  *
  * Three parts, and only one of them is a decision this project makes. [SpokenSentences]
  * answers what to say and where it is in the book. The platform's `TextToSpeech` says it.
@@ -32,24 +34,32 @@ import org.readium.r2.shared.publication.Publication
  * The engine is the device's own, so a reader hears the voice they installed and the
  * languages they downloaded, and nothing about the book leaves the device to be spoken.
  *
- * iOS's `EpubReadAloud` does the same job against Readium's `PublicationSpeechSynthesizer`,
- * which is the iOS-only half of the same toolkit — see ADR-0017 for why the two halves are
- * not the same shape.
+ * **This is the engine and the cursor, and nothing above them.** Who holds it, what the
+ * notification says, and where the reached position is written are [ReadAloudHost]'s, which
+ * is what lets the whole of it outlive an activity: this owns a scope of its own rather
+ * than borrowing a screen's, and its session flow is the only thing it tells anybody.
+ *
+ * iOS's `ReadAloudCentre` holds Readium's `PublicationSpeechSynthesizer` in the same place
+ * for the same reason — see ADR-0017 for why the two engines are not the same shape.
  */
 internal class ReadAloudController(
-    private val context: Context,
-    private val scope: CoroutineScope,
+    /** The application context: this outlives every activity, and so must its context. */
+    val context: Context,
     publication: Publication,
-    /** Draws the sentence and brings the page to it. */
+    /** Reports the sentence the engine has started saying. */
     private val onSentence: suspend (Sentence) -> Unit,
-    /** Withdraws the highlight when the voice stops. */
-    private val onSilence: suspend () -> Unit,
 ) {
 
-    private val sentences = SpokenSentences(publication)
+    /**
+     * The scope the walk runs in.
+     *
+     * Its own, not an activity's `lifecycleScope`. That borrowed scope was the Android half
+     * of the defect this change fixes: finishing the reader cancelled the walk, so a
+     * listener who closed the book heard the current sentence out and then silence.
+     */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    /** Whether the control belongs on screen at all. */
-    val isSpeakable: Boolean get() = sentences.isSpeakable
+    private val sentences = SpokenSentences(publication)
 
     private val _session = MutableStateFlow(ReadAloudSession())
     val session: StateFlow<ReadAloudSession> = _session.asStateFlow()
@@ -75,18 +85,11 @@ internal class ReadAloudController(
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK,
             -> pauseFor(interrupted = true)
-            // It gave the speaker back. Whether that resumes anything is the session's
-            // decision, not this listener's.
-            AudioManager.AUDIOFOCUS_GAIN -> {
-                val next = _session.value.interruptionEnded(mayResume = true)
-                if (next != _session.value) {
-                    _session.value = next
-                    resume()
-                }
-                announce()
-            }
-            // Taken for good — another app started playing and kept the focus.
-            AudioManager.AUDIOFOCUS_LOSS -> stop()
+            // It gave the speaker back, or took it for good. Which of those means what is
+            // the session's decision, not this listener's — see
+            // [ReadAloudSession.endingInterruption].
+            AudioManager.AUDIOFOCUS_GAIN -> endInterruption(mayResume = true)
+            AudioManager.AUDIOFOCUS_LOSS -> endInterruption(mayResume = false)
         }
     }
 
@@ -97,13 +100,6 @@ internal class ReadAloudController(
             .setWillPauseWhenDucked(true)
             .build()
 
-    /** What the lock screen says, refreshed whenever the chapter or the state changes. */
-    var label: SpokenLabel = SpokenLabel("", null)
-        set(value) {
-            field = value
-            if (_session.value.isActive) announce()
-        }
-
     /**
      * Starts speaking from where the reader is.
      *
@@ -112,13 +108,12 @@ internal class ReadAloudController(
      * paragraph would make them listen back to what they have already read.
      */
     fun start(from: Locator?) {
-        if (!isSpeakable) return
+        if (!sentences.isSpeakable) return
         if (audio?.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             return
         }
         sentences.restart(from)
         _session.value = _session.value.started()
-        announce()
         withEngine { speakNext(forward = true) }
     }
 
@@ -131,7 +126,6 @@ internal class ReadAloudController(
             if (next == _session.value) return
             _session.value = next
             resume()
-            announce()
         }
     }
 
@@ -146,26 +140,41 @@ internal class ReadAloudController(
         if (!_session.value.isActive) return
         _session.value = _session.value.started()
         speakNext(forward = forward)
-        announce()
     }
 
-    /** Stops, clears the highlight, and hands the lock screen back. */
-    fun stop() {
-        val wasActive = _session.value.isActive
+    /** Stops: the listener closed it, or the book ran out of words. */
+    fun stop() = finish(_session.value.stopped())
+
+    /**
+     * Stops because the audio was taken and not given back.
+     *
+     * Named apart from [stop] because the cause is the difference worth reading at the call
+     * site, not the state that follows — both leave a silent, controlless session, and
+     * `ebook-reader` asks for both by name.
+     */
+    private fun lostAudio() = finish(_session.value.lostAudio())
+
+    private fun finish(next: ReadAloudSession) {
         walking?.cancel()
-        _session.value = _session.value.stopped()
         current = null
         engine?.stop()
         audio?.abandonAudioFocusRequest(focusRequest)
-        ReadAloudService.dismiss(context)
-        if (wasActive) scope.launch { onSilence() }
+        // Last, because it is what [ReadAloudHost] is watching: everything this session
+        // holds is already given up by the time the host hears that it ended.
+        _session.value = next
     }
 
-    /** Called when the screen goes away: nothing outlives the book it is reading. */
+    /**
+     * Gives up the engine and the scope.
+     *
+     * Called by [ReadAloudHost] when the session has ended, never by a screen. An activity
+     * calling this is what used to make closing the book the same act as stopping the voice.
+     */
     fun release() {
         stop()
         engine?.shutdown()
         engine = null
+        scope.cancel()
     }
 
     /**
@@ -183,9 +192,27 @@ internal class ReadAloudController(
         val next =
             if (interrupted) _session.value.interrupted() else _session.value.pausedByReader()
         if (next == _session.value) return
-        _session.value = next
         engine?.stop()
-        announce()
+        _session.value = next
+    }
+
+    /**
+     * What the end of an interruption does.
+     *
+     * The three answers are the session's, not this class's. Before there were three, focus
+     * taken for good was answered here with a plain stop and iOS answered it with nothing
+     * at all — the case `ebook-reader` names as "audio taken for good stops the session
+     * rather than leaving it paused for ever".
+     */
+    private fun endInterruption(mayResume: Boolean) {
+        when (_session.value.endingInterruption(mayResume)) {
+            InterruptionOutcome.NOTHING -> Unit
+            InterruptionOutcome.RESUME -> {
+                _session.value = _session.value.resumed()
+                resume()
+            }
+            InterruptionOutcome.LOST -> lostAudio()
+        }
     }
 
     /**
@@ -270,25 +297,7 @@ internal class ReadAloudController(
             null,
             sentence.locator.href.toString(),
         )
-        // Deliberately no announcement here. The transport shows a state, and saying a
-        // sentence does not change one — refreshing the notification every few seconds
-        // would be a service start per sentence for a picture that did not move.
         scope.launch { onSentence(sentence) }
-    }
-
-    /**
-     * Puts the book on the lock screen, or takes it off.
-     *
-     * A foreground service, because that is the only thing on Android that keeps a process
-     * speaking once its screen is gone — and because a media-playback service is what puts
-     * the transport where a reader reaches for it.
-     */
-    private fun announce() {
-        if (_session.value.isActive) {
-            ReadAloudService.show(context, label, _session.value.isSpeaking)
-        } else {
-            ReadAloudService.dismiss(context)
-        }
     }
 
     private companion object {

@@ -48,7 +48,19 @@ internal class SpokenSentences(private val publication: Publication) {
      * Null means no content service, which is what a publication with nothing to say looks
      * like from here. The control is absent in that case rather than present and refusing.
      */
-    val isSpeakable: Boolean = publication.content() != null
+    val isSpeakable: Boolean = isSpeakable(publication)
+
+    internal companion object {
+        /**
+         * The same answer, without a walk to ask it of.
+         *
+         * The reader has to know whether the control appears the moment the book opens, and
+         * the walk is not built until somebody presses play — the session it belongs to
+         * outlives the screen asking this question, so building one here to ask it would be
+         * building the thing whose lifetime is the whole point.
+         */
+        fun isSpeakable(publication: Publication): Boolean = publication.content() != null
+    }
 
     private val tokenizer = TextContentTokenizer(
         language = publication.metadata.language,

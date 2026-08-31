@@ -1,5 +1,7 @@
 package app.storyarc.feature.epubreader
 
+import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ReadingPosition
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -115,5 +117,106 @@ class ReadAloudSessionTest {
     fun `a book with neither says only its title`() {
         assertNull(SpokenLabel.of("Sea Room", null, null).detail)
         assertNull(SpokenLabel.of("Sea Room", "", " ").detail)
+    }
+
+    // Audio taken, and audio taken for good.
+
+    /**
+     * The case that had no branch at all on iOS: the audio comes back but the platform says
+     * the voice may not, and the session sat paused with nothing able to start it.
+     */
+    @Test
+    fun `audio taken for good ends the session rather than leaving it paused`() {
+        assertEquals(
+            InterruptionOutcome.LOST,
+            speaking.interrupted().endingInterruption(mayResume = false),
+        )
+    }
+
+    @Test
+    fun `audio given back starts an interruption's own pause again`() {
+        assertEquals(
+            InterruptionOutcome.RESUME,
+            speaking.interrupted().endingInterruption(mayResume = true),
+        )
+    }
+
+    /**
+     * Both halves of the same sentence in `ebook-reader`: a reader's pause is never
+     * *resumed* by an interruption ending, and audio taken for good still ends the session
+     * — because a session nothing can start is the thing the spec forbids.
+     */
+    @Test
+    fun `an interruption ending never restarts a pause the reader made`() {
+        val paused = speaking.pausedByReader()
+        assertEquals(InterruptionOutcome.NOTHING, paused.endingInterruption(mayResume = true))
+        assertEquals(InterruptionOutcome.LOST, paused.endingInterruption(mayResume = false))
+    }
+
+    @Test
+    fun `nothing happens to a session that was never running`() {
+        assertEquals(InterruptionOutcome.NOTHING, idle.endingInterruption(mayResume = true))
+        assertEquals(InterruptionOutcome.NOTHING, idle.endingInterruption(mayResume = false))
+    }
+
+    // One book at a time.
+
+    @Test
+    fun `opening a publication while nothing speaks starts silent`() {
+        assertEquals(SessionHandover.NONE, SessionHandover.opening("sea-room", null))
+    }
+
+    /**
+     * Closing the publication mid-sentence and coming back to it: the reader picks the
+     * voice up rather than starting a second session on the same book.
+     */
+    @Test
+    fun `reopening the book being spoken adopts the session`() {
+        assertEquals(SessionHandover.ADOPT, SessionHandover.opening("sea-room", "sea-room"))
+    }
+
+    @Test
+    fun `opening a different book displaces the voice`() {
+        assertEquals(
+            SessionHandover.DISPLACE,
+            SessionHandover.opening("the-peregrine", "sea-room"),
+        )
+    }
+
+    // Where the listening got to.
+
+    private val sentence = """{"href":"/chapter-4.xhtml","type":"text/html"}"""
+    private val identity = PublicationIdentity(normalizedPath = "/books/sea-room.epub")
+    private val moment = 1_700_000_000_000L
+
+    /**
+     * The path that can lose an hour. What the session hands the progress store is the
+     * sentence the voice reached, as an opaque locator — never a page number, which a
+     * reflowable book does not have.
+     */
+    @Test
+    fun `the reached position is recorded as the sentence, not as a page`() {
+        val record = ReachedPosition(sentence, progression = 0.42).record(identity, moment)
+        assertEquals(identity, record.identity)
+        assertEquals(ReadingPosition.Reflowable(0.42, sentence), record.position)
+        assertEquals(moment, record.updatedAtEpochMillis)
+        assertFalse(record.isFinished)
+    }
+
+    /** The end of the publication is the end of the content, not a page count. */
+    @Test
+    fun `listening to the last sentence finishes the book`() {
+        assertTrue(ReachedPosition(sentence, 1.0).record(identity, moment).isFinished)
+        assertFalse(ReachedPosition(sentence, 0.9989).record(identity, moment).isFinished)
+    }
+
+    /**
+     * A session the process is reclaimed under writes nothing more, so what was written on
+     * the way has to stand on its own — and an empty locator would stand for nothing.
+     */
+    @Test
+    fun `a sentence with no locator is not written over a good position`() {
+        assertFalse(ReachedPosition("", progression = 0.42).isRecordable)
+        assertTrue(ReachedPosition(sentence, progression = 0.0).isRecordable)
     }
 }

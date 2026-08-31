@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.app.TaskStackBuilder
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -41,6 +42,15 @@ internal interface ReadAloudCommands {
 internal class ReadAloudService : Service() {
 
     private var session: MediaSession? = null
+
+    /**
+     * Where the book being spoken lives, and what shelf it sits on.
+     *
+     * Held between refreshes because that is what the way back is built from, and a
+     * notification button arrives on an intent carrying nothing but its action.
+     */
+    private var location: String? = null
+    private var series: String? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -90,6 +100,10 @@ internal class ReadAloudService : Service() {
             title = intent.getStringExtra(EXTRA_TITLE).orEmpty(),
             detail = intent.getStringExtra(EXTRA_DETAIL),
         )
+        // Kept from the last refresh, because a button press arrives on an intent of its
+        // own that carries none of this — and the way back has to survive a pause.
+        intent.getStringExtra(EXTRA_LOCATION)?.let { location = it }
+        intent.getStringExtra(EXTRA_SERIES)?.let { series = it }
         val isSpeaking = intent.getBooleanExtra(EXTRA_SPEAKING, false)
         publish(label, isSpeaking)
         startForeground(
@@ -146,7 +160,7 @@ internal class ReadAloudService : Service() {
             .setContentTitle(label.title)
             .setContentText(label.detail.orEmpty())
             .setOngoing(isSpeaking)
-            .setContentIntent(reopen())
+            .setContentIntent(reopen(label.title))
             .setDeleteIntent(command(ACTION_STOP))
             .addAction(
                 action(
@@ -196,16 +210,38 @@ internal class ReadAloudService : Service() {
         )
 
     /**
-     * Back to the book.
+     * Back to the book, at the sentence being spoken.
      *
-     * The launcher's own entry point rather than the reader activity: the reader needs a
-     * publication and a location to be started with, and neither survives in a notification
-     * that may outlive the screen that made it.
+     * `ebook-reader`: choosing the transport opens "the publication … at the sentence being
+     * spoken, without the voice stopping". This was the launcher's own entry point instead,
+     * under a comment saying the reader activity could not be targeted because "the reader
+     * needs a publication and a location to be started with, and neither survives in a
+     * notification that may outlive the screen that made it".
+     *
+     * That obstacle was real and is gone. The session outlives the screen now, so the book
+     * it is speaking belongs to [ReadAloudHost] rather than to an activity, and the three
+     * strings `EpubReaderActivity.intent` needs travel on every refresh of this
+     * notification. The *sentence* needs nothing extra: the session writes the position it
+     * reaches on every sentence, so the reader opens at the recorded position and that
+     * position is the sentence the voice is on. A reader rebuilt this way adopts the running
+     * session rather than starting a second one, and draws the same sentence.
+     *
+     * The launcher's entry point stays underneath as the parent of the back stack — a
+     * listener who lands in the book from the shade and presses back expects their library,
+     * not the app disappearing. The cost is that a reader already on screen is rebuilt
+     * rather than brought forward, which re-parses the publication; the voice does not
+     * notice, because it is no longer that screen's.
      */
-    private fun reopen(): PendingIntent? =
-        packageManager.getLaunchIntentForPackage(packageName)?.let {
-            PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE)
-        }
+    private fun reopen(title: String): PendingIntent? {
+        val location = location ?: return null
+        val stack = TaskStackBuilder.create(this)
+        packageManager.getLaunchIntentForPackage(packageName)?.let(stack::addNextIntent)
+        stack.addNextIntent(EpubReaderActivity.intent(this, location, title, series))
+        return stack.getPendingIntent(
+            REOPEN,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
 
     internal companion object {
         private const val CHANNEL = "read-aloud"
@@ -221,6 +257,11 @@ internal class ReadAloudService : Service() {
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_DETAIL = "detail"
         private const val EXTRA_SPEAKING = "speaking"
+        private const val EXTRA_LOCATION = "location"
+        private const val EXTRA_SERIES = "series"
+
+        /** Its own request code, so the way back is never confused with a button. */
+        private const val REOPEN = 0
 
         /**
          * Whoever is speaking, or null.
@@ -242,12 +283,19 @@ internal class ReadAloudService : Service() {
          */
         private var isRunning = false
 
-        /** Starts or refreshes the transport. */
-        fun show(context: Context, label: SpokenLabel, isSpeaking: Boolean) {
+        /**
+         * Starts or refreshes the transport.
+         *
+         * The whole book rather than just its label, because the notification carries two
+         * things now: what is being spoken, and the way back to it.
+         */
+        fun show(context: Context, book: SpokenBook, isSpeaking: Boolean) {
             val intent = Intent(context, ReadAloudService::class.java)
                 .setAction(ACTION_SHOW)
-                .putExtra(EXTRA_TITLE, label.title)
-                .putExtra(EXTRA_DETAIL, label.detail)
+                .putExtra(EXTRA_TITLE, book.label.title)
+                .putExtra(EXTRA_DETAIL, book.label.detail)
+                .putExtra(EXTRA_LOCATION, book.location)
+                .putExtra(EXTRA_SERIES, book.series)
                 .putExtra(EXTRA_SPEAKING, isSpeaking)
             if (isRunning) {
                 context.startService(intent)

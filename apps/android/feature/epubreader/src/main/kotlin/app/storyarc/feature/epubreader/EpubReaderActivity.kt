@@ -232,23 +232,21 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     private var isTurning = false
 
     /**
-     * The voice, once the book is open.
+     * The publication, once it is open and Readium can extract text from it.
      *
-     * The activity's rather than the view model's, for the reason the navigator is the
-     * activity's: it holds audio focus and a foreground service, and a value that outlived
-     * the screen would hold both for a book nobody has open.
+     * Held so pressing play has something to hand [ReadAloudHost] — the session is built
+     * when a listener asks for it, not when the book opens, because it outlives this screen
+     * and a screen should not create something longer-lived than itself for nobody.
      */
-    private var readAloud: ReadAloudController? = null
+    private var speakable: Publication? = null
 
     /**
      * Whether the control belongs on screen at all.
      *
-     * Its own flow rather than `readAloud?.isSpeakable`: the chrome is composed before the
-     * publication is parsed, so the answer has to arrive rather than be asked for.
+     * Its own flow: the chrome is composed before the publication is parsed, so the answer
+     * has to arrive rather than be asked for.
      */
     private val canReadAloud = MutableStateFlow(false)
-
-    private val readAloudSession = MutableStateFlow(ReadAloudSession())
 
     /**
      * The shade's copy of the transport, which from API 33 has to be asked for.
@@ -319,8 +317,14 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     val isSearching by model.isSearching.collectAsStateWithLifecycle()
                     val note by model.note.collectAsStateWithLifecycle()
                     val returnPoint by model.returnPoint.collectAsStateWithLifecycle()
-                    val speakable by canReadAloud.collectAsStateWithLifecycle()
-                    val spoken by readAloudSession.collectAsStateWithLifecycle()
+                    val canSpeak by canReadAloud.collectAsStateWithLifecycle()
+                    // The session belongs to `ReadAloudHost`, and this screen only observes
+                    // it. Scoped to this book, because a listener looking at one book while
+                    // another is being spoken must not get a transport in this chrome that
+                    // would pause a book they cannot see.
+                    val spoken by ReadAloudHost.session.collectAsStateWithLifecycle()
+                    val spokenBook by ReadAloudHost.book.collectAsStateWithLifecycle()
+                    val isThisBook = spokenBook?.id == bookId
                     val annotations by model.annotations.collectAsStateWithLifecycle()
                     val writing by writingNote.collectAsStateWithLifecycle()
                     var editingNote by remember { mutableStateOf<Annotation?>(null) }
@@ -456,18 +460,18 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                         isContentsReady = contents != null,
                         isPageBookmarked = isPageBookmarked,
                         canReturn = returnPoint != null,
-                        canReadAloud = speakable,
-                        isReadingAloud = spoken.isActive,
-                        isSpeaking = spoken.isSpeaking,
+                        canReadAloud = canSpeak,
+                        isReadingAloud = isThisBook && spoken.isActive,
+                        isSpeaking = isThisBook && spoken.isSpeaking,
                         onReturn = { model.takeReturnPoint()?.let { goToLocator(it, remember = false) } },
                         onClose = { finish() },
                         onToggleBookmark = { model.toggleBookmark() },
                         onOpenContents = { isShowingContents = true },
                         onOpenTheme = { isShowingTheme = true },
                         onStartReadAloud = ::startReadAloud,
-                        onToggleReadAloud = { readAloud?.toggle() },
-                        onSkipSentence = { forward -> readAloud?.skip(forward) },
-                        onStopReadAloud = { readAloud?.stop() },
+                        onToggleReadAloud = ReadAloudHost::toggle,
+                        onSkipSentence = ReadAloudHost::skip,
+                        onStopReadAloud = ReadAloudHost::end,
                     )
                 }
             }
@@ -690,40 +694,44 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * which needs the parsed publication.
      */
     private fun prepareReadAloud(publication: Publication) {
-        val controller = ReadAloudController(
-            // The application context, not this activity: the controller outlives a
-            // configuration change and hands the same context to a foreground service.
-            context = applicationContext,
-            scope = lifecycleScope,
-            publication = publication,
-            onSentence = ::followSpokenSentence,
-            onSilence = ::clearSpokenHighlight,
-        )
-        readAloud = controller
-        canReadAloud.value = controller.isSpeakable
-        if (!controller.isSpeakable) return
+        val handover = SessionHandover.opening(bookId, ReadAloudHost.book.value?.id)
 
-        // What the lock screen's buttons reach. One reader is open at a time, so one
-        // controller is registered at a time, and `onDestroy` takes it back down.
-        ReadAloudService.commands = object : ReadAloudCommands {
-            override fun toggle() = controller.toggle()
-            override fun skip(forward: Boolean) = controller.skip(forward)
-            override fun stop() = controller.stop()
-        }
+        // One book at a time. `ebook-reader`: opening a different publication "ends the
+        // session at a sentence boundary and the position it reached is recorded before the
+        // new publication opens" — and the sentence locator the voice is on *is* a sentence
+        // boundary, which is what makes ending here honest rather than abrupt.
+        if (handover == SessionHandover.DISPLACE) ReadAloudHost.end()
 
-        lifecycleScope.launch { controller.session.collect { readAloudSession.value = it } }
-        // The chapter is what has changed since the reader last looked at their phone, so
-        // it is what the second line follows.
-        lifecycleScope.launch {
-            model.chapterTitle.collect { chapter ->
-                controller.label = SpokenLabel.of(
-                    title = intent.getStringExtra(EXTRA_TITLE).orEmpty(),
-                    chapter = chapter,
-                    author = publication.metadata.authors.firstOrNull()?.name,
-                )
-            }
-        }
+        canReadAloud.value = SpokenSentences.isSpeakable(publication)
+        if (!canReadAloud.value) return
+        speakable = publication
+
+        if (handover != SessionHandover.ADOPT) return
+        // The book on screen is the book being spoken. No restart: this screen takes over
+        // drawing the sentence the voice is already on, and the voice never notices.
+        ReadAloudHost.adopt(drawing)
+        lifecycleScope.launch { ReadAloudHost.redrawSpokenSentence() }
     }
+
+    /**
+     * This screen, as the session sees it.
+     *
+     * An object of its own rather than the activity implementing [SpokenSentenceFollower]:
+     * `Sentence` is internal to this module and this activity is public, so an override of
+     * it here would export a type nothing outside the module is allowed to name.
+     */
+    private val drawing = object : SpokenSentenceFollower {
+        override suspend fun drawSpokenSentence(sentence: Sentence) =
+            followSpokenSentence(sentence)
+
+        override suspend fun withdrawSpokenHighlight() = clearSpokenHighlight()
+    }
+
+    /** What this screen's publication is called wherever a publication is named. */
+    private val bookId: String
+        get() = PublicationIdentity(
+            normalizedPath = requireNotNull(intent.getStringExtra(EXTRA_LOCATION)),
+        ).stableId
 
     /**
      * Starts speaking from where the reader is.
@@ -740,9 +748,29 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         ) {
             notifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
+        val publication = speakable ?: return
         val navigator =
             supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
-        readAloud?.start(navigator?.currentLocator?.value)
+        // Everything the session will need once this screen is gone goes across in this one
+        // call — including where to write the position, because after it the activity is
+        // free to be destroyed and the voice is not.
+        ReadAloudHost.begin(
+            // The application context, not this activity: the session outlives both a
+            // configuration change and this screen, and hands the same context to a
+            // foreground service.
+            context = applicationContext,
+            book = SpokenBook(
+                id = bookId,
+                location = requireNotNull(intent.getStringExtra(EXTRA_LOCATION)),
+                title = intent.getStringExtra(EXTRA_TITLE).orEmpty(),
+                series = intent.getStringExtra(EXTRA_SERIES),
+                author = publication.metadata.authors.firstOrNull()?.name,
+            ),
+            publication = publication,
+            position = model.spokenPosition(),
+            from = navigator?.currentLocator?.value,
+            drawnBy = drawing,
+        )
     }
 
     /**
@@ -786,13 +814,14 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     }
 
     override fun onDestroy() {
-        // The voice does not outlive the book it is reading. Backgrounding keeps it --
-        // that is what the foreground service is for -- but closing the reader takes the
-        // transport down with it, because a control for a book nobody has open is one
-        // nothing can honour.
-        ReadAloudService.commands = null
-        readAloud?.release()
-        readAloud = null
+        // The voice outlives this screen. `ebook-reader`: closing the publication while it
+        // is being read leaves speech running and returns the listener "to whatever they
+        // were doing in the app rather than being kept in the book" -- so this lets go of
+        // the session rather than ending it. Releasing the controller here is what made
+        // finishing the reader the same act as stopping the voice, which is a different
+        // case from backgrounding and the one the foreground service never answered.
+        ReadAloudHost.release(drawing)
+        speakable = null
         super.onDestroy()
     }
 
