@@ -7,6 +7,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -276,6 +277,7 @@ private val AppDestination.label: Int
         AppDestination.HOME -> R.string.destination_home
         AppDestination.LIBRARY -> R.string.destination_library
         AppDestination.DOWNLOADS -> R.string.destination_downloads
+        AppDestination.SEARCH -> R.string.destination_search
     }
 
 private val AppDestination.icon: ImageVector
@@ -283,4 +285,5 @@ private val AppDestination.icon: ImageVector
         AppDestination.HOME -> Icons.Filled.Home
         AppDestination.LIBRARY -> Icons.AutoMirrored.Filled.MenuBook
         AppDestination.DOWNLOADS -> Icons.Filled.Download
+        AppDestination.SEARCH -> Icons.Filled.Search
     }

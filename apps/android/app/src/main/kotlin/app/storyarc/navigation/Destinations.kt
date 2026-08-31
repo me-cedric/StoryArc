@@ -11,18 +11,34 @@ import app.storyarc.core.catalogue.OpdsEntry
 import java.util.UUID
 
 /**
- * The three places the app can be.
+ * The four places the app can be.
  *
- * `navigation-shell`: "exactly three destinations — a home surface, the whole library, and
- * everything readable on this device", and the app "SHALL NOT add, remove or reorder a
- * destination in response to anything the reader configures". An `enum` rather than a list
- * built from the source registry is how that promise is kept by construction: there is no
- * expression anywhere that could produce a fourth.
+ * `navigation-shell` requires that the app "SHALL NOT add, remove or reorder a destination in
+ * response to anything the reader configures". An `enum` rather than a list built from the
+ * source registry is how that promise is kept by construction: there is no expression
+ * anywhere that could produce a fifth, and adding a ninth Kavita server produces none.
  *
- * Search is deliberately absent. Material ranks a search bar above a search destination and
- * only permits the destination for an app whose primary action *is* searching; StoryArc's
- * is browsing, so search is a field at the top of Home and the library. iOS diverges here
- * on purpose — see the divergence register in the design direction.
+ * ## Search was deliberately absent, and is deliberately here
+ *
+ * **The argument this comment used to make.** "Material ranks a search bar above a search
+ * destination and only permits the destination for an app whose primary action *is*
+ * searching; StoryArc's is browsing, so search is a field at the top of Home and the
+ * library." Material's sentence is quoted correctly and still says that: *"If search is the
+ * primary action, focused search can be a standalone destination reached from a navigation
+ * bar."* It is permission conditioned on a judgement, and the judgement was ours to make.
+ *
+ * **Why the judgement changed**, for a reason about this app rather than about apps in
+ * general: StoryArc's publications arrive from a device, a folder, an OPDS catalogue, a
+ * Kavita server and an SMB share, and **no shelf shows all of them at once in a way a reader
+ * can scan**. Search is the only surface that spans the sources. In an app whose library is
+ * one folder, search is a filter; in this one it is the way in. A field belonging to the
+ * library also made searching something you do *to* the shelf, which is the wrong shape for
+ * the one question that is not about a shelf.
+ *
+ * The old note said iOS "diverges here on purpose". It no longer diverges on *this* — both
+ * platforms make search a destination. What still diverges is the container: iOS keeps its
+ * floating capsule, Android's bar is edge-to-edge, because `ShortNavigationBar` exposes no
+ * `shape` parameter at all. That divergence is the live one.
  *
  * Carries no label and no icon: what a destination *is* belongs to the app, what it looks
  * like belongs to the shell that draws it. Keeping the resource identifier and the vector
@@ -32,6 +48,12 @@ enum class AppDestination {
     HOME,
     LIBRARY,
     DOWNLOADS,
+
+    /**
+     * The one surface that spans every configured source. Last, because it is where a reader
+     * goes when the three shelves before it did not have the answer.
+     */
+    SEARCH,
     ;
 
     companion object {

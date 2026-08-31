@@ -21,6 +21,7 @@
     <string name="destination_home">Home</string>
     <string name="destination_library">Library</string>
     <string name="destination_downloads">Downloads</string>
+    <string name="destination_search">Search</string>
     <string name="destination_open_library">Go to your library</string>
 
     <!-- Sections, revealed by opening the rail on a wide window. The library's own top bar

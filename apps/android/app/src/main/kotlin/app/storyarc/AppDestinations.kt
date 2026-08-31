@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.feature.library.LibraryScreen
+import app.storyarc.feature.library.SearchScreen
 import app.storyarc.navigation.AppDestination
 import app.storyarc.navigation.AppSheet
 import app.storyarc.navigation.Screen
@@ -28,8 +29,10 @@ import kotlinx.coroutines.launch
 /**
  * The root of a destination — what is on screen when nothing is stacked on it.
  *
- * Exhaustive over the three, which is the property the whole rewrite exists to have: there
- * is no fourth branch, no combination of flags, and nothing a configured source can add.
+ * Exhaustive over the four, which is the property the whole rewrite exists to have: there is
+ * no fifth branch, no combination of flags, and **nothing a configured source can add**. The
+ * fourth arrived because the app put it there once, not because anything was configured, and
+ * the `when` has no `else` so a fifth is a compile error rather than a blank screen.
  */
 @Composable
 internal fun Destination(host: AppHost, destination: AppDestination) {
@@ -37,7 +40,25 @@ internal fun Destination(host: AppHost, destination: AppDestination) {
         AppDestination.HOME -> HomeDestination(host)
         AppDestination.LIBRARY -> LibraryDestination(host)
         AppDestination.DOWNLOADS -> DownloadsDestination(host)
+        AppDestination.SEARCH -> SearchDestination(host)
     }
+}
+
+/**
+ * Search on its own page, over every configured source.
+ *
+ * The same two verbs the library's grid uses, and for the same reason `publication-detail`
+ * gives: a result the device already holds is a cover like any other and leads to its page,
+ * while a result only a server has is not a publication yet and is followed to the server
+ * with the question carried across.
+ */
+@Composable
+private fun SearchDestination(host: AppHost) {
+    SearchScreen(
+        viewModel = host.library,
+        onOpenPage = host.openPage,
+        onFollowToSource = { source, term -> host.browse(source, term) },
+    )
 }
 
 /** The whole library, unchanged by this slice beyond the frame it now sits in. */

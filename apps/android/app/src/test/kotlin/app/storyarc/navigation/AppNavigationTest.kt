@@ -45,10 +45,28 @@ class AppNavigationTest {
         assertFalse(navigation.canGoBack)
     }
 
+    /**
+     * The destination set, in the order a reader meets it.
+     *
+     * **This asserted three until search became a destination**, and the promise it was
+     * protecting is unchanged: the set does not grow in response to anything the reader
+     * configures. *Fixed* was always the promise; *three* never was. Search is here because
+     * the app puts it here, once, not because a source was added — the cases below still hold
+     * a nine-server registry to the same four.
+     *
+     * Four is inside Material's own range for both controls this list builds — 3–5 for the
+     * navigation bar, 3–7 for the collapsed rail. iOS's `LibraryDestinationTests` asserts the
+     * same four in the same order.
+     */
     @Test
-    fun `there are exactly three destinations`() {
+    fun `there are exactly four destinations`() {
         assertEquals(
-            listOf(AppDestination.HOME, AppDestination.LIBRARY, AppDestination.DOWNLOADS),
+            listOf(
+                AppDestination.HOME,
+                AppDestination.LIBRARY,
+                AppDestination.DOWNLOADS,
+                AppDestination.SEARCH,
+            ),
             AppDestination.entries.toList(),
         )
     }

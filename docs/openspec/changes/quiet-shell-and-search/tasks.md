@@ -19,16 +19,16 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 - [x] 1.4 iOS: `ShellWiringTests` (new, source-level, in the manner of
       `CoverRoutingWiringTests`) — assert no `role: .search` remains in
       `AppShell.swift`. Mutation-check: restoring the role fails it.
-- [ ] 1.5 Android: `LibraryDestinationTest` — the same four-entry assertion against
+- [x] 1.5 Android: `LibraryDestinationTest` — the same four-entry assertion against
       the Kotlin enum, so the two platforms' sets stay in step.
-- [ ] 1.6 Android: add the destination to the enum and to `AdaptiveNavigation.kt`'s
+- [x] 1.6 Android: add the destination to the enum and to `AdaptiveNavigation.kt`'s
       item list, which builds bar, collapsed rail and expanded rail from one list.
 - [x] 1.7 Android: `AdaptiveNavigationTest` — at `ShortNavigationBarMedium`, assert
       `iconPosition = NavigationItemIconPosition.Start` and
       `arrangement = ShortNavigationBarArrangement.Centered`. Material requires
       horizontal items in medium windows and the file composes its own items, so it
       inherits neither.
-- [ ] 1.8 Android: pass both. Gates: `pnpm gradle`, `pnpm build:android:tests`.
+- [x] 1.8 Android: pass both. Gates: `pnpm gradle`, `pnpm build:android:tests`.
 - [ ] 1.9 Both: `pnpm capture:ios` / `pnpm capture:android home` before and after,
       into `docs/designs/screenshots/`, at default and largest text size. §6 owes a
       control shot for a visible change.

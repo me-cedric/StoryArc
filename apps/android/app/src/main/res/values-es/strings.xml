@@ -15,6 +15,7 @@
     <string name="destination_home">Inicio</string>
     <string name="destination_library">Biblioteca</string>
     <string name="destination_downloads">Descargas</string>
+    <string name="destination_search">Buscar</string>
     <string name="destination_open_library">Ir a tu biblioteca</string>
     <string name="destination_shelves">Estanterías</string>
     <string name="destination_settings">Ajustes</string>
