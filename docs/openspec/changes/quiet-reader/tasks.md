@@ -20,8 +20,24 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
 - [x] 1.6 Both: assert every pre-existing gesture still behaves — edge tap, swipe,
       pinch, drag-zoom, and the right-to-left mirroring. Fewer controls must not
       mean fewer ways in.
-- [ ] 1.7 Both: capture the reader before and after, at default and largest text
-      size, into `docs/designs/screenshots/`.
+- [~] 1.7 **iOS done, Android outstanding.**
+      `docs/designs/screenshots/{before,after}-2026-08-31d/` — three frames per tree:
+      on arrival, six seconds later untouched, and after a centre tap. Seven controls
+      became two.
+      The "before" is a worktree at `5b7d42a5` built and driven with the same test, and
+      the README says so: §6 wants the "before" captured first and on this change it was
+      not.
+      **The pair found two defects no source test could.** The reflowable reader never
+      withdrew its chrome — the arrival frame and the six-seconds-later frame are
+      byte-identical in the "before" tree — which is now fixed and pinned by
+      `ReaderChromeTests.chromeArrivesThenWithdraws`. And `openTheEpubReader` had been
+      **silently skipping** since this change landed, because its landmark was the themes
+      control that moved into the menu; a skip passes, so `pnpm check` stayed green while
+      the theme-sheet capture quietly photographed nothing.
+      *Android outstanding:* two emulators were busy with other agents at the time, and
+      driving a shared device produces garbage. The route (`Comic reader > chrome`)
+      exists, and `pnpm capture:android` installs nothing — build and install first.
+      *Largest text size outstanding on both.*
 
 ## 2. Progress sized to the format
 
