@@ -303,6 +303,18 @@ creep — see [`design.md`](design.md).
       **iOS done.** All three, over both source kinds, in `PlayerInterruptionTests` —
       plus the transitions themselves in `PlaybackTransitionTests`, which now run on the
       host in `pnpm test:ios` rather than in a suite no gate ran.
+      **Android: the table is asserted and the wire is not connected, and that distinction
+      matters.** `PlaybackSession.endingInterruption` is mutation-checked in
+      `PlaybackSessionTest`, and `AudiobookSource.interrupted()` and
+      `PlaybackCentre.endInterruption` exist — **with no caller on the audiobook path**.
+      media3 handles audio focus itself (`setAudioAttributes(…, handleAudioFocus = true)`)
+      and reports a focus loss as a plain `onIsPlayingChanged(false)`, which this code
+      currently reads as *the listener paused*. So for a narrated book media3's own
+      behaviour decides what a returning phone call does, and the rule the table exists to
+      enforce — "a pause the listener made is never undone" — is **not** enforced yet.
+      Read-aloud does connect it, through `ReadAloudController`'s own focus listener.
+      Closing this means a focus listener beside media3's, or reading media3's own
+      `Player.getPlaybackSuppressionReason`.
 - [~] 3.9 Both: route-change test — headphones removed pauses, and reconnecting does
       **not** resume.
       **iOS done.** `PlayerCentre.routeLost` records the pause as the *listener's*, which is
@@ -310,6 +322,11 @@ creep — see [`design.md`](design.md).
       nothing the platform sends afterwards can undo a listener's pause. Asserted over both
       source kinds. `PlaybackAudioSession` acts only on `.oldDeviceUnavailable`, because
       the notification also fires when headphones are plugged *in*.
+      **not** resume.
+      **Android: `setHandleAudioBecomingNoisy(true)` is on the player**, which is media3's
+      own answer to the first half. Nothing asserts either half, and the second half — that
+      reconnecting does not resume — is media3's behaviour rather than a decision this code
+      makes, so it is *believed* and not *checked*.
 
 ## 4. The surfaces
 
@@ -462,6 +479,12 @@ creep — see [`design.md`](design.md).
 - [ ] 7.1 Both: an audiobook's position is an offset in a named part, survives close,
       restart and re-download, and resolves through content identity like every other
       position.
+      **Android: the shape exists and nothing writes it.** `PlaybackPosition` is an offset
+      in a part index, and `PlaybackHost.recordPosition` is the hook a store would hang
+      off — **it is never set**, so closing an audiobook loses the place. That also leaves
+      3.6's resumption answering from a position nothing updates. `reading-progress` needs
+      a fourth `ReadingPosition` case, or `Reflowable` reused with a time-derived fraction;
+      neither has been decided and neither should be decided in an implementation pass.
 - [ ] 7.2 Both: a publication both read and listened to has **one** position, and
       returning never offers a choice of two.
 - [ ] 7.3 Both: finishing by listening marks the publication finished and makes the
