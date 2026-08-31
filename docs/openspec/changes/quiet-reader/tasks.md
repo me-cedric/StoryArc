@@ -43,30 +43,30 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
 
 ## 3. The theme surface splits in two
 
-- [ ] 3.1 Both: `ThemeSheetTests` / `ThemeSheetTest` — level one shows six presets
+- [x] 3.1 Both: `ThemeSheetTests` / `ThemeSheetTest` — level one shows six presets
       and **no axis control**, and one action of equal prominence opens the axes.
-- [ ] 3.2 Both: picking a preset applies it and dismisses level one.
+- [x] 3.2 Both: picking a preset applies it and dismisses level one.
 - [x] 3.3 iOS: level two as a second `.sheet` from the first.
-- [ ] 3.4 Android: level two as a **destination** with its own top app bar and close
+- [x] 3.4 Android: level two as a **destination** with its own top app bar and close
       affordance — not a nested `ModalBottomSheet`. Predictive back is a
       component-level contract and two stacked modal sheets give it two competing
       dismiss targets and no correct preview. `design.md` records that Material does
       not answer this directly and which three adjacent rules it was decided from.
-- [ ] 3.5 Both: level two draws a live specimen of the publication's own text in the
+- [x] 3.5 Both: level two draws a live specimen of the publication's own text in the
       active theme, updating as an axis changes.
-- [ ] 3.6 Both: `ThemeAxisTests` / `ThemeAxisTest` — every axis states its current
+- [x] 3.6 Both: `ThemeAxisTests` / `ThemeAxisTest` — every axis states its current
       value beside its control, and the value is part of the control for assistive
       technology rather than a separate unlabelled element.
-- [ ] 3.7 Android: `SliderDefaults.CenteredTrack` for character spacing, word spacing
+- [x] 3.7 Android: `SliderDefaults.CenteredTrack` for character spacing, word spacing
       and margins, whose defaults sit mid-range. Slider icons outside the track — the
       Expressive inset icon has no API and is forbidden below a 40dp track anyway.
-- [ ] 3.8 Android: preset tile as `Modifier.selectable(role = Role.RadioButton)` on
+- [x] 3.8 Android: preset tile as `Modifier.selectable(role = Role.RadioButton)` on
       a card-shaped `Surface`, with a hand-drawn outline and tick and **no elevation
       change**. `Card` has no `selected` parameter and Material reserves elevation
       change for pick-up-and-move.
-- [ ] 3.9 Android: Bold as a `ListItem` with `supportingContent` and a trailing
+- [x] 3.9 Android: Bold as a `ListItem` with `supportingContent` and a trailing
       `Switch`, `toggleable` on the item.
-- [ ] 3.10 Both: split level two into its own file. This is also the way off the
+- [x] 3.10 Both: split level two into its own file. This is also the way off the
       800-line ratchet for `ThemeSheet.kt`.
 - [ ] 3.11 Both: assert both levels at the largest accessibility text size — no label
       truncated to fit its value, the surface scrolls, the action opening the axes
@@ -74,25 +74,25 @@ Test-first throughout. A visible change owes a before/after screenshot pair per
 
 ## 4. Reset by name
 
-- [ ] 4.1 Both: `ThemeResetTests` / `ThemeResetTest` — resetting a modified preset
+- [x] 4.1 Both: `ThemeResetTests` / `ThemeResetTest` — resetting a modified preset
       names it, returns **every** axis to that preset's published value including
       untouched ones, and leaves the other five presets, the custom colour slot, the
       per-series memory and the global default alone.
-- [ ] 4.2 Both: the reset action is **absent** for an unmodified preset, not present
+- [x] 4.2 Both: the reset action is **absent** for an unmodified preset, not present
       and inert.
 - [ ] 4.3 Both: reset preserves the reading position to the paragraph across the
       repagination, and is visible behind the sheet without dismissing it.
-- [ ] 4.4 Both: a plain low-emphasis text button, no confirmation. Material has no
+- [x] 4.4 Both: a plain low-emphasis text button, no confirmation. Material has no
       reset-to-defaults pattern; `design.md` says so rather than miscasting the
       discard-unsaved-changes prompt as one.
 
 ## 5. The two Material gaps in scope
 
-- [ ] 5.1 Android: migrate off the deprecated `rememberModalBottomSheetState` to
+- [x] 5.1 Android: migrate off the deprecated `rememberModalBottomSheetState` to
       `rememberBottomSheetState(initialValue, enabledValues, confirmValueChange)`,
       and decide `enabledValues` explicitly — the `PartiallyExpanded` anchor is no
       longer removed for you since alpha21.
-- [ ] 5.2 Android: give level one's header row a single-pointer height toggle.
+- [x] 5.2 Android: give level one's header row a single-pointer height toggle.
       Material requires selecting the drag handle to toggle preset heights with a
       Space/Enter contract, and the handle has **no** `onClick` — zero `clickable`
       calls in the whole sheet implementation.

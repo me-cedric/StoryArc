@@ -16,7 +16,11 @@
     <string name="epub_failure_unreachable">This book could not be reached.</string>
     <string name="epub_failure_unreadable">This book could not be opened.</string>
     <string name="theme_presets">Themes</string>
+    <string name="theme_sheet_expand">Show more</string>
+    <string name="theme_sheet_collapse">Show less</string>
     <string name="theme_restore">Restore</string>
+    <string name="theme_customise">Customise</string>
+    <string name="theme_restore_named">Restore %1$s</string>
     <string name="theme_modified">Modified</string>
     <string name="theme_font_size">Text size</string>
     <string name="theme_font_size_smaller">Smaller</string>
@@ -34,6 +38,8 @@
     <string name="theme_axis_font_size">Text size</string>
     <string name="theme_axis_font_family">Typeface</string>
     <string name="theme_axis_bold_text">Bold text</string>
+    <string name="theme_axis_bold_text_note">Raises the weight without changing the typeface.</string>
+    <string name="theme_axis_hyphenation_note">Breaks long words at the end of a line.</string>
     <string name="theme_axis_line_spacing">Line spacing</string>
     <string name="theme_axis_character_spacing">Character spacing</string>
     <string name="theme_axis_word_spacing">Word spacing</string>

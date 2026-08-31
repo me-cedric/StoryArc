@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.compose.material3.ExperimentalMaterial3Api
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.FontSizeStep
 import app.storyarc.core.model.PageTransition
@@ -31,20 +32,42 @@ import org.junit.Test
  * `uiautomator dump` reports every Compose slider as an unnamed `SeekBar` however
  * its semantics are set. A composition is the only place the question can be asked.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 class ThemeSheetSemanticsTest {
     @get:Rule
     val compose = createComposeRule()
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
+    /**
+     * Level one: the presets, and the one action that opens the axes.
+     *
+     * The two levels are separate compositions since `quiet-reader` split them, so the
+     * assertions below are split the same way: a preset announcing itself is level one's, and
+     * a slider saying what it reads is level two's.
+     */
     private fun showSheet(preset: ThemePreset = ThemePreset.PAPER) {
         compose.setContent {
             StoryArcTheme(useDynamicColor = false) {
                 ThemeSheet(
                     theme = ReadingTheme(preset),
                     values = preset.values,
-                    brightness = 0.5f,
                     onAdopt = {},
+                    onAdoptColours = { true },
+                    onCustomise = {},
+                )
+            }
+        }
+    }
+
+    /** Level two: the axes, on a destination of their own. */
+    private fun showAxes(preset: ThemePreset = ThemePreset.PAPER) {
+        compose.setContent {
+            StoryArcTheme(useDynamicColor = false) {
+                ThemeAxesScreen(
+                    theme = ReadingTheme(preset),
+                    values = preset.values,
+                    brightness = 0.5f,
                     onChange = { _, _ -> },
                     onSet = { _, _ -> },
                     onBrightness = {},
@@ -52,7 +75,7 @@ class ThemeSheetSemanticsTest {
                     onLeavePublisherStyles = {},
                     onAdoptColours = { true },
                     onDiscardColours = {},
-                    // Everything available. This suite is about what the sheet *says*, and
+                    // Everything available. This suite is about what the surface *says*, and
                     // an unavailable mode is a different assertion in a different test.
                     choices = TransitionChoices(
                         chosen = PageTransition.SLIDE,
@@ -62,6 +85,7 @@ class ThemeSheetSemanticsTest {
                         isReflowable = true,
                     ),
                     onChooseTransition = {},
+                    onClose = {},
                 )
             }
         }
@@ -69,7 +93,7 @@ class ThemeSheetSemanticsTest {
 
     @Test
     fun everySliderSaysWhichAxisItIsAndWhatItReads() {
-        showSheet()
+        showAxes()
         ThemeAxis.entries.filter { it.sliderRange != null }.forEach { axis ->
             val name = context.getString(axis.labelRes)
             compose.onNodeWithContentDescription(name)
@@ -79,7 +103,7 @@ class ThemeSheetSemanticsTest {
 
     @Test
     fun brightnessSaysWhatItReads() {
-        showSheet()
+        showAxes()
         val name = context.getString(R.string.theme_brightness)
         compose.onNodeWithContentDescription(name).assert(hasAStateDescription())
     }
@@ -95,7 +119,7 @@ class ThemeSheetSemanticsTest {
     @Test
     fun theSizeStepperSaysItsPositionOutOfTheTotal() {
         val preset = ThemePreset.PAPER
-        showSheet(preset)
+        showAxes(preset)
         // The position, not only "larger": a reader who cannot see the dots has no
         // other way to know how much room is left on the ladder. Read from the
         // preset rather than written down, so re-tuning a preset's default size

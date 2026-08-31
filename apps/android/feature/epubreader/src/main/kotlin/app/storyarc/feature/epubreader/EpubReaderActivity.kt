@@ -405,6 +405,10 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                     var isShowingMenu by remember { mutableStateOf(false) }
                     var contentsTab by remember { mutableStateOf(ContentsTab.CONTENTS) }
 
+                    // Level two of the theme surface, which on this platform is a
+                    // destination rather than a second sheet. See `ThemeAxesScreen.kt`.
+                    var isCustomisingTheme by remember { mutableStateOf(false) }
+
                     // `reading-themes`: reader-local. A window attribute rather than
                     // the system setting, so it reverts when this screen goes away.
                     LaunchedEffect(brightness) {
@@ -514,8 +518,38 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                         ThemeBottomSheet(
                             theme = theme,
                             values = values,
+                            onAdopt = { preset ->
+                                model.adopt(preset)
+                                // `ebook-reader`: "picking a preset applies it and leaves the
+                                // surface, because that was the whole errand".
+                                isShowingTheme = false
+                            },
+                            onAdoptColours = model::adoptColours,
+                            onCustomise = {
+                                // Level one leaves as level two arrives: a destination is not
+                                // a second sheet over the first, which is the whole point of
+                                // it being a destination.
+                                isShowingTheme = false
+                                isCustomisingTheme = true
+                            },
+                            onDismiss = { isShowingTheme = false },
+                            chapter = chapter,
+                            excerpt = excerpt,
+                        )
+                    }
+
+                    if (isCustomisingTheme) {
+                        // Words from where the reader is, read once when the destination
+                        // opens. The position does not move while it is up, and re-reading
+                        // the resource on every slider step would put a disk read inside a
+                        // drag.
+                        var axesExcerpt by remember { mutableStateOf("") }
+                        LaunchedEffect(Unit) { axesExcerpt = model.previewExcerpt() }
+
+                        ThemeAxesScreen(
+                            theme = theme,
+                            values = values,
                             brightness = brightness,
-                            onAdopt = model::adopt,
                             onChange = model::change,
                             onSet = model::set,
                             onBrightness = model::setBrightness,
@@ -525,9 +559,9 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
                             onDiscardColours = model::discardCustomColours,
                             choices = model.transitions,
                             onChooseTransition = model::choose,
-                            onDismiss = { isShowingTheme = false },
+                            onClose = { isCustomisingTheme = false },
                             chapter = chapter,
-                            excerpt = excerpt,
+                            excerpt = axesExcerpt,
                         )
                     }
 

@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -237,6 +240,31 @@ internal fun PresetCard(
                 isBold = preset.values.isBold,
                 modifier = Modifier.padding(horizontal = StoryArcSpace.sm),
             )
+
+            // A hand-drawn tick, and no elevation change.
+            //
+            // `design.md`: `Card` has no `selected` parameter and `CardColors` has no
+            // selected role — verified by `javap` — so the selected state is drawn here. The
+            // nearest Material rule that does exist is the list one: the selected state
+            // covers the whole item and single-select uses a radio-button role, which the
+            // `selectable` above supplies. Material says card variants differ "on style
+            // alone" and reserves an elevation change for pick-up-and-move, so the card does
+            // not rise when it is chosen.
+            //
+            // Decorative: the `selectable` role already tells a screen reader which card is
+            // selected, and a second announcement of the same fact is one too many.
+            if (isActive) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = palette.accent,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(StoryArcSpace.xs)
+                        .size(16.dp)
+                        .clearAndSetSemantics {},
+                )
+            }
         }
 
         Text(
