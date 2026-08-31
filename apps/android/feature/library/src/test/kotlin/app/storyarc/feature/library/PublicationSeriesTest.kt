@@ -122,10 +122,24 @@ class PublicationSeriesTest {
     }
 
     @Test
-    fun aTitleThatIsTheSeriesGetsNoCaptionEvenWithANumber() {
-        // Unchanged behaviour, asserted so the fix above cannot quietly turn it into
-        // "Harbour Lights · Harbour Lights #1".
+    fun aTitleThatIsTheSeriesStillGainsItsNumber() {
+        // The title is the series alone, so the number is a fact the title does not carry
+        // and the caption is worth its line. This is the one case where composing before
+        // comparing *adds* a caption rather than removing one.
+        //
+        // iOS asserts the same thing in `SeriesLineTests` under "A composed line that adds
+        // the number is shown". The two platforms disagreed here for one rebase — Android
+        // returned null on a bare-series early guard, iOS returned the line — which is
+        // exactly the silent divergence the mirrored-test rule exists to catch.
         val issue = issue("Harbour Lights", series = "Harbour Lights", number = "1")
+
+        assertEquals("Harbour Lights #1", seriesLine(issue))
+    }
+
+    @Test
+    fun aTitleThatIsTheSeriesWithNoNumberGetsNoCaption() {
+        // Nothing to add, so nothing is said and the caption falls through to the author.
+        val issue = issue("Harbour Lights", series = "Harbour Lights")
 
         assertNull(seriesLine(issue))
     }
