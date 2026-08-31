@@ -20,10 +20,13 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.rememberWideNavigationRailState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.rememberWindowClass
 import kotlinx.coroutines.launch
@@ -224,8 +227,56 @@ private fun RailMenuButton(isOpen: Boolean, labels: RailMenuLabels, onToggle: ()
     }
 }
 
-/** A destination's name, one line, in the bar and in the rail alike. */
+/**
+ * The font scale a navigation label is drawn at, whatever the reader's own is.
+ *
+ * **Material's own navigation bar does not scale its labels with the system font size**, and
+ * this is that rule ported. `NavigationBarItemView.setTextAppearanceWithoutFontScaling` is
+ * where Material does it, `labelFontScalingEnabled` is the attribute that turns it back on,
+ * and it defaults to off -- which is why every stock Material app on the device draws small
+ * navigation labels at a large font scale. The Compose `ShortNavigationBarItem` has no
+ * equivalent, because the label is the caller's composable, so the caller has to carry it.
+ *
+ * The reason is arithmetic rather than taste. A bar splits its width equally between its
+ * destinations, so on a 360 dp phone each of StoryArc's three gets 120 dp and no more. At the
+ * largest accessibility text size "Downloads" grew to fill that 120 dp edge to edge and sat
+ * against the display's own boundary; French's "Téléchargements" is six characters longer
+ * again. Material forbids both ways out of that -- "avoid long text labels as these labels do
+ * not truncate or wrap" and "avoid shrinking text labels to fit on a single line" -- and
+ * `native-experience` forbids the third, dropping the label, because a destination may never
+ * be an unlabelled icon. What is left is the label not growing in the first place.
+ *
+ * So this is a deliberate exception to `design.md`'s "all scale with the Android font scale",
+ * scoped to the eight or so words in the navigation control and to nothing else in the app.
+ * A screen reader is unaffected: the label is the item's name and TalkBack reads it whatever
+ * size it is drawn at.
+ */
+private const val NavigationLabelFontScale = 1f
+
+/**
+ * The density a navigation label measures against.
+ *
+ * Its own function so the one rule above can be asserted without a device, and so the
+ * substitution is a value rather than a lambda buried in a composition local.
+ */
+internal fun navigationLabelDensity(density: Density): Density =
+    if (density.fontScale == NavigationLabelFontScale) {
+        density
+    } else {
+        Density(density.density, NavigationLabelFontScale)
+    }
+
+/**
+ * A destination's name, one line, in the bar and in the rail alike.
+ *
+ * The ellipsis is a guard rather than the plan: with [NavigationLabelFontScale] holding the
+ * label to its design size, the longest name in any of the four shipped languages fits the
+ * narrowest third this app supports. If a fifth language ever does not, a reader gets a
+ * shortened word rather than one cut off at the glass.
+ */
 @Composable
 private fun EntryLabel(entry: NavigationEntry) {
-    Text(text = entry.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    CompositionLocalProvider(LocalDensity provides navigationLabelDensity(LocalDensity.current)) {
+        Text(text = entry.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
 }
