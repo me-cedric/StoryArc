@@ -137,8 +137,9 @@ private fun SortChip(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
     // The chip and its menu are one item of the wrapping row, not two. A `DropdownMenu` is a
     // popup and measures as nothing, but it still takes a slot -- and a slot of nothing with
     // the row's spacing either side of it is a gap that can push the next chip onto a line it
-    // did not need. Boxed, it also keeps opening under its own chip, which is what
-    // `ListOrderChips` fixed by putting the menu beside the chip in the first place.
+    // did not need. Boxed, it also keeps opening under its own chip rather than under
+    // whatever the row put in the popup's slot. `ListOrderChips` is boxed for both reasons
+    // too, and stopped putting its menu beside its chip when it stopped being a `Row`.
     Box {
         FilterChip(
             // Ordering is always on — there is no unsorted library — so the chip carries the

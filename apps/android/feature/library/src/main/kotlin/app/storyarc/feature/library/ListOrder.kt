@@ -160,15 +160,24 @@ object ListOrdering {
  * `design.md` §3 asks every screen to survive the largest accessibility text size rather
  * than to survive it for whoever guesses right.
  *
- * This row is the worse of the two for it, which is why it did not get to keep the scroll:
- * both its chips are named *the list's order* — `Reihenfolge der Liste` in German — so at an
- * accessibility text size it is two of the longest labels in the module on one line, and the
- * second of them is the way back that the reader is most likely to be looking for.
+ * Two chips is fewer than the shelf's four, which is not the same as narrower. The second
+ * chip is composed only while a sort is overriding the list, and that is exactly the state
+ * in which the first one is longest: it then names the chosen field, and *Size on this
+ * device* — `Größe auf diesem Gerät` in German — is the longest of those names. Beside it
+ * stands *The list's order*, `Reihenfolge der Liste`, carrying an icon as well. So whenever
+ * this row has two chips at all, it is the longest label in the set next to the way back
+ * that the reader is most likely to be looking for, and the way back is the one that runs
+ * off the edge.
  *
  * Wrapping has no affordance to discover: the chips take a second line and both are simply
  * on screen. It also settles the focus question a fade would have left open — nothing is
  * scrolled out of view, so there is no off-screen chip for TalkBack or a keyboard to have to
- * bring back.
+ * bring back. It does not cover the case `LibraryControls` names — a single chip wider than
+ * the window — and unlike there, that case is open here rather than closed: nobody has yet
+ * measured `Größe auf diesem Gerät` at `font_scale 2.0` in a 320 dp window, and a wrap
+ * cannot save a chip that does not fit on a line of its own. Wrapping is still strictly
+ * better than the scroll it replaces, which truncated that same label *and* put the second
+ * chip out of sight.
  */
 @Composable
 internal fun ListOrderChips(

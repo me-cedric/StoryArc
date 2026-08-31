@@ -3,6 +3,7 @@ package app.storyarc.feature.settings
 import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -126,7 +127,16 @@ private fun Policy(
             style = MaterialTheme.typography.bodyMedium,
             color = palette.textPrimary,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.xs)) {
+        // Wrapping rather than one line, for the reason `LibraryControls` and
+        // `ListOrderChips` wrap: at `font_scale 2.0` in a 320 dp window four chips do not
+        // fit across, and a plain `Row` does not fail by scrolling — it fails by placing
+        // the last chips past the edge, where no interaction reaches them at all. The
+        // ladder is exactly where that hurts most: the chip past the edge is a limit the
+        // reader can no longer choose.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs),
+        ) {
             LIMITS.forEach { limit ->
                 FilterChip(
                     selected = settings.maximumDownloadBytes == limit,
