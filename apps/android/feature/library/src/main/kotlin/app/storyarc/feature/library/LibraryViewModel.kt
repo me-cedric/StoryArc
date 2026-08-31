@@ -1625,25 +1625,14 @@ class LibraryViewModel(
         return entries
     }
 
-    fun deleteCollection(id: UUID) {
-        _shelves.update { it.deletingCollection(id) }
-        shelvesStore?.save(_shelves.value)
-    }
-
-    fun deleteList(id: UUID) {
-        _shelves.update { it.deletingList(id) }
-        shelvesStore?.save(_shelves.value)
-    }
-
     /**
      * Deletes a shelf the reader has confirmed, and not one they have not.
      *
-     * `collections-and-reading-lists` asks for the confirmation; [ShelfDeletion] is what holds
-     * the question until it is answered, and this is the only thing that answers it.
-     *
-     * Internal because [ShelfDeletion] is: a confirmation that has been answered is this
-     * module's own business, and [deleteCollection] and [deleteList] remain the way anything
-     * outside it deletes a shelf.
+     * The only way a shelf leaves the app, and it takes a [ShelfDeletion] -- which can only be
+     * answered by the dialogue that presents it. The two calls this replaced took a bare
+     * identity, so a caller could delete a hand-built collection without asking, and one did.
+     * `collections-and-reading-lists` requires the confirmation, and the signature is what
+     * makes it required rather than remembered.
      */
     internal fun delete(deletion: ShelfDeletion) {
         _shelves.update { deletion.apply(it) }

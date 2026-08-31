@@ -233,21 +233,13 @@ extension LibraryModel {
         shelvesStore?.save(shelves)
     }
 
-    public func delete(collection id: UUID) {
-        shelves = shelves.deleting(collection: id)
-        shelvesStore?.save(shelves)
-    }
-
-    public func delete(list id: UUID) {
-        shelves = shelves.deleting(list: id)
-        shelvesStore?.save(shelves)
-    }
-
     /// Deletes a shelf the reader has confirmed, and not one they have not.
     ///
-    /// Internal because ``ShelfDeletion`` is: a confirmation that has been answered is this
-    /// module's own business, and the two calls above remain the way anything outside it
-    /// deletes a shelf.
+    /// The only way a shelf leaves the app, and it takes a ``ShelfDeletion`` — which can only
+    /// be answered by the dialogue that presents it. The two calls this replaced took a bare
+    /// identity, so a caller could delete a hand-built collection without asking, and one
+    /// did. `collections-and-reading-lists` requires the confirmation, and the signature is
+    /// what makes it required rather than remembered.
     func delete(_ deletion: ShelfDeletion) {
         shelves = deletion.apply(to: shelves)
         shelvesStore?.save(shelves)
