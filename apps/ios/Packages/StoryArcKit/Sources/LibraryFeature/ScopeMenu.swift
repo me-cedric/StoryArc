@@ -53,6 +53,50 @@ enum LibraryAvailability: String, CaseIterable, Sendable {
     /// the same `UserDefaults`, so nothing has to be migrated to add it.
     static let storageKey = "app.storyarc.libraryAvailability"
 
+    /// Where the **search screen's** own choice is written down.
+    ///
+    /// A second key rather than the shelf's, because the two are the same question asked
+    /// about different screens. `navigation-shell` promises a reader leaving search "return to
+    /// the destination they were on, with its scroll position and filters intact" — and a
+    /// shared key would have narrowing a search on a train silently narrow the shelf they go
+    /// back to, which is a filter they never set and would have to find to undo.
+    ///
+    /// `library-browsing` asks the search choice to persist "until changed" in its own right,
+    /// so it needs somewhere of its own to persist to.
+    static let searchScopeKey = "app.storyarc.searchScope"
+
+    /// The sources a search at this scope puts the question to.
+    ///
+    /// **This is the half a filter would miss**, and it is a requirement rather than an
+    /// optimisation. `library-browsing`: narrowing to what is on the device "removes that
+    /// notice, *because nothing is then being waited for*". A scope that only hid rows would
+    /// leave the fan-out running and the could-not-answer notice up, so the reader who
+    /// narrowed precisely to stop waiting would still be waiting.
+    ///
+    /// ``RemoteSearch/answers(_:)`` still decides who *can* be asked at all — a folder and an
+    /// SMB share have no search endpoint at either scope. This decides who *is*.
+    func sourcesToAsk(in registry: SourceRegistry) -> [Source] {
+        switch self {
+        case .everywhere: registry.sources.filter(RemoteSearch.answers)
+        case .onThisDevice: []
+        }
+    }
+
+    /// The publications that survive this narrowing.
+    ///
+    /// A projection over the same set rather than a destructive narrowing, which is what lets
+    /// a reader "widen it again, without leaving the screen" and get every row back.
+    ///
+    /// `location` is a closure rather than a dictionary so the caller supplies the model's own
+    /// ``LibraryModel/location(of:)`` in the app and a literal in a test — the shelf asks
+    /// ``keeps(_:)`` exactly the same way in `LibraryContent`.
+    func keeping(
+        _ publications: [Publication],
+        location: (Publication) -> URL?
+    ) -> [Publication] {
+        publications.filter { keeps(location($0)) }
+    }
+
     /// Whether a publication can be opened right now.
     ///
     /// `library-browsing`: one that is neither on the device nor currently reachable "stays
@@ -128,5 +172,27 @@ struct ScopeMenu: View {
         // What it is narrowed to, spoken. The icon says that a narrowing is set and cannot
         // say which one, and DESIGN.md forbids a state carried by appearance alone.
         .accessibilityValue(Text(availability.titleKey, bundle: .module))
+    }
+}
+
+/// Match groups, narrowed to a search scope.
+///
+/// An extension on the array rather than a method on ``LibraryAvailability``: what is being
+/// narrowed is the *listing*, and the scope is the argument. `LibrarySearch` is the only
+/// caller.
+extension [MatchGroup] {
+    /// The same match groups, narrowed to this scope.
+    ///
+    /// A group left empty is **dropped**, not kept with nothing in it: `library-browsing`
+    /// groups results by match kind, and a heading over no rows would tell the reader their
+    /// term matched a series when what it matched is a series they cannot open on a plane.
+    func narrowed(
+        to scope: LibraryAvailability,
+        location: (Publication) -> URL?
+    ) -> [MatchGroup] {
+        compactMap { group in
+            let kept = scope.keeping(group.publications, location: location)
+            return kept.isEmpty ? nil : MatchGroup(kind: group.kind, publications: kept)
+        }
     }
 }

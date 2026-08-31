@@ -24,6 +24,19 @@ struct SearchAtRest: View {
     @Environment(\.theme) private var theme
 
     let model: LibraryModel
+    /// What the search is narrowed to, shared with the field's own scope bar.
+    ///
+    /// **Both controls, and that is a platform limitation rather than a preference.**
+    /// `.searchScopes` is the iOS idiom and it is what the field carries — but the platform
+    /// draws that bar only once the field is *active*, and `library-browsing` asks the screen
+    /// to state its scope "when the search screen is open". Measured, not assumed: two
+    /// captures of this screen at rest, one with `activation: .automatic` and one with
+    /// `.onSearchPresentation`, show no scope bar at all.
+    ///
+    /// So the screen states it too, and the statement is the control. They cannot disagree —
+    /// both are the same `@AppStorage` value — and the reader sees exactly one of them at a
+    /// time, because this screen is replaced by the results the moment the field is used.
+    @Binding var scope: LibraryAvailability
     /// The five ways in, when there is nothing to suggest from. Passed through rather than
     /// rebuilt — see ``SearchNothingToSuggest``.
     let addFolder: () -> Void
@@ -48,6 +61,8 @@ struct SearchAtRest: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
+                    scopeStatement
+
                     if !model.recentSearches.isEmpty { recents }
 
                     // Each section is drawn only when it has something in it.
@@ -61,6 +76,30 @@ struct SearchAtRest: View {
                 .padding(.vertical, StoryArcSpace.lg)
             }
         }
+    }
+
+    /// What this search is about to search, said in the reader's own words.
+    ///
+    /// `library-browsing`: the screen "states whether it is searching everything or only what
+    /// is on the device", and a reader can narrow it "and widen it again, without leaving the
+    /// screen". A `Picker` rather than a sentence with a button beside it, because the two
+    /// choices are exclusive and naming both is what makes the current one *stated* rather
+    /// than merely set.
+    ///
+    /// `.segmented`, which is the same shape the field's own `.searchScopes` bar draws — one
+    /// idea should not look like two controls depending on whether a reader has tapped the
+    /// field yet.
+    private var scopeStatement: some View {
+        Picker(selection: $scope) {
+            ForEach(LibraryAvailability.allCases, id: \.self) { option in
+                Text(option.titleKey, bundle: .module).tag(option)
+            }
+        } label: {
+            Text("library.scope.all", bundle: .module)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .padding(.horizontal, StoryArcSpace.gutter)
     }
 
     /// One suggestion shelf, or nothing at all.

@@ -249,7 +249,11 @@ struct SearchScreenWiringTests {
 
     @Test("With nothing typed, the search surface draws the offer and not the shelf")
     func atRestIsNotTheShelf() throws {
-        let text = try lines(of: "LibraryView.swift")
+        // `LibrarySearchSurface.swift`, not `LibraryView.swift`: the search branch moved out
+        // when the view crossed the 400-line cap. This test is how the move was noticed —
+        // `#require` on the read is why a guard that loses its file fails loudly instead of
+        // passing for ever.
+        let text = try lines(of: "LibrarySearchSurface.swift")
 
         #expect(
             text.contains("SearchAtRest("),
@@ -259,7 +263,7 @@ struct SearchScreenWiringTests {
 
     @Test("The field draws no attached suggestion list")
     func noSearchSuggestions() throws {
-        let text = try lines(of: "LibraryView.swift")
+        let text = try lines(of: "LibrarySearchSurface.swift")
 
         // Only a real modifier, not the comment that explains why it went: the file
         // deliberately names `.searchSuggestions` in prose, and a naive search of the whole

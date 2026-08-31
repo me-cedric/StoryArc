@@ -41,7 +41,7 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 - [x] 2.2 iOS: build the at-rest sections in `LibraryView(surface: .search)`. Do not
       use `.searchSuggestions` — it attaches a list to the field and what is wanted
       is a screen with headed sections.
-- [ ] 2.3 iOS: `.searchScopes` for the everything/on-device narrowing, persisted.
+- [x] 2.3 iOS: `.searchScopes` for the everything/on-device narrowing, persisted.
 - [x] 2.4 iOS: `SearchScreenTests` — nothing to suggest gives one sentence and the
       library's own add-a-source action, not empty headings.
 - [ ] 2.5 Android: `LibrarySearchBarTest` — the contained branch uses

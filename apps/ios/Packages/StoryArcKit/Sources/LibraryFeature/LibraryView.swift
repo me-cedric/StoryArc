@@ -48,6 +48,19 @@ public struct LibraryView: View {
     @AppStorage(DownloadFilter.storageKey)
     var downloads: DownloadFilter = .either
 
+    /// What the search screen is narrowed to.
+    ///
+    /// The same type as ``availability`` under a **different key**, which is the whole point:
+    /// they are the same question asked about two screens. A shared key would have narrowing a
+    /// search on a train silently narrow the shelf the reader goes back to — a filter they
+    /// never set, on a destination `navigation-shell` promises to return "with its scroll
+    /// position and filters intact".
+    ///
+    /// `library-browsing` asks this choice to persist "until changed" in its own right, which
+    /// is why it is stored rather than held in `@State`.
+    @AppStorage(LibraryAvailability.searchScopeKey)
+    var searchScope: LibraryAvailability = .everywhere
+
     /// Whether the file picker is open for an import.
     ///
     /// The empty states offer "Open a comic" as their primary action — two taps to a
@@ -286,89 +299,6 @@ public struct LibraryView: View {
         case .shelf: Text("library.title", bundle: .module)
         case .onDevice: Text("library.downloads.title", bundle: .module)
         case .search: Text("library.search.prompt", bundle: .module)
-        }
-    }
-}
-
-extension LibraryView {
-    /// The field, and only on the surface that owns one.
-    ///
-    /// The shelf has no field at all now. Search is a destination the shell offers with
-    /// `Tab(role: .search)` — the system's own control, set apart from the three
-    /// destinations, expanding into a field and taking the rest of the bar with it. A
-    /// second field on the shelf was the floating pill that cover titles were rendering
-    /// behind, and `navigation-shell` asks for search to be reached one way, not two.
-    ///
-    /// What the field is *over* changed with it. It used to be the shelf, narrowed — which
-    /// made search a filter over what this device happens to hold, and left a reader's
-    /// servers out of the only question they were being asked. Now a term puts the shelf
-    /// away and puts up ``SearchResultsView``, which is one answer from every library the
-    /// reader has.
-    @ViewBuilder
-    func searching(_ inner: some View) -> some View {
-        if surface == .search {
-            searchSurface(inner)
-                .searchable(
-                    text: searchBinding,
-                    prompt: Text("library.search.prompt", bundle: .module)
-                )
-                // **No `.searchSuggestions`.** It drew the recent queries — which was the
-                // missing half at the time, since no iOS reader had ever seen one — but it
-                // draws them as a list *attached to the field*, visible only while the field
-                // has focus. `navigation-shell` now asks for a screen a reader lands on with
-                // headed sections they can scroll before deciding to type, and three shelves
-                // of covers do not belong in a completion dropdown. ``SearchAtRest`` draws
-                // the recents and the suggestions together, below.
-                // The one place the question is asked. Bound to the model's own term rather
-                // than to a second piece of state, so a recent search chosen from the
-                // suggestions runs exactly as if it had been typed.
-                //
-                // `initial: true` because the term outlives the session: `library-browsing`
-                // keeps the query, so a reader who left mid-search and came back would
-                // otherwise find the shelf narrowed by a term with no results under it and
-                // nothing asked of any server.
-                .onChange(of: model.query.search, initial: true) { _, term in
-                    search.ask(term, in: model, credentials: credentials, pins: pins)
-                }
-                .onDisappear { search.clear() }
-        } else {
-            inner
-        }
-    }
-
-    /// What search opens onto, or the answer to what was typed.
-    ///
-    /// **`inner` — the shelf — is deliberately not used here any more.** It was: with nothing
-    /// typed, the search surface drew the whole library grid waiting to be narrowed, which is
-    /// what made search read as a filter over a shelf rather than as a place. The shelf is one
-    /// tab away and exhaustive; this screen offers, per `navigation-shell`.
-    @ViewBuilder
-    private func searchSurface(_ inner: some View) -> some View {
-        if search.isSearching {
-            SearchResultsView(
-                listing: search.listing,
-                // A row a server answered leads to that server, opened on the question
-                // rather than at its front door — and never to the publication page, which
-                // resolves against the library's own set and would say the publication is
-                // gone. The row already names the library; this is where the reader arrives
-                // in it.
-                onFollow: { route in
-                    serverSearch = search.listing.term
-                    browsing = UUID(uuidString: route.sourceID)
-                },
-                onRetry: { id in
-                    search.retry(id, in: model, credentials: credentials, pins: pins)
-                }
-            )
-        } else {
-            SearchAtRest(
-                model: model,
-                addFolder: { isPickingFolder = true },
-                importFile: { isImporting = true },
-                addCatalogue: { isAddingCatalogue = true },
-                addKavita: { isAddingKavita = true },
-                addShare: { isAddingShare = true }
-            )
         }
     }
 }

@@ -58,7 +58,13 @@ final class LibrarySearch {
         _ raw: String,
         in model: LibraryModel,
         credentials: CredentialStore,
-        pins: CertificatePins
+        pins: CertificatePins,
+        /// What the reader narrowed the question to. `library-browsing`: the screen "states
+        /// whether it is searching everything or only what is on the device".
+        ///
+        /// Defaulted, so the shelf's and the browsers' own calls are unchanged — none of them
+        /// has a scope control, and everything is what they have always asked.
+        scope: LibraryAvailability = .everywhere
     ) {
         remote?.cancel()
         remote = nil
@@ -69,13 +75,21 @@ final class LibrarySearch {
             return
         }
 
-        let asked = model.registry.sources.filter(RemoteSearch.answers)
+        // **The scope decides who is asked, not only what is shown.** `library-browsing`:
+        // narrowing to the device "removes that notice, because nothing is then being waited
+        // for". A scope that filtered rows alone would leave this fan-out running and the
+        // could-not-answer notice up, so the reader who narrowed precisely to stop waiting
+        // would still be waiting.
+        let asked = scope.sourcesToAsk(in: model.registry)
         // Whether a row names its library is ``SearchListing``'s own rule, decided from
         // what the device matched and who is being asked — not from the registry's count,
         // which answers a different question for the shelf.
         listing = SearchListing(
             term: term,
-            local: FoundRow.held(in: model.matchGroups, registry: model.registry),
+            local: FoundRow.held(
+                in: model.matchGroups.narrowed(to: scope) { model.location(of: $0) },
+                registry: model.registry
+            ),
             asking: asked.map { $0.id.uuidString }
         )
 
