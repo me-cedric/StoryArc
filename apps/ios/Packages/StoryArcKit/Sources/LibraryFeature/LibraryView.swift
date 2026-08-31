@@ -312,10 +312,13 @@ extension LibraryView {
                     text: searchBinding,
                     prompt: Text("library.search.prompt", bundle: .module)
                 )
-                // `library-browsing`: "when a user opens search, recent queries are
-                // offered". Written and translated on both platforms; this modifier was
-                // the missing half, so no iOS reader had ever seen one.
-                .searchSuggestions { RecentSearchSuggestions(model: model) }
+                // **No `.searchSuggestions`.** It drew the recent queries — which was the
+                // missing half at the time, since no iOS reader had ever seen one — but it
+                // draws them as a list *attached to the field*, visible only while the field
+                // has focus. `navigation-shell` now asks for a screen a reader lands on with
+                // headed sections they can scroll before deciding to type, and three shelves
+                // of covers do not belong in a completion dropdown. ``SearchAtRest`` draws
+                // the recents and the suggestions together, below.
                 // The one place the question is asked. Bound to the model's own term rather
                 // than to a second piece of state, so a recent search chosen from the
                 // suggestions runs exactly as if it had been typed.
@@ -333,7 +336,12 @@ extension LibraryView {
         }
     }
 
-    /// The shelf, or the answer to what was typed over it.
+    /// What search opens onto, or the answer to what was typed.
+    ///
+    /// **`inner` — the shelf — is deliberately not used here any more.** It was: with nothing
+    /// typed, the search surface drew the whole library grid waiting to be narrowed, which is
+    /// what made search read as a filter over a shelf rather than as a place. The shelf is one
+    /// tab away and exhaustive; this screen offers, per `navigation-shell`.
     @ViewBuilder
     private func searchSurface(_ inner: some View) -> some View {
         if search.isSearching {
@@ -353,7 +361,14 @@ extension LibraryView {
                 }
             )
         } else {
-            inner
+            SearchAtRest(
+                model: model,
+                addFolder: { isPickingFolder = true },
+                importFile: { isImporting = true },
+                addCatalogue: { isAddingCatalogue = true },
+                addKavita: { isAddingKavita = true },
+                addShare: { isAddingShare = true }
+            )
         }
     }
 }

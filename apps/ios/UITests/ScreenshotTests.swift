@@ -73,6 +73,41 @@ final class ScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "library-ax5")
     }
 
+    /// The search destination, which is the whole point of `quiet-shell-and-search`.
+    ///
+    /// **This capture could not have been written before the change.** Search was
+    /// `Tab(role: .search)`, which is not a destination: tapping it morphed the bar into a
+    /// field in place, so there was no screen to reach and nothing to photograph but a bar
+    /// in two states. The tap below works because search is now a tab like its neighbours,
+    /// and `destination(_:in:)` finds it the same way it finds Library and Downloads.
+    ///
+    /// Photographed at rest, with nothing typed, because that is what the change added: the
+    /// suggestions, the recent searches, and the scope. What a *query* finds shipped already
+    /// and is asserted in `LibrarySearchTests`.
+    func testCaptureSearch() throws {
+        let app = launch()
+        try XCTUnwrap(destination("Search", in: app)).tap()
+        // The shelf's own wait, and for the shelf's own reason: tapping a tab is instant and
+        // decoding a run of covers is not, so a screenshot taken between the two shows empty
+        // sections on every build alike — which would make a before and an after identical
+        // for a reason that has nothing to do with the change.
+        _ = app.scrollViews.firstMatch.waitForExistence(timeout: 10)
+        attach(app.screenshot(), named: "search")
+    }
+
+    /// The search destination at the largest accessibility text size.
+    ///
+    /// Three section headings, a run of covers under each, and a scope control. The heading
+    /// wording is the risk — *Next in a series you have read* is a sentence rather than a
+    /// word, and French's is longer again — and a claim that it wraps rather than clipping is
+    /// worth exactly as much as the largest text size somebody actually pointed at it.
+    func testCaptureSearchAtLargestText() throws {
+        let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
+        try XCTUnwrap(destination("Search", in: app)).tap()
+        _ = app.scrollViews.firstMatch.waitForExistence(timeout: 10)
+        attach(app.screenshot(), named: "search-ax5")
+    }
+
     /// The theme sheet and its six presets, which `reader-theming-and-page-transitions`
     /// task 7.4 asks for and which has been recorded as impossible on this platform.
     ///

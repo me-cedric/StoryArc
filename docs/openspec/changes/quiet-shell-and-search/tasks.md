@@ -35,14 +35,14 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 
 ## 2. The search screen
 
-- [ ] 2.1 iOS: `SearchScreenTests` — with an empty query, the screen offers recent
+- [x] 2.1 iOS: `SearchScreenTests` — with an empty query, the screen offers recent
       searches and three suggestion kinds (in progress, never opened, next in
       series), and every suggestion resolves to a publication already in the model.
-- [ ] 2.2 iOS: build the at-rest sections in `LibraryView(surface: .search)`. Do not
+- [x] 2.2 iOS: build the at-rest sections in `LibraryView(surface: .search)`. Do not
       use `.searchSuggestions` — it attaches a list to the field and what is wanted
       is a screen with headed sections.
 - [ ] 2.3 iOS: `.searchScopes` for the everything/on-device narrowing, persisted.
-- [ ] 2.4 iOS: `SearchScreenTests` — nothing to suggest gives one sentence and the
+- [x] 2.4 iOS: `SearchScreenTests` — nothing to suggest gives one sentence and the
       library's own add-a-source action, not empty headings.
 - [ ] 2.5 Android: `LibrarySearchBarTest` — the contained branch uses
       `rememberContainedSearchBarState` and the docked branch

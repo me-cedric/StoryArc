@@ -12,6 +12,18 @@ which carries the setup and the caveats. This is what changed.
 | `android-home-default-dark` | Three, dark. | Four, dark. |
 | `android-home-scale2-light` | Three at the largest accessibility text size. | Four at the same size, **every label still legible and unclipped**. This is the shot that matters most: the bar splits its width equally between destinations, so a fourth cut each share from 360 dp to 270 dp on this device. `NavigationLabelFontScale` holds the labels to their design size and it still holds at four. |
 | `android-search-destination` | — | The destination itself, reached by tapping *Search*: the bar at the top, *Search* selected in the navigation, and the body empty. |
+| `ios-search` | — | The iOS search page at rest, which **had no before shot because it had no before**: `Tab(role: .search)` morphed the bar into a field in place, so there was no screen to photograph. Recent searches with a clear action, *Pick up where you left off*, and *You have never opened these*. |
+
+`ios-search.png` is also the proof of a rule rather than only of a screen. There is no *Next
+in a series you have read* heading in it, and there should not be: the fixture library has no
+series with a finished volume and an unread one after it. `navigation-shell` asks the screen
+to say so in one sentence "rather than drawing empty headings", and a section with nothing in
+it being **absent** rather than present-and-empty is what that looks like. A shot with three
+headings and one run of covers would have been the failure.
+
+Taken by `ScreenshotTests.testCaptureSearch`, which is new and could not have been written
+before this change: `destination("Search", in: app)` finds a tab, and until now search was a
+role rather than a tab.
 
 ## The empty body is deliberate, and is not finished work
 

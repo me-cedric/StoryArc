@@ -196,7 +196,7 @@ struct SearchScreenTests {
     // MARK: - Length
 
     @Test("Each section is bounded, so the screen is a page and not the library")
-    func sectionsAreBounded() {
+    func sectionsAreBoundedByLimit() {
         // Search is never exhaustive; the library is, and typing a term is how a reader
         // gets there. An unbounded *never opened* on a library of nine hundred would be the
         // shelf with a different heading.
@@ -205,5 +205,96 @@ struct SearchScreenTests {
         let offer = SearchSuggestions.of(many, limit: 6) { _ in nil }
 
         #expect(offer.neverOpened.count == 6)
+    }
+}
+
+/// That the screen is wired to the arithmetic above, and to the shared way in.
+///
+/// The suite above pins *what the offer is*; it cannot pin *what the screen does with it*,
+/// and three of this change's decisions live only at the call site:
+///
+/// - the at-rest screen replaced the **shelf**, which is what made search read as a filter;
+/// - `.searchSuggestions` was dropped, and re-adding it puts the recents back in a dropdown
+///   attached to the field while every assertion above stays green;
+/// - the empty state offers ``AddSourceMenu``, the same control the library's own empty state
+///   offers, rather than a button spelled the same way. `LibraryToolbar` once hand-built a
+///   second copy of that menu and left the import out of it.
+///
+/// **So this reads source text**, for the reason ``CoverRoutingWiringTests`` sets out at
+/// length one file away: what is worth pinning is a property of the call site, `swift test`
+/// runs on the host with no simulator so these views cannot be composed here, and the only
+/// thing that renders them is a UI test on a booted simulator, which no gate runs.
+///
+/// It is a tripwire, not a proof. `ScreenshotTests.testCaptureSearch` is what shows a reader
+/// the screen; delete this the day that run is a gate.
+@Suite("Search screen wiring")
+struct SearchScreenWiringTests {
+
+    /// The feature's own sources, found from this file rather than from the working directory.
+    ///
+    /// `#filePath` and not a walk up from the process's directory: this repository nests agent
+    /// worktrees at `.claude/worktrees/<name>/`, and a walk that climbs looking for a known
+    /// folder climbs out of the checkout under test and validates the parent repository's
+    /// copy. That has happened here before.
+    private func lines(of name: String) throws -> String {
+        var directory = URL(fileURLWithPath: #filePath)
+        // …/Packages/StoryArcKit/Tests/LibraryFeatureTests/this file → StoryArcKit
+        for _ in 0..<3 { directory.deleteLastPathComponent() }
+        let path = directory.appendingPathComponent("Sources/LibraryFeature/\(name)").path
+        return try #require(
+            try? String(contentsOfFile: path, encoding: .utf8),
+            "\(path) could not be read — has \(name) moved? A guard that cannot find what it guards passes for ever."
+        )
+    }
+
+    @Test("With nothing typed, the search surface draws the offer and not the shelf")
+    func atRestIsNotTheShelf() throws {
+        let text = try lines(of: "LibraryView.swift")
+
+        #expect(
+            text.contains("SearchAtRest("),
+            "The search surface no longer draws SearchAtRest. If it fell back to `inner`, it is the shelf again."
+        )
+    }
+
+    @Test("The field draws no attached suggestion list")
+    func noSearchSuggestions() throws {
+        let text = try lines(of: "LibraryView.swift")
+
+        // Only a real modifier, not the comment that explains why it went: the file
+        // deliberately names `.searchSuggestions` in prose, and a naive search of the whole
+        // text would fail on the explanation while a re-added modifier went unnoticed.
+        let modifiers = text
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { $0.hasPrefix(".searchSuggestions") }
+
+        #expect(
+            modifiers.isEmpty,
+            """
+            The field carries a suggestion list again: \(modifiers)
+            That draws recents in a dropdown attached to the field. `navigation-shell` asks
+            for a screen with headed sections — see SearchAtRest.
+            """
+        )
+    }
+
+    @Test("Nothing to suggest offers the library's own add-a-source menu")
+    func emptyStateSharesTheMenu() throws {
+        let text = try lines(of: "SearchAtRest.swift")
+
+        #expect(
+            text.contains("SearchNothingToSuggest("),
+            "SearchAtRest no longer routes an empty offer anywhere. Three empty headings is the failure."
+        )
+        #expect(
+            text.contains("AddSourceMenu("),
+            """
+            The empty state no longer uses AddSourceMenu.
+            `navigation-shell` asks for "the same way of adding a source that the library's
+            own empty state offers", and a second menu written here is how one of them ends
+            up a row short — which has happened in this file's neighbourhood before.
+            """
+        )
     }
 }

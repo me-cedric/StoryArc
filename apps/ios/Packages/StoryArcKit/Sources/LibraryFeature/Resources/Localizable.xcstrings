@@ -6731,6 +6731,66 @@
         }
       }
     },
+    "search.empty.subtitle": {
+      "comment": "Search screen with nothing to suggest: why, in one sentence.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Suche umfasst alles, was Sie hinzugefügt haben. Fügen Sie eine Bibliothek hinzu, dann steht hier etwas."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search looks across everything you have added. Add a library and there will be something here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La búsqueda abarca todo lo que has añadido. Añade una biblioteca y aquí habrá algo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La recherche couvre tout ce que vous avez ajouté. Ajoutez une bibliothèque et il y aura quelque chose ici."
+          }
+        }
+      }
+    },
+    "search.empty.title": {
+      "comment": "Search screen with nothing to suggest: the one sentence, as a heading.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch nichts vorzuschlagen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to suggest yet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todavía no hay nada que sugerir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien à suggérer pour l’instant"
+          }
+        }
+      }
+    },
     "search.retry": {
       "extractionState": "manual",
       "localizations": {
@@ -6760,6 +6820,66 @@
         }
       }
     },
+    "search.scope.everything": {
+      "comment": "Search scope: every configured source.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everything"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout"
+          }
+        }
+      }
+    },
+    "search.scope.onDevice": {
+      "comment": "Search scope: only what can be read with no network.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Gerät"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On this device"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En este dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur cet appareil"
+          }
+        }
+      }
+    },
     "search.silent %@": {
       "extractionState": "manual",
       "localizations": {
@@ -6785,6 +6905,96 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ n’a pas répondu"
+          }
+        }
+      }
+    },
+    "search.suggestions.inProgress": {
+      "comment": "Search screen, before a query: what the reader is in the middle of.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiterlesen, wo Sie aufgehört haben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick up where you left off"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar donde lo dejaste"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre où vous en étiez"
+          }
+        }
+      }
+    },
+    "search.suggestions.neverOpened": {
+      "comment": "Search screen, before a query: publications the reader has never opened.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese haben Sie nie geöffnet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have never opened these"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nunca has abierto estos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous n’avez jamais ouvert ceux-ci"
+          }
+        }
+      }
+    },
+    "search.suggestions.nextInSeries": {
+      "comment": "Search screen, before a query: the next unread issue of a started series.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als Nächstes in einer gelesenen Reihe"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next in a series you have read"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo siguiente de una serie que has leído"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La suite d’une série que vous avez lue"
           }
         }
       }
