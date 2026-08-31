@@ -38,6 +38,19 @@ internal object OpenedFile {
 
         /** The bytes could not be reached, or could not be understood at all. */
         data class Unreadable(val name: String) : Outcome
+
+        /**
+         * An audiobook locked by its store's content protection.
+         *
+         * Its own outcome rather than an [Unsupported] with a different string, because
+         * `publication-formats` requires the refusal to be "distinct from an unsupported
+         * container": the format is one StoryArc reads and this file is locked, and a
+         * reader told the first thing would go and convert a file that needs nothing done
+         * to it. It carries no field for a key, an account or an activation code, and
+         * that absence is the requirement — StoryArc does not implement, circumvent or
+         * advise on removing a content protection.
+         */
+        data class ContentProtected(val name: String) : Outcome
     }
 
     /** The `Uri` an intent carries, whether it arrived as data or as a stream extra. */
@@ -75,8 +88,11 @@ internal object OpenedFile {
                 Outcome.Opened(publication, source.descriptorPath)
             }
         }.getOrElse { error ->
-            val detected = (error as? IndexException.Unsupported)?.format
-            if (detected != null) Outcome.Unsupported(name, detected) else Outcome.Unreadable(name)
+            when (error) {
+                is IndexException.ContentProtected -> Outcome.ContentProtected(name)
+                is IndexException.Unsupported -> Outcome.Unsupported(name, error.format)
+                else -> Outcome.Unreadable(name)
+            }
         }
     }
 

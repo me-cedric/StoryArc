@@ -116,6 +116,7 @@
     <string name="catalogue_acquire_fetching">Obteniendo %1$s…</string>
     <string name="catalogue_acquire_unsupported">El servidor envió %1$s, que StoryArc no puede abrir.</string>
     <string name="catalogue_acquire_unreadable">No se pudo abrir lo que envió el servidor.</string>
+    <string name="catalogue_acquire_protected">Lo que envió el servidor está protegido por la protección de contenido de su tienda, y StoryArc no puede abrirlo.</string>
     <string name="library_add_source">Añadir libros</string>
     <plurals name="catalogue_section_count">
         <item quantity="one">%1$d título</item>

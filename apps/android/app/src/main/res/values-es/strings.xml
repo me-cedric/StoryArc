@@ -3,8 +3,9 @@
     <!-- The product name is not translated. -->
     <string name="app_name">StoryArc</string>
     <string name="open_in_refused_title">No se puede abrir este archivo</string>
-    <string name="open_in_unsupported">%1$s es un archivo %2$s, que StoryArc no lee. Lee CBZ, CBR, CBT, EPUB y PDF.</string>
-    <string name="open_in_unreadable">StoryArc no reconoce %1$s. Lee CBZ, CBR, CBT, EPUB y PDF.</string>
+    <string name="open_in_unsupported">%1$s es un archivo %2$s, que StoryArc no lee. Lee CBZ, CBR, CBT, EPUB, PDF y audiolibros.</string>
+    <string name="open_in_unreadable">StoryArc no reconoce %1$s. Lee CBZ, CBR, CBT, EPUB, PDF y audiolibros.</string>
+    <string name="open_in_protected">%1$s está protegido por la protección de contenido de su tienda, y StoryArc no puede abrirlo. StoryArc no retira protecciones de contenido, así que aquí no hay nada que introducir.</string>
     <string name="open_in_dismiss">OK</string>
 
     <string name="shortcut_continue">Seguir leyendo</string>

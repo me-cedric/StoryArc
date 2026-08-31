@@ -526,5 +526,11 @@ object LibraryScanner {
     private fun reasonFor(cause: IndexException): String = when (cause) {
         is IndexException.Unsupported -> "${cause.format} is not a format StoryArc reads"
         is IndexException.Unreadable -> cause.reason
+        // Not "not a format StoryArc reads" — the format *is* read, and this file is
+        // locked. `publication-formats` requires the two to be told apart, and the whole
+        // point of the distinction is that a reader shown the first message would go and
+        // convert a file that needs no converting.
+        is IndexException.ContentProtected ->
+            "this audiobook is protected by its store's content protection"
     }
 }

@@ -492,6 +492,16 @@ class DownloadQueue(
                 download.id,
                 context.getString(R.string.catalogue_acquire_unreadable),
             )
+            // **Content protection is not a failed verification either**, and it is not an
+            // unsupported format: the bytes are exactly what the server holds, the format
+            // is one StoryArc reads, and this particular file is locked. Terminal, and
+            // said in its own words — the unsupported message would send a reader looking
+            // for a converter, and a re-fetch would download the same locked file again.
+            is IndexException.ContentProtected -> fail(
+                download.id,
+                context.getString(R.string.catalogue_acquire_protected),
+                retryable = false,
+            )
         }
         null
     } catch (error: OpdsError) {

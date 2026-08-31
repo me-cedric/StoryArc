@@ -21,6 +21,12 @@ internal fun RefusedFileDialog(outcome: OpenedFile.Outcome, onDismiss: () -> Uni
             stringResource(R.string.open_in_unsupported, outcome.name, outcome.detected)
         is OpenedFile.Outcome.Unreadable ->
             stringResource(R.string.open_in_unreadable, outcome.name)
+        // A **different** message from the unsupported one, which is the requirement
+        // rather than a nicety: MPEG-4 is a format StoryArc reads, so telling a reader it
+        // is not would send them off to convert a file that needs no converting. And the
+        // dialog stays a dialog with one dismiss button — no field, no sign-in, no code.
+        is OpenedFile.Outcome.ContentProtected ->
+            stringResource(R.string.open_in_protected, outcome.name)
         // An opened file is not a refusal, and this dialog is only ever shown for one.
         is OpenedFile.Outcome.Opened -> return
     }

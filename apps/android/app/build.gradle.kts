@@ -157,4 +157,18 @@ tasks.withType<Test>().configureEach {
     )
         .withPropertyName("androidKotlinSources")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+
+    // And the strings, for the same reason and by the same lesson.
+    // `ProtectedAudiobookPromptsForNothingTest` reads `open_in_protected` out of the
+    // resource a reader actually sees — the point being that rewording *that* is what the
+    // guard notices. A `Test` task tracks its classpath, and a string resource is not on
+    // it, so without this the guard would go UP-TO-DATE across the one edit it exists for.
+    inputs.files(
+        fileTree(rootDir) {
+            include("**/src/main/res/values*/strings.xml")
+            exclude("**/build/**")
+        },
+    )
+        .withPropertyName("androidStringResources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }

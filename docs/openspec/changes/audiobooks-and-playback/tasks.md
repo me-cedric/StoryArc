@@ -74,12 +74,28 @@ creep — see [`design.md`](design.md).
       sniffed when opened.
       *Still to come with the player:* turning an audiobook folder into a
       `Publication`, which needs the model to carry an audio format.
+      **The folder half is now done on Android** — see 2.3.
 - [~] 2.3 Both: an audiobook with no chapter markers opens, its parts standing in for
       chapters, and nothing is reported as missing.
       **iOS done.** `AudiobookReader.read(fileAt:)` returns one unnamed part rather than an
       empty list, and `skippedPageCount` stays 0 so `isPartial` is false — nothing is
       reported as missing. `AudiobookReaderTests` and `AudiobookIndexingTests` assert both,
       against `unchaptered.m4a` read from the corpus. *The Android half is not started.*
+      **Android half done.** `PublicationFormat` gains `M4B, MP3, FLAC, OGG,
+      AUDIO_FOLDER` and an `isAudio`; `AudiobookFolder` reads a directory's parts through
+      `PageOrdering.naturalCompare` rather than a second copy of it; `PublicationIndexer`
+      routes audio to a `Publication` at **both** entry points, and asks `FolderKind`
+      which kind a directory is instead of assuming a comic. `AudiobookIndexingTest`
+      drives the corpus.
+      **One containers-not-extensions decision worth naming**, because a flat `AUDIOBOOK`
+      case was the obvious alternative: `local-library`'s imported copies work a file's
+      extension back out of its media type, so one case would have written a copied MP3
+      back out as an `.m4b`. Four container cases round-trip; `AudiobookFormatTest` pins it.
+      **And no chapter marks are read while indexing** — that is the design and not a
+      gap. An extractor per file would cost a library of five hundred audiobooks a full
+      decode pass per scan to fill a list nobody opened; the player reads the container's
+      markers when it opens the book. An unchaptered single file indexes as one part
+      standing in for the whole, with nothing reported as missing. iOS half outstanding.
 - [~] 2.4 Both: an `.aax`/`.aaxc` is refused by name, states the store's content
       protection as the reason, prompts for no key or account, and is distinct from
       an unsupported container. **Detection done and mutation-checked** — the brand is
@@ -93,6 +109,24 @@ creep — see [`design.md`](design.md).
       around it. Mutation-checked: throwing `.unsupported` instead fails the refusal test.
       A second test asserts the scanner's reason mentions no key, account, activation code,
       password or sign-in. *The Android half is not started.*
+      rather than a message a caller chooses.
+      **Android wording now done too, and the note above was wrong about needing the
+      player's surface for it** — the refusal is shown by `RefusedFileDialog`, which
+      already existed. `IndexException.ContentProtected` is a third case beside
+      `Unsupported` and `Unreadable`, `OpenedFile.Outcome.ContentProtected` carries it to
+      the dialog, and `open_in_protected` is written in all four languages. The library
+      scanner and the download queue answer it separately too — a locked file is terminal
+      and is not a failed verification to retry.
+      `ProtectedAudiobookPromptsForNothingTest` is the guard: the branch must use its own
+      string, the refusal path must construct no text field, the dialog must keep exactly
+      one action, and every locale must carry the message.
+      **The guard's first draft had to be thrown away and the reason is worth keeping**:
+      it searched for the word "activation" and failed on the doc comment explaining that
+      nothing ever asks for one. A guard that forbids describing the rule it enforces gets
+      the comment deleted rather than the defect fixed, so it strips comments and matches
+      what a prompt is *built* out of. Mutation-checked twice: pointing the dialog's branch
+      at `open_in_unsupported` fails the guard, and throwing `Unsupported` from the indexer
+      fails `AudiobookIndexingTest`. iOS half outstanding.
 - [~] 2.5 Both: a truncated audiobook plays what it can and states how much it could
       not, in the player's controls, without interrupting playback.
       **iOS half done, and the other half is named rather than claimed.** A *folder* with an
@@ -104,6 +138,13 @@ creep — see [`design.md`](design.md).
       reports the full 6 s duration, all three chapters and `isPlayable == true`. Nothing
       before playback says the media is short. Stating it needs the player to notice the item
       failing, which is §4/§5 work and is **not done**. *The Android half is not started.*
+      **Android: the counting half is done, the stating half is not.**
+      `AudiobookFolder` counts a zero-length part as skipped rather than dropping it, the
+      indexer carries that count onto the `Publication`, `PlayerSource.skippedPartCount`
+      and `NowPlaying.isPartial` carry it to a surface, and `AudiobookIndexingTest` pins
+      that `truncated.m4b` still **opens** rather than being refused. What no test yet
+      covers is a part that fails mid-decode — that is ExoPlayer's error path and belongs
+      with 2.7 — and nothing yet draws the count, which belongs with 4.5.
 - [x] 2.6 Add audiobook fixtures to the shared corpus: a chaptered M4B, the same
       chapters as ID3 CHAP frames, an unchaptered single file, a folder of parts
       whose names defeat lexical sort, a folder mixing audio and images, a truncated

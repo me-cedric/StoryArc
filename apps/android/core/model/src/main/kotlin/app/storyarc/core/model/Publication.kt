@@ -77,6 +77,14 @@ enum class MetadataOrigin {
 @Serializable
 enum class PublicationFormat {
     CBZ, CBR, CB7, CBT, EPUB, PDF, IMAGE_FOLDER,
+
+    // The audiobooks. Containers rather than extensions, because `publication-formats`
+    // says "an `.m4b` and an `.m4a` holding the same audio are treated identically" —
+    // both are `audio/mp4`, so both are [M4B] and nothing downstream can tell them
+    // apart. One flat `AUDIOBOOK` case was the alternative and it breaks the media-type
+    // round trip `local-library`'s imported copies depend on: a copied MP3 would be
+    // written back out as an `.m4b`.
+    M4B, MP3, FLAC, OGG, AUDIO_FOLDER,
     ;
 
     /**
@@ -86,7 +94,21 @@ enum class PublicationFormat {
     val isPagedImages: Boolean
         get() = when (this) {
             CBZ, CBR, CB7, CBT, IMAGE_FOLDER -> true
-            EPUB, PDF -> false
+            EPUB, PDF, M4B, MP3, FLAC, OGG, AUDIO_FOLDER -> false
+        }
+
+    /**
+     * Whether a player rather than a reader opens this.
+     *
+     * The domain's half of `FormatSniffer.Container.isAudio`, and asked here for the same
+     * reason it is asked there: a `when` repeated at every call site is how two of them
+     * come to disagree. The library sorts and filters by format and must not need the
+     * parser to know that an audiobook is not a comic.
+     */
+    val isAudio: Boolean
+        get() = when (this) {
+            M4B, MP3, FLAC, OGG, AUDIO_FOLDER -> true
+            CBZ, CBR, CB7, CBT, EPUB, PDF, IMAGE_FOLDER -> false
         }
 
     /**
@@ -108,6 +130,11 @@ enum class PublicationFormat {
             EPUB -> "application/epub+zip"
             PDF -> "application/pdf"
             IMAGE_FOLDER -> null
+            M4B -> "audio/mp4"
+            MP3 -> "audio/mpeg"
+            FLAC -> "audio/flac"
+            OGG -> "audio/ogg"
+            AUDIO_FOLDER -> null
         }
 
     /**
@@ -134,6 +161,11 @@ enum class PublicationFormat {
             EPUB -> "EPUB"
             PDF -> "PDF"
             IMAGE_FOLDER -> "Folder"
+            M4B -> "M4B"
+            MP3 -> "MP3"
+            FLAC -> "FLAC"
+            OGG -> "Ogg"
+            AUDIO_FOLDER -> "Audiobook folder"
         }
 
     companion object {
@@ -159,6 +191,16 @@ enum class PublicationFormat {
                 // dropped. `publication-formats` leaves CB7 undecoded, and the refusal has
                 // to say which format it refused.
                 "application/vnd.comicbook+7z", "application/x-cb7" -> CB7
+                // The audio containers. The `x-` spellings are here because they are what
+                // a share sheet and a file provider actually send for an audiobook — an
+                // `.m4b` arrives as `audio/x-m4b` from most of them and as `audio/mp4`
+                // from the rest, and both are the same container.
+                "audio/mp4", "audio/m4b", "audio/x-m4b", "audio/m4a", "audio/x-m4a",
+                "audio/aac", "audio/aacp",
+                -> M4B
+                "audio/mpeg", "audio/mp3", "audio/x-mp3", "audio/mpeg3" -> MP3
+                "audio/flac", "audio/x-flac" -> FLAC
+                "audio/ogg", "audio/x-ogg", "audio/opus", "audio/vorbis" -> OGG
                 else -> null
             }
     }

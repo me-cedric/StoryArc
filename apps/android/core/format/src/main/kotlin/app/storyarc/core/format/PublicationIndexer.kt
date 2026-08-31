@@ -21,6 +21,21 @@ sealed class IndexException(message: String) : Exception(message) {
 
     /** Recognised, supported, and this particular file cannot be read. */
     class Unreadable(val reason: String) : IndexException(reason)
+
+    /**
+     * An audiobook locked by its store's content protection.
+     *
+     * Its own case, because `publication-formats` requires the refusal to be "distinct
+     * from an unsupported container, because the format itself is supported and this
+     * particular file is locked". Folded into [Unsupported] the app would say MPEG-4 is a
+     * format it does not read — false, and it sends the reader off to convert a file that
+     * needs no converting.
+     *
+     * It carries no key, no account and no activation code, and it never will: StoryArc
+     * does not implement, circumvent or advise on removing a content protection.
+     */
+    class ContentProtected(val container: String) :
+        IndexException("$container is protected by its store's content protection")
 }
 
 /**
@@ -102,19 +117,93 @@ object PublicationIndexer {
             FormatSniffer.Container.SEVEN_ZIP ->
                 throw IndexException.Unsupported(PublicationFormat.CB7.displayName)
 
-            // See `ComicArchiveOpener.open`. Named rather than reported
-            // unrecognised, and replaced by the player when
-            // `audiobooks-and-playback` lands.
+            // A player opens these, not a reader. This used to be a *named refusal*, and
+            // the refusal was true while StoryArc could not play audio; it is not any more.
             FormatSniffer.Container.MP4,
             FormatSniffer.Container.MP3,
             FormatSniffer.Container.FLAC,
             FormatSniffer.Container.OGG,
-            FormatSniffer.Container.PROTECTED_AUDIOBOOK,
-            -> throw IndexException.Unsupported(container.displayName)
+            -> audiobook(container, identity, name, fallback)
+
+            // Refused by *name*, and separately from an unsupported container, because the
+            // format is supported and this particular file is locked.
+            FormatSniffer.Container.PROTECTED_AUDIOBOOK ->
+                throw IndexException.ContentProtected(container.displayName)
 
             null -> throw IndexException.Unreadable("the format was not recognised")
         }
     }
+
+    /**
+     * A single audio file, as a one-part audiobook.
+     *
+     * **No chapter marks are read here, and that is the design rather than a gap.**
+     * Reading them costs an extractor per file, and a library of five hundred audiobooks
+     * would pay it on every scan to fill in a list nobody has opened. The player reads the
+     * container's own markers when it opens the book (`design.md`); indexing records what
+     * the file *is*.
+     *
+     * So the part count is 1 — the whole of the file standing in for a chapter, which is
+     * exactly what `publication-formats` asks of an unchaptered audiobook: "its parts —
+     * the files, or the whole of a single file — stand in for chapters".
+     */
+    private fun audiobook(
+        container: FormatSniffer.Container,
+        identity: PublicationIdentity,
+        name: String,
+        fallback: FilenameMetadata,
+    ): Publication = Publication(
+        identity = identity,
+        format = audioFormat(container),
+        displayTitle = title(null, fallback, name),
+        series = fallback.series,
+        number = fallback.number,
+        volume = fallback.volume,
+        year = fallback.year,
+        origin = MetadataOrigin.INFERRED,
+        pageCount = 1,
+    )
+
+    /** The domain format an audio container is. Total, so a new container is a compile error. */
+    private fun audioFormat(container: FormatSniffer.Container): PublicationFormat =
+        when (container) {
+            FormatSniffer.Container.MP4 -> PublicationFormat.M4B
+            FormatSniffer.Container.MP3 -> PublicationFormat.MP3
+            FormatSniffer.Container.FLAC -> PublicationFormat.FLAC
+            FormatSniffer.Container.OGG -> PublicationFormat.OGG
+            FormatSniffer.Container.PROTECTED_AUDIOBOOK,
+            FormatSniffer.Container.ZIP,
+            FormatSniffer.Container.RAR,
+            FormatSniffer.Container.SEVEN_ZIP,
+            FormatSniffer.Container.PDF,
+            FormatSniffer.Container.TAR,
+            -> error("$container is not an audio container")
+        }
+
+    /**
+     * A folder of ordered audio files, as one audiobook.
+     *
+     * The part count is the folder's own, and the parts that hold nothing are counted
+     * apart — `publication-formats` asks a damaged audiobook to play "what it can" and
+     * state "how much it could not", by the same rule that opens a comic missing pages.
+     */
+    private fun audiobookFolder(
+        folder: AudiobookFolder,
+        identity: PublicationIdentity,
+        name: String,
+        fallback: FilenameMetadata,
+    ): Publication = Publication(
+        identity = identity,
+        format = PublicationFormat.AUDIO_FOLDER,
+        displayTitle = title(null, fallback, name),
+        series = fallback.series,
+        number = fallback.number,
+        volume = fallback.volume,
+        year = fallback.year,
+        origin = MetadataOrigin.INFERRED,
+        pageCount = folder.parts.size,
+        skippedPageCount = folder.skippedPartCount,
+    )
 
     private suspend fun comicFromSource(
         source: RandomAccessSource,
@@ -189,10 +278,29 @@ object PublicationIndexer {
         val fallback = FilenameMetadata.of(filename, seriesHint, catalogueSeries)
 
         if (file.isDirectory) {
+            // A folder is asked which kind it is rather than assumed to be a comic.
+            // `publication-formats` lists a folder of ordered audio as a publication too,
+            // and gives a majority rule for one holding both. `FolderKind` owns that rule;
+            // this is the one place the answer changes what gets built.
+            //
+            // The names are read once and handed over, so the walk that decides and the
+            // walk that reads are not two walks disagreeing about what is in the folder.
+            val kind = FolderKind.of(file.walkTopDown().filter { it.isFile }.map { entry ->
+                entry.relativeTo(file).invariantSeparatorsPath
+            }.asIterable())
+
+            if (kind == FolderKind.AUDIOBOOK) {
+                return audiobookFolder(
+                    AudiobookFolder.open(file),
+                    // No file, so no digest. A folder keys on its path alone.
+                    identityFor(file),
+                    filename,
+                    fallback,
+                )
+            }
             return comic(
                 ImageFolderArchive.open(file),
                 PublicationFormat.IMAGE_FOLDER,
-                // No file, so no digest. A folder of images keys on its path alone.
                 identityFor(file),
                 filename,
                 fallback,
@@ -228,15 +336,16 @@ object PublicationIndexer {
             FormatSniffer.Container.SEVEN_ZIP ->
                 throw IndexException.Unsupported(PublicationFormat.CB7.displayName)
 
-            // See `ComicArchiveOpener.open`. Named rather than reported
-            // unrecognised, and replaced by the player when
-            // `audiobooks-and-playback` lands.
+            // See the source overload. A player opens these; the refusal that used to
+            // stand here was true only while there was no player.
             FormatSniffer.Container.MP4,
             FormatSniffer.Container.MP3,
             FormatSniffer.Container.FLAC,
             FormatSniffer.Container.OGG,
-            FormatSniffer.Container.PROTECTED_AUDIOBOOK,
-            -> throw IndexException.Unsupported(container.displayName)
+            -> audiobook(container, identity, filename, fallback)
+
+            FormatSniffer.Container.PROTECTED_AUDIOBOOK ->
+                throw IndexException.ContentProtected(container.displayName)
 
             null -> throw IndexException.Unreadable("the format was not recognised")
         }
