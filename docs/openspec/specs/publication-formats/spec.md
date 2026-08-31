@@ -90,6 +90,16 @@ comic, and decide which of the three states it is in, without transferring it.
 - **WHEN** a user opens a streamable publication on a network share or a server
 - **THEN** the first page renders without the whole publication being transferred
 
+#### Scenario: Opening a solid archive from a remote source
+- **WHEN** a publication cannot be read with ranged reads
+- **THEN** the app says the format has to be downloaded before it can be read, states the size, and offers to download it
+- **AND** it does not begin streaming badly and leave the user watching a stalled page
+
+#### Scenario: A solid archive already downloaded
+- **WHEN** a publication that cannot stream is already available offline
+- **THEN** it opens directly with no notice, because the constraint was never about the format being readable
+- **AND** this holds for solid RAR5, which is download-only; it does not hold for solid RAR4, which is refused whether local or remote
+
 #### Scenario: A remote publication is catalogued without being transferred
 - **WHEN** a CBR is indexed from a network share or a server
 - **THEN** its page count, page order, sizes and cover are read from its headers alone, with no entry decompressed

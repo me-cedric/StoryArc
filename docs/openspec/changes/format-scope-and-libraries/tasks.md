@@ -618,7 +618,30 @@ Three consequences:
       The two spikes that still block acceptance are the SMB time-to-first-page
       measurement and the AMSMB2 linkage check — both belong to sources that are
       not built.
-- [ ] **6.5** `/opsx:sync` to merge the delta specs into the main specs.
+- [x] **6.5** `/opsx:sync` to merge the delta specs into the main specs. **Done,
+      and most of both deltas was already absorbed.** Two scenarios were genuinely
+      missing and are the ones 5.2 and 5.3 built: *Opening a solid archive from a
+      remote source* and *A solid archive already downloaded*, both under
+      `publication-formats`' *Streaming capability per format*.
+
+      Two things in the deltas were deliberately **not** applied, because the main
+      specs had moved past them:
+
+      - The delta's `Supported formats` body asserts that CB7 is unsupported
+        because it is rare and streams worst. The main spec now says the decision
+        is a product one and **still open**, cites
+        [ADR-0013](../../../decisions/0013-cb7-support.md), and records that a
+        `.cb7` is refused by name until it is made. Applying the delta would have
+        claimed a decision nobody has taken.
+      - The delta's `ebook-reader` body names PDFKit and `android.graphics.pdf`,
+        which the specs rules forbid — requirements describe user-observable
+        behaviour — and its links carry the four-level depth correct from
+        `changes/<id>/specs/`, which would break at the main spec's depth. Its
+        seven scenarios are already in the main spec, reordered; nothing was
+        missing.
+
+      The main spec's own *Corrupt archive* scenario carries an `AND` line the
+      delta lacks, added by a later change. Preserved rather than overwritten.
       **Partly done: everything that shipped is merged, two scenarios are held.**
 
       The original note here held the *whole* sync until a remote source existed,
