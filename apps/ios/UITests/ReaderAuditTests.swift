@@ -18,9 +18,21 @@ final class ReaderAuditTests: XCTestCase {
     ///
     /// It is the screen a reader spends their time in and the one the other two checks
     /// cannot reach: `pnpm a11y:android` reads whatever is on the emulator's screen, and
-    /// this suite went no further than the three destinations. The chrome auto-hides after
-    /// four seconds, so this taps the centre of the page to bring it back before measuring
-    /// — an audit of a page with no chrome on it measures the artwork and nothing else.
+    /// this suite went no further than the three destinations.
+    ///
+    /// **The chrome has to be on screen, and getting it there was backwards.** This used to
+    /// tap the centre of the page immediately after opening, under a comment about bringing
+    /// the chrome back after its four-second fade. `ReaderView`'s `wantsChrome` starts `true`
+    /// — `comic-reader` wants the way out discoverable — and a centre tap *toggles* it
+    /// (`ReaderTurning.handleTap`), so the tap removed the chrome this test exists to measure
+    /// and every run so far audited a bare page. It is the same mistake, inverted, as the one
+    /// this branch was opened for.
+    ///
+    /// So the chrome is looked for rather than summoned: *Close* is `reader.close` in
+    /// `ReaderChromeControls`, and a tap happens only if four seconds have already passed and
+    /// it has gone. What no wait can do is stop the timer — if the audit itself starts more
+    /// than four seconds after the chrome appeared, it measures the page again. That is worth
+    /// knowing when a run's finding count changes and nothing in the app did.
     ///
     /// Skipped rather than failed when the library has nothing openable in it. A device
     /// whose sources have all gone away is a real state, and a suite that reports a defect
@@ -33,6 +45,10 @@ final class ReaderAuditTests: XCTestCase {
         // the words are pixels in a photograph of a printed page, and the app has no text
         // to expose because no text was ever delivered to it.
         //
+        // That count was recorded from a run whose centre tap had taken the chrome away, so
+        // it is a count for the page alone. With the chrome up there is more on screen to
+        // audit and the number can differ without anything having regressed.
+        //
         // Naming it rather than suppressing it, because the shape of the finding is right
         // even though there is nothing to do about it here — and because the same check on
         // the **EPUB** reader would be a real finding, since there the words are real text
@@ -42,9 +58,13 @@ final class ReaderAuditTests: XCTestCase {
         let action = try openFirstPublication(in: app)
         action.tap()
 
-        // The chrome fades after four seconds. Bring it back, or this measures a page of
-        // artwork with no controls on it and reports that everything is well.
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Already up, on a reader that has just opened. Only a chrome that has timed out
+        // needs the tap, and a tap on one that has not takes it away.
+        let close = app.buttons["Close"]
+        if !close.waitForExistence(timeout: 10) {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            _ = close.waitForExistence(timeout: 5)
+        }
 
         try reportOnly(app, named: "Reader")
     }
@@ -77,16 +97,19 @@ final class ReaderAuditTests: XCTestCase {
         // while sitting on the publication page.
         //
         // The second tapped a hittable action, waited twenty seconds for the theme control,
-        // and skipped. That skip was honest and its conclusion was not: it was written down
-        // as "the EPUB reader does not reach a state with its own controls on this
-        // simulator". What this asked the shelf for was an *EPUB*, and a cover says its
-        // format and nothing about its layout — so a **fixed-layout** one satisfies it, and
-        // the app opens that in the *comic* reader, which has no theme control and never
-        // will. Two of this corpus's five EPUBs are pre-paginated and both sort first.
+        // and skipped. That skip was honest and the conclusion drawn from it was not: it was
+        // written down as "the EPUB reader does not reach a state with its own controls on
+        // this simulator". Nothing in that run identified the reader it was in. What it
+        // asked the shelf for was an *EPUB*, and a cover says its format and nothing about
+        // its layout — so a **fixed-layout** one satisfies it, and that one is not opened in
+        // the reflowable reader at all. Two of the corpus's five EPUBs are pre-paginated and
+        // both sort ahead of the other three by title, which is enough to explain the skip
+        // without a defect in either reader; it is not proof of which cover was reached,
+        // because the shelf's sort is persisted and these tests reset no app state.
         //
-        // What the reflowable reader does on a simulator is still unmeasured. This is the
-        // walk that can find out: it keeps opening EPUBs until the reader it lands in is
-        // the one carrying that control, and says what it saw if none of them is.
+        // So what the reflowable reader does on a simulator is still unmeasured. This is the
+        // walk that can find out: it opens EPUBs until one of them lands in that reader with
+        // a page in it, and names everything it tried when none of them does.
         let app = launch()
         try openTheEpubReader(in: app)
 

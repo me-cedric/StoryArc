@@ -82,17 +82,17 @@ final class ScreenshotTests: XCTestCase {
     /// XCUITest rather than through the Simulator's window.
     ///
     /// What the blocker was narrowed to next — "the EPUB reader does not reach a state with
-    /// its own controls" — does not follow either, because the walk could not have been in
-    /// that reader. It asked for an EPUB, and a **fixed-layout** EPUB satisfies that and
-    /// opens the *comic* reader, which has no theme control at all. Whether the reflowable
-    /// reader has a problem of its own is a thing no run has measured yet.
+    /// its own controls" — does not follow either, because that run never established which
+    /// reader it was in. It asked for an EPUB, and a **fixed-layout** EPUB satisfies that and
+    /// is not opened in the reflowable reader at all. Whether the reflowable reader has a
+    /// problem of its own is a thing no run has measured yet.
     ///
     /// The sheet lives in the **EPUB** reader, not the comic reader, because a reading theme
     /// applies to reflowable text. Its control is labelled *Reading* — `theme.title` in
     /// `EpubReaderFeature`. A fixed-layout EPUB cannot be used for this, and the reason is
-    /// one screen earlier than it looks: the app does not open one in the EPUB reader at all.
-    /// `Publication.isReflowable` sends it to the comic reader, which has no theme control to
-    /// disable. Asking the shelf for "an EPUB" is therefore not enough — see
+    /// one screen earlier than it looks: `Publication.isReflowable` is false for one, so the
+    /// app opens it in the comic reader, where the reading themes have no control of their
+    /// own. Asking the shelf for "an EPUB" is therefore not enough — see
     /// ``openTheEpubReader(in:)``, which is what made this capture possible.
     ///
     /// All six presets are in one shot deliberately, following the Android captures: the grid
@@ -118,10 +118,11 @@ final class ScreenshotTests: XCTestCase {
         // every screen and returns instantly, so the first version of this walked on while
         // the publication page was still up, tapped its middle, and reported no theme sheet
         // on a screen that never had one. And it opens EPUBs until one of them lands in the
-        // reflowable reader, because a cover cannot say which of the two readers it opens:
-        // the version that stopped at the first EPUB found a pre-paginated one, opened the
-        // comic reader, and skipped every run for a day. When no EPUB on the device opens
-        // the reflowable reader it still skips, and names every one it tried.
+        // reflowable reader **with a page in it**, because a cover cannot say which of the
+        // two readers it opens and the theme control is drawn over the loading spinner as
+        // readily as over a book. A version that stopped at the first EPUB skipped every run
+        // for a day. When no EPUB on the device gets there it still skips, and names every
+        // one it tried and how far each got.
         try openTheEpubReader(in: app)
         let reading = app.buttons["Reading"]
         reading.tap()

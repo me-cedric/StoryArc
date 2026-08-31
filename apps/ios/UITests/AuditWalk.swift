@@ -153,11 +153,12 @@ extension XCTestCase {
 
     /// The covers a walk may open, on the screenful of shelf that is showing.
     ///
-    /// Split out of ``openFirstPublication(in:named:ofFormat:)`` so that
-    /// ``openTheEpubReader(in:)`` can ask the same question — which covers are candidates —
-    /// rather than growing a second answer to it. Each filter above is a lesson; two copies
-    /// of them would be two sets of lessons, and this file exists because that happened once
-    /// already.
+    /// Showing the shelf and asking what is on it, in one call, for the one caller that wants
+    /// both: ``openFirstPublication(in:named:ofFormat:)``. ``openTheEpubReader(in:)`` walks
+    /// the same two steps itself because it has to scroll between them, so it calls
+    /// ``showTheShelf(in:)`` and ``coversOnScreen(in:named:ofFormat:)`` directly. The
+    /// filtering — which is where every lesson in this file lives — is in `coversOnScreen`
+    /// and is therefore shared by both.
     func coversOnTheShelf(
         in app: XCUIApplication,
         named wanted: String? = nil,
@@ -180,17 +181,28 @@ extension XCTestCase {
     /// A shelf is a scroll view, `isHittable` is false for anything off it, and the frame
     /// bounds below are absolute screen coordinates — so every filter here is a statement
     /// about one screenful. That is enough for "open something" and wrong for "open a
-    /// particular one": on an 874-point window this library draws as far as `Broken
-    /// Transfer`, and the accessibility audit's own findings say so. A caller that needs a
-    /// publication further down the alphabet has to scroll and ask again.
+    /// particular one": a caller that needs a publication further down the shelf has to
+    /// scroll and ask again.
+    ///
+    /// **How far a screenful reaches on this corpus is not written down anywhere, and the one
+    /// place that looks like it is is not.** `AccessibilityAuditTests` records five captions
+    /// in the bottom strip of an 874-point window, but that device held `Blackwater #3`, which
+    /// `scripts/corpus.mjs` does not build — so the shelf it measured was not this corpus's
+    /// and bounds nothing about it.
     func coversOnScreen(
         in app: XCUIApplication,
         named wanted: String? = nil,
         ofFormat format: String? = nil
     ) -> [XCUIElement] {
-        // Below the toolbar and above the tab bar: everything between is content.
+        // Below the toolbar and above the tab bar: everything between is content. Judged on
+        // the **centre** of the frame rather than on both edges, because a cover that
+        // straddles the floating tab bar is still hittable and still opens — and testing
+        // `maxY` threw away the whole bottom row of a grid whose cells the bar overlaps by a
+        // few points. What the band is for is unchanged: keeping the toolbar's and the tab
+        // bar's own buttons out, on the assumption that each sits wholly inside its strip —
+        // which is what this was written on and what no run here has measured.
         app.buttons.allElementsBoundByIndex
-            .filter { $0.isHittable && $0.frame.minY > 150 && $0.frame.maxY < app.frame.height - 100 }
+            .filter { $0.isHittable && $0.frame.midY > 150 && $0.frame.midY < app.frame.height - 100 }
             .filter { !$0.label.contains("100 percent read") }
             .filter { wanted == nil || $0.label == wanted }
             .filter { cover in format.map { cover.label.contains(", \($0)") } ?? true }
@@ -203,81 +215,6 @@ extension XCTestCase {
     /// them matched `label IN {'Read', 'Continue'}`, which finds neither.
     var opensAPublication: NSPredicate {
         NSPredicate(format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue'")
-    }
-
-    /// Opens the **reflowable** EPUB reader, and proves that is the reader it opened.
-    ///
-    /// `ofFormat: "EPUB"` is as close as the shelf can get and it is not close enough. A
-    /// cover's spoken label carries its format and says nothing about how the book is laid
-    /// out, while the app sends a **fixed-layout** EPUB to the *comic* reader — see
-    /// `Publication.isReflowable`, which `ebook-reader` asks for, because a pre-paginated
-    /// page has no typography to control and so no typography controls to audit.
-    ///
-    /// On this corpus "the first EPUB on the shelf" is not a coin toss but a certainty:
-    /// `Bright Panels` and `Glasshouse` are both pre-paginated, and both sort before
-    /// `Harbour Lights 01`, `Harbour Lights 02` and `The Long Field`, which are not. A walk
-    /// that stops at the first EPUB reaches the comic reader every time and finds no theme
-    /// control there — which is how the EPUB reader came to be written down as unreachable
-    /// on a simulator, with two suites skipping to say so and a task list recording it as a
-    /// platform limit.
-    ///
-    /// So this opens EPUBs in turn and stops at the one whose reader carries the theme
-    /// control, which is the one control no other screen in the app has.
-    ///
-    /// **It scrolls, and it has to.** The two pre-paginated EPUBs sort first, and one
-    /// screenful of this library reaches `Broken Transfer` — so the three reflowable ones
-    /// are not merely later in the list, they are off the screen and not hittable at all.
-    /// A retry that only looked at the covers already showing would try the same two wrong
-    /// books twice and skip with the same message.
-    ///
-    /// Relaunching between attempts rather than closing the reader: leaving is a
-    /// full-screen cover's own business, the comic reader's chrome fades after four
-    /// seconds, and a launch is a single call that cannot half-succeed. The cost is the
-    /// scroll position, which is why each sweep swipes its way back down.
-    ///
-    /// One candidate failing does not end the walk, and the skip at the end names every
-    /// publication that was opened and every button that was on screen when it gave up. A
-    /// check that gives up quietly is a check whose next reader derives all of this again.
-    func openTheEpubReader(in app: XCUIApplication) throws {
-        // `theme.title` in `EpubReaderFeature`, drawn as part of the chrome whether or not
-        // the book has finished opening.
-        let reading = app.buttons["Reading"]
-        var tried: [String] = []
-        var opened: [String] = []
-        for sweep in 0..<4 {
-            if sweep > 0 { app.launch() }
-            try showTheShelf(in: app)
-            for _ in 0..<sweep { app.swipeUp() }
-
-            let untried = coversOnScreen(in: app, ofFormat: "EPUB")
-                .map(\.label)
-                .first { !tried.contains($0) }
-            guard let candidate = untried else { continue }
-            tried.append(candidate)
-            guard let cover = coversOnScreen(in: app, named: candidate).first else { continue }
-            cover.tap()
-
-            // A hittable action, not the first in the hierarchy: this page has duplicate
-            // entries and `firstMatch` can bind to one no finger could reach.
-            guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 5),
-                  let action = app.buttons.matching(opensAPublication)
-                      .allElementsBoundByIndex.first(where: \.isHittable)
-            else { continue }
-            action.tap()
-            opened.append(candidate)
-            // The reader's chrome is up when it appears and only a tap takes it away, so
-            // this waits for the book to open rather than for a fade to be interrupted.
-            if reading.waitForExistence(timeout: 15) { return }
-        }
-        try XCTSkipUnless(!tried.isEmpty, "This device's library holds no EPUB to open.")
-        throw XCTSkip(
-            """
-            No EPUB on this device opened the reflowable reader.
-            Opened: \(opened)
-            Reached but not opened: \(tried.filter { !opened.contains($0) })
-            Buttons on screen: \(app.buttons.allElementsBoundByIndex.map(\.label))
-            """
-        )
     }
 
     /// One of the shell's three destinations, wherever the platform decided to draw it.
