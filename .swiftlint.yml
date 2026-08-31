@@ -35,7 +35,9 @@ line_length:
 
 identifier_name:
   min_length: 2
-  excluded: [id, of, to, x, y]
+  # `g` is Kavita's own age-rating label, copied from ComicInfo.xml v2.1 rather than named
+  # by this app -- see `KavitaAgeRating`.
+  excluded: [id, of, to, x, y, g]
 
 file_length:
   warning: 400

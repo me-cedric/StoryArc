@@ -1,6 +1,7 @@
 public import SwiftUI
 
 internal import DesignSystem
+internal import Persistence
 public import StoryArcCore
 
 /// The page a publication has.
@@ -37,6 +38,12 @@ public struct PublicationDetailView: View {
     /// Whether the app's own store holds a copy. Read when the page appears and after the
     /// reader acts, never on a redraw.
     @State private var isKept = false
+    /// What a Kavita server said about this publication when it was kept. Read here rather
+    /// than inside ``KavitaCardFacts`` for two reasons: the page already runs one task per
+    /// publication, and a view that read the card itself would have to exist in order to
+    /// perform the read — which is what left 24 pt of nothing under every description.
+    /// `nil` for everything that is not a kept Kavita chapter, which is most of the shelf.
+    @State private var kavitaCard: KavitaCard?
 
     public init(
         publication: Publication,
@@ -51,27 +58,15 @@ public struct PublicationDetailView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
-                // A measure, not a margin. On a 13-inch iPad the description runs to nearly
-                // two hundred characters a line and the primary action becomes a metre-wide
-                // bar — both of which are the page *filling* the window rather than
-                // composing it.
-                VStack(alignment: .leading, spacing: StoryArcSpace.xl) {
-                    DetailHero(publication: publication, cover: cover)
-                    DetailTitleBlock(publication: publication)
-                    DetailActions(
-                        publication: publication,
-                        model: model,
-                        isKept: $isKept,
-                        file: file,
-                        onRead: read
-                    )
-                    summary
-                    // The two of `kavita-server`'s seven metadata fields that
-                    // ``Publication`` has no slot for. Absent for everything that is not a
-                    // kept Kavita chapter, which is most of the shelf. See
-                    // ``KavitaCardFacts``.
-                    KavitaCardFacts(publicationId: publication.id)
-                }
+                DetailMainColumn(
+                    publication: publication,
+                    model: model,
+                    cover: cover,
+                    isKept: $isKept,
+                    kavitaCard: kavitaCard,
+                    file: file,
+                    onRead: read
+                )
                 .frame(maxWidth: SidebarLayout.maxContentWidth)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, StoryArcSpace.gutter)
@@ -106,6 +101,7 @@ public struct PublicationDetailView: View {
         // took the cover's hue would change colour as the reader moved between publications.
         .task(id: publication.id) {
             isKept = model.keptOffline.contains(publication.id)
+            kavitaCard = KavitaCardStore().card(of: publication.id)
             cover = await model.cover(for: publication, maxPixelSize: 900)
         }
         // Keyed on the canvas as well as the cover: the wash is checked against the page it
@@ -117,21 +113,6 @@ public struct PublicationDetailView: View {
     }
 
     // MARK: - Content that may be absent
-
-    /// The description, when the publication carries one.
-    ///
-    /// Absent rather than empty: the delta refuses a placeholder, and this change does not
-    /// alter what the scan collects — if a description is missing today it is missing here.
-    @ViewBuilder
-    private var summary: some View {
-        if let summary = publication.summary, !summary.isEmpty {
-            Text(summary)
-                .textRole(.body)
-                .foregroundStyle(theme.palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
 
     @ViewBuilder
     private var series: some View {
