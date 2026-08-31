@@ -34,9 +34,13 @@ connection state — lives in the feature that shows it.
 **`grid/` is in the design system because more than one module draws a shelf.**
 The library shelf and the Downloads destination both lay covers out, and while
 the rule was `internal` to `:feature:library` the Downloads shelf carried its own
-copy of `design.md` §4's ladder — a copy that had already stopped following the
-reader's font scale and had no upper bound on a tablet. A shelf calls
-`rememberCoverColumns` and states nothing itself.
+copy of `design.md` §4's ladder. A copy drifts one clause at a time, and this one
+had twice: `b2ededa4` fixed the font scale *in the copy* rather than removing the
+copy, and the missing upper bound was still open — 175 dp covers on a 1067 dp
+emulator against a 168 dp maximum. A shelf of the reader's own publications calls
+`rememberCoverColumns` and states nothing itself; `:app`'s `ShelvesAskOneRuleTest`
+reads the call sites to keep it that way. The three remote-browsing grids in
+`:feature:library` are not on the rule yet — `design.md` §4 names them.
 
 Every module compiles with `allWarningsAsErrors`, and `:app` runs Lint with
 `warningsAsErrors`.

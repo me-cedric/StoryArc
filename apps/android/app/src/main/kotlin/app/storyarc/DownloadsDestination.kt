@@ -99,12 +99,12 @@ internal fun DownloadsDestination(host: AppHost) {
         snackbarHost = { SnackbarHost(snackbars) },
     ) { padding ->
         LazyVerticalGrid(
-            // The library shelf's own columns, asked of the same rule rather than restated
-            // here. Two things were different and both were visible: this grid ignored the
-            // reader's font scale, and `GridCells.Adaptive` has no upper bound, so on a
-            // tablet these covers stretched past the 168 dp the library's stop at. The
-            // spacing matches for the same reason — two shelves of one library that answer
-            // the same window differently read as two apps.
+            // The library shelf's own rule, asked rather than restated here. This grid used
+            // `GridCells.Adaptive`, which takes a lower bound and no upper one, so it drew
+            // 175 dp covers on a 1067 dp emulator while the library's stopped at the 168 dp
+            // maximum — the readable-range clause of `library-browsing`, held on one shelf
+            // and not the other. The spacing matches for the same reason: two shelves of one
+            // library that answer the same window differently read as two apps.
             columns = rememberCoverColumns(),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(

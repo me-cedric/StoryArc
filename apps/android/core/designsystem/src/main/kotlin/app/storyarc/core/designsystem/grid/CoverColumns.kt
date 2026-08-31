@@ -1,18 +1,20 @@
 /*
  * How wide a cover is drawn, and therefore how many of them a window holds.
  *
- * This rule had three homes and now has one. `:feature:library` held it for the library
- * shelf, `:app` held a second copy for the Downloads shelf, and the second copy had already
- * drifted: it ignored the reader's font scale entirely, so at an accessibility text size the
- * Downloads shelf kept 104 dp columns while the library shelf widened to 146 — two shelves in
- * one app answering the same question differently, with captions wrapping hard inside the
- * narrow one. iOS had the identical divergence in `OnDeviceShelf`, where Apple's
- * accessibility audit reported it as five clipped labels.
+ * This rule had two homes and now has one. `:feature:library` held it for the library shelf,
+ * and `:app` held a second copy for the Downloads shelf — and a copy is a thing that drifts
+ * one clause at a time. It already had, twice. The first drift was the font scale, and
+ * `b2ededa4` fixed it in the copy rather than removing the copy; the second was still open
+ * when this landed: the Downloads shelf asked for `GridCells.Adaptive`, which takes a lower
+ * bound and no upper one, so a 1067 dp emulator drew 175 dp covers there while the library's
+ * stopped at the 168 dp maximum. Two shelves onto one library, laying out differently.
  *
  * The copy existed because everything here was `internal` to `:feature:library`, so `:app`
  * could not call it however much it should. It lives in `:core:designsystem` now — the module
  * both of them already depend on, and where the rest of `design.md` already lives — as public
- * API. A shelf asks `rememberCoverColumns`; nobody restates the ladder.
+ * API. A shelf asks `rememberCoverColumns`; nobody restates the ladder. `:app`'s
+ * `ShelvesAskOneRuleTest` is what holds that, because it is a property of the call sites and
+ * no arithmetic test can see them.
  */
 package app.storyarc.core.designsystem.grid
 
@@ -70,8 +72,13 @@ private const val ACCESSIBILITY_COVER_STEP = 1.4f
  * Taken from the window's width rather than from a device check, for the reason
  * `WindowClass.kt` sets out at length: a multi-window slot, a rotation and a fold are all
  * the same event. The font scale is the second such event.
+ *
+ * [fontScale] has no default on purpose. It had one, and the one caller that omitted it —
+ * Home's continue-reading run — silently never took the accessibility step, which is the
+ * same two-surfaces-disagree defect this file exists to close, one screen over. An optional
+ * accessibility input on public API is a footgun with the safety off.
  */
-fun coverMinimumWidth(windowWidthDp: Int, fontScale: Float = 1f): Dp {
+fun coverMinimumWidth(windowWidthDp: Int, fontScale: Float): Dp {
     val tier = when {
         windowWidthDp >= 840 -> 158.dp
         windowWidthDp >= 600 -> 132.dp
@@ -89,7 +96,7 @@ fun coverMinimumWidth(windowWidthDp: Int, fontScale: Float = 1f): Dp {
  * ragged strip of empty shelf down the trailing edge. iOS derives its maximum from its
  * minimum and gets this for nothing.
  */
-fun coverMaximumWidth(fontScale: Float = 1f): Dp =
+fun coverMaximumWidth(fontScale: Float): Dp =
     COVER_MAXIMUM_WIDTH.steppedForFontScale(fontScale)
 
 /**
@@ -109,16 +116,24 @@ fun Dp.steppedForFontScale(fontScale: Float): Dp =
     }
 
 /**
- * The columns a cover shelf lays out in this window, for this reader.
+ * The bounds a cover shelf lays its columns out between, in this window, for this reader.
  *
  * Every shelf in the app asks this and no shelf answers it for itself — that is the whole
  * point of the function existing. The library shelf and the Downloads shelf are two views of
  * one library, and a reader who turns their text size up should not find that one of them
  * reflowed and the other did not.
  *
+ * What is shared is the *rule*, not the answer. Two shelves asking this can still show
+ * different column counts, and on a tablet they do: the library renders inside the list pane
+ * of a `ListDetailPaneScaffold` — a measured ~340 dp of a 1067 dp window — while Downloads is
+ * a single full-width surface. Same minimum, same maximum, different room to spend them in.
+ *
  * The *window's* width is what is measured, rather than the shelf's own: 600 and 840 are
  * Material's window size-class breakpoints, so measuring a content pane against them would
- * read a 900 dp window behind a navigation rail as a medium one.
+ * read a 900 dp window behind a navigation rail as a medium one. iOS's
+ * `coverMinimumWidth(shelfWidth:textSize:)` measures the shelf instead, and that — not the
+ * breakpoint values — is the real divergence between the two platforms here. It is also why
+ * the library pane takes the 158 dp tier a 340 dp pane has no use for; see `design.md` §4.
  *
  * Both bounds, not just the minimum: [androidx.compose.foundation.lazy.grid.GridCells.Adaptive]
  * has no maximum, so a narrow window stretches its single column to the full width and one

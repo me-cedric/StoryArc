@@ -223,9 +223,17 @@ looks like a music player.
 - Aspect ratio 2:3 — the North American comic trim.
 - Manga volumes and EPUB covers vary. The cell crops to a consistent shape and
   **letterboxes onto `surfaceSunken` rather than distorting art.**
-- Minimum cover width scales by size class: 104 / 132 / 158 pt. Each platform
-  reads its own breakpoints — Android at Material's 600 and 840 dp, iOS at 600
-  and 900 pt — which is divergence #4 in the register, not drift.
+- Minimum cover width scales by size class: 104 / 132 / 158 pt.
+- **The two platforms measure different things, and this is not yet a decided
+  divergence.** iOS passes the *shelf's* own width
+  (`coverMinimumWidth(shelfWidth:textSize:)`); Android passes the *window's*
+  (`rememberCoverColumns`), because 600 and 840 are Material's window size-class
+  breakpoints and a content pane measured against them reads a 900 dp window
+  behind a navigation rail as a medium one. The cost is visible: on a 1067 dp
+  tablet the Android library sits in a ~340 dp list pane and takes the 158 pt
+  tier, so it draws one 168 pt cover with a third of the pane empty beside it.
+  Register #4 covers size classes and pane count, not this; neither threshold set
+  is in the register at all. Not a licence to copy the shape — a thing to settle.
 - **A maximum as well as a minimum, always.** A lower bound on its own lets a
   narrow window stretch one cover edge to edge. Android caps at 168 pt; iOS
   derives 1.6 × the minimum, because SwiftUI's `adaptive(minimum:maximum:)`
@@ -236,12 +244,21 @@ looks like a music player.
   step; the artwork is the interface and does not shrink to make room for
   words. The boundary is font scale 1.3, where Android's ordinary Font size
   slider stops and where `DynamicTypeSize.isAccessibilitySize` becomes true.
-- **Every shelf asks one function; no shelf restates the ladder.** Android's
-  lives in `:core:designsystem/grid/CoverColumns.kt`, iOS's in
-  `LibraryFeature/CoverGrid.swift`. Both apps have already shipped a second
-  shelf — the downloads destination — that carried a copy and laid the same
-  window out differently, and on both platforms the copy is what stopped
-  following the reader's text size.
+- **A shelf of the reader's own publications asks one function; it does not
+  restate the ladder.** Android's lives in
+  `:core:designsystem/grid/CoverColumns.kt`, iOS's in
+  `LibraryFeature/CoverGrid.swift`. Both apps had already shipped a second such
+  shelf — the downloads destination — carrying a copy that laid the same window
+  out differently. `:app`'s `ShelvesAskOneRuleTest` enforces this by reading the
+  call sites, because no test of the function can see who declined to call it.
+- **Three grids do not follow the rule yet, and they are covers too.** Android's
+  `CatalogueBrowserScreen`, `KavitaBrowserScreen` and `KavitaShelfScreens` each
+  ask for `GridCells.Adaptive(minSize = 140.dp)`: a fourth number that is none of
+  104 / 132 / 158, no maximum, and no accessibility step, so they truncate at
+  font scale 2.0 where the library reflows. They browse a *remote* source rather
+  than the reader's library, which is why they were not swept in with the other
+  two — it is a scope line, not a reason. Bringing them onto the rule changes
+  what a reader sees and owes an emulator screenshot.
 - `maxContentWidth` 720 pt for text-heavy screens, so a settings list on an iPad
   does not stretch to a 1200 pt line length.
 
