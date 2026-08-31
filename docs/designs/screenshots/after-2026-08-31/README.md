@@ -367,18 +367,30 @@ pixels** — grain does not survive resampling, so a downscaled screenshot of it
 screenshot of nothing.
 
 Task 0.5 asked for a prototype to be "judged" and had stayed unticked because nobody had
-looked at one. Here is the judgement:
+looked at one. **It still is, and the reason is a defect.**
 
-**It reads as paper stock rather than as noise, and the numbers are right.** The specks are
-sub-pixel to a pixel across, which gives a tooth rather than dots — the failure mode the
-implementing note named as the risk either side of a 1.5-device-pixel cell. The peak alpha
-of 0.045, which that note flagged as its lowest-confidence number and the first to move, is
-well judged on this screen: visible when you look for it, invisible when you are reading,
-and the *0% read* pill sits on it cleanly without the texture intruding.
+I first read these captures as a judgement: fine even speckle, reads as paper stock, the
+numbers look right. **That was wrong, and measuring settled it.** Grain is gated off when
+Increase Contrast is on — `PaperGrain.isDrawn` is `natural && !isHighContrast && sdk >= 33`
+— so turning high-contrast text on should visibly flatten the surface. The device is API 36,
+Natural is on app-wide, the setting went 0 → 1 with a full restart between, and the two
+captures are **identical**: mean 239.17 and standard deviation 1.950 over the same 600 × 120
+patch, to three decimals, in both.
 
-It also stops where it should. The plate in the capture above carries **no** grain — the
-texture is on the reading surface around it and does not cross the artwork, which is what
-"reading surfaces only" has to mean in a reader whose pages are sometimes pictures.
+Two images that identical are not one grained and one flat. **Nothing was drawing the grain
+in either.** The speckle at sd 1.95 is the cream surface's own gradient dithering, which is
+what a warm off-white looks like on an 8-bit panel, and it is what I mistook for a shader.
+
+The likely cause, recorded for whoever picks it up rather than asserted: the EPUB reader is
+its own activity, `PaperGrainOverlay` gates on `LocalIsNaturalTheme.current`, and the
+implementing note already flagged that that activity reads Natural at open and holds it. If
+that composition local is not provided there, `isDrawn` is false whatever the reader has
+chosen and the shader never runs. The `RuntimeShader` itself is not in question — the rule
+around it is.
+
+What the captures *do* still show honestly: Natural's palette reaches the reader, and the
+plate carries no texture — though with nothing drawing anywhere, that second point proves
+less than it appeared to.
 
 **One thing checked while looking, which is right and looks wrong for a moment:** switching
 the device to dark leaves the *page* cream and turns only the chrome dark. That is
