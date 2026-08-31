@@ -21,6 +21,9 @@ internal import StoryArcCore
 struct HomeArtwork: View {
     @Environment(\.theme) private var theme
     @Environment(\.displayScale) private var displayScale
+    /// How large the reader has asked for text to be. Read for the coverless well only —
+    /// see ``coverlessWellDrawsTitle(at:)``.
+    @Environment(\.dynamicTypeSize) private var textSize
 
     let publication: Publication
     let model: LibraryModel
@@ -68,17 +71,24 @@ struct HomeArtwork: View {
     /// The same answer the grid gives, for the same reason: plenty of EPUBs carry no cover
     /// at all, and a row of identical grey cards labelled with a format has nothing in it
     /// that tells one book from another.
+    ///
+    /// And the same rule about what happens to it as the reader's text grows, asked of
+    /// ``coverlessWellDrawsTitle(at:)`` rather than written out a second time. This well
+    /// carried its own copy of the `minimumScaleFactor(0.6)` the grid's did — two wells,
+    /// one defect, and only one of them was named in the report.
+    @ViewBuilder
     private var placeholder: some View {
         ZStack {
             theme.palette.surfaceRaised
 
-            Text(publication.displayTitle)
-                .textRole(.headline)
-                .foregroundStyle(theme.palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(4)
-                .minimumScaleFactor(0.6)
-                .padding(StoryArcSpace.md)
+            if coverlessWellDrawsTitle(at: textSize) {
+                Text(publication.displayTitle)
+                    .textRole(.headline)
+                    .foregroundStyle(theme.palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(4)
+                    .padding(StoryArcSpace.md)
+            }
         }
     }
 }

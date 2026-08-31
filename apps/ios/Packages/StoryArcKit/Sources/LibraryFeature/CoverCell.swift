@@ -16,6 +16,9 @@ struct CoverCell: View {
     @State private var restarting: Publication?
 
     @Environment(\.theme) private var theme
+    /// How large the reader has asked for text to be. Read for the coverless well only —
+    /// see ``coverlessWellDrawsTitle(at:)``; the column width is the grid's question.
+    @Environment(\.dynamicTypeSize) private var textSize
 
     let publication: Publication
     let model: LibraryModel
@@ -197,17 +200,23 @@ struct CoverCell: View {
             // cards labelled with a format, which is the one thing every card in that wall
             // had in common. The title is what tells them apart. The format stays, smaller,
             // because it is still the answer to "why is there no picture".
+            //
+            // The title at the reader's own size, and gone once that size is one this well
+            // cannot hold — never shrunk to fit. ``coverlessWellDrawsTitle(at:)`` carries
+            // the whole argument, and the caption below this cell is what keeps the title
+            // from being lost.
             ZStack(alignment: .bottom) {
                 theme.palette.surfaceRaised
 
-                Text(publication.displayTitle)
-                    .textRole(.headline)
-                    .foregroundStyle(theme.palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(4)
-                    .minimumScaleFactor(0.6)
-                    .padding(.horizontal, StoryArcSpace.sm)
-                    .frame(maxHeight: .infinity)
+                if coverlessWellDrawsTitle(at: textSize) {
+                    Text(publication.displayTitle)
+                        .textRole(.headline)
+                        .foregroundStyle(theme.palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(4)
+                        .padding(.horizontal, StoryArcSpace.sm)
+                        .frame(maxHeight: .infinity)
+                }
 
                 Text(publication.format.displayName)
                     .textRole(.caption)
