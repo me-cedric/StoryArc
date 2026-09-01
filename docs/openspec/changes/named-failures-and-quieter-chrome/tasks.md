@@ -110,16 +110,72 @@ worked around silently:
 
 ## 2. The toolbar keeps two controls and a menu
 
-- [ ] 2.1 iOS: `LibraryToolbarTests` — count the `ToolbarItem`s in `.primaryAction`. There are
+- [x] 2.1 iOS: `LibraryToolbarTests` — count the `ToolbarItem`s in `.primaryAction`. There are
       **six** today (the review said five). Assert the count after, and mutation-check by
       re-adding one.
-- [ ] 2.2 iOS: fold the show and scope controls into the menus already there. `SortMenu` and
+      **Done, and the six is now a measurement rather than a second opinion.** The suite was
+      written first with the assertion set to `6` against the unchanged sources and run: it
+      passed, which is what turns "the review undercounted" into a fact. Flipped to `4` it
+      failed, the fold made it pass, and the mutation — one more `ToolbarItem` holding a layout
+      button, in the file, compiled — put it at `found → 5` and named the count in the failure
+      message. Six tests, all passing: the count, the two folded controls being gone, the three
+      folded *choices* still being decided, select standing alone, and each of the four items
+      naming itself in words and in four languages.
+- [x] 2.2 iOS: fold the show and scope controls into the menus already there. `SortMenu` and
       `FilterMenu` stay; `AddSourceMenu` stays, being a different kind of act.
-- [ ] 2.3 iOS: **select stays on its own**, and the test says why: it changes the surface's
+      **Done — six items to four: `[Select] · [View · Filter] · [Add books]`.** `ScopeMenu` and
+      `LayoutToggle` are gone as toolbar items and both of their choices are named pickers
+      inside one menu. `FilterMenu` is untouched.
+      **`SortMenu` became `ViewMenu`, which goes one step past this task's letter.** The task
+      says the sort menu "stays", and the sort choices do — field and direction, their own
+      pickers, unchanged. What could not stay is the *name*: a type and a toolbar label reading
+      *Sort* that also decide availability and layout is exactly the drift this repository keeps
+      paying for, and `library-browsing` asks the menus to be *named* for what they hold. So the
+      menu is `library.view` — "View", the word Apple's own file browser uses for the menu that
+      holds layout and ordering together — and the layout picker inside it is `library.layout`,
+      "Show as", because the options are Grid and List and that is the sentence a reader
+      completes. Both keys are in all four languages and `pnpm strings:ios` passes.
+      **Availability went into the *view* menu, not the filter menu, and that is a decision.**
+      Putting it in `FilterMenu` was the obvious fold — that menu already holds the binding, to
+      reset it with *Clear filters* — and it would have made the axis a filter by placement
+      while every other line in this module calls it the library's primary axis and deliberately
+      keeps it out of the filter badge. Two things follow: `LibraryNarrowing.activeCount` is
+      untouched, so iOS and Android still report the same number; and the requirement that the
+      choice be "visible while it is active" needed a new home, because `ScopeMenu`'s own glyph
+      was holding it. `ViewMenu`'s icon holds it now — `ellipsis.circle` while the shelf shows
+      everything, the availability symbol while it does not — plus the `accessibilityValue` the
+      old control carried.
+      **The layout toggle became a picker rather than moving as a button.** It drew the layout it
+      would switch *to*, which is unreadable inside a list of choices: a row saying "List" beside
+      a shelf drawn as a grid states neither where the reader is nor where they would go.
+      **`ScopeMenu.swift` is `LibraryAvailability.swift`.** The file is named for the enum the
+      whole module reads; only the control ever lived beside it. The argument for why the axis is
+      not a filter is kept there, at the place a future fold would look first.
+- [x] 2.3 iOS: **select stays on its own**, and the test says why: it changes the surface's
       *mode* where the rest present a choice and leave. A mode switch inside a menu of choices
       is how a reader lands in selection without asking.
-- [ ] 2.4 Both: every standalone control names itself to assistive technology whatever it
+      **Done.** `selectStandsAlone` asserts three things and its doc comment carries the reason
+      in the spec's own terms: the toolbar contains no `Menu {` of its own — so there is nowhere
+      in this file for `selection.begin()` to have been folded into — the way in is still here,
+      and it is `.disabled(selection.isActive)` rather than absent, so the control does not move
+      while the reader is using it. The "why" is the load-bearing half: a reader who went looking
+      for a sort and came back holding a checklist did not ask for selection, which is why
+      `library-browsing` words the allowance as *changes mode* rather than *is important*.
+- [x] 2.4 Both: every standalone control names itself to assistive technology whatever it
       draws. Assert it for each.
+      **Done on iOS by assertion, confirmed on Android by reading — no Kotlin changed.**
+      iOS: `eachItemIsNamed` and `eachNameIsTranslated` run over a table of all four items —
+      `library.select`, `library.view`, `library.filter`, `library.addSource` — and check each is
+      looked up as a `Label { Text }` in the file that declares it *and* is translated into en,
+      fr, de, es. The second half matters more than it looks: a `LocalizedStringKey` that matches
+      nothing is not an error on this platform, it renders the key, so a control can be "named"
+      and still announce `library.view` to a screen reader.
+      Android's two standalone controls in the library's top bar are `AddSourceMenu`'s
+      `IconButton` (`R.string.library_add_source`) and `LibraryOverflowMenu`'s (`R.string.
+      library_more`), both carrying a `contentDescription` from a string resource; the rows inside
+      each menu are `DropdownMenuItem`s with visible text, and their leading icons are correctly
+      `contentDescription = null`. This tick covers the top bar only — the chip row under it is
+      §3.1's and another pass's.
 - [x] 2.5 Android: no change to the library's own controls — it already uses menus for these
       choices. Confirm that by reading it, and say so in the tick rather than silently
       skipping the platform.

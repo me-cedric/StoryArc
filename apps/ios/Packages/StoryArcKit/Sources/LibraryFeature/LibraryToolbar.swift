@@ -4,23 +4,37 @@ internal import SwiftUI
 //
 // It held seven `.primaryAction` items on an iPhone, in one undifferentiated pill: scope,
 // select, layout, sort, filter, add-books, shelves and settings, six of them drawn as an
-// unlabelled glyph with nothing to say which of them belonged together. Apple's own rule is
-// to group items that affect the same part of the interface, so there are three groups now,
-// separated by `ToolbarSpacer`:
+// unlabelled glyph with nothing to say which of them belonged together. Settings and Shelves
+// went first: neither is something done *to* the shelf, which is the only thing this bar is
+// for. Settings is the trailing item of the home destination's navigation bar; Shelves is a
+// row on the same surface.
 //
-//   [Select]  ·  [Show · Layout · Sort · Filter]  ·  [Add books]
+// **Six were still too many, and a design review said so.** It called them "five unlabelled
+// icons"; there were six, and `LibraryToolbarTests` proved the count before anything moved.
+// `library-browsing` now asks that the choices a reader makes about the shelf — "what is
+// shown, how it is grouped, how it is sorted, what is filtered out" — be "reached through
+// named menus rather than as separate unlabelled buttons". So there are four items in three
+// groups, separated by `ToolbarSpacer`:
 //
-// **Settings and Shelves left the toolbar.** Neither is something done *to* the shelf, which
-// is the only thing this bar is for. Settings is the trailing item of the home destination's
-// navigation bar; Shelves is a row on the same surface. Add-books stays, for now and against
-// the direction's end state: it is the only way to add somewhere to read from on iOS, the
-// two places the direction moves it to — the rebuilt empty state and Settings' connected-
-// libraries screen — are later slices, and moving it before they exist would leave a reader
-// with a populated library no way to add a second one at all.
+//   [Select]  ·  [View · Filter]  ·  [Add books]
 //
-// *Show* leads the middle group rather than trailing it. It is the shelf's primary axis now
-// — everything, or only what opens with no network — and the axis a reader chooses first
-// should not be the control they find last.
+// **The availability selector and the layout toggle folded into `ViewMenu`**, which is what
+// `SortMenu` became when it stopped being only about sorting. Nothing was dropped doing it:
+// every choice those two controls offered is a named picker inside that menu, and
+// `LibraryToolbarTests` asserts each one is still decided somewhere rather than merely gone
+// from here.
+//
+// **Select stays on its own, and the reason is the rule rather than its importance.** It
+// changes the surface's *mode* — every cover becomes a checkbox and the shelf stops being a
+// shelf — where the other three present a choice and leave. A mode switch inside a menu of
+// choices is how a reader goes looking for a sort and comes back holding a checklist, which
+// is why `library-browsing` allows exactly this kind of control to stand alone.
+//
+// **Add-books stays too, and for a different reason again**: it is not a view choice at all.
+// It is the only way to add somewhere to read from on iOS, and the two places the design
+// direction moves it to — the rebuilt empty state and Settings' connected-libraries screen —
+// are later slices. Moving it before they exist would leave a reader with a populated library
+// no way to add a second one.
 
 extension LibraryView {
 
@@ -42,22 +56,18 @@ extension LibraryView {
                 .disabled(selection.isActive)
             }
 
-            // Selecting is a mode you enter; the four below change what the shelf shows
+            // Selecting is a mode you enter; the two below change what the shelf shows
             // while you stay where you are. Two different parts of the interface, so two
-            // capsules rather than one row of six glyphs.
+            // capsules rather than one row of glyphs.
             ToolbarSpacer(.fixed, placement: .primaryAction)
 
-            // Always offered, unlike the source selector it replaced: availability is a
-            // question every library can answer, including one with a single folder in it.
+            // How the shelf is drawn: what is shown, how it is laid out, how it is ordered.
+            // Always offered, unlike the source selector it descends from — availability is
+            // a question every library can answer, including one with a single folder in it.
             ToolbarItem(placement: .primaryAction) {
-                ScopeMenu(availability: $availability)
+                ViewMenu(model: model, availability: $availability)
             }
-            ToolbarItem(placement: .primaryAction) {
-                LayoutToggle(model: model)
-            }
-            ToolbarItem(placement: .primaryAction) {
-                SortMenu(model: model)
-            }
+            // What is left out of it, which is a different question from how it is drawn.
             ToolbarItem(placement: .primaryAction) {
                 FilterMenu(model: model, downloads: $downloads, availability: $availability)
             }

@@ -1,6 +1,5 @@
 public import SwiftUI
 
-internal import DesignSystem
 public import StoryArcCore
 
 /// What the shelf is narrowed to, on the axis a reader actually asks about.
@@ -129,51 +128,25 @@ enum LibraryAvailability: String, CaseIterable, Sendable {
     }
 }
 
-/// What the shelf is showing, on the one axis that is a mode rather than a filter.
-///
-/// Everything, or only what opens with no network. `library-browsing` makes that the
-/// library's primary axis and asks that the choice "persists until changed, **and is visible
-/// while it is active**" — which is why this control's own icon states it, and why it is not
-/// counted in the filter control's badge.
-///
-/// **It used to carry a second picker, *From*, and that was the defect.** Narrowing to one
-/// library was written here as a scope: a mode with a control in the toolbar, which silently
-/// narrowed the search as well and which nothing on screen offered to undo — the filter
-/// menu's count did not know the field existed and *Clear filters* left it set. The amendment
-/// to `library-browsing` is explicit that the narrowing "is offered by name as a filter …
-/// and not as a scope the view is in", so it lives in ``FilterMenu`` now, counted and cleared
-/// with everything else. Android moved it for the same reason and says so in its own
-/// `FilterSection`.
-struct ScopeMenu: View {
-    /// The primary axis, owned by the screen so it survives the menu closing.
-    @Binding var availability: LibraryAvailability
-
-    var body: some View {
-        Menu {
-            Picker(selection: $availability) {
-                ForEach(LibraryAvailability.allCases, id: \.self) { value in
-                    Label {
-                        Text(value.titleKey, bundle: .module)
-                    } icon: {
-                        Image(systemName: value.symbolName)
-                    }
-                    .tag(value)
-                }
-            } label: {
-                Text("library.scope", bundle: .module)
-            }
-        } label: {
-            Label {
-                Text("library.scope", bundle: .module)
-            } icon: {
-                Image(systemName: availability.symbolName)
-            }
-        }
-        // What it is narrowed to, spoken. The icon says that a narrowing is set and cannot
-        // say which one, and DESIGN.md forbids a state carried by appearance alone.
-        .accessibilityValue(Text(availability.titleKey, bundle: .module))
-    }
-}
+// The control that used to stand here is gone, and where it went matters.
+//
+// `ScopeMenu` was a toolbar item of its own — one of six in `.primaryAction`, four of them an
+// unlabelled glyph. `library-browsing` now asks that the choices a reader makes about the
+// shelf be "reached through named menus rather than as separate unlabelled buttons", so the
+// availability picker is a section of ``ViewMenu`` and this file keeps only the axis itself.
+//
+// **The axis did not become a filter by moving.** It is still the library's primary one:
+// narrowing to one library is a filter — counted in ``LibraryNarrowing``'s badge and undone by
+// *Clear filters* — and narrowing to what opens with no network is a mode the shelf is in,
+// which is why it is not counted and why ``FilterMenu`` still resets it without listing it.
+// ``ViewMenu``'s own glyph is what now keeps the requirement that the choice be "visible while
+// it is active".
+//
+// *From*, a second picker this control once carried, is the reason that distinction is written
+// down twice. Narrowing to one library was modelled here as a scope with a control in the
+// toolbar; it silently narrowed the search as well, the filter menu's count did not know the
+// field existed, and *Clear filters* left it set. It is a filter now, counted and cleared with
+// everything else, and Android says the same in its own `FilterSection`.
 
 /// Match groups, narrowed to a search scope.
 ///
