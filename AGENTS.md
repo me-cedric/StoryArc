@@ -104,6 +104,15 @@ what it looks like for the first hour, and it cost an agent that hour on 2026-09
 rebuilds from scratch. Distinct from `pnpm clean:builds`, which reclaims disk from worktrees
 that are **gone** and is safe to run mid-wave.
 
+**Run `swiftlint` from the repository root, and nowhere else.** `.swiftlint.yml` is at the
+root and SwiftLint looks for it in the *working directory*, not upwards from the files it is
+given. A run from `apps/ios` finds no config, falls back to SwiftLint's own defaults, and lints
+`.build/checkouts` as well — which reported **659 violations in 759 files** against a tree that
+has none. It cost three misread gate results in one session before the file count gave it away:
+the real gate is 611 files. `pnpm lint:ios` is safe because pnpm runs scripts from the root; a
+hand-run after a `cd` is not. **If the file count is not what you saw last time, you are
+measuring a different thing.**
+
 **A stale build does not only present as a `SIGSEGV`. It also presents as a silent write
 failure.** On 2026-09-01 `CoverCacheTests` failed on exactly two of its five assertions — the
 two that need a *successful* store, with `cache.image(for:) → nil` — while the three that assert
