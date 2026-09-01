@@ -85,6 +85,37 @@ what was found rather than as what survived.
 | **The device tooling finds its own tools.** `scripts/adb.mjs` resolves `adb`; `scripts/gradle.mjs` resolves JDK 21, the SDK, and writes the `local.properties` a fresh worktree lacks. Before this, two of the three device scripts could not run on this machine at all and Gradle could not start in a worktree. | §5 |
 | **`pnpm smoke:android` walks 16 of 16 routes**, up from 1 of 13, with no crashes. It had been describing the pre-revamp shell, and reading uiautomator's null dumps as "element absent". | §5 |
 
+### A fourth round, on 2026-09-01, and two of the four are documents lying again
+
+Recorded in this document rather than only in `STATUS.md` because §0's finding — that the
+documents had drifted from the code in *both* directions — is the one this keeps proving.
+
+- **iOS's global tint disagreed with its own accent token.** The brand accent moved to a
+  violet; `AccentColor.colorset` is `ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME`, so it is
+  the tint every unstyled control on iOS draws itself in, and it still held the pink. Its
+  generator's own constants were named `accent`/`accentStrong` for the two *pink* values, so
+  after the rename they meant the opposite of the token names. **No compiler reads an asset
+  catalogue**, which is why a rename could not find it — the same shape as the two findings in
+  §0.
+- **A primary button's label was under its contrast floor**, and had been since before the
+  accent moved. The gate checked an accent *against* a canvas and never what may be drawn *on*
+  it, so nothing checked the label: 6.91:1 on the old amber, 4.06:1 on the violet, under WCAG's
+  4.5 for normal-size text. The gate now checks both halves of every pair. **A contrast gate
+  that only checks one direction is checking half of each pair** — worth carrying to any other
+  gate in this repository that compares two values.
+- **A spec delta could silently delete a requirement, and had nearly done so three times.** A
+  `## MODIFIED` delta replaces its requirement's whole block; `openspec validate` checks the
+  delta's own shape and never what it would displace. `pnpm delta:drop` now fails on it, and on
+  its first real run found a live one: archiving `reader-theming-and-page-transitions` would
+  have deleted the two-level theme surface, including the clause that a reader wanting a preset
+  must not pass an axis to reach it.
+- **A test failed like a code defect because the disk was full.** Two of `CoverCacheTests`'s
+  five assertions — exactly the two that write bytes — failed with the cache returning nil
+  after a store, on a volume at 100% with 1.2 GB free. `ModuleCache.noindex` alone had reached
+  15 GB, and `pnpm clean:builds` skipped every shared cache *silently*, so it answered "nothing
+  orphaned", which was true and useless. It now reports the space and warns when a wave will not
+  fit. **Check `df -h /` before diagnosing any write-shaped test failure.**
+
 ### A second round, later the same day
 
 | Closed | Where it was |
@@ -410,3 +441,31 @@ iOS has one simulator-bound UI test, scoped to the library and currently
 **not** deliberate: it is where the tooling happened to get built. Closing it means an iOS
 route walk and an iOS pseudo-locale pass, plus the light/dark × default/largest capture
 matrix that Android already has for eight settings screens and iOS has for three.
+
+**Part of why iOS's matrix is thinner was mechanical, and that half closed on 2026-09-01.**
+`capture-android.mjs` has taken `--dark` and `--font-scale` since the day it was written and
+**always puts the device back**. `capture-ios.mjs` had neither: it ran a walk and photographed
+whatever appearance the simulator happened to be in. So every iOS dark capture in this
+repository was taken by a person flipping the simulator by hand and remembering to flip it
+back, and two runs of the same walk overwrote each other because the filename carried no
+appearance. That is a large part of why Android holds four-cell matrices —
+`android-covergrid-{light,dark}-{default,largest}.png` and the same for six settings screens —
+while iOS holds singles.
+
+`--appearance light|dark` now reads the simulator's current setting, applies the one asked
+for, suffixes the filenames so two runs cannot collide, and restores it **even when the run
+fails**, because a script that leaves the device dark makes the next person's light capture a
+lie and they will not know to check. There is no launch argument that would do this instead:
+the app defaults to `.system` and `SettingsStore` writes every setting as one JSON blob under a
+single key, so there is no per-setting default to override.
+
+**What remains is the runs, not the tooling.** The iOS cover-grid dark twin and both
+appearances at `AccessibilityXXXL` are owed, and the walks that produce them already exist —
+`testCaptureLibrary` and `testCaptureLibraryAtLargestText`. The route walk and the pseudo-locale
+pass are still genuinely missing.
+
+**And one capture gap turned out to be a harvesting gap.** `after-2026-08-31c/` has
+`ios-search.png` and no `ios-search-ax5.png`, and the task claimed both. The test exists;
+`pnpm capture:ios` had failed on a *different* walk in the same run, and the script discards
+every shot from a failed run. Worth knowing before anybody concludes a capture was never
+written.
