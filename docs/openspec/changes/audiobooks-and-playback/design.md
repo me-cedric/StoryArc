@@ -14,8 +14,17 @@ unzipping the cached AARs, not by reading release notes.
 outlives the reader — `read-aloud-beyond-the-reader` did that. What is missing is a
 second source feeding the same dock, a full player behind it, and the controls.
 
-**Android has neither.** No compact bar, no media session, no service. The read-aloud
-session ends with the reader.
+**Android has less, and this paragraph used to overstate it.** It said "no compact bar, no
+media session, no service" and "the read-aloud session ends with the reader". Only the first
+was true. `feature/epubreader/ReadAloudService.kt` is already a `mediaPlayback` foreground
+service holding a framework `android.media.session.MediaSession` with a `MediaStyle`
+notification, and `ReadAloudHost` is a process-wide singleton whose session outlives the
+screen that started it.
+
+That does not change the work — a hand-rolled framework session is not the media3
+`MediaSessionService` this change needs, and the two cannot both own the notification — but
+a plan that misdescribes its own starting point sends an implementer looking for something
+that is already there.
 
 So the platforms are at different starting points, and the Android task list is
 strictly longer. That is platform obligation, not scope creep, and it is in the plan
@@ -45,7 +54,7 @@ than inventing one.
 | Thing | Decision |
 | --- | --- |
 | Decoding | `AVFoundation` — `AVURLAsset` + `AVPlayer`. M4B is MPEG-4 audio and needs nothing extra |
-| Chapters | `AVAsset.loadChapterMetadataGroups(bestMatchingPreferredLanguages:)`, falling back to file order for a folder |
+| Chapters | `AVAsset.loadChapterMetadataGroups(bestMatchingPreferredLanguages:)` — **with the asset's own locales, not `["en"]`**. See below |
 | Session | `AVAudioSession` category `.playback`, mode **`.spokenAudio`** — the mode exists for exactly this and gets the right ducking and route behaviour |
 | Compact bar | `tabViewBottomAccessory`, already there as `ReadAloudDock`, generalised |
 | Full player | A `.sheet` from the accessory, per the platform's expand behaviour |
@@ -53,6 +62,38 @@ than inventing one.
 | Speed without pitch | `AVPlayer.rate` with `audioTimePitchAlgorithm = .timeDomain`, which is the spoken-word algorithm |
 | Interruption | `AVAudioSession.interruptionNotification`, honouring `.shouldResume` — the rule already implemented for read-aloud |
 | Route change | `AVAudioSession.routeChangeNotification` with `.oldDeviceUnavailable` → pause |
+
+### The chapter call takes the asset's locales, not the reader's
+
+The method above is right and **the obvious argument is wrong**, which is worth a paragraph
+because the failure is silent. Measured on 2026-09-01 against the corpus:
+
+- `availableChapterLocales` → `["und"]`
+- `loadChapterMetadataGroups(bestMatchingPreferredLanguages: ["en"])` → **0 groups**
+- the same call with the asset's own identifiers → 3 groups
+
+Both chaptered fixtures declare their titles under the undetermined locale, which is what
+most real audiobooks do — a chapter title is the publisher's, not a translation. Asking for
+English gets nothing, and nothing is indistinguishable from an unchaptered file: a
+three-chapter book becomes one unnamed part and no error is raised anywhere. Mutation-checked
+by restoring the obvious argument.
+
+### Two tasks turned out to be blocked rather than merely unfinished
+
+**Read-aloud cannot offer a speed control, so it cannot drive the player yet.** Readium
+3.11.0's `PublicationSpeechSynthesizer.Configuration` carries a language and a voice and
+**no rate** — `AVTTSEngine.swift:131`, the line that would apply one, is commented out
+upstream. `audio-playback` requires that every control the player offers works or is absent,
+so wiring read-aloud into a surface with a speed control would break the spec on the day it
+landed. `ReadAloudDock` still draws the read-aloud session, chosen in one place with the
+blocker written at it. Three ways out are named in tasks.md and choosing between them is a
+decision for this document, not for an implementation.
+
+**A truncated single file cannot be caught at index time.** `truncated.m4b` was cut with
+`+faststart`, so its `moov` is intact and `AVURLAsset` reports the full six seconds, all
+three chapters, and `isPlayable == true` — which is exactly what made it a good fixture for
+"plays what it can". The folder case is countable at index time; the single-file case needs
+the player to notice the item failing during playback. Task 2.5 is split accordingly.
 
 ## Android
 

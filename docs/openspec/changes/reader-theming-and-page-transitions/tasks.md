@@ -1,5 +1,15 @@
 # Tasks
 
+> **Its delta moved on 2026-09-01 and no task changed, which is what the guard's stale
+> flag is reporting.** `quiet-shell-and-search` and `quiet-reader` synced requirements this
+> change also modifies, and a MODIFIED requirement replaces the whole block — so archiving
+> this change would have silently dropped what they added. `openspec validate --all` caught
+> it the moment the main specs moved, and four scenarios into its `ebook-reader` delta were carried across under a note saying
+> where they came from.
+>
+> **No task here is affected**: nothing this change builds changed, and the carried
+> scenarios are already implemented by the changes that wrote them.
+
 Ordered so the risky unknowns are answered before anything is built on them. The
 four product questions are decided — see `proposal.md`. What Phase 0 answers is
 technical, and each item's fallback is in `design.md`.

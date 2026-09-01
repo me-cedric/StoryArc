@@ -1,5 +1,15 @@
 # Tasks
 
+> **Its delta moved on 2026-09-01 and no task changed, which is what the guard's stale
+> flag is reporting.** `quiet-shell-and-search` and `quiet-reader` synced requirements this
+> change also modifies, and a MODIFIED requirement replaces the whole block — so archiving
+> this change would have silently dropped what they added. `openspec validate --all` caught
+> it the moment the main specs moved, and two scenarios into its `library-browsing` delta were carried across under a note saying
+> where they came from.
+>
+> **No task here is affected**: nothing this change builds changed, and the carried
+> scenarios are already implemented by the changes that wrote them.
+
 Ordered so that the two things that block everything else — the Android
 navigation rewrite and the iOS shell — are answered first, and so that no two
 tasks in the same phase write the same file. The slice letters in brackets are
