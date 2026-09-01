@@ -29,23 +29,15 @@ import java.io.File
  * the way `:feature:epubreader`'s `ThemeSheetTest` does. A retired component named in prose
  * is documentation; one named in an expression is the component.
  *
- * **What this guard cannot do, stated rather than implied.** Its Gradle task is
- * `:core:designsystem:testDebugUnitTest`, and this module's `build.gradle.kts` declares only
- * its own `AdaptiveNavigation.kt` as an extra test input. No sibling module's sources are on
- * this task's classpath — the dependency runs the other way — so a `SegmentedButton` added to
- * `:feature:reader` alone leaves this task UP-TO-DATE and this guard silent on an incremental
- * run. It still runs on every fresh checkout, which is what CI and `pnpm check` do in a clean
- * tree. Closing the gap properly is one declaration in this module's build script:
- *
- * ```
- * inputs.files(layout.projectDirectory.dir("../../"))   // every module's sources
- *     .withPropertyName("segmentedButtonSweepSources")
- *     .withPathSensitivity(PathSensitivity.RELATIVE)
- * ```
- *
- * which is how `:feature:reader` and `:feature:epubreader` tie their own whole-tree absence
- * guards to their own trees. It is not added here because this change's file territory does
- * not include the build script.
+ * **It reads every module, and the wiring for that already existed.** The Android root is
+ * handed over by this module's `build.gradle.kts` as `storyarc.android.rootDir`, and the same
+ * build file declares every `src/main/**/*.kt` under it as a task input — put there for
+ * [ArcStopsAreNotChromeTest], which sweeps the whole app for the same kind of reason. Both
+ * halves matter: the root is handed over rather than discovered, because a walk that climbs
+ * from the working directory escapes the checkout when worktrees are nested at
+ * `.claude/worktrees/<name>/`; and without the input declaration this task would sit
+ * UP-TO-DATE while `:feature:reader` gained a segmented button, since no sibling module's
+ * sources are otherwise on this task's classpath — the dependency runs the other way.
  */
 class NoSegmentedButtonsTest {
 
@@ -59,19 +51,17 @@ class NoSegmentedButtonsTest {
      * rather than filtered, so a stale generated source cannot fail the guard.
      */
     private val sources: List<File> by lazy {
-        val module = System.getProperty(MODULE_DIRECTORY)?.let(::File)
+        val android = System.getProperty(ROOT_DIRECTORY)?.let(::File)
             ?: error(
-                "$MODULE_DIRECTORY is unset. This test reads the Android app's own sources and" +
+                "$ROOT_DIRECTORY is unset. This test reads the Android app's own sources and" +
                     " will not go looking for them elsewhere — run it through Gradle" +
                     " (`pnpm gradle :core:designsystem:testDebugUnitTest`), which sets the" +
-                    " property from the module directory.",
+                    " property from the Android root directory.",
             )
-        // core/designsystem -> core -> android
-        val android = module.parentFile?.parentFile
-        if (android == null || !File(android, "settings.gradle.kts").isFile) {
+        if (!File(android, "settings.gradle.kts").isFile) {
             error(
-                "Two levels up from ${module.absolutePath} is not the Android root — it has no" +
-                    " settings.gradle.kts. Has the module moved?",
+                "$ROOT_DIRECTORY is not the Android root — ${android.absolutePath} has no" +
+                    " settings.gradle.kts.",
             )
         }
         android.walkTopDown()
@@ -158,8 +148,8 @@ class NoSegmentedButtonsTest {
     }
 
     private companion object {
-        /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
-        const val MODULE_DIRECTORY = "storyarc.designsystem.projectDir"
+        /** Set by this module's `build.gradle.kts`, from Gradle's own `rootDir`. */
+        const val ROOT_DIRECTORY = "storyarc.android.rootDir"
         const val MAIN_SOURCES = "src/main/kotlin"
         const val REPLACEMENT = "ConnectedButtonGroup"
 

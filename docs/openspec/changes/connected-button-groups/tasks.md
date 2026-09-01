@@ -147,14 +147,22 @@ Android only. Test-first; a visible change owes a before/after capture per
       the replacement's own KDoc names what it replaces (so comments are stripped, the way
       `ThemeSheetTest` does).
 
-      **One limitation, and it is real.** This guard's task is
-      `:core:designsystem:testDebugUnitTest`, and no sibling module's sources are among its
-      inputs — the dependency runs the other way. A `SegmentedButton` added to
-      `:feature:reader` alone therefore leaves the task UP-TO-DATE and this guard silent on an
-      *incremental* run; it runs on every fresh checkout, which is what CI and a clean
-      `pnpm check` do. Closing it is one `inputs.files` declaration in
-      `core/designsystem/build.gradle.kts`, spelled out in the test's KDoc, and that file is
-      outside this change's file territory.
+      **It re-runs when another module changes, and that was checked rather than assumed.**
+      The first version of this guard walked up from the module directory and carried a
+      written-down limitation: no sibling module's sources are inputs of
+      `:core:designsystem:testDebugUnitTest` — the dependency runs the other way — so a
+      segmented button added to `:feature:reader` alone would leave the task UP-TO-DATE and
+      the guard silent.
+
+      The parent's rebase onto `main` brought the fix with it. `b7fc76d0` added
+      `storyarc.android.rootDir` and an `inputs.files(fileTree(rootDir))` over every module's
+      `src/main/**/*.kt` to this module's build script, for `ArcStopsAreNotChromeTest`, which
+      sweeps the whole app for the same kind of reason. This guard now reads that property
+      instead of climbing, and the limitation is gone rather than merely restated.
+
+      Demonstrated: the dead import put back in `:feature:epubreader` **only**, then
+      `:core:designsystem:testDebugUnitTest` run with **no** `--rerun-tasks` — the task
+      re-ran and failed, 101 tests completed, 1 failed. Reverted.
 
 ## 3. Proof and close-out
 
