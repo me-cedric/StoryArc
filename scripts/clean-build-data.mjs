@@ -18,15 +18,20 @@
  *
  * **The shared caches are not orphaned and are usually the biggest thing there.** They are
  * skipped by default, on purpose: they rebuild themselves and deleting one costs the next
- * build minutes. But skipping them *silently* hid the real state of the disk, and that cost
- * an hour on 2026-09-01: `ModuleCache.noindex` had reached **15 GB** of a 22 GB DerivedData
- * on a volume with 1.2 GB free, this script answered "nothing orphaned", and
- * `CoverCacheTests` failed on two assertions — the two that write bytes — which reads
- * exactly like a code defect and is not one. A full disk makes a write fail silently and a
- * test fail loudly, in the wrong place.
+ * build minutes. But skipping them *silently* hid the real state of the disk. On 2026-09-01
+ * `ModuleCache.noindex` had reached **15 GB** of a 22 GB DerivedData on a volume with 1.2 GB
+ * free, and this script answered "nothing orphaned" — true, and useless to somebody who
+ * needed to know where 15 GB had gone.
  *
  * So the sizes are always reported, the free space is always reported, and `--caches` is the
  * lever when that space is what is needed.
+ *
+ * **One thing this script must not be believed about.** A test failing in a way that looks
+ * like a failed write is *usually a stale build*, not a full disk — `pnpm clean:swift`, and
+ * AGENTS.md §6. That was diagnosed the wrong way round here first: the disk was at 100% at the
+ * same moment, clearing it appeared to fix a `CoverCacheTests` failure, and the run that
+ * passed was in fact a different checkout with a fresh build. When two candidate causes are
+ * present, change one of them.
  *
  * Usage:
  *   node scripts/clean-build-data.mjs            remove orphaned build data
@@ -165,11 +170,11 @@ if (free !== null) {
     const floor = Number(process.env.STORYARC_FREE_FLOOR_GB ?? 8)
     if (free < floor * 1024 ** 3) {
         console.error(
-            '\nThat is not enough for a wave of parallel agents, and a full disk does not fail'
-            + ' honestly:\n  a write fails silently and a test fails loudly somewhere else.'
-            + ' `CoverCacheTests` failing on\n  exactly its two byte-writing assertions is what'
-            + ' that looks like.\n'
+            '\nThat is not enough for a wave of parallel agents: four cost roughly 2 GB each in'
+            + '\n  DerivedData alone, on top of ~700 MB per checkout.\n'
             + (caches ? '' : '  Run with `--caches` to clear the shared caches above.\n')
+            + '\n  A test that fails as though it could not write a file is more often a stale'
+            + '\n  build than a full disk — `pnpm clean:swift` first. See AGENTS.md §6.\n'
         )
     }
 }

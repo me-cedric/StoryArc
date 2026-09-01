@@ -109,12 +109,17 @@ documents had drifted from the code in *both* directions — is the one this kee
   its first real run found a live one: archiving `reader-theming-and-page-transitions` would
   have deleted the two-level theme surface, including the clause that a reader wanting a preset
   must not pass an axis to reach it.
-- **A test failed like a code defect because the disk was full.** Two of `CoverCacheTests`'s
-  five assertions — exactly the two that write bytes — failed with the cache returning nil
-  after a store, on a volume at 100% with 1.2 GB free. `ModuleCache.noindex` alone had reached
-  15 GB, and `pnpm clean:builds` skipped every shared cache *silently*, so it answered "nothing
-  orphaned", which was true and useless. It now reports the space and warns when a wave will not
-  fit. **Check `df -h /` before diagnosing any write-shaped test failure.**
+- **A test failed like a code defect, and the first diagnosis was wrong.** Two of
+  `CoverCacheTests`'s five assertions — exactly the two needing a *successful* store — failed
+  with the cache returning nil, while the three asserting absence passed vacuously. The cause
+  was a **stale Swift build**, fixed by `pnpm clean:swift`. It was first diagnosed as a full
+  disk, because the volume was at 100% with 1.2 GB free at the same moment and clearing 15 GB
+  appeared to fix it — the run that passed was a different checkout with a fresh build.
+  **When two candidate causes are present, change one of them.** Two lasting outcomes:
+  AGENTS.md §6 now records that a stale build presents as a silent write failure and not only
+  as a `SIGSEGV`, and `pnpm clean:builds` reports the shared caches' size and the free space,
+  which it had been hiding — `ModuleCache.noindex` alone had reached 15 GB of a 22 GB
+  DerivedData.
 
 ### A second round, later the same day
 

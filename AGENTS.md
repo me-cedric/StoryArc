@@ -104,18 +104,27 @@ what it looks like for the first hour, and it cost an agent that hour on 2026-09
 rebuilds from scratch. Distinct from `pnpm clean:builds`, which reclaims disk from worktrees
 that are **gone** and is safe to run mid-wave.
 
-**A full disk is the other failure that reads as a code defect, and it reads as a different
-one each time.** `CoverCacheTests` failed on exactly two of its five assertions — the two that
-write bytes — with `cache.image(for:) → nil` after a store. That is what a silently failed
-write looks like from inside a test: the volume was at 100% with 1.2 GB free. Four parallel
-worktrees cost roughly 700 MB each in the checkout and 2 GB each in DerivedData, and
-`ModuleCache.noindex` had reached **15 GB** on its own.
+**A stale build does not only present as a `SIGSEGV`. It also presents as a silent write
+failure.** On 2026-09-01 `CoverCacheTests` failed on exactly two of its five assertions — the
+two that need a *successful* store, with `cache.image(for:) → nil` — while the three that assert
+*absence* passed, because they pass vacuously when nothing was ever written. It reproduced three
+times in a row in one checkout and passed in another at the identical sources. `pnpm clean:swift`
+fixed it. **A failure that reads as "this code cannot write a file" is on this list**, and the
+tell is the same as the enum one: a checkout whose build predates the merge behaves differently
+from a fresh one at the same commit.
 
-`pnpm clean:builds` reports every shared cache's size and the free space, and warns when the
-space is too small for a wave. It does not remove the caches, because they belong to no project
-and rebuild themselves — `pnpm clean:builds:caches` is the lever when the space is what you
-need, at the cost of a few minutes on the next build. **Check the free space before diagnosing
-a write-shaped test failure**, and before launching a wave of more than two agents.
+That took an hour and one wrong diagnosis, which is worth recording because the wrong diagnosis
+was *plausible*. The volume happened to be at 100% with 1.2 GB free at the same moment, and
+clearing 15 GB appeared to fix it — but the run that passed was in a different worktree with a
+fresh build, so the disk was a coincidence. **When two candidate causes are present, change one
+of them.**
+
+**The disk is still worth watching before a wave, for its own reasons.** Four parallel worktrees
+cost roughly 700 MB each in the checkout and 2 GB each in DerivedData, and `ModuleCache.noindex`
+reached **15 GB** on its own. `pnpm clean:builds` reports every shared cache's size and the free
+space and warns when a wave will not fit; it does not remove the caches, because they belong to
+no project and rebuild themselves. `pnpm clean:builds:caches` is the lever when the space is what
+you need, at the cost of a few minutes on the next build.
 
 **Android had the identical hole, and it has already cost this project.** `pnpm test:android`
 runs `test`, which is the JVM unit tests; the sixteen files under `src/androidTest` are

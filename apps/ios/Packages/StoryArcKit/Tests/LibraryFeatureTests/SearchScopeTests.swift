@@ -73,9 +73,10 @@ struct SearchScopeTests {
 
     @Test("A narrowed search with results on screen is not an empty state")
     func resultsMeanNoOffer() {
+        let found = SearchResult(kind: .publication, title: "Kestrel", publicationID: "Kestrel")
         let listing = SearchListing(
             term: "kestrel",
-            local: [FoundRow(result: SearchResult(kind: .publication, title: "Kestrel", publicationID: "Kestrel"), origin: .thisDevice)]
+            local: [FoundRow(result: found, origin: .thisDevice)]
         )
 
         #expect(emptyResults(scope: .onThisDevice, listing: listing).offersWidening == false)

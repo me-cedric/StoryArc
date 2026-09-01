@@ -498,11 +498,16 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   overwrote each other. It now sets the appearance, suffixes the filenames, and restores the
   device even when the run fails.
 - **`pnpm clean:builds` reports the space, and `pnpm clean:builds:caches` frees it.** The
-  shared Xcode caches belong to no project and rebuild themselves, so they were skipped —
-  but skipped *silently*, which hid that `ModuleCache.noindex` had reached 15 GB on a volume
-  with 1.2 GB free. A full disk makes a write fail silently and a test fail loudly somewhere
-  else: two cover-cache assertions — exactly the two that write bytes — failed as though the
-  cache were broken.
+  shared Xcode caches belong to no project and rebuild themselves, so they were skipped — but
+  skipped *silently*, which hid that `ModuleCache.noindex` had reached 15 GB of a 22 GB
+  DerivedData on a volume with 1.2 GB free. It reported "nothing orphaned", which was true and
+  useless to somebody looking for where 15 GB had gone.
+- **A stale Swift build can present as a silent write failure, not only as a `SIGSEGV`.** Two
+  cover-cache assertions — exactly the two needing a *successful* store — failed as though the
+  cache were broken, while the three asserting absence passed vacuously. `pnpm clean:swift`
+  fixed it. Recorded in AGENTS.md §6 alongside the diagnosis that was tried first and was
+  wrong: the disk was full at the same moment, and the run that appeared to prove it was a
+  different checkout with a fresh build.
 
 ### Notes
 
