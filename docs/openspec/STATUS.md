@@ -78,8 +78,12 @@ some do, **absent** when none do. All fifteen are `partial`. Two rows were wrong
 | `reading-themes` | partial | **Split out of `ebook-reader` when the reader-theming change was synced on 2026-08-30, so this row is new and its scenarios were scored under their old home.** Eleven axes, six presets named rather than numbered -- Original, Quiet, Paper, Bold, Calm, Focus, which replaced the Paper/Sepia/Night/High Contrast the spec had named for months while the code shipped something else. The presets are drawn as specimens of real letterforms rather than the letters "Aa", because that is what shipped and the spec now says so. **Outstanding: the live preview inside the theme sheet** (task 3.6) -- the preset cards preview each theme's colours and face, and the page *behind* the sheet updates live, but there is no preview within the sheet itself; and **the reader-chosen light/dark pair**, where `ThemePreset.matching` is a fixed Light-to-Paper and any-dark-to-Quiet mapping with no setting for a pair, and the link is resolved when the reader is constructed rather than when the system flips, so a switch to dark mid-book does nothing until the book is reopened. Not audited scenario by scenario in its own right; the verdicts above were taken against `ebook-reader` before the split |
 | `page-transitions` | partial | **Split out of `comic-reader` and `ebook-reader` when the reader-theming change was synced on 2026-08-30, so this row is new.** Slide, fast fade, page curl and continuous scroll, chosen per shelf and remembered there. **The curl is interruptible as of this session** -- both readers previously stopped the running settle and then computed the new drag from zero, so a settle halted at 0.8 jumped to 0.1, which is the snap the scenario exists to forbid; the arithmetic now lives in `CurlTurn`, a mirrored pure type, and carries the base. Fixing it surfaced three more: an Android tap during a settle froze the page mid-curl, Android's flick test was unsigned so a fast backward drag completed the turn, and iOS could not read where the page stood at all because `withAnimation` sets state to its destination immediately. **Outstanding: curl on reflowable content** (nothing rasterises a reflowable page, and both readers refuse it and say why), and **a double-page spread curling as one surface** -- the curl container takes one decoded page and knows nothing of the spread layout the paged and scroll containers use. Hardware input is specified as it shipped: where a platform does not let an app observe the volume buttons, no setting is offered and the reason is stated once |
 
-## In flight: `quiet-shell-and-search`, `quiet-reader`, `audiobooks-and-playback`,
-## `brand-identity-and-app-icons`, and a four-way wave of 2026-09-01
+## In flight: `audiobooks-and-playback`, `brand-identity-and-app-icons`,
+## `named-failures-and-quieter-chrome`, and what the wave of 2026-09-01 landed
+
+`quiet-shell-and-search` **archived** on 2026-09-01 as `2026-09-01-quiet-shell-and-search`, and
+`quiet-reader` as `2026-09-01-quiet-reader`. Their sections below are kept because the
+capability rows have not been re-audited against them.
 
 Recorded here rather than as capability rows, because two of the capabilities involved —
 `navigation-shell` and `home-screen` — **have no main spec at all**. They are new
@@ -241,13 +245,59 @@ applied to tab bars, chips, sliders or progress ticks on either platform — a r
 renamed token, not a surface that was never accented. And none of §3, §4 or §5 is built: no
 alternate `.appiconset`s, no `activity-alias` set, no chooser. **7 of 36 tasks done, 1 partial.**
 
-### `named-failures-and-quieter-chrome` and the rest of the wave — in flight, not landed
+### The wave of 2026-09-01 — landed, gated, and four defects out of it
 
-Four changes are being implemented in parallel worktrees as this is written, and **nothing
-below is a claim about the merged tree**: the failure notice that names its publication, the
-iOS sleep timer, Android's connected button groups, and the verification findings on
-`quiet-shell-and-search`. Each will get its own section when it merges. Recorded here only so
-that a reader who finds a half-built surface knows it is in flight rather than abandoned.
+Four changes merged in parallel. All gates green on the merged result: 1720 iOS tests in 216
+suites, SwiftLint 0 violations in 611 files, both platforms building.
+
+**The iOS sleep timer fires.** It was shipped and inert — `SleepTimer`, `SleepCountdown`,
+`setSleepTimer` and `sleepTimerElapsed()` all existed, the sheet offered the durations, and
+**nothing in the app ever ticked the countdown or called `sleepTimerElapsed()`**; the only
+caller in the tree was a test. So "Sleep in 30 minutes" never stopped anything and the
+remaining time never moved. `SleepTimer.swift` now mirrors Android case for case: one remaining
+time for both kinds, end-of-chapter **re-read** from where the audio reached, a straight 30 s
+ramp on the *player's* volume, and a rewind of the same 30 s. 32 tests, mutation-checked.
+**Three numbers were iOS inventions against a decision already recorded for Android** — a 5 s
+fade, a 10 s rewind and a sixth duration offering 10 minutes — and are now pinned by test.
+`onRecallSpeed`/`onRememberSpeed` had **no caller anywhere**, so every book started at 1×.
+
+**A failure names its publication.** Both scanners already emitted `ScanEvent.skipped(path,
+reason)` with the sentence `publication-formats` words; iOS matched `case .skipped: break` and
+Android `is ScanEvent.Skipped -> Unit`. **That one line each was the whole defect.** The
+notice is state rather than an event now — mirrored `SkippedPublications` with a four-case
+`Notice`, settled at the end of a whole scan rather than accumulated, which is what makes a
+publication that later opens leave the list without being dismissed. The six-second `dwell` is
+deleted, and it no longer floats over covers.
+
+**Android's retired segmented buttons are connected button groups**, at three call sites — the
+change's design predicted two and named neither correctly.
+
+**The player's presentation moved to a host its own transport cannot destroy.** Pressing any
+transport control inside the full player dismissed it: `PlayerDock` attached the `.sheet` inside
+`if let bar = centre.compact`, and `compact` is computed, so pressing play or crossing a chapter
+rebuilt the presentation's own host. Pre-existing — the identical walk fails against the commit
+before the Close pill was removed.
+
+#### Four defects the wave produced rather than fixed, each worth carrying forward
+
+- **A crash that passes every gate.** `MPMediaItemArtwork`'s handler inherited `@MainActor` and
+  died with `EXC_BREAKPOINT` on `MPNowPlayingInfoCenter`'s own queue. `pnpm check` and
+  `pnpm build:ios` both exit 0 on it; only the simulator found it. **Second instance of the
+  trap `audiobooks-and-playback`'s design.md already records for Readium's `EngineFactory`.**
+- **The refusal sentences are not translated.** The change's task list said they were "already
+  worded and already translated". They are worded — as **English literals** in each platform's
+  format layer — so the notice now puts English reason text into a four-language app. The agent
+  correctly refused to invent localised variants, because the same task forbids a second
+  wording for one condition. **Its own change, and outstanding.**
+- **`CoverlessWell` is in the wrong module.** `audio-playback` §4.4b asks the player to draw the
+  same coverless treatment the library draws, and the module graph forbids it: `CoverlessWell`
+  lives in `LibraryFeature` and `Package.swift` records "no feature depends on another". Its
+  right home is `DesignSystem`, which `LibraryFeature`, `PlayerFeature` and the app target all
+  already depend on — so the move needs no new module edge. **Until it happens, two views draw
+  one treatment**, which is the drift that file's own comment warns about.
+- **`rar4-solid.cbr` never reaches a skip**, so a task naming it as one of two differently
+  failing files was wrong; a solid RAR4 is *found* and marked unopenable on purpose.
+  `password-protected.cbz` and a new `Locked Vault.cbz` are the two that do.
 
 ### Two artifact problems fixed, because both would have deleted a requirement
 
