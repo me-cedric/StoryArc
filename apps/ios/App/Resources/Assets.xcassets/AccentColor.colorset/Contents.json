@@ -3,7 +3,7 @@
     {
       "color" : {
         "color-space" : "srgb",
-        "components" : { "alpha" : "1.000", "blue" : "0x0C", "green" : "0x60", "red" : "0xD2" }
+        "components" : { "alpha" : "1.000", "blue" : "0x88", "green" : "0x47", "red" : "0xD9" }
       },
       "idiom" : "universal"
     },
@@ -11,10 +11,10 @@
       "appearances" : [ { "appearance" : "luminosity", "value" : "dark" } ],
       "color" : {
         "color-space" : "srgb",
-        "components" : { "alpha" : "1.000", "blue" : "0x27", "green" : "0x7C", "red" : "0xEC" }
+        "components" : { "alpha" : "1.000", "blue" : "0xA0", "green" : "0x62", "red" : "0xF6" }
       },
       "idiom" : "universal"
     }
   ],
-  "info" : { "author" : "xcode", "version" : 1 }
+  "info" : { "author" : "storyarc-brand-mark", "version" : 1 }
 }
