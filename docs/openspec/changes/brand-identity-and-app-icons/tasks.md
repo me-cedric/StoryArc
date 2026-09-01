@@ -42,13 +42,18 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       compares committed bytes and **never re-renders**, for the reason the audio fixtures
       give: the renderer is macOS-only and the output is committed, so nothing that reads it
       needs the tool.
-- [ ] 2.5 A test that the mark's own geometry is sane — six petals, no overlap, the notch
+- [x] 2.5 A test that the mark's own geometry is sane — six petals, no overlap, the notch
       inside its petal — so a bad edit fails before it is looked at.
-      *Not done.* The generator is in and gated, and `brand:check` catches a changed asset —
-      but nothing yet catches geometry that is legal and wrong. Three such errors were caught
-      by eye on the first render (a slot instead of a ribbon, the bookmark's arc scaled off
-      its own taller height, and a radius that read as a chamfer), which is exactly the class
-      of defect a test should be catching instead.
+      Runs in **both** modes, before anything is written or compared: a generator that can
+      write a wrong mark is worse than one that cannot run, because the wrong mark gets
+      committed and then gated as correct. Eight mutations, each caught and each naming its
+      own defect.
+      **The first version of the check was useless and the file says so.** It sampled filled
+      area and demanded 0.5…0.95 coverage; measured across the whole radius sweep, coverage
+      only moves from 0.86 to 0.68, so any band admitting a correct mark also admitted the
+      chamfer that started this. And the gap check was tautological — it compared the measured
+      gap to the declared one, so zeroing the declaration passed. Replaced by parameter bands
+      plus the structural checks, and both gaps are now compared to each other as well.
 
 > **Section 2 landed, and did more than it said.** The generator emits fifteen assets, not
 > three: the five iOS faces with their `Contents.json`, the Android adaptive foreground *and*
