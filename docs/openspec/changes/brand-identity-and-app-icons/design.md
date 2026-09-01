@@ -194,15 +194,57 @@ Four consequences, all visible to a reader and all in the spec:
 - **The default alias is the manifest's own activity**, not a sixth alias, so a fresh install
   and a reset land in the same state.
 
-## What is deliberately not built
-
 - **No suppression of iOS's alert**, per above.
 - **No gradient in chrome**, per the palette's direction.
 - **No custom colours or user-supplied art.** A fixed set the app ships.
-- **The Natural theme is untouched.** `clay` and `clayStrong` stay exactly as they are:
-  Natural is a separate theme with its own accent and this change does not reach into it.
-  **This bullet used to say `brand.ink` was untouched too, and the review overruled that** —
-  `ink` retires, because it is Material's `secondary` in `Theme.kt` and a violet accent at hue
-  295 would sit 20° from it and read as the same colour said twice. The token table above is
-  the authority; this bullet was written before the review and is corrected rather than
-  deleted, so the next reader can see that the two once disagreed.
+### `ink` had a second consumer, and retiring it forced a decision this document did not make
+
+Recorded 2026-09-01 after `/opsx:update`, because the implementation found it and the artifact
+should not be the last to know.
+
+`brand.ink` was Material's `secondary` in **two** places, not one: the brand schemes in
+`Theme.kt`, which this change expected, and **Natural's own schemes** in `NaturalTheme.kt`,
+which it did not. Retiring the token therefore forced a choice about a theme this change
+declares out of scope, and neither replacement in the new set fits:
+
+- **The pink is wrong for Natural.** It sits at hue 2, which is 39° from `clay` at hue 41 —
+  the same "one colour said twice" objection that moved the brand accent off `ink` in the
+  first place. And a hot pink is the opposite of the earthier accent Natural exists to have.
+- **The other clay fails its contrast.** Read across, `clay` reaches 2.80:1 on Natural's cream
+  and `clayStrong` 2.99:1 on its ink, both under the 3.0 floor their own gated pairings clear
+  at 5.47 and 5.84.
+
+So each Natural variant's `secondary` is now **the accent it already gates**, flattening two
+Material roles onto one value. Nothing in this app reads `colorScheme.secondary`, so it costs
+nothing today, and it keeps the brand change out of Natural the way this document asks. Giving
+Natural a real second pole means adding a token to `color.json` with a gated pairing, and that
+is a decision for whoever owns the Natural theme — not one to invent while renaming the
+brand's. The reasoning and the way back are at the call site.
+
+### And `onPrimary` was gated by nothing, which the accent move turned into a real failure
+
+The token table gates the accent **against** a canvas and never says what may be drawn **on**
+it. So nothing checked the label on a primary button. On the old 70%-lightness amber a
+near-black label measured 6.91:1 and nobody had to think about it; on the 58% violet it
+measures **4.06:1**, under WCAG's 4.5 floor for the normal-size text a button label is.
+
+Pure white is the only value in the set that clears it, at 4.77, so all three brand schemes
+take it and `ACCENT_PAIRS` gained a row so it cannot drift back. Android had **no** test
+asserting the brand `ColorScheme`'s wiring at all; `BrandSchemeTest` mirrors iOS's
+`PaletteTests` so each platform's own gate catches a regression.
+
+**The general form is worth keeping:** a contrast gate that only checks accents against
+backgrounds is checking half of each pair. Any token that can be a *fill* needs its label
+gated too.
+
+## What is deliberately not built
+
+- **The Natural theme is untouched as a theme.** `clay` and `clayStrong` are unchanged and
+  Natural keeps its own accent. Only its `secondary` role moved, and that was **forced** by
+  `ink` retiring rather than chosen here — see the section above.
+  **This bullet used to say `brand.ink` was untouched too, and the review overruled that.**
+  `ink` retires because it is Material's `secondary` in `Theme.kt`, and a violet accent at hue
+  295 would sit 20° from it and read as the same colour said twice. The token table is the
+  authority; this bullet predates the review and is corrected rather than deleted, so the next
+  reader can see that the two once disagreed — which is how the Natural collision above went
+  unnoticed until the compiler found it.
