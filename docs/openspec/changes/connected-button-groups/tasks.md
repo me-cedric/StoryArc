@@ -166,9 +166,35 @@ Android only. Test-first; a visible change owes a before/after capture per
 
 ## 3. Proof and close-out
 
-- [ ] 3.1 Before/after captures of every replaced control, at default and largest text
+- [x] 3.1 Before/after captures of every replaced control, at default and largest text
       size, light and dark. The selection treatment is the whole visible change, so a
       capture that does not show a selected option proves nothing.
+
+      Sixteen, in
+      [`docs/designs/screenshots/connected-button-groups-2026-09-01/`](../../../designs/screenshots/connected-button-groups-2026-09-01/README.md):
+      two controls × before/after × light/dark × 1.0 and 2.0 font scale, every one with an
+      option selected. `storyarc-j6` (API 36, 1080×2400), `-gpu host`. Device put back to
+      font_scale 1.0 and light.
+
+      Both builds are `assembleDebug` from the same tree, differing only by the two call
+      sites — checked in the dex rather than assumed: the before APK holds 8 references to
+      `ConnectedButtonGroupKt` (the component compiles into `:core:designsystem` either way)
+      and the after APK 10, the two extra being the call sites.
+
+      **`pnpm capture:android` could not take these.** Neither control is a listed route in
+      `scripts/android-routes.mjs`, and both sit four or five taps behind a reader. The walk
+      was driven by a throwaway script over that module's own exported `navigator`; nothing
+      under `scripts/` was modified. Two things it had to learn, both recorded in the
+      folder's README: the axes screen draws `AlignmentControl` only under a preset that
+      turns publisher styles off, and "uiautomator found it" is not "you can photograph it" —
+      the first alignment capture stopped with the picker below the fold.
+
+      **The emulator was contended and it mattered.** A second AVD (`storyarc-api36`) was
+      started to avoid disturbing another agent, wedged its shell under host memory pressure,
+      and was shut down. `storyarc-j6` then went `offline` and reloaded its boot snapshot,
+      silently discarding an APK whose install had reported `Success` — a capture taken
+      straight afterwards was of another build, and only a dex check found it. `uiautomator
+      dump` answered `null root node` on most attempts throughout.
 - [ ] 3.2 `pnpm lint`, `pnpm check`, `pnpm gradle`, `pnpm build:android:tests`.
 - [ ] 3.3 `pnpm spec:guard:strict`.
 - [ ] 3.4 `/opsx:verify connected-button-groups`, then `/opsx:archive` — there is no
