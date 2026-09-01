@@ -22,15 +22,22 @@
         android:enableOnBackInvokedCallback="true"
         android:theme="@style/Theme.StoryArc">
 
+        <!-- **This activity carries no launcher filter, and it must never be disabled.**
+             Every `<activity-alias>` below targets it, and an alias whose target is disabled
+             does not merely lose its icon: it stops resolving. Demonstrated on an emulator,
+             because no unit test can see it — with `MainActivity` disabled and one alias
+             enabled, `am start` on the alias reported "Starting" and left no process, and the
+             MAIN/LAUNCHER intent answered *"unable to resolve"*. The launcher still drew the
+             icon it had cached. Tapping it did nothing.
+
+             So the launcher entry belongs to the aliases, all five of them, and this activity
+             does the two things a face never touches: it is what the aliases point at, and it
+             is the handler for a file opened from somewhere else. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode|density|smallestScreenSize"
             android:theme="@style/Theme.StoryArc">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
 
             <!-- `local-library`: StoryArc must appear in the system's "open with" list
                  for every format it can read. Two filters, because one is not enough.
@@ -123,21 +130,26 @@
             </intent-filter>
         </activity>
 
-        <!-- The four alternate app icons, one `<activity-alias>` each.
+        <!-- The five app icons, one `<activity-alias>` each.
 
              `settings-and-about` lets a reader choose the app's icon, and this platform has
              no `setAlternateIconName`: the only way to change what a launcher draws is to
              have several launcher components and enable exactly one. `AppIconAliases` owns
              the switching and `AppIconSwitcher` performs it.
 
-             **The default face has no alias.** Ink is `MainActivity` above, so a fresh
-             install and a reset land on the same component states rather than on two states
-             that merely look alike — see task 4.5 and `AppIconAliasesTest`.
+             **Ink has an alias of its own, and that is a correction.** The design document
+             asks for the default to be `MainActivity` itself so that a fresh install and a
+             reset land in the same state — but on this platform that shape breaks the app:
+             switching to any other face means disabling `MainActivity`, and an alias whose
+             target is disabled stops resolving, so the reader is left with an icon that does
+             nothing. The *reason* behind 4.5 survives intact: a reset writes
+             `COMPONENT_ENABLED_STATE_DEFAULT` to all five components, which is byte for byte
+             what a fresh install holds. Only the mechanism moved.
 
-             **Exactly one of these five components may ever be enabled.** Zero makes
-             StoryArc vanish from the launcher and the app drawer with no way back from
-             inside the app; a reader would have to reinstall it. That is why the swap is a
-             planner with a test rather than two calls at a press.
+             **Exactly one of these five may ever be enabled**, and `MainActivity` is never
+             one of them. Zero enabled makes StoryArc vanish from the launcher with no way
+             back from inside the app; a reader would have to reinstall it. That is why the
+             swap is a planner with a test rather than two calls at a press.
 
              Each alias carries **only** the launcher filter. The VIEW and SEND filters stay
              on `MainActivity` alone: they are how a file reaches the app, they are not about
@@ -146,6 +158,19 @@
 
              `android:label` is repeated rather than inherited because a launcher reads the
              alias's own label, and an unlabelled alias shows the activity's name. -->
+        <activity-alias
+            android:name=".MainActivityInk"
+            android:targetActivity=".MainActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <activity-alias
             android:name=".MainActivityPaper"
             android:targetActivity=".MainActivity"

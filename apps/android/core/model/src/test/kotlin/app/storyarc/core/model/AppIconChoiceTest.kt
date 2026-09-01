@@ -3,6 +3,7 @@ package app.storyarc.core.model
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -40,13 +41,26 @@ class AppIconChoiceTest {
     }
 
     /**
-     * The default face is the manifest's own activity, which is the whole of task 4.5: an
-     * alias for it would give a fresh install and a reset two different component states for
-     * one visible icon.
+     * **No face may name the activity the aliases point at**, and this is the assertion that
+     * stops the whole feature bricking the app.
+     *
+     * An `<activity-alias>` whose target is disabled stops resolving: with `MainActivity` off,
+     * `am start` on an enabled alias left no process and the MAIN/LAUNCHER intent answered
+     * "unable to resolve", while the launcher went on drawing the icon it had cached. Task 4.5
+     * asks for the default to *be* `MainActivity`, which is exactly the shape that breaks — so
+     * every face is an alias of its own and the target is never written to.
      */
     @Test
-    fun `the default face is MainActivity itself, not a sixth alias`() {
-        assertEquals("app.storyarc.MainActivity", AppIconChoice.INK.componentClassName)
+    fun `no face names the activity the aliases point at`() {
+        assertEquals("app.storyarc.MainActivity", AppIconChoice.TARGET_ACTIVITY)
+        AppIconChoice.entries.forEach {
+            assertNotEquals(
+                "$it names the alias target; disabling it makes the app unlaunchable",
+                AppIconChoice.TARGET_ACTIVITY,
+                it.componentClassName,
+            )
+        }
+        assertEquals("app.storyarc.MainActivityInk", AppIconChoice.INK.componentClassName)
     }
 
     @Test

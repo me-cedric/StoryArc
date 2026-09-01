@@ -6,13 +6,14 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -45,8 +46,15 @@ import app.storyarc.core.model.AppIconChoice
  */
 private val tileSide = 56.dp
 
-/** Roughly the corner a launcher masks an adaptive icon with, on a device that uses a squircle. */
-private val tileCorner = 16.dp
+/**
+ * A hairline, so the lightest face has an edge.
+ *
+ * **Found by the capture, which is what the capture is for.** Paper's plate is `#F8F6F4` and
+ * the settings surface it sits on is a warm off-white too, so on the first screenshot Paper's
+ * tile had no boundary at all and read as a plateless mark beside four plated ones — the one
+ * face a reader could not see. iOS's tile carries the same hairline for the same reason.
+ */
+private val tileEdge = 1.dp
 
 /** How this face is named on screen. */
 internal val AppIconChoice.labelRes: Int
@@ -200,10 +208,17 @@ private fun AppIconRow(face: AppIconChoice, isApplied: Boolean, onChoose: () -> 
                 // reader can act on — and `selectableRow` already merges the row into one
                 // control announced by name and by whether it is in use.
                 contentDescription = null,
+                // Circular, and the hairline with it. The launcher has already masked the
+                // drawable to *its* shape — a circle here, a squircle elsewhere — and this
+                // module cannot ask which without an API that arrived after this app's floor.
+                // So the chooser normalises the mask and rings it, which is what gives the
+                // hairline something to sit on. The plate and the mark are the component's
+                // own; only the outline is this screen's.
                 modifier = Modifier
                     .padding(start = StoryArcSpace.sm)
                     .size(tileSide)
-                    .clip(RoundedCornerShape(tileCorner)),
+                    .clip(CircleShape)
+                    .border(tileEdge, palette.textSecondary.copy(alpha = 0.25f), CircleShape),
             )
         }
         Column(modifier = Modifier.padding(start = StoryArcSpace.sm)) {

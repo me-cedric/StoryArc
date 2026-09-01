@@ -1,4 +1,7 @@
 internal import SwiftUI
+#if canImport(UIKit)
+internal import UIKit
+#endif
 
 internal import DesignSystem
 internal import StoryArcCore
@@ -44,22 +47,50 @@ private struct AppIconTile: View {
     @Environment(\.theme) private var theme
     let choice: AppIconChoice
 
+    /// The face's own artwork, if the app ships a drawable copy of it.
+    ///
+    /// **It does not yet, and the capture is what found that.** The first version drew
+    /// `Image(choice.assetName)` and every tile came out blank — five empty rounded rectangles,
+    /// which no test could have failed on, because a missing image is not an error in SwiftUI.
+    /// `xcrun assetutil --info` on the built `Assets.car` says why: an `.appiconset` compiles
+    /// to an *Icon Image*, and an icon asset is not fetchable by name at all. `UIImage(named:)`
+    /// answers nothing either, `ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS` emits no
+    /// loose file, and listing the generator's PNG as a second resource makes XcodeGen write a
+    /// flattened path that does not build. See ``AppIconChoice/tileResourceName``, which names
+    /// the asset the mark's generator has to emit, and the report that goes with it.
+    ///
+    /// From the **main** bundle rather than this module's: the artwork belongs to the app
+    /// target, which is where an app icon has to live.
+    private var rendition: Image? {
+        #if canImport(UIKit)
+        UIImage(named: choice.tileResourceName).map(Image.init(uiImage:))
+        #else
+        // macOS carries this module only so the pure suites can run on the host, and nothing
+        // there draws a chooser.
+        nil
+        #endif
+    }
+
     var body: some View {
-        // The app's own asset catalogue, not this module's bundle: the icon sets belong to
-        // the app target, which is where an app icon has to live. `Image(_:)` looks in the
-        // main bundle by default, which is exactly right here and is why no `bundle:` is
-        // passed — the one place in this module where that is deliberate.
-        Image(choice.assetName)
-            .resizable()
-            .frame(width: tileSide, height: tileSide)
-            .clipShape(.rect(cornerRadius: tileCorner, style: .continuous))
-            .overlay {
-                // A hairline, so Paper's off-white plate has an edge on a light background.
-                // Without it the lightest face reads as a floating mark rather than a tile.
-                RoundedRectangle(cornerRadius: tileCorner, style: .continuous)
-                    .strokeBorder(theme.palette.textSecondary.opacity(0.25), lineWidth: 0.5)
+        Group {
+            if let rendition {
+                rendition.resizable()
+            } else {
+                // Not a placeholder mark — a plain surface. An icon this build cannot load is
+                // a defect, and drawing something plausible in its place is how the blank
+                // tiles above survived a screenshot.
+                theme.palette.surfaceRaised
             }
-            .accessibilityHidden(true)
+        }
+        .frame(width: tileSide, height: tileSide)
+        .clipShape(.rect(cornerRadius: tileCorner, style: .continuous))
+        .overlay {
+            // A hairline, so Paper's off-white plate has an edge on a light background.
+            // Without it the lightest face reads as a floating mark rather than a tile.
+            RoundedRectangle(cornerRadius: tileCorner, style: .continuous)
+                .strokeBorder(theme.palette.textSecondary.opacity(0.25), lineWidth: 0.5)
+        }
+        .accessibilityHidden(true)
     }
 }
 

@@ -57,8 +57,8 @@ class AppIconManifestTest {
     private val launcherFilter = "<category android:name=\"android.intent.category.LAUNCHER\" />"
 
     @Test
-    fun `every alternate face has its own alias, disabled, exported, with its own icon`() {
-        for (face in AppIconChoice.entries.filter { !it.isDefault }) {
+    fun `every face has its own alias, exported, with its own icon and the launcher filter`() {
+        for (face in AppIconChoice.entries) {
             val alias = aliasFor(face)
             assertTrue(
                 "the manifest declares no <activity-alias> called " +
@@ -68,30 +68,47 @@ class AppIconManifestTest {
             )
             val block = alias.orEmpty()
             assertTrue("$face's alias does not target MainActivity", "android:targetActivity=\".MainActivity\"" in block)
-            assertTrue(
-                "$face's alias is not disabled in the manifest — more than one face would " +
-                    "draw on a fresh install",
-                "android:enabled=\"false\"" in block,
-            )
             assertTrue("$face's alias is not exported, so no launcher can start it", "android:exported=\"true\"" in block)
             assertTrue("$face's alias carries no launcher intent filter", launcherFilter in block)
             assertTrue("$face's alias declares no icon of its own", "android:icon=\"@mipmap/" in block)
+            // Exactly the default enabled, so a fresh install draws one icon and only one.
+            val wanted = if (face.isDefault) "android:enabled=\"true\"" else "android:enabled=\"false\""
+            assertTrue(
+                "$face's alias should be declared $wanted — a fresh install must draw the " +
+                    "default face and nothing else",
+                wanted in block,
+            )
         }
     }
 
     /**
-     * Task 4.5, read off the manifest rather than off the planner.
+     * **The rule that stops this feature bricking the app**, read off the manifest.
      *
-     * The default face is `MainActivity`, so the manifest must declare no alias for it and
-     * `MainActivity` itself must carry the launcher filter — that is what makes a fresh
-     * install and a reset the same state rather than two states that look alike.
+     * An `<activity-alias>` whose target activity is disabled does not merely lose its icon:
+     * it stops resolving. On an emulator, with `MainActivity` disabled and one alias enabled,
+     * `am start` on the alias left no process and the MAIN/LAUNCHER intent answered "unable to
+     * resolve" — while the launcher went on drawing the icon it had cached, so the only symptom
+     * was an icon that did nothing.
+     *
+     * So the launcher entry belongs to the aliases and `MainActivity` must carry neither a
+     * launcher filter nor an `android:enabled` attribute a switch could ever flip. Task 4.5
+     * asks for the opposite shape; its *reason* is kept by writing
+     * `COMPONENT_ENABLED_STATE_DEFAULT` to all five on a reset instead.
      */
     @Test
-    fun `the default face is the manifest's own activity and has no alias`() {
-        assertEquals(null, aliasFor(AppIconChoice.DEFAULT))
+    fun `the activity the aliases point at is never a launcher entry and never disabled`() {
         val activity = manifest.substringAfter("<activity\n").substringBefore("</activity>")
-        assertTrue("MainActivity is not the launcher activity", launcherFilter in activity)
-        assertTrue("MainActivity is not the component the default face names", "android:name=\".MainActivity\"" in activity)
+        assertTrue("MainActivity is not where this guard thinks it is", "android:name=\".MainActivity\"" in activity)
+        assertFalse(
+            "MainActivity carries the launcher filter. A face switch would then have to " +
+                "disable it, and every alias stops resolving when its target is disabled.",
+            launcherFilter in activity,
+        )
+        assertFalse(
+            "MainActivity declares android:enabled. It is the target of five aliases and " +
+                "must never be switched off.",
+            "android:enabled" in activity,
+        )
     }
 
     /**
@@ -103,12 +120,15 @@ class AppIconManifestTest {
      * it under a name a reader never chose.
      */
     @Test
-    fun `no alias carries a file-handover filter`() {
-        for (face in AppIconChoice.entries.filter { !it.isDefault }) {
+    fun `no alias carries a file-handover filter, and the activity does`() {
+        for (face in AppIconChoice.entries) {
             val block = aliasFor(face).orEmpty()
             assertFalse("$face's alias answers VIEW; that is MainActivity's job", "action.VIEW" in block)
             assertFalse("$face's alias answers SEND; that is MainActivity's job", "action.SEND" in block)
         }
+        val activity = manifest.substringAfter("<activity\n").substringBefore("</activity>")
+        assertTrue("MainActivity stopped answering VIEW; `local-library` needs it", "action.VIEW" in activity)
+        assertTrue("MainActivity stopped answering SEND; `local-library` needs it", "action.SEND" in activity)
     }
 
     /**
@@ -121,7 +141,7 @@ class AppIconManifestTest {
     @Test
     fun `each face's adaptive icon exists and names a plate the values file holds`() {
         val colours = read("apps/android/app/src/main/res/values/colors.xml")
-        for (face in AppIconChoice.entries.filter { !it.isDefault }) {
+        for (face in AppIconChoice.entries) {
             val icon = Regex("android:icon=\"@mipmap/([A-Za-z0-9_]+)\"")
                 .find(aliasFor(face).orEmpty())
                 ?.groupValues

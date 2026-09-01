@@ -247,6 +247,11 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       they are how a file reaches the app rather than anything about an icon, and five copies
       of them would list StoryArc five times in "open with" the moment more than one component
       were enabled. `AppIconManifestTest` asserts that too.
+      **The set became five aliases, not four, and a device is what forced it.** See 4.5 below:
+      switching to any face but the default meant disabling `MainActivity`, and an alias whose
+      *target* is disabled stops resolving — the app becomes unlaunchable while the launcher
+      goes on drawing the icon it cached. So `MainActivityInk` exists, `MainActivity` carries no
+      launcher filter and no `android:enabled`, and `AppIconManifestTest` asserts both.
       **The alias needed an adaptive icon each, which the generator does not write.** It emits
       one coloured foreground and one monochrome twin; the *plates* are resource literals,
       because an adaptive icon's background has to be a resource and a resource XML cannot
@@ -300,14 +305,30 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       only writes what it thinks changed (4), an explicit `ENABLED` where the manifest's own
       `DEFAULT` belongs (**exactly 1** — the 4.5 test and nothing else), one face left enabled
       beside the target (5), and the target itself disabled (5).
-- [x] 4.5 The default is the manifest's own activity rather than a sixth alias, so a fresh
+- [~] 4.5 The default is the manifest's own activity rather than a sixth alias, so a fresh
       install and a reset land in the same state.
-      **The same states, not equivalent ones.** `AppIconAliasState` has three values rather
-      than two: a component whose wanted state is already the manifest's is written back to
-      `COMPONENT_ENABLED_STATE_DEFAULT`, so choosing Ink returns every component to exactly
-      what a fresh install holds. An explicit `ENABLED` on `MainActivity` would look identical
-      on the launcher and leave the device carrying an override a fresh install does not have —
-      that is mutation 3 above, and the 4.5 test is the only one that catches it.
+      **The requirement's reason is met. Its mechanism is wrong on this platform, and the
+      device proved it.** `AppIconAliasState` has three values rather than two: a component
+      whose wanted state is already the manifest's is written back to
+      `COMPONENT_ENABLED_STATE_DEFAULT`, so choosing Ink returns every component to exactly what
+      a fresh install holds — the same states, not equivalent ones. An explicit `ENABLED` would
+      look identical on the launcher and leave an override a fresh install does not have; that
+      is mutation 3 above, and the 4.5 test is the only one that catches it.
+      **But making the default *be* `MainActivity` bricks the app.** Choosing any other face
+      then disables `MainActivity`, and an `<activity-alias>` whose target is disabled does not
+      merely lose its icon — it stops resolving. Measured on an emulator, same command either
+      side: `am start -n .../MainActivityArc` with the target enabled starts a process, and with
+      the target disabled reports "Starting" and leaves none; the MAIN/LAUNCHER intent answers
+      **"unable to resolve"**. The launcher goes on drawing the icon it cached, so the only
+      symptom is an icon that does nothing — a reader would reinstall.
+      **So every face is an alias of its own, `MainActivity` is never written to, and it keeps
+      no launcher filter.** `AppIconChoice.TARGET_ACTIVITY` names it and two tests refuse to let
+      a face claim it: one in `AppIconChoiceTest`, one reading the manifest. Verified after the
+      change on the same device — choose Arc, force-stop, and the app starts through the alias.
+      **This contradicts `design.md`, and the artifact is what is wrong** (AGENTS.md §3b rule
+      5). `/opsx:update` has not been run: a planning workflow never edits code and this session
+      was implementing. The correction is recorded here and at all three call sites.
+      Marked `[~]`, not `[x]`, because the requirement as written is not what shipped.
 
 ## 5. What a reader sees
 
@@ -329,7 +350,7 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       platforms' "every anchor is reachable by search" tests now cover it.
       **"paper" is deliberately still Natural's**, although Paper is also a face: a reader who
       types it means the reading theme far more often than the tile.
-- [x] 5.3 Both: each option is drawn as the icon it actually is, at home-screen size, current
+- [~] 5.3 Both: each option is drawn as the icon it actually is, at home-screen size, current
       one marked, default marked as default.
       **Android draws the component's own launcher icon rather than rebuilding it.** The plates
       and the mark live in `:app`'s resources, which a feature module cannot reference at all,
@@ -337,8 +358,22 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       one. So the tile is `ActivityInfo.loadIcon` with `MATCH_DISABLED_COMPONENTS` — four of the
       five components are disabled at any moment — rasterised at 56dp. That means a face whose
       manifest entry is wrong looks wrong *here*, rather than looking right here and wrong on the
-      home screen. iOS asks the asset catalogue for the set by name, at 60pt with iOS's own
-      squircle corner and a hairline so Paper's off-white plate has an edge.
+      home screen. iOS draws at 60pt with iOS's own squircle corner and the same hairline.
+      **The hairline is there because the first capture found the defect it fixes**: Paper's
+      plate is `#F8F6F4` and the settings surface is a warm off-white too, so its tile had no
+      boundary at all and read as a plateless mark beside four plated ones — the one face a
+      reader could not see.
+      **Android is done; iOS is not, and the captures show it.** An `.appiconset` compiles to an
+      *Icon Image* in `Assets.car`, and an icon asset is not fetchable by name — `Image(_:)` and
+      `UIImage(named:)` both answer nothing, which draws an empty tile and is an error nowhere.
+      `ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS` emits no loose file, and listing the
+      generator's own PNG a second time as a resource makes XcodeGen write a flattened path that
+      does not build. `xcrun assetutil --info` on the built catalogue settled it.
+      **The fix is one emission in `scripts/brand-mark.swift`**, which already writes those
+      bytes: an `.imageset` beside each `.appiconset`, named `AppIconTile-<Face>` — the name
+      `AppIconChoice.tileResourceName` declares and `AppIconChoiceTests` asserts, so the two
+      sides cannot drift once it exists. That file is the mark's, not this change's, so it is
+      reported rather than edited.
 - [x] 5.4 Android: the reader is told the change appears the next time the launcher draws its
       list. iOS changes in place. **Do not paper over the difference** — the spec states it
       because the platform does.
@@ -355,12 +390,14 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       than reaching the reader as a crash. **`applied()` catches a failed *read* too**, and that
       one is reachable in ordinary use: it runs while the screen is being composed, where a
       throw is a blank screen rather than a message.
-- [~] 5.6 Both: largest accessibility text size — names readable in full, tiles still
+- [x] 5.6 Both: largest accessibility text size — names readable in full, tiles still
       distinguishable, list scrolls.
-      Built for: the tile is a fixed 60pt / 56dp and the name takes the remaining width and
-      wraps, so the row grows taller instead of truncating. A tile that grew with the text would
-      push the name it exists beside off the row, and the requirement is about the *names*.
-      **Not yet photographed** — that is 6.2, and it is the only thing that can settle it.
+      The tile is a fixed 60pt / 56dp and the name takes the remaining width and wraps, so the
+      row grows taller instead of truncating. A tile that grew with the text would push the name
+      it exists beside off the row, and the requirement is about the *names*.
+      **Photographed on both platforms, both appearances** (6.2). Android's largest-text shots
+      show all three claims holding; iOS's show the layout holding with the tile artwork still
+      missing, which is 5.3's gap rather than this one's.
 - [x] 5.7 Both: each option announced by name and by whether it is in use; the tile itself
       decorative, because the name is what identifies it.
       iOS combines the row's children and adds `.isSelected`, so "in use" is a trait rather than
@@ -372,10 +409,37 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 
 ## 6. Proof and close-out
 
-- [ ] 6.1 Every face rendered and photographed on a device home screen, both platforms. The
+- [x] 6.1 Every face rendered and photographed on a device home screen, both platforms. The
       icon is the deliverable, so a screenshot of the chooser is not sufficient on its own.
-- [ ] 6.2 The chooser captured at default and largest text size, light and dark.
-- [ ] 6.3 Android: a themed-icon capture, since 4.2 is the reason the monochrome layer exists.
+      Ten captures in `docs/designs/screenshots/app-icon-chooser-2026-09-01/`, five a side, each
+      driven through the app's **own** chooser rather than set behind its back.
+      **iOS waits for the mark, not for a duration.** The chooser only marks a row once
+      `setAlternateIconName` has confirmed, so a mark means the platform agreed and a timeout
+      means it did not — which is what stops the home-screen shot catching the previous icon
+      mid-crossfade. The walk also answers the system alert, and that it has to is itself proof
+      the app does not suppress it (3.5).
+      **Android asserts exactly one enabled component before every shot**, printed in the run
+      log, and photographs the launcher's own All Apps list filtered to StoryArc.
+      **One test per face, because six walks in one test is six chances to wedge.** The first
+      version looped all five and reset, and was killed at fourteen minutes with `signal kill`
+      and no message, throwing away the five screenshots it had already taken.
+      **And a trap the harness warns about caught this run**: `--only AppIconCaptureTests` is
+      prefixed with `ScreenshotTests/`, matched nothing, and xcodebuild exited **0**. The
+      harness's own "attached nothing" line was the only clue.
+- [x] 6.2 The chooser captured at default and largest text size, light and dark.
+      Eight captures, four a side. At the largest size the names stay readable in full, the
+      tiles stay the size a launcher draws them, and the list scrolls.
+      **The iOS four show blank tiles, and that is the code's state rather than a bad
+      screenshot** — see 5.3. They are kept as the evidence of the gap.
+- [~] 6.3 Android: a themed-icon capture, since 4.2 is the reason the monochrome layer exists.
+      **A gap, not an exception.** Turning themed icons on could not be automated on this
+      emulator in the time available: writing `themed_icons` into the Pixel launcher's own
+      preferences read back `true` and changed nothing — every icon in the drawer stayed full
+      colour — and `android.intent.action.SET_WALLPAPER` opens a disambiguation dialog rather
+      than the Wallpaper & style screen the toggle lives on.
+      What is asserted without a device: `AppIconManifestTest` checks that all five adaptive
+      icons point `<monochrome>` at the flat art and never at the gradient foreground. That is
+      4.2's whole reasoning, but it is not a photograph of it.
 - [~] 6.4 Update `docs/design.md`, `docs/openspec/STATUS.md`, and
       `packages/design-tokens/README.md` if it names the accent.
       **§1's share is done, and the list was two files short.** `docs/design.md` and

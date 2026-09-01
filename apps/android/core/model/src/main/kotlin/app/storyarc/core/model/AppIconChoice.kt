@@ -56,21 +56,30 @@ enum class AppIconChoice {
     val isDefault: Boolean get() = this == DEFAULT
 
     /**
-     * The component in the app's manifest that draws this face.
+     * The `<activity-alias>` in the app's manifest that draws this face.
      *
-     * The default face is **the manifest's own activity, not a sixth alias**, so a fresh
-     * install and a reset land in the same state — the design document is explicit about
-     * that, and [AppIconAliases.plan] is what makes it literally true rather than merely
-     * equivalent.
+     * **Every face is an alias, including the default, and that is a correction the device
+     * forced.** The design document asks for the default to be `MainActivity` itself, so that
+     * a fresh install and a reset land in the same state. On this platform that shape breaks
+     * the app: choosing any other face means disabling `MainActivity`, and an alias whose
+     * *target* is disabled stops resolving — `am start` on the alias leaves no process and the
+     * MAIN/LAUNCHER intent answers "unable to resolve", while the launcher goes on drawing the
+     * icon it cached. A reader would tap it and nothing would happen.
+     *
+     * The reason behind that requirement survives whole: [AppIconAliases.plan] writes
+     * [AppIconAliasState.DEFAULT] to all five when the default is chosen, which is byte for
+     * byte the state a fresh install holds. Only the mechanism moved, and `MainActivity` is
+     * now never written to at all.
      *
      * A class name as a string, in a module that owns no activity: the manifest is the other
      * half of this pair and nothing in the compiler joins them, so `AppIconManifestTest`
-     * reads the manifest and asserts every name below is declared there. That test is the
-     * join, and it is the reason these live beside the faces rather than in the feature.
+     * reads the manifest and asserts every name below is declared there — and that none of
+     * them is the activity the aliases point at. That test is the join, and it is the reason
+     * these live beside the faces rather than in the feature.
      */
     val componentClassName: String
         get() = when (this) {
-            INK -> "app.storyarc.MainActivity"
+            INK -> "app.storyarc.MainActivityInk"
             PAPER -> "app.storyarc.MainActivityPaper"
             BLOOM -> "app.storyarc.MainActivityBloom"
             ARC -> "app.storyarc.MainActivityArc"
@@ -85,6 +94,15 @@ enum class AppIconChoice {
          * reorder of the chooser must not be able to change which icon a new reader gets.
          */
         val DEFAULT = INK
+
+        /**
+         * The activity every alias points at, which no face may ever name.
+         *
+         * Named here so the guard can assert it: the one write that would make the app
+         * unreachable is a write to this component, and nothing in this file's shape stops a
+         * future face from claiming it by name.
+         */
+        const val TARGET_ACTIVITY = "app.storyarc.MainActivity"
     }
 }
 
@@ -118,8 +136,12 @@ data class AppIconAliasStep(val face: AppIconChoice, val state: AppIconAliasStat
  *   recoverable rather than a state the app has to remember it is in.
  * - **The plan is idempotent.** Choosing the face already in use rewrites the same states
  *   and changes nothing, so a double tap cannot open a window with none enabled.
+ * - **It never writes to the activity the aliases point at.** An alias whose target is
+ *   disabled does not merely lose its icon — it stops resolving, and the app becomes
+ *   unlaunchable while the launcher goes on drawing a cached icon. That is why every face,
+ *   including the default, is an alias of its own; see [AppIconChoice.componentClassName].
  *
- * `AppIconAliasesTest` asserts all four over every transition, including the same face twice
+ * `AppIconAliasesTest` asserts all five over every transition, including the same face twice
  * and a failure at each step.
  */
 object AppIconAliases {

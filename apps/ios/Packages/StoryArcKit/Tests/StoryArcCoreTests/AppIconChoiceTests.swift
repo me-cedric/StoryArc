@@ -49,6 +49,23 @@ struct AppIconChoiceTests {
         }
     }
 
+    /// The asset the chooser draws its tile from, which is **not** the `.appiconset`: an icon
+    /// asset is not fetchable by name, so the mark's generator has to emit an ordinary imageset
+    /// beside each icon set. Named here so the two sides cannot drift once it does — until then
+    /// the tile draws a plain surface, which the iOS chooser captures show.
+    @Test("Each face names the imageset a chooser tile needs")
+    func tileResourceNames() {
+        #expect(AppIconChoice.ink.tileResourceName == "AppIconTile-Ink")
+        #expect(AppIconChoice.paper.tileResourceName == "AppIconTile-Paper")
+        #expect(AppIconChoice.bloom.tileResourceName == "AppIconTile-Bloom")
+        #expect(AppIconChoice.arc.tileResourceName == "AppIconTile-Arc")
+        #expect(AppIconChoice.mono.tileResourceName == "AppIconTile-Mono")
+        // Never the icon set's own name. Passing that to `UIImage(named:)` is the blank tile.
+        for face in AppIconChoice.allCases {
+            #expect(face.tileResourceName != face.assetName)
+        }
+    }
+
     @Test("Every alternate name round-trips back to its face")
     func reconcilesEveryFace() {
         for face in AppIconChoice.allCases {
