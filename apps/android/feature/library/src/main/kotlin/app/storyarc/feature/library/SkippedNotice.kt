@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -161,7 +162,11 @@ internal fun SkippedBanner(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+        // `FlowRow`, like the shelf's own chip row: two labelled controls at the largest text
+        // size do not fit one line of the narrowest window this app supports, and a `Row`
+        // would place the second one past the edge with nothing saying it is there. The same
+        // defect `ListOrderChipsWrapTest` was written for.
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
             OpenSkippedList(onClick = onOpenList)
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.library_skipped_dismiss))

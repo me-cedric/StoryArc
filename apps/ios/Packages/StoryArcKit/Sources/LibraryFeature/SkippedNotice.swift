@@ -63,8 +63,15 @@ struct SkippedNotice: View {
     }
 
     /// The notice itself: what happened, and the two things a reader can do about it.
+    ///
+    /// **The controls sit under the sentence, and a capture at the largest text size is why.**
+    /// The first version put them beside it in an `HStack`; at
+    /// `accessibility-extra-extra-extra-large` the sentence took three lines in half the
+    /// window and the named control was truncated to *"What couldn’t be open…"*. A control
+    /// whose name is cut off is not the named control `library-browsing` asks for, and no unit
+    /// test can see it — the width that did the truncating belongs to the window.
     private func banner(sentence: Text, reason: String?) -> some View {
-        HStack(alignment: .top, spacing: StoryArcSpace.md) {
+        VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                 sentence
                     .textRole(.footnote)
@@ -83,30 +90,42 @@ struct SkippedNotice: View {
             // publication where there is one and the count where there are several".
             .accessibilityElement(children: .combine)
 
-            Spacer(minLength: 0)
-
             actions
         }
         .padding(.horizontal, StoryArcSpace.gutter)
         .padding(.vertical, StoryArcSpace.sm)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         // Opaque, and this is the point of the view. The material this used to draw on let
         // the cover behind it through.
         .background(theme.palette.surfaceRaised)
     }
 
+    /// Both controls side by side while they fit, stacked when they do not.
+    ///
+    /// `ViewThatFits` rather than a fixed choice, because the two are the same shape at every
+    /// ordinary text size and are two full-width capsules at the accessibility ones. Android's
+    /// equivalent is a `FlowRow`, which is the same rule its own chip row already follows.
     private var actions: some View {
-        // `.top`, so at a large text size the two controls sit beside the first line of the
-        // sentence rather than being pushed off the row by its third.
-        VStack(alignment: .trailing, spacing: StoryArcSpace.xs) {
-            openList
-            Button(action: dismiss) {
-                Text("library.skipped.dismiss", bundle: .module)
-                    .textRole(.caption)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: StoryArcSpace.sm) {
+                openList
+                dismissal
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(theme.palette.textSecondary)
+            VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
+                openList
+                dismissal
+            }
         }
+    }
+
+    private var dismissal: some View {
+        Button(action: dismiss) {
+            Text("library.skipped.dismiss", bundle: .module)
+                .textRole(.caption)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(theme.palette.textSecondary)
     }
 
     /// The way to the list, and it is a control with a name.
@@ -119,6 +138,13 @@ struct SkippedNotice: View {
         Button { isListShown = true } label: {
             Text("library.skipped.list", bundle: .module)
                 .textRole(.caption)
+                // A bordered button's label truncates on one line by default, and at
+                // `accessibility-extra-extra-extra-large` this one read *"What couldn’t b…"*
+                // — a control whose name is cut off is not the named control the spec asks
+                // for. Wrapping is what a picture at that size asked for; nothing smaller
+                // could have said so, because the width that truncated it is the window's.
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
@@ -153,6 +179,10 @@ struct SkippedList: View {
                 .accessibilityElement(children: .combine)
             }
             .navigationTitle(Text("library.skipped.list", bundle: .module))
+            // Inline, because the large title truncated this one to *"What couldn’t be
+            // open…"* on an iPhone at the default text size — a large title takes one line
+            // and does not wrap.
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button { dismissSheet() } label: {
