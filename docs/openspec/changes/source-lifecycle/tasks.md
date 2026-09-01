@@ -54,7 +54,22 @@ dark, at default and largest text size. A `#Preview` and a `@Preview` do not cou
 
 ## 6. Test gaps the audit named
 
-- [ ] 6.1 Add `SourceStoreTest` on Android — the registry round trip is asserted on iOS and by nothing on Android — and verify `pnpm gradle :core:persistence:testDebugUnitTest` passes
+- [x] 6.1 Add `SourceStoreTest` on Android — the registry round trip is asserted on iOS and by nothing on Android — and verify `pnpm gradle :core:persistence:testDebugUnitTest` passes
+      **Nine cases; `:core:persistence:testDebugUnitTest` passes.** The first seven mirror iOS's
+      `SourceStoreTests` in its order, so the two platforms' stores are held to one written
+      contract rather than to two lists that drift.
+      **Two have no iOS counterpart, because the code they cover has none.** Android's
+      `StoredRegistry.toDomain` drops a `SourceKind` this build cannot parse rather than guessing
+      at it — its own comment says a source written by a newer version has a type this one cannot
+      fetch from, and drawing it as a folder would be worse than not drawing it — and `registry()`
+      wraps its decode in `runCatching`, so truncated preferences give a reader an empty library
+      they can add to instead of an exception on the launch path. Neither was asserted anywhere.
+      The unknown-kind case is written as raw JSON because **no enum case can produce it**: only a
+      future build can, which is exactly why nothing had covered it.
+      **Mutation-checked, both directions.** Defaulting an unparseable kind to `LOCAL_FOLDER`
+      fails the drop case and nothing else; carrying `Connected` through `toDomain` fails the
+      state case and nothing else. Each mutation was reverted and the store restored byte for
+      byte.
 - [ ] 6.2 Assert the library-feature behaviours nothing currently covers on either platform: the empty state, the cached notice, the incremental refresh, and the disappearance removal. Four cases per platform, mirrored case for case
 - [ ] 6.3 Assert that the diagnostic export's source section is a count and never a list, on both platforms — the one regression that would leak a hostname or a token
 
