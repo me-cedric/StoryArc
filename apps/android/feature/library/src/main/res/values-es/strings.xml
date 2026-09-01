@@ -40,6 +40,9 @@
     <string name="library_search_back">Cerrar la búsqueda</string>
     <string name="library_search_clear">Borrar la búsqueda</string>
     <string name="library_sort">Ordenar</string>
+    <!-- The noun, not the infinitive `library_sort` above: the chip names an ordering that is
+         already in force rather than asking for one. -->
+    <string name="library_sort_chip">Orden: %1$s</string>
     <string name="library_sort_ascending">Ascendente</string>
     <string name="library_sort_descending">Descendente</string>
     <string name="library_sort_title">Título</string>

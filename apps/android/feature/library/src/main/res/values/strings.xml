@@ -44,6 +44,14 @@
     <string name="library_search_back">Close search</string>
     <string name="library_search_clear">Clear the search</string>
     <string name="library_sort">Sort</string>
+    <!-- The sort chip's whole label. `library-browsing`: an ordering "reads as an ordering
+         rather than as a value — a reader seeing the field name alone cannot tell a sort
+         from a filter". The chip used to draw the bare field name, so beside a chip reading
+         *Filter* it read as one of its values. The seven field names below are reused
+         verbatim rather than respelt as sentences: a second wording of *Size on this device*
+         in one app is how a vocabulary comes apart, and a capital after the colon is correct
+         in all four languages where "Sorted by Size on this device" would not be. -->
+    <string name="library_sort_chip">Sort: %1$s</string>
     <string name="library_sort_ascending">Ascending</string>
     <string name="library_sort_descending">Descending</string>
     <string name="library_sort_title">Title</string>

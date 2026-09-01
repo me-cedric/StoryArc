@@ -217,7 +217,7 @@ internal fun ListOrderChips(
                 // reason, which is the rule the shelf's own sort chip follows.
                 selected = false,
                 onClick = { open = true },
-                label = { Text(stringResource(order.labelRes)) },
+                label = { Text(order.chipLabel()) },
             )
             DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                 ChosenOrderItem(stringResource(R.string.shelves_list_order), order.isCurated) {
@@ -271,6 +271,16 @@ private fun ChosenOrderItem(label: String, chosen: Boolean, onChoose: () -> Unit
  * The control naming the current order is what labels the curated one as curated. Here rather
  * than on [ListOrder] for the reason `LibrarySort.labelRes` is in `LibraryControls`: naming a
  * value is presentation, and the value itself carries no resources.
+ *
+ * **The two branches are not symmetrical, and that is the point.** A sort is framed by
+ * `sortChipLabel` so it reads as an ordering rather than as a field — `library-browsing` asks
+ * for that in as many words. The curated order needs no frame: *The list's order* already
+ * says what kind of thing it is, and `Sort: The list's order` would assert a sort over a list
+ * whose defining property is that nothing sorted it.
+ *
+ * A `String` rather than a resource id now, because one of the two branches composes two
+ * resources and an id cannot carry that.
  */
-private val ListOrder.labelRes: Int
-    get() = sort?.labelRes ?: R.string.shelves_list_order
+@Composable
+internal fun ListOrder.chipLabel(): String =
+    sort?.let { sortChipLabel(it) } ?: stringResource(R.string.shelves_list_order)

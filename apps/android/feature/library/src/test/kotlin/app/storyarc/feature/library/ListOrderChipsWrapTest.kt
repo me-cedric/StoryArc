@@ -58,6 +58,13 @@ import org.robolectric.annotation.GraphicsMode
  * Spanish's `Tamaño en este dispositivo` — the one label that does not fit one line of even
  * the full 320 dp window. Naming a champion locale is how the notes around this row came to
  * state a worst case that was not one; measuring all four is cheaper than arguing about it.
+ *
+ * **The sort chip now carries `Sort: ` in front of that name**, so every one of those
+ * measurements got longer on the day `library-browsing` asked an ordering to say it was one.
+ * That is the reason this file measures `sortChipLabel` rather than `labelRes`: the frame is
+ * part of the label a device draws, so a fixture that measured the bare name would report a
+ * width no reader ever sees. The chip still grows taller rather than wider — a label is
+ * ordinary text — and the height assertion below is what holds that claim to account.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -93,8 +100,12 @@ class ListOrderChipsWrapTest {
         var labels = emptyList<String>()
         val order = ListOrder(sort = WIDEST_SORT)
         compose.setContent {
+            // The **composed** label, not the bare field name. The chip says *Sort: Size on
+            // this device* now — `library-browsing` asks an ordering to read as one — so a
+            // fixture looking up `library_sort_file_size` alone would find no node at all and
+            // report a layout defect for a wording change.
             labels = listOf(
-                stringResource(WIDEST_SORT.labelRes),
+                sortChipLabel(WIDEST_SORT),
                 stringResource(R.string.shelves_list_order),
             )
             CompositionLocalProvider(

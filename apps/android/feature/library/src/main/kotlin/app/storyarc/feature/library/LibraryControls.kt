@@ -137,7 +137,8 @@ private fun AvailabilityChip(
 }
 
 /**
- * How the library is ordered, named on the chip rather than hidden behind an arrow glyph.
+ * How the library is ordered, named on the chip rather than hidden behind an arrow glyph —
+ * and named *as an ordering*, which is [sortChipLabel]'s whole job.
  */
 @Composable
 private fun SortChip(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
@@ -155,7 +156,7 @@ private fun SortChip(query: LibraryQuery, onChange: (LibraryQuery) -> Unit) {
             // answer rather than a state. It is never drawn as selected for that reason.
             selected = false,
             onClick = { open = true },
-            label = { Text(stringResource(query.sort.labelRes)) },
+            label = { Text(sortChipLabel(query.sort)) },
         )
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             LibrarySort.entries.forEach { sort ->
@@ -206,10 +207,44 @@ private fun LayoutToggle(layout: LibraryLayout, onChange: (LibraryLayout) -> Uni
 }
 
 /**
+ * What a chip carrying the current sort says — the ordering, not just the field.
+ *
+ * `library-browsing`: "an ordering says that it is an ordering ... a reader seeing the field
+ * name alone cannot tell a sort from a filter". The chip drew [labelRes] alone, so on the
+ * shelf it read *Title* between *On this device* and *Filter* — three chips of which two
+ * were narrowing and the middle one was not, and nothing on any of them said which was
+ * which. Photographed before the fix in
+ * `docs/designs/screenshots/sort-chip-2026-09-01/before-light-default.png`.
+ *
+ * **A frame around the existing name rather than seven new sentences.** The seven field
+ * names are already translated four ways and are already the words the menu uses, so
+ * respelling them as *Sorted by size on this device* would put a second wording of the same
+ * fact in the same app — the drift `searchScopeLabel` and `originLabel` both exist to avoid
+ * — and would break German and Spanish capitalisation, where those names are nouns that
+ * keep their capital. A colon takes the capital in its stride in all four languages.
+ *
+ * Shared by the shelf's [SortChip] and the shelf-detail row's `ListOrderChips`, because the
+ * two draw the same seven names and a reader moving between them should not meet two
+ * treatments of one idea. `ListOrderChipsWrapTest` measures the composed label rather than
+ * the bare one for the same reason.
+ *
+ * Not applied to the curated order: *The list's order* is already named as an ordering, and
+ * `Sort: The list's order` would claim a sort where the whole point is that there is none.
+ */
+@Composable
+internal fun sortChipLabel(sort: LibrarySort): String =
+    stringResource(R.string.library_sort_chip, stringResource(sort.labelRes))
+
+/**
  * How the browsing enums are named on screen.
  *
  * The enums live in `:core:model` and carry no resources: the domain has no
  * business holding UI copy. Naming them is presentation, so it lives here.
+ *
+ * Still the plain field name, because the menu's own rows need exactly that: inside a menu
+ * headed by the chip, every row is already known to be an ordering, and *Sort: Title* on
+ * each of seven rows would say it seven more times. [sortChipLabel] frames it for the one
+ * place that needs the frame.
  */
 internal val LibrarySort.labelRes: Int
     get() = when (this) {

@@ -127,9 +127,56 @@ worked around silently:
 
 ## 3. Two smaller ones
 
-- [ ] 3.1 Android: the sort chip says it is an ordering. `library_sort_title` is "Title" and
+- [x] 3.1 Android: the sort chip says it is an ordering. `library_sort_title` is "Title" and
       the chip shows it alone, which beside a "Filter" chip reads as a filter value. Same for
       grouping, which is neither a sort nor a filter. Four languages.
+      **Done, and photographed.** The chip reads `Sort: Title`. One new format string —
+      `library_sort_chip` — in all four `values*` directories: `Sort: %1$s`,
+      `Sortierung: %1$s`, `Tri : %1$s`, `Orden: %1$s`. French takes the space before the colon
+      that the rest of that file already uses (`kavita_status`). German, French and Spanish
+      take the **noun**, not the imperative `library_sort` sitting above them — the chip names
+      an ordering already in force rather than asking for one, so *Sortieren* would have been
+      the wrong word in the right place.
+      **A frame around the existing names, not seven new sentences.** `sortChipLabel` in
+      `LibraryControls.kt` composes the frame with `LibrarySort.labelRes`, so the seven field
+      names stay the words the menu uses. Respelling them as *Sorted by size on this device*
+      would have put a second wording of one fact in a four-language app — the drift
+      `searchScopeLabel` exists to avoid — and would have broken German and Spanish
+      capitalisation, where those names are nouns that keep their capital. A colon takes a
+      capital in its stride in all four.
+      **Both rows that show a sort, not just the one the review photographed.** The shelf's
+      `SortChip` and `ShelfDetailScreen`'s `ListOrderChips` draw the same seven names, and the
+      requirement says "the current sort **on a control**" rather than naming a screen. The
+      curated order is deliberately left bare: *The list's order* already reads as an ordering,
+      and `Sort: The list's order` would assert a sort over the one list whose defining
+      property is that nothing sorted it. `ListOrder.chipLabel` holds that asymmetry and
+      `SortChipNamesAnOrderingTest` pins it.
+      **Grouping has no Android control to rename, and that is a finding rather than a skip.**
+      The requirement's second clause — "the same holds for grouping, which is neither" —
+      assumes a grouping control. Android has none: `LibraryScreen.kt:673` calls
+      `LibrarySections.divide(publications, query.sort, other)`, so the shelf's headings are
+      **derived from the sort** and are contiguous runs of the arranged list, never a
+      regrouping of it (`LibrarySections.kt`, which says so at length and gives the reason — a
+      grouping that gathered every "A" out of a shelf sorted by last-read would silently undo
+      the sort). So on Android the clause is satisfied by the sort chip it follows from, and
+      inventing a grouping control to have something to label would be building an unspecified
+      behaviour. Whether iOS has one is the other agent's half.
+      **Asserted, and the assertion was made to fail twice.** `SortChipNamesAnOrderingTest`
+      checks two properties over all seven fields in all four locales — the label is not the
+      bare field name, and the field name is still inside it. Neither alone is enough: the
+      first passes for a label of pure decoration, the second for the bare name this replaced.
+      Mutating `library_sort_chip` to `%1$s` fails the first; mutating it to `Sort` fails the
+      second. A fifth test holds the curated order bare.
+      **The row still wraps at the largest text size**, which is the half of this that could
+      have gone wrong — this row scrolled sideways once and put *Filter* half out of the
+      window. `ListOrderChipsWrapTest` measures the composed label now rather than the bare
+      one, in all four locales at 320 dp and `font_scale 2.0`; measuring the bare name would
+      have reported a width no reader ever sees. On the emulator at `font_scale 2.0` the row
+      takes two lines with nothing clipped.
+      **Photographed** before and after, light and dark, default and largest —
+      `docs/designs/screenshots/sort-chip-2026-09-01/`, eight files with the conditions in
+      their names. Its README records how the build in them was verified, because this
+      emulator is shared and an install on it can report `Success` and then be discarded.
 - [x] 3.2 iOS: the player's `Close` button gives way to the sheet's grabber —
       `FullPlayerView.swift:61`. A sheet already has two ways out and the button sits where the
       grabber wants to be.
