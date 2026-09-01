@@ -45,23 +45,56 @@ Authored in OKLCH, generated to sRGB. See
 
 | Token | Value | Where it is allowed |
 | --- | --- | --- |
-| `brand/ember` | `#EC7C27` | Primary accent on dark surfaces. Reading-lamp amber. |
-| `brand/emberStrong` | `#D2600C` | Pressed state; the light-theme accent, where 70 % lightness would fail on paper. |
-| `brand/emberMuted` | `#7C4521` | Accent at rest: progress rails, unselected indicators. |
-| `brand/ink` | `#4A54A6` | Secondary. Links, informational chips. |
+| `brand/accent` | `#8A4DF0` | Primary accent, **on every appearance**. Tab bars, chips, sliders, progress ticks, links. |
+| `brand/accentMuted` | `#5A4886` | Accent at rest: progress rails, unselected indicators. |
+| `brand/secondary` | `#FF6B9D` | Secondary on dark surfaces. Links, informational chips. |
+| `brand/secondaryStrong` | `#DA497D` | Secondary on light surfaces, where the lighter pink would fail on paper. |
+| `brand/arcMid` | `#F566B8` | **Identity only** — the mark, the app icons, brand surfaces. |
+| `brand/arcLate` | `#A855F7` | **Identity only.** |
+| `brand/arcEnd` | `#5B4BF5` | **Identity only**, plus the Arc icon face's plate. |
+| `brand/iconPlate` | `#17171F` | **Identity only** — the app icon's own plate. Never an app surface. |
 | `brand/clay` | `#C87C5E` | The **Natural** theme's accent on its dark variant. |
 | `brand/clayStrong` | `#98492C` | Natural's accent on its light variant, where clay would fail on warm paper. |
 
-Amber, not blue. Every comic and reading app defaults to blue or purple;
-StoryArc's accent is the colour of the lamp you read under. It also sits far
-from every status colour, so an accent and a warning are never confused.
+**The palette's two poles are the two ends of the mark's own gradient**, so the
+artwork and the chrome cannot drift apart. The mark runs pink → violet across
+four stops; `brand/secondary` is the first of them and `brand/arcEnd` the last.
+
+**One accent, both appearances.** `brand/accent` is the violet from the middle of
+that arc, and it is the same value on light and dark: it clears 3:1 on both
+canvases — 4.06 and 4.43 — where the pink reaches 2.48:1 on paper and would need
+a second token to exist at all. Two reasons it is the violet and not the pink,
+and the second is this document's own:
+
+- A single value that clears both themes needs no light-only twin, so there is
+  one accent to reason about rather than a pair to keep in step.
+- **Chrome recedes** (§1). A hot pink on every chip, slider and progress tick is
+  not receding. A violet from the middle of the mark is unmistakably the same
+  brand and does not shout.
+
+Violet, not blue — and not the tonal purple a Material baseline hands out.
+Every value here sits far from every status colour, so an accent and a warning
+are never confused.
 
 **The accent is chrome-only.** Inside a publication's context — its detail
 screen, its reader — the accent derives from the cover art instead. See §7.
 
+**The three later arc stops and the icon plate are identity, not chrome.** They
+belong to the mark, the app icons and brand surfaces, and never to an accent
+position. §1: colour is information and *never decoration* — a control painted in
+the arc's third stop says nothing a reader can act on, and four stops spread
+across the chrome is the mark's gradient leaking out of the icon it belongs to.
+
+A source-level guard enforces this rather than a sentence here, because a rule
+written only in a doc protects the one file it is in:
+`ArcStopsAreNotChromeTests` on iOS and `ArcStopsAreNotChromeTest` on Android.
+`accent` and `secondary` *are* chrome and are exempt.
+
 Clay exists so that **Natural is a theme and not the same app in beige.** A warm
-surface ramp under an amber accent reads as a tint; a warm surface ramp under an
-earthier accent reads as a different material.
+surface ramp under a violet accent reads as a tint; a warm surface ramp under an
+earthier accent reads as a different material. Natural is the one theme that
+still carries an accent *pair*, because clay at 66 % lightness reaches 2.80:1 on
+its own cream.
 
 ### Surfaces
 
@@ -458,8 +491,11 @@ StoryArc composes them with a specific intent.
 Not a section to check at the end. These are build and review gates.
 
 - **Contrast** is verified by `pnpm tokens:check` in CI across **all five
-  appearance ramps**: 4.5:1 text, 3:1 tertiary and accents, and **7:1 for all six
-  reading themes**. 37 pairs. A palette that fails does not build.
+  appearance ramps**: 4.5:1 for every text role, tertiary included, on every
+  surface it can be drawn on; 3:1 for an accent read as a mark on its canvas;
+  4.5:1 for the label drawn *on* the accent, which is text and not a mark; and
+  **7:1 for all six reading themes**. 58 pairs plus the six themes. A palette
+  that fails does not build.
 - **A user-chosen reading background cannot be made illegible.** Its text colour
   is derived at 7:1; an override below 4.5:1 is refused with the measured ratio
   shown.

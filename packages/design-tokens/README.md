@@ -8,7 +8,7 @@ app can drift from the palette by hand-editing a hex code.
 
 | Path | Purpose |
 | --- | --- |
-| `tokens/color.json` | Brand accents, five surface ramps (light, dark, OLED dark, Natural light/dark), status colours, and the six reading-theme presets. Authored in OKLCH. |
+| `tokens/color.json` | Brand accents and the mark's own arc stops, five surface ramps (light, dark, OLED dark, Natural light/dark), status colours, and the six reading-theme presets. Authored in OKLCH. |
 | `tokens/typography.json` | Font families per platform and the eleven type roles with size, line height, weight and tracking. |
 | `tokens/layout.json` | Spacing scale, radius scale, Android elevation, motion durations and easing, cover-grid metrics, glass and touch-target rules. |
 | `scripts/oklch.mjs` | OKLCH → sRGB conversion and WCAG contrast maths. No dependencies. |
@@ -33,17 +33,34 @@ and both platforms consume plain sRGB.
 
 ## The contrast gate
 
-`build.mjs` exits non-zero when a text-on-surface pair falls below its WCAG
-floor: 4.5:1 for primary and secondary text, 3:1 for tertiary and accents, and
-**7:1 (AAA) for every reading theme** — that text is read for hours, not glanced
-at.
+`build.mjs` exits non-zero when a pair falls below its WCAG floor:
+
+| Pair | Floor |
+| --- | --- |
+| Any text role on any surface it can be drawn on, tertiary included | 4.5:1 |
+| A chrome accent read as a mark on its own canvas | 3:1 |
+| The label drawn **on** the accent — text, not a mark | 4.5:1 |
+| Every reading theme's background/text pair | 7:1 (AAA) |
+
+Reading-theme text is read for hours rather than glanced at, hence AAA.
 
 The pair list is **derived, not repeated**: every text role is checked on every
-surface ramp, so adding a ramp cannot ship an untested palette. 37 pairs today.
+surface ramp, so adding a ramp cannot ship an untested palette. 58 pairs plus the
+six themes today.
+
+`brand.accent` takes **two** accent rows rather than one, because it is a single
+value serving light and dark alike — a claim about two backgrounds needs two
+readings. `brand.secondary` is the one role that still carries a light variant.
 
 It also reports any token that falls outside the sRGB gamut. A clipped colour is
 not the colour you authored, so treat a gamut warning as a bug in the token, not
 as noise.
+
+**`brand.secondary` is the one standing exception, and it is correct.** `#FF6B9D`
+is the designer's own first gradient stop and holds red at 255 — on the sRGB
+boundary — so *any* OKLCH value mapping to it clips. The warning is a true
+statement about the colour space, not about the token. Do not nudge the brand to
+silence it; the hex has to match the artwork.
 
 ## Consuming the output
 

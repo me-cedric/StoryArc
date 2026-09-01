@@ -44,7 +44,7 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       table gates the accent against the canvas and never says what may be drawn *on* it.
       Android had **no** test asserting the brand scheme's wiring at all; `BrandSchemeTest`
       is the mirror of iOS's `PaletteTests`, so both platforms' own gates now catch it.
-- [ ] 1.5 `docs/design.md` — the brand section, including the three `ember` mentions and the
+- [x] 1.5 `docs/design.md` — the brand section, including the three `ember` mentions and the
       "reading-lamp amber" direction line. The direction itself does not change: chrome still
       recedes.
 - [ ] 1.6 Assert the arc's middle stops are not used as chrome. A source-level guard that
