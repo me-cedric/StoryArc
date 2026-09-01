@@ -104,6 +104,19 @@ what it looks like for the first hour, and it cost an agent that hour on 2026-09
 rebuilds from scratch. Distinct from `pnpm clean:builds`, which reclaims disk from worktrees
 that are **gone** and is safe to run mid-wave.
 
+**A full disk is the other failure that reads as a code defect, and it reads as a different
+one each time.** `CoverCacheTests` failed on exactly two of its five assertions — the two that
+write bytes — with `cache.image(for:) → nil` after a store. That is what a silently failed
+write looks like from inside a test: the volume was at 100% with 1.2 GB free. Four parallel
+worktrees cost roughly 700 MB each in the checkout and 2 GB each in DerivedData, and
+`ModuleCache.noindex` had reached **15 GB** on its own.
+
+`pnpm clean:builds` reports every shared cache's size and the free space, and warns when the
+space is too small for a wave. It does not remove the caches, because they belong to no project
+and rebuild themselves — `pnpm clean:builds:caches` is the lever when the space is what you
+need, at the cost of a few minutes on the next build. **Check the free space before diagnosing
+a write-shaped test failure**, and before launching a wave of more than two agents.
+
 **Android had the identical hole, and it has already cost this project.** `pnpm test:android`
 runs `test`, which is the JVM unit tests; the sixteen files under `src/androidTest` are
 instrumented and compiled by neither that nor `lint`. This is how `ProgressStoreTest` came to

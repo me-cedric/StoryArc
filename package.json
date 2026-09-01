@@ -64,6 +64,7 @@
     "gradle": "node scripts/gradle.mjs",
     "clean:builds": "node scripts/clean-build-data.mjs",
     "clean:builds:dry": "node scripts/clean-build-data.mjs --dry-run",
+    "clean:builds:caches": "node scripts/clean-build-data.mjs --caches",
     "lines": "node scripts/line-cap.mjs --list",
     "lines:check": "node scripts/line-cap.mjs",
     "lines:selftest": "node scripts/line-cap.mjs --self-test",
