@@ -258,6 +258,27 @@ Android mirrors the case in `:core:model` and its own store, as it mirrors the o
 | The bar's material | Floating glass capsule above the tab bar | Full-width `surfaceContainer`, sharing the navigation bar's container colour so the two read as one bottom assembly | Material has no glass and its bottom region is full-bleed. Copying the inset capsule would import iOS's visual language into a Material surface with no Material rule behind it — which is what [ADR-0001](../../../decisions/0001-independent-native-cores.md) exists to prevent |
 | Reach beyond the app | Lock screen, Control Centre | Lock screen, **notification-shade carousel, playback resumption after process death, Android Auto** | Android's media contract is genuinely larger |
 | What's in the compact bar | Play/pause and a way in | Seek-back / play-pause / seek-forward | media3's own defaults (`DEFAULT_SEEK_BACK_INCREMENT_MS = 5000`, `DEFAULT_SEEK_FORWARD_INCREMENT_MS = 15000`) are wrong for spoken word in the other direction, and the three compact notification slots should carry the same three controls |
+| The compact bar at the largest text size | Cuts at a word, marks the cut, announces the untruncated title, opens onto a surface with room | **Grows** to fit its text, and `CompactPlayerTest` measures that it does | **Who owns the height decides.** `tabViewBottomAccessory`'s height is the system's, so iOS cannot grow the bar; removing the line limit there trades a truncated title for a *clipped* one and would make the audit's `Text clipped` finding permanent. Android's bar is hand-composed and measures itself |
+
+### The one requirement that had to be rewritten rather than implemented
+
+`audio-playback` asked, unconditionally, that "the compact bar grows to fit its text rather
+than truncating the chapter to one word". That is a **mechanism**, and on iOS the mechanism
+is not available: the app does not set the height of a system accessory slot. An
+implementation that satisfied the sentence would have been worse for a reader than the code
+it replaced.
+
+`/opsx:update` on 2026-09-01 split the bar into its own scenario and restated it as an
+outcome — the transport stays usable, any cut is at a word and marked as cut, and text the bar
+cannot show is announced in full and shown in full on the player it opens onto — with growth
+required **where the app owns the height**. Both platforms are held to the outcome; they
+satisfy different clauses of it, and neither is excused one.
+
+Worth generalising, because this repo will hit it again: **when a requirement names a
+mechanism and one platform cannot provide it, the requirement is usually what is wrong.** The
+tell is that honouring it makes the product worse on that platform. The fix is to find the
+reader-visible outcome underneath and ask for that, then let each platform's section of this
+document say how it gets there.
 
 ## The product decisions, labelled as such
 

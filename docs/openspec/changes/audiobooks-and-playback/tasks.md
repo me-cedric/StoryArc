@@ -739,15 +739,17 @@ creep — see [`design.md`](design.md).
       **Not done: the offers.** The next in the series and the delete-the-download prompt are
       the reader's end-of-publication surface, and the player has none. iOS half outstanding.
 
-> **§8.4's compact-bar half is a spec-versus-platform conflict, not an implementation gap.**
-> iOS's accessibility audit reports `Text clipped` on the bar's own title. `audio-playback`
-> asks the bar to "grow to fit its text rather than truncating the chapter to one word", and
-> `PlayerDock` truncates deliberately — because the height of `tabViewBottomAccessory` is the
-> **system's**, so removing the line limit trades a truncated title for a clipped one.
+> **§8.4's compact-bar half was a spec-versus-platform conflict. `/opsx:update` settled it on
+> 2026-09-01 and the requirement was what changed.** `audio-playback` asked the bar to "grow to
+> fit its text rather than truncating the chapter to one word". iOS cannot: the height of
+> `tabViewBottomAccessory` is the **system's**, so removing `PlayerDock`'s line limit trades a
+> truncated title for a clipped one — strictly worse, and it would have made the audit's
+> `Text clipped` finding permanent.
 >
-> Android's bar is hand-composed and can measure itself, so it can satisfy the requirement as
-> written. iOS's cannot. Run `/opsx:update` and decide what the requirement asks of a bar whose
-> height it does not own, before either half is touched.
+> The delta now gives the compact bar its own scenario, stating the outcome rather than the
+> mechanism, and asks for growth **where the app owns the height**. Android grows and asserts
+> it; iOS cuts honestly, announces the untruncated title, and opens onto a surface with room.
+> The remaining iOS work is the accessibility label, and it is ordinary work now — see §8.4.
 
 ## 8. Accessibility
 
@@ -814,8 +816,8 @@ creep — see [`design.md`](design.md).
       Not stealing focus is the same absence it is on Android: nothing in `PlayerDock` is
       `accessibilityFocused` and nothing posts a screen-changed announcement, which
       `PlayerDock`'s own header states as a rule so a later edit has to argue with it.
-- [~] 8.4 Both: at the largest accessibility text size nothing is truncated to one
-      word and no transport control is pushed off the screen.
+- [~] 8.4 Both: at the largest accessibility text size the transport stays usable, any cut
+      to the text is honest, and text the bar cannot show is still reachable in full.
       **Android: asserted and photographed.** `CompactPlayerTest` measures that the bar
       grows rather than pinning, mutation-checked. The player was photographed at
       `font_scale 2.0` in dark — `06-player-dark-2x.png` — with the whole transport on
@@ -825,19 +827,31 @@ creep — see [`design.md`](design.md).
       The player was photographed at `AccessibilityXXXL` — `after-2026-09-01-ios-player/`
       `ios-full-player-largest-text.png` — and the audit at that size returns **no findings at
       all**, which is the strongest form of "nothing becomes unreachable".
-      **The compact bar truncates, and the spec says it must not.** `audio-playback`: "the
-      compact bar grows to fit its text rather than truncating the chapter to one word".
-      `PlayerDock.wayIn` is `.lineLimit(1).truncationMode(.tail)` on purpose and says so in a
-      comment — and the audit caught it: *Text clipped*, on `StaticText … label: 'Sea Room'`
-      at the bar's own coordinates. So the comment and the requirement disagree, and the
-      comment is losing.
-      **It is left alone, because the fix is not an implementation detail.** The height of
-      `tabViewBottomAccessory` is the system's, not this app's; removing the line limit inside a
-      slot whose height we do not set trades a truncated title for a clipped one. Android's bar
-      is hand-composed and can measure itself, which is why `CompactPlayerTest` can assert
-      growth there and nothing can assert it here. Whether the requirement holds for a
-      platform-owned accessory slot, or the surface has to stop being that slot, is a
-      `design.md` question — AGENTS.md §3b rule 5. **`/opsx:update` before this is picked up.**
+      **The compact bar truncates, and the spec used to say it must not.** `audio-playback`
+      asked that "the compact bar grows to fit its text rather than truncating the chapter to
+      one word". `PlayerDock.wayIn` is `.lineLimit(1).truncationMode(.tail)` on purpose and says
+      so in a comment — and the audit caught it: *Text clipped*, on `StaticText … label: 'Sea
+      Room'` at the bar's own coordinates. The comment and the requirement disagreed, and it
+      turned out to be the requirement that was wrong; see below.
+      **`/opsx:update` ran on 2026-09-01 and the requirement was the thing that was wrong.**
+      The height of `tabViewBottomAccessory` is the system's, not this app's; removing the line
+      limit inside a slot whose height we do not set does not make the bar taller, it trades a
+      *truncated* title — honest and readable — for a *clipped* one. Satisfying the old wording
+      would have made the `Text clipped` finding permanent instead of fixing it. Android's bar
+      is hand-composed and measures itself, which is why `CompactPlayerTest` can assert growth
+      there and nothing can assert it here.
+      **So the delta now splits the bar into its own scenario** and asks for the outcome rather
+      than the mechanism: the transport stays usable and above the minimum touch target, the cut
+      is at a word and marked as cut, text the bar cannot show is announced in full and shown in
+      full on the player it opens onto, and growth is required **where the app owns the height**.
+      Android satisfies the growth clause; iOS satisfies the honest-cut and reachable-in-full
+      clauses. Neither is excused a clause — they satisfy different ones, and which is decided
+      by who owns the height.
+      **Still outstanding on iOS**, and now implementable: `PlayerDock.wayIn` keeps its
+      `.lineLimit(1).truncationMode(.tail)` and must additionally carry the **untruncated**
+      title in its accessibility label, so what the bar cannot draw is still announced. Assert
+      it, and re-run the audit to confirm `Text clipped` is what remains rather than something
+      new. The comment at that call site should cite the scenario instead of arguing with it.
       **The screenshot is now a test too.** `PlayerSemanticsTest` composes the player at font
       scale 2 and asserts all three transport controls and the chapter are still displayed —
       which a photograph proves for one build and a test proves for every one after it. The

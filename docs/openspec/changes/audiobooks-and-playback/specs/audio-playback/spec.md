@@ -101,4 +101,27 @@ SHALL be usable at the largest text size.
 #### Scenario: At the largest text size
 - **WHEN** the player is shown at the largest accessibility text size
 - **THEN** the publication, the chapter and every stated value are readable in full, the surface scrolls if it must, and no transport control is pushed off the screen
-- **AND** the compact bar grows to fit its text rather than truncating the chapter to one word
+
+#### Scenario: The compact bar at the largest text size
+- **WHEN** the compact bar is shown at the largest accessibility text size
+- **THEN** no transport control is pushed off the screen or shrunk below the platform's minimum touch target, because the transport is what the bar is for
+- **AND** whatever text the bar can show is cut at a word and marked as cut, never clipped mid-letter
+- **AND** text the bar cannot show is announced in full by assistive technology, and shown in full on the player the bar opens onto
+- **AND** where the app owns the bar's height, the bar grows to fit its text rather than cutting it at all
+
+> **The last clause is conditional because on one platform the height is not the app's to
+> give, and the unconditional version asked for something worse.** It used to read "the
+> compact bar grows to fit its text rather than truncating the chapter to one word", and iOS
+> cannot honour it: its bar is `tabViewBottomAccessory`, whose height is the **system's**.
+> Removing the line limit there does not make the bar taller — it trades a *truncated* title,
+> which is honest and readable, for a *clipped* one, which is neither. iOS's own accessibility
+> audit reports `Text clipped` on that bar, and satisfying the old wording would have made
+> that finding permanent rather than fixing it.
+>
+> So the requirement now states what a reader needs — the transport stays usable, the cut is
+> honest, and nothing is *only* available in the place that cannot show it — and asks for
+> growth where growth is the app's to give. Android's bar is hand-composed and measures
+> itself, so it grows and is asserted doing so. iOS truncates, announces the untruncated text,
+> and opens onto a surface with room. **Neither platform is excused a clause; they satisfy
+> different ones, and which one is decided by who owns the height.** Recorded 2026-09-01 after
+> `/opsx:update`; §8.4 of the task list carries the per-platform evidence.
