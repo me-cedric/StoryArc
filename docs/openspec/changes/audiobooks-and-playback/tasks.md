@@ -437,6 +437,13 @@ creep — see [`design.md`](design.md).
       **A gap, recorded rather than dressed up:** on a rail the slot is a column *beside*
       the content, so a tablet's bar sits over the rail rather than at the foot of the
       content pane. Moving it there is a change to the layout's own arrangement.
+      **Closed.** The bar is drawn in the navigation slot only where the control is a row
+      beneath the content; on a rail it goes into the content slot, in a column above the
+      content's own weighted box — so it takes its height out of the content there exactly as
+      the navigation slot's height does on a phone. `CompactPlayerRailTest` composes the shell
+      at `w1024dp-h800dp` and measures both claims; before the change the bar spanned
+      `0..1024 dp` from the top of the window with the rail's destinations at `0..96 dp`
+      underneath it. Mutation-checked by restoring the single arrangement, which fails both.
 - [ ] 4.4 Android: flat `LinearProgressIndicator` for the progress line.
       **Done**, in the compact bar and in the full player. Flat, not wavy: Material says a
       linear indicator "shouldn't be used in any elements smaller than 40dp" and cautions

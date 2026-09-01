@@ -185,13 +185,13 @@ fun AdaptiveNavigationShell(
             // is reachable rather than hidden under the bar — and the bar is *above* the
             // control rather than in it, so the destinations keep their whole width.
             //
-            // On a rail this column is a column beside the content, so the bar sits over the
-            // rail rather than above it. That is the honest wide-window arrangement for now
-            // and is recorded as a gap rather than dressed up: a tablet's bar belongs at the
-            // foot of the content pane, and moving it there is a change to
-            // `NavigationSuiteScaffoldLayout`'s own arrangement.
+            // **Only where the control is a row beneath the content.** On a window wide
+            // enough for a rail this slot is a column *beside* the content, and a bar put
+            // in it spans the window from x = 0 — over the destinations, which is the one
+            // thing "does not displace, cover or resize" forbids. There the bar goes to the
+            // foot of the content pane instead; see the content slot below.
             Column {
-                if (showsNavigation) aboveNavigation()
+                if (showsNavigation && !isRail) aboveNavigation()
                 NavigationControl(type, isRail, isOpen, railState, menu, entries, secondaryEntries, scope)
             }
         },
@@ -201,7 +201,15 @@ fun AdaptiveNavigationShell(
             // container of its own to paint. StoryArc's canvas, not Material's surface: the
             // colour rule scopes dynamic colour to chrome and keeps it off the artwork.
             Box(modifier = modifier.fillMaxSize().background(palette.surfaceCanvas)) {
-                content()
+                // A column in both cases, and the bar drawn in it only on a rail. The
+                // content takes the remaining height rather than the whole of it, which is
+                // what makes the bar take its own room out of the content here exactly as
+                // the navigation slot's height does on a phone — the content still scrolls
+                // to its end, and nothing is covered.
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.weight(1f)) { content() }
+                    if (showsNavigation && isRail) aboveNavigation()
+                }
             }
         },
     )
