@@ -37,9 +37,16 @@ struct GlassIsUntintedTests {
             .deletingLastPathComponent()   // ReaderFeatureTests
             .deletingLastPathComponent()   // Tests
             .deletingLastPathComponent()   // StoryArcKit
+        // The app target as well as the two packages. It draws glass too
+        // (`DownloadsDestination`), it is where `AppShell` puts the player's accessory, and
+        // a guard that stops at the package boundary would have let the next one through
+        // there — which is the shape of how this defect survived in the first place: a rule
+        // written in one file, and five call sites that never opened it.
+        let ios = kit.deletingLastPathComponent().deletingLastPathComponent()
         return [
             kit.appending(path: "Sources"),
             kit.deletingLastPathComponent().appending(path: "StoryArcEpub/Sources"),
+            ios.appending(path: "App"),
         ]
     }()
 
