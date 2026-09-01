@@ -1,13 +1,18 @@
 {
   "$description": "StoryArc colour tokens. Authored in OKLCH, generated to sRGB hex for Swift and Kotlin. Never hardcode a colour in app code — reference a token.",
   "$direction": "Editorial darkroom. Chrome recedes so cover art and pages are the loudest thing on screen. Neutrals carry a warm ink tilt (hue ~70) rather than the clinical blue-grey most reader apps default to; light theme is book stock, not paper-white.",
+  "$brandNote": "The palette's two poles are the ends of the mark's own gradient, so the artwork and the chrome cannot drift apart. `accent` is the violet from the middle of that arc and is one value on every appearance: it clears 3:1 on the light canvas as well as the dark, which the pink does not — the pink reaches 2.48:1 on paper and would need a second token to exist at all. It is also the quieter of the two, and quiet is this palette's stated direction: an accent that lands on every chip, slider and progress tick has to recede. So the pink takes the secondary role instead, where a two-pole identity wants it. `secondary` is flagged out of sRGB gamut and that is correct rather than a bug: #FF6B9D holds red at 255, on the boundary, so any OKLCH mapping to it clips. Do not nudge the brand to silence the warning. The three later arc stops and the icon plate are identity only — they belong to the mark, the app icons and brand surfaces, and never to a chrome accent.",
   "brand": {
-    "ember":        { "oklch": "oklch(70% 0.165 52)",  "use": "Primary accent on dark surfaces. Reading-lamp amber. Chrome-only — in-content accents defer to cover-derived colour." },
-    "emberStrong":  { "oklch": "oklch(62% 0.165 48)",  "use": "Pressed state, and the light-theme accent where 70% lightness would fail contrast on paper." },
-    "emberMuted":   { "oklch": "oklch(45% 0.090 52)",  "use": "Accent at rest on dark surfaces: progress rails, unselected indicators." },
-    "ink":          { "oklch": "oklch(48% 0.130 275)", "use": "Secondary. Indigo ink for links, informational chips, and the second series in charts." },
-    "clay":         { "oklch": "oklch(66% 0.105 42)",  "use": "The Natural theme's accent on its dark variant. Earthier than ember, so Natural is a theme rather than the same app in beige." },
-    "clayStrong":   { "oklch": "oklch(50% 0.115 40)",  "use": "The Natural theme's accent on its light variant, where clay at 66% lightness would fail on warm paper." }
+    "accent":          { "oklch": "oklch(58% 0.2304 295.4)",  "use": "Primary accent. Tab bars, chips, sliders, progress ticks, links. One value on both appearances — see $brandNote. Chrome-only: in-content accents defer to cover-derived colour." },
+    "accentMuted":     { "oklch": "oklch(45% 0.10 295.4)",    "use": "Accent at rest: progress rails, unselected indicators." },
+    "secondary":       { "oklch": "oklch(72.4% 0.185 2)",     "use": "Secondary on dark surfaces. The mark's first arc stop, so palette and artwork cannot drift. Deliberately out of gamut — see $brandNote." },
+    "secondaryStrong": { "oklch": "oklch(62% 0.185 2)",       "use": "Secondary on light surfaces, where the lighter pink reaches only 2.48:1 on paper." },
+    "arcMid":          { "oklch": "oklch(71.2% 0.195 347.7)", "use": "The mark's second arc stop. Identity only — the mark, the app icons, brand surfaces. Never a chrome accent." },
+    "arcLate":         { "oklch": "oklch(62.7% 0.233 304)",   "use": "The mark's third arc stop. Identity only — the mark, the app icons, brand surfaces. Never a chrome accent." },
+    "arcEnd":          { "oklch": "oklch(54.1% 0.2415 278.8)","use": "The mark's last arc stop, and the Arc icon face's plate. Identity only — never a chrome accent." },
+    "iconPlate":       { "oklch": "oklch(20.8% 0.016 285)",   "use": "The app icon's own plate, sampled from the designer's render: near-black tilted toward the mark's violet rather than the app's warm neutral. Identity only — never a chrome accent or an app surface." },
+    "clay":            { "oklch": "oklch(66% 0.105 42)",      "use": "The Natural theme's accent on its dark variant. Earthier and warmer, so Natural is a theme rather than the same app in beige." },
+    "clayStrong":      { "oklch": "oklch(50% 0.115 40)",      "use": "The Natural theme's accent on its light variant, where clay at 66% lightness would fail on warm paper." }
   },
   "dark": {
     "surfaceCanvas":  { "oklch": "oklch(16% 0.006 70)", "use": "App background." },

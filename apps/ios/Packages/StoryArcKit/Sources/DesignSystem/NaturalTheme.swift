@@ -63,8 +63,14 @@ public enum NaturalTheme {
 extension Palette {
     /// Warm cream stock and an earthier accent. Natural's light variant.
     ///
-    /// The accent is `clayStrong` for the reason light uses `emberStrong`: clay at 66 %
-    /// lightness does not clear 3:1 on warm paper. `pnpm tokens:check` gates that pair.
+    /// The accent is `clayStrong` because clay at 66 % lightness reaches 2.80:1 on warm
+    /// paper, under the 3:1 floor. `pnpm tokens:check` gates that pair.
+    ///
+    /// So Natural keeps a two-token accent where the brand ramps now hold one. That is a
+    /// fact about *these two values*, not a law: a mid-lightness clay would clear both of
+    /// Natural's canvases, the way `brand.accent` clears both of the app's. Natural is a
+    /// separate theme with its own accent and the brand change deliberately does not
+    /// reach into it, so re-solving clay is a change to make on purpose or not at all.
     ///
     /// `accentMuted` is the same value rather than a `clayMuted` that does not exist.
     /// Its only reader is the settings-search highlight, which draws it at 30 % alpha,

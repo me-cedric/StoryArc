@@ -9,15 +9,23 @@ import androidx.compose.ui.unit.sp
 
 object StoryArcColor {
     object Brand {
-        /** Primary accent on dark surfaces. Reading-lamp amber. Chrome-only — in-content accents defer to cover-derived colour. */
-        val ember = Color(0xFFEC7C27)
-        /** Pressed state, and the light-theme accent where 70% lightness would fail contrast on paper. */
-        val emberStrong = Color(0xFFD2600C)
-        /** Accent at rest on dark surfaces: progress rails, unselected indicators. */
-        val emberMuted = Color(0xFF7C4521)
-        /** Secondary. Indigo ink for links, informational chips, and the second series in charts. */
-        val ink = Color(0xFF4A54A6)
-        /** The Natural theme's accent on its dark variant. Earthier than ember, so Natural is a theme rather than the same app in beige. */
+        /** Primary accent. Tab bars, chips, sliders, progress ticks, links. One value on both appearances — see $brandNote. Chrome-only: in-content accents defer to cover-derived colour. */
+        val accent = Color(0xFF8A4DF0)
+        /** Accent at rest: progress rails, unselected indicators. */
+        val accentMuted = Color(0xFF5A4886)
+        /** Secondary on dark surfaces. The mark's first arc stop, so palette and artwork cannot drift. Deliberately out of gamut — see $brandNote. */
+        val secondary = Color(0xFFFF6B9D)
+        /** Secondary on light surfaces, where the lighter pink reaches only 2.48:1 on paper. */
+        val secondaryStrong = Color(0xFFDA497D)
+        /** The mark's second arc stop. Identity only — the mark, the app icons, brand surfaces. Never a chrome accent. */
+        val arcMid = Color(0xFFF566B8)
+        /** The mark's third arc stop. Identity only — the mark, the app icons, brand surfaces. Never a chrome accent. */
+        val arcLate = Color(0xFFA855F7)
+        /** The mark's last arc stop, and the Arc icon face's plate. Identity only — never a chrome accent. */
+        val arcEnd = Color(0xFF5B4BF5)
+        /** The app icon's own plate, sampled from the designer's render: near-black tilted toward the mark's violet rather than the app's warm neutral. Identity only — never a chrome accent or an app surface. */
+        val iconPlate = Color(0xFF17171F)
+        /** The Natural theme's accent on its dark variant. Earthier and warmer, so Natural is a theme rather than the same app in beige. */
         val clay = Color(0xFFC87C5E)
         /** The Natural theme's accent on its light variant, where clay at 66% lightness would fail on warm paper. */
         val clayStrong = Color(0xFF98492C)

@@ -16,10 +16,20 @@ struct PaletteTests {
         #expect(Palette.dark != Palette.light)
     }
 
-    @Test("Light uses the stronger accent, because ember at 70% lightness fails on paper")
-    func lightUsesStrongAccent() {
-        #expect(Palette.light.accent == StoryArcColor.Brand.emberStrong)
-        #expect(Palette.dark.accent == StoryArcColor.Brand.ember)
+    @Test("One accent serves every appearance, which is why the violet was chosen")
+    func oneAccentServesBothAppearances() {
+        // The accent this replaced was a *pair*: a stronger light variant existed only
+        // because the lighter one did not clear 3:1 on paper. The pink at the mark's
+        // first arc stop is the same story — 7.24:1 on dark and 2.48:1 on light — and it
+        // is the reason the accent is the violet from the middle of the arc instead.
+        // `brand.accent` clears the floor on both canvases, 4.06 dark and 4.43 light, so
+        // there is one token and deliberately no light-only twin.
+        //
+        // `pnpm tokens:check` gates both readings. This guards the layer above: that
+        // nothing quietly reintroduces a second accent for one appearance.
+        #expect(Palette.dark.accent == StoryArcColor.Brand.accent)
+        #expect(Palette.light.accent == StoryArcColor.Brand.accent)
+        #expect(Palette.oledDark.accent == StoryArcColor.Brand.accent)
     }
 
     @Test("Increase Contrast strengthens the border and the weakest text tier")
@@ -71,9 +81,9 @@ struct ThemeTests {
 
     @Test("A cover accent overrides the brand accent for its subtree")
     func coverAccentWins() {
-        let theme = Theme(palette: .dark, coverAccent: StoryArcColor.Brand.ink)
+        let theme = Theme(palette: .dark, coverAccent: StoryArcColor.Brand.secondary)
 
-        #expect(theme.accent == StoryArcColor.Brand.ink)
+        #expect(theme.accent == StoryArcColor.Brand.secondary)
     }
 }
 

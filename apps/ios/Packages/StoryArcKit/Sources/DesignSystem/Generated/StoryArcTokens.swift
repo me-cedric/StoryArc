@@ -5,15 +5,23 @@ public import SwiftUI
 
 public enum StoryArcColor {
     public enum Brand {
-        /// Primary accent on dark surfaces. Reading-lamp amber. Chrome-only — in-content accents defer to cover-derived colour.
-        public static let ember = Color(.sRGB, red: 0.9255, green: 0.4863, blue: 0.1529, opacity: 1)  // #EC7C27
-        /// Pressed state, and the light-theme accent where 70% lightness would fail contrast on paper.
-        public static let emberStrong = Color(.sRGB, red: 0.8235, green: 0.3765, blue: 0.0471, opacity: 1)  // #D2600C
-        /// Accent at rest on dark surfaces: progress rails, unselected indicators.
-        public static let emberMuted = Color(.sRGB, red: 0.4863, green: 0.2706, blue: 0.1294, opacity: 1)  // #7C4521
-        /// Secondary. Indigo ink for links, informational chips, and the second series in charts.
-        public static let ink = Color(.sRGB, red: 0.2902, green: 0.3294, blue: 0.6510, opacity: 1)  // #4A54A6
-        /// The Natural theme's accent on its dark variant. Earthier than ember, so Natural is a theme rather than the same app in beige.
+        /// Primary accent. Tab bars, chips, sliders, progress ticks, links. One value on both appearances — see $brandNote. Chrome-only: in-content accents defer to cover-derived colour.
+        public static let accent = Color(.sRGB, red: 0.5412, green: 0.3020, blue: 0.9412, opacity: 1)  // #8A4DF0
+        /// Accent at rest: progress rails, unselected indicators.
+        public static let accentMuted = Color(.sRGB, red: 0.3529, green: 0.2824, blue: 0.5255, opacity: 1)  // #5A4886
+        /// Secondary on dark surfaces. The mark's first arc stop, so palette and artwork cannot drift. Deliberately out of gamut — see $brandNote.
+        public static let secondary = Color(.sRGB, red: 1.0000, green: 0.4196, blue: 0.6157, opacity: 1)  // #FF6B9D
+        /// Secondary on light surfaces, where the lighter pink reaches only 2.48:1 on paper.
+        public static let secondaryStrong = Color(.sRGB, red: 0.8549, green: 0.2863, blue: 0.4902, opacity: 1)  // #DA497D
+        /// The mark's second arc stop. Identity only — the mark, the app icons, brand surfaces. Never a chrome accent.
+        public static let arcMid = Color(.sRGB, red: 0.9608, green: 0.4000, blue: 0.7216, opacity: 1)  // #F566B8
+        /// The mark's third arc stop. Identity only — the mark, the app icons, brand surfaces. Never a chrome accent.
+        public static let arcLate = Color(.sRGB, red: 0.6588, green: 0.3333, blue: 0.9686, opacity: 1)  // #A855F7
+        /// The mark's last arc stop, and the Arc icon face's plate. Identity only — never a chrome accent.
+        public static let arcEnd = Color(.sRGB, red: 0.3569, green: 0.2941, blue: 0.9608, opacity: 1)  // #5B4BF5
+        /// The app icon's own plate, sampled from the designer's render: near-black tilted toward the mark's violet rather than the app's warm neutral. Identity only — never a chrome accent or an app surface.
+        public static let iconPlate = Color(.sRGB, red: 0.0902, green: 0.0902, blue: 0.1216, opacity: 1)  // #17171F
+        /// The Natural theme's accent on its dark variant. Earthier and warmer, so Natural is a theme rather than the same app in beige.
         public static let clay = Color(.sRGB, red: 0.7843, green: 0.4863, blue: 0.3686, opacity: 1)  // #C87C5E
         /// The Natural theme's accent on its light variant, where clay at 66% lightness would fail on warm paper.
         public static let clayStrong = Color(.sRGB, red: 0.5961, green: 0.2863, blue: 0.1725, opacity: 1)  // #98492C

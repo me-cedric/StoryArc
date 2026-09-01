@@ -181,10 +181,28 @@ val StoryArcPalette.Companion.NaturalDark: StoryArcPalette get() = naturalDarkPa
  * accents to reach "the library, settings and source list" precisely so it is one. The
  * explicit choice wins over the automatic one, and the dynamic-colour row says so.
  */
+/*
+ * **`secondary` is Natural's own accent rather than a second pole, and that is a decision
+ * the change artifacts did not make.** It used to be `brand.ink`, the indigo the brand and
+ * Natural shared, and `ink` retires with the accent rename. Neither replacement in the new
+ * token set fits: the brand's pink sits at hue 2, which is 39° from clay at hue 41 — the
+ * same "one colour said twice" objection that moved the brand accent off `ink` in the first
+ * place — and a hot pink is the opposite of the earthier accent Natural exists to have.
+ * The other clay does not work either: read across, `clay` reaches 2.80:1 on Natural's
+ * cream and `clayStrong` 2.99:1 on its ink, both under the 3:1 floor their own gated
+ * pairings clear at 5.47 and 5.84.
+ *
+ * So each variant's `secondary` is the accent it already gates, which flattens the two
+ * Material roles onto one value. Nothing in this app reads `colorScheme.secondary`, so it
+ * costs nothing today, and it keeps the brand change out of Natural the way `design.md`
+ * asks. Giving Natural a real second pole means adding a token to `color.json` with a
+ * gated pairing, and that is a decision for whoever owns the Natural theme — not one to
+ * invent while renaming the brand's.
+ */
 internal fun naturalLightScheme(): ColorScheme = lightColorScheme(
     primary = StoryArcColor.Brand.clayStrong,
     onPrimary = StoryArcColor.NaturalLight.surfaceRaised,
-    secondary = StoryArcColor.Brand.ink,
+    secondary = StoryArcColor.Brand.clayStrong,
     background = StoryArcColor.NaturalLight.surfaceCanvas,
     onBackground = StoryArcColor.NaturalLight.textPrimary,
     surface = StoryArcColor.NaturalLight.surfaceRaised,
@@ -200,7 +218,7 @@ internal fun naturalLightScheme(): ColorScheme = lightColorScheme(
 internal fun naturalDarkScheme(): ColorScheme = darkColorScheme(
     primary = StoryArcColor.Brand.clay,
     onPrimary = StoryArcColor.NaturalDark.surfaceCanvas,
-    secondary = StoryArcColor.Brand.ink,
+    secondary = StoryArcColor.Brand.clay,
     background = StoryArcColor.NaturalDark.surfaceCanvas,
     onBackground = StoryArcColor.NaturalDark.textPrimary,
     surface = StoryArcColor.NaturalDark.surfaceRaised,

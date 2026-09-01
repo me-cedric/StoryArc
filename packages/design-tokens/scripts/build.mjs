@@ -84,13 +84,38 @@ const TEXT_ON_SURFACE = [
 
 const SURFACE_RAMPS = ['dark', 'light', 'oledDark', 'naturalLight', 'naturalDark']
 
+// The chrome accent of every ramp, at 3.0 — WCAG's floor for a non-text graphical
+// object, which is what a tab indicator, a slider track and a progress tick are.
+//
+// `accent` takes **two rows**, and that is the point of the token rather than an
+// oversight in the list: it is one value serving light and dark alike, so it has to clear
+// the floor on both canvases and neither reading is optional. The accent this replaced was
+// a pair — a light variant existed precisely because the dark one failed on paper — and
+// the pink the first draft reached for is the same story: 7.24:1 on dark,
+// **2.48:1 on light**. A single-value accent is a claim about two backgrounds, so two rows
+// are what checks it.
+//
+// The floors are not to be relaxed. Every value here was solved so 3.0 passes with margin
+// — 4.06, 4.43, 7.24, 3.72 — so a failure means the token moved, not that the gate is
+// strict.
 const ACCENT_PAIRS = [
-  ['brand.ember',       'dark.surfaceCanvas',         3.0],
-  ['brand.emberStrong', 'light.surfaceCanvas',        3.0],
-  ['brand.ember',       'oledDark.surfaceCanvas',     3.0],
-  ['brand.clay',        'naturalDark.surfaceCanvas',  3.0],
-  ['brand.clayStrong',  'naturalLight.surfaceCanvas', 3.0],
-  ['brand.ink',         'light.surfaceCanvas',        3.0],
+  ['brand.accent',          'dark.surfaceCanvas',         3.0],
+  ['brand.accent',          'light.surfaceCanvas',        3.0],
+  ['brand.accent',          'oledDark.surfaceCanvas',     3.0],
+  ['brand.secondary',       'dark.surfaceCanvas',         3.0],
+  ['brand.secondaryStrong', 'light.surfaceCanvas',        3.0],
+  ['brand.clay',            'naturalDark.surfaceCanvas',  3.0],
+  ['brand.clayStrong',      'naturalLight.surfaceCanvas', 3.0],
+  // The label drawn *on* the accent, at 4.5 — it is normal-size text, not a graphic.
+  //
+  // The rows above check the accent as a mark on a background. Material's `primary` is
+  // also the fill of a filled button, and the pair that carries its label was checked by
+  // nothing. It did not need to be while the accent sat at 70 % lightness: a near-black
+  // label on that amber measured 6.91:1. On `brand.accent` at 58 % the same label
+  // measures 4.06:1 and fails. Pure white is the only value in this token set that clears
+  // 4.5 on the violet, at 4.77, so it is what `onPrimary` is on all three brand schemes
+  // — and this row is what stops it drifting back to the canvas.
+  ['light.surfaceRaised',   'brand.accent',               4.5],
 ]
 
 const PAIRS = [

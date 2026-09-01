@@ -72,11 +72,17 @@ data class StoryArcPalette(
             textSecondary = StoryArcColor.Dark.textSecondary,
             textTertiary = StoryArcColor.Dark.textTertiary,
             scrim = StoryArcColor.Dark.scrim,
-            accent = StoryArcColor.Brand.ember,
-            accentMuted = StoryArcColor.Brand.emberMuted,
+            accent = StoryArcColor.Brand.accent,
+            accentMuted = StoryArcColor.Brand.accentMuted,
         )
 
-        /** Light uses the stronger accent: ember at 70 % lightness fails 3:1 on paper. */
+        /**
+         * Light carries **the same accent as dark**, which is why the brand's accent is
+         * the violet from the middle of the mark's arc rather than the pink at its first
+         * stop: `brand.accent` clears 3:1 on both canvases — 4.06 dark, 4.43 light —
+         * where the pink reaches 2.48 on paper. The light-only variant this used to need
+         * is absent rather than forgotten. iOS's `Palette` asserts the same wiring.
+         */
         val Light = StoryArcPalette(
             surfaceCanvas = StoryArcColor.Light.surfaceCanvas,
             surfaceRaised = StoryArcColor.Light.surfaceRaised,
@@ -89,8 +95,8 @@ data class StoryArcPalette(
             textSecondary = StoryArcColor.Light.textSecondary,
             textTertiary = StoryArcColor.Light.textTertiary,
             scrim = StoryArcColor.Light.scrim,
-            accent = StoryArcColor.Brand.emberStrong,
-            accentMuted = StoryArcColor.Brand.emberMuted,
+            accent = StoryArcColor.Brand.accent,
+            accentMuted = StoryArcColor.Brand.accentMuted,
         )
 
         /**
@@ -112,8 +118,8 @@ data class StoryArcPalette(
             textSecondary = StoryArcColor.OledDark.textSecondary,
             textTertiary = StoryArcColor.OledDark.textTertiary,
             scrim = StoryArcColor.OledDark.scrim,
-            accent = StoryArcColor.Brand.ember,
-            accentMuted = StoryArcColor.Brand.emberMuted,
+            accent = StoryArcColor.Brand.accent,
+            accentMuted = StoryArcColor.Brand.accentMuted,
         )
     }
 }
@@ -182,10 +188,22 @@ internal fun ColorScheme.groundedInContent(palette: StoryArcPalette): ColorSchem
 )
 
 
-private fun brandDarkScheme() = darkColorScheme(
-    primary = StoryArcColor.Brand.ember,
-    onPrimary = StoryArcColor.Dark.surfaceCanvas,
-    secondary = StoryArcColor.Brand.ink,
+/**
+ * The StoryArc palette dressed as a Material scheme, for a reader who turned Material You
+ * off — and for the two appearances that decline it outright.
+ *
+ * **`onPrimary` is a light value on all three, and that is a consequence of the accent
+ * moving rather than a preference.** The accent it replaced sat at 70 % lightness, so a
+ * near-black label on a filled button measured 6.91:1. `brand.accent` sits at 58 %, and
+ * the same near-black label measures **4.06:1** — under WCAG's 4.5 floor for normal text.
+ * Nothing in the token set clears 4.5 on this violet except pure white, at 4.77:1, so
+ * that is what a label drawn on the accent is. `ACCENT_PAIRS` in the token build gates
+ * the pair, so this cannot quietly go back.
+ */
+internal fun brandDarkScheme() = darkColorScheme(
+    primary = StoryArcColor.Brand.accent,
+    onPrimary = StoryArcColor.Light.surfaceRaised,
+    secondary = StoryArcColor.Brand.secondary,
     background = StoryArcColor.Dark.surfaceCanvas,
     onBackground = StoryArcColor.Dark.textPrimary,
     surface = StoryArcColor.Dark.surfaceRaised,
@@ -197,10 +215,11 @@ private fun brandDarkScheme() = darkColorScheme(
     scrim = StoryArcColor.Dark.scrim,
 )
 
-private fun brandOledDarkScheme() = darkColorScheme(
-    primary = StoryArcColor.Brand.ember,
-    onPrimary = StoryArcColor.OledDark.surfaceCanvas,
-    secondary = StoryArcColor.Brand.ink,
+/** See [brandDarkScheme] for why `onPrimary` is light rather than the canvas. */
+internal fun brandOledDarkScheme() = darkColorScheme(
+    primary = StoryArcColor.Brand.accent,
+    onPrimary = StoryArcColor.Light.surfaceRaised,
+    secondary = StoryArcColor.Brand.secondary,
     background = StoryArcColor.OledDark.surfaceCanvas,
     onBackground = StoryArcColor.OledDark.textPrimary,
     surface = StoryArcColor.OledDark.surfaceRaised,
@@ -212,10 +231,18 @@ private fun brandOledDarkScheme() = darkColorScheme(
     scrim = StoryArcColor.OledDark.scrim,
 )
 
-private fun brandLightScheme() = lightColorScheme(
-    primary = StoryArcColor.Brand.emberStrong,
+/**
+ * Light takes **the same `primary` as dark** — one accent, both appearances, which is the
+ * whole reason the brand's accent is the violet from the middle of the mark's arc.
+ *
+ * `secondary` is the one role that still needs a pair: the pink at 72 % lightness reaches
+ * 2.48:1 on paper, so light takes `secondaryStrong` at 3.72:1 while the dark schemes take
+ * `secondary` at 7.24:1. Both are gated.
+ */
+internal fun brandLightScheme() = lightColorScheme(
+    primary = StoryArcColor.Brand.accent,
     onPrimary = StoryArcColor.Light.surfaceRaised,
-    secondary = StoryArcColor.Brand.ink,
+    secondary = StoryArcColor.Brand.secondaryStrong,
     background = StoryArcColor.Light.surfaceCanvas,
     onBackground = StoryArcColor.Light.textPrimary,
     surface = StoryArcColor.Light.surfaceRaised,

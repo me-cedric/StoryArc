@@ -10,7 +10,7 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 
 ## 1. The accent moves, and the tokens are renamed to their role
 
-- [ ] 1.1 `packages/design-tokens/tokens/color.json`: the eight-token set in design.md's
+- [x] 1.1 `packages/design-tokens/tokens/color.json`: the eight-token set in design.md's
       table. `ember`/`emberStrong`/`emberMuted` become `accent`/`accentMuted` plus
       `secondary`/`secondaryStrong`; `ink` **retires** — it is Material's `secondary` in
       `Theme.kt` and would sit 20° from the new accent. Add `arcMid`, `arcLate`, `arcEnd`,
@@ -18,16 +18,32 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       **The accent is the violet, not the pink**, and design.md records why the first draft
       had it the other way round: one value clears both themes (4.06 dark / 4.43 light) where
       the pink fails light at 2.48, and "chrome recedes" argues against hot pink on every chip.
-- [ ] 1.2 Update the contrast gate in `packages/design-tokens/scripts/build.mjs` to the new
+- [x] 1.2 Update the contrast gate in `packages/design-tokens/scripts/build.mjs` to the new
       names, and **add a row the old set did not need**: `accent` is gated on *both*
       `dark.surfaceCanvas` and `light.surfaceCanvas`, because it is now one value serving both.
       **Do not relax a threshold.** Every value was chosen so the 3.0 floors pass with margin —
       4.06, 4.43, 7.24, 3.72. If one fails, the value is wrong, not the gate.
-- [ ] 1.3 `pnpm tokens:build && pnpm tokens:sync`, then `pnpm tokens:check` and
+- [x] 1.3 `pnpm tokens:build && pnpm tokens:sync`, then `pnpm tokens:check` and
       `pnpm tokens:verify`. Both are in `pnpm lint`.
-- [ ] 1.4 Fix the hand-written call sites the compiler names: Android `Theme.kt`, iOS
+- [x] 1.4 Fix the hand-written call sites the compiler names: Android `Theme.kt`, iOS
       `Palette.swift`, and the four test files. Seven of the fourteen files are generated and
       must **not** be hand-edited.
+      **The compiler named a file this list did not, and two roles nothing was checking.**
+      `ink` had a *second* consumer — Android's `NaturalTheme.kt` uses it as Natural's
+      Material `secondary` in both variants — so retiring the token forced a decision the
+      artifacts do not cover, and `design.md`'s "`brand.ink` is untouched" contradicts its
+      own token table. Neither replacement fits: the brand's pink sits 39° from clay, the
+      same collision that moved the accent off `ink`, and read across, the other clay
+      measures 2.80:1 and 2.99:1 on Natural's own canvases. Each variant's `secondary` is
+      now the accent it already gates, with the reasoning and the reversal written at the
+      call site. **And `onPrimary` was untested and is now wrong-turned-right**: a
+      near-black label measured 6.91:1 on the 70 %-lightness amber and measures **4.06:1**
+      on the 58 % violet, under WCAG's 4.5 floor for the normal-size text a button label
+      is. Pure white is the only value in the set that clears it, at 4.77, so all three
+      brand schemes take it and `ACCENT_PAIRS` gained a row that gates the pair — the token
+      table gates the accent against the canvas and never says what may be drawn *on* it.
+      Android had **no** test asserting the brand scheme's wiring at all; `BrandSchemeTest`
+      is the mirror of iOS's `PaletteTests`, so both platforms' own gates now catch it.
 - [ ] 1.5 `docs/design.md` — the brand section, including the three `ember` mentions and the
       "reading-lamp amber" direction line. The direction itself does not change: chrome still
       recedes.

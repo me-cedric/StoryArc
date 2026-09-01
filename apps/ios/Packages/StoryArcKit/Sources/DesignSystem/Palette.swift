@@ -20,8 +20,14 @@ public struct Palette: Sendable, Equatable {
     public let textTertiary: Color
     public let scrim: Color
 
-    /// The chrome accent. Light theme uses the stronger variant because
-    /// `brand.ember` at 70 % lightness does not clear 3:1 on paper.
+    /// The chrome accent — **the same value on every appearance**, deliberately.
+    ///
+    /// Its predecessor was a pair, because the lighter variant did not clear 3:1 on
+    /// paper. `brand.accent` clears the floor on both canvases, 4.06:1 on dark and
+    /// 4.43:1 on light, which is why the palette takes the violet from the middle of the
+    /// mark's arc rather than the pink at its first stop — the pink reaches 2.48:1 on
+    /// paper and would need a second token to exist at all. So a light-only variant is
+    /// absent here rather than forgotten: `pnpm tokens:check` gates both readings.
     public let accent: Color
     public let accentMuted: Color
 
@@ -37,8 +43,8 @@ public struct Palette: Sendable, Equatable {
         textSecondary: StoryArcColor.Dark.textSecondary,
         textTertiary: StoryArcColor.Dark.textTertiary,
         scrim: StoryArcColor.Dark.scrim,
-        accent: StoryArcColor.Brand.ember,
-        accentMuted: StoryArcColor.Brand.emberMuted
+        accent: StoryArcColor.Brand.accent,
+        accentMuted: StoryArcColor.Brand.accentMuted
     )
 
     public static let light = Palette(
@@ -53,8 +59,8 @@ public struct Palette: Sendable, Equatable {
         textSecondary: StoryArcColor.Light.textSecondary,
         textTertiary: StoryArcColor.Light.textTertiary,
         scrim: StoryArcColor.Light.scrim,
-        accent: StoryArcColor.Brand.emberStrong,
-        accentMuted: StoryArcColor.Brand.emberMuted
+        accent: StoryArcColor.Brand.accent,
+        accentMuted: StoryArcColor.Brand.accentMuted
     )
 
     /// True black chrome, with the reader surface deliberately above it.
@@ -74,8 +80,8 @@ public struct Palette: Sendable, Equatable {
         textSecondary: StoryArcColor.OledDark.textSecondary,
         textTertiary: StoryArcColor.OledDark.textTertiary,
         scrim: StoryArcColor.OledDark.scrim,
-        accent: StoryArcColor.Brand.ember,
-        accentMuted: StoryArcColor.Brand.emberMuted
+        accent: StoryArcColor.Brand.accent,
+        accentMuted: StoryArcColor.Brand.accentMuted
     )
 
     /// The palette for a resolved scheme and appearance.

@@ -56,13 +56,16 @@ struct NaturalThemeTests {
         }
     }
 
-    @Test("Natural's accents are clay, and they follow the same rule ember does")
+    @Test("Natural's accents are clay, and are its own rather than the brand's")
     func accentsAreEarthier() {
         // `design.md`: Natural's accents reach the whole app, "so the theme is coherent
-        // rather than bolted onto the reader". Earthier than ember, and the light
-        // variant takes the stronger one for the reason light takes `emberStrong` —
-        // clay at 66 % lightness does not clear 3:1 on warm paper. `pnpm tokens:check`
-        // gates both pairs.
+        // rather than bolted onto the reader". Earthier and warmer than `brand.accent`,
+        // and the light variant takes the stronger one because clay at 66 % lightness
+        // reaches 2.80:1 on warm paper. `pnpm tokens:check` gates both pairs.
+        //
+        // Natural still carries *two* accent values where the brand ramps now share one.
+        // The last two assertions are what keeps that deliberate: the brand's violet
+        // moving does not drag Natural's clay with it.
         #expect(Palette.naturalLight.accent == StoryArcColor.Brand.clayStrong)
         #expect(Palette.naturalDark.accent == StoryArcColor.Brand.clay)
         #expect(Palette.naturalLight.accent != Palette.light.accent)

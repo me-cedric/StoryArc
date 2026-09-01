@@ -2,9 +2,15 @@
 <resources>
     <!-- surfaceCanvas, light. Mirrors packages/design-tokens. -->
     <color name="launch_background">#FAF9F7</color>
-    <!-- Placeholder brand mark background: brand/ember. -->
-    <!-- The designer's own icon plate, sampled from their `ios-appicon-1024.png`: a near-black
-         tinted toward the brand's violet, hue 285. Was #EC7C27, the ember accent the brand has
-         replaced — an orange plate under a pink-to-indigo mark. -->
+    <!-- Must equal brand/iconPlate — oklch(20.8% 0.016 285), #17171F — in
+         packages/design-tokens/tokens/color.json. It is the designer's own icon plate,
+         sampled from their `ios-appicon-1024.png`: a near-black tinted toward the brand's
+         violet rather than the app's warm neutral at hue 70.
+
+         Written as a literal because a resource XML cannot reference a Kotlin token, and
+         the adaptive-icon background has to be a resource. So this is the one hex in the
+         app that is allowed to duplicate a token, and the token is named here so the next
+         reader knows which value it has to follow. It was #EC7C27 — the amber accent the
+         brand has replaced — which drew an orange plate under a pink-to-violet mark. -->
     <color name="ic_launcher_background">#17171F</color>
 </resources>
