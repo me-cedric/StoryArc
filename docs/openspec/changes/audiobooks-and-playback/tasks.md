@@ -767,6 +767,19 @@ creep — see [`design.md`](design.md).
       ends of the slider are `accessibilityHidden`, so the time is announced once rather than
       three times.
 - [x] 8.3 Both. **Android half.** `mergeDescendants` makes the bar one element;
+      **Now asserted in a composition, and the sleep timer exists to announce.**
+      `PlayerSemanticsTest` reads the rendered semantics rather than the source: the skip
+      controls are one element each named "Back 15 seconds" / "Forward 30 seconds", the speed
+      slider's state description is `1.4×` and not a percentage, and a running sleep timer
+      states "Sleep in 12:34". Robolectric with `GraphicsMode.NATIVE`, for `CompactPlayerTest`'s
+      reason: legacy graphics measure a glyph at about a pixel wide and would pass against a
+      control drawn off the window. Still not verified by an accessibility *scan*.
+- [x] 8.2 Both — Android half. A `Slider` is already an adjustable; what it announces
+      by default is a percentage, and the `stateDescription` replaces that with
+      "0:42 of 5:00". iOS half outstanding.
+      **And now asserted rather than described** — `PlayerSemanticsTest` finds a node whose
+      state description is exactly that, in a real composition.
+- [x] 8.3 Both — Android half. `mergeDescendants` makes the bar one element;
       `CustomAccessibilityAction`s keep play/pause and open reachable separately. Not
       stealing focus is what *not asking for it* is — nothing in the bar requests focus,
       which is the whole of the requirement and is why there is no code to point at.
@@ -802,6 +815,11 @@ creep — see [`design.md`](design.md).
       growth there and nothing can assert it here. Whether the requirement holds for a
       platform-owned accessory slot, or the surface has to stop being that slot, is a
       `design.md` question — AGENTS.md §3b rule 5. **`/opsx:update` before this is picked up.**
+      **The screenshot is now a test too.** `PlayerSemanticsTest` composes the player at font
+      scale 2 and asserts all three transport controls and the chapter are still displayed —
+      which a photograph proves for one build and a test proves for every one after it. The
+      sleep options wrap in a `FlowRow` for the same requirement: five durations and a chapter
+      do not fit across a phone at that size.
 
 ## 9. Docs and close-out
 
