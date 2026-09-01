@@ -235,7 +235,9 @@ internal fun HostedScreen(
                     onSkip = PlaybackHost::skip,
                     onSeek = PlaybackHost::seek,
                     onChooseChapter = PlaybackHost::seekToPart,
-                    onSpeed = PlaybackHost::setSpeed,
+                    onSpeed = PlayingBook::setSpeed,
+                    sleep = PlaybackHost.sleep.collectAsStateWithLifecycle().value,
+                    onSleep = PlaybackHost::setSleepTimer,
                     onBack = back,
                 )
             }

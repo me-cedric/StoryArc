@@ -5,9 +5,16 @@ import android.content.Context
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * The one session in the app's process, and the one thing every surface observes.
@@ -54,6 +61,21 @@ object PlaybackHost {
     private var controller: MediaController? = null
     private var current: AudiobookSource? = null
 
+    private val _sleep = MutableStateFlow<SleepTimer?>(null)
+
+    /** The sleep timer counting down, or null when none is set. */
+    val sleep: StateFlow<SleepTimer?> = _sleep.asStateFlow()
+
+    /**
+     * A scope as long as the process, because that is how long the audio lasts.
+     *
+     * The fade is the reason there is a scope here at all: it has to keep running while the
+     * listener is asleep with the screen off, and nothing tied to a screen does.
+     */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    private var countdown: Job? = null
+
     /**
      * Plays a narrated audiobook, displacing whatever was playing.
      *
@@ -61,11 +83,21 @@ object PlaybackHost {
      * binds to a service — and doing it per book would put a bind between the listener's
      * press and the first sound.
      */
-    fun start(context: Context, book: Audiobook, from: PlaybackPosition? = null, chapterWord: String = "Chapter") {
+    fun start(
+        context: Context,
+        book: Audiobook,
+        from: PlaybackPosition? = null,
+        speed: PlaybackSpeed = PlaybackSpeed.NORMAL,
+        chapterWord: String = "Chapter",
+    ) {
         withController(context) { player ->
             val source = AudiobookSource(book, player, chapterWord)
             current = source
             source.prepare(from)
+            // Before the first sound rather than after it. A speed applied once the audio
+            // is running is a sentence the listener hears at the wrong pace, and it is the
+            // one they were about to be told is the start of a chapter.
+            source.setSpeed(speed)
             centre.start(source)
             PlaybackService.resumption = PlaybackService.Resumption(
                 items = book.sources.map { androidx.media3.common.MediaItem.fromUri(it.uri) },
@@ -78,8 +110,71 @@ object PlaybackHost {
     /** Pause and play, from wherever the listener reached for it. */
     fun toggle() = centre.toggle()
 
+    /**
+     * Sets, replaces or clears the sleep timer.
+     *
+     * @param after what the listener chose, or null to turn it off. A choice this session
+     *   cannot honour — *end of chapter* where nothing knows how long the chapter is —
+     *   leaves no timer set, because `audio-playback` requires a control that cannot work to
+     *   be absent rather than present and refusing.
+     */
+    fun setSleepTimer(after: SleepAfter?) {
+        countdown?.cancel()
+        val timer = after?.let { SleepTimer.of(it, _nowPlaying.value) }
+        _sleep.value = timer
+        // Full volume again, whether the listener cleared a timer or replaced one part way
+        // through its fade.
+        controller?.volume = 1f
+        if (timer == null) return
+
+        countdown = scope.launch {
+            while (isActive) {
+                delay(TICK_MILLIS)
+                val playing = _nowPlaying.value
+                // A paused book is not falling asleep. The count holds where it is, which is
+                // what a listener who paused to answer the door means by it.
+                if (playing?.isPlaying != true) continue
+                val next = (_sleep.value ?: return@launch).ticked(TICK_MILLIS, playing)
+                _sleep.value = next
+                controller?.volume = next.gain
+                if (next.hasElapsed) {
+                    fellAsleep()
+                    return@launch
+                }
+            }
+        }
+    }
+
+    /**
+     * What the end of the timer does.
+     *
+     * `audio-playback`: "the position at which it stopped is recorded, so resuming starts a
+     * little before it rather than where the fade ended". The rewind is the fade's own
+     * length — the stretch the listener stopped taking in — so they start again at the last
+     * thing they properly heard.
+     *
+     * Recorded here rather than left to the next write, because the next write is a tick
+     * that only happens while something is playing, and nothing is.
+     */
+    private fun fellAsleep() {
+        val playing = _nowPlaying.value
+        val rewound = playing?.let {
+            PlaybackPosition(
+                partIndex = it.partIndex,
+                offsetMillis = (it.offsetMillis - SleepTimer.FADE_MILLIS).coerceAtLeast(0),
+            )
+        }
+        rewound?.let(centre::seek)
+        if (playing?.isPlaying == true) centre.toggle()
+        controller?.volume = 1f
+        _sleep.value = null
+        val source = current ?: return
+        rewound?.let { recordPosition?.invoke(source.publicationId, it, source.parts) }
+    }
+
     /** Ends the session: the listener closed it, or the book ran out of audio. */
     fun stop() {
+        setSleepTimer(null)
         centre.stop()
         current = null
     }
@@ -108,6 +203,15 @@ object PlaybackHost {
             ),
         )
     }
+
+    /**
+     * How often the countdown looks at the clock.
+     *
+     * Short enough that the fade is a fade rather than a staircase — half a second of a
+     * thirty-second ramp is a step of about two per cent — and long enough that a sleeping
+     * phone is not woken sixty times a second.
+     */
+    private const val TICK_MILLIS = 500L
 
     private fun withController(context: Context, body: (MediaController) -> Unit) {
         controller?.let { body(it); return }

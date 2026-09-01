@@ -1,6 +1,8 @@
 package app.storyarc
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +21,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +49,8 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.playback.NowPlaying
 import app.storyarc.core.playback.PlaybackPosition
 import app.storyarc.core.playback.PlaybackSpeed
+import app.storyarc.core.playback.SleepAfter
+import app.storyarc.core.playback.SleepTimer
 
 /**
  * The full player: what is playing, where it is, and everything a listener of a book needs.
@@ -64,7 +69,7 @@ import app.storyarc.core.playback.PlaybackSpeed
  * "the surface scrolls if it must, and no transport control is pushed off the screen". The
  * transport is above the chapter list for the same reason — the list is what scrolls away.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun PlayerScreen(
     playing: NowPlaying,
@@ -73,6 +78,8 @@ internal fun PlayerScreen(
     onSeek: (PlaybackPosition) -> Unit,
     onChooseChapter: (Int) -> Unit,
     onSpeed: (PlaybackSpeed) -> Unit,
+    sleep: SleepTimer?,
+    onSleep: (SleepAfter?) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -133,6 +140,7 @@ internal fun PlayerScreen(
         Position(playing, onSeek)
         Transport(playing.isPlaying, onToggle, onSkip)
         Speed(playing.speed, onSpeed)
+        Sleep(playing, sleep, onSleep)
 
         HorizontalDivider()
 
@@ -334,6 +342,59 @@ private fun Speed(speed: PlaybackSpeed, onSpeed: (PlaybackSpeed) -> Unit) {
                 stateDescription = speed.label
             },
         )
+    }
+}
+
+/**
+ * When to stop, for a listener who is falling asleep.
+ *
+ * `audio-playback`: "a duration or *end of chapter* may be chosen, the remaining time is
+ * shown on the player, and playback fades out rather than cutting off when it elapses".
+ *
+ * **End of chapter is offered only where there is one to stop at.** A session with no known
+ * duration has no end of chapter, and the same requirement says every control the player
+ * offers "works, or is absent — none is present and refusing" — so the option is missing
+ * rather than inert. It is a **product decision** that a book player offers it at all;
+ * `design.md` records that, and no guideline is cited for it.
+ */
+@Composable
+private fun Sleep(playing: NowPlaying, timer: SleepTimer?, onSleep: (SleepAfter?) -> Unit) {
+    val endOfChapter = playing.statedPartDurationMillis != null
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = timer
+                ?.let { stringResource(R.string.player_sleep_in, clock(it.remainingMillis)) }
+                ?: stringResource(R.string.player_sleep),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        // A row that wraps, because at the largest text size five durations and a chapter
+        // do not fit across a phone and `audio-playback` asks that nothing be "pushed off
+        // the screen".
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (timer != null) {
+                FilterChip(
+                    selected = false,
+                    onClick = { onSleep(null) },
+                    label = { Text(stringResource(R.string.player_sleep_off)) },
+                )
+            }
+            for (minutes in SleepTimer.OFFERED_MINUTES) {
+                val after = SleepAfter.Duration(minutes * 60_000L)
+                FilterChip(
+                    selected = timer?.after == after,
+                    onClick = { onSleep(after) },
+                    label = { Text(stringResource(R.string.player_sleep_minutes, minutes)) },
+                )
+            }
+            if (endOfChapter) {
+                FilterChip(
+                    selected = timer?.after == SleepAfter.EndOfChapter,
+                    onClick = { onSleep(SleepAfter.EndOfChapter) },
+                    label = { Text(stringResource(R.string.player_sleep_end_of_chapter)) },
+                )
+            }
+        }
     }
 }
 

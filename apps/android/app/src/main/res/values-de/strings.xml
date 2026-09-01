@@ -57,6 +57,11 @@
     <string name="player_skip_back">15 Sekunden zurück</string>
     <string name="player_skip_forward">30 Sekunden vor</string>
     <string name="player_seconds">%1$d s</string>
+    <string name="player_sleep">Sleeptimer</string>
+    <string name="player_sleep_in">Schlafen in %1$s</string>
+    <string name="player_sleep_off">Aus</string>
+    <string name="player_sleep_minutes">%1$d Min.</string>
+    <string name="player_sleep_end_of_chapter">Kapitelende</string>
     <string name="player_chapters">Kapitel</string>
     <string name="player_chapter_word">Kapitel</string>
     <string name="player_current_chapter">Läuft</string>

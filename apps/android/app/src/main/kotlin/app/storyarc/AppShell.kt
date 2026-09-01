@@ -173,6 +173,7 @@ internal fun AppShell(
                     publication = publication,
                     book = audiobook,
                     store = dependencies.progress,
+                    speeds = dependencies.playbackPreferences,
                     chapterWord = activity.getString(R.string.player_chapter_word),
                 )
                 navigation = navigation.push(Screen.Player)

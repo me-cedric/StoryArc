@@ -20,6 +20,11 @@
     <string name="player_skip_back">Back 15 seconds</string>
     <string name="player_skip_forward">Forward 30 seconds</string>
     <string name="player_seconds">%1$d s</string>
+    <string name="player_sleep">Sleep timer</string>
+    <string name="player_sleep_in">Sleep in %1$s</string>
+    <string name="player_sleep_off">Off</string>
+    <string name="player_sleep_minutes">%1$d min</string>
+    <string name="player_sleep_end_of_chapter">End of chapter</string>
     <string name="player_chapters">Chapters</string>
     <!-- The word a chapter with no name of its own is numbered with: "Chapter 4". -->
     <string name="player_chapter_word">Chapter</string>

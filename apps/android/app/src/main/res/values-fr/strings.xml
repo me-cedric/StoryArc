@@ -58,6 +58,11 @@
     <string name="player_skip_back">Reculer de 15 secondes</string>
     <string name="player_skip_forward">Avancer de 30 secondes</string>
     <string name="player_seconds">%1$d s</string>
+    <string name="player_sleep">Minuteur de veille</string>
+    <string name="player_sleep_in">Veille dans %1$s</string>
+    <string name="player_sleep_off">Aucun</string>
+    <string name="player_sleep_minutes">%1$d min</string>
+    <string name="player_sleep_end_of_chapter">Fin du chapitre</string>
     <string name="player_chapters">Chapitres</string>
     <string name="player_chapter_word">Chapitre</string>
     <string name="player_current_chapter">En cours</string>

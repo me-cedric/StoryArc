@@ -9,6 +9,7 @@ import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.KavitaCardStore
 import app.storyarc.core.persistence.KavitaProgressStore
 import app.storyarc.core.persistence.LibraryPreferences
+import app.storyarc.core.persistence.PlaybackPreferences
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.persistence.ScanJournal
@@ -34,6 +35,7 @@ internal class AppDependencies private constructor(context: Context) {
     val progress: ProgressStore = ProgressStore.open(context)
     val libraryPreferences: LibraryPreferences = LibraryPreferences.open(context)
     val readerPreferences: ReaderPreferences = ReaderPreferences.open(context)
+    val playbackPreferences: PlaybackPreferences = PlaybackPreferences.open(context)
     val settings: SettingsStore = SettingsStore.open(context)
     val sources: SourceStore = SourceStore.open(context)
     val shelves: ShelvesStore = ShelvesStore.open(context)

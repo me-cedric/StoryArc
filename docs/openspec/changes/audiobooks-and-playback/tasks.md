@@ -501,15 +501,40 @@ creep — see [`design.md`](design.md).
 
 ## 5. Controls
 
-- [ ] 5.1 Both: speed changes without changing pitch, states a number, is remembered
+- [~] 5.1 Both: speed changes without changing pitch, states a number, is remembered
       per publication and offered as the series default. Range 0.5×–3×.
+      **Android done.** The first three clauses were already true — media3 keeps the pitch
+      when only the speed moves, `PlaybackSpeed.label` states the number, and `PlaybackSpeed`
+      clamps to 0.5×–3×. What was missing is the remembering, and it is `PlaybackPreferences`:
+      two scopes resolved publication-then-series, with the publication's own always winning,
+      so adjusting volume two does not reach back and change volume one. A choice writes
+      **both** entries, which is what makes a series a *default* rather than a second setting.
+      Applied before the first sound rather than after it. Seven cases in
+      `PlaybackPreferencesTest`; instrumented, because `SharedPreferences` is a framework
+      component like every other store in the module. iOS half outstanding.
 - [ ] 5.2 Both: skip states its interval on the control, is configurable, and
       crossing a chapter boundary continues rather than stopping. Defaults 15 s back
       and 30 s forward — a **product decision**, recorded as one; media3's own
       defaults (5 s / 15 s) are wrong for spoken word.
-- [ ] 5.3 Both: sleep timer offers durations **and end-of-chapter**, shows the
+- [~] 5.3 Both: sleep timer offers durations **and end-of-chapter**, shows the
       remaining time, fades out rather than cutting, and records a position slightly
       before where the fade ended.
+      **Android done, and the model carries the weight.** `SleepTimer` holds both cases as one
+      remaining time, and the difference is only in what moves it: a duration counts itself
+      down, *end of chapter* is re-read from where the audio has reached — so a listener who
+      skips forward inside the chapter has moved the end nearer rather than being stopped in
+      the middle of the next one. Thirteen cases in `SleepTimerTest`.
+      **End of chapter is absent, not inert, where nothing knows how long the chapter is** —
+      `SleepTimer.of` answers null and the chip is not drawn, which is `audio-playback`'s
+      "works, or is absent" applied to the one control that cannot always be honoured.
+      The fade is a straight ramp over the last thirty seconds, applied to the controller's
+      volume by a half-second tick that holds while the book is paused; and the rewind is
+      **the same thirty seconds**, which is the argument for that number: the fade is exactly
+      the stretch a listener stopped taking in, so starting again where it began is starting
+      at the last thing they properly heard. Recorded by the host when it elapses, because the
+      next tick that would have written it only runs while something is playing.
+      Both the fade length and the five offered durations are **product decisions**, recorded
+      as such; neither Material nor Apple publishes a set. iOS half outstanding.
 - [x] 5.4 Android: declare `COMMAND_SEEK_TO_PREVIOUS`/`NEXT` so the notification's
       three compact slots carry seek-back / play-pause / seek-forward.
       **Done.** All four are added in `onConnect`: the two chapter moves a head unit uses

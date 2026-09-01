@@ -58,6 +58,11 @@
     <string name="player_skip_back">Retroceder 15 segundos</string>
     <string name="player_skip_forward">Avanzar 30 segundos</string>
     <string name="player_seconds">%1$d s</string>
+    <string name="player_sleep">Temporizador</string>
+    <string name="player_sleep_in">Parar en %1$s</string>
+    <string name="player_sleep_off">Ninguno</string>
+    <string name="player_sleep_minutes">%1$d min</string>
+    <string name="player_sleep_end_of_chapter">Fin del capítulo</string>
     <string name="player_chapters">Capítulos</string>
     <string name="player_chapter_word">Capítulo</string>
     <string name="player_current_chapter">Sonando</string>

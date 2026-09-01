@@ -3,11 +3,13 @@ package app.storyarc
 import android.content.Context
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.persistence.PlaybackPreferences
 import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.playback.Audiobook
 import app.storyarc.core.playback.PlaybackHost
 import app.storyarc.core.playback.PlaybackPart
 import app.storyarc.core.playback.PlaybackPosition
+import app.storyarc.core.playback.PlaybackSpeed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -48,6 +50,9 @@ internal object PlayingBook {
     /** The publication the hook below is writing for. */
     private var following: Publication? = null
 
+    /** Where a chosen speed goes, and where the next book's comes from. */
+    private var preferences: PlaybackPreferences? = null
+
     private var ticker: Job? = null
 
     /**
@@ -61,18 +66,35 @@ internal object PlayingBook {
         publication: Publication,
         book: Audiobook,
         store: ProgressStore,
+        speeds: PlaybackPreferences,
         chapterWord: String,
     ) {
         follow(publication, store)
+        preferences = speeds
         scope.launch {
             val record = store.progress(publication.identity)
             PlaybackHost.start(
                 context = context,
                 book = book,
                 from = ListenedPosition.resume(record?.position, record?.isFinished == true),
+                speed = PlaybackSpeed.of(speeds.speed(publication.id, publication.series)),
                 chapterWord = chapterWord,
             )
         }
+    }
+
+    /**
+     * Changes the speed, and remembers it.
+     *
+     * `audio-playback`: the value "is remembered for that publication and offered as the
+     * default for others in the same series". Written as it is chosen rather than when the
+     * book ends, because a listener who adjusts the speed and then loses the process would
+     * otherwise be asked the same question again.
+     */
+    fun setSpeed(speed: PlaybackSpeed) {
+        PlaybackHost.setSpeed(speed)
+        val publication = following ?: return
+        preferences?.rememberSpeed(publication.id, publication.series, speed.rate)
     }
 
     /**
