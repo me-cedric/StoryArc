@@ -72,15 +72,35 @@ class LibrarySearchBarTest {
      */
     @Test
     fun `each expanded bar is hoisted with its own state partner`() {
+        // **The pairing, not the two words.** This test used to look for the two factory names
+        // anywhere in the file, which every arrangement of them satisfies: swapping the two
+        // states at the call sites left both names present, both bars animating against the
+        // other's specs, and this test green. So each binding is matched to its factory, and
+        // each bar to the binding it must be handed.
         assertTrue(
-            "The contained (phone) branch no longer uses rememberContainedSearchBarState.",
-            source.contains("rememberContainedSearchBarState("),
+            "containedState is not made by rememberContainedSearchBarState.",
+            source.contains("val containedState = rememberContainedSearchBarState()"),
         )
         assertTrue(
-            "The docked (wide) branch no longer uses rememberSearchBarWithGapState.",
-            source.contains("rememberSearchBarWithGapState("),
+            "dockedState is not made by rememberSearchBarWithGapState.",
+            source.contains("val dockedState = rememberSearchBarWithGapState()"),
+        )
+        assertTrue(
+            "The full-screen contained bar is not handed containedState, so it animates" +
+                " against the docked bar's specs.",
+            isHanded("ExpandedFullScreenContainedSearchBar", "containedState"),
+        )
+        assertTrue(
+            "The docked bar with a gap is not handed dockedState, so it animates against the" +
+                " contained bar's specs.",
+            isHanded("ExpandedDockedSearchBarWithGap", "dockedState"),
         )
     }
+
+    /** Whether `Composable(state = binding` appears, across the line break the formatter adds. */
+    private fun isHanded(composable: String, binding: String): Boolean =
+        Regex(Regex.escape(composable) + BAR_TAKES_STATE + Regex.escape(binding) + WORD_END)
+            .containsMatchIn(source)
 
     @Test
     fun `the generic state factory is not used for either branch`() {
@@ -104,11 +124,25 @@ class LibrarySearchBarTest {
     fun `the contained colours are threaded through the app bar and the field`() {
         assertTrue(
             "SearchBarDefaults.containedColors(state) is not computed.",
-            source.contains("SearchBarDefaults.containedColors("),
+            source.contains("SearchBarDefaults.containedColors(state)"),
         )
         assertTrue(
             "The contained colours are not threaded into appBarWithSearchColors.",
-            source.contains("appBarWithSearchColors("),
+            source.contains("SearchBarDefaults.appBarWithSearchColors(searchColors)"),
+        )
+        // **The bar is only half of it, and this test's own name claimed both.** It asserted
+        // nothing about the field, so dropping the field's colours entirely — the half that
+        // draws the text the reader is typing — left it green. The field takes them directly
+        // rather than through `appBarWithSearchColors`, which is what `design.md`'s colours row
+        // described wrongly until this change corrected it.
+        assertTrue(
+            "The input field is not given the contained colours, so the text the reader types" +
+                " is drawn with baseline ones.",
+            source.contains("colors = searchColors.inputFieldColors"),
+        )
+        assertTrue(
+            "The app bar is not given the colours built from the contained ones.",
+            source.contains("colors = barColors"),
         )
     }
 
@@ -283,5 +317,9 @@ class LibrarySearchBarTest {
             "src/main/kotlin/app/storyarc/feature/library/LibrarySearchBar.kt"
         const val SEARCH_SCREEN_SOURCE =
             "src/main/kotlin/app/storyarc/feature/library/SearchScreen.kt"
+
+        /** `(` then an optional line break, then `state = `. */
+        const val BAR_TAKES_STATE = """\(\s*state\s*=\s*"""
+        const val WORD_END = """\b"""
     }
 }
