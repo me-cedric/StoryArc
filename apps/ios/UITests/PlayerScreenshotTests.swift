@@ -79,6 +79,69 @@ final class PlayerScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "full-player-largest-text")
     }
 
+    /// The sleep timer, set, with its remaining time on the face of the control.
+    ///
+    /// `audio-playback` requires that "the remaining time is shown on the player", and until
+    /// `audiobooks-and-playback` §5.3 nothing ticked the countdown: `setSleepTimer` stored one and
+    /// the only caller of `sleepTimerElapsed` in the tree was a unit test. So this photographs the
+    /// control stating `5:00 left` and announcing *Sleep timer* as its name — it announced only the
+    /// number before, which is a value with no name.
+    ///
+    /// **This is one frame, and the requirement wants two.** A number that is displayed and never
+    /// moves is the defect §5.3 fixed, so a single picture of `5:00 left` cannot tell the fix from
+    /// the bug. The moving is proven instead by `SleepTimerRunningTests` — the count, the hold
+    /// while paused, the ramp, the elapsing and the rewind, with the paused hold and the ramp
+    /// mutation-checked — and this picture only shows that the number reaches the surface.
+    ///
+    /// **Why the second frame cannot be taken here yet, which is a defect and not a limit of the
+    /// capture.** The countdown moves only while the book plays, and the walk leaves the session
+    /// paused on purpose. Pressing any transport control inside the player **dismisses the player**:
+    /// `PlayerDock` hosts the player's `.sheet` on a view inside `if let bar = centre.compact`, so
+    /// the moment `CompactPlayer`'s value changes — which pressing play does, and crossing a chapter
+    /// does — the sheet's host is rebuilt and the presentation is torn down. Measured, not guessed:
+    /// a skip-back tap and a chapter-list tap each left the publication page on screen with the
+    /// compact bar still playing, and **the same run against the pre-§3.2 `FullPlayerView` failed
+    /// identically**, which is what proves the dismissal predates the Close pill's removal.
+    ///
+    /// Two frames become possible as soon as that is fixed. Until then this states the gap rather
+    /// than claiming an exception.
+    func testCaptureSleepTimerSet() throws {
+        let app = launch()
+        try openAnAudiobook(in: app)
+        try XCTUnwrap(app.buttons["Open the player"].firstMatch).tap()
+
+        // The label is the *name*, not the face: `audio-playback` asks a screen reader for "a
+        // name and, where it carries one, its value", so the control announces "Sleep timer"
+        // and carries the remaining time as its value.
+        let sleepControl = try XCTUnwrap(
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Sleep timer"))
+                .allElementsBoundByIndex.first { $0.isHittable },
+            "The player offers no sleep timer control."
+        )
+        sleepControl.tap()
+
+        let fiveMinutes = app.buttons.containing(
+            NSPredicate(format: "label CONTAINS %@", "5:00")
+        ).firstMatch
+        XCTAssertTrue(
+            fiveMinutes.waitForExistence(timeout: 5),
+            "The sleep timer sheet offered no five-minute row. Rows on screen: "
+                + "\(app.buttons.allElementsBoundByIndex.map(\.label))"
+        )
+        fiveMinutes.tap()
+        settle(1)
+
+        // Asserted as well as photographed, and the *value* rather than the label: a control that
+        // announced `5:00 left` as its name would be a value with no name, which is what this one
+        // did before §5.3.
+        XCTAssertEqual(
+            sleepControl.value as? String,
+            "5:00 left",
+            "The sleep control does not state the remaining time as its announced value."
+        )
+        attach(app.screenshot(), named: "sleep-timer-set")
+    }
+
     /// Waits, then photographs.
     ///
     /// Chrome animates in and out, and a screenshot taken during either is a picture of a

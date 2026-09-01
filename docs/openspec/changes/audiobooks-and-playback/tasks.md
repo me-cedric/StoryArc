@@ -508,6 +508,14 @@ creep — see [`design.md`](design.md).
       **Not done: a real cover.** Nothing extracts embedded artwork from an audiobook yet (4.5),
       and a read-aloud EPUB that *has* a cover still gets the coverless well here, because
       loading it needs the library's cover cache. No case is worse than the glyph it replaced.
+      **Photographed** at the default and largest text sizes —
+      `docs/designs/screenshots/after-2026-09-01-ios-player-artwork/`, against
+      `after-2026-09-01-ios-player/` as the before, which shows the glyph.
+      The largest-text pair is the half a default-size picture cannot settle: the well holds the
+      title whole at `AccessibilityXXXL`, which is why the player draws it unconditionally where
+      `CoverlessWell` drops it. **The lock screen itself is not photographed** — XCUITest cannot
+      reach a simulator's lock screen — but the render path is demonstrably exercised: it crashed
+      the app the first time it ran (see the fix below).
       *The Android half is not started.*
 - [~] 4.5 Both: the full player — cover, publication, chapter, position, duration,
       play/pause, skip both ways, scrub, chapter list, speed, sleep timer. Assert
@@ -666,6 +674,24 @@ creep — see [`design.md`](design.md).
       inventions against a product decision recorded for the other platform, and
       `SleepTimerTests` now pins them to Android's — a listener falling asleep in a different
       place on the two platforms is the divergence this task exists to prevent.
+      **Captured, and the capture is one frame where the requirement wants two — stated rather
+      than dressed up as an exception.**
+      `docs/designs/screenshots/after-2026-09-01-ios-player-artwork/ios-sleep-timer-set.png` shows
+      `5:00 left` on the control, and `testCaptureSleepTimerSet` asserts that string is the
+      control's announced *value* while *Sleep timer* stays its name. A single frame cannot tell
+      the fix from the defect, so what proves the moving is `SleepTimerRunningTests` rather than a
+      picture.
+      **The second frame ran into a pre-existing defect, and finding it is worth more than the
+      frame was.** The countdown moves only while the book plays, and **pressing any transport
+      control inside the full player dismisses the full player**: `PlayerDock` hosts the player's
+      `.sheet` on a view inside `if let bar = centre.compact`, so the moment `CompactPlayer`'s
+      value changes — which pressing play does, and which crossing a chapter does — the sheet's
+      host is rebuilt and the presentation is torn down. A skip-back tap and a chapter-row tap each
+      left the publication page on screen with the compact bar still playing, and **the same run
+      against the pre-§3.2 `FullPlayerView` failed identically**, which is what proves it predates
+      the Close pill's removal. Not fixed here: the remedy is to move the player's presentation off
+      the accessory's conditional content, which is a change to §4.2's own layout and belongs in a
+      task that names it.
       **Still `[~]`, and the reason is not a platform**: a *synthesised voice* cannot fade.
       `AVSpeechUtterance.volume` applies to the next utterance and not the one being spoken, so
       `setVolume` has a documented no-op default and a read-aloud timer stops the voice without

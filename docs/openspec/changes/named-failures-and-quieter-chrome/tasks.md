@@ -86,6 +86,10 @@ scenarios in `one-library-three-destinations`; the player's artwork is one in
       `ReadAloudPlayerTests` also matches `app.buttons["Close"]`; that is the **reader's**
       `reader.close`, not the player's, and is untouched. The `player.close` string stays in use
       by `ChapterListView`, which keeps its own explicit Close.
+      **Photographed** at the default and largest text sizes —
+      `docs/designs/screenshots/after-2026-09-01-ios-player-artwork/`, against
+      `after-2026-09-01-ios-player/` as the before, which shows the pill and no grabber.
+      §2.6 still owes the library toolbar's own pair; this covers the player only.
 - [x] 3.3 Android: **no equivalent change to the player.** Its player is a destination rather
       than a sheet, so it needs its back affordance and has no grabber to defer to. A
       divergence from the platforms, not from taste — record it, do not "fix" it.
