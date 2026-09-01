@@ -1,5 +1,19 @@
 # Tasks
 
+> **Its `ebook-reader` delta gained a paragraph on 2026-09-01, and no task changed with it.**
+> `quiet-reader` synced and archived the two-level theme surface — "The theme surface SHALL have
+> **two levels**… A reader who wants a preset SHALL NOT pass an axis to reach it" — and this
+> change's MODIFIED block for *Reader themes* was written before that and did not carry it. A
+> MODIFIED requirement replaces the whole block, so **archiving this change would have deleted
+> that rule from the contract.**
+>
+> `openspec validate` passes the file either way: it checks a delta's own shape, never what the
+> delta would displace. This was found by `pnpm delta:drop` on that gate's first real run, and
+> the gate now sits inside `pnpm lint`.
+>
+> Nothing here builds the two-level surface — `quiet-reader` did — so the paragraph is carried
+> with a provenance note and every task below is unaffected.
+
 > **Its delta moved on 2026-09-01 and no task changed, which is what the guard's stale
 > flag is reporting.** `quiet-shell-and-search` and `quiet-reader` synced requirements this
 > change also modifies, and a MODIFIED requirement replaces the whole block — so archiving

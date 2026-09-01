@@ -18,6 +18,20 @@
 > the one the app implements, replaced the superseded first draft here. **Task 1.2 changed
 > with it** and says so; no other task did, because this change does not build search's
 > entry point.
+>
+> **Its `library-browsing` delta gained two things later the same day, and the reason is that
+> lesson applied one capability further.** The reconciliation above was found by reading; a
+> re-verification of `quiet-shell-and-search` then asked whether the *sibling* capability had
+> been checked too, and it had not. That change's delta had added a normative sentence —
+> "Search SHALL say what it is about to search, and SHALL let a reader narrow it to what can be
+> read with no network" — and rewritten *No results* to offer **widening** rather than clearing
+> filters. Its two new scenarios had been carried across by hand; its **prose had not**, and
+> nothing looked, because scenarios are listed and prose is read. Both are carried now, with the
+> note beside them.
+>
+> **No task changed for that one**, and a gate now refuses the whole class: `pnpm delta:drop`,
+> inside `pnpm lint`, fails when a MODIFIED delta would drop a scenario or a normative clause
+> the main spec already holds.
 
 Ordered so that the two things that block everything else — the Android
 navigation rewrite and the iOS shell — are answered first, and so that no two
