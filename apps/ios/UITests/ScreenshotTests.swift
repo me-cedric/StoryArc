@@ -73,6 +73,28 @@ final class ScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "library-ax5")
     }
 
+    /// The library scrolled to its end, which is the only place the floating tab bar's
+    /// question can be answered.
+    ///
+    /// **A shelf photographed at the top cannot tell a defect from the design.** Content
+    /// passing *under* a Liquid Glass bar is what the material is for; what would be a defect
+    /// is a last row that can never be scrolled clear of it, and only the end of the scroll
+    /// shows which of the two this is. `docs/designs/ui-revamp-2026-08.md` §7.5 recorded
+    /// captions rendering behind a floating pill on 2026-08-30, when there was no tab bar for
+    /// the content to inset against; this is the capture that says whether anything is still
+    /// owed now that there is one.
+    func testCaptureLibraryAtTheEnd() throws {
+        let app = launch()
+        try XCTUnwrap(destination("Library", in: app)).tap()
+        let shelf = app.scrollViews.firstMatch
+        _ = shelf.waitForExistence(timeout: 10)
+        // Swiped rather than scrolled to an element: the last cell is what is in question, so
+        // asking XCUITest to reveal it would be asking the framework the thing being measured.
+        for _ in 0..<8 { shelf.swipeUp() }
+        settle(1)
+        attach(app.screenshot(), named: "library-end")
+    }
+
     /// The search destination, which is the whole point of `quiet-shell-and-search`.
     ///
     /// **This capture could not have been written before the change.** Search was

@@ -1060,6 +1060,19 @@ Android `MaterialTheme.shapes` wiring is one line; and the mislabelled Android e
 > - **Cover titles render *behind* that pill.** "The Third Chapter / Fixture Manga #3" and
 >   "Undeclared Direction" are legible through it. The grid has no bottom safe-area inset for
 >   the floating bar. That is a live layout defect, not a taste question.
+>
+>   **Settled on 2026-09-02, and it is no longer a defect — the shell changed under it.** That
+>   observation was made when a floating *search pill* hovered over a shelf with no tab bar for
+>   the content to inset against. There is a tab bar now, and the question it raises is a
+>   different one: content passing *under* Liquid Glass while it scrolls is what the material is
+>   for, and the only thing that would be a defect is a last row that can never be scrolled clear
+>   of it. **A screenshot at the top of the shelf cannot tell those apart**, which is why this
+>   bullet stood for three days — every capture of the library is taken at rest.
+>   `ScreenshotTests.testCaptureLibraryAtTheEnd` exists now to answer it, and the pair in
+>   `docs/designs/screenshots/cover-grid-2026-09-02/` shows the last row clearing with room to
+>   spare, the bar minimised to a single pill by `tabBarMinimizeBehavior(.onScrollDown)`.
+>   A speculative `contentMargins` fix was written first and reverted: the inset it read was
+>   **zero**, the picture was byte-identical, and the defect it was fixing did not exist.
 > - **Six unlabelled icon buttons** sit in a floating pill at the top of the phone, and seven
 >   on the iPad. No labels, no grouping, no overflow — the single clearest example of the
 >   "management surface stapled to the discovery surface" this document names in §1.
@@ -1143,6 +1156,42 @@ exist — `testCaptureLibrary` and `testCaptureLibraryAtLargestText` — so this
 test to write.
 
 ---
+
+## 7.6 Three follow-ups that were reported as open for days, and were not
+
+**None of the three was ever in this repository.** A session note said they were "written into
+`docs/designs/ui-revamp-2026-08.md` and the STATUS rows, phrased so the next session finds them
+without rediscovering them". A `grep` for any of them across `docs/` returns nothing. So they
+lived only in a conversation, were replayed by automation on every check-in, and were
+rediscovered from scratch each time — which is the precise failure the sentence was claiming to
+prevent. They are written down here, resolved, for that reason rather than for their content.
+
+**1. "`LibraryScope` on iOS is still source-scoped rather than availability-scoped."**
+**Stale premise: the source axis is a filter *by requirement*, and migrating it would break the
+spec.** `one-library-three-destinations`' `library-browsing` delta says the library is narrowed
+"by **availability** … as its primary axis", and then, in the next paragraph: *"Narrowing to one
+source survives as a filter, described under Filtering. It is no longer a scope, because a scope
+is a mode a reader can be stuck in and it silently narrowed search as well."* iOS implements
+exactly that — `LibraryNarrowing` holds three axes apart on purpose (`query`, `downloads`,
+`availability`), and its own doc comment records that they used to be joined up by every call
+site separately and that two of them composed it differently. `LibraryScope` being source-shaped
+is the requirement, not a debt.
+
+**2. "Largest-text-size captures weren't taken for the cover change."**
+**True when written, and now taken** — `docs/designs/screenshots/cover-grid-2026-09-02/`, four
+cells plus the two end-of-scroll shots §7.5 needed. It was not laziness that left them: the iOS
+capture harness could not set an appearance until `--appearance` landed on 2026-09-01, so half
+the matrix was unreachable by any command. That is recorded in §7.5.
+
+**3. "The tablet layouts are merged but only iOS was seen on a device."**
+**Already done when it was written.** `docs/designs/screenshots/after-k2-android-tablet/` holds
+ten captures from a booted `storyarc-api36`, at 360×800, 800×360 and 1280×576 dp: the short
+navigation bar, the wide rail collapsed and opened, dark, largest text, and both the
+supporting-pane and list-detail scaffolds. The PNGs are 2400×1080 landscape and 1080×2400
+portrait — real device frames, not previews.
+
+**The lesson is the one this document keeps relearning.** A follow-up recorded in a reply is not
+recorded. If it is worth telling the next session, it goes in a file that `grep` can find.
 
 ## 8. What I am unsure about
 
