@@ -534,16 +534,21 @@ creep — see [`design.md`](design.md).
 
 > **Two things about §5 that a reader of this list needs before picking it up.**
 >
-> **A listener can set a sleep timer that never fires.** The sheets ship on both platforms;
-> on iOS `setSleepTimer` stores a countdown that nothing ticks and nothing fades. That is a
-> control which is present and does not work, which `audio-playback` forbids by name — so
-> 5.3 is closer to a defect than to a feature now, and it got that way by the surfaces
-> landing before the mechanism.
+> **A listener could set a sleep timer that never fired.** The sheets shipped on both
+> platforms; on iOS `setSleepTimer` stored a countdown that nothing ticked and nothing faded.
+> That was a control which was present and did not work, which `audio-playback` forbids by
+> name — so 5.3 was closer to a defect than to a feature, and it got that way by the surfaces
+> landing before the mechanism. **Fixed for a narrated book on both platforms**; see 5.3.
 >
-> **5.3's fade is a `design.md` decision nobody has made.** A narrated file can fade its
-> volume. A synthesised voice cannot fade mid-sentence — it either finishes the sentence or
-> stops speaking in the middle of a word. The iOS agent declined to invent an answer, which
-> was right. Decide it in design.md before implementing either half.
+> **5.3's fade for a *voice* is a `design.md` decision nobody has made, and it is still
+> unmade.** A narrated file can fade its volume. A synthesised voice cannot fade mid-sentence —
+> it either finishes the sentence or stops speaking in the middle of a word, and
+> `AVSpeechUtterance.volume` applies to the *next* utterance rather than the one being spoken.
+> The iOS agent declined to invent an answer, which was right. What has changed is that the
+> undecided half no longer blocks the decided one: `PlaybackSource.setVolume(_:)` has a
+> documented no-op default, so a read-aloud timer stops the voice without a ramp rather than
+> read-aloud having no sleep timer at all. **Decide the ramp in design.md before either
+> platform tries to give a voice one.**
 
 ## 5. Controls
 
@@ -580,7 +585,44 @@ creep — see [`design.md`](design.md).
       at the last thing they properly heard. Recorded by the host when it elapses, because the
       next tick that would have written it only runs while something is playing.
       Both the fade length and the five offered durations are **product decisions**, recorded
-      as such; neither Material nor Apple publishes a set. iOS half outstanding.
+      as such; neither Material nor Apple publishes a set.
+      **iOS done for a narrated book, and it was a defect rather than a gap.** The sheets had
+      shipped and nothing ticked them: `setSleepTimer` stored a countdown, `sleepTimerElapsed`
+      knew what to do with one, and the only caller of the second in the whole tree was a test.
+      A listener set *Sleep in 30 minutes*, the remaining time never moved, and the audio never
+      stopped — which is a control that is present and refusing, forbidden by name.
+      The model is `SleepCountdown` in `Sources/Playback/SleepTimer.swift`, mirrored on
+      Android's case for case: one remaining time for both kinds, a duration counting itself
+      down, *end of chapter* re-read from where the audio has reached, a straight ramp over the
+      last thirty seconds, and a rewind that is **the same thirty seconds**. Nineteen cases in
+      `SleepTimerTests`, thirteen more through the session in `SleepTimerRunningTests`; the
+      paused hold, the ramp and the end-of-chapter re-read are each mutation-checked.
+      The fade reaches `AVPlayer.volume` through a new `PlaybackSource.setVolume(_:)`, and the
+      **player's** volume rather than the item's — a folder audiobook swaps items at every part
+      boundary and a gain set on the item would jump back to full when a fade crossed one.
+      **The half-second clock is the platform's, not the centre's**, which is where iOS's seam
+      differs from Android's: `PlaybackPlatform.sleepTimerChanged(isRunning:)` owns a `Task`,
+      and `platform` is `nil` in every host test — so the whole of the behaviour is asserted by
+      calling `tickSleepTimer(by:)` rather than by waiting out a thirty-second fade in real
+      time. `PlayerCentre.swift` crossed SwiftLint's 400-line cap on the way, so the timer is
+      its own extension file, `PlayerSleep.swift`, as the position already is.
+      End of chapter is absent on iOS too: `SleepTimerSheet` asks
+      `PlayerCentre.canSleepAtEndOfChapter` and does not draw the row a read-aloud session
+      could not honour. The remaining time is on the face of the control and **moves**, and the
+      control now announces a name *and* a value — it announced only the value, which is the
+      defect the speed button beside it was already fixed for.
+      **Two numbers changed to Android's, and that is deliberate**: the fade was 5 s and the
+      rewind 10 s, and the durations offered a sixth stop at 10 minutes. Both were iOS
+      inventions against a product decision recorded for the other platform, and
+      `SleepTimerTests` now pins them to Android's — a listener falling asleep in a different
+      place on the two platforms is the divergence this task exists to prevent.
+      **Still `[~]`, and the reason is not a platform**: a *synthesised voice* cannot fade.
+      `AVSpeechUtterance.volume` applies to the next utterance and not the one being spoken, so
+      `setVolume` has a documented no-op default and a read-aloud timer stops the voice without
+      a ramp. That is the `design.md` decision the note above §5 says nobody has made — it is
+      still unmade, and the default is what keeps the undecided half from blocking the decided
+      one. Android has the same gap for the same reason: its read-aloud host is not a
+      `PlayerSource` yet, so nothing there fades a voice either.
 - [x] 5.4 Android: declare `COMMAND_SEEK_TO_PREVIOUS`/`NEXT` so the notification's
       three compact slots carry seek-back / play-pause / seek-forward.
       **Done.** All four are added in `onConnect`: the two chapter moves a head unit uses

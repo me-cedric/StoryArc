@@ -55,6 +55,21 @@ public protocol PlaybackSource: AnyObject {
     func stop()
     func setSpeed(_ speed: PlaybackSpeed)
 
+    /// How loud, 0…1, for the sleep timer's fade.
+    ///
+    /// `audio-playback`: playback "fades out rather than cutting off when it elapses".
+    ///
+    /// **It has a default, and the default is the honest answer for one of the two sources.**
+    /// A narrated file has a volume to ramp. A synthesised voice does not — it either finishes
+    /// the sentence it is on or stops in the middle of a word, and `AVSpeechUtterance.volume`
+    /// applies to the *next* utterance rather than the one being spoken. So a voice that
+    /// cannot ramp does nothing here and is still stopped by the timer, which is the clause
+    /// that matters: the alternative is a sleep timer that a read-aloud listener cannot use at
+    /// all. `design.md` has not yet recorded a decision for the voice's half — see the note
+    /// above §5 of `audiobooks-and-playback/tasks.md` — and this default is what keeps the
+    /// undecided half from blocking the decided one.
+    func setVolume(_ gain: Double)
+
     /// Move to a point inside a part.
     ///
     /// Only ever called where the part has a known duration — ``PlayerCentre`` will not ask
@@ -72,4 +87,9 @@ public protocol PlaybackSource: AnyObject {
     /// neighbouring one rather than stopping at the boundary", and only the engine knows
     /// where the neighbour begins.
     func skip(_ direction: SkipDirection, by interval: TimeInterval)
+}
+
+public extension PlaybackSource {
+    /// A source with no volume to ramp. See the requirement's own note.
+    func setVolume(_ gain: Double) {}
 }

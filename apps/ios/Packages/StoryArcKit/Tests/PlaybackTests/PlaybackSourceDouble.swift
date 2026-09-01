@@ -53,6 +53,7 @@ final class PlaybackSourceDouble: PlaybackSource {
         case pause
         case stop
         case speed(Double)
+        case volume(Double)
         case seek(part: Int, offset: TimeInterval)
         case skip(SkipDirection, TimeInterval)
     }
@@ -78,6 +79,10 @@ final class PlaybackSourceDouble: PlaybackSource {
     func pause() { calls.append(.pause) }
     func stop() { calls.append(.stop) }
     func setSpeed(_ speed: PlaybackSpeed) { calls.append(.speed(speed.rate)) }
+
+    /// Recorded rather than defaulted away, because the sleep timer's fade is a number that
+    /// has to reach the thing making the sound — see `SleepTimerRunningTests`.
+    func setVolume(_ gain: Double) { calls.append(.volume(gain)) }
 
     func seek(toPart index: Int, offset: TimeInterval) {
         calls.append(.seek(part: index, offset: offset))

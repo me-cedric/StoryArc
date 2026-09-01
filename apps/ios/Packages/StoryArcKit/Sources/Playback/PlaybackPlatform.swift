@@ -1,8 +1,8 @@
 /// The platform's own half of a playback session.
 ///
-/// Three moments, because there are three: the session started and the app should claim the
-/// audio, something changed and the lock screen should say so, and the session ended and
-/// both should be given back.
+/// Four moments, because there are four: the session started and the app should claim the
+/// audio, something changed and the lock screen should say so, the session ended and both
+/// should be given back — and a sleep timer began or stopped needing a clock.
 ///
 /// A protocol rather than a concrete type so ``PlayerCentre`` stays host-testable: there is
 /// no `AVAudioSession` and no `MPNowPlayingInfoCenter` on the machine `pnpm test:ios` runs
@@ -15,6 +15,25 @@ public protocol PlaybackPlatform: AnyObject {
     func published()
     /// Give the audio back and take the book off the lock screen.
     func sessionEnded()
+
+    /// A sleep timer was set, replaced or cleared.
+    ///
+    /// **The wall clock is on this side of the line, and that is deliberate.** The countdown
+    /// has to keep running while the listener is asleep with the screen off, which is a real
+    /// clock — and a real clock is the one thing a host test must not have: a thirty-second
+    /// fade asserted in real time is thirty seconds of a unit test, and a thirty-minute timer
+    /// is not assertable at all. So the ticking lives here, beside the audio session, and the
+    /// whole of the behaviour — the count, the ramp, the elapsing, the rewind — is
+    /// ``PlayerCentre/tickSleepTimer(by:)``, asserted without one.
+    ///
+    /// Android puts its countdown in `PlaybackHost` because a `CoroutineScope` is already
+    /// there and its unit tests drive `SleepTimer` directly rather than the host. Same split,
+    /// each platform's own seam.
+    ///
+    /// - Parameter isRunning: whether a timer is now counting. `false` releases the clock —
+    ///   a clock left running after the timer is spent is a phone woken twice a second for
+    ///   nothing.
+    func sleepTimerChanged(isRunning: Bool)
 }
 
 /// The audio session and the lock screen, as one thing to hand ``PlayerCentre``.
@@ -27,8 +46,14 @@ public protocol PlaybackPlatform: AnyObject {
 public final class SystemPlaybackPlatform: PlaybackPlatform {
     private let audio: PlaybackAudioSession
     private let nowPlaying: NowPlaying
+    private weak var centre: PlayerCentre?
+
+    /// The sleep timer's clock, while one is set. See
+    /// ``PlaybackPlatform/sleepTimerChanged(isRunning:)``.
+    private var countdown: Task<Void, Never>?
 
     public init(for centre: PlayerCentre) {
+        self.centre = centre
         audio = PlaybackAudioSession(driving: centre)
         nowPlaying = NowPlaying(publishing: centre)
     }
@@ -38,8 +63,32 @@ public final class SystemPlaybackPlatform: PlaybackPlatform {
     public func published() { nowPlaying.publish() }
 
     public func sessionEnded() {
+        sleepTimerChanged(isRunning: false)
         nowPlaying.clear()
         audio.end()
+    }
+
+    /// Starts or releases the clock that moves the countdown.
+    ///
+    /// An unstructured `Task` because its lifetime is the timer's rather than any caller's:
+    /// the listener sets a timer from a sheet they then dismiss, and the count has to outlive
+    /// the screen exactly as the session does. Cancelled rather than left to finish, so a
+    /// replaced timer never leaves two clocks running against one countdown.
+    ///
+    /// `Task.sleep` rather than a `Timer`: the interval is half a second and the drift a
+    /// coalesced timer would introduce over a thirty-minute count is real, whereas a suspended
+    /// task costs nothing while it waits.
+    public func sleepTimerChanged(isRunning: Bool) {
+        countdown?.cancel()
+        countdown = nil
+        guard isRunning else { return }
+        countdown = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(SleepCountdown.tick))
+                guard !Task.isCancelled, let centre = self?.centre, centre.sleep != nil else { return }
+                centre.tickSleepTimer(by: SleepCountdown.tick)
+            }
+        }
     }
 }
 

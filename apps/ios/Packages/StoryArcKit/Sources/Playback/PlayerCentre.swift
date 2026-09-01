@@ -28,11 +28,15 @@ public final class PlayerCentre {
 
     /// Whether audio is running, and what silenced it if it is not.
     ///
-    /// Private-set and read through the two questions below: what silenced the audio is this
-    /// type's business, and a surface needs only "is there a session" and "is it playing".
-    /// Exposing the cause would invite a view to decide what a pause means, which is the one
-    /// decision ``PlaybackSession`` exists to keep in one place.
-    public private(set) var session = PlaybackSession()
+    /// Read through the two questions below: what silenced the audio is this type's business,
+    /// and a surface needs only "is there a session" and "is it playing". Exposing the cause
+    /// would invite a view to decide what a pause means, which is the one decision
+    /// ``PlaybackSession`` exists to keep in one place.
+    ///
+    /// `internal(set)` rather than `private(set)` only because the sleep timer lives in a
+    /// second file — `PlayerSleep.swift`, as the position lives in `PlayerPosition.swift`.
+    /// Nothing outside this module may set it, and nothing inside it does but those two.
+    public internal(set) var session = PlaybackSession()
 
     /// The book being played, or `nil` when nothing is.
     public private(set) var book: SpokenBook?
@@ -49,8 +53,8 @@ public final class PlayerCentre {
     /// How far a skip goes. See ``SkipIntervals`` for why the defaults are what they are.
     public var skipIntervals: SkipIntervals = .default
 
-    /// The sleep timer, while one is set.
-    public private(set) var sleep: SleepCountdown?
+    /// The sleep timer, while one is set. Everything that moves it is in `PlayerSleep.swift`.
+    public internal(set) var sleep: SleepCountdown?
 
     /// How many parts of this book could not be decoded.
     ///
@@ -134,7 +138,9 @@ public final class PlayerCentre {
     /// See ``PlayerCentre/adoptSystemPlatform()``, in `PlaybackPlatform.swift`.
     @ObservationIgnored public var platform: (any PlaybackPlatform)?
 
-    @ObservationIgnored private var source: (any PlaybackSource)?
+    /// The engine, whichever kind it is. Internal rather than private for the reason
+    /// ``session`` is: `PlayerSleep.swift` has to fade it and stop it.
+    @ObservationIgnored internal var source: (any PlaybackSource)?
 
     /// The one session there can be.
     ///
@@ -251,41 +257,6 @@ public final class PlayerCentre {
         published()
     }
 
-    // MARK: - The sleep timer
-
-    /// Sets, replaces or clears the sleep timer.
-    public func setSleepTimer(_ timer: SleepTimer?) {
-        guard let timer else {
-            sleep = nil
-            return
-        }
-        sleep = SleepCountdown(timer: timer, remaining: remaining(of: timer))
-    }
-
-    /// The timer elapsed and the fade has finished.
-    ///
-    /// `audio-playback`: "the position at which it stopped is recorded, so resuming starts a
-    /// little before it rather than where the fade ended" — which is
-    /// ``SleepCountdown/recordedPlace(afterFadingAt:)``, and the reason the record below is
-    /// not simply ``place``.
-    public func sleepTimerElapsed() {
-        guard let book, session.isActive else { return }
-        record(at: SleepCountdown.recordedPlace(afterFadingAt: place))
-        sleep = nil
-        session = session.pausedByListener()
-        source?.pause()
-        published()
-    }
-
-    private func remaining(of timer: SleepTimer) -> TimeInterval? {
-        switch timer {
-        case let .after(seconds):
-            seconds
-        case .endOfChapter:
-            currentPart?.duration.map { max(0, $0 - place.offset) }
-        }
-    }
-
     // MARK: - What the platform does to it
 
     /// What the end of an interruption means, asked of the session rather than decided
@@ -341,8 +312,11 @@ public final class PlayerCentre {
         guard let source else { return }
         place = source.place
         book = book?.naming(title(ofPartAt: place.partIndex))
-        if let sleep, case .endOfChapter = sleep.timer {
-            self.sleep = SleepCountdown(timer: .endOfChapter, remaining: remaining(of: .endOfChapter))
+        // End of chapter is a place, so it moves when the audio does — including by a skip
+        // the listener made between two ticks. The volume is left to the tick, which is at
+        // most half a second away.
+        if let sleep, sleep.timer == .endOfChapter {
+            self.sleep = sleep.ticked(by: 0, playing: time)
         }
         recordReached()
         published()
@@ -374,7 +348,10 @@ public final class PlayerCentre {
     /// Called at the end of every method that changes this object. A publish that lives at
     /// the call sites instead is a publish somebody forgets at one of them, and the symptom
     /// — a lock screen a few seconds behind the app — is the kind nobody reports.
-    private func published() {
+    ///
+    /// Internal rather than private only because the sleep timer's own methods are in a second
+    /// file and each of them ends here too.
+    internal func published() {
         platform?.published()
     }
 

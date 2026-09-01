@@ -165,7 +165,12 @@ final class PlatformDouble: PlaybackPlatform {
     private(set) var publishes = 0
     private(set) var ended = 0
 
+    /// Whether the platform has been asked for the sleep timer's clock, and never asked to
+    /// give it back. `nil` until it is asked either way.
+    private(set) var sleepClockRunning: Bool?
+
     func sessionBegan() { began += 1 }
     func published() { publishes += 1 }
     func sessionEnded() { ended += 1 }
+    func sleepTimerChanged(isRunning: Bool) { sleepClockRunning = isRunning }
 }

@@ -237,7 +237,16 @@ public struct FullPlayerView: View {
                 label: Text("player.speed", bundle: .module),
                 value: Text("player.speed.value \(speedText)", bundle: .module)
             ) { showingSpeed = true }
-            settingButton("moon.zzz", sleepText) { showingSleep = true }
+            // `audio-playback` asks a screen reader to hear "a name and, where it carries one,
+            // its value — the speed, the skip interval, **the remaining sleep time**". The
+            // face of the control is the value; the name is stated separately, exactly as the
+            // speed button beside it does.
+            settingButton(
+                "moon.zzz",
+                sleepText,
+                label: Text("player.sleep", bundle: .module),
+                value: centre.sleep == nil ? nil : sleepText
+            ) { showingSleep = true }
         }
     }
 
@@ -246,12 +255,16 @@ public struct FullPlayerView: View {
             .formatted(.number.precision(.fractionLength(0...2)))
     }
 
+    /// The remaining time, on the face of the control.
+    ///
+    /// `audio-playback` requires "the remaining time is shown on the player", and both kinds
+    /// of timer answer with one number — a duration counts itself down, *end of chapter* is
+    /// re-read from where the audio has reached — so there is no branch here on which was
+    /// chosen. It moves because ``PlayerCentre/tickSleepTimer(by:)`` moves it; a static
+    /// number would be the shipped defect in a different costume.
     private var sleepText: Text {
         guard let sleep = centre.sleep else { return Text("player.sleep", bundle: .module) }
-        guard let remaining = sleep.remaining else {
-            return Text("player.sleep.endOfChapter", bundle: .module)
-        }
-        return Text("player.sleep.remaining \(PlayerLabels.time(remaining))", bundle: .module)
+        return Text("player.sleep.remaining \(PlayerLabels.time(sleep.remaining))", bundle: .module)
     }
 
     private func settingButton(

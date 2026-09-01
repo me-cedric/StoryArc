@@ -83,6 +83,16 @@ public final class NarratedSource: PlaybackSource {
         if player.rate != 0 { player.rate = Float(speed.rate) }
     }
 
+    /// How loud, for the sleep timer's fade.
+    ///
+    /// The player's own volume rather than the item's: a folder audiobook swaps items at
+    /// every part boundary, and a gain set on the item would jump back to full the moment a
+    /// fade crossed one. Android's fade is applied to the `MediaController` for the same
+    /// reason.
+    public func setVolume(_ gain: Double) {
+        player.volume = Float(min(1, max(0, gain)))
+    }
+
     public func seek(toPart index: Int, offset: TimeInterval) {
         load(part: index, offset: offset)
     }

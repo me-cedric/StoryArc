@@ -122,6 +122,13 @@ public struct SpeedSheet: View {
 /// `audio-playback`: "a duration or *end of chapter* may be chosen". The end-of-chapter
 /// option is the **product decision** `design.md` records — a music player has no reason to
 /// offer it, a book player does, and it is the one a listener falling asleep actually wants.
+///
+/// **End of chapter is absent rather than inert where nothing knows how long the chapter
+/// is.** A session being read aloud has no true duration, so there is no end to stop at, and
+/// "every control the player offers works, or is absent — none is present and refusing"
+/// applies to the one row that cannot always be honoured. The row asks
+/// ``PlayerCentre/canSleepAtEndOfChapter``; Android's chip asks the same question and is not
+/// drawn either.
 public struct SleepTimerSheet: View {
     @Environment(\.theme) private var theme
     @Environment(\.dismiss) private var dismiss
@@ -138,11 +145,13 @@ public struct SleepTimerSheet: View {
                 row(Text("player.sleep.off", bundle: .module), isChosen: centre.sleep == nil) {
                     centre.setSleepTimer(nil)
                 }
-                row(
-                    Text("player.sleep.endOfChapter", bundle: .module),
-                    isChosen: centre.sleep?.timer == .endOfChapter
-                ) {
-                    centre.setSleepTimer(.endOfChapter)
+                if centre.canSleepAtEndOfChapter {
+                    row(
+                        Text("player.sleep.endOfChapter", bundle: .module),
+                        isChosen: centre.sleep?.timer == .endOfChapter
+                    ) {
+                        centre.setSleepTimer(.endOfChapter)
+                    }
                 }
                 ForEach(SleepTimer.durations, id: \.self) { seconds in
                     row(
