@@ -72,7 +72,7 @@ struct AppIconChoiceTests {
     func codable() throws {
         for face in AppIconChoice.allCases {
             let data = try JSONEncoder().encode(face)
-            #expect(String(decoding: data, as: UTF8.self) == "\"\(face.rawValue)\"")
+            #expect(String(bytes: data, encoding: .utf8) == "\"\(face.rawValue)\"")
             #expect(try JSONDecoder().decode(AppIconChoice.self, from: data) == face)
         }
     }

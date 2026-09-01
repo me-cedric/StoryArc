@@ -128,6 +128,22 @@ class AppIconSwitcherTest {
         assertFalse(answer)
     }
 
+    /**
+     * A platform that will not answer a *read* is the default, not a crash.
+     *
+     * Reachable in ordinary use: a component the platform does not recognise answers with an
+     * `IllegalArgumentException`, and `applied()` is called while a settings screen is being
+     * composed — the one moment where a throw is a blank screen rather than a refusal.
+     */
+    @Test
+    fun `a platform that will not report a component reads as the default`() {
+        val switcher = AppIconSwitcher(
+            read = { throw IllegalArgumentException("unknown component") },
+            write = { _, _ -> },
+        )
+        assertEquals(AppIconChoice.DEFAULT, switcher.applied())
+    }
+
     /** The default face goes by the same route, and lands on the manifest's own states. */
     @Test
     fun `returning to the default writes what a fresh install holds`() {

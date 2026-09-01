@@ -13,6 +13,7 @@ internal import SwiftUI
 /// licences and "Language" is the whole group, so both stay group matches — pointing at
 /// them would be pointing at a screen, which arriving there already does.
 enum SettingsAnchor: String, CaseIterable, Identifiable, Sendable {
+    case appIcon
     case naturalTheme
     case linkReadingTheme
     case volumeButtons
@@ -31,7 +32,7 @@ enum SettingsAnchor: String, CaseIterable, Identifiable, Sendable {
     /// screen that does not show it.
     var group: SettingsGroup {
         switch self {
-        case .naturalTheme, .linkReadingTheme: .appearance
+        case .appIcon, .naturalTheme, .linkReadingTheme: .appearance
         case .volumeButtons, .readingDefaults: .reading
         case .downloadsWiFiOnly, .downloadsRemoveAfterFinishing, .downloadsLimit: .downloads
         case .clearCache, .clearHistory, .clearDownloads, .diagnostic: .privacy
@@ -42,6 +43,7 @@ enum SettingsAnchor: String, CaseIterable, Identifiable, Sendable {
     /// the reader is about to see rather than as a synonym for it.
     var titleKey: LocalizedStringKey {
         switch self {
+        case .appIcon: "appIcon.title"
         case .naturalTheme: "appearance.natural"
         case .linkReadingTheme: "appearance.linkTheme"
         case .volumeButtons: "reading.volumeButtons"

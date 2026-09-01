@@ -67,6 +67,11 @@ extension SettingsGroup {
         Entry(terms: ["appearance", "theme", "dark", "light", "night", "oled", "black",
                       "colour", "color"],
               match: SettingMatch(group: .appearance)),
+        // "paper" is Natural's, deliberately, although Paper is also a face: a reader who
+        // types it means the reading theme far more often than the tile, and the icon
+        // chooser is one row below whatever Appearance opens on.
+        Entry(terms: ["icon", "app icon", "tile", "home screen", "logo", "mark"],
+              match: SettingMatch(anchor: .appIcon)),
         Entry(terms: ["natural", "paper", "grain", "texture", "warm"],
               match: SettingMatch(anchor: .naturalTheme)),
         Entry(terms: ["link", "match", "chrome"], match: SettingMatch(anchor: .linkReadingTheme)),

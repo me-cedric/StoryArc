@@ -130,6 +130,37 @@ class SettingsSemanticsTest {
         compose.onNodeWithText(context.getString(R.string.appearance_system)).assertIsSelected()
     }
 
+    /**
+     * `settings-and-about`: an icon option is announced "by name and by whether it is the one
+     * in use, and never as an unlabelled image".
+     *
+     * The tile is `contentDescription = null` and `selectableRow` merges the row, so what
+     * TalkBack reaches is one selectable node carrying the face's name — which is exactly
+     * what this asks for and what a described tile would have broken by making every row read
+     * "image, Paper".
+     *
+     * The default face is the one in use here because this test APK declares none of the
+     * app's launcher components, so `AppIconSwitcher.applied()` answers with the default —
+     * which is itself the behaviour `AppIconSwitcherTest` pins.
+     */
+    @Test
+    fun eachIconOptionIsNamedAndSaysWhetherItIsInUse() {
+        showSettings()
+        open(R.string.settings_appearance)
+        compose.onNodeWithText(context.getString(R.string.app_icon_ink)).assertIsSelected()
+        // And the rest are reachable by name rather than as images.
+        listOf(R.string.app_icon_paper, R.string.app_icon_bloom, R.string.app_icon_arc, R.string.app_icon_mono)
+            .forEach { compose.onNodeWithText(context.getString(it)).assertExists() }
+    }
+
+    /** "The default is marked as the default, so a reader can find it without remembering." */
+    @Test
+    fun theDefaultIconSaysItIsTheDefault() {
+        showSettings()
+        open(R.string.settings_appearance)
+        compose.onNodeWithText(context.getString(R.string.app_icon_default)).assertIsDisplayed()
+    }
+
     @Test
     fun everyMatteSwatchSaysWhatItIsAndBlackSaysItIsTheDefault() {
         showSettings()

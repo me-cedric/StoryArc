@@ -45,9 +45,17 @@ internal class AppIconSwitcher(
      * chooser's own order wins rather than an arbitrary one — a deterministic answer is what
      * lets the next plan settle the device instead of flickering between two.
      */
-    fun applied(): AppIconChoice =
+    fun applied(): AppIconChoice = try {
         AppIconChoice.entries.firstOrNull { AppIconAliases.isEnabled(it, read(it)) }
             ?: AppIconChoice.DEFAULT
+    } catch (failure: RuntimeException) {
+        // A platform that will not say gets the default rather than a crash, for the same
+        // reason `choose` refuses rather than throwing: this is a settings row, and a reader
+        // who opened Appearance must not be shown a stack trace. The default is the honest
+        // answer too — a device that cannot report a component's state is one where nothing
+        // has changed it.
+        AppIconChoice.DEFAULT
+    }
 
     /**
      * Applies [choice], and reports whether every write landed.

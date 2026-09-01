@@ -164,5 +164,19 @@ internal fun AppearanceGroup(
                 .padding(top = StoryArcSpace.md)
                 .settingsHighlight(SettingsAnchor.LINK_READING_THEME, highlight),
         )
+
+        // Beside Appearance, which `settings-and-about` asks for by name: "both answer *what
+        // does the app look like*". Last of the rows, because an icon is chosen once and an
+        // appearance is changed on a whim — and because five 56dp tiles at the top would bury
+        // everything above them.
+        //
+        // The whole group, not its first row: the chooser is one setting to a reader and five
+        // rows to the layout, so a tint covering only Ink would point at a face rather than at
+        // the choice. iOS's `AppIconSettings` is highlighted the same way.
+        AppIconGroup(
+            modifier = Modifier
+                .padding(top = StoryArcSpace.md)
+                .settingsHighlight(SettingsAnchor.APP_ICON, highlight),
+        )
     }
 }

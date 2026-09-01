@@ -178,4 +178,14 @@
     <string name="whats_new_0_1_0_place_body">Wo Sie aufgeh\u00f6rt haben, wird auch nach einer Umbenennung oder Verschiebung wiedergefunden, und Ihr Kavita-Server erf\u00e4hrt davon.</string>
     <string name="whats_new_0_1_0_private_title">Nichts verl\u00e4sst das Ger\u00e4t</string>
     <string name="whats_new_0_1_0_private_body">Kein Konto, keine Analyse. StoryArc spricht nur mit den Bibliotheken, die Sie selbst hinzugef\u00fcgt haben.</string>
+
+    <string name="app_icon_title">App-Symbol</string>
+    <string name="app_icon_note">Fünf Gesichter einer Marke. Ihr Launcher zeigt das neue Symbol, sobald er seine Liste das nächste Mal aufbaut.</string>
+    <string name="app_icon_default">Standard</string>
+    <string name="app_icon_refused">Das Symbol konnte nicht geändert werden. StoryArc verwendet weiterhin %1$s.</string>
+    <string name="app_icon_ink">Tinte</string>
+    <string name="app_icon_paper">Papier</string>
+    <string name="app_icon_bloom">Blüte</string>
+    <string name="app_icon_arc">Bogen</string>
+    <string name="app_icon_mono">Mono</string>
 </resources>

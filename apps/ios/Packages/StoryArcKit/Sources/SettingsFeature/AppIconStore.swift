@@ -46,6 +46,20 @@ struct AppIconPlatform {
         )
     }
     #endif
+
+    /// Whatever this build has.
+    ///
+    /// `StoryArcKit` also builds for macOS so the pure suites can run on the host without a
+    /// simulator (ADR-0003), and there is no alternate-icon API there. The fallback refuses
+    /// every change rather than pretending to accept one — a screen nobody draws, answering
+    /// honestly if anybody ever does.
+    static var current: AppIconPlatform {
+        #if canImport(UIKit)
+        uiKit
+        #else
+        AppIconPlatform(applied: { .default }, apply: { _, done in done(false) })
+        #endif
+    }
 }
 
 /// What the icon chooser shows and what pressing a row does.

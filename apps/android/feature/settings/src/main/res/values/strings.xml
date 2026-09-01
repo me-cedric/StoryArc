@@ -183,4 +183,18 @@
     <string name="whats_new_0_1_0_place_body">Where you stopped is found again after a file is renamed or moved, and your Kavita server is told.</string>
     <string name="whats_new_0_1_0_private_title">Nothing leaves the device</string>
     <string name="whats_new_0_1_0_private_body">No account, no analytics. StoryArc talks only to the libraries you added yourself.</string>
+
+    <!-- The app icon a reader chooses. Five faces of one mark, drawn by five launcher
+         components with exactly one enabled — see `AppIconAliases`. The note is Android's
+         own: this platform has no way to change an icon in place, and `settings-and-about`
+         asks the reader to be told rather than left wondering. -->
+    <string name="app_icon_title">App icon</string>
+    <string name="app_icon_note">Five faces of one mark. Your launcher shows the new icon the next time it draws its list.</string>
+    <string name="app_icon_default">Default</string>
+    <string name="app_icon_refused">The icon could not be changed. StoryArc is still using %1$s.</string>
+    <string name="app_icon_ink">Ink</string>
+    <string name="app_icon_paper">Paper</string>
+    <string name="app_icon_bloom">Bloom</string>
+    <string name="app_icon_arc">Arc</string>
+    <string name="app_icon_mono">Mono</string>
 </resources>

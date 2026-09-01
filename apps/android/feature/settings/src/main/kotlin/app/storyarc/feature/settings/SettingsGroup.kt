@@ -185,6 +185,11 @@ internal val SEARCHABLE: List<Pair<List<String>, SettingMatch>> = listOf(
         SettingMatch.of(SettingsGroup.SOURCES),
     listOf("appearance", "theme", "dark", "light", "night", "oled", "black", "colour", "color") to
         SettingMatch.of(SettingsGroup.APPEARANCE),
+    // "paper" is Natural's, deliberately, although Paper is also a face: a reader who types it
+    // means the reading theme far more often than the tile, and the icon chooser is a few rows
+    // below whatever Appearance opens on.
+    listOf("icon", "app icon", "tile", "home screen", "logo", "mark") to
+        SettingMatch.of(SettingsAnchor.APP_ICON),
     listOf("natural", "paper", "grain", "texture", "warm") to
         SettingMatch.of(SettingsAnchor.NATURAL_THEME),
     listOf("dynamic", "wallpaper", "material you", "brand", "palette") to

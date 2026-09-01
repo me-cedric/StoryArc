@@ -16,6 +16,12 @@ struct AppearanceSettings: View {
     /// `NaturalTheme`. Its own key, written here and read by the theme resolver, so
     /// the two cannot get out of step and the app target needs no new argument.
     @AppStorage(NaturalTheme.storageKey) private var isNatural = false
+    /// What the home screen is drawing, and what changing it does.
+    ///
+    /// Held here rather than passed in, because it holds nothing worth hoisting: the platform
+    /// is the store, and this is a window onto it. `@State` so the one instance survives a
+    /// recomposition, which is what lets a refusal stay on screen.
+    @State private var appIcon = AppIconStore(platform: .current)
     /// The row a search result pointed at, if the reader arrived through one.
     var highlight: SettingsAnchor?
 
@@ -81,6 +87,17 @@ struct AppearanceSettings: View {
                 }
                 .settingsHighlight(.linkReadingTheme, when: highlight)
             }
+
+            // Beside Appearance, which `settings-and-about` asks for by name: "both answer
+            // *what does the app look like*". Last of the four sections, because an icon is
+            // chosen once and an appearance is changed on a whim — and because a section of
+            // five 60-point tiles at the top would bury the four rows above it.
+            //
+            // The whole section, not its first row: the chooser is one setting to a reader
+            // and five rows to the layout, so a tint covering only Ink would point at a face
+            // rather than at the choice.
+            AppIconSettings(store: appIcon)
+                .settingsHighlight(.appIcon, when: highlight)
         }
     }
 }

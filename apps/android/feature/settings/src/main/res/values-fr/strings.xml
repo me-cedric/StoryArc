@@ -178,4 +178,14 @@
     <string name="whats_new_0_1_0_place_body">L\u2019endroit o\u00f9 vous vous \u00eates arr\u00eat\u00e9 est retrouv\u00e9 m\u00eame apr\u00e8s un fichier renomm\u00e9 ou d\u00e9plac\u00e9, et votre serveur Kavita en est inform\u00e9.</string>
     <string name="whats_new_0_1_0_private_title">Rien ne quitte l\u2019appareil</string>
     <string name="whats_new_0_1_0_private_body">Pas de compte, pas de statistiques. StoryArc ne parle qu\u2019aux biblioth\u00e8ques que vous avez ajout\u00e9es.</string>
+
+    <string name="app_icon_title">Icône de l’application</string>
+    <string name="app_icon_note">Cinq visages d’une même marque. Votre lanceur affichera la nouvelle icône la prochaine fois qu’il dressera sa liste.</string>
+    <string name="app_icon_default">Par défaut</string>
+    <string name="app_icon_refused">L’icône n’a pas pu être changée. StoryArc utilise toujours %1$s.</string>
+    <string name="app_icon_ink">Encre</string>
+    <string name="app_icon_paper">Papier</string>
+    <string name="app_icon_bloom">Floraison</string>
+    <string name="app_icon_arc">Arc</string>
+    <string name="app_icon_mono">Mono</string>
 </resources>

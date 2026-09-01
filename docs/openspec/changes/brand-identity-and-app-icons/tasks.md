@@ -311,20 +311,64 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 
 ## 5. What a reader sees
 
-- [ ] 5.1 Both: the chooser shows what was **applied**, not what was stored, and reconciles
+- [x] 5.1 Both: the chooser shows what was **applied**, not what was stored, and reconciles
       on launch against the platform's own answer.
-- [ ] 5.2 Both: the chooser sits beside Appearance and is reachable by the settings search.
-- [ ] 5.3 Both: each option is drawn as the icon it actually is, at home-screen size, current
+      **There is nothing stored to disagree with it**, which is the strongest form this can
+      take: iOS reads `UIApplication.alternateIconName` on every appearance and Android asks
+      `getComponentEnabledSetting` per face. Both are re-read *after* a refusal too, which is
+      what lets the message name the face still in use without the screen remembering anything.
+      `AppIconStoreTests` drives an icon changed outside the chooser and a platform that has
+      not answered yet; `AppIconSwitcherTest` drives a component changed under the app's feet.
+- [x] 5.2 Both: the chooser sits beside Appearance and is reachable by the settings search.
+      **Inside Appearance rather than beside it as a group**, which is the reading the spec's
+      own sentence asks for: "it sits beside Appearance, because both answer *what does the app
+      look like*". A group of its own would be beside Appearance in a list; a section inside it
+      is beside the appearance rows themselves, and it costs no third navigation level on
+      Android. `SettingsAnchor.appIcon` / `APP_ICON` makes search point at it and the existing
+      highlight machinery light it up — mirrored term for term, six terms a side, and both
+      platforms' "every anchor is reachable by search" tests now cover it.
+      **"paper" is deliberately still Natural's**, although Paper is also a face: a reader who
+      types it means the reading theme far more often than the tile.
+- [x] 5.3 Both: each option is drawn as the icon it actually is, at home-screen size, current
       one marked, default marked as default.
-- [ ] 5.4 Android: the reader is told the change appears the next time the launcher draws its
+      **Android draws the component's own launcher icon rather than rebuilding it.** The plates
+      and the mark live in `:app`'s resources, which a feature module cannot reference at all,
+      and an `<adaptive-icon>` is not something `painterResource` can draw even where it can see
+      one. So the tile is `ActivityInfo.loadIcon` with `MATCH_DISABLED_COMPONENTS` — four of the
+      five components are disabled at any moment — rasterised at 56dp. That means a face whose
+      manifest entry is wrong looks wrong *here*, rather than looking right here and wrong on the
+      home screen. iOS asks the asset catalogue for the set by name, at 60pt with iOS's own
+      squircle corner and a hairline so Paper's off-white plate has an edge.
+- [x] 5.4 Android: the reader is told the change appears the next time the launcher draws its
       list. iOS changes in place. **Do not paper over the difference** — the spec states it
       because the platform does.
-- [ ] 5.5 Both: a refusal says the icon could not be changed and names the one still in use,
+      Two different sentences, in four languages each. Android's names the launcher's own
+      schedule; iOS's names the system confirmation it is about to see, which is the other thing
+      that platform does and this one does not.
+- [x] 5.5 Both: a refusal says the icon could not be changed and names the one still in use,
       and does not retry silently.
-- [ ] 5.6 Both: largest accessibility text size — names readable in full, tiles still
+      The refusal **replaces** the section's note rather than joining it — a reader who has just
+      been told the change failed does not need the general note underneath — and it names the
+      face still in use, because "it could not be changed" alone leaves them guessing what they
+      are now looking at. Nothing retries: `AppIconStoreTests` counts the calls across two
+      reconciles, and every way `PackageManager` refuses is caught on the Android side rather
+      than reaching the reader as a crash. **`applied()` catches a failed *read* too**, and that
+      one is reachable in ordinary use: it runs while the screen is being composed, where a
+      throw is a blank screen rather than a message.
+- [~] 5.6 Both: largest accessibility text size — names readable in full, tiles still
       distinguishable, list scrolls.
-- [ ] 5.7 Both: each option announced by name and by whether it is in use; the tile itself
+      Built for: the tile is a fixed 60pt / 56dp and the name takes the remaining width and
+      wraps, so the row grows taller instead of truncating. A tile that grew with the text would
+      push the name it exists beside off the row, and the requirement is about the *names*.
+      **Not yet photographed** — that is 6.2, and it is the only thing that can settle it.
+- [x] 5.7 Both: each option announced by name and by whether it is in use; the tile itself
       decorative, because the name is what identifies it.
+      iOS combines the row's children and adds `.isSelected`, so "in use" is a trait rather than
+      a second string to translate; Android's existing `selectableRow` already merges and
+      announces a `RadioButton` role. The tile is `accessibilityHidden` / `contentDescription =
+      null` on each side — a described tile would make every row read "image, Paper" and say
+      nothing a blind reader can act on. Two cases added to `SettingsSemanticsTest`, which is
+      the only place the question can be asked: a screenshot cannot show what a node merges.
 
 ## 6. Proof and close-out
 
