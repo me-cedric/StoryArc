@@ -623,9 +623,16 @@ creep — see [`design.md`](design.md).
       that; mutation-checked by setting the default to 0, which fails it. Four more cases in
       `ProgressStoreTest` pin the round trip, the absent duration, and one position per
       publication; mutation-checked twice.
-      *Still to come: the wiring — `PlaybackHost.recordPosition` is still unset, so nothing
-      writes one of these yet.* iOS half outstanding.
-- [ ] 7.2 Both: a publication both read and listened to has **one** position, and
+      **And now wired.** `PlayingBook` sets `PlaybackHost.recordPosition` and starts a book
+      *from* what the store remembers, and `ListenedPosition` is the pure mapping between a
+      `PlaybackPosition` and a `ReadingPosition` — eleven cases in `ListenedPositionTest`,
+      including that an `Estimated` part length is stored as **no** length rather than as a
+      number. Written on a fifteen-second tick as well as at the end, because ADR-0006 makes
+      the local store authoritative and an app killed in the background is the ordinary way a
+      phone closes one; a book has no page turns to hang that on. The writer's scope is the
+      process's, not an activity's — the audio outlives every screen and so must the writing.
+      iOS half outstanding.
+- [~] 7.2 Both: a publication both read and listened to has **one** position, and
       returning never offers a choice of two.
       **iOS half done, and it is a guard rather than a feature.** `wirePlayerRecording` writes a
       listening position **only** for a publication whose format `isAudio`. A publication read
@@ -644,6 +651,22 @@ creep — see [`design.md`](design.md).
       **The end-of-publication offers are `FinishedCleanup`'s and the next-in-series shelf's**,
       and neither was traced from a finished audiobook. They hang off the same `isFinished` flag
       a comic sets, so the reasoning is that they follow; nobody watched them.
+      **Android: true by construction, and asserted.** There is one `position` field on
+      `ReadingProgress` and one row in the store, so the second kind of position replaces the
+      first rather than sitting beside it — `ProgressStoreTest` pins that a listening write
+      over a reflowable record leaves one row holding the listening one. The "never offers a
+      choice" half is `ListenedPosition.resume` answering **null** for a position left by
+      reading: the book opens at its beginning, with no prompt, because there is no second
+      place to offer. iOS half outstanding.
+- [~] 7.3 Both: finishing by listening marks the publication finished and makes the
+      same end-of-publication offers as finishing a comic.
+      **Android: the marking is done.** `ListenedPosition.isFinished` uses the fraction and
+      the same 0.999 threshold `EpubReaderViewModel` uses, so the end of the last part marks
+      the publication finished and the *start* of it does not; finished is sticky in the
+      store, as it is for a comic. A source with no known duration never claims the end,
+      which is the point of `PlaybackDuration.Estimated` carried through to the store.
+      **Not done: the offers.** The next in the series and the delete-the-download prompt are
+      the reader's end-of-publication surface, and the player has none. iOS half outstanding.
 
 ## 8. Accessibility
 

@@ -165,9 +165,14 @@ internal fun AppShell(
             // surface.
             val audiobook = OpenedAudiobook.of(publication, path, activity.contentResolver)
             if (audiobook != null) {
-                PlaybackHost.start(
+                // Through `PlayingBook` rather than straight at the host, because starting
+                // a book is also the moment its recorded place is read back and the moment
+                // the writer that keeps it is pointed at this publication.
+                PlayingBook.play(
                     context = activity,
+                    publication = publication,
                     book = audiobook,
+                    store = dependencies.progress,
                     chapterWord = activity.getString(R.string.player_chapter_word),
                 )
                 navigation = navigation.push(Screen.Player)
