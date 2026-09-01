@@ -3,5 +3,8 @@
     <!-- surfaceCanvas, light. Mirrors packages/design-tokens. -->
     <color name="launch_background">#FAF9F7</color>
     <!-- Placeholder brand mark background: brand/ember. -->
-    <color name="ic_launcher_background">#EC7C27</color>
+    <!-- The designer's own icon plate, sampled from their `ios-appicon-1024.png`: a near-black
+         tinted toward the brand's violet, hue 285. Was #EC7C27, the ember accent the brand has
+         replaced — an orange plate under a pink-to-indigo mark. -->
+    <color name="ic_launcher_background">#17171F</color>
 </resources>

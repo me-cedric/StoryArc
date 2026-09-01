@@ -2,5 +2,8 @@
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
     <foreground android:drawable="@drawable/ic_launcher_foreground" />
-    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+    <!-- The single-colour art, not the gradient one. A themed icon *retints* this layer, and
+         a gradient tinted flat loses the mark's internal divisions — the six tiles become one
+         silhouette. Generated from the same SVG by `scripts/brand-mark.swift`. -->
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
 </adaptive-icon>
