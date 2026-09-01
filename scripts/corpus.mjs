@@ -316,6 +316,13 @@ function build(root) {
   // sentence is only ever exercised by a file like this one.
   writeFileSync(at('Sealed Archive.cb7'), Buffer.from('7z\xBC\xAF\x27\x1C', 'latin1'))
 
+  // A **second** refusal, and it has to fail for a different reason than the one above.
+  // `library-browsing` forbids merging two refusals into one sentence — "two files that
+  // failed differently say different things" — and with a single refused file on the device
+  // there was no way to photograph that, or to tell a notice naming one publication from a
+  // notice that had merged two. This one is a ZIP the app reads happily and cannot decrypt.
+  zip(at('Locked Vault.cbz'), pages(4, 1), ['-P', 'storyarc'])
+
   return root
 }
 
@@ -362,6 +369,13 @@ if (target === '--self-test') {
         // No declared cover: the point of the file is that one has to be found.
         return !bytes.includes(Buffer.from('cover-image')) &&
           bytes.includes(Buffer.from('p1.png'))
+      }],
+      ['Locked Vault.cbz', () => {
+        const bytes = readFileSync(join(scratch, 'Locked Vault.cbz'))
+        // Bit 0 of the general purpose flags is what makes this a refusal rather than a
+        // comic. A `zip -P` that quietly produced a readable archive would leave the device
+        // with one refused file again and the two-reasons capture unprovable.
+        return (bytes.readUInt16LE(6) & 1) === 1
       }],
       ['Broken Transfer.cbz', () => {
         const bytes = readFileSync(join(scratch, 'Broken Transfer.cbz'))

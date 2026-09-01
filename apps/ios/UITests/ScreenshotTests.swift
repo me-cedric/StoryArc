@@ -342,7 +342,10 @@ final class ScreenshotTests: XCTestCase {
         wait(for: [settled], timeout: seconds + 3)
     }
 
-    private func attach(_ shot: XCUIScreenshot, named name: String) {
+    // Internal, not private: `private` is file-scoped, and the captures for the
+    // skipped-publications notice live in `SkippedNoticeCapture.swift` — this file is at the
+    // length the linter warns at.
+    func attach(_ shot: XCUIScreenshot, named name: String) {
         let attachment = XCTAttachment(screenshot: shot)
         attachment.name = name
         attachment.lifetime = .keepAlways
