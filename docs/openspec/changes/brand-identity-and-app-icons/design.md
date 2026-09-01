@@ -199,5 +199,10 @@ Four consequences, all visible to a reader and all in the spec:
 - **No suppression of iOS's alert**, per above.
 - **No gradient in chrome**, per the palette's direction.
 - **No custom colours or user-supplied art.** A fixed set the app ships.
-- **`brand.ink` is untouched**, and the Natural theme's `clay` pair with it — Natural is a
-  separate theme with its own accent and the brand change does not reach into it.
+- **The Natural theme is untouched.** `clay` and `clayStrong` stay exactly as they are:
+  Natural is a separate theme with its own accent and this change does not reach into it.
+  **This bullet used to say `brand.ink` was untouched too, and the review overruled that** —
+  `ink` retires, because it is Material's `secondary` in `Theme.kt` and a violet accent at hue
+  295 would sit 20° from it and read as the same colour said twice. The token table above is
+  the authority; this bullet was written before the review and is corrected rather than
+  deleted, so the next reader can see that the two once disagreed.
