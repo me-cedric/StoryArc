@@ -91,7 +91,7 @@ Android only. Test-first; a visible change owes a before/after capture per
 
 ## 2. The call sites
 
-- [ ] 2.1 Replace each site found in 1.1, one commit each, ticking as it lands.
+- [x] 2.1 Replace each site found in 1.1, one commit each, ticking as it lands.
       - [x] `feature/reader/.../PdfTextSheet.kt` — the Search/Marks tab switcher.
             `:feature:reader:testDebugUnitTest` 46 passed in 10 files, `:feature:reader:lint`
             passed. The three `Segmented*` imports are gone with it.
@@ -103,10 +103,58 @@ Android only. Test-first; a visible change owes a before/after capture per
             `Segmented*` imports it carried are removed. Nothing warned about them: Kotlin
             does not report an unused import, which is the second reason this change had no
             mechanical signal behind it.
-- [ ] 2.2 Each site's existing behaviour test must still pass **unchanged**. If one needs
+- [x] 2.2 Each site's existing behaviour test must still pass **unchanged**. If one needs
       editing, the change has altered behaviour and that is a defect, not a fixup.
-- [ ] 2.3 A source-level guard that no `SegmentedButtonRow` returns to `apps/android`.
+
+      **No existing test file was edited.** The change's whole diff is two main sources, one
+      import removal, one new component, two new test files and this list — nothing under an
+      existing `src/test` or `src/androidTest` was touched, which is checkable from the diff
+      rather than only assertable here.
+
+      | Suite | Result |
+      | --- | --- |
+      | `:feature:reader:testDebugUnitTest` | 46 passed, 10 files. `ReaderMenuTest` asserts the sheet opens on the tab the menu row names |
+      | `:feature:epubreader:testDebugUnitTest` | 54 passed. `ThemeSheetTest` asserts `AlignmentControl(` is on level two and not level one |
+      | `:core:designsystem:testDebugUnitTest` | passed with `--rerun-tasks`, including the 8 new component tests and the 3 new guard tests |
+
+      Not run, and named rather than skipped quietly: `ThemeSheetSemanticsTest` in
+      `:feature:epubreader/src/androidTest` asserts a preset announces itself as chosen. It is
+      instrumented, so no gate executes it — `pnpm build:android:tests` compiles it and
+      nothing runs it. It touches presets rather than the alignment picker, so the replaced
+      control is not among its claims.
+- [x] 2.3 A source-level guard that no `SegmentedButtonRow` returns to `apps/android`.
       Mutation-check it by re-adding one.
+
+      `core/designsystem/src/test/.../control/NoSegmentedButtonsTest.kt`. Three tests: the
+      absence across every `src/main/kotlin` tree under `apps/android`, a positive control
+      that the sweep found more than fifty files across more than four module trees, and the
+      other direction — that `ConnectedButtonGroup(` is still called from at least two files,
+      because an absence guard on its own is satisfied by deleting both controls.
+
+      In `:core:designsystem`'s own test source set, as instructed: `:feature:library`'s
+      `LibrarySearchBarTest` already guards the search bar and belongs to another agent.
+
+      Mutation-checked three times, each reverted:
+
+      | Mutation | Result |
+      | --- | --- |
+      | The dead `SegmentedButtonDefaults` import put back in `ThemeSheet.kt` — the regression that actually happened, and one Kotlin does not warn about | failed: *"The segmented button is back: ThemeSheet.kt: SegmentedButtonDefaults"* |
+      | `SingleChoiceSegmentedButtonRow { SegmentedButton() }` back in `PdfTextSheet.kt` | failed, naming both tells: *"PdfTextSheet.kt: SingleChoiceSegmentedButtonRow, SegmentedButton("* |
+      | One `ConnectedButtonGroup(` call removed | failed: *"the replacement is still drawn at both call sites"* |
+
+      Two false positives were found by running it and both are fixed rather than excused: a
+      test that forbids a spelling must contain it (so only `src/main/kotlin` is swept), and
+      the replacement's own KDoc names what it replaces (so comments are stripped, the way
+      `ThemeSheetTest` does).
+
+      **One limitation, and it is real.** This guard's task is
+      `:core:designsystem:testDebugUnitTest`, and no sibling module's sources are among its
+      inputs — the dependency runs the other way. A `SegmentedButton` added to
+      `:feature:reader` alone therefore leaves the task UP-TO-DATE and this guard silent on an
+      *incremental* run; it runs on every fresh checkout, which is what CI and a clean
+      `pnpm check` do. Closing it is one `inputs.files` declaration in
+      `core/designsystem/build.gradle.kts`, spelled out in the test's KDoc, and that file is
+      outside this change's file territory.
 
 ## 3. Proof and close-out
 
