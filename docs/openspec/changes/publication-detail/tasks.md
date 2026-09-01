@@ -66,10 +66,23 @@ when a cover was the resume affordance. Whoever syncs should add a
 
 ## Phase 0 — Answer before building
 
-- [ ] **0.1** Confirm a cover thumbnail is available to sample at the moment the
+- [x] **0.1** Confirm a cover thumbnail is available to sample at the moment the
       page is composed, on both platforms, for each of the four source types.
       Deliverable: the answer, and if it is "not always", the placeholder-then-adopt
       behaviour the delta requires, with no visible flash.
+      **Closed 2026-09-01. Both halves of the deliverable are in.** The four-source-type
+      answer is now a table in `design.md` under *When a cover is available to sample*,
+      replacing the paragraph that had it as an assumption — including the row the task did
+      not anticipate: a publication in the library from OPDS, Kavita or SMB and **not
+      downloaded** has no cover to sample ever, so the page is permanently washless and must
+      be legible that way.
+      **The iOS crossfade had already landed and this note had not caught up** — `a9a2f8d8`,
+      *a cover's wash fades in instead of appearing*. `DetailBackground.swift` draws the
+      gradient always and fades its opacity rather than holding it in an `if let`, because a
+      view that is *inserted* has nothing to interpolate from, which was the cause of the hard
+      cut. Reduced motion removes it rather than shortening it. Only the `design.md` half was
+      outstanding today; the "iOS does not" below was true when written and stopped being
+      true without the task being re-read.
 
       **The answer is "never synchronously, and for one class of publication never
       at all" — and it is written down nowhere.** On both platforms the cover is
@@ -88,19 +101,23 @@ when a cover was the resume affordance. Whoever syncs should add a
       this task exists to record and `design.md:32-36` still states it as an
       assumption rather than an answer.
 
-      **Placeholder-then-adopt: Android has it, iOS does not.**
-      `DetailHero.kt:94-98` crossfades with `animateColorAsState`. `grep` finds no
-      `withAnimation` or `.animation(` in any of the iOS `Detail*.swift` files;
-      `PublicationDetailView.swift:110` assigns the wash unanimated and
-      `DetailBackground.swift:31-45` draws it in a plain `ZStack`, so the wash
-      arrives as a hard cut — the visible flash the task forbids in as many words.
-      **To close:** write the four-source-type answer into `design.md`, and give
-      iOS the crossfade Android already has.
-- [ ] **0.2** Decide where the Android accent slot lives — a composition local
-      beside the palette, matching the shape of the iOS environment modifier — and
-      confirm it composes with the dynamic-colour scheme without tinting chrome.
+      **Placeholder-then-adopt: Android had it, iOS did not — as of `a9a2f8d8`, both do.**
+      `DetailHero.kt:94-98` crossfades with `animateColorAsState`. iOS had no
+      `withAnimation` or `.animation(` in any `Detail*.swift` file: the wash was assigned
+      unanimated and drawn in a plain `ZStack`, so it arrived as a hard cut — the visible
+      flash the task forbids in as many words. **This note is kept rather than deleted**
+      because the *cause* is the reusable part: the gradient was inside an `if let`, and a view
+      that is inserted has no previous value to animate from, so adding `.animation` to the old
+      shape would have changed nothing and looked like a platform bug.
+- [~] **0.2** Decide where the Android accent slot lives, and confirm it composes with the
+      dynamic-colour scheme without tinting chrome.
       Deliverable: the slot, with a test that chrome colour is unchanged when an
       accent is set.
+      **The decision is made and it is not the one the task assumed.** The task asked for "a
+      composition local beside the palette, matching the shape of the iOS environment
+      modifier". That clause is struck: the shipped parameter in
+      `feature/library/…/DetailAccent.kt` is the right Compose answer, for the three reasons
+      below. **The test is still owed** and is the only thing keeping this at a partial.
 
       **Neither half of the deliverable exists.** There is no composition local for
       the accent: `core/designsystem/…/theme/Theme.kt:139` declares
@@ -119,10 +136,34 @@ when a cover was the resume affordance. Whoever syncs should add a
       hex parsing or an extractor invariant — none reads
       `MaterialTheme.colorScheme`. The chrome/content separation is asserted only
       structurally, by `Theme.kt:178-182` and by the accent never entering the
-      theme. That is an argument, and this task asks for a test. **To close:**
-      either promote the slot to a composition local in `:core:designsystem` and
-      write the chrome assertion, or amend the task to say the parameter is the
-      decision and test the separation where it actually lives.
+      theme. That is an argument, and this task asks for a test.
+
+      **Decided 2026-09-01: the parameter is the decision. The task is amended, not the
+      code.** Three reasons, and the first is the one that settles it:
+
+      - **A composition local is Compose's idiom for a value the whole tree may read** —
+        theme, density, the back gesture, which is exactly the census above. The cover accent
+        is read by one screen's own subtree. Putting it in `:core:designsystem` would mean the
+        design system knows that an accent can be derived from artwork, which is a fact about
+        a feature, not about the palette.
+      - **The two platforms differ because their idioms differ, and ADR-0001 is why that is
+        allowed.** SwiftUI's environment is how a parent hands a value to an arbitrarily deep
+        subtree; the alternative there is threading it through every intervening initialiser,
+        which is much worse. Compose's answer to the same problem *is* the parameter. Mirroring
+        the SwiftUI shape into Compose would import an iOS structure with no Compose rule
+        behind it — the thing ADR-0001 exists to stop.
+      - **Material's own subtree mechanism would break the requirement.** Wrapping the page in
+        `MaterialTheme(colorScheme = …)` is how Compose gives a subtree a different colour, and
+        it would tint the chrome inside that subtree — which is the one thing this task's
+        deliverable forbids. So the accent must travel *beside* the scheme rather than in it,
+        and a parameter is what that looks like.
+
+      **The test still stands and is the remaining work.** A Robolectric composition test in
+      `feature/library/src/test/` — `GraphicsMode.NATIVE`, for `CompactPlayerTest`'s reason —
+      that renders the screen with an accent set and asserts `MaterialTheme.colorScheme` is
+      byte-identical to the same render with no accent. That is the assertion the structural
+      argument was standing in for, and it belongs where the separation lives rather than in
+      the design system.
 
 ## Phase 1 — The colour reaches the library half of the app
 

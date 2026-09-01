@@ -29,12 +29,45 @@ new dependency, and no `androidx.palette`: adding one would give the same book
 two different colours on the two platforms, which is exactly what the mirrored
 extractor exists to prevent.
 
-**Assumed:** that a cover thumbnail is available to sample at the moment the page
-is composed. The reader samples a decoded page it already has; this screen may be
-opened before its cover image has been decoded. The page must therefore render
-correctly with no accent and adopt one when it arrives, without the arrival being
-a visible flash — which is why the delta requires a legible page for a cover that
-yields nothing.
+### When a cover is available to sample — answered, 2026-09-01
+
+This was written as an assumption and task 0.1 exists to settle it. It is settled, and the
+answer is worse than the assumption allowed for.
+
+**Never synchronously, on either platform.** The cover is `nil` on first composition and
+arrives after — `PublicationDetailView.swift:33` with its `.task(id:)` at `:102-105`, and
+`PublicationDetailScreen.kt:117-121`. Both cover accessors hold a warm in-memory map, and
+neither exposes a synchronous read, so **even an already-cached cover misses the first
+frame**. There is no source type for which the page composes with its wash already known.
+
+**And for one class of publication it never arrives at all.** Both pipelines bottom out on a
+local file path — `LibraryLookups.swift:77` (`guard let url = locations[publication.id]`) and
+`LibraryViewModel.kt:1543` — and `locations` is written only when bytes are on the device: a
+download, an import, a folder scan, or the watcher. So:
+
+| Source | Cover available to sample | Consequence for the wash |
+| --- | --- | --- |
+| Local folder | After the first frame | Placeholder, then adopt |
+| Downloaded from OPDS / Kavita / SMB | After the first frame | Placeholder, then adopt |
+| **In the library from OPDS / Kavita / SMB and not downloaded** | **Never** | The page is permanently washless, and that is the state it must be legible in |
+| Any publication whose cover yields no usable colour (the manga case) | After the first frame, and it yields nothing | Permanently washless, by the extractor's own decision |
+
+The last two rows are why the delta requires a legible page for a cover that yields nothing:
+the case is not an edge, it is every remote publication a reader has not downloaded, which for
+a server-backed library is most of them. **A design that needs the wash to be readable is a
+design that is broken for that reader**, so the wash carries no meaning and is
+`accessibilityHidden`.
+
+**Placeholder-then-adopt, with no visible flash — both platforms have it now.**
+`DetailHero.kt:94-98` crossfades with `animateColorAsState`. iOS did not: the wash was
+assigned unanimated and drawn in a plain `ZStack`, so it arrived as a hard cut — the flash the
+task forbids in as many words. `DetailBackground.swift` now draws the gradient **always** and
+fades its `opacity`, rather than holding it in an `if let`: a view that is *inserted* has
+nothing to interpolate from, which was the actual cause of the cut. The arithmetic is
+unchanged, because an opacity on the layer multiplies through the stops exactly as the
+strength used to be baked into them, and the one point that was contrast-checked is still the
+point drawn at full strength. Reduced motion removes the animation rather than shortening it,
+per `native-experience`.
 
 ## Composition, per platform
 
