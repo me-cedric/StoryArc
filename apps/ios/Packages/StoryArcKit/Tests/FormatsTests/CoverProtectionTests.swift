@@ -44,8 +44,7 @@ struct CoverProtectionTests {
 
         cache.store(try image(), for: "urn:storyarc:1", maxPixelSize: 8)
 
-        let attributes = try FileManager.default.attributesOfItem(atPath: directory.path)
-        #expect(attributes[.protectionKey] as? FileProtectionType == CoverCache.fileProtection)
+        try expectProtection(of: directory, is: CoverCache.fileProtection)
     }
 
     /// The same class the downloads carry, and for the same reason: the app is
@@ -55,4 +54,26 @@ struct CoverProtectionTests {
     func theClassMatchesTheDownloads() {
         #expect(CoverCache.fileProtection == .completeUnlessOpen)
     }
+}
+
+/// Asserts the directory carries the data-protection class the app asks for, where the platform
+/// has one.
+///
+/// **The `#if` is the assertion on macOS, not a hole in it.** Data protection is an iOS facility;
+/// on macOS the attribute is accepted and then makes every file written under it unreadable to
+/// the process that wrote it, so the stores apply it on iOS only. Asserting its *absence* here
+/// pins that guard from both sides — deleting the `#if os(iOS)` in the store fails this on the
+/// host, and deleting the store's `setAttributes` altogether fails it on a device.
+func expectProtection(of directory: URL, is expected: FileProtectionType) throws {
+    let attributes = try FileManager.default.attributesOfItem(atPath: directory.path)
+    #if os(iOS)
+    #expect(attributes[.protectionKey] as? FileProtectionType == expected)
+    #else
+    // The message is one literal because `#expect`'s comment is a `Comment?`, which is
+    // expressible by a string literal and not by a concatenation.
+    #expect(
+        attributes[.protectionKey] == nil,
+        "macOS must carry no protection class: it makes the file unreadable to its own writer."
+    )
+    #endif
 }

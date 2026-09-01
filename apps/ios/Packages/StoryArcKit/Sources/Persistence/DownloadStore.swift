@@ -153,14 +153,15 @@ public struct DownloadStore {
     /// the system default for ever.
     public func prepare() throws {
         var directory = directory
-        try FileManager.default.createDirectory(
-            at: directory,
-            withIntermediateDirectories: true,
-            attributes: [.protectionKey: Self.fileProtection]
-        )
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        // iOS only — see ``fileProtection``. On macOS the attribute is accepted and makes the
+        // files written under it unreadable to the process that wrote them, which is a host-only
+        // trap rather than anything a device does.
+        #if os(iOS)
         try FileManager.default.setAttributes(
             [.protectionKey: Self.fileProtection], ofItemAtPath: directory.path
         )
+        #endif
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try directory.setResourceValues(values)

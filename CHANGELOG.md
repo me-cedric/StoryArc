@@ -502,12 +502,13 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   skipped *silently*, which hid that `ModuleCache.noindex` had reached 15 GB of a 22 GB
   DerivedData on a volume with 1.2 GB free. It reported "nothing orphaned", which was true and
   useless to somebody looking for where 15 GB had gone.
-- **A stale Swift build can present as a silent write failure, not only as a `SIGSEGV`.** Two
-  cover-cache assertions — exactly the two needing a *successful* store — failed as though the
-  cache were broken, while the three asserting absence passed vacuously. `pnpm clean:swift`
-  fixed it. Recorded in AGENTS.md §6 alongside the diagnosis that was tried first and was
-  wrong: the disk was full at the same moment, and the run that appeared to prove it was a
-  different checkout with a fresh build.
+- **A data-protection class made a cache unreadable to its own writer, on the host only.**
+  `CoverCache` and `DownloadStore` set `FileProtectionType.completeUnlessOpen` on their
+  directories. That is an iOS facility, and `StoryArcKit` builds for macOS so the pure targets
+  can be host-tested — where the attribute *is* accepted and the file written under it then
+  cannot be read back at all. Both now apply it under `#if os(iOS)`, unchanged on iOS, and the
+  tests assert its absence on the host so the guard is pinned from both sides. It took two wrong
+  diagnoses first, a full disk and a stale build, each of which appeared to fix it once.
 
 ### Notes
 

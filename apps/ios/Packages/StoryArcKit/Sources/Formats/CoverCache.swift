@@ -38,6 +38,19 @@ public struct CoverCache: Sendable {
     /// transfer while the device is locked and the publication indexed at that
     /// moment writes its cover here. See ``DownloadStore/fileProtection`` for the
     /// full argument; the two are deliberately the same value.
+    ///
+    /// **Applied on iOS only, and that is measured rather than assumed.** Data protection is an
+    /// iOS facility. On macOS the attribute *is* accepted — `attributesOfItem` reads back
+    /// `NSFileProtectionCompleteUnlessOpen` — and the file written inside then cannot be read by
+    /// the process that just wrote it: `CGImageDestinationFinalize` returns `true` and both
+    /// `Data(contentsOf:)` and `CGImageSourceCreateImageAtIndex` fail. Four trials differing only
+    /// in this attribute, and it is the only variable that moves the outcome.
+    ///
+    /// `StoryArcKit` builds for macOS so the pure targets can be tested on the host, so without
+    /// this guard the host suite exercises a write path no device has and reports it as a defect
+    /// in the cache. It cost two wrong diagnoses before it was isolated — a full disk and a stale
+    /// build, each of which appeared to fix it once. **iOS behaviour is unchanged**: the attribute
+    /// is applied there exactly as before.
     public static let fileProtection: FileProtectionType = .completeUnlessOpen
 
     private let directory: URL
@@ -74,18 +87,16 @@ public struct CoverCache: Sendable {
     /// Failure is silent and correct: this is a cache. A device with no room left should
     /// draw the library, not refuse to.
     public func store(_ image: CGImage, for id: String, maxPixelSize: Int) {
-        try? FileManager.default.createDirectory(
-            at: directory,
-            withIntermediateDirectories: true,
-            attributes: [.protectionKey: Self.fileProtection]
-        )
-        // Set again rather than only at creation: the attribute above applies only
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        // Set again rather than only at creation: the attribute below applies only
         // when this call is the one that makes the directory, and a covers
         // directory made before the class was chosen would otherwise keep the
         // system default until the reader cleared their cache.
+        #if os(iOS)
         try? FileManager.default.setAttributes(
             [.protectionKey: Self.fileProtection], ofItemAtPath: directory.path
         )
+        #endif
         let url = file(for: id, maxPixelSize: maxPixelSize)
         guard let destination = CGImageDestinationCreateWithURL(
             url as CFURL,

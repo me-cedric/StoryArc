@@ -113,20 +113,28 @@ the real gate is 611 files. `pnpm lint:ios` is safe because pnpm runs scripts fr
 hand-run after a `cd` is not. **If the file count is not what you saw last time, you are
 measuring a different thing.**
 
-**A stale build does not only present as a `SIGSEGV`. It also presents as a silent write
-failure.** On 2026-09-01 `CoverCacheTests` failed on exactly two of its five assertions — the
-two that need a *successful* store, with `cache.image(for:) → nil` — while the three that assert
-*absence* passed, because they pass vacuously when nothing was ever written. It reproduced three
-times in a row in one checkout and passed in another at the identical sources. `pnpm clean:swift`
-fixed it. **A failure that reads as "this code cannot write a file" is on this list**, and the
-tell is the same as the enum one: a checkout whose build predates the merge behaves differently
-from a fresh one at the same commit.
+**A test that fails as though the code cannot write a file was diagnosed wrong twice here, and
+the real cause was a data-protection class.** `CoverCacheTests` failed on exactly two of its five
+assertions — the two needing a *successful* store, with `cache.image(for:) → nil` — while the
+three asserting *absence* passed, because those pass vacuously when nothing was written.
 
-That took an hour and one wrong diagnosis, which is worth recording because the wrong diagnosis
-was *plausible*. The volume happened to be at 100% with 1.2 GB free at the same moment, and
-clearing 15 GB appeared to fix it — but the run that passed was in a different worktree with a
-fresh build, so the disk was a coincidence. **When two candidate causes are present, change one
-of them.**
+The cause: `CoverCache` and `DownloadStore` set `FileProtectionType.completeUnlessOpen` on their
+directories. **Data protection is an iOS facility, and `StoryArcKit` builds for macOS so the pure
+targets can be host-tested.** On macOS the attribute *is* accepted — `attributesOfItem` reads back
+`NSFileProtectionCompleteUnlessOpen` — and the file written under it then cannot be read by the
+process that just wrote it: `CGImageDestinationFinalize` returns `true`, and both
+`Data(contentsOf:)` and `CGImageSourceCreateImageAtIndex` fail. Isolated by four trials differing
+in one variable; both stores now apply it under `#if os(iOS)`, and the tests assert its *absence*
+on the host so the guard is pinned from both sides.
+
+**Two wrong diagnoses came first, and each appeared to be confirmed.** The volume was at 100% with
+1.2 GB free, so it was called a full disk; clearing 15 GB "fixed" it. Then it recurred, and a
+`pnpm clean:swift` "fixed" it. Both were coincidences — the runs that passed were a different
+checkout and a differently-timed one. **When a symptom is intermittent, a fix that appears to work
+once has proved nothing. Change one variable, and keep the trial that isolates it.**
+
+**The `SIGSEGV` above is still a real and separate failure**, with its own evidence: it was an
+enum layout baked into an incrementally-rebuilt target. Do not read the two as one symptom.
 
 **The disk is still worth watching before a wave, for its own reasons.** Four parallel worktrees
 cost roughly 700 MB each in the checkout and 2 GB each in DerivedData, and `ModuleCache.noindex`
