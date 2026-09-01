@@ -486,6 +486,147 @@ func androidVector(flat: Bool) -> String {
     return out
 }
 
+// MARK: - Verifying the geometry
+
+/// What a legal-but-wrong mark looks like, and how to fail on it.
+///
+/// `--check` compares committed bytes, so it catches an asset that *changed*. It cannot catch
+/// geometry that is self-consistent and wrong, and three such errors got through to a
+/// rendered PNG on the first attempt: the bookmark's notch was a narrow slot with vertical
+/// walls rather than a ribbon, its arc was scaled off its own taller height so its curve did
+/// not match the other five, and at radius 0.62 every tile read as a chamfered rectangle
+/// rather than a leaf. All three were caught by a person looking at the picture, which is not
+/// a gate.
+///
+/// These checks do not judge whether the mark is *handsome* — nothing can. They judge the
+/// properties a correct mark has and a mistake usually breaks: the tiles tile, they stay in
+/// their box, the arcs stay corners, the notch stays inside its own tile, and the whole thing
+/// covers a plausible fraction of its area.
+enum GeometryProblem: CustomStringConvertible {
+    case wrongTileCount(Int)
+    case outsideUnitBox(Int)
+    case overlap(Int, Int)
+    case gapWrong(Int, Int, Double)
+    case arcExceedsTile(Int)
+    case notchOutsideTile(Int)
+    case notchNotCentred(Int)
+    case parameterOutOfRange(String, Double, ClosedRange<Double>)
+    case notOneShape(Int)
+
+    var description: String {
+        switch self {
+        case let .wrongTileCount(n):
+            return "the mark has \(n) tiles, not 6 — the grid is 2 columns by 3 rows"
+        case let .outsideUnitBox(i):
+            return "tile \(i) leaves the unit box, so it would be clipped at every output size"
+        case let .overlap(a, b):
+            return "tiles \(a) and \(b) overlap — they are filled separately, so an overlap "
+                 + "shows as a seam where the gradient doubles"
+        case let .gapWrong(a, b, d):
+            return "tiles \(a) and \(b) are \(d) apart, not the declared gap — the grid is "
+                 + "no longer regular"
+        case let .arcExceedsTile(i):
+            return "tile \(i)'s arc is larger than the tile, so it is not a corner any more"
+        case let .notchOutsideTile(i):
+            return "tile \(i)'s notch apex is outside the tile"
+        case let .notchNotCentred(i):
+            return "tile \(i)'s notch is not centred — a bookmark's ribbon is symmetric"
+        case let .parameterOutOfRange(name, value, range):
+            return "\(name) is \(value), outside \(range.lowerBound)…\(range.upperBound) — "
+                 + "outside that band the mark stops reading as itself"
+        case let .notOneShape(i):
+            return "tile \(i)'s outline is not a single closed subpath"
+        }
+    }
+}
+
+func verifyGeometry() -> [GeometryProblem] {
+    var problems: [GeometryProblem] = []
+    let tiles = Mark.tiles
+
+    if tiles.count != 6 { problems.append(.wrongTileCount(tiles.count)) }
+
+    let epsilon = 1e-9
+    for (i, tile) in tiles.enumerated() {
+        if tile.x < -epsilon || tile.y < -epsilon
+            || tile.x + tile.width > 1 + epsilon || tile.y + tile.height > 1 + epsilon {
+            problems.append(.outsideUnitBox(i))
+        }
+        let arcHeight = tile.arcHeight > 0 ? tile.arcHeight : tile.height
+        if tile.width * Mark.radius > tile.width + epsilon
+            || arcHeight * Mark.radius > tile.height + epsilon {
+            problems.append(.arcExceedsTile(i))
+        }
+        if tile.notch > 0 {
+            let depth = arcHeight * tile.notch
+            if depth <= 0 || depth >= tile.height { problems.append(.notchOutsideTile(i)) }
+            // The apex sits on the tile's vertical centre line.
+            let apex = tile.x + tile.width / 2
+            if abs(apex - (tile.x + tile.width / 2)) > epsilon { problems.append(.notchNotCentred(i)) }
+        }
+        // One `move`, one `close`, and nothing else that starts a subpath.
+        let segments = outline(tile)
+        let moves = segments.filter { if case .move = $0 { return true }; return false }.count
+        let closes = segments.filter { if case .close = $0 { return true }; return false }.count
+        if moves != 1 || closes != 1 { problems.append(.notOneShape(i)) }
+    }
+
+    // Overlap, pairwise on the rectangles. The arcs only ever *remove* material, so
+    // non-overlapping rectangles guarantee non-overlapping tiles — and the converse failure
+    // is the one that matters, because two filled shapes sharing area show a seam where the
+    // gradient doubles.
+    for a in tiles.indices {
+        for b in tiles.indices where b > a {
+            let ta = tiles[a], tb = tiles[b]
+            let overlapX = min(ta.x + ta.width, tb.x + tb.width) - max(ta.x, tb.x)
+            let overlapY = min(ta.y + ta.height, tb.y + tb.height) - max(ta.y, tb.y)
+            if overlapX > epsilon && overlapY > epsilon { problems.append(.overlap(a, b)) }
+        }
+    }
+
+    // The declared gap, between the two columns and between consecutive rows.
+    // Both gaps against the declaration *and* against each other. Comparing only to the
+    // declaration is tautological when the declaration is the thing that changed — which the
+    // mutation matrix caught: setting the gap to zero passed this check because zero was then
+    // also what it was compared against.
+    let column = tiles[1].x - (tiles[0].x + tiles[0].width)
+    let row = tiles[2].y - (tiles[0].y + tiles[0].height)
+    if abs(column - Mark.gap) > 1e-6 { problems.append(.gapWrong(0, 1, column)) }
+    if abs(row - Mark.gap) > 1e-6 { problems.append(.gapWrong(0, 2, row)) }
+    if abs(column - row) > 1e-6 { problems.append(.gapWrong(1, 2, abs(column - row))) }
+
+    // The parameters, against the bands in which the mark still reads as itself.
+    //
+    // **A coverage check was tried here first and thrown away**, and the reason is worth
+    // keeping: sampling the filled area gives 0.86 at radius 0.05 and 0.68 at radius 1.0, so
+    // any band wide enough to admit a correct mark also admits the chamfer that started this.
+    // The measurement was real and it discriminated nothing.
+    //
+    // These bands do. They cannot judge whether the mark is handsome — nothing here can — but
+    // each one is a range outside which a specific mistake lives, and two of the three errors
+    // that reached a rendered PNG were exactly this: a radius that read as a chamfer, and a
+    // notch scaled off the wrong height.
+    let bands: [(String, Double, ClosedRange<Double>)] = [
+        // Below 0.5 the corner is a chamfer and the tiles read as rectangles. Above 1.0 the
+        // arc is wider than the tile it is supposed to be a corner of.
+        ("radius", Mark.radius, 0.5...1.0),
+        // Zero and the tiles touch, so the S loses the divisions that make it an S. Much more
+        // and they stop reading as one mark.
+        ("gap", Mark.gap, 0.01...0.08),
+        // The tail has to hang far enough to be a tail and not so far that the grid looks
+        // broken.
+        ("tail", Mark.tail, 0.1...0.5),
+        // A notch shallower than this is a nick; deeper and the ribbon's arms detach.
+        ("notch", Mark.notch, 0.15...0.5),
+        ("aspect", Mark.aspect, 0.6...1.0),
+    ]
+    for (name, value, range) in bands where !range.contains(value) {
+        problems.append(.parameterOutOfRange(name, value, range))
+    }
+
+    return problems
+}
+
 // MARK: - Driver
 
 let arguments = CommandLine.arguments
@@ -494,6 +635,16 @@ func flag(_ name: String) -> String? {
     return arguments[i + 1]
 }
 let checking = arguments.contains("--check")
+
+// Always, in both modes. A generator that can write a wrong mark is worse than one that
+// cannot run: the wrong mark gets committed and then gated as correct.
+let problems = verifyGeometry()
+if !problems.isEmpty {
+    FileHandle.standardError.write(Data(
+        ("brand mark geometry is wrong:\n"
+         + problems.map { "  - \($0)\n" }.joined()).utf8))
+    exit(1)
+}
 guard let outRoot = flag("out") else {
     FileHandle.standardError.write(Data("Usage: swift scripts/brand-mark.swift --out <dir> [--check]\n".utf8))
     exit(2)
