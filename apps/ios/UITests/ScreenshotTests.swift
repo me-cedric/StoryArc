@@ -166,6 +166,19 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["Continue"].waitForExistence(timeout: 10),
             "No what’s-new sheet appeared on the launch after an update."
         )
+        // And `isHittable`, not existence alone, because existence was the whole assertion
+        // and it is not the requirement. `settings-and-about` asks that at the largest
+        // accessibility text size "the dismissing action stays reachable **without scrolling
+        // past the content**" — and an `XCUIElement` below the visible edge still *exists*,
+        // so the check passed in exactly the state it was written to catch. This is the only
+        // largest-text assertion iOS has for this screen; Android's three Robolectric cases
+        // in `WhatsNewLayoutTest` measure it properly, and until iOS has an equivalent this
+        // line is carrying the whole platform.
+        XCTAssertTrue(
+            app.buttons["Continue"].isHittable,
+            "Continue exists but is not reachable — it is off-screen at this text size, "
+            + "which is the failure the requirement names rather than a passing capture."
+        )
         return app.screenshot()
     }
 

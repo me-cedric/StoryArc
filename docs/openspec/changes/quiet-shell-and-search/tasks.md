@@ -128,7 +128,18 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 - [x] 3.7 Both: assert at the largest accessibility text size that every heading and
       sentence is readable in full and the dismissing action stays reachable.
       Android: fixed-dp icon column that does not scale with `fontScale`, content
-      scrollable, Continue pinned.
+      scrollable, Continue pinned. Three Robolectric cases at `fontScale = 2f` on
+      `w320dp-h640dp` — `WhatsNewLayoutTest.kt:121`, `:144`, `:158`.
+      **iOS's half was weaker than this tick claimed, and a re-verification found it.** The
+      only iOS artefact was `ScreenshotTests.swift`'s capture, whose sole assertion was
+      `app.buttons["Continue"].waitForExistence` — and an `XCUIElement` below the visible edge
+      still *exists*, so the check passed in precisely the state the requirement forbids
+      ("the dismissing action stays reachable **without scrolling past the content**"). It now
+      asserts `isHittable` as well. The layout was always correct — `WhatsNewSheet.swift:36`
+      is a `ScrollView` and `:54-64` a `safeAreaInset` — it was unverified, not wrong.
+      **Still uneven, and worth saying:** no host-runnable iOS test in this repository
+      exercises dynamic type at all, so iOS asserts this through a UI test and Android
+      through three unit tests. That asymmetry is a gap, not a divergence.
 
 ## 4b. Why this change could not be archived, and what unblocked it
 
