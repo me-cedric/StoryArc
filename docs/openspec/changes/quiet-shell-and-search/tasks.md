@@ -130,6 +130,27 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       Android: fixed-dp icon column that does not scale with `fontScale`, content
       scrollable, Continue pinned.
 
+## 4b. Why this change is not archived, although every task is ticked
+
+**Archiving it now would lose a requirement.** Its `navigation-shell` delta modifies
+*Reaching search*, and `navigation-shell` **has no main spec**: it is a new capability
+`one-library-three-destinations` introduces and has not synced. So the sync merged the
+other two deltas and skipped this one, and an archive — which moves the change directory
+away — would carry that requirement off with it, never having reached the contract.
+
+`--skip-specs` does not help: it is the flag that says the specs are already updated, and
+for this one delta they are not.
+
+**So this change waits on `one-library-three-destinations` to sync.** That change creates
+`navigation-shell`'s main spec; this one's delta then merges into it and this can archive.
+The proposal anticipated the dependency and said the two deltas must not contradict — they
+do not: this one adds a destination and removes a role, and touches no requirement that
+change wrote.
+
+The guard reports it as `[ready]` and the guard is right that the tasks are done. It cannot
+see that one of the three capabilities has nowhere to merge into, which is why this section
+exists rather than a comment on a task.
+
 ## 4. Docs and close-out
 
 - [x] 4.1 Update `docs/designs/ui-revamp-2026-08.md` with the search-as-destination
