@@ -13,14 +13,23 @@ import Testing
 ///
 /// **So this reads the app's source text, and that is a deliberate second choice**, taken for
 /// the reasons ``ReaderRoutingWiringTests`` sets out at length two files away: the app target
-/// has no test target of its own, `swift test` runs on the host with no simulator so the
-/// `TabView` cannot be composed here, and the only thing in this repository that renders the
-/// shell is a UI test on a booted simulator — which no gate runs.
+/// has no test target of its own, and `swift test` runs on the host with no simulator so the
+/// `TabView` cannot be composed here.
+///
+/// **The deletion condition this comment used to offer was already met, and is not the test it
+/// assumed.** It said the simulator UI test was one "which no gate runs" and offered to be
+/// deleted the day such a run became a gate — but `.github/workflows/ios.yml` has run
+/// `-only-testing:StoryArcUITests` against a booted iPhone 17 Pro since `4f8c4f1b`, on
+/// 2026-08-27, four days before this comment was written.
+///
+/// Whether that run would catch a restored role is a separate question, and the answer is
+/// probably not: `ScreenshotTests.testCaptureSearch` reaches search through
+/// `destination("Search", in:)`, which taps an element by its label — and a `Tab(role: .search)`
+/// still carries that label. It would photograph a morphing field and pass. So this file stays,
+/// on its merits rather than on the absent gate it used to claim.
 ///
 /// It is a tripwire, not a proof. It asserts a role is absent and four tabs are present; it
-/// never asserts a bar appeared. Delete it the day a `StoryArcUITests` run on a simulator is
-/// a gate: that run taps search, lands on a page, and would fail on the restored role by
-/// itself.
+/// never asserts a bar appeared.
 @Suite("Shell wiring")
 struct ShellWiringTests {
 

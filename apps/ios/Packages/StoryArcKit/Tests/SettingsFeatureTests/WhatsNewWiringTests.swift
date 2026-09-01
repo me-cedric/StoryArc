@@ -15,13 +15,25 @@ import Testing
 ///   handing it one, and the test that would then fail does not exist unless it is this one.
 ///
 /// **So this reads source text, and that is a deliberate second choice**, for the reasons
-/// `ShellWiringTests` sets out: the app target has no test target, `swift test` runs on the
-/// host with no simulator so a `TabView` cannot be composed here, and the only thing that
-/// renders the shell is a UI test on a booted simulator, which no gate runs.
+/// `ShellWiringTests` sets out: the app target has no test target, and `swift test` runs on the
+/// host with no simulator so a `TabView` cannot be composed here.
 ///
-/// It is a tripwire, not a proof. It asserts a presentation is declared and a store is
-/// absent; it never asserts a sheet appeared. `ScreenshotTests.testCaptureWhatsNew` is what
-/// photographs it on a device, and this file can be deleted the day that run is a gate.
+/// **The deletion condition this comment used to offer rested on a false premise.** It said the
+/// simulator UI test was one "which no gate runs", and offered to be deleted the day that run
+/// became a gate. `.github/workflows/ios.yml` has run `-only-testing:StoryArcUITests` against a
+/// booted iPhone 17 Pro since `4f8c4f1b`, on 2026-08-27 — before this file was written. So the
+/// condition was already met when it was offered, and the file was not deleted, which is the
+/// right outcome for the wrong reason.
+///
+/// What the gated run actually catches here is narrower than the condition assumed.
+/// `ScreenshotTests.testCaptureWhatsNew` injects an older seen version and waits for
+/// `Continue`, so deleting the `.sheet` from `AppShell` **would** fail it. Handing
+/// ``WhatsNewHistory`` a store would not: nothing on a screen changes when About writes a flag.
+/// That second assertion is this file's alone, and the first is worth keeping as the cheap
+/// half — a host suite that names the line beats a simulator run that names a missing button.
+///
+/// It is a tripwire, not a proof. It asserts a presentation is declared and a store is absent;
+/// it never asserts a sheet appeared.
 @Suite("What's new wiring")
 struct WhatsNewWiringTests {
 
@@ -108,6 +120,85 @@ struct WhatsNewWiringTests {
                 """
             )
         }
+    }
+
+    /// Nothing about what changed is fetched.
+    ///
+    /// `settings-and-about`'s *An update installed while offline*: "the screen appears in full,
+    /// because what changed ships with the app and is never fetched". Both sources say so at
+    /// length in prose, and both are correct by construction — the log is a compiled value and
+    /// the sheet draws it.
+    ///
+    /// **And nothing would have failed if somebody added a fetch.** A re-verification greppped
+    /// these two files for network symbols and found matches only inside doc comments; the
+    /// requirement was true and asserted by nothing, which is the state a structural claim
+    /// decays from. This is the assertion. It is why the scenario is not merely "correct by
+    /// construction" but held.
+    ///
+    /// Comment lines are stripped before the search, and that is what makes the test possible:
+    /// both files use the words *fetched* and *URL* to explain why there is no fetch and no
+    /// URL, so a naive search of the whole text fails on the prose that documents the rule it
+    /// guards. `ShellWiringTests` and ``theDecisionIsTakenOnce`` above both record falling into
+    /// the same trap.
+    @Test("What changed is never fetched, on either screen")
+    func nothingIsFetched() throws {
+        for file in ["WhatsNew.swift", "WhatsNewSheet.swift"] {
+            let code = try Self.codeOnly(
+                in: try source("Packages/StoryArcKit/Sources/SettingsFeature/\(file)")
+            )
+            for symbol in Self.networkSymbols {
+                #expect(
+                    !code.contains(symbol),
+                    """
+                    \(file) names \(symbol) in code rather than in prose.
+                    `settings-and-about` promises what changed "ships with the app and is never
+                    fetched" — the screen a reader sees on the launch after an update, which may
+                    well be the launch where they have no network at all.
+                    """
+                )
+            }
+        }
+    }
+
+    /// Anything that could reach the network from a Swift file in this module.
+    ///
+    /// Not exhaustive and not meant to be: it is every way this codebase actually reaches a
+    /// server, plus the two Foundation types anything new would be built out of.
+    private static let networkSymbols = [
+        "URLSession",
+        "URLRequest",
+        "URLComponents",
+        "URL(string:",
+        "dataTask",
+        "NWConnection",
+        "NWPathMonitor",
+        "http://",
+        "https://",
+    ]
+
+    /// A source's text with every comment line removed.
+    ///
+    /// Line comments and block-comment bodies both go. Crude — a trailing comment on a line of
+    /// code survives, and a string literal holding `//` would be cut — and that is the right
+    /// direction to be crude in: this is a negative assertion, so keeping too much code fails
+    /// loudly and keeping too little would pass quietly.
+    private static func codeOnly(in text: String) -> String {
+        var inBlock = false
+        var kept: [String] = []
+        for raw in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if inBlock {
+                if line.contains("*/") { inBlock = false }
+                continue
+            }
+            if line.hasPrefix("/*") {
+                if !line.contains("*/") { inBlock = true }
+                continue
+            }
+            if line.hasPrefix("//") || line.hasPrefix("*") { continue }
+            kept.append(line)
+        }
+        return kept.joined(separator: "\n")
     }
 
     /// Every Swift file in `SettingsFeature`, so a new screen is covered without being named.

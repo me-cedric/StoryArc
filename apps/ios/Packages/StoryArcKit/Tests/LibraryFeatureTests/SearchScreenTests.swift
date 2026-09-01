@@ -221,12 +221,22 @@ struct SearchScreenTests {
 ///   second copy of that menu and left the import out of it.
 ///
 /// **So this reads source text**, for the reason ``CoverRoutingWiringTests`` sets out at
-/// length one file away: what is worth pinning is a property of the call site, `swift test`
-/// runs on the host with no simulator so these views cannot be composed here, and the only
-/// thing that renders them is a UI test on a booted simulator, which no gate runs.
+/// length one file away: what is worth pinning is a property of the call site, and `swift test`
+/// runs on the host with no simulator so these views cannot be composed here.
+///
+/// **The deletion condition this comment used to offer rested on a false premise.** It called
+/// the simulator UI test one "which no gate runs" and offered to be deleted the day that run
+/// became a gate. `.github/workflows/ios.yml` has run `-only-testing:StoryArcUITests` against a
+/// booted iPhone 17 Pro since `4f8c4f1b`, on 2026-08-27 — before this comment was written.
+///
+/// What that run catches is also narrower than the condition assumed.
+/// `ScreenshotTests.testCaptureSearch` reaches search by tapping a label and waits for a scroll
+/// view, so it would photograph the shelf as readily as the offer: re-adding `.searchSuggestions`
+/// or falling back to `inner` changes what is *in* the picture and fails nothing. Reading the
+/// call site is the assertion; the capture is the evidence.
 ///
 /// It is a tripwire, not a proof. `ScreenshotTests.testCaptureSearch` is what shows a reader
-/// the screen; delete this the day that run is a gate.
+/// the screen.
 @Suite("Search screen wiring")
 struct SearchScreenWiringTests {
 

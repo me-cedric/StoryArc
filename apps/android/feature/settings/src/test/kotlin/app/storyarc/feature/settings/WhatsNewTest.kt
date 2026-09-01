@@ -116,8 +116,14 @@ class WhatsNewTest {
         store.record("0.1.0")
 
         // What About shows is the whole log, and the log is a value with no store behind it
-        // — reading it cannot write. `WhatsNewWiringTest` is the half of this claim that a
-        // mutation can break; this half only proves the reading is possible.
+        // — reading it cannot write. This half only proves the reading is possible; the half a
+        // mutation can break is `app.storyarc.WhatsNewWiringTest`, in `:app`, which asserts
+        // that no source in this module names `WhatsNewStore`.
+        //
+        // **That file did not exist when this comment first named it**, and the gap was exactly
+        // the shape the comment described: handing `WhatsNewHistory` a store left every Android
+        // gate green. It is in `:app` rather than beside this file because the other two claims
+        // it makes are about `AppShell`, which lives there.
         assertFalse(WhatsNew.releases.isEmpty())
         assertEquals("0.1.0", store.seenVersion())
     }
