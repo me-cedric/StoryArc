@@ -66,7 +66,8 @@
     "lines:check": "node scripts/line-cap.mjs",
     "lines:selftest": "node scripts/line-cap.mjs --self-test",
     "brand:build": "swift scripts/brand-mark.swift --out .",
-    "brand:check": "swift scripts/brand-mark.swift --out . --check"
+    "brand:check": "swift scripts/brand-mark.swift --out . --check",
+    "clean:swift": "node scripts/clean-swift-build.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",

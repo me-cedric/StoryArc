@@ -90,6 +90,20 @@ Demonstrated rather than assumed: a function returning a `String` from an `Int` 
 was added to `ScreenshotTests.swift`, and `pnpm check` exited **0**. `pnpm build:ios:tests`
 exited 65 and named the line. It is in `pnpm check` now, and it costs about thirty seconds.
 
+**A `SIGSEGV` from `pnpm check` is usually a stale build, not a bug — run `pnpm clean:swift`.**
+`StoryArcCore` is not built with library evolution, so a non-resilient type's memory layout is
+baked into everything that compiled against it. Add a case to an enum like `ReadingPosition`
+and an incrementally-rebuilt test target keeps the **old** layout. The symptoms are a test
+failing on two values that print identically, then the whole suite ending with
+
+    exited with unexpected signal code 11
+
+and no other output. It is not a defect, not flaky, and not a compiler bug — which is exactly
+what it looks like for the first hour, and it cost an agent that hour on 2026-09-01.
+`pnpm clean:swift` removes the packages' `.build` directories; the next `pnpm test:ios`
+rebuilds from scratch. Distinct from `pnpm clean:builds`, which reclaims disk from worktrees
+that are **gone** and is safe to run mid-wave.
+
 **Android had the identical hole, and it has already cost this project.** `pnpm test:android`
 runs `test`, which is the JVM unit tests; the sixteen files under `src/androidTest` are
 instrumented and compiled by neither that nor `lint`. This is how `ProgressStoreTest` came to
