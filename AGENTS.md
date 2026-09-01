@@ -202,6 +202,7 @@ change** — never the whole repository when one module moved.
 | `packages/design-tokens` | `pnpm tokens:sync` — then **commit the regenerated app copies in the same change** |
 | `docs/openspec/specs` | `pnpm spec:validate` |
 | `docs/openspec/changes` | `pnpm spec:validate && pnpm spec:guard` — validate checks the files that are there, the guard checks the ones that should be |
+| A `## MODIFIED` delta | `pnpm delta:drop` — part of `pnpm lint`. A MODIFIED requirement replaces the **whole block**, so anything the main spec holds and the delta omits is deleted the moment the change is archived. Neither `validate` nor the guard looks at that, and it has cost this repo three requirements' worth of near-misses. Carry the sentence, or record the removal in `.delta-drops.json` **with its reason** — a stale entry there is itself an error, so the file drains |
 | `docs/openspec/config.yaml` | `pnpm spec:guard` — a broken list item makes the CLI report an empty project |
 | The `@fission-ai/openspec` version | `pnpm openspec:workflows` then commit the regenerated workflow files |
 | Any Swift or Kotlin file | `pnpm lines:check` — part of `pnpm lint`. The 800-line cap is a ratchet: five files are already over it and recorded in `scripts/line-cap.mjs` with the length they had, so they may shrink and may not grow. A sixth crossing fails the build. |

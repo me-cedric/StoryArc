@@ -43,6 +43,20 @@ The app SHALL offer the six reading-theme presets defined in
 [`reading-themes`](../reading-themes/spec.md), each meeting WCAG AAA contrast
 for body text.
 
+The theme surface SHALL have **two levels**. The first offers the presets and
+nothing else. The second offers the axes, and is reached from one action on the
+first. A reader who wants a preset SHALL NOT pass an axis to reach it.
+
+> **The paragraph above is carried from `quiet-reader`, not written here.** It reached the
+> main spec when that change synced and was archived on 2026-09-01; this delta was written
+> before that and did not have it. A MODIFIED requirement replaces the whole block, so
+> archiving this change would have deleted the two-level rule from the contract — including
+> the clause that a reader wanting a preset must not pass an axis to reach it, which is the
+> whole point of the split.
+>
+> Found by `pnpm delta:drop`, on that gate's first real run. `openspec validate` passes this
+> file either way: it checks the delta's own shape, never what the delta would displace.
+
 #### Scenario: Theme choice
 - **WHEN** a user picks a reading theme
 - **THEN** Original, Quiet, Paper, Bold, Calm and Focus are available, each meeting WCAG AAA contrast for body text

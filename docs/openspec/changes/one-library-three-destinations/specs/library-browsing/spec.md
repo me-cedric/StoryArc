@@ -44,6 +44,20 @@ The app SHALL provide search across titles, series, authors, publishers, tags
 and genres, using the server's own search where a source provides one, and SHALL
 group results by what the match is rather than by which source answered.
 
+Search SHALL say what it is about to search, and SHALL let a reader narrow it to
+what can be read with no network.
+
+> Where search is *reached* from, and what its screen opens onto before a query is
+> typed, belong to [`navigation-shell`](../navigation-shell/spec.md). This
+> requirement owns what searching *does*.
+>
+> **The sentence and this note are carried from `quiet-shell-and-search`, not written
+> here**, along with the two scenarios below — same reason, same mechanism. A MODIFIED
+> requirement replaces the whole block, so a delta that omits them drops them on archive.
+> Added 2026-09-01, after the same class of omission was found and fixed in this change's
+> `navigation-shell` delta and a re-verification asked whether the sibling capability had
+> been checked too. It had not.
+
 #### Scenario: Typing a query
 - **WHEN** a reader types in the search field
 - **THEN** results update as they type, debounced, without a submit action
@@ -63,7 +77,14 @@ group results by what the match is rather than by which source answered.
 
 #### Scenario: No results
 - **WHEN** a query matches nothing
-- **THEN** the empty state names what was searched and offers to clear any active filters that could be hiding a match
+- **THEN** the empty state names what was searched and offers to widen the scope to all sources if the search was scoped
+
+> **This scenario's wording is `quiet-shell-and-search`'s, carried here on 2026-09-01.** It
+> used to offer "to clear any active filters that could be hiding a match", which was written
+> before search had a scope a reader could set — so the clause had nothing to act on. Now that
+> narrowing to what is on the device is a state, widening out of it is the useful offer, and
+> clearing filters is `Filtering`'s own business. The old wording is recorded rather than
+> replaced silently, because the two are easy to mistake for each other.
 
 #### Scenario: Recent searches
 - **WHEN** a reader opens search
