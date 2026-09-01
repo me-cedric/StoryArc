@@ -150,20 +150,57 @@ Calm and nudged line spacing lost the palette by putting the line spacing back.
 
 Still outstanding: the largest-text-size captures on both platforms.
 
-### `audiobooks-and-playback` — foundations only
+### `audiobooks-and-playback` — a player on both platforms, and not a finished one
 
-Detection and fixtures, no player. `FormatSniffer` reads MP4, MP3, FLAC and Ogg from their
-bytes on both platforms, and an `aax `/`aaxc` brand is **its own container case** so the
-refusal is structural rather than a message a caller picks. `FolderKind` decides whether a
-folder is a comic or an audiobook by majority. Seven audiobook fixtures, byte-deterministic.
+**What works.** Audiobooks index as publications and play. One session object with two
+implementations on each platform, and the surfaces cannot tell which is behind them —
+`Playback` in `StoryArcKit`, `:core:playback` on Android. A compact bar and a full player on
+both. `FormatSniffer` reads MP4, MP3, FLAC and Ogg from their bytes; an `aax `/`aaxc` brand
+is its own container case, so the refusal is structural rather than a message a caller picks.
+`FolderKind` decides comic-or-audiobook by majority. Seven byte-deterministic fixtures.
 
-Nothing plays yet: the player surface, the media session and the position model are the
-rest of the change.
+iOS holds the audio session as `.spokenAudio` with the interruption and route rules
+read-aloud already had. Android runs a real media3 `MediaLibraryService` — `mediaPlayback`
+foreground type, media3's own notification, `automotive_app_desc.xml` — asserted of the
+**installed package** through `PackageManager` rather than of a file, and 5/5 on a device.
 
-**A research claim was checked and half of it was wrong.** media3 1.10.0 *does* parse ID3
-chapter frames — a folder of chaptered MP3s needs no bump. It is MP4 specifically that has
-nothing, so the 1.11.0 bump buys M4B's own chapter atom and nothing else, and no task is
-blocked on it.
+**Both readers' read-aloud session table moved into the shared model rather than being
+copied**, so "one session type" is a fact about the build.
+
+**Five defects found on a device that no unit test would have caught**, each now fixed: one
+stray `.m4b` beside a library's folders made the *whole library* one audiobook; iOS's
+`listen` did not hold the file's security scope, so tapping an audiobook did nothing at all;
+Android's `LibraryScanner` had gates the indexer never saw, so **every `.aax` was dropped in
+silence** — directly contradicting "refused by name"; the Android player's title sat under
+the status-bar clock; and Material ships `Replay5`, `Replay10`, `Replay30` and **no
+`Replay15`**, so a numbered glyph would have drawn "10" on a control that moves fifteen.
+
+**Four plan claims were wrong and are corrected in `design.md`.** The chapter call takes the
+asset's own locales, not `["en"]` — the fixtures declare `und`, as most real audiobooks do,
+and asking for English returns zero groups, which is indistinguishable from an unchaptered
+file. A truncated single file cannot be caught at index time, because `+faststart` leaves its
+`moov` intact. Android already had a `mediaPlayback` foreground service for read-aloud. And
+media3 1.10.0 **does** parse ID3 chapters — only MP4 atoms need the 1.11.0 bump.
+
+**What does not work yet**, and none of it is silent:
+
+- **Position is never written.** Closing an audiobook loses the place on both platforms.
+  `ReadingPosition` needed a third case; its shape is now decided in `design.md` and the work
+  is in flight.
+- **The interruption rule is not connected on Android's audiobook path.** media3 handles
+  focus itself and reports a loss as `onIsPlayingChanged(false)`, which that code reads as
+  the listener pausing — so "a pause the listener made is never undone" is unenforced there.
+  Read-aloud does connect it.
+- **Read-aloud does not drive the player yet.** It was reported blocked on Readium having no
+  speech rate; that is true of the configuration and **not** of the library — Readium injects
+  the engine and its delegate exists to customise the utterance. Decided in `design.md`,
+  in flight.
+- `onPlaybackResumption` is written and never exercised; Android Auto has no browse tree; the
+  compact bar sits over the rail on a tablet; the sleep timer, the remembered speed and the
+  configurable intervals are not built; nothing has been **heard** on either platform.
+
+**13 of 45 tasks done, 14 partial.** The partials are labelled per platform rather than
+rounded up.
 
 ## What blocks what
 
