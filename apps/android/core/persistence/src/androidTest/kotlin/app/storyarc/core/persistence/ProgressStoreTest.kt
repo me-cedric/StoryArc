@@ -300,4 +300,83 @@ class ProgressStoreTest {
         assertEquals(true, store.link(learned))
         assertEquals(false, store.link(learned))
     }
+
+    // MARK: an audiobook's place
+
+    /**
+     * `reading-progress`: a listening position "survives the app being closed, the device
+     * restarting, and the file being re-downloaded, exactly as a page index does".
+     *
+     * The whole of the first two is that it comes back out of the store as what went in.
+     * A position that round-tripped as a bare fraction would lose the offset, and the
+     * listener would restart the chapter every time they closed the app.
+     */
+    @Test
+    fun aListeningPositionComesBackWholeRatherThanAsAFraction() = runTest {
+        val store = store()
+        val id = identity(path = "/books/sea-room.m4b")
+        val position = ReadingPosition.Listening(2, 5, 42_000, 300_000)
+        store.save(ReadingProgress(id, position, false, updatedAtEpochMillis = 1_000))
+
+        assertEquals(position, store.progress(id)?.position)
+    }
+
+    /**
+     * The read-aloud shape: no duration, and none invented on the way back.
+     *
+     * `ofMillis` is nullable precisely so an estimate is never stated as a total, and a
+     * store that wrote null and read back zero would undo that at the one point where
+     * nobody would look.
+     */
+    @Test
+    fun aListeningPositionWithNoDurationKeepsItsAbsence() = runTest {
+        val store = store()
+        val id = identity(path = "/books/sea-room.epub")
+        val position = ReadingPosition.Listening(1, 9, 8_000, null)
+        store.save(ReadingProgress(id, position, false, updatedAtEpochMillis = 1_000))
+
+        assertEquals(position, store.progress(id)?.position)
+    }
+
+    /**
+     * `reading-progress`: "there is one position, and it is wherever the reader last was by
+     * either means … the app does not keep a separate listening position".
+     *
+     * One row, one set of columns, and the second write replaces the first.
+     */
+    @Test
+    fun listeningToAPublicationThatWasReadReplacesItsPosition() = runTest {
+        val store = store()
+        val id = identity(path = "/books/sea-room.epub")
+        store.save(
+            ReadingProgress(
+                id, ReadingPosition.Reflowable(0.2, "locator"), false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+
+        val listening = ReadingPosition.Listening(3, 9, 1_000, 120_000)
+        store.save(ReadingProgress(id, listening, false, updatedAtEpochMillis = 2_000))
+
+        assertEquals(listening, store.progress(id)?.position)
+        assertEquals(1, store.recent(10).size)
+    }
+
+    /**
+     * A page position is still a page position.
+     *
+     * The new columns are what tells the three cases apart, and a row written without them
+     * carries their default. Getting that wrong turns every comic in the library into an
+     * audiobook at chapter zero.
+     */
+    @Test
+    fun aPagePositionIsStillAPagePosition() = runTest {
+        val store = store()
+        val id = identity(path = "/books/one.cbz")
+        store.save(
+            ReadingProgress(id, ReadingPosition.Page(4, 20), false, updatedAtEpochMillis = 1_000),
+        )
+
+        assertEquals(ReadingPosition.Page(4, 20), store.progress(id)?.position)
+    }
 }

@@ -602,6 +602,30 @@ creep — see [`design.md`](design.md).
       Neither is a defect and neither is flaky: `swift package clean` fixes both. Worth knowing
       before spending an hour on a compiler bug that is not there.
 - [~] 7.2 Both: a publication both read and listened to has **one** position, and
+      **Android: the position now exists, is stored, and survives.** `design.md` decided it
+      on 2026-09-01 and `ReadingPosition.Listening(part, partCount, offsetMillis, ofMillis)`
+      is it — a **third** case beside `Page` and `Reflowable`, not a fourth: there are two.
+      `fraction` answers with the part when `ofMillis` is null, which is the read-aloud case,
+      and refines it by the offset when a duration is known; `matches` keeps working because
+      it compares fractions and this lands on the same 0…1 scale. `ListeningPositionTest`,
+      fifteen cases, including that a listening position matches the bare fraction the store
+      keeps a synced position as — the row of ADR-0006 that case equality once made
+      unreachable for `Page`.
+      **`partCount` is in the signature and is not in `design.md`'s**, which names three
+      fields and then asks `fraction` for "the part index over the part count". That count is
+      not derivable from the other three. `Page` carries its `total` for the same reason.
+      **The store keeps it in columns, not JSON.** `design.md`'s note about a record decoding
+      unchanged is iOS's — `StoryArcCore` keeps `positionData` as JSON of the enum; Android's
+      Room store has always used columns. Four new ones, `MIGRATION_2_3`, and `part_index`
+      defaulting to **-1** is the whole of the compatibility story: it is the discriminator,
+      so a default of 0 would read every comic already on a phone back as an audiobook at
+      chapter zero. `ProgressMigrationTest` upgrades a hand-written version-2 table and pins
+      that; mutation-checked by setting the default to 0, which fails it. Four more cases in
+      `ProgressStoreTest` pin the round trip, the absent duration, and one position per
+      publication; mutation-checked twice.
+      *Still to come: the wiring — `PlaybackHost.recordPosition` is still unset, so nothing
+      writes one of these yet.* iOS half outstanding.
+- [ ] 7.2 Both: a publication both read and listened to has **one** position, and
       returning never offers a choice of two.
       **iOS half done, and it is a guard rather than a feature.** `wirePlayerRecording` writes a
       listening position **only** for a publication whose format `isAudio`. A publication read

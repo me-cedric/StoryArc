@@ -309,6 +309,12 @@ object HomeShelves {
             is ReadingPosition.Reflowable -> publication.pageCount?.let { pages ->
                 ((1.0 - position.progression.coerceIn(0.0, 1.0)) * pages).roundToInt().coerceAtLeast(0)
             }
+
+            // A book being listened to has no pages left, and the spec's other unit — time
+            // remaining — is not derivable here: the position carries the current part's
+            // length and nothing about the ones after it. Null, which is the surface saying
+            // nothing, rather than a page count invented from a chapter index.
+            is ReadingPosition.Listening -> null
         }
     }
 

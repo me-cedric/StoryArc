@@ -70,8 +70,11 @@ data class KavitaExchange(
             if (pages <= 1) return 0
             return when (position) {
                 is ReadingPosition.Page -> position.index.coerceIn(0, pages - 1)
-                is ReadingPosition.Reflowable ->
-                    (position.progression.coerceIn(0.0, 1.0) * (pages - 1))
+                // The same rule as a reflowable one, and for the same reason: the fraction
+                // is the only part of the position a server counting pages can read. A
+                // listening position's parts are not a server's pages and never were.
+                is ReadingPosition.Reflowable, is ReadingPosition.Listening ->
+                    (position.fraction * (pages - 1))
                         .roundToInt()
                         .coerceIn(0, pages - 1)
             }

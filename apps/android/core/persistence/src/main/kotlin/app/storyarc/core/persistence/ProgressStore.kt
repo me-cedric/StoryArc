@@ -50,6 +50,26 @@ internal data class ProgressRow(
     @ColumnInfo(name = "page_count") val pageCount: Int,
     @ColumnInfo(name = "progression") val progression: Double,
     @ColumnInfo(name = "locator") val locator: String?,
+    /**
+     * The part a listener is in, or -1 for a position nobody listened to.
+     *
+     * The discriminator for the third case, in the same shape the page index is the
+     * discriminator for the first. `reading-progress` asks a listening position to be "an
+     * offset in time within a named part" and the name is deliberately not among these:
+     * a chapter title belongs to the file, and a stored copy would disagree with the book
+     * after a re-download.
+     */
+    @ColumnInfo(name = "part_index", defaultValue = "-1") val partIndex: Int = -1,
+    @ColumnInfo(name = "part_count", defaultValue = "0") val partCount: Int = 0,
+    @ColumnInfo(name = "offset_millis", defaultValue = "0") val offsetMillis: Long = 0,
+    /**
+     * How long that part lasts, or null when nothing knows.
+     *
+     * Nullable rather than zero, and that is the load-bearing part: a publication being
+     * read aloud has no true duration, and a column that turned "nobody knows" into a
+     * number would state an estimate as a measurement at the one place nobody looks.
+     */
+    @ColumnInfo(name = "part_duration_millis") val partDurationMillis: Long? = null,
     @ColumnInfo(name = "is_finished") val isFinished: Boolean,
     /** When the finished flag was set. Null for a publication nobody has finished. */
     @ColumnInfo(name = "finished_at") val finishedAt: Long? = null,
@@ -92,7 +112,7 @@ internal interface ProgressDao {
     suspend fun clear()
 }
 
-@Database(entities = [ProgressRow::class], version = 2, exportSchema = false)
+@Database(entities = [ProgressRow::class], version = 3, exportSchema = false)
 internal abstract class ProgressDatabase : RoomDatabase() {
     abstract fun progress(): ProgressDao
 }
@@ -110,6 +130,27 @@ internal abstract class ProgressDatabase : RoomDatabase() {
 internal val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(connection: SQLiteConnection) {
         connection.execSQL("ALTER TABLE progress ADD COLUMN finished_at INTEGER")
+    }
+}
+
+/**
+ * Adds the four columns a listener's position needs.
+ *
+ * Written rather than destructive for the same reason as [MIGRATION_1_2]: the fallback
+ * drops the table, and ADR-0006 puts losing a reading position at the top of what this app
+ * must never do.
+ *
+ * **`part_index` defaults to -1 and that default is the whole migration.** It is what tells
+ * the three cases apart on the way back out, so every row written before this — every comic
+ * and every book in the library — has to read back as *not a listening position*. A default
+ * of 0 would turn the lot of them into audiobooks at chapter zero.
+ */
+internal val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE progress ADD COLUMN part_index INTEGER NOT NULL DEFAULT -1")
+        connection.execSQL("ALTER TABLE progress ADD COLUMN part_count INTEGER NOT NULL DEFAULT 0")
+        connection.execSQL("ALTER TABLE progress ADD COLUMN offset_millis INTEGER NOT NULL DEFAULT 0")
+        connection.execSQL("ALTER TABLE progress ADD COLUMN part_duration_millis INTEGER")
     }
 }
 
@@ -134,14 +175,14 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
                     context.applicationContext,
                     ProgressDatabase::class.java,
                     name,
-                ).addMigrations(MIGRATION_1_2).build(),
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build(),
             )
 
         /** An in-memory store, for tests. */
         fun inMemory(context: Context): ProgressStore =
             ProgressStore(
                 Room.inMemoryDatabaseBuilder(context, ProgressDatabase::class.java)
-                    .addMigrations(MIGRATION_1_2).build(),
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build(),
             )
     }
 
@@ -195,6 +236,10 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
             pageCount = (position as? ReadingPosition.Page)?.total ?: 0,
             progression = position.fraction,
             locator = (position as? ReadingPosition.Reflowable)?.locator,
+            partIndex = (position as? ReadingPosition.Listening)?.part ?: -1,
+            partCount = (position as? ReadingPosition.Listening)?.partCount ?: 0,
+            offsetMillis = (position as? ReadingPosition.Listening)?.offsetMillis ?: 0,
+            partDurationMillis = (position as? ReadingPosition.Listening)?.ofMillis,
             // Finished is sticky. ADR-0006: unmarking a finished publication is a
             // deliberate act, and losing it to a routine save is not something a
             // user would ever want.
@@ -339,10 +384,20 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
             contentDigest = row.contentDigest,
             normalizedPath = row.normalizedPath,
         ),
-        position = if (row.pageIndex >= 0) {
-            ReadingPosition.Page(row.pageIndex, row.pageCount)
-        } else {
-            ReadingPosition.Reflowable(row.progression, row.locator.orEmpty())
+        // Three cases, asked in the order of what each one carries that the others do
+        // not. A listening row also holds a `progression` — every row does, so the library
+        // can order by how far in someone is without decoding one — so the fraction cannot
+        // be the discriminator and the part index is.
+        position = when {
+            row.partIndex >= 0 -> ReadingPosition.Listening(
+                part = row.partIndex,
+                partCount = row.partCount,
+                offsetMillis = row.offsetMillis,
+                ofMillis = row.partDurationMillis,
+            )
+
+            row.pageIndex >= 0 -> ReadingPosition.Page(row.pageIndex, row.pageCount)
+            else -> ReadingPosition.Reflowable(row.progression, row.locator.orEmpty())
         },
         isFinished = row.isFinished,
         finishedAtEpochMillis = row.finishedAt,

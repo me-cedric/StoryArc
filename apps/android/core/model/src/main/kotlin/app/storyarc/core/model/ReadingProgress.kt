@@ -12,6 +12,42 @@ sealed interface ReadingPosition {
     data class Page(val index: Int, val total: Int) : ReadingPosition
     data class Reflowable(val progression: Double, val locator: String) : ReadingPosition
 
+    /**
+     * Where a listener stopped: an offset in time inside one part of a publication.
+     *
+     * `reading-progress`: "it is an offset in time within a named part". The same case
+     * carries a narrated audiobook and a publication being read aloud, because
+     * `audio-playback` gives them one player and this gives them one position.
+     *
+     * **Three decisions inside this signature.**
+     *
+     * [part] is an index and the part's *name* is not stored. A chapter title belongs to
+     * the file, and a position carrying a stale copy of one would disagree with the book
+     * after a re-download.
+     *
+     * [offsetMillis] is into that part, not into the whole publication. A folder
+     * audiobook's parts can be re-ordered or replaced one at a time, and a
+     * whole-publication offset silently moves when an earlier part changes length.
+     *
+     * **[ofMillis] is optional, and that is the load-bearing part.** A read-aloud session
+     * has no true duration — `PlaybackDuration.Estimated` exists on both platforms so an
+     * estimate can never be presented as exact — so a position taken from one has no total
+     * to divide by, and [fraction] answers with the part instead of a guess.
+     *
+     * [partCount] is here and **not in `design.md`'s signature**, which names three fields
+     * and then asks [fraction] for "the part index over the part count". That count is not
+     * derivable from the other three, so the case cannot answer without it. `Page` carries
+     * its `total` for the same reason and in the same shape.
+     *
+     * @param ofMillis how long [part] lasts, or null when nothing knows.
+     */
+    data class Listening(
+        val part: Int,
+        val partCount: Int,
+        val offsetMillis: Long,
+        val ofMillis: Long?,
+    ) : ReadingPosition
+
     /** Normalised 0..1, so two positions compare regardless of kind. */
     val fraction: Double
         get() = when (this) {
@@ -21,6 +57,19 @@ sealed interface ReadingPosition {
                 if (total == 1 && index >= 0) 1.0 else 0.0
             }
             is Reflowable -> progression.coerceIn(0.0, 1.0)
+            // The part, plus how far into it the listener is when anything knows. Without a
+            // duration the second term is zero rather than an estimate: a fraction refined
+            // by a guess is a guess presented as a measurement, and the whole reason
+            // [ofMillis] is nullable is that this app does not do that.
+            is Listening -> if (partCount <= 0) {
+                0.0
+            } else {
+                val within = ofMillis
+                    ?.takeIf { it > 0 }
+                    ?.let { (offsetMillis.toDouble() / it.toDouble()).coerceIn(0.0, 1.0) }
+                    ?: 0.0
+                ((part.toDouble() + within) / partCount.toDouble()).coerceIn(0.0, 1.0)
+            }
         }
 
     /**
