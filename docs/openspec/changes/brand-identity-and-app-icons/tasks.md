@@ -182,8 +182,30 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       icon is the deliverable, so a screenshot of the chooser is not sufficient on its own.
 - [ ] 6.2 The chooser captured at default and largest text size, light and dark.
 - [ ] 6.3 Android: a themed-icon capture, since 4.2 is the reason the monochrome layer exists.
-- [ ] 6.4 Update `docs/design.md`, `docs/openspec/STATUS.md`, and
+- [~] 6.4 Update `docs/design.md`, `docs/openspec/STATUS.md`, and
       `packages/design-tokens/README.md` if it names the accent.
+      **§1's share is done, and the list was two files short.** `docs/design.md` and
+      `packages/design-tokens/README.md` landed with 1.5 — including two numbers that were
+      *already* stale before this change: the README and design.md both claimed 37 gate pairs
+      against 56 actual (58 now), and design.md still described `textTertiary` at a 3:1 floor,
+      which it left when the gate moved every text role to 4.5. `STATUS.md` has a
+      `brand-identity-and-app-icons` section, a corrected "last updated", and a note that its
+      `library-browsing` row describes a shape the app has left.
+      **Two files this task did not name, and one judgment.** The **root `README.md`** said
+      "the accent is **ember** — the colour of a reading lamp" in its Design section, which is
+      the most-read description of this palette anywhere in the repository; it also carried the
+      stale 37. And **`CHANGELOG.md`** had no `### Changed` section at all, so a palette move
+      and two contrast defects had nowhere to be recorded — it has one now, plus the two fixes
+      and a `### Tooling` section.
+      **The in-app what's-new log is deliberately *not* touched, and that is the answer rather
+      than an omission.** `WhatsNew.swift`/`WhatsNew.kt` hold four notes for `0.1.0`, and their
+      own comment says four is the shape "Apple's own What's New uses, because a reader who
+      opens a reading app is there to read". `0.1.0` has not shipped, so nobody has seen the old
+      accent; a fifth line telling a first-ever reader that a colour they have never seen has
+      changed is exactly the clutter that decision was made against. Recorded here so the next
+      session does not "fix" it.
+      **Still outstanding**: the §3–§5 sections, which have not been built, and whatever 1.7
+      changes on the four control kinds.
 - [ ] 6.5 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
 - [ ] 6.6 `pnpm spec:guard:strict`.

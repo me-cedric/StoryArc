@@ -222,8 +222,11 @@ else drew.
 
 - Neutrals carry a warm ink tilt rather than the clinical blue-grey most reader
   apps default to. Light theme is book stock, not office paper.
-- The accent is **ember** — the colour of a reading lamp, not another blue.
-  Inside a publication it defers to a colour derived from the cover art.
+- The accent is a **violet from the middle of the app's own mark**, so the icon and
+  the chrome cannot drift apart — not another blue, and not the tonal purple a
+  Material baseline hands out. One value on every appearance: it clears 3:1 on
+  book stock as well as on ink, which the mark's pink does not. Inside a
+  publication it defers to a colour derived from the cover art.
 - System sans for every piece of chrome, so the app reads as stock. A serif on
   publication titles is the whole of StoryArc's typographic voice.
 - Spacing is deliberately uneven. A cover grid breathes; a metadata stack
@@ -234,9 +237,11 @@ else drew.
 
 Colour, type, spacing, radius and motion are authored once in OKLCH and
 generated into Swift and Kotlin, so neither app can drift by hand-editing a hex
-code. **Contrast is a build gate**: 37 pairs across five appearance ramps, with
+code. **Contrast is a build gate**: 58 pairs across five appearance ramps, with
 text below its WCAG floor failing CI, and all six reading themes held to AAA
-because that text is read for hours rather than glanced at.
+because that text is read for hours rather than glanced at. Both halves of a
+pair are checked — an accent against its canvas *and* the label drawn on the
+accent, because a gate that only checks one of those is checking half.
 
 Full system in [`docs/design.md`](docs/design.md).
 

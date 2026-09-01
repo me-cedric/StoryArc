@@ -384,8 +384,40 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   decode straight from a storage provider by handing libarchive
   `/proc/self/fd/N`, with no copy.
 
+### Changed
+
+- **The accent is a violet from the middle of the app's own mark, and the tokens are
+  named for their role.** `ember`/`emberStrong`/`emberMuted` become
+  `accent`/`accentMuted` plus `secondary`/`secondaryStrong`, and `ink` retires. The
+  accent is **one value on every appearance** — `#8A4DF0` measures 4.06:1 on the dark
+  canvas and 4.43:1 on the light against a 3:1 floor, where the mark's pink reaches
+  only 2.48:1 on paper and would need a second token to exist at all. The pink takes
+  the secondary role, which is where a two-pole identity wants it. `arcMid`, `arcLate`,
+  `arcEnd` and `iconPlate` join as identity-only tokens: they belong to the mark, the
+  app icons and brand surfaces, and a source-level guard on both platforms fails if one
+  reaches a chrome accent.
+- **The contrast gate checks both halves of a pair.** It gated an accent against its
+  canvas and never said what may be drawn *on* the accent, so nothing checked a primary
+  button's label. It now does, and finding that is what caught the entry under *Fixed*
+  below.
+
 ### Fixed
 
+- **The app's global tint on iOS was the pink while its accent token was the violet.**
+  `AccentColor.colorset` is `ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME`, so it is
+  the tint every unstyled control draws itself in. It is generated, and the generator's
+  own constants were named `accent`/`accentStrong` for the two *pink* values — so after
+  the token rename they meant the opposite of the token names. No compiler reads an
+  asset catalogue, which is why it survived. Now one universal entry; the light/dark
+  split existed only because the old amber needed a darker twin on paper.
+- **A primary button's label was under its contrast floor.** A near-black label measured
+  6.91:1 on the old 70%-lightness amber and 4.06:1 on the 58% violet, under WCAG's 4.5
+  for normal-size text. Pure white is the only value in the set that clears it, at 4.77.
+  Android had no test asserting the brand colour scheme's wiring at all; it does now, as
+  the mirror of iOS's.
+- **The what's-new sheet's largest-text check could not fail.** Its only iOS assertion
+  was that Continue *exists*, and an element below the visible edge still exists — so it
+  passed in exactly the state the requirement forbids. It asserts reachability now.
 - **A typography change lost the reader's place.** Raising the text size two steps
   kept the chapter and the reported progression but moved the reader roughly
   fourteen paragraphs back inside it: Readium re-paginates to the *progression*,
@@ -449,6 +481,28 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 - **CI.** Three path-filtered workflows: contract (specs, token contrast, token
   sync), iOS (package tests, SwiftLint, app build), Android (lint, tests,
   assemble).
+
+### Tooling
+
+- **`pnpm delta:drop`, in `pnpm lint`.** A `## MODIFIED` spec delta replaces its
+  requirement's whole block, so anything the main spec holds and the delta omits is
+  deleted the moment the change is archived — and `openspec validate` never looks, because
+  it checks the delta's own shape rather than what the delta would displace. Only `archive`
+  notices, by which point the change directory has moved. This had already cost three
+  near-misses, and the gate's first real run found a live one: archiving the reader-theming
+  change would have deleted the two-level theme surface, including the clause that a reader
+  wanting a preset must not pass an axis to reach it.
+- **`--appearance light|dark` on `pnpm capture:ios`.** The Android capture harness has taken
+  `--dark` and `--font-scale` since it was written and always puts the device back; the iOS
+  one had neither, so every iOS dark capture was taken by hand and two runs of the same walk
+  overwrote each other. It now sets the appearance, suffixes the filenames, and restores the
+  device even when the run fails.
+- **`pnpm clean:builds` reports the space, and `pnpm clean:builds:caches` frees it.** The
+  shared Xcode caches belong to no project and rebuild themselves, so they were skipped —
+  but skipped *silently*, which hid that `ModuleCache.noindex` had reached 15 GB on a volume
+  with 1.2 GB free. A full disk makes a write fail silently and a test fail loudly somewhere
+  else: two cover-cache assertions — exactly the two that write bytes — failed as though the
+  cache were broken.
 
 ### Notes
 
