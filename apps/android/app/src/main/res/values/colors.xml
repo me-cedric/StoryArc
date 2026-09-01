@@ -13,4 +13,20 @@
          reader knows which value it has to follow. It was #EC7C27 — the amber accent the
          brand has replaced — which drew an orange plate under a pink-to-violet mark. -->
     <color name="ic_launcher_background">#17171F</color>
+
+    <!-- The other three plates, one per alternate face. Mono is not here: it sits on Ink's
+         plate above and differs in its foreground, which is what "faces of one mark" means.
+
+         The same duplication the comment above licenses, and the same rule — each of these
+         must equal the `Ink` of the matching name in `scripts/brand-mark.swift`'s `Palette`,
+         because that generator renders the *iOS* faces from those values and a plate that
+         disagreed would put a different Paper on each platform. `AppIconManifestTest` reads
+         both files and fails when they drift, which is the only thing that can: no compiler
+         reads a resource XML and no compiler reads that script. -->
+    <!-- Paper — light.surfaceCanvas -->
+    <color name="ic_launcher_background_paper">#F8F6F4</color>
+    <!-- Bloom — a pale lavender, from the artwork's variants -->
+    <color name="ic_launcher_background_bloom">#E7E3F5</color>
+    <!-- Arc — brand.arcEnd, oklch(54.1% 0.2415 278.8) -->
+    <color name="ic_launcher_background_arc">#5B4BF5</color>
 </resources>

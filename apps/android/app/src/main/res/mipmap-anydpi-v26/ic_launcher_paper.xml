@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paper: the warm off-white plate, for a light home screen. One of the five faces
+     `settings-and-about` lets a reader choose between; drawn by the `MainActivityPaper`
+     alias. The mark itself is the generated foreground every face shares — faces of one
+     mark, not five marks. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background_paper" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <!-- The single-colour art, not the gradient one: a themed icon retints this layer, and
+         a gradient tinted flat loses the mark's internal divisions. Every face shares it,
+         because a themed icon takes its colour from the wallpaper rather than from the
+         plate the reader picked. -->
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

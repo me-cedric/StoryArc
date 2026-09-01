@@ -221,13 +221,34 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 
 ## 4. Android: activity-alias, because there is no API
 
-- [ ] 4.1 One `<activity-alias>` per face in the manifest, each with its own `android:icon`
+- [x] 4.1 One `<activity-alias>` per face in the manifest, each with its own `android:icon`
       and the launcher intent filter, all but the default `android:enabled="false"`.
+      **Four aliases, not five** — the default is `MainActivity`, per 4.5. Each carries
+      **only** the launcher filter: the VIEW and SEND filters stay on the activity, because
+      they are how a file reaches the app rather than anything about an icon, and five copies
+      of them would list StoryArc five times in "open with" the moment more than one component
+      were enabled. `AppIconManifestTest` asserts that too.
+      **The alias needed an adaptive icon each, which the generator does not write.** It emits
+      one coloured foreground and one monochrome twin; the *plates* are resource literals,
+      because an adaptive icon's background has to be a resource and a resource XML cannot
+      reference a token. So `mipmap-anydpi-v26/ic_launcher_{paper,bloom,arc,mono}.xml` and
+      three colours join generated art to a plate — no new art, and Mono differs only in
+      pointing its foreground at the flat mark it already shares with `<monochrome>`.
+      **That put the same hex in two languages, so it is gated.**
+      `AppIconManifestTest` reads `colors.xml` and `scripts/brand-mark.swift` and fails when a
+      plate drifts, because that script renders the *iOS* faces from its own `Palette` and a
+      drift would ship a different Paper on each platform. Mutation-checked: Paper's plate off
+      by one digit and Arc's alias missing `enabled="false"` were each caught by name.
 - [x] 4.2 Replace `<monochrome>`'s pointer at the coloured foreground with the real
-      single-colour art. `ic_launcher_monochrome.xml` is generated; **the manifest still
-      points `<monochrome>` at the coloured foreground** and that one-line change belongs
-      with §4.1's alias work. A themed icon tints that layer, and a gradient tinted flat loses the
-      mark's internal divisions.
+      single-colour art. `ic_launcher_monochrome.xml` is generated; a themed icon tints that
+      layer, and a gradient tinted flat loses the mark's internal divisions.
+      **This task's own note was stale and is corrected rather than deleted.** It said "the
+      manifest still points `<monochrome>` at the coloured foreground". The manifest points
+      `<monochrome>` at nothing — `mipmap-anydpi-v26/ic_launcher.xml` does, and it already
+      named `@drawable/ic_launcher_monochrome`, with the reason written beside it. Nothing was
+      outstanding here. The four new faces each point at the same flat art for the same reason,
+      and the guard asserts it per face: a themed icon takes its colour from the wallpaper, so
+      every face's themed form is the same mark.
 - [ ] 4.3 Swap via `setComponentEnabledSetting`, **enable before disable**, both
       `DONT_KILL_APP` — disabling the enabled alias first can close the task.
 - [x] 4.4 A test asserting **exactly one** alias is enabled, over every transition including

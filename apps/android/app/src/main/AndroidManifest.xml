@@ -122,5 +122,80 @@
                 <data android:mimeType="audio/ogg" />
             </intent-filter>
         </activity>
+
+        <!-- The four alternate app icons, one `<activity-alias>` each.
+
+             `settings-and-about` lets a reader choose the app's icon, and this platform has
+             no `setAlternateIconName`: the only way to change what a launcher draws is to
+             have several launcher components and enable exactly one. `AppIconAliases` owns
+             the switching and `AppIconSwitcher` performs it.
+
+             **The default face has no alias.** Ink is `MainActivity` above, so a fresh
+             install and a reset land on the same component states rather than on two states
+             that merely look alike — see task 4.5 and `AppIconAliasesTest`.
+
+             **Exactly one of these five components may ever be enabled.** Zero makes
+             StoryArc vanish from the launcher and the app drawer with no way back from
+             inside the app; a reader would have to reinstall it. That is why the swap is a
+             planner with a test rather than two calls at a press.
+
+             Each alias carries **only** the launcher filter. The VIEW and SEND filters stay
+             on `MainActivity` alone: they are how a file reaches the app, they are not about
+             icons, and five copies of them would put StoryArc in the "open with" list five
+             times over the moment more than one component were enabled.
+
+             `android:label` is repeated rather than inherited because a launcher reads the
+             alias's own label, and an unlabelled alias shows the activity's name. -->
+        <activity-alias
+            android:name=".MainActivityPaper"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_paper"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityBloom"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_bloom"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityArc"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_arc"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityMono"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_mono"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
     </application>
 </manifest>
