@@ -99,6 +99,10 @@ Android only. Test-first; a visible change owes a before/after capture per
             `:feature:epubreader:testDebugUnitTest` 54 passed, `:feature:epubreader:lint`
             passed. `ThemeSheetTest` asserts `AlignmentControl(` is drawn on level two and
             not on level one; both still hold, unedited.
+      - [x] `feature/epubreader/.../ThemeSheet.kt` — not a call site, but the three dead
+            `Segmented*` imports it carried are removed. Nothing warned about them: Kotlin
+            does not report an unused import, which is the second reason this change had no
+            mechanical signal behind it.
 - [ ] 2.2 Each site's existing behaviour test must still pass **unchanged**. If one needs
       editing, the change has altered behaviour and that is a defect, not a fixup.
 - [ ] 2.3 A source-level guard that no `SegmentedButtonRow` returns to `apps/android`.
