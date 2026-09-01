@@ -360,8 +360,13 @@ enum Palette {
     static let paper = Ink("#F8F6F4")        // light.surfaceCanvas
     static let bloom = Ink("#E7E3F5")        // a pale lavender plate, from the artwork's variants
     static let arcPlate = Ink("#5B4BF5")     // brand.arcEnd — the loud face's plate
-    static let accent = Ink("#FF6B9D")       // brand.accent       oklch(72.4% 0.185 2)
-    static let accentStrong = Ink("#DA497D") // brand.accentStrong oklch(62% 0.185 2)
+    /// `brand.accent`. **One value, both appearances**, and that is the whole argument for it:
+    /// `#8A4DF0` clears 3:1 on the light canvas at 4.43 as well as on the dark at 4.06, where
+    /// the pink reaches only 2.48 on paper. The two constants that used to sit here were the
+    /// pink pair, named `accent`/`accentStrong` — which after the token rename meant the
+    /// *opposite* of the token names, and shipped the pink as the app's global tint while
+    /// `Palette.accent` was the violet.
+    static let accent = Ink("#8A4DF0")       // brand.accent  oklch(58% 0.2304 295.4)
     static let monoMark = Ink("#F8F6F4")
 }
 
@@ -562,18 +567,21 @@ func appIconContents(_ file: String) -> String {
 /// The accent colour, as the asset catalogue wants it.
 ///
 /// Generated because it is the *same* value as the token, and a hex typed twice is a hex that
-/// will disagree once. Light takes `accentStrong`, the token that exists precisely because the
-/// lighter accent fails on paper.
+/// will disagree once. **This file is `ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME`**
+/// (`apps/ios/project.yml:176`), so it is the tint every unstyled control on iOS draws itself
+/// in — which is why it disagreeing with the token was not a cosmetic problem.
+///
+/// **One universal entry, no light/dark split.** It used to carry two, because the old amber
+/// accent needed a darker twin to clear contrast on paper. The violet does not: `#8A4DF0`
+/// measures 4.06:1 on `dark.surfaceCanvas` and 4.43:1 on `light.surfaceCanvas`, both against a
+/// 3.0 floor. Emitting the same hex twice would invite somebody to "fix" one of them.
 func accentColorContents() -> String {
-    func entry(_ ink: Ink, dark: Bool) -> String {
+    func entry(_ ink: Ink) -> String {
         let hex = ink.hex.dropFirst()
         let r = hex.prefix(2), g = hex.dropFirst(2).prefix(2), b = hex.suffix(2)
-        let appearance = dark
-            ? "      \"appearances\" : [ { \"appearance\" : \"luminosity\", \"value\" : \"dark\" } ],\n"
-            : ""
         return """
             {
-        \(appearance)      "color" : {
+              "color" : {
                 "color-space" : "srgb",
                 "components" : { "alpha" : "1.000", "blue" : "0x\(b)", "green" : "0x\(g)", "red" : "0x\(r)" }
               },
@@ -584,8 +592,7 @@ func accentColorContents() -> String {
     return """
     {
       "colors" : [
-    \(entry(Palette.accentStrong, dark: false)),
-    \(entry(Palette.accent, dark: true))
+    \(entry(Palette.accent))
       ],
       "info" : { "author" : "storyarc-brand-mark", "version" : 1 }
     }
