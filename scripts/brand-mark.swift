@@ -564,6 +564,29 @@ func appIconContents(_ file: String) -> String {
     """
 }
 
+/// A face's tile, as the asset catalogue wants an ordinary image.
+///
+/// **An `.appiconset` cannot be drawn by the app that ships it** — it compiles to an *Icon
+/// Image*, which is not fetchable by name — so each face is emitted twice, from one render at
+/// one inset, so the tile a reader picks cannot drift from the icon they get. `3x` at 180 px is a
+/// 60 pt home-screen icon. The full account sits beside the code that draws these, in
+/// `SettingsFeature/AppIconSettings.swift`, rather than being repeated here to go stale.
+func appIconTileContents(_ file: String) -> String {
+    """
+    {
+      "images" : [
+        {
+          "filename" : "\(file)",
+          "idiom" : "universal",
+          "scale" : "3x"
+        }
+      ],
+      "info" : { "author" : "storyarc-brand-mark", "version" : 1 }
+    }
+
+    """
+}
+
 /// The accent colour, as the asset catalogue wants it.
 ///
 /// Generated because it is the *same* value as the token, and a hex typed twice is a hex that
@@ -726,6 +749,15 @@ for face in Face.all where face.id != "bare" {
                     renderPNG(artwork, face: face, side: 1024, inset: Inset.ios)))
     written.append(("\(catalogue)/\(setName).appiconset/Contents.json",
                     Data(appIconContents(file).utf8)))
+
+    // The same face again, as an image the chooser can draw: ``appIconTileContents(_:)`` says
+    // why one emission cannot serve both. `AppIconChoiceTests` asserts the name.
+    let tileSet = "AppIconTile-\(face.name)"
+    let tileFile = "\(tileSet)@3x.png"
+    written.append(("\(catalogue)/\(tileSet).imageset/\(tileFile)",
+                    renderPNG(artwork, face: face, side: 180, inset: Inset.ios)))
+    written.append(("\(catalogue)/\(tileSet).imageset/Contents.json",
+                    Data(appIconTileContents(tileFile).utf8)))
 }
 written.append(("\(catalogue)/AccentColor.colorset/Contents.json",
                 Data(accentColorContents().utf8)))

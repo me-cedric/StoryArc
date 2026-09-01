@@ -350,7 +350,7 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       platforms' "every anchor is reachable by search" tests now cover it.
       **"paper" is deliberately still Natural's**, although Paper is also a face: a reader who
       types it means the reading theme far more often than the tile.
-- [~] 5.3 Both: each option is drawn as the icon it actually is, at home-screen size, current
+- [x] 5.3 Both: each option is drawn as the icon it actually is, at home-screen size, current
       one marked, default marked as default.
       **Android draws the component's own launcher icon rather than rebuilding it.** The plates
       and the mark live in `:app`'s resources, which a feature module cannot reference at all,
@@ -363,17 +363,25 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       plate is `#F8F6F4` and the settings surface is a warm off-white too, so its tile had no
       boundary at all and read as a plateless mark beside four plated ones — the one face a
       reader could not see.
-      **Android is done; iOS is not, and the captures show it.** An `.appiconset` compiles to an
-      *Icon Image* in `Assets.car`, and an icon asset is not fetchable by name — `Image(_:)` and
-      `UIImage(named:)` both answer nothing, which draws an empty tile and is an error nowhere.
+      **iOS's tiles were blank until the generator emitted them, and the captures are what found
+      that.** An `.appiconset` compiles to an *Icon Image* in `Assets.car`, and an icon asset is
+      not fetchable by name — `Image(_:)` and `UIImage(named:)` both answer nothing, which draws
+      an empty tile and is an error nowhere, so no test could have failed on it.
       `ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS` emits no loose file, and listing the
       generator's own PNG a second time as a resource makes XcodeGen write a flattened path that
       does not build. `xcrun assetutil --info` on the built catalogue settled it.
-      **The fix is one emission in `scripts/brand-mark.swift`**, which already writes those
-      bytes: an `.imageset` beside each `.appiconset`, named `AppIconTile-<Face>` — the name
-      `AppIconChoice.tileResourceName` declares and `AppIconChoiceTests` asserts, so the two
-      sides cannot drift once it exists. That file is the mark's, not this change's, so it is
-      reported rather than edited.
+      **Fixed in `scripts/brand-mark.swift`**: each face is now emitted **twice from one render at
+      one inset** — the `.appiconset` the platform installs, and an `.imageset` named
+      `AppIconTile-<Face>`, which is the name `AppIconChoice.tileResourceName` declares and
+      `AppIconChoiceTests` asserts, so the two sides cannot drift. One render rather than two is
+      what keeps the tile a reader picks from disagreeing with the icon they get. 180 px at `3x`,
+      because that is a 60 pt home-screen icon.
+      **Verified in the built catalogue rather than by eye**, since a blank tile is invisible to
+      every gate: `xcrun assetutil --info` on `main`'s own `Assets.car` reports all five as
+      `AssetType: Image` at 180 px, where the `.appiconset`s remain `Icon Image`. That inspection
+      is worth doing carefully — the first attempt read the newest `Assets.car` by modification
+      time and got **another worktree's build**, which reported zero tiles and would have been
+      filed as a failure of this fix.
 - [x] 5.4 Android: the reader is told the change appears the next time the launcher draws its
       list. iOS changes in place. **Do not paper over the difference** — the spec states it
       because the platform does.

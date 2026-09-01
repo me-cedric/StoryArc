@@ -1,0 +1,10 @@
+{
+  "images" : [
+    {
+      "filename" : "AppIconTile-Paper@3x.png",
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : { "author" : "storyarc-brand-mark", "version" : 1 }
+}

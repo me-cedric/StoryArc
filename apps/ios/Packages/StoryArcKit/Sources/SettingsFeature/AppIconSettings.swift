@@ -47,17 +47,24 @@ private struct AppIconTile: View {
     @Environment(\.theme) private var theme
     let choice: AppIconChoice
 
-    /// The face's own artwork, if the app ships a drawable copy of it.
+    /// The face's own artwork, from the drawable copy the app ships beside each icon.
     ///
-    /// **It does not yet, and the capture is what found that.** The first version drew
+    /// **The app did not ship one at first, and a capture is what found that.** The first version
+    /// drew
     /// `Image(choice.assetName)` and every tile came out blank — five empty rounded rectangles,
     /// which no test could have failed on, because a missing image is not an error in SwiftUI.
     /// `xcrun assetutil --info` on the built `Assets.car` says why: an `.appiconset` compiles
     /// to an *Icon Image*, and an icon asset is not fetchable by name at all. `UIImage(named:)`
     /// answers nothing either, `ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS` emits no
     /// loose file, and listing the generator's PNG as a second resource makes XcodeGen write a
-    /// flattened path that does not build. See ``AppIconChoice/tileResourceName``, which names
-    /// the asset the mark's generator has to emit, and the report that goes with it.
+    /// flattened path that does not build.
+    ///
+    /// **So each face is emitted twice**, both from one render at one inset: once as the
+    /// `.appiconset` the platform installs, and once as an ordinary `.imageset` named by
+    /// ``AppIconChoice/tileResourceName``. `scripts/brand-mark.swift` writes both, which is what
+    /// keeps the tile a reader picks from drifting away from the icon they get. Verified in the
+    /// built catalogue rather than by eye: `xcrun assetutil --info` reports all five as
+    /// `AssetType: Image` at 180 px, where the `.appiconset`s are `Icon Image` and unfetchable.
     ///
     /// From the **main** bundle rather than this module's: the artwork belongs to the app
     /// target, which is where an app icon has to live.
