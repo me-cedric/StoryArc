@@ -1111,6 +1111,37 @@ consequence, stated plainly so nobody discovers it at the end:
   behind a flag and accept a long unproven branch, or to stop. **Do not redefine the
   gate.**
 
+#### The two harnesses were not equally capable, and that is why the iOS matrices are patchy
+
+Noticed 2026-09-01 while counting which captures are owed. `capture-android.mjs` has taken
+`--dark` and `--font-scale` since the day it was written, and **always puts the device back**.
+`capture-ios.mjs` had neither: it ran a walk and photographed whatever appearance the
+simulator happened to be in.
+
+That is not a cosmetic gap, and the screenshot folders show its shape. Android holds complete
+matrices — `android-covergrid-{light,dark}-{default,largest}.png`, and the same four for
+About, Appearance, Notices, Privacy, Reading, Settings. iOS holds singles:
+`ios-cover-iphone-library.png` and `ios-cover-ipad-library.png` at default size in whatever
+appearance was set, and `ios-coverless-well-ax5-light.png` with **no dark twin**. Every iOS
+dark capture this repository owns was taken by a person flipping the simulator by hand and
+remembering to flip it back, and two runs of the same walk overwrote each other because the
+filename carried no appearance.
+
+`capture-ios.mjs` now takes `--appearance light|dark`. It reads the simulator's current
+appearance, sets the one asked for, adds a `-dark` suffix to the filenames so a light run and
+a dark run cannot collide, and puts the appearance back — **including when the run fails**,
+because a capture script that leaves the device in dark mode makes the next person's light
+capture a lie and they will not know to check.
+
+There is no launch argument for this, which is why it has to be done from outside the test
+process: the app's default appearance is `.system`, and `SettingsStore` writes every setting
+as one JSON blob under a single key, so there is no per-setting default to override.
+
+**Still owed on iOS, and now takeable in one command each:** a dark twin for the library
+cover grid at default size, and both appearances at `AccessibilityXXXL`. The walks already
+exist — `testCaptureLibrary` and `testCaptureLibraryAtLargestText` — so this is a run, not a
+test to write.
+
 ---
 
 ## 8. What I am unsure about
