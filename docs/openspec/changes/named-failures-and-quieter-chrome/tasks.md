@@ -8,35 +8,105 @@ owned by changes that are still open — see design.md's routing table. The hero
 scenarios in `one-library-three-destinations`; the player's artwork is one in
 `audiobooks-and-playback`. Their tasks live there.
 
+**What a tick in §1 means**: the code exists on both platforms, something automated asserts
+it, and that assertion was run. Where a picture is the only possible proof it was taken and
+filed — `docs/designs/screenshots/named-failures-2026-09-01/`. A tick does **not** mean the
+whole change is verified; §4.4 owns that.
+
+**Three things this section's own text got wrong**, corrected in place below rather than
+worked around silently:
+
+- `rar4-solid.cbr` is not a file that reaches a skip. A solid RAR4 is *found* and marked
+  unopenable on purpose, so the second differently-failing fixture is
+  `password-protected.cbz`. `LibraryScannerTests` has always asserted the found behaviour.
+- The refusal sentences are **worded** by `publication-formats` and are **not translated**:
+  they are English literals in each platform's format layer. Nothing here invents a second
+  wording — that is what §1.2 forbids — so the notice now shows English reason text in a
+  four-language app. Named as a gap, not fixed here.
+- Android's count was never on a timer. `design.md` says both platforms had a six-second
+  `dwell`; only iOS did. The Android half of §1.4 is a placement change, not a timer removal.
+
 ## 1. A failure names its publication
 
-- [ ] 1.1 Both: the indexer's reasons are **kept**, not counted. `PublicationIndexer` already
+- [x] 1.1 Both: the indexer's reasons are **kept**, not counted. `PublicationIndexer` already
       produces `IndexError.unsupported(format:)`, `.unreadable(reason:)` and
       `.contentProtected`, each worded and translated; the scan keeps only the tally. Carry
       the pairs through. Test first, with `refused.cb7` and `rar4-solid.cbr` from the corpus —
       two files that fail *differently*, which is the case a merged reason would hide.
-- [ ] 1.2 Both: one failure names its publication and its reason. Assert the reason is the
+      **Done.** `SkippedPublications` on both platforms; `LibraryScanning.swift` and
+      `LibraryViewModel.rescan` carry the pairs where they used to `break` and `-> Unit`.
+      Android's parallel `var skipped = 0` is gone: one `Skipped` event is one skipped file,
+      so the count `Finished` carries is `refusals.size`. Asserted against a real scan of two
+      corpus files in `SkippedScanTests` (iOS, 6 tests) and `SkippedScanTest` (Android, 3) —
+      with `password-protected.cbz` rather than `rar4-solid.cbr`, which is *found*.
+- [x] 1.2 Both: one failure names its publication and its reason. Assert the reason is the
       one `publication-formats` gives, not a new sentence.
-- [ ] 1.3 Both: several state the count and lead to a list, each row with its own reason.
+      **Done.** `Notice.one(name:reason:)` carries the scanner's own string verbatim;
+      `SkippedPublicationsTests` / `SkippedPublicationsTest` assert the exact sentence, and
+      the corpus tests assert the CB7's reason names the container. No new wording was added
+      — see the gap noted above about those sentences not being translated.
+- [x] 1.3 Both: several state the count and lead to a list, each row with its own reason.
       Assert two differently-failing files produce two different reasons.
-- [ ] 1.4 Both: the notice is **not on a timer**. Delete the `dwell` and the `isShowing`
+      **Done.** `Notice.several(count:)` plus a sheet (iOS) and a `ModalBottomSheet`
+      (Android). Asserted pure, asserted against the real scanner, and photographed:
+      `ios-skipped-list.png` and `android-skipped-list.png` show *the archive is password
+      protected* beside *CB7 is not a format StoryArc reads*.
+- [x] 1.4 Both: the notice is **not on a timer**. Delete the `dwell` and the `isShowing`
       countdown in `LibraryStates.swift`; the same in `LibraryScreen.kt`. Assert it survives
       longer than the old six seconds — a test that only checks it appears would pass against
       the toast.
-- [ ] 1.5 Both: it does not obscure a cover. It is not a floating overlay any more.
-- [ ] 1.6 Both: dismissal is the reader's, and the list stays reachable from the library
+      **Done on iOS, and there was nothing to delete on Android.** `ScanSummary` is gone,
+      `dwell` and `isShowing` with it; `SkippedNoticeTimerTests` asserts the file holds no
+      sleep, no duration and no visibility state, and `UITests/SkippedNoticeTests` waits nine
+      real seconds on a booted simulator and looks again (passed, 19.0 s). Android's count had
+      no timer — `design.md` is wrong about that — so `SkippedNoticeTest` still advances
+      Compose's clock past seven seconds, which is the assertion iOS cannot make off-device.
+- [x] 1.5 Both: it does not obscure a cover. It is not a floating overlay any more.
+      **Done.** Inline above the shelf on both platforms, on an opaque surface, taking its own
+      space: out of iOS's `safeAreaBar` and out of Android's `bottomBar`. The before/after
+      pair is the proof — `ios-skipped-toast-before-ax5.png` has the capsule sitting on a
+      cover with the artwork showing through it.
+- [x] 1.6 Both: dismissal is the reader's, and the list stays reachable from the library
       afterwards. That makes it **state rather than an event**, so the library's model owns it
       beside the scan results it already holds.
-- [ ] 1.7 Both: the same set does not re-announce itself. Assert a second scan finding the
+      **Done.** `LibraryModel.skipped` and `LibraryViewModel.skipped`, beside `scanState`.
+      Dismissal collapses the notice to a named control rather than to nothing —
+      `Notice.reachable`, which is a fourth case precisely because `nothing` and *dismissed*
+      are different. Asserted on both platforms; the Android dismissal is driven through the
+      control's own semantics action in `SkippedNoticeTest`.
+- [x] 1.7 Both: the same set does not re-announce itself. Assert a second scan finding the
       same failures does not bring the notice back.
-- [ ] 1.8 Both: a publication that later opens leaves the list without being dismissed, and
+      **Done.** Acknowledgement is by name, not by a flag, so a set that *grows* still has
+      something to say. Asserted pure on both platforms and against two real consecutive
+      scans of the same folder in `SkippedScanTests.secondScanIsQuiet`.
+- [x] 1.8 Both: a publication that later opens leaves the list without being dismissed, and
       the notice goes when the list empties. **This is the one that keeps the feature honest** —
       without it the list becomes a graveyard and a reader learns to ignore it, which is the
       toast's failure arrived at slowly.
-- [ ] 1.9 Both: announced once, naming the publication or the count, and it does not steal
+      **Done, and it falls out of one decision**: settling *replaces* the list at the end of a
+      whole scan rather than accumulating, so a walk that opened a publication does not report
+      it and a file the reader **deleted** leaves the same way. Acknowledgements are pruned
+      with their entries, so a file fixed and then broken again is news a second time.
+      `SkippedScanTests.fixedPublicationLeavesTheList` swaps the protected archive for one
+      that opens, rescans, and watches the row go; `emptyListEndsTheNotice` deletes the last
+      one and watches the notice go.
+- [x] 1.9 Both: announced once, naming the publication or the count, and it does not steal
       focus from the shelf. The way to the list is a named control, not the whole notice.
-- [ ] 1.10 Both: captures. The "before" must be taken **within six seconds of a failing scan**,
+      **Done.** The sentence and its reason are one accessibility element — `.combine` on iOS,
+      `semantics(mergeDescendants = true)` on Android — so a screen reader stops once and
+      hears the whole fact. Nothing manipulates focus and nothing carries a tap gesture: the
+      way to the list is a labelled button. `SkippedNoticeTest` asserts one node carrying both
+      halves, exactly one of them, and the control's own name beside it.
+- [x] 1.10 Both: captures. The "before" must be taken **within six seconds of a failing scan**,
       because that is how long the toast lives.
+      **Done.** Ten pictures in `docs/designs/screenshots/named-failures-2026-09-01/`, both
+      platforms, before and after, default and largest text size, with a README saying how to
+      retake them. The iOS before was caught by waiting for the strip itself rather than for
+      the shelf, on the pre-change sources restored over the tree and then put back.
+      `scripts/corpus.mjs` gained `Locked Vault.cbz` so a device can show **two** refusals
+      that differ; with one, the two-reasons claim could not be photographed at all.
+      Two defects were found by these captures and fixed before they were filed — see the
+      README.
 
 ## 2. The toolbar keeps two controls and a menu
 

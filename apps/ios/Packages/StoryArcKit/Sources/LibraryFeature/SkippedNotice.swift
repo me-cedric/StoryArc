@@ -182,7 +182,14 @@ struct SkippedList: View {
             // Inline, because the large title truncated this one to *"What couldn’t be
             // open…"* on an iPhone at the default text size — a large title takes one line
             // and does not wrap.
+            //
+            // Guarded: this package builds for macOS too, so that the pure targets can be
+            // tested on the host with no simulator (see `Package.swift`), and the modifier is
+            // unavailable there. `pnpm test:ios` is what caught it — the simulator build had
+            // been green for three captures.
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button { dismissSheet() } label: {
