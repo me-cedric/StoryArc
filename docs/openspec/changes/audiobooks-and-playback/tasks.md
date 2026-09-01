@@ -608,13 +608,47 @@ creep — see [`design.md`](design.md).
       listener nothing they can act on. **No sleep timer exists to announce** (5.3).
       **Not verified by an accessibility scan** — `pnpm a11y:android` has no player route,
       and adding one is part of §9.
-- [x] 8.2 Both — Android half. A `Slider` is already an adjustable; what it announces
+      **iOS: the names and values exist, and are now under the platform's own audit.**
+      `PlayerLabels` decides each announcement and `PlayerLabelsTests` pins it; what was
+      missing was a tool rather than a reading. `UITests/PlayerAuditTests` walks to six
+      surfaces — the shelf with the bar, the player at the default and the largest text size,
+      and each of the three sheets — and calls `performAccessibilityAudit` on each. It
+      **reports rather than fails**, for the reason `AuditWalk.reportOnly` sets out: one
+      expectation broad enough to absorb the known glass-chrome contrast findings is broad
+      enough to absorb a navigation failure silently, and it did exactly that once.
+      **Run on the iPhone 17 Pro simulator, 2026-09-01. No unlabelled control anywhere**,
+      which is the finding §8.1 is about. What did come back, with the element each names:
+      *Player* — one *Potentially inaccessible text*, no element reported, which is the cover
+      placeholder (already `accessibilityHidden`). *Chapters* — two of the same.
+      *Player at AccessibilityXXXL* — **nothing at all**.
+      **And most of the rest are not the player's**, which is why the element matters: the
+      three *Contrast failed* findings on each sheet are `Continue listening`,
+      `On this device, readable with no network` and `Sea Room` — the **publication page
+      behind** the sheet, the same class of finding `AccessibilityAuditTests` already records
+      there. Reading them as sheet findings would have sent the next reader to the wrong file.
+      One finding **is** the bar's, and it is real — see 8.4.
+- [x] 8.2 Both. **Android half.** A `Slider` is already an adjustable; what it announces
       by default is a percentage, and the `stateDescription` replaces that with
-      "0:42 of 5:00". iOS half outstanding.
-- [x] 8.3 Both — Android half. `mergeDescendants` makes the bar one element;
+      "0:42 of 5:00".
+      **iOS half.** `FullPlayerView`'s scrub `Slider` is an adjustable by construction, and its
+      `accessibilityValue` is `PlayerLabels.spokenTime` — *"1 minute, 10 seconds"*, built from
+      `Duration.formatted(.units)` so the words are the platform's in every language. The face
+      of the control keeps `0:09`, which is right in print and wrong read aloud; the two forms
+      are separate functions for exactly that reason and `PlayerLabelsTests` pins both. The two
+      ends of the slider are `accessibilityHidden`, so the time is announced once rather than
+      three times.
+- [x] 8.3 Both. **Android half.** `mergeDescendants` makes the bar one element;
       `CustomAccessibilityAction`s keep play/pause and open reachable separately. Not
       stealing focus is what *not asking for it* is — nothing in the bar requests focus,
       which is the whole of the requirement and is why there is no code to point at.
+      **iOS half.** `.accessibilityElement(children: .contain)` with a container label of *Now
+      playing*, which is the platform's own shape for "one element with its actions reachable
+      separately" — a container plus addressable children rather than Android's merge plus
+      custom actions. Each control is separately named: the row is *Back to the book* or *Open
+      the player* by `CompactPlayer.wayBack`, and play/pause and stop carry their own labels.
+      Not stealing focus is the same absence it is on Android: nothing in `PlayerDock` is
+      `accessibilityFocused` and nothing posts a screen-changed announcement, which
+      `PlayerDock`'s own header states as a rule so a later edit has to argue with it.
 - [~] 8.4 Both: at the largest accessibility text size nothing is truncated to one
       word and no transport control is pushed off the screen.
       **Android: asserted and photographed.** `CompactPlayerTest` measures that the bar
@@ -622,6 +656,23 @@ creep — see [`design.md`](design.md).
       `font_scale 2.0` in dark — `06-player-dark-2x.png` — with the whole transport on
       screen and every stated value readable; the chapter list is what scrolls away, which
       is why the transport sits above it. The device was put back to 1.0 afterwards.
+      **iOS: the player half is done and the bar half is a conflict the plan has to settle.**
+      The player was photographed at `AccessibilityXXXL` — `after-2026-09-01-ios-player/`
+      `ios-full-player-largest-text.png` — and the audit at that size returns **no findings at
+      all**, which is the strongest form of "nothing becomes unreachable".
+      **The compact bar truncates, and the spec says it must not.** `audio-playback`: "the
+      compact bar grows to fit its text rather than truncating the chapter to one word".
+      `PlayerDock.wayIn` is `.lineLimit(1).truncationMode(.tail)` on purpose and says so in a
+      comment — and the audit caught it: *Text clipped*, on `StaticText … label: 'Sea Room'`
+      at the bar's own coordinates. So the comment and the requirement disagree, and the
+      comment is losing.
+      **It is left alone, because the fix is not an implementation detail.** The height of
+      `tabViewBottomAccessory` is the system's, not this app's; removing the line limit inside a
+      slot whose height we do not set trades a truncated title for a clipped one. Android's bar
+      is hand-composed and can measure itself, which is why `CompactPlayerTest` can assert
+      growth there and nothing can assert it here. Whether the requirement holds for a
+      platform-owned accessory slot, or the surface has to stop being that slot, is a
+      `design.md` question — AGENTS.md §3b rule 5. **`/opsx:update` before this is picked up.**
 
 ## 9. Docs and close-out
 
