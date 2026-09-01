@@ -71,6 +71,7 @@
     <string name="library_continue_reading">Weiterlesen</string>
     <string name="library_empty_filtered">Nichts passt zu den gewählten Filtern.</string>
     <string name="library_empty_search">Keine Treffer für \u201e%1$s\u201c.</string>
+    <string name="library_availability_widen">\u00dcberall anzeigen</string>
     <string name="library_cell_progress">%1$d%% gelesen</string>
     <string name="library_layout_grid">Raster</string>
     <string name="library_layout_list">Liste</string>

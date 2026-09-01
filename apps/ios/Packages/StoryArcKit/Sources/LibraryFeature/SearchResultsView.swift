@@ -25,6 +25,14 @@ struct SearchResultsView: View {
 
     let listing: SearchListing
 
+    /// What the search was narrowed to, so the empty state can offer to widen it.
+    ///
+    /// The same value the field's own `.searchScopes` bar is bound to — but that bar is drawn
+    /// only while the field is *active*, so a reader reading "Nothing matches kestrel" has no
+    /// scope control on screen at all. `library-browsing`'s *No results* asks the empty state
+    /// itself to offer the widening, and this is what it needs to do it.
+    @Binding var scope: LibraryAvailability
+
     // A row for a publication the library already holds leads to that publication's page,
     // and pushes the route itself — see ``row(_:)``. `publication-detail` names search among
     // the surfaces a cover leads from, and a result the device holds is that cover written
@@ -37,6 +45,30 @@ struct SearchResultsView: View {
     /// Asks a library that went quiet to try once more.
     let onRetry: (String) -> Void
 
+    /// Whether the empty state offers to widen the search.
+    ///
+    /// `library-browsing`'s *No results*: the empty state "names what was searched and offers
+    /// to widen the scope to all sources **if the search was scoped**". Three conditions, and
+    /// each one is a state the offer would be wrong in: with rows on screen there is no empty
+    /// state to put it in; while a source is still being waited on the search has not finished
+    /// failing; and at `.everywhere` an offer to widen is a control that changes nothing.
+    ///
+    /// A property rather than an expression inside `body`, so the rule can be asserted on the
+    /// host — `swift test` runs with no simulator and cannot render this view, and the three
+    /// conditions are exactly where this would go wrong.
+    var offersWidening: Bool {
+        listing.rows.isEmpty && !listing.isWaiting && scope != .everywhere
+    }
+
+    /// Widen the search to every source.
+    ///
+    /// Writing the scope is the whole action: `LibrarySearchSurface` re-asks on the change,
+    /// because the scope decides *who is asked* and not only what is shown — widening has to
+    /// start the fan-out that narrowing stopped.
+    func widen() {
+        scope = .everywhere
+    }
+
     var body: some View {
         List {
             if listing.rows.isEmpty, !listing.isWaiting {
@@ -46,6 +78,18 @@ struct SearchResultsView: View {
                     .textRole(.footnote)
                     .foregroundStyle(theme.palette.textSecondary)
                     .listRowBackground(theme.palette.surfaceCanvas)
+
+                if offersWidening {
+                    // The shelf's own words for this, already translated: two spellings of
+                    // "Show everywhere" in one app is how a vocabulary drifts.
+                    Button { widen() } label: {
+                        Text("library.availability.widen", bundle: .module).textRole(.footnote)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.palette.accent)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(theme.palette.surfaceCanvas)
+                }
             }
 
             ForEach(listing.groups) { group in

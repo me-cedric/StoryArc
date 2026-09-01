@@ -71,6 +71,7 @@
     <string name="library_continue_reading">Reprendre la lecture</string>
     <string name="library_empty_filtered">Rien ne correspond aux filtres que vous avez choisis.</string>
     <string name="library_empty_search">Aucun résultat pour «\u00a0%1$s\u00a0».</string>
+    <string name="library_availability_widen">Afficher partout</string>
     <string name="library_cell_progress">%1$d%% lu</string>
     <string name="library_layout_grid">Grille</string>
     <string name="library_layout_list">Liste</string>

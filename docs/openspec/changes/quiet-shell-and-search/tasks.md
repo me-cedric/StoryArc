@@ -118,6 +118,29 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       precedent, so this is a real behaviour test on both sides.
       Mutation-checked on both: drop the store write from `clearRecentSearches()` and the
       clear test fails; make the arrival record a term and two tests fail.
+- [x] 2.12c Both: the empty state offers to widen a search that was narrowed.
+      **An addition the verification surfaced, and it belongs here rather than deferred.**
+      `library-browsing`'s *No results* has always asked the empty state to name what was
+      searched "and offer to widen the scope to all sources **if the search was scoped**". The
+      clause is older than this change and was *vacuous* under it: before 2.3 and 2.12 there was
+      no user-visible search scope, so no search could have been scoped and the conditional
+      described no state. Those two tasks gave a reader the scope — and with it, a state the
+      clause is false in. It was false in it on both platforms: each named the term and offered
+      nothing.
+      Deferring it would leave this change having *created* the unmet half of a requirement it
+      already claims. iOS is the worse of the two, because its scope control belongs to the
+      field and is drawn only while the field is active — a reader reading "Nothing matches
+      kestrel" had no scope control on screen at all.
+      iOS: `SearchResultsView.offersWidening` and `widen()`, asserted five ways in
+      `SearchScopeTests` — offered when narrowed, absent when already everywhere, absent while
+      rows are on screen, absent while a source is still being waited on, and widening writes
+      `.everywhere`, which is what re-asks. A property rather than an expression inside `body`
+      so the host suite can reach it; `swift test` renders nothing.
+      Android: `SearchNoResults` in `LibrarySearchBar.kt`, asserted three ways under Robolectric
+      in `SearchNoResultsTest` — the same conditional, both directions, and the click.
+      Reuses the shelf's own `library.availability.widen` / `library_availability_widen`; the
+      iOS key existed and the Android one is new in all four languages.
+
 - [x] 2.13 Both: a query typed while a source is unreachable shows local results and
       names the source once, in the results. Assert nothing waits on it.
       **Already asserted before this change**, case for case, by

@@ -104,6 +104,10 @@ extension LibraryView {
         if search.isSearching {
             SearchResultsView(
                 listing: search.listing,
+                // The same value the field's scope bar is bound to. The bar is drawn only while
+                // the field is active, so the empty state carries its own way to widen —
+                // `library-browsing`'s *No results*.
+                scope: $searchScope,
                 // A row a server answered leads to that server, opened on the question
                 // rather than at its front door — and never to the publication page, which
                 // resolves against the library's own set and would say the publication is

@@ -401,9 +401,7 @@ private fun SearchAnswerList(
         }
 
         if (listing.rows.isEmpty() && !listing.isWaiting) {
-            // Named, per `library-browsing`: an empty state that does not say what was
-            // searched for leaves a reader wondering whether the app heard them.
-            item { Quiet(stringResource(R.string.library_empty_search, listing.term)) }
+            item(key = "no-results") { SearchNoResults(listing.term, scope, onScopeChange) }
         }
 
         listing.groups.forEach { group ->
@@ -460,6 +458,44 @@ private fun SearchAnswerList(
                     Text(stringResource(R.string.search_retry))
                 }
             }
+        }
+    }
+}
+
+/**
+ * A search that found nothing: what was asked, and a way to ask it of more places.
+ *
+ * `library-browsing`'s *No results*: "the empty state names what was searched **and offers to
+ * widen the scope to all sources if the search was scoped**". An empty state that does not name
+ * the term leaves a reader wondering whether the app heard them; one that does not offer the
+ * widening leaves a reader who narrowed to this device believing the book is not in any of
+ * their libraries.
+ *
+ * **The clause was vacuous before this change and is not now.** Until search had a visible
+ * scope, no search could have been scoped, so "if the search was scoped" described no state.
+ * The chips gave it one, and it was false in it: the term was named and nothing was offered.
+ *
+ * The offer is conditional on the narrowing, because widening what is already as wide as it
+ * goes is a control that changes nothing. The chips are above this on the same list, so the
+ * reader has two ways to widen — this one is the one attached to the disappointment, which is
+ * where the requirement puts it.
+ */
+@Composable
+internal fun SearchNoResults(
+    term: String,
+    scope: LibraryAvailability,
+    onScopeChange: (LibraryAvailability) -> Unit,
+) {
+    Quiet(stringResource(R.string.library_empty_search, term))
+    if (scope != LibraryAvailability.EVERYTHING) {
+        // A plain text button, and the shelf's own words for it — already translated into all
+        // four languages, and two spellings of "Show everywhere" in one app is how a vocabulary
+        // drifts. `originLabel` a few lines down makes the same point about the same words.
+        TextButton(
+            onClick = { onScopeChange(LibraryAvailability.EVERYTHING) },
+            modifier = Modifier.padding(horizontal = StoryArcSpace.md),
+        ) {
+            Text(stringResource(R.string.library_availability_widen))
         }
     }
 }

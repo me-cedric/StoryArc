@@ -1,8 +1,20 @@
 package app.storyarc.feature.library
 
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import app.storyarc.core.designsystem.theme.StoryArcTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
@@ -321,5 +333,83 @@ class LibrarySearchBarTest {
         /** `(` then an optional line break, then `state = `. */
         const val BAR_TAKES_STATE = """\(\s*state\s*=\s*"""
         const val WORD_END = """\b"""
+    }
+}
+
+/**
+ * The empty state names what was searched, and offers to widen a search that was narrowed.
+ *
+ * `library-browsing`'s *No results*: "the empty state names what was searched **and offers to
+ * widen the scope to all sources if the search was scoped**". The clause is older than this
+ * change and was vacuous before it — there was no user-visible search scope, so no search
+ * could have been scoped. Giving a reader the chips gave the clause a state it can be false in,
+ * and it was false: the empty state named the term and offered nothing.
+ *
+ * **Robolectric rather than a source-text tripwire**, unlike the rest of this file: what is
+ * asserted is a rendering rule with a condition in it, and both halves of the condition matter.
+ * [SearchNoResults] takes no search-bar state, so it composes on its own with nothing to hoist.
+ */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+// Robolectric ships an image per API level and has none for 37, so it cannot be handed the
+// module's target. 34 is inside its range and above the minimum this app supports.
+@Config(sdk = [34], qualifiers = "w400dp-h1600dp")
+class SearchNoResultsTest {
+
+    @get:Rule
+    val compose = createComposeRule()
+
+    @Test
+    fun `a narrowed search that found nothing offers to widen`() {
+        lateinit var widen: String
+        lateinit var searched: String
+        compose.setContent {
+            widen = stringResource(R.string.library_availability_widen)
+            searched = stringResource(R.string.library_empty_search, "kestrel")
+            StoryArcTheme {
+                SearchNoResults(term = "kestrel", scope = LibraryAvailability.ON_THIS_DEVICE) {}
+            }
+        }
+
+        compose.onNodeWithText(searched).assertIsDisplayed()
+        compose.onNodeWithText(widen).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a search that was already everywhere offers nothing to widen`() {
+        // The clause is conditional, and the condition is the point: an offer to widen what is
+        // already as wide as it goes is a control that changes nothing.
+        lateinit var widen: String
+        lateinit var searched: String
+        compose.setContent {
+            widen = stringResource(R.string.library_availability_widen)
+            searched = stringResource(R.string.library_empty_search, "kestrel")
+            StoryArcTheme {
+                SearchNoResults(term = "kestrel", scope = LibraryAvailability.EVERYTHING) {}
+            }
+        }
+
+        compose.onNodeWithText(searched).assertIsDisplayed()
+        compose.onNodeWithText(widen).assertDoesNotExist()
+    }
+
+    @Test
+    fun `widening asks for everything`() {
+        // The scope decides *who is asked* and not only what is shown, so the chips' own
+        // handler is what this reaches — widening has to start the fan-out narrowing stopped.
+        var asked: LibraryAvailability? = null
+        lateinit var widen: String
+        compose.setContent {
+            widen = stringResource(R.string.library_availability_widen)
+            StoryArcTheme {
+                SearchNoResults(term = "kestrel", scope = LibraryAvailability.ON_THIS_DEVICE) {
+                    asked = it
+                }
+            }
+        }
+
+        compose.onNodeWithText(widen).performClick()
+
+        assertEquals(LibraryAvailability.EVERYTHING, asked)
     }
 }

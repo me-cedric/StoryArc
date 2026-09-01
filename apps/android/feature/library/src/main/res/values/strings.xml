@@ -75,6 +75,7 @@
     <string name="library_continue_reading">Continue reading</string>
     <string name="library_empty_filtered">Nothing matches the filters you set.</string>
     <string name="library_empty_search">Nothing matches \u201c%1$s\u201d.</string>
+    <string name="library_availability_widen">Show everywhere</string>
     <string name="library_cell_progress">%1$d%% read</string>
     <string name="library_layout_grid">Grid</string>
     <string name="library_layout_list">List</string>

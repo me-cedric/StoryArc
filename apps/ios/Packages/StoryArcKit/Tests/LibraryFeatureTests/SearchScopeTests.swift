@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 
 @testable import LibraryFeature
@@ -25,6 +26,69 @@ struct SearchScopeTests {
             displayTitle: title,
             origin: .inferred
         )
+    }
+
+    // MARK: - Widening from the empty state
+
+    /// A results view over a listing that found nothing, at the given scope.
+    private func emptyResults(
+        scope: LibraryAvailability,
+        listing: SearchListing = SearchListing(term: "kestrel"),
+        onWiden: @escaping (LibraryAvailability) -> Void = { _ in }
+    ) -> SearchResultsView {
+        SearchResultsView(
+            listing: listing,
+            scope: Binding(get: { scope }, set: onWiden),
+            onFollow: { _ in },
+            onRetry: { _ in }
+        )
+    }
+
+    @Test("A narrowed search that found nothing offers to widen the scope")
+    func narrowedAndEmptyOffersToWiden() {
+        // `library-browsing`'s *No results*: the empty state "names what was searched and
+        // offers to widen the scope to all sources **if the search was scoped**". Before this,
+        // both platforms named the term and offered nothing — and on iOS the scope bar is the
+        // field's, drawn only while the field is active, so a reader looking at "Nothing
+        // matches kestrel" had no control on screen at all.
+        #expect(emptyResults(scope: .onThisDevice).offersWidening)
+    }
+
+    @Test("Widening from the empty state sets the scope to everywhere")
+    func wideningSetsTheScope() {
+        var widened: LibraryAvailability?
+        emptyResults(scope: .onThisDevice) { widened = $0 }.widen()
+
+        // The scope decides *who is asked*, not only what is shown, so writing it is what
+        // starts the fan-out that narrowing stopped — `LibrarySearchSurface` re-asks on change.
+        #expect(widened == .everywhere)
+    }
+
+    @Test("A search that was already everywhere offers nothing to widen")
+    func wideSearchOffersNothing() {
+        // The clause is conditional, and the condition is the point: an offer to widen what is
+        // already as wide as it goes is a control that changes nothing.
+        #expect(emptyResults(scope: .everywhere).offersWidening == false)
+    }
+
+    @Test("A narrowed search with results on screen is not an empty state")
+    func resultsMeanNoOffer() {
+        let listing = SearchListing(
+            term: "kestrel",
+            local: [FoundRow(result: SearchResult(kind: .publication, title: "Kestrel", publicationID: "Kestrel"), origin: .thisDevice)]
+        )
+
+        #expect(emptyResults(scope: .onThisDevice, listing: listing).offersWidening == false)
+    }
+
+    @Test("A narrowed search still waiting on a source is not yet empty")
+    func waitingMeansNoOffer() {
+        // Nothing has answered *yet*. Offering to widen a search that is still running would
+        // be telling a reader it failed before it has finished.
+        let listing = SearchListing(term: "kestrel", asking: ["catalogue"])
+
+        #expect(listing.isWaiting)
+        #expect(emptyResults(scope: .onThisDevice, listing: listing).offersWidening == false)
     }
 
     // MARK: - The type is the library's own
