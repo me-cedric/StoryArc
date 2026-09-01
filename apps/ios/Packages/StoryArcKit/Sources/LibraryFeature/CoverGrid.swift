@@ -236,6 +236,23 @@ struct OnDeviceMark: View {
 /// "a fully read publication is distinguishable at a glance without a label
 /// covering the artwork". A bar along the foot does both — it never crosses the
 /// artwork, and a full one reads as finished without a word on top of the cover.
+///
+/// **The rail is `accentMuted`, and it used to be a black scrim.** `design.md` gives that
+/// token exactly this job — "accent at rest: progress rails, unselected indicators" — and
+/// nothing in the app was doing it, which is the half of the accent pass the token rename
+/// could not find: a compiler notices a renamed token and cannot notice a role nobody
+/// implemented. `.black.opacity(0.35)` was not neutral so much as *variable*: it is a scrim,
+/// so on a pale cover it read as mid-grey and on a dark one it disappeared, taking with it
+/// the reader's only way to tell one page in from none at all. The pair is now the same
+/// colour twice, at rest and in use, on every cover alike — and it follows Natural, whose
+/// palette maps `accentMuted` to clay.
+///
+/// The fill reads ``Theme/accent`` and the rail reads the palette's, which differ only
+/// inside a publication's context — where a cover-derived accent applies and no muted twin of
+/// it exists. No caller draws this bar there today: the detail screen's own series run is
+/// ``DetailSeriesEntry``, which carries no progress. Said here rather than left to be
+/// discovered, because the first caller that does put a cover cell inside
+/// ``SwiftUI/View/coverAccent(_:)`` will get a violet rail under a cover-coloured fill.
 struct ProgressBar: View {
     @Environment(\.theme) private var theme
 
@@ -245,7 +262,7 @@ struct ProgressBar: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Rectangle()
-                    .fill(.black.opacity(0.35))
+                    .fill(theme.palette.accentMuted)
                 Rectangle()
                     .fill(fraction >= 1 ? theme.palette.textSecondary : theme.accent)
                     .frame(width: geometry.size.width * min(1, max(0, fraction)))

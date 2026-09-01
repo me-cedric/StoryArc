@@ -70,7 +70,7 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       survived dropping the whole `feature` family (154 files, and the family where a chrome
       accent lives) because `app` plus eight `core` modules is exactly nine. Both floors are
       now **per root and per group, never summed**, and each catches its mutation by name.
-- [~] 1.7 Apply the accent everywhere the review named it missing: tab bars, chips, sliders and
+- [x] 1.7 Apply the accent everywhere the review named it missing: tab bars, chips, sliders and
       progress ticks, on **both** platforms. The compiler finds the token rename; it does not
       find a surface that was never accented, so this is a pass over those four control kinds
       rather than a rename follow-up.
@@ -90,6 +90,54 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       comes from the SVG, so `pnpm brand:check` still passes on 14 assets and only the colorset
       moved. design.md §2's claim that "`AccentColor` holds the same hex the token does" is true
       again; it had quietly stopped being.
+
+      **Both halves landed on 2026-09-02, from two agents that could not see each other's
+      work.** Each note below says the other platform was outstanding, which was true when it
+      was written; they are kept as written rather than reconciled into one voice, because the
+      two platforms reached the same requirement by genuinely different routes and flattening
+      that would lose the reason. iOS's is first, Android's second.
+
+      **Three of the four were already accented on iOS, by one line, and the pictures prove
+      it.** `ThemeResolver` applies `.tint(theme.accent)` once at the root of every window and
+      presentation, and every unstyled control on this platform draws itself in the
+      environment's tint. So the tab bar's selected item, the reader's page slider, the
+      adjustment sliders and every determinate `ProgressView` were violet before this task
+      started — `docs/designs/screenshots/named-failures-2026-09-01/ios-library-before*.png`
+      shows the tab bar, and `ios-search-before.png` shows a progress fill. That line is now
+      pinned by `AccentReachesTheControlsTests`, because nothing in the build would have
+      noticed it going: the app keeps compiling and all of those controls quietly return to
+      system blue.
+
+      **The fourth was genuinely unaccented, and it is the one a compiler could never find.**
+      A cover's progress bar drew its rail as `.black.opacity(0.35)` — a scrim, not a colour.
+      `design.md` gives `accentMuted` exactly this job, "accent at rest: progress rails,
+      unselected indicators", and **nothing in the app was doing it**: the token's only
+      consumer was a Settings row highlight. So the rail varied with the artwork under it,
+      reading as mid-grey on a pale cover and disappearing on a dark one — which is precisely
+      where a reader needs to see how much of the bar is *not* filled. It is
+      `theme.palette.accentMuted` now, the same colour twice at rest and in use, and it
+      follows Natural, whose palette maps that role to clay.
+
+      **What was deliberately left, and why.** iOS's segmented control — `SearchAtRest`'s scope
+      statement and the field's own `.searchScopes` bar, which is what plays the part Android's
+      filter chips play — stays neutral. Three reasons, in order: it is the platform's own
+      control and neutral by design, which is what `native-experience` asks the app to follow;
+      `connected-button-groups` decided in its own `design.md` that "iOS's segmented control is
+      current and idiomatic on that platform" and is not being replaced; and the only mechanism
+      that would colour its selected segment is `UISegmentedControl.appearance()`, a global
+      UIKit proxy that cannot follow the Natural theme's *two* accents and so would be right in
+      three appearances and wrong in two. `ios-search-before.png` is the picture of it — a grey
+      pill in an app that is violet everywhere else — filed as evidence for the decision rather
+      than as a defect.
+      Also left: the unfilled halves of `ThumbnailStrip` and `PickMark`, which sit on artwork
+      and on a page, where a neutral is right and where `theme.accent` already carries the
+      selected half; and the reader's own sliders, which take the tint and would defer to a
+      cover-derived accent the moment `SwiftUI/View/coverAccent(_:)` reaches the reader — it
+      reaches only `PublicationDetailView` today, which is a gap in §7 of `docs/design.md` and
+      not this task's to close.
+      **Not proved by a picture:** the sliders. No capture in `ScreenshotTests` reaches the
+      comic reader's menu or the adjustments sheet, so the claim that they take the app's tint
+      rests on the one guarded line rather than on a photograph. Said rather than skipped.
       **The Android half of the four control kinds is done. iOS's half is another agent's and
       is still outstanding**, which is why this stays `[~]`.
       **All four turned out to be one unset role, and the design document's account of the
