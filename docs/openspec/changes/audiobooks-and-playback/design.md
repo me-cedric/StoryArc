@@ -78,6 +78,36 @@ English gets nothing, and nothing is indistinguishable from an unchaptered file:
 three-chapter book becomes one unnamed part and no error is raised anywhere. Mutation-checked
 by restoring the obvious argument.
 
+### The speech-rate mapping, and a premise of mine that was wrong
+
+The delegate route works and is what shipped. **One thing I asserted when writing it up was
+false, and the truth is a worse hazard rather than a smaller one.**
+
+I wrote that `AVSpeechUtteranceMinimumSpeechRate`, `…Default` and `…Maximum` "are not linearly
+spaced and a naive lerp puts 1× in the wrong place". Measured on 2026-09-01 they are
+`0.0`, `0.5`, `1.0` — **evenly spaced**. So the first clause was simply wrong.
+
+The conclusion survives for a different reason. A single line from 0.5×–3× onto 0.0–1.0 puts
+**1× at 0.2**, far below the platform's own default of 0.5 — so a listener who never touched
+the speed control would get a voice slower than the system speaks at everywhere else. The
+mapping is therefore two lines meeting at the default: 0.5×–1× onto min–default, 1×–3× onto
+default–max. `SpeechRateTests` asserts 1× is *not* where the single line puts it, and its
+mutation check produces exactly `0.2`.
+
+Recorded because the wrong reason would have led somebody to a lookup table for a curve that
+is not curved, and away from the anchoring that actually matters.
+
+### A crash that only a device could find
+
+`EngineFactory` is a bare `() -> TTSEngine`, and Readium builds its engine from a `lazy var`
+inside its own task. An inline closure inherits `@MainActor`, so the first utterance tripped
+`swift_task_checkIsolated` and the process died on `EXC_BREAKPOINT`. **`pnpm check` exits 0 on
+it** — a type-checked closure with the wrong isolation is not a compile error. The fix is a
+`nonisolated` method reference rather than a closure.
+
+Worth stating as a general fact about this project's gates: the compile-and-unit-test gate
+cannot see actor isolation at a boundary a library crosses on its own schedule.
+
 ### Two tasks turned out to be blocked rather than merely unfinished
 
 **Read-aloud's speed control: the block is real and there is a fourth way out, which is

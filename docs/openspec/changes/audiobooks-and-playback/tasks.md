@@ -532,6 +532,19 @@ creep — see [`design.md`](design.md).
       `opensAPublication` predicate matches all four wordings now; it matched two, and
       `PlayerScreenshotTests` looked for the literal *Read*. *The Android half is not started.*
 
+> **Two things about §5 that a reader of this list needs before picking it up.**
+>
+> **A listener can set a sleep timer that never fires.** The sheets ship on both platforms;
+> on iOS `setSleepTimer` stores a countdown that nothing ticks and nothing fades. That is a
+> control which is present and does not work, which `audio-playback` forbids by name — so
+> 5.3 is closer to a defect than to a feature now, and it got that way by the surfaces
+> landing before the mechanism.
+>
+> **5.3's fade is a `design.md` decision nobody has made.** A narrated file can fade its
+> volume. A synthesised voice cannot fade mid-sentence — it either finishes the sentence or
+> stops speaking in the middle of a word. The iOS agent declined to invent an answer, which
+> was right. Decide it in design.md before implementing either half.
+
 ## 5. Controls
 
 - [~] 5.1 Both: speed changes without changing pitch, states a number, is remembered
@@ -725,6 +738,16 @@ creep — see [`design.md`](design.md).
       which is the point of `PlaybackDuration.Estimated` carried through to the store.
       **Not done: the offers.** The next in the series and the delete-the-download prompt are
       the reader's end-of-publication surface, and the player has none. iOS half outstanding.
+
+> **§8.4's compact-bar half is a spec-versus-platform conflict, not an implementation gap.**
+> iOS's accessibility audit reports `Text clipped` on the bar's own title. `audio-playback`
+> asks the bar to "grow to fit its text rather than truncating the chapter to one word", and
+> `PlayerDock` truncates deliberately — because the height of `tabViewBottomAccessory` is the
+> **system's**, so removing the line limit trades a truncated title for a clipped one.
+>
+> Android's bar is hand-composed and can measure itself, so it can satisfy the requirement as
+> written. iOS's cannot. Run `/opsx:update` and decide what the requirement asks of a bar whose
+> height it does not own, before either half is touched.
 
 ## 8. Accessibility
 
