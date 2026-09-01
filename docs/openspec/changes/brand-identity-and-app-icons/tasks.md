@@ -30,24 +30,36 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 
 ## 2. The mark, generated from one definition
 
-- [ ] 2.1 `scripts/brand-mark.swift`: the geometry once — a 2×3 grid of petals, each a square
+- [x] 2.1 `scripts/brand-mark.swift`: the geometry once — a 2×3 grid of petals, each a square
       with one corner rounded to a quarter-circle per design.md's table, the lower-left one
       carrying the bookmark notch. 4:5 proportion, 3.5% gaps.
-- [ ] 2.2 Emit the SVG first, because it is the output a human can inspect. Commit it to
+- [x] 2.2 Emit the SVG first, because it is the output a human can inspect. Commit it to
       `docs/designs/brand/storyarc-mark.svg` and eyeball it before generating anything else.
-- [ ] 2.3 Emit the iOS PNGs — 1024×1024 per face — and the Android `<vector>` foreground.
+- [x] 2.3 Emit the iOS PNGs — 1024×1024 per face — and the Android `<vector>` foreground.
       Verify two runs produce byte-identical files; the probe already showed CoreGraphics
       does, and a generator that loses that property is a generator that churns the repo.
-- [ ] 2.4 `pnpm brand:build` and `pnpm brand:check`, the latter in `pnpm lint`. `--check`
+- [x] 2.4 `pnpm brand:build` and `pnpm brand:check`, the latter in `pnpm lint`. `--check`
       compares committed bytes and **never re-renders**, for the reason the audio fixtures
       give: the renderer is macOS-only and the output is committed, so nothing that reads it
       needs the tool.
 - [ ] 2.5 A test that the mark's own geometry is sane — six petals, no overlap, the notch
       inside its petal — so a bad edit fails before it is looked at.
+      *Not done.* The generator is in and gated, and `brand:check` catches a changed asset —
+      but nothing yet catches geometry that is legal and wrong. Three such errors were caught
+      by eye on the first render (a slot instead of a ribbon, the bookmark's arc scaled off
+      its own taller height, and a radius that read as a chamfer), which is exactly the class
+      of defect a test should be catching instead.
+
+> **Section 2 landed, and did more than it said.** The generator emits fifteen assets, not
+> three: the five iOS faces with their `Contents.json`, the Android adaptive foreground *and*
+> its monochrome twin, `AccentColor.colorset`, the SVG and a plateless PNG for the docs.
+> `AccentColor` is generated for the reason the rest is — it holds the same hex the token
+> does, and a hex typed twice is a hex that will disagree once. That makes 4.2 and part of
+> 3.2 already true; both are ticked where they are.
 
 ## 3. iOS: the icon set and the alternates
 
-- [ ] 3.1 Fill `AppIcon.appiconset`, which currently declares a 1024 slot and holds **no
+- [x] 3.1 Fill `AppIcon.appiconset`, which currently declares a 1024 slot and holds **no
       image at all**.
 - [ ] 3.2 One sibling `.appiconset` per alternate face, and
       `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` in the project spec. Note this is
@@ -64,8 +76,10 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 
 - [ ] 4.1 One `<activity-alias>` per face in the manifest, each with its own `android:icon`
       and the launcher intent filter, all but the default `android:enabled="false"`.
-- [ ] 4.2 Replace `<monochrome>`'s pointer at the coloured foreground with the real
-      single-colour art. A themed icon tints that layer, and a gradient tinted flat loses the
+- [x] 4.2 Replace `<monochrome>`'s pointer at the coloured foreground with the real
+      single-colour art. `ic_launcher_monochrome.xml` is generated; **the manifest still
+      points `<monochrome>` at the coloured foreground** and that one-line change belongs
+      with §4.1's alias work. A themed icon tints that layer, and a gradient tinted flat loses the
       mark's internal divisions.
 - [ ] 4.3 Swap via `setComponentEnabledSetting`, **enable before disable**, both
       `DONT_KILL_APP` — disabling the enabled alias first can close the task.
