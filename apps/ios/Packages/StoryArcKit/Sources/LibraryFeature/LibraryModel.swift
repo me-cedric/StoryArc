@@ -90,6 +90,18 @@ public final class LibraryModel {
     // `internal(set)`, not `private(set)`: the scanning half of this type lives in
     // another file, and `private` is file-scoped.
     public internal(set) var scanState: LibraryScanState = .idle
+    /// What the library could not open, and whether the reader has been told.
+    ///
+    /// Here rather than inside a view, because `library-browsing` requires the list to stay
+    /// reachable after the reader dismisses the notice — which makes it state rather than an
+    /// event, and the model is what holds state beside the scan results it already has.
+    public internal(set) var skipped = SkippedPublications()
+    /// Every refusal of the scan currently running, settled onto ``skipped`` at its end.
+    ///
+    /// Accumulated across the several places one scan walks so the list is replaced once. A
+    /// settle per folder would show the reader the first folder's notice and then take it
+    /// away halfway through.
+    var skipsInThisScan: [SkippedPublications.Entry] = []
     /// Folders the user has added, in the order they added them.
     public internal(set) var folders: [URL] = []
 
@@ -341,6 +353,8 @@ public final class LibraryModel {
         // reset is the one moment there is nothing worth picking up.
         scanningFolder = nil
         scanned = []
+        skipped = SkippedPublications()
+        skipsInThisScan = []
         snapshots = [:]
         cancelScan()
         publications = []

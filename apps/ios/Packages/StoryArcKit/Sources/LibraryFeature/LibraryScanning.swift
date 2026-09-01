@@ -38,12 +38,30 @@ extension LibraryModel {
     /// way, inside one job; this is iOS catching up to its mirror.
     func scan(_ places: [URL]) {
         scanTask?.cancel()
+        skipsInThisScan = []
         scanTask = Task { [weak self] in
             for place in places {
                 guard !Task.isCancelled else { return }
                 await self?.walk(place)
             }
+            guard !Task.isCancelled else { return }
+            await self?.settleSkipped()
         }
+    }
+
+    /// Hands the whole scan's refusals to ``LibraryModel/skipped``, once.
+    ///
+    /// At the end of every place rather than at the end of each, because settling replaces
+    /// the list — see ``SkippedPublications/settling(_:)``. A cancelled scan settles
+    /// nothing: it did not finish walking, so what it did not meet is not evidence that
+    /// anything was fixed.
+    private func settleSkipped() {
+        skipped = skipped.settling(skipsInThisScan)
+    }
+
+    /// The reader put the notice away. `library-browsing` keeps the list reachable.
+    public func dismissSkipped() {
+        skipped = skipped.dismissing()
     }
 
     /// Walks one place to the end: a folder, or a single remembered publication.
@@ -77,6 +95,13 @@ extension LibraryModel {
     private func adoptRememberedFile(_ file: URL) async {
         for await event in LibraryScanner.scan(fileAt: file) {
             guard !Task.isCancelled else { return }
+            // A remembered file the app can no longer open is exactly the case a reader
+            // needs named: they handed this one book over themselves, and the shelf
+            // silently losing it is the failure the notice exists for.
+            if case let .skipped(path, reason) = event {
+                skipsInThisScan.append(.init(name: path, reason: reason))
+                continue
+            }
             guard case let .found(publication) = event else { continue }
             adopt(publication, from: nil)
             // Set again rather than left to ``adopt``: a PDF or an EPUB carries a content
@@ -107,10 +132,14 @@ extension LibraryModel {
             switch event {
             case let .found(publication):
                 append(publication, in: folder)
-            case .skipped:
-                // Counted in the finished event. Not surfaced per-file: a scan
-                // of a messy folder would otherwise be a wall of notices.
-                break
+            case let .skipped(path, reason):
+                // Kept, not counted. The scanner has always emitted the reason
+                // `publication-formats` words for this refusal, and this is where it used
+                // to be dropped: a walk that met a 7-Zip container and a broken EPUB
+                // reported "2 couldn't be opened" and lost both sentences. Still not
+                // surfaced per file — a messy folder would be a wall of notices — but the
+                // pairs reach the notice's list now instead of a tally.
+                skipsInThisScan.append(.init(name: path, reason: reason))
             case let .finished(found, skipped):
                 finish(folder, found: found + resumed.count, skipped: skipped)
                 // Progress is loaded here rather than only when the view
