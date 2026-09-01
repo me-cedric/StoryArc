@@ -60,7 +60,13 @@ let it run would photograph one chapter and then another.
 Neither is dark, and neither is at the largest text size. The player's layout at
 `AccessibilityXXXL` is photographed in the sibling folder and is the same view.
 
-Nothing here has been through VoiceOver. §8 is not finished.
+Nothing here has been through VoiceOver by a person. What it has been through is the
+platform's own audit — `UITests/PlayerAuditTests`, six surfaces, run on the same simulator
+the same day. **No unlabelled control anywhere, and no findings at all at
+`AccessibilityXXXL`.** The findings it did return, and the element each names, are in
+`tasks.md` §8.1; the one that belongs to the player rather than to the screen behind it is
+in §8.4, and it is that the compact bar truncates its title where `audio-playback` asks it
+to grow. That is not fixed here: the accessory slot's height belongs to the system.
 
 ## One thing the walk cost, recorded because it will happen again
 
