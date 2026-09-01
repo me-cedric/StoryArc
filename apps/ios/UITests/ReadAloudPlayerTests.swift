@@ -70,26 +70,26 @@ final class ReadAloudPlayerTests: XCTestCase {
         XCTAssertTrue(menu.exists, "The reader's chrome never appeared.")
         menu.tap()
 
-        // **This is where both captures stop today, and it is not the fold's doing.**
-        // `EpubReaderModel.canReadAloud` is false for every reflowable EPUB in the shared
-        // corpus on this simulator, so `EpubReaderMenu` draws no read-aloud row at all —
-        // which is what `ebook-reader` asks for when a publication has nothing to say, and
-        // wrong for a book of plain XHTML paragraphs. Measured on 2026-09-01 and
-        // **mutation-checked against a build with the fold stashed**: the menu's button
-        // labels came back byte-identical, so the control was missing before read-aloud drove
-        // `PlayerCentre` and is missing after. It is recorded in `tasks.md` §4.2 as the
-        // reason §6.2 has no capture.
-        //
-        // A skip rather than a failure, because `pnpm check` does not run this suite and a
-        // red UI test nobody runs is a red UI test nobody fixes. The message is the signal.
+        // **The menu is scrolled first, and an hour went into learning why.** Read-aloud is
+        // the last row of the second section and sits below the fold on an iPhone. A SwiftUI
+        // `List` is lazy, so a row that has never been on screen is in no accessibility tree
+        // — the query came back empty and the walk read that as "this publication cannot be
+        // spoken", which is a real state `ebook-reader` allows and was the wrong answer here.
+        // Proven by forcing the row to render unconditionally: the query still found nothing,
+        // which ruled the app out and left the query. Scrolling is the fix.
         let readAloud = app.buttons["Read aloud"].firstMatch
+        var swipes = 0
+        while !readAloud.exists, swipes < 4 {
+            app.swipeUp()
+            swipes += 1
+        }
         try XCTSkipUnless(
-            readAloud.waitForExistence(timeout: 5),
+            readAloud.waitForExistence(timeout: 3),
             """
-            No read-aloud control on this publication, so the voice cannot be started and
-            neither capture can be taken. `ebook-reader` allows an absent control for a
-            publication Readium can extract no content from — but every corpus EPUB is plain
-            XHTML with paragraphs in it, so this is a defect rather than that clause.
+            No read-aloud control on this publication after \(swipes) swipe(s), so the voice
+            cannot be started and neither capture can be taken. `ebook-reader` allows an absent
+            control for a publication Readium can extract no content from, which is what this
+            would mean if the row really is not there.
             Buttons in the menu: \(app.buttons.allElementsBoundByIndex.map(\.label))
             """
         )

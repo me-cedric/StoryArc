@@ -384,7 +384,17 @@ creep — see [`design.md`](design.md).
       "the compact bar is how the reader gets back to it" is traded away. Three cases in
       `CompactPlayerTests`, two of them driven over **both** source kinds, which is what pins
       that the engine does not decide it. New string `player.back`, in all four languages.
-      **Not photographed, and the reason is a defect this task did not introduce.** See §6.2.
+      **Photographed on a device**, in `docs/designs/screenshots/after-2026-09-01-ios-read-aloud/`:
+      the shelf's four destinations at the height the no-session control shows them, one bar
+      naming *Harbour Lights 01* and *Chapter 1*, and the full player with `1×` on it — the
+      speed control the blocker said could not exist.
+      **And the walk found a real crash on the way, which is the whole argument for taking the
+      picture.** `EngineFactory` is a bare `() -> TTSEngine` and Readium builds its engine from
+      a `lazy var` inside its own detached task; a closure written inline in a `@MainActor`
+      method inherits that isolation, so the first utterance tripped
+      `swift_task_checkIsolated` and the process died on `EXC_BREAKPOINT`. Nothing in
+      `pnpm check` sees it — it is a runtime isolation check, and the app compiles clean. The
+      fix is `SpokenVoice.makeEngine`, a `nonisolated` method reference.
       *The Android half of the compact bar is 4.3.*
 - [ ] 4.3 Android: hand-compose the row in `NavigationSuiteScaffold`'s `content`
       slot, full-width `surfaceContainer`, sharing the navigation bar's container
@@ -485,29 +495,35 @@ creep — see [`design.md`](design.md).
       where the two meet, but nothing has been rewired. That is the honest state.
       No test asserts the outliving — it is a process fact, and proving it needs the
       instrumented pass §9 still owes.
-      **iOS: read-aloud drives this player now** (4.2), so leaving the reader leaves the voice
-      running and the shared bar carries it — and the bar's row is *Back to the book* for a
-      spoken session, which is the one action back. **Not photographed**, for the reason §6.2
-      records. The narrated half *is* photographed, in `after-2026-09-01-ios-player/`.
+      **iOS done, and photographed for both sources.** Read-aloud drives this player now (4.2),
+      so leaving the reader leaves the voice running and the shared bar carries it; the bar's
+      row is *Back to the book* for a spoken session, which is the one action back.
+      `after-2026-09-01-ios-read-aloud/ios-read-aloud-compact-bar.png` is the reader closed and
+      the voice still going, against
+      `after-2026-09-01-ios-player/ios-library-nothing-playing.png` for the four destinations at
+      the same height. The narrated half is the same folder's `ios-compact-player.png`.
 - [~] 6.2 Both: returning to a read-aloud session resumes at the sentence being
       spoken **then**, not where the reader left.
-      **iOS: written, and blocked from being seen by a defect older than this change.** The
-      path is `SpokenSource.reached` → `ReadAloudCentre.spoken` → `redrawSpokenSentence()`,
-      reached through `SessionHandover.adopt` in `prepareReadAloud`; the voice keeps its cursor
-      up to date with no reader on screen, so returning draws the sentence it is on rather
-      than the locator the reader left. That is the same mechanism
-      `read-aloud-beyond-the-reader` shipped, now hanging off the shared session.
-      **It could not be exercised.** `UITests/ReadAloudPlayerTests` walks to the reader, opens
-      the menu and finds **no read-aloud row**: `EpubReaderModel.canReadAloud` is false for
-      every reflowable EPUB in the shared corpus on the iPhone 17 Pro simulator, so the voice
-      cannot be started by hand or by a test. **Mutation-checked against a build with this
-      whole change stashed** — the menu's button labels came back byte-identical, so the
-      control was already missing before read-aloud drove `PlayerCentre`. The cause was not
-      found: `PublicationSpeechSynthesizer.canSpeak` is `publication.content() != nil`, and
-      `DefaultContentService.content(from:)` returns a value for any live publication, so the
-      obvious explanation does not hold. **It wants its own investigation**, and until it is
-      answered §4.2's and §6.1's iOS captures cannot be taken either. The test is kept, and it
-      skips with that message rather than passing quietly.
+      **iOS: written, and half of it seen.** The path is `SpokenSource.reached` →
+      `ReadAloudCentre.spoken` → `redrawSpokenSentence()`, reached through
+      `SessionHandover.adopt` in `prepareReadAloud`; the voice keeps its cursor up to date with
+      no reader on screen, so returning draws the sentence it is on rather than the locator the
+      reader left. That is the mechanism `read-aloud-beyond-the-reader` shipped, now hanging off
+      the shared session.
+      **The starting half is exercised on a device** — `UITests/ReadAloudPlayerTests` starts the
+      voice, leaves the reader, and photographs the bar carrying it, which is §4.2's proof and
+      §6.1's. **The returning half is not.** Going back in and asserting *which sentence* is
+      drawn needs the walk to read a decoration inside a `WKWebView`, which XCUITest does not
+      expose, so what is left is the code path and the reasoning above. Saying it is
+      photographed would be saying more than the picture shows.
+      **A false lead worth recording, because it cost an hour and reads exactly like a
+      defect.** The read-aloud row is the last row of the reader's menu and sits below the fold
+      on an iPhone; a SwiftUI `List` is lazy, so a row that has never been on screen is in no
+      accessibility tree, and `app.buttons["Read aloud"]` came back empty. That is
+      indistinguishable from `canReadAloud == false`, which `ebook-reader` genuinely allows for
+      a publication with nothing to say. Ruled out by forcing the row to render unconditionally
+      and finding the query still empty — the app was never the problem, the query was. The
+      walk swipes now.
 - [~] 6.3 Both: reaching the end withdraws the highlight, dismisses the media
       controls and removes the compact bar.
       **Android: written, and seen happening.** `PlaybackCentre.publish` drops the surface

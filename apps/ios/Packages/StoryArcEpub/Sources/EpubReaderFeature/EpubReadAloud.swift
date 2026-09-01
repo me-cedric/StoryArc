@@ -115,9 +115,12 @@ extension EpubReaderModel {
         // that session has a synthesizer of its own, but the moment a listener ends it this
         // screen is the one holding the play button, and a play button with no engine
         // behind it is the control `ebook-reader` refuses to ship.
+        // `voice.makeEngine` rather than `{ AVTTSEngine(delegate: voice) }`: Readium reaches
+        // its engine from inside its own task, and a closure written here would carry this
+        // method's `@MainActor` into it. See ``SpokenVoice/makeEngine()``.
         speech = PublicationSpeechSynthesizer(
             publication: opened,
-            engineFactory: { AVTTSEngine(delegate: voice) }
+            engineFactory: voice.makeEngine
         )
         self.voice = speech == nil ? nil : voice
         canReadAloud = speech != nil

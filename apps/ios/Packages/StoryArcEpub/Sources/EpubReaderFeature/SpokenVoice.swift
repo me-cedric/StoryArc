@@ -42,6 +42,23 @@ final class SpokenVoice: NSObject, AVTTSEngineDelegate, Sendable {
 
     private let rate = Mutex<Float>(SpeechRate.avRate(for: .normal))
 
+    /// The engine, for `PublicationSpeechSynthesizer(engineFactory:)`.
+    ///
+    /// **A `nonisolated` method rather than a closure literal, and this one crashed the app
+    /// before it was.** `EngineFactory` is a bare `() -> TTSEngine`, and Readium builds its
+    /// engine from a `lazy var` reached inside its own detached task — the first utterance,
+    /// not the call to `start(from:)`. A closure written inline in `prepareReadAloud` inherits
+    /// `@MainActor` from the method around it, so calling it from that task tripped
+    /// `swift_task_checkIsolated` and the process died on `EXC_BREAKPOINT` the moment a reader
+    /// pressed *Read aloud*. Measured from the crash report on 2026-09-01: the faulting frame
+    /// is `closure #1 in EpubReaderModel.prepareReadAloud(_:)`, called from
+    /// `PublicationSpeechSynthesizer.engine.getter`.
+    ///
+    /// Upstream's own default is `{ AVTTSEngine() }`, formed nowhere in particular and so
+    /// nonisolated — which is why nobody upstream ever met this. Passing a method reference
+    /// on a `Sendable` object is the same thing, said where the compiler can hold it.
+    nonisolated func makeEngine() -> TTSEngine { AVTTSEngine(delegate: self) }
+
     /// The speed every utterance from here on is spoken at.
     func speak(at speed: PlaybackSpeed) {
         rate.withLock { $0 = SpeechRate.avRate(for: speed) }
