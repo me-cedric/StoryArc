@@ -103,9 +103,31 @@ public final class NowPlaying {
         guard let book = centre.book else { return nil }
         if let artwork, artwork.bookID == book.id { return artwork.image }
         guard let data = centre.onArtwork?(book), let image = UIImage(data: data) else { return nil }
-        let art = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+        let art = Self.artwork(image)
         artwork = (book.id, art)
         return art
+    }
+
+    /// Wraps an image as artwork, deliberately **off** this object's isolation.
+    ///
+    /// `MPMediaItemArtwork` calls its request handler on `MPNowPlayingInfoCenter`'s own
+    /// `accessQueue`, whenever the system wants the picture at a size — and a closure written
+    /// inside this `@MainActor` type inherits that isolation. So the first publish tripped
+    /// `swift_task_checkIsolated` and the process died on `EXC_BREAKPOINT` inside
+    /// `-[MPMediaItemArtwork jpegDataWithSize:]`, on a dispatch queue that has never heard of
+    /// an actor.
+    ///
+    /// **`pnpm check` exits 0 on it, and this is the second instance in this codebase.**
+    /// `design.md` records the identical trap for Readium's `EngineFactory`, and its general
+    /// lesson holds here word for word: the compile-and-unit-test gate cannot see actor
+    /// isolation at a boundary a library crosses on its own schedule. `nonisolated` is the same
+    /// remedy — a `static` method reference rather than a closure inheriting the enclosing
+    /// actor.
+    ///
+    /// The image is captured rather than the bytes so the picture is decoded once, on the main
+    /// actor, instead of on every size the system asks for.
+    private nonisolated static func artwork(_ image: UIImage) -> MPMediaItemArtwork {
+        MPMediaItemArtwork(boundsSize: image.size) { _ in image }
     }
 
     /// Wires the buttons once, and enables the right ones for this session.
