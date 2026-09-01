@@ -50,6 +50,28 @@ read from the source rather than from any note. Earlier notes here described a
 tree that has moved a great deal since; where an old number is now wrong the new
 note says so and gives the current one. Eight of twenty-five are ticked.
 
+## 0b. What a design review found on the hero (2026-09-01)
+
+Four scenarios added to `home-screen`'s *Keep reading*. Verified against the code first: the
+card carries a kicker, a title and one line, has **no** `ProgressView`, names no author (the
+kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up to 420pt — about
+**half** a phone's height, where the review said "nearly a full viewport".
+
+- [ ] 0b.1 Both: progress is visible as well as stated, and the author is named where the card
+      has room. A title alone is not enough to recognise a book by.
+- [ ] 0b.2 Both: a named resume action on the card, as well as the card being tappable. Both do
+      the same thing — a card that is a button with no button on it teaches nothing about what
+      tapping does.
+- [ ] 0b.3 Both: a publication with a page or less left offers to **finish** it and offers the
+      next in its series, rather than offering to reopen its last page. Finishing removes it
+      from Keep reading by the same rule finishing normally does.
+- [ ] 0b.4 Both: the next section's heading is visible without scrolling on a phone at the
+      default text size, while the card stays the surface's one emphasis.
+- [ ] 0b.5 Both: captures before and after, at default and largest text size.
+      **Android needs no new hero** — it has one, first on the surface, conditional on something
+      being in progress exactly as iOS is. The review reported it missing because the device had
+      nothing in progress. Do not build a second one.
+
 ## Phase 0 — Answer before building
 
 - [x] **0.1** Settle whether the iOS search role expands into a field in place.

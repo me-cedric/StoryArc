@@ -23,6 +23,11 @@ a reason to learn a second set of controls.
 - **THEN** the full player shows the cover, the publication, the chapter, the position and duration, and offers play, pause, skip back, skip forward, a scrub control, the chapter list, playback speed and a sleep timer
 - **AND** the same source that fed the compact bar feeds this, so opening it never restarts, reloads or repositions the audio
 
+#### Scenario: A publication with no cover
+- **WHEN** the player shows a publication the app holds no cover art for
+- **THEN** it draws the same coverless treatment every other surface draws — the title set as artwork — rather than a generic glyph
+- **AND** the system's own media controls get that same artwork, because a lock screen showing a headphones symbol is the one place a listener looks for an hour
+
 #### Scenario: Both sources look the same
 - **WHEN** the player is driven by the read-aloud voice rather than by a narrated file
 - **THEN** the surface, the controls and the lock-screen presentation are the same, and the synthesised voice is named once on the publication's own page rather than in the player

@@ -40,6 +40,26 @@ through, most recently read first, and SHALL make resuming one a single action.
 - **THEN** it stays in Keep reading, dimmed, saying plainly that it cannot be opened right now
 - **AND** it is never dropped from the row, because a row that shrinks with the Wi-Fi reads as lost reading
 
+#### Scenario: The card shows how far through, not only how much is left
+- **WHEN** a publication is shown in Keep reading
+- **THEN** its progress is visible as well as stated — a reader glancing at the surface can see roughly where they are without reading the line
+- **AND** the publication's author is named where the card has room for it, because a title alone is not enough to recognise a book by
+
+#### Scenario: Resuming is an action, not only a target
+- **WHEN** the card is shown
+- **THEN** it carries a named action that resumes, as well as being tappable itself
+- **AND** the two do the same thing, because a card that is a button with no button on it teaches nothing about what tapping will do
+
+#### Scenario: A publication with nothing meaningful left
+- **WHEN** what remains of a publication is a page or less
+- **THEN** the card offers to finish it — marking it read — and offers the next in its series where there is one, rather than offering to reopen its last page
+- **AND** choosing to finish it removes it from Keep reading by the same rule that finishing normally does
+
+#### Scenario: The hero does not crowd out the rest of the surface
+- **WHEN** the home surface is shown on a phone at the default text size
+- **THEN** the next section's heading is visible without scrolling, so a reader can see that the surface continues
+- **AND** the card stays large enough to be the surface's one emphasis, because the hero is a resume affordance and not a thumbnail
+
 ### Requirement: Up next
 
 The home surface SHALL offer the next unread issue of each series the reader has

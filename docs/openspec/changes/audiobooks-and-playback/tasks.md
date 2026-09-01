@@ -399,6 +399,13 @@ creep — see [`design.md`](design.md).
       the wavy variant "may not be as visible" at small sizes. Null progress draws **no**
       line rather than an empty one, which is `audio-playback`'s "position without a total
       rather than inventing one" carried into a pixel.
+- [ ] 4.4b Both: a publication with no cover gets the **same coverless treatment every other
+      surface draws** — the title set as artwork — and so does the system's media controls.
+      From a design review on 2026-09-01: `FullPlayerView.swift:89` draws
+      `Image(systemName: "headphones")`, and its own comment claims that is "the same
+      placeholder the library draws", which is **wrong** — the library draws `CoverlessWell`.
+      The player is the one surface a listener stares at for an hour, and the lock screen
+      inherits whatever it uses.
 - [~] 4.5 Both: the full player — cover, publication, chapter, position, duration,
       play/pause, skip both ways, scrub, chapter list, speed, sleep timer. Assert
       opening it never restarts, reloads or repositions the audio.
