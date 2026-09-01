@@ -2,6 +2,18 @@ import Foundation
 import Testing
 
 @testable import Playback
+import StoryArcCore
+
+/// Somewhere for a closure to put what it was handed.
+///
+/// A local `var` captured by an `@escaping @MainActor` closure cannot be read back under
+/// strict concurrency, and a reference the main actor owns can.
+@MainActor
+final class Positions {
+    private(set) var all: [ReadingPosition] = []
+    func append(_ one: ReadingPosition) { all.append(one) }
+    var last: ReadingPosition? { all.last }
+}
 
 /// What the platform taking the audio does to a running session.
 ///
@@ -60,8 +72,8 @@ struct PlayerInterruptionTests {
     @Test("Audio taken for good ends the session and writes the position first")
     func audioTakenForGood() {
         let centre = PlayerCentre()
-        var recorded: [PlaybackPlace] = []
-        centre.onRecord = { _, place in recorded.append(place) }
+        let recorded = Positions()
+        centre.onRecord = { reached in recorded.append(reached.position) }
 
         let source = PlaybackSourceDouble(.narrated)
         centre.begin(.stub(id: "a", title: "Bone"), source: source)
@@ -72,7 +84,7 @@ struct PlayerInterruptionTests {
 
         #expect(!centre.isRunning)
         #expect(centre.compact == nil, "no controls left for a session nothing can start")
-        #expect(recorded.last == PlaybackPlace(partIndex: 1, offset: 44))
+        #expect(recorded.last == .listening(part: 1, partCount: 3, offset: 44, of: 90))
     }
 
     // MARK: - The route changes

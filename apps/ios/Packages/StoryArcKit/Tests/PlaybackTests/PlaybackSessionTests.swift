@@ -131,8 +131,9 @@ struct PlaybackSessionTests {
     func secondBookDisplacesTheFirst() {
         let centre = PlayerCentre()
         var log: [String] = []
-        centre.onRecord = { book, place in
-            log.append("record \(book.publication.displayTitle) part \(place.partIndex) at \(Int(place.offset))")
+        centre.onRecord = { reached in
+            guard case let .listening(part, _, offset, _) = reached.position else { return }
+            log.append("record \(reached.book.publication.displayTitle) part \(part) at \(Int(offset))")
         }
 
         let first = PlaybackSourceDouble(.narrated)

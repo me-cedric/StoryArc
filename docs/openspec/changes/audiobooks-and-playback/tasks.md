@@ -392,9 +392,9 @@ creep — see [`design.md`](design.md).
       picture.** `EngineFactory` is a bare `() -> TTSEngine` and Readium builds its engine from
       a `lazy var` inside its own detached task; a closure written inline in a `@MainActor`
       method inherits that isolation, so the first utterance tripped
-      `swift_task_checkIsolated` and the process died on `EXC_BREAKPOINT`. Nothing in
-      `pnpm check` sees it — it is a runtime isolation check, and the app compiles clean. The
-      fix is `SpokenVoice.makeEngine`, a `nonisolated` method reference.
+      `swift_task_checkIsolated` and the process died on `EXC_BREAKPOINT`. Nothing in `pnpm
+      check` sees it — it is a runtime isolation check, and the app compiles clean. The fix is
+      `SpokenVoice.makeEngine`, a `nonisolated` method reference.
       *The Android half of the compact bar is 4.3.*
 - [ ] 4.3 Android: hand-compose the row in `NavigationSuiteScaffold`'s `content`
       slot, full-width `surfaceContainer`, sharing the navigation bar's container
@@ -460,6 +460,20 @@ creep — see [`design.md`](design.md).
       read — so `ChapterListView` never has an empty case to handle. What is left is naming
       an unnamed part, which `PlayerLabels.chapter` answers with its number and never with
       the file's name. *The Android half is not started.*
+- [~] 4.7 Both: the publication page's primary action says what a **listener** does.
+      **Not in this list until now, and it should have been.** The page's one button said
+      *Read* for an audiobook. The routing was never wrong — `StoryArcApp.open(_:at:)` has
+      asked `format.isAudio` since audiobooks landed and sends one to the player — so this was
+      a promise the button did not keep, which is the kind of wrong nothing fails on.
+      `publication-detail` makes the wording a requirement rather than a preference: one
+      action, "labelled with *which* of read and continue will happen — so a screen-reader user
+      learns the outcome before taking it rather than after".
+      **iOS done.** `PrimaryAction` has four answers, `PrimaryActionTests` pins them, and one
+      case asserts that reading and listening never borrow each other's words — which is what a
+      single progress-first branch would have got wrong for a *started* audiobook. New strings
+      `detail.listen` and `detail.continueListening` in all four languages. `AuditWalk`'s shared
+      `opensAPublication` predicate matches all four wordings now; it matched two, and
+      `PlayerScreenshotTests` looked for the literal *Read*. *The Android half is not started.*
 
 ## 5. Controls
 
@@ -499,31 +513,31 @@ creep — see [`design.md`](design.md).
       so leaving the reader leaves the voice running and the shared bar carries it; the bar's
       row is *Back to the book* for a spoken session, which is the one action back.
       `after-2026-09-01-ios-read-aloud/ios-read-aloud-compact-bar.png` is the reader closed and
-      the voice still going, against
-      `after-2026-09-01-ios-player/ios-library-nothing-playing.png` for the four destinations at
-      the same height. The narrated half is the same folder's `ios-compact-player.png`.
+      the voice still going, against `after-2026-09-01-ios-player/ios-library-nothing-playing.png`
+      for the four destinations at the same height. The narrated half is the same folder's
+      `ios-compact-player.png`.
 - [~] 6.2 Both: returning to a read-aloud session resumes at the sentence being
       spoken **then**, not where the reader left.
-      **iOS: written, and half of it seen.** The path is `SpokenSource.reached` →
-      `ReadAloudCentre.spoken` → `redrawSpokenSentence()`, reached through
-      `SessionHandover.adopt` in `prepareReadAloud`; the voice keeps its cursor up to date with
-      no reader on screen, so returning draws the sentence it is on rather than the locator the
-      reader left. That is the mechanism `read-aloud-beyond-the-reader` shipped, now hanging off
-      the shared session.
-      **The starting half is exercised on a device** — `UITests/ReadAloudPlayerTests` starts the
-      voice, leaves the reader, and photographs the bar carrying it, which is §4.2's proof and
-      §6.1's. **The returning half is not.** Going back in and asserting *which sentence* is
-      drawn needs the walk to read a decoration inside a `WKWebView`, which XCUITest does not
-      expose, so what is left is the code path and the reasoning above. Saying it is
+      **iOS: written, and blocked from being seen by a defect older than this change.** The
+      path is `SpokenSource.reached` → `ReadAloudCentre.spoken` → `redrawSpokenSentence()`,
+      reached through `SessionHandover.adopt` in `prepareReadAloud`; the voice keeps its cursor
+      up to date with no reader on screen, so returning draws the sentence it is on rather
+      than the locator the reader left. That is the same mechanism
+      `read-aloud-beyond-the-reader` shipped, now hanging off the shared session.
+      **The starting half is exercised on a device** — `UITests/ReadAloudPlayerTests` starts
+      the voice, leaves the reader, and photographs the bar carrying it, which is §4.2's proof
+      and §6.1's. **The returning half is not.** Going back in and asserting *which sentence*
+      is drawn needs the walk to read the decoration inside a `WKWebView`, which XCUITest does
+      not expose, so what is left is the code path and the reasoning above. Saying it is
       photographed would be saying more than the picture shows.
       **A false lead worth recording, because it cost an hour and reads exactly like a
       defect.** The read-aloud row is the last row of the reader's menu and sits below the fold
       on an iPhone; a SwiftUI `List` is lazy, so a row that has never been on screen is in no
       accessibility tree, and `app.buttons["Read aloud"]` came back empty. That is
       indistinguishable from `canReadAloud == false`, which `ebook-reader` genuinely allows for
-      a publication with nothing to say. Ruled out by forcing the row to render unconditionally
-      and finding the query still empty — the app was never the problem, the query was. The
-      walk swipes now.
+      a publication with nothing to say. Ruled out by forcing the row to render
+      unconditionally and finding the query still empty — the app was never the problem, the
+      query was. The walk swipes now.
 - [~] 6.3 Both: reaching the end withdraws the highlight, dismisses the media
       controls and removes the compact bar.
       **Android: written, and seen happening.** `PlaybackCentre.publish` drops the surface
@@ -545,10 +559,43 @@ creep — see [`design.md`](design.md).
       3.6's resumption answering from a position nothing updates. `reading-progress` needs
       a fourth `ReadingPosition` case, or `Reflowable` reused with a time-derived fraction;
       neither has been decided and neither should be decided in an implementation pass.
-- [ ] 7.2 Both: a publication both read and listened to has **one** position, and
+      **iOS half done.** `ReadingPosition.listening(part:partCount:offset:of:)` — the four
+      fields Android's `Listening` has, for the same reasons, including `partCount`, which
+      `design.md`'s three-field signature cannot derive and `fraction` cannot answer without.
+      `ListeningPositionTests` pins the fraction table, the clamping, that it `matches` a page
+      and a progression on the same scale, and that a record written before the case existed
+      still decodes. `PlayerCentre.position(at:)` builds it; `ReachedListening` carries it to
+      the app; `StoryArcApp.wirePlayerRecording` saves it — so closing an audiobook keeps the
+      place. Six cases in `ListeningRecordTests`, two mutation-checked (not resetting
+      `hasReachedTheEnd` on a new book, and inventing a zero duration for a voice).
+      **No migration on iOS, and that is a real platform difference rather than an oversight:**
+      the store keeps `positionData` as JSON of the enum, so a new case needs no schema change
+      where Android's Room store needed four columns and `MIGRATION_2_3`.
+      **One thing this cost that nothing warns about.** `StoryArcCore` is not built with
+      library evolution, so its enum layout is baked into every client — and adding a case left
+      an incrementally-built `StoryArcCoreTests` comparing the *old* layout. `ProgressMergeTests`
+      then failed on two values that printed identically, and the whole suite took `SIGSEGV`.
+      Neither is a defect and neither is flaky: `swift package clean` fixes both. Worth knowing
+      before spending an hour on a compiler bug that is not there.
+- [~] 7.2 Both: a publication both read and listened to has **one** position, and
       returning never offers a choice of two.
-- [ ] 7.3 Both: finishing by listening marks the publication finished and makes the
+      **iOS half done, and it is a guard rather than a feature.** `wirePlayerRecording` writes a
+      listening position **only** for a publication whose format `isAudio`. A publication read
+      aloud is still a reflowable publication, and what the voice writes for it is the
+      reflowable position the eye would have written — `SpokenPosition`, unchanged. Without
+      that guard the player would have written a second, time-shaped position for the same
+      book, which is exactly the "choice of two places" `reading-progress` forbids.
+- [~] 7.3 Both: finishing by listening marks the publication finished and makes the
       same end-of-publication offers as finishing a comic.
+      **iOS: the marking is done; the offers are not checked.** `ReachedListening.isFinished`
+      is true when the *source ran out*, which is the exact fact a comic has when it is on its
+      last page. A threshold on the fraction was the obvious alternative and is wrong: the
+      clock ticks four times a second, so the last place reported before the end of the
+      corpus's six-second fixture is a fraction of about 0.96 — a book played to its end and
+      never marked finished. Asserted over both source kinds and mutation-checked.
+      **The end-of-publication offers are `FinishedCleanup`'s and the next-in-series shelf's**,
+      and neither was traced from a finished audiobook. They hang off the same `isFinished` flag
+      a comic sets, so the reasoning is that they follow; nobody watched them.
 
 ## 8. Accessibility
 

@@ -10,6 +10,36 @@ public enum ReadingPosition: Sendable, Equatable, Codable {
     case page(index: Int, of: Int)
     case reflowable(progression: Double, locator: String)
 
+    /// Where a listener stopped: an offset in time inside one part of a publication.
+    ///
+    /// `reading-progress`: "it is an offset in time within a named part". The same case
+    /// carries a narrated audiobook and a publication being read aloud, because
+    /// `audio-playback` gives them one player and this gives them one position — "the app
+    /// does not keep a separate listening position, so returning never offers a choice of
+    /// two places".
+    ///
+    /// **Four decisions inside this signature.**
+    ///
+    /// `part` is an index and the part's *name* is not stored. A chapter title belongs to the
+    /// file, and a position carrying a stale copy of one would disagree with the book after a
+    /// re-download.
+    ///
+    /// `offset` is seconds into that part, not into the whole publication. A folder
+    /// audiobook's parts can be re-ordered or replaced one at a time, and a whole-publication
+    /// offset silently moves when an earlier part changes length.
+    ///
+    /// **`of` is optional, and that is the load-bearing part.** A read-aloud session has no
+    /// true duration — `PlaybackTime.total` is nullable on both platforms precisely so an
+    /// estimate can never be presented as exact — so a position taken from one has no total to
+    /// divide by, and ``fraction`` answers with the part instead of a guess.
+    ///
+    /// `partCount` is here and **not in `design.md`'s signature**, which names three fields
+    /// and then asks ``fraction`` for "the part index over the part count". That count is not
+    /// derivable from the other three, so the case cannot answer without it. ``page`` carries
+    /// its total for the same reason and in the same shape. Android's `Listening` has the
+    /// identical four fields, for the identical reason.
+    case listening(part: Int, partCount: Int, offset: TimeInterval, of: TimeInterval?)
+
     /// Normalised 0…1, so two positions can be compared regardless of kind.
     public var fraction: Double {
         switch self {
@@ -18,6 +48,14 @@ public enum ReadingPosition: Sendable, Equatable, Codable {
             return min(1, max(0, Double(index) / Double(total - 1)))
         case let .reflowable(progression, _):
             return min(1, max(0, progression))
+        case let .listening(part, partCount, offset, total):
+            // The part, plus how far into it the listener is when anything knows. With no
+            // duration the second term is zero rather than an estimate: a fraction refined by
+            // a guess is a guess presented as a measurement, and the whole reason `of` is
+            // optional is that this app does not do that.
+            guard partCount > 0 else { return 0 }
+            let within = total.flatMap { $0 > 0 ? min(1, max(0, offset / $0)) : nil } ?? 0
+            return min(1, max(0, (Double(part) + within) / Double(partCount)))
         }
     }
 

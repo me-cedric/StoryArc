@@ -2025,6 +2025,35 @@
       },
       "comment": "Second half of the provenance line, after a comma, so lower case."
     },
+    "detail.continueListening": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiterhören"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue listening"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar escuchando"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre l'écoute"
+          }
+        }
+      }
+    },
     "detail.download.working": {
       "extractionState": "manual",
       "localizations": {
@@ -2083,6 +2112,35 @@
         }
       },
       "comment": "Shown by the surface a reader is returned to when the page cannot open."
+    },
+    "detail.listen": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anhören"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escuchar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Écouter"
+          }
+        }
+      }
     },
     "detail.more": {
       "comment": "Spoken label for the page's overflow menu button.",

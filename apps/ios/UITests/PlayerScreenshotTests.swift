@@ -107,10 +107,12 @@ final class PlayerScreenshotTests: XCTestCase {
         )
         audiobook.tap()
         // The cover opens the publication's detail screen, and its own button is what opens
-        // the publication. It still says *Read* for an audiobook, which is a wording gap
-        // rather than a routing one — the button reaches `open(_:at:)` and that sends an
-        // audiobook to the player.
-        let open = app.buttons["Read"].firstMatch
+        // the publication. It says what a *listener* does now — `PrimaryAction` — where it used
+        // to say *Read* for an audiobook, which was a promise the button never kept: it
+        // reaches `open(_:at:)` and that has always sent an audiobook to the player.
+        // `opensAPublication` matches all four wordings, because which one appears depends on
+        // whether an earlier run left a recorded position and a capture walk must not.
+        let open = app.buttons.matching(opensAPublication).firstMatch
         XCTAssertTrue(open.waitForExistence(timeout: 10), "No way in from the detail screen.")
         open.tap()
 

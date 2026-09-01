@@ -208,13 +208,17 @@ extension XCTestCase {
             .filter { cover in format.map { cover.label.contains(", \($0)") } ?? true }
     }
 
-    /// A publication page's primary action, whichever of its two names it is wearing.
+    /// A publication page's primary action, whichever of its **four** names it is wearing.
     ///
-    /// *Read* on a publication nobody has opened and *Continue reading* on one somebody
-    /// has. In one place, because the two copies of this walk each had their own and one of
-    /// them matched `label IN {'Read', 'Continue'}`, which finds neither.
+    /// *Read* on a publication nobody has opened, *Continue reading* on one somebody has, and
+    /// since `audiobooks-and-playback` *Listen* and *Continue listening* on an audiobook —
+    /// `PrimaryAction`, which is where the four are decided and asserted. In one place, because
+    /// the two copies of this walk each had their own and one of them matched
+    /// `label IN {'Read', 'Continue'}`, which finds neither.
     var opensAPublication: NSPredicate {
-        NSPredicate(format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue'")
+        NSPredicate(
+            format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue' OR label BEGINSWITH 'Listen'"
+        )
     }
 
     /// One of the shell's three destinations, wherever the platform decided to draw it.

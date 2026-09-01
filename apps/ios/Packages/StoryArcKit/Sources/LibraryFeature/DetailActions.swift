@@ -112,13 +112,15 @@ struct DetailActions: View {
         }
     }
 
-    /// *Continue* or *Read*, and the wording is the promise.
+    /// *Continue*, *Read*, *Listen* or *Continue listening* — and the wording is the promise.
+    ///
+    /// Which of the four is ``PrimaryAction``'s decision, asserted there. It said *Read* for an
+    /// audiobook until `audiobooks-and-playback`, which was a promise the button never kept:
+    /// `StoryArcApp.open(_:at:)` sends an audiobook to the player.
     private var primaryLabel: Text {
-        if let fraction = model.readFraction(of: publication), fraction > 0 {
-            Text("library.continueReading", bundle: .module)
-        } else {
-            Text("catalogue.detail.read", bundle: .module)
-        }
+        PrimaryAction
+            .of(publication.format, hasProgress: (model.readFraction(of: publication) ?? 0) > 0)
+            .label
     }
 
     // MARK: - Everything else

@@ -85,6 +85,14 @@ public final class PlayerCentre {
         PlaybackTime(elapsed: place.offset, total: currentPart?.duration)
     }
 
+    /// Whether the source has reached the end of the book.
+    ///
+    /// Kept apart from ``session`` because it is a different question: a stopped session is a
+    /// session with no audio, and this says *why*. `reading-progress` needs the difference —
+    /// a listener who stopped half way has not finished the publication and a book that ran
+    /// out has. Cleared by ``begin(_:source:)``, so a second book cannot inherit it.
+    public private(set) var hasReachedTheEnd = false
+
     // MARK: - What the app wires in
 
     /// Where a session's position goes.
@@ -93,7 +101,12 @@ public final class PlayerCentre {
     /// SwiftData: `reading-progress` owns the record and the app layer owns the wiring. It
     /// is called on every part change, whenever a session ends, and — the case that matters
     /// — *before* a second book displaces the first.
-    public var onRecord: (@MainActor (SpokenBook, PlaybackPlace) -> Void)?
+    ///
+    /// It hands over a finished ``ReachedListening`` rather than a ``PlaybackPlace``: the
+    /// part count, the current part's length and whether the book ran out are all this
+    /// object's to know, and an app-layer closure asking for them one at a time is an
+    /// app-layer closure that can get the finished rule wrong.
+    public var onRecord: (@MainActor (ReachedListening) -> Void)?
 
     /// The speed to start a publication at.
     ///
@@ -118,22 +131,8 @@ public final class PlayerCentre {
     /// one, and a `MPNowPlayingInfoCenter` does not exist there. Held here rather than
     /// wired by the app so that publishing cannot be forgotten at one of the eleven places
     /// this object changes: every one of them ends in ``published()``.
+    /// See ``PlayerCentre/adoptSystemPlatform()``, in `PlaybackPlatform.swift`.
     @ObservationIgnored public var platform: (any PlaybackPlatform)?
-
-    /// Gives this centre the platform's own half, once.
-    ///
-    /// Both sources start a session from a different place — a narrated book from the shelf,
-    /// a spoken one from inside the reader — and both owe the same audio session and the same
-    /// lock screen. Made once and kept: wiring them per session is how a listener who started
-    /// five books ends up with five handlers on every lock-screen button.
-    ///
-    /// Never called from a host test, which is why ``platform`` stays optional rather than
-    /// being built in ``init()``: there is no `AVAudioSession` and no `MPNowPlayingInfoCenter`
-    /// on the machine `pnpm test:ios` runs on.
-    public func adoptSystemPlatform() {
-        guard platform == nil else { return }
-        platform = SystemPlaybackPlatform(for: self)
-    }
 
     @ObservationIgnored private var source: (any PlaybackSource)?
 
@@ -164,12 +163,23 @@ public final class PlayerCentre {
         self.source = source
         parts = source.parts
         place = source.place
+        // Cleared here rather than in `finish`, which runs *before* this on a displacement and
+        // has to leave the flag standing long enough for the outgoing book's record to carry
+        // it. A listener who finished one book and started another would otherwise have the
+        // second marked finished at its first tick.
+        hasReachedTheEnd = false
         unreadablePartCount = source.unreadablePartCount
         self.book = book.naming(title(ofPartAt: place.partIndex))
         speed = onRecallSpeed?(book.publication) ?? .normal
 
         source.moved = { [weak self] in self?.sourceMoved() }
-        source.ended = { [weak self] in self?.end() }
+        // The book ran out. The flag before the teardown, because `end()` writes the position
+        // on its way out and `reading-progress` asks that record whether the publication is
+        // finished.
+        source.ended = { [weak self] in
+            self?.hasReachedTheEnd = true
+            self?.end()
+        }
         source.setSpeed(speed)
 
         session = session.started()
@@ -260,7 +270,7 @@ public final class PlayerCentre {
     /// not simply ``place``.
     public func sleepTimerElapsed() {
         guard let book, session.isActive else { return }
-        onRecord?(book, SleepCountdown.recordedPlace(afterFadingAt: place))
+        record(at: SleepCountdown.recordedPlace(afterFadingAt: place))
         sleep = nil
         session = session.pausedByListener()
         source?.pause()
@@ -366,15 +376,6 @@ public final class PlayerCentre {
     /// — a lock screen a few seconds behind the app — is the kind nobody reports.
     private func published() {
         platform?.published()
-    }
-
-    /// Writes down where the audio got to.
-    ///
-    /// On every move, not only when the session ends. A process the system reclaims gets no
-    /// ending at all, and the only position that survives one is a position already written.
-    private func recordReached() {
-        guard let book else { return }
-        onRecord?(book, place)
     }
 
     /// What a part is called, which is what the bar and the lock screen say.

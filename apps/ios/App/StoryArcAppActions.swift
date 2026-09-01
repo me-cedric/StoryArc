@@ -129,10 +129,46 @@ extension StoryArcApp {
             // on every lock-screen button. Read-aloud asks for the same thing at the same
             // seam — `ReadAloudCentre.begin` — because one player owes one platform half.
             centre.adoptSystemPlatform()
+            wirePlayerRecording()
             centre.begin(
                 SpokenBook(publication: publication, url: url),
                 source: NarratedSource(book)
             )
+        }
+    }
+
+    /// Sends the player's positions to the store, once.
+    ///
+    /// `reading-progress`: an audiobook's position "survives the app being closed, the device
+    /// restarting, and the file being re-downloaded, exactly as a page index does" — and it is
+    /// `PlayerCentre` that knows where the audio is, on every part change and before every
+    /// ending, so this is only the wire between the two.
+    ///
+    /// **Only an audiobook writes a listening position, and that is `reading-progress` by
+    /// name**: "a publication that has been read aloud and then read silently … has one
+    /// position … the app does not keep a separate listening position, so returning never
+    /// offers a choice of two places". A publication read aloud is still a reflowable
+    /// publication, and what the voice writes for it is the reflowable position the eye would
+    /// have written — `SpokenPosition` in `StoryArcEpub`, unchanged. Writing a second,
+    /// time-shaped position for the same book here is exactly the choice of two places the
+    /// spec forbids. `publication.format.isAudio` is the honest way to ask, because
+    /// `audio-playback` calls the source "a fact about the file".
+    ///
+    /// Wired once. `onRecord` is a single closure, and re-assigning it per session would be
+    /// harmless but pointless; the guard says which it is.
+    func wirePlayerRecording() {
+        let centre = PlayerCentre.shared
+        guard centre.onRecord == nil else { return }
+        let store = progress
+        centre.onRecord = { reached in
+            guard reached.book.publication.format.isAudio, let store else { return }
+            let record = ReadingProgress(
+                identity: reached.book.publication.identity,
+                position: reached.position,
+                isFinished: reached.isFinished,
+                updatedAt: Date()
+            )
+            Task { try? await store.save(record) }
         }
     }
 

@@ -69,8 +69,12 @@ public extension KavitaExchange {
         switch position {
         case let .page(index, _):
             return min(max(0, index), pages - 1)
-        case let .reflowable(progression, _):
-            let page = (min(1, max(0, progression)) * Double(pages - 1)).rounded()
+        // A listening position takes the same rule as a reflowable one, and for the same
+        // reason: the fraction is the only part of either that a server counting pages can
+        // read. A listener's parts are not a server's pages and never were. Android's
+        // `KavitaExchange.pageNumber` puts the two cases in one branch for the same reason.
+        case .reflowable, .listening:
+            let page = (position.fraction * Double(pages - 1)).rounded()
             return min(max(0, Int(page)), pages - 1)
         }
     }
