@@ -8,7 +8,6 @@
          "on a metered connection" and treats Data Saver as metered, and this is the only
          way to know which kind of connection a reader is on. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name=".StoryArcApplication"
@@ -45,6 +44,15 @@
                 <data android:mimeType="application/vnd.comicbook-rar" />
                 <data android:mimeType="application/epub+zip" />
                 <data android:mimeType="application/pdf" />
+                <!-- An audiobook is a supported publication now, so `local-library`'s
+                     "Open-in from another app" applies to one: a reader who taps an M4B in
+                     a file manager and does not find StoryArc in the list has no way in
+                     that does not start with configuring a source. `audio/mp4` is what a
+                     provider calls an M4B; the rest are what it calls the other three. -->
+                <data android:mimeType="audio/mp4" />
+                <data android:mimeType="audio/mpeg" />
+                <data android:mimeType="audio/flac" />
+                <data android:mimeType="audio/ogg" />
             </intent-filter>
 
             <!-- And by extension, because most file managers hand a comic archive over as
@@ -81,6 +89,22 @@
                 <data android:pathPattern=".*\\.EPUB" />
                 <data android:pathPattern=".*\\.pdf" />
                 <data android:pathPattern=".*\\.PDF" />
+                <!-- And the audiobook containers, for the same reason the comic archives
+                     are here: `.m4b` has no MIME type a provider reliably knows, and a
+                     MIME-only filter leaves StoryArc out of the list for the format this
+                     change exists to open. -->
+                <data android:pathPattern=".*\\.m4b" />
+                <data android:pathPattern=".*\\.M4B" />
+                <data android:pathPattern=".*\\.m4a" />
+                <data android:pathPattern=".*\\.M4A" />
+                <data android:pathPattern=".*\\.mp3" />
+                <data android:pathPattern=".*\\.MP3" />
+                <data android:pathPattern=".*\\.flac" />
+                <data android:pathPattern=".*\\.FLAC" />
+                <data android:pathPattern=".*\\.ogg" />
+                <data android:pathPattern=".*\\.OGG" />
+                <data android:pathPattern=".*\\.opus" />
+                <data android:pathPattern=".*\\.OPUS" />
             </intent-filter>
 
             <!-- A share sheet sends the file as an extra rather than as the intent's data,
@@ -92,6 +116,10 @@
                 <data android:mimeType="application/vnd.comicbook-rar" />
                 <data android:mimeType="application/epub+zip" />
                 <data android:mimeType="application/pdf" />
+                <data android:mimeType="audio/mp4" />
+                <data android:mimeType="audio/mpeg" />
+                <data android:mimeType="audio/flac" />
+                <data android:mimeType="audio/ogg" />
             </intent-filter>
         </activity>
     </application>

@@ -12,7 +12,6 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationIdentity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
  * A publication the system handed to the app, and what to do with it.
@@ -79,7 +78,18 @@ internal object OpenedFile {
                 // different `Uri` each time, so an identity built from one would give the
                 // reader a fresh reading position on every open. ADR-0006 puts the digest
                 // second in its order of preference for exactly this case.
-                val digest = PublicationIndexer.contentDigest(File(source.descriptorPath))
+                //
+                // **Read from the source, never from its descriptor path.** This digested
+                // `File(source.descriptorPath)`, which re-opens `/proc/self/fd/N` by name —
+                // and a file the app reached only through a provider's grant is not one the
+                // app may open by path. `MediaStore` audio is exactly that case: every file
+                // handed over from the system's own media picker or a file manager failed
+                // with `EACCES` and was reported to the reader as a file StoryArc "does not
+                // recognise". Measured on `storyarc-j6`: `FileNotFoundException:
+                // /proc/self/fd/117: open failed: EACCES`. The source is already open, the
+                // digest is the same bytes, and `RandomAccessSource` is the interface
+                // ADR-0008 exists for.
+                val digest = PublicationIndexer.contentDigest(source)
                 val publication = PublicationIndexer.index(
                     source = source,
                     name = name,
