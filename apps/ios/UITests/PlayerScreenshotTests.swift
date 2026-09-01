@@ -145,14 +145,24 @@ final class PlayerScreenshotTests: XCTestCase {
         )
         attach(app.screenshot(), named: "sleep-timer-set")
 
-        // The second frame. Play, wait, and assert the announced value *moved* — the assertion
-        // is the proof and the picture is the evidence a person can look at.
+        try watchTheTimerMove(in: app, on: sleepControl)
+    }
+
+    /// The second frame: play, wait, and assert the announced value *moved*.
+    ///
+    /// Split out because the walk crossed SwiftLint's function-body cap, and this is the seam the
+    /// cap was pointing at — everything above chooses a timer, everything here watches one run.
+    private func watchTheTimerMove(in app: XCUIApplication, on sleepControl: XCUIElement) throws {
         let before = try XCTUnwrap(sleepControl.value as? String)
         let play = app.buttons.matching(
             NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@", "Play", "Pause")
         ).allElementsBoundByIndex.first { $0.isHittable }
-        XCTAssertNotNil(play, "The player offers no play control. Buttons: \(app.buttons.allElementsBoundByIndex.map(\.label))")
-        play?.tap()
+        let transport = try XCTUnwrap(
+            play,
+            "The player offers no play control. Buttons: "
+                + "\(app.buttons.allElementsBoundByIndex.map(\.label))"
+        )
+        transport.tap()
         settle(3)
 
         XCTAssertTrue(
