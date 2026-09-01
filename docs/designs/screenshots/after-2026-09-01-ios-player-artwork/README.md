@@ -31,6 +31,7 @@ these three changes landed, and are committed. Read them as the pair for everyth
 | `ios-full-player.png` | The full player: the title as artwork, no Close pill, the grabber. |
 | `ios-full-player-largest-text.png` | The same at `AccessibilityXXXL`. |
 | `ios-sleep-timer-set.png` | A five-minute sleep timer just chosen. `5:00 left` on the control. |
+| `ios-sleep-timer-counting.png` | **The second frame**, after three seconds of playback. The value has moved. |
 
 ## What each pair settles
 
@@ -68,40 +69,52 @@ back on the shelf with the compact bar. The VoiceOver route is `.accessibilityAc
 and is not walked, because XCUITest has no API for the escape gesture — said here rather than
 left as a silent gap.
 
-### The sleep timer states a remaining time — `audiobooks-and-playback` §5.3
+### The sleep timer states a remaining time, and is seen to move — `audio-playback` §5.3
 
-`ios-sleep-timer-set.png` shows the control reading `5:00 left`, and the test asserts the same
-string as the control's announced **value** while *Sleep timer* remains its name. It announced
-only the number before, which is a value with no name, and `audio-playback` asks a screen
-reader for both.
+`ios-sleep-timer-set.png` shows the control reading `5:00 left`, and the test asserts that same
+string as the control's announced **value** while *Sleep timer* stays its name. It announced only
+the number before, which is a value with no name, and `audio-playback` asks a screen reader for
+both.
 
-**This is one frame, and the requirement wants two — said plainly rather than dressed up as an
-exception.** The defect §5.3 fixed was a number that *was* displayed and never moved, so a
-single picture of `5:00 left` cannot tell the fix from the bug. What proves the moving is
-`SleepTimerRunningTests`: the count going down, the hold while paused, the ramp reaching the
-source's volume, the elapsing, and the rewind — with the paused hold, the ramp shape and the
-end-of-chapter re-read each mutation-checked.
+**Two frames, because one cannot tell the fix from the defect it replaced.** The defect §5.3
+fixed was a number that *was* displayed and never moved — the control existed, the sheet offered
+the durations, and nothing in the app ever ticked the countdown or stopped the book. A single
+picture of `5:00 left` is exactly what that would have produced. So `ios-sleep-timer-counting.png`
+is the pair, taken after three seconds of playback, and the walk **asserts** the value moved as
+well as photographing it: a regression fails the build rather than waiting for somebody to
+compare two PNGs by eye.
 
-**Why the second frame could not be taken, which turned out to be a defect rather than a limit
-of the capture.** The countdown moves only while the book plays, and the walk leaves the session
-paused on purpose. Pressing any transport control inside the player **dismisses the player**:
-`PlayerDock` hosts the player's `.sheet` on a view inside `if let bar = centre.compact`, so the
-moment `CompactPlayer`'s value changes — which pressing play does, and which crossing a chapter
-does — the sheet's host is rebuilt and the presentation is torn down.
+The assertion unwraps the value rather than comparing optionals, and checks its `m:ss` shape as
+well as the difference. `XCTAssertNotEqual(nil, "5:00 left")` passes, so a control that stopped
+announcing a value at all would have satisfied the naive form — a worse defect, reported as a
+pass.
 
-Measured rather than guessed, over four runs:
+The walk plays for three seconds rather than waiting out a minute, since the value moves every
+second, and deliberately does not play to the end: the audiobook fixture is six seconds long and
+a finished session closes the player on purpose.
+
+#### This pair was owed for a day, and what blocked it was a real defect
+
+Kept because the measurements cost four runs and each one is a trap that will recur.
+
+The countdown moves only while the book plays, and pressing any transport control inside the
+player **dismissed the player**: `PlayerDock` hosted the `.sheet` on a view inside
+`if let bar = centre.compact`, so the moment `CompactPlayer`'s value changed — which pressing
+play does, and which crossing a chapter does — the sheet's host was rebuilt and the presentation
+torn down.
 
 1. `app.buttons["Play"].firstMatch` bound to the **compact bar behind the sheet**, which is not
    hittable, so the book never played and two frames came back byte-identical at `5:00 left`.
-   Only a comparison assertion caught that; a capture filed on the strength of the eye would
-   have been filed as proof.
+   Only a comparison assertion caught that; a capture filed on the strength of the eye would have
+   been filed as proof. **The walk now picks the first *hittable* match**, which is why.
 2. Reaching the first chapter through the chapter list fixed the starting position and exposed
    the dismissal: tapping a chapter row left the **publication page** on screen with the compact
    bar still playing.
 3. A skip-back tap — one control, no sheet — did exactly the same.
 4. **The same run against the pre-§3.2 `FullPlayerView`, Close pill and all, failed
-   identically.** That is what proves the dismissal predates this change rather than being
-   caused by it.
+   identically.** That is what proves the dismissal predated the pill's removal.
 
-Two frames become possible as soon as that host is stabilised. It is out of this change's scope
-and is reported as a separate defect.
+Fixed by moving the presentation to the shell's `TabView`, which outlives a session;
+`PlayerSheet.swift` carries the account. The assertion that the player survives its own play
+button is part of this same walk now, so the block cannot come back unnoticed.
+

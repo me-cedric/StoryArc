@@ -93,18 +93,22 @@ final class PlayerScreenshotTests: XCTestCase {
     /// while paused, the ramp, the elapsing and the rewind, with the paused hold and the ramp
     /// mutation-checked — and this picture only shows that the number reaches the surface.
     ///
-    /// **Why the second frame cannot be taken here yet, which is a defect and not a limit of the
-    /// capture.** The countdown moves only while the book plays, and the walk leaves the session
-    /// paused on purpose. Pressing any transport control inside the player **dismisses the player**:
-    /// `PlayerDock` hosts the player's `.sheet` on a view inside `if let bar = centre.compact`, so
-    /// the moment `CompactPlayer`'s value changes — which pressing play does, and crossing a chapter
-    /// does — the sheet's host is rebuilt and the presentation is torn down. Measured, not guessed:
-    /// a skip-back tap and a chapter-list tap each left the publication page on screen with the
-    /// compact bar still playing, and **the same run against the pre-§3.2 `FullPlayerView` failed
-    /// identically**, which is what proves the dismissal predates the Close pill's removal.
+    /// **The second frame took a defect to unblock, and the defect is why this comment is long.**
+    /// The countdown moves only while the book plays, and pressing any transport control inside the
+    /// player used to **dismiss the player**: `PlayerDock` hosted the `.sheet` on a view inside
+    /// `if let bar = centre.compact`, so the moment `CompactPlayer`'s value changed — which pressing
+    /// play does, and crossing a chapter does — the sheet's host was rebuilt and the presentation
+    /// torn down. Measured rather than guessed, and reproduced against the commit *before* the Close
+    /// pill was removed, so the pill was not the cause. Fixed by moving the presentation to the
+    /// shell's `TabView`; `PlayerSheet.swift` carries the account.
     ///
-    /// Two frames become possible as soon as that is fixed. Until then this states the gap rather
-    /// than claiming an exception.
+    /// So this now takes **two** frames, which is what the requirement actually asks for: a single
+    /// picture of `5:00 left` cannot tell a timer that is counting down from one that is frozen at
+    /// the value it was set to — which is precisely the shipped-and-inert state §5.3 existed to fix.
+    ///
+    /// It plays for a few seconds rather than waiting out a minute, because the announced value is
+    /// `m:ss` and moves every second. It must not play to the end: the audiobook fixture is six
+    /// seconds long, and a session that finishes closes the player on purpose.
     func testCaptureSleepTimerSet() throws {
         let app = launch()
         try openAnAudiobook(in: app)
@@ -140,6 +144,41 @@ final class PlayerScreenshotTests: XCTestCase {
             "The sleep control does not state the remaining time as its announced value."
         )
         attach(app.screenshot(), named: "sleep-timer-set")
+
+        // The second frame. Play, wait, and assert the announced value *moved* — the assertion
+        // is the proof and the picture is the evidence a person can look at.
+        let before = try XCTUnwrap(sleepControl.value as? String)
+        let play = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@", "Play", "Pause")
+        ).allElementsBoundByIndex.first { $0.isHittable }
+        XCTAssertNotNil(play, "The player offers no play control. Buttons: \(app.buttons.allElementsBoundByIndex.map(\.label))")
+        play?.tap()
+        settle(3)
+
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Sleep timer")).firstMatch.exists,
+            "The player was dismissed by its own transport control — the defect this walk used to "
+                + "be blocked by. See PlayerSheet.swift."
+        )
+        // `after` is unwrapped rather than compared as an optional, and the shape is checked as
+        // well as the difference. `XCTAssertNotEqual(nil, "5:00 left")` passes, so a control that
+        // stopped announcing a value at all would have satisfied the naive form of this — which is
+        // a *worse* defect reported as a pass.
+        let after = try XCTUnwrap(
+            sleepControl.value as? String,
+            "The sleep control stopped announcing a value once the book was playing."
+        )
+        XCTAssertTrue(
+            after.range(of: #"^\d+:\d{2} left$"#, options: .regularExpression) != nil,
+            "The remaining time is announced as \(after), which is not an m:ss remaining time."
+        )
+        XCTAssertNotEqual(
+            after, before,
+            "The sleep timer's announced value did not move after three seconds of playback: still "
+                + "\(before). A control that states a number and never changes it is the "
+                + "shipped-and-inert state this walk exists to catch."
+        )
+        attach(app.screenshot(), named: "sleep-timer-counting")
     }
 
     /// Waits, then photographs.
