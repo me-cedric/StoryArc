@@ -368,7 +368,24 @@ creep — see [`design.md`](design.md).
       pinning all three anchors. **Mutation-checked**: straightening it into the obvious
       single lerp puts 1× at `0.2` against the platform's own default of `0.5`, and the suite
       fails on exactly that.
-      The dock itself is not folded yet.
+      **iOS done — one bar, one session, and the second dock is deleted.** `SpokenVoice` is the
+      `AVTTSEngineDelegate`, injected through `PublicationSpeechSynthesizer(engineFactory:)`;
+      `SpokenSource` is the second `PlaybackSource`, so Readium's tokenisation, locators and
+      highlight mapping are untouched. `ReadAloudCentre` is now only what a narrator has no
+      equivalent of — the sentence on a page, and the reflowable position a voice writes — and
+      `ReadAloudControls.swift` and `ReadAloudDock.swift` are **gone**: their lock screen,
+      their interruption contract and their bar are `NowPlaying`, `PlaybackAudioSession` and
+      `PlayerDock` now. `AppShell.PlaybackAccessory` has one branch left, the iOS 26.1
+      availability one.
+      **Where the bar's row goes is `CompactPlayer.wayBack`, and it asks the *file*.** A
+      narrated audiobook has no screen behind it, so the row opens the player; a publication
+      being read aloud has a reader, so the row goes there and the player gets a chevron of
+      its own — neither `audio-playback`'s "a way to open the full player" nor `ebook-reader`'s
+      "the compact bar is how the reader gets back to it" is traded away. Three cases in
+      `CompactPlayerTests`, two of them driven over **both** source kinds, which is what pins
+      that the engine does not decide it. New string `player.back`, in all four languages.
+      **Not photographed, and the reason is a defect this task did not introduce.** See §6.2.
+      *The Android half of the compact bar is 4.3.*
 - [ ] 4.3 Android: hand-compose the row in `NavigationSuiteScaffold`'s `content`
       slot, full-width `surfaceContainer`, sharing the navigation bar's container
       colour. **Not** `BottomSheetScaffold` (no `bottomBar` slot, so the peek row
@@ -468,8 +485,29 @@ creep — see [`design.md`](design.md).
       where the two meet, but nothing has been rewired. That is the honest state.
       No test asserts the outliving — it is a process fact, and proving it needs the
       instrumented pass §9 still owes.
-- [ ] 6.2 Both: returning to a read-aloud session resumes at the sentence being
+      **iOS: read-aloud drives this player now** (4.2), so leaving the reader leaves the voice
+      running and the shared bar carries it — and the bar's row is *Back to the book* for a
+      spoken session, which is the one action back. **Not photographed**, for the reason §6.2
+      records. The narrated half *is* photographed, in `after-2026-09-01-ios-player/`.
+- [~] 6.2 Both: returning to a read-aloud session resumes at the sentence being
       spoken **then**, not where the reader left.
+      **iOS: written, and blocked from being seen by a defect older than this change.** The
+      path is `SpokenSource.reached` → `ReadAloudCentre.spoken` → `redrawSpokenSentence()`,
+      reached through `SessionHandover.adopt` in `prepareReadAloud`; the voice keeps its cursor
+      up to date with no reader on screen, so returning draws the sentence it is on rather
+      than the locator the reader left. That is the same mechanism
+      `read-aloud-beyond-the-reader` shipped, now hanging off the shared session.
+      **It could not be exercised.** `UITests/ReadAloudPlayerTests` walks to the reader, opens
+      the menu and finds **no read-aloud row**: `EpubReaderModel.canReadAloud` is false for
+      every reflowable EPUB in the shared corpus on the iPhone 17 Pro simulator, so the voice
+      cannot be started by hand or by a test. **Mutation-checked against a build with this
+      whole change stashed** — the menu's button labels came back byte-identical, so the
+      control was already missing before read-aloud drove `PlayerCentre`. The cause was not
+      found: `PublicationSpeechSynthesizer.canSpeak` is `publication.content() != nil`, and
+      `DefaultContentService.content(from:)` returns a value for any live publication, so the
+      obvious explanation does not hold. **It wants its own investigation**, and until it is
+      answered §4.2's and §6.1's iOS captures cannot be taken either. The test is kept, and it
+      skips with that message rather than passing quietly.
 - [~] 6.3 Both: reaching the end withdraws the highlight, dismisses the media
       controls and removes the compact bar.
       **Android: written, and seen happening.** `PlaybackCentre.publish` drops the surface

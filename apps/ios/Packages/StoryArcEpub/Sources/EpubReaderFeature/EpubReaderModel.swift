@@ -147,17 +147,21 @@ public final class EpubReaderModel {
 
     /// Whether the voice is running, and what silenced it if it is not.
     ///
-    /// Read from ``ReadAloudCentre`` rather than stored here, which is the whole of
+    /// Read from ``PlayerCentre`` rather than stored here, which is the whole of
     /// `ebook-reader`'s "the session SHALL outlive the screen it was started from": this
-    /// screen observes the session, and does not own it.
+    /// screen observes the session, and does not own it. It is the *player's* session now —
+    /// `audio-playback` allows one for everything that speaks — and ``ReadAloudCentre`` is
+    /// asked which publication the voice is on, because a narrated audiobook drives the same
+    /// centre and has no bar to offer inside a reader.
     ///
     /// Idle unless the book being spoken is *this* one. A reader looking at one book while
     /// another is being read aloud gets no transport in its chrome — the transport for the
     /// book being spoken is the one outside the reader, and a bar in here would offer to
     /// pause a book that is not on screen.
     var readAloud: PlaybackSession {
-        let centre = ReadAloudCentre.shared
-        return centre.book?.id == publication.id ? centre.session : PlaybackSession()
+        ReadAloudCentre.shared.speaking == publication.id
+            ? PlayerCentre.shared.session
+            : PlaybackSession()
     }
 
     /// Whether this book can be spoken at all, and therefore whether the control appears.
@@ -177,6 +181,15 @@ public final class EpubReaderModel {
     /// own when the session begins, which is what lets this screen — and this property —
     /// go while the voice carries on.
     @ObservationIgnored var speech: PublicationSpeechSynthesizer?
+
+    /// The delegate that sets the speed of every utterance, built beside the synthesizer.
+    ///
+    /// Held here for the same reason ``speech`` is, and for one more: `AVTTSEngine` keeps its
+    /// delegate **weakly**, so nothing but a strong reference outside the engine keeps it
+    /// alive — and a deallocated one would leave every sentence after the first speaking at
+    /// the platform default with nothing in a build to say so. ``ReadAloudCentre`` takes it
+    /// over when a session begins, which is what lets this screen go.
+    @ObservationIgnored var voice: SpokenVoice?
 
     /// The navigator's delegate, held separately.
     ///

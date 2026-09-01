@@ -78,6 +78,29 @@ public struct SpokenBook: Equatable, Sendable, Identifiable {
     }
 }
 
+/// Where the compact bar's own row takes a listener.
+///
+/// **Two clauses of `audio-playback` land on the same row and they do not always agree.**
+/// The bar offers "a way to open the full player", and separately "the way back to where the
+/// audio is reading is one action from the compact bar". For a narrated audiobook those are
+/// one place: nothing took the listener away from a screen, and the player *is* where the
+/// audio is. For a publication being read aloud they are two, and `ebook-reader` settles
+/// which the row owes — "the compact bar is how the reader gets back to it", returning "at
+/// the sentence being spoken then". ``PlayerDock`` draws a separate control for the player
+/// in that case, so neither clause is traded away.
+///
+/// **What decides it is the file.** `audio-playback` says a listener's source is "a fact
+/// about the file, stated once where the publication is described" — so this asks
+/// `publication.format`, and never which ``PlaybackSource`` is behind the sound. A narrated
+/// audiobook read by a future engine still has no reader to go back to, and an EPUB spoken
+/// by any engine still has one.
+public enum PlayerWayBack: Equatable, Sendable {
+    /// There is no screen behind the audio: the player is the destination.
+    case fullPlayer
+    /// The publication itself — reopened at the sentence the voice is on.
+    case publication
+}
+
 /// What the compact bar shows — and whether there is one at all.
 ///
 /// **`nil` is the requirement, not a convenience.** `audio-playback`: when no session is
@@ -99,6 +122,11 @@ public struct CompactPlayer: Equatable, Sendable {
 
     /// What the bar says, which is what the media controls say.
     public var label: SpokenLabel { book.label }
+
+    /// Where the bar's own row goes. See ``PlayerWayBack``.
+    public var wayBack: PlayerWayBack {
+        book.publication.format.isAudio ? .fullPlayer : .publication
+    }
 
     /// - Returns: `nil` when there is no session to control — including a session that has
     ///   just ended, whether the listener ended it, the audio was taken for good, or the

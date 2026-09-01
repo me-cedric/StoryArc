@@ -1,6 +1,35 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "player.back": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück zum Buch"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to the book"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver al libro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retour au livre"
+          }
+        }
+      }
+    },
     "player.chapters": {
       "extractionState": "manual",
       "localizations": {

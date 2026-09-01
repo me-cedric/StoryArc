@@ -62,8 +62,9 @@ import StoryArcCore
 /// reason it stated honestly: the only transport this app had was EPUB read-aloud, it lived
 /// inside a reader presented as a full-screen cover, and speech ended when that cover was
 /// dismissed, so there was no navigation behind it to dock to. `read-aloud-beyond-the-reader`
-/// moved the session out of the screen — it belongs to ``ReadAloudCentre`` now — and the
-/// slot carries ``ReadAloudDock``. Nothing else is put at that edge; it is the app's one
+/// moved the session out of the screen, and `audiobooks-and-playback` moved it again — into
+/// `PlayerCentre`, which a narrated audiobook and a synthesised voice both drive. So the slot
+/// carries one `PlayerDock` for both. Nothing else is put at that edge; it is the app's one
 /// persistent transport, because the platform already offers the rest on the lock screen.
 struct AppShell: View {
     /// What a tab is worth as a selection.
@@ -112,7 +113,6 @@ struct AppShell: View {
         // the accessory's own builder, which SwiftUI may run later. The narrow question —
         // is a session running — and not the book, whose chapter is rewritten on every
         // sentence: the shell has no business redrawing three times a minute for hours.
-        let isReadingAloud = ReadAloudCentre.shared.isRunning
         let isPlaying = PlayerCentre.shared.isRunning
 
         TabView(selection: $tab) {
@@ -164,22 +164,10 @@ struct AppShell: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
-        // The docked transport. `ebook-reader` requires that it reserve no space when
-        // there is no session, and ``ReadAloudAccessory`` is what holds that promise —
-        // see its own comment for why an empty builder is not enough.
-        //
-        // The way back is `onOpen` — the same seam the shelf uses to open a cover, taking
-        // the publication and its URL. Opening the book that is already being spoken is
-        // what `SessionHandover` answers with `adopt`: the reader picks up the sentence
-        // the voice is on and the voice never notices. There is no second path back, and
-        // that is the point — the one that exists is the one Phase 1 tested.
-        .modifier(
-            PlaybackAccessory(
-                isPlaying: isPlaying,
-                isSpeaking: isReadingAloud,
-                onReturn: onOpen
-            )
-        )
+        // The docked transport, for everything that speaks. `audio-playback` requires that
+        // it reserve no space when there is no session, and ``PlaybackAccessory`` is what
+        // holds that promise — see its own comment for why an empty builder is not enough.
+        .modifier(PlaybackAccessory(isPlaying: isPlaying, onReturn: onOpen))
         // What changed, once, over whatever the reader landed on.
         //
         // `.large` and one detent, because the content is a heading and four rows: a medium
@@ -257,44 +245,36 @@ struct AppShell: View {
 /// existed. Delete the branch when the floor moves.
 private struct PlaybackAccessory: ViewModifier {
     let isPlaying: Bool
-    let isSpeaking: Bool
     let onReturn: (Publication, URL) -> Void
 
     func body(content: Content) -> some View {
         if #available(iOS 26.1, *) {
-            content.tabViewBottomAccessory(isEnabled: isPlaying || isSpeaking) { bar }
+            content.tabViewBottomAccessory(isEnabled: isPlaying) { bar }
         } else {
             content.tabViewBottomAccessory {
-                if isPlaying || isSpeaking { bar }
+                if isPlaying { bar }
             }
         }
     }
 
-    /// One slot, and the narrated player takes it when it is running.
+    /// One slot, one bar, and one session behind it.
     ///
-    /// **Two bars is an interim state, and it is recorded here because nothing else would
-    /// record it.** `design.md` asks for one session object behind both sources, and
-    /// `audiobooks-and-playback` §4.2 is the task that folds read-aloud into it. That fold
-    /// is blocked on a measured fact rather than on effort: **Readium 3.11.0 cannot change
-    /// speech rate.** `PublicationSpeechSynthesizer.Configuration` carries a language and a
-    /// voice and nothing else, and `AVTTSEngine.swift:131` — the line that would apply a
-    /// rate to the utterance — is commented out upstream. So a read-aloud session driving
-    /// `PlayerCentre` would offer a speed control that does nothing, which is the one thing
-    /// `audio-playback` forbids by name: "every control the player offers works, or is
-    /// absent — none is present and refusing".
+    /// **There were two bars here until `audiobooks-and-playback` §4.2, and the reason is
+    /// worth keeping.** A narrated audiobook took the slot through `PlayerDock` and a
+    /// synthesised voice took it through a `ReadAloudDock` of its own, because a read-aloud
+    /// session driving `PlayerCentre` would have offered a speed control that did nothing —
+    /// Readium 3.11.0 sets no rate on an utterance — and `audio-playback` forbids a control
+    /// that is "present and refusing". `SpeechRate` and `SpokenVoice` answered that through
+    /// the delegate Readium points the caller at, so the second bar went: `design.md` asks
+    /// for one session object behind both sources, and two surfaces drawing it was the last
+    /// place the two could have disagreed.
     ///
-    /// Deciding between an absent speed control for one source, our own `AVSpeechSynthesizer`
-    /// in place of Readium's, and a patched dependency is a design decision, not an
-    /// implementation detail, and it belongs in `design.md` before it belongs in this file.
-    ///
-    /// The two cannot both be running: one audio session, and each source stops the other's
-    /// publication before it starts. The `||` is what keeps the slot open for whichever it
-    /// is; the order below is what decides the bar when a future defect makes both true.
-    @ViewBuilder private var bar: some View {
-        if isPlaying {
-            PlayerDock(centre: PlayerCentre.shared)
-        } else {
-            ReadAloudDock(onReturn: onReturn)
-        }
+    /// The way back is `onReturn` — the same seam the shelf uses to open a cover, taking the
+    /// publication and its URL. Only a publication being read aloud uses it; a narrated
+    /// audiobook has no screen to go back to and its row opens the player instead. Opening
+    /// the book that is already being spoken is what `SessionHandover` answers with `adopt`:
+    /// the reader picks up the sentence the voice is on and the voice never notices.
+    private var bar: some View {
+        PlayerDock(centre: PlayerCentre.shared, onReturn: onReturn)
     }
 }

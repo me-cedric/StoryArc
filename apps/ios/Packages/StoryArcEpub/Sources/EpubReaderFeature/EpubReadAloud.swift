@@ -47,31 +47,38 @@ public extension EpubReaderModel {
     /// call — including where to write the position, because after it the reader is free to
     /// disappear and the voice is not.
     func startReadAloud() {
-        guard let speech else { return }
+        guard let speech, let voice, let opened else { return }
         ReadAloudCentre.shared.begin(
             SpokenBook(publication: publication, url: url, chapter: chapterTitle),
-            speaking: speech,
+            speaking: SpokenSource(speaking: speech, with: voice, in: opened, from: locator),
             recording: SpokenPosition(
                 identity: publication.identity,
                 readingOrder: readingOrder,
                 store: progress
             ),
-            drawnBy: self,
-            from: locator
+            drawnBy: self
         )
     }
 
     /// Pause and play, from the reader's own control.
-    func toggleReadAloud() { ReadAloudCentre.shared.toggle() }
+    ///
+    /// The player's, not read-aloud's. `audio-playback` puts every source of spoken audio
+    /// behind one session, so the four verbs in this file are the same four the compact bar
+    /// and the lock screen reach — there is no second transport left to keep in step.
+    func toggleReadAloud() { PlayerCentre.shared.toggle() }
 
     /// Stops, clears the highlight, and hands the lock screen back.
-    func stopReadAloud() { ReadAloudCentre.shared.end() }
+    func stopReadAloud() { PlayerCentre.shared.end() }
 
     /// The next sentence, and the one before.
     ///
     /// Sentences rather than chapters: the spec calls it "sentence skip", and a reader
-    /// reaching for skip during speech means the sentence they are on, not the chapter.
-    func skipSentence(forward: Bool) { ReadAloudCentre.shared.skip(forward: forward) }
+    /// reaching for skip during speech means the sentence they are on, not the chapter. The
+    /// player states the same thing as ``SkipUnit/sentence`` — it is the source that decides
+    /// what a skip moves, and nothing here has to say so twice.
+    func skipSentence(forward: Bool) {
+        PlayerCentre.shared.skip(forward ? .forward : .back)
+    }
 }
 
 extension EpubReaderModel {
@@ -90,22 +97,34 @@ extension EpubReaderModel {
     /// play button that refuses.
     func prepareReadAloud(_ opened: ReadiumShared.Publication) {
         let centre = ReadAloudCentre.shared
-        let handover = SessionHandover.opening(publication.id, whilePlaying: centre.book?.id)
+        let handover = PlayerCentre.shared.handover(opening: publication.id)
 
         // One book at a time. `ebook-reader`: opening a different publication "ends the
         // session at a sentence boundary and the position it reached is recorded before the
         // new publication opens" — and the sentence locator the voice is on *is* a sentence
-        // boundary, which is what makes ending here honest rather than abrupt.
-        if handover == .displace { centre.end() }
+        // boundary, which is what makes ending here honest rather than abrupt. It is asked of
+        // the player now, so opening an EPUB while an *audiobook* is playing displaces that
+        // too: `audio-playback` allows one session, not one per kind.
+        if handover == .displace { PlayerCentre.shared.end() }
 
+        // The voice, built beside the synthesizer and handed to it: Readium's engine holds
+        // its delegate weakly, so it has to be owned from here until the session takes it.
+        // See ``SpokenVoice`` for why the rate is set through a delegate at all.
+        let voice = SpokenVoice()
         // Built even when the session being adopted below is already speaking this book:
         // that session has a synthesizer of its own, but the moment a listener ends it this
         // screen is the one holding the play button, and a play button with no engine
         // behind it is the control `ebook-reader` refuses to ship.
-        speech = PublicationSpeechSynthesizer(publication: opened, delegate: centre.speechDelegate)
+        speech = PublicationSpeechSynthesizer(
+            publication: opened,
+            engineFactory: { AVTTSEngine(delegate: voice) }
+        )
+        self.voice = speech == nil ? nil : voice
         canReadAloud = speech != nil
 
-        guard handover == .adopt else { return }
+        // Adopting is only ever adopting a *voice*: a narrated audiobook never reaches this
+        // reader, and if one somehow did there would be no sentence for this screen to draw.
+        guard handover == .adopt, centre.speaking == publication.id else { return }
         // The book on screen is the book being spoken. No restart: the reader takes over
         // drawing the sentence the voice is already on, and the voice never notices.
         canReadAloud = true
@@ -168,5 +187,6 @@ extension EpubReaderModel {
     func detachReadAloud() {
         ReadAloudCentre.shared.release(self)
         speech = nil
+        voice = nil
     }
 }

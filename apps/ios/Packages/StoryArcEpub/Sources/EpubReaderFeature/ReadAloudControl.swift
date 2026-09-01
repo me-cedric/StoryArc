@@ -2,16 +2,16 @@ internal import SwiftUI
 
 /// One verb of reading aloud: its glyph, and the word a screen reader says for it.
 ///
-/// StoryArc draws the same session on two surfaces — ``ReadAloudBar`` inside the reader and
-/// ``ReadAloudDock`` in the shell's accessory slot — and they are deliberately not one
-/// view. The bar sits in the reader's own `GlassEffectContainer` and uses `.glass` buttons;
-/// the dock sits inside a slot the system has already made glass, and must not. That is a
-/// real difference in the one property a shared view would have to fake.
+/// StoryArc drew the same session on two surfaces — ``ReadAloudBar`` inside the reader and a
+/// dock of its own in the shell's accessory slot — and they were deliberately not one view:
+/// the bar sits in the reader's own `GlassEffectContainer` and uses `.glass` buttons, and the
+/// slot is glass the system has already made.
 ///
-/// What they must never disagree about is what the buttons *mean*, which is this: five
-/// symbols and five keys in one place, so a renamed key or a sixth control cannot land on
-/// one surface and miss the other. It is the drift a pair of near-identical transports
-/// would otherwise produce, held where a compiler can see it.
+/// **The second one is gone.** `audiobooks-and-playback` puts one session behind everything
+/// that speaks, so the shell's slot carries `PlayerDock` for a narrated audiobook and a
+/// synthesised voice alike, with its own words. What is left here is the reader's own bar,
+/// and this is still the one place its five verbs are spelled — a sixth control or a renamed
+/// key lands where a compiler can see it rather than in a view body.
 ///
 /// The keys are the `readaloud.*` this module's catalogue already carries in four
 /// languages. Nothing here adds a string.

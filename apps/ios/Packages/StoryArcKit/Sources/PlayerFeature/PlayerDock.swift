@@ -2,6 +2,7 @@ public import SwiftUI
 
 internal import DesignSystem
 public import Playback
+public import StoryArcCore
 
 /// The compact bar, docked with the app's own navigation.
 ///
@@ -39,10 +40,16 @@ public struct PlayerDock: View {
     @Environment(\.tabViewBottomAccessoryPlacement) private var placement
 
     private let centre: PlayerCentre
+    /// The way back into a publication being read aloud, which only the app layer can
+    /// perform: it owns the full-screen cover the reader is presented in. Handed the
+    /// publication and its URL rather than an identifier, so the return opens the same bytes
+    /// instead of searching the library for something that looks like them.
+    private let onReturn: (Publication, URL) -> Void
     @State private var showingPlayer = false
 
-    public init(centre: PlayerCentre) {
+    public init(centre: PlayerCentre, onReturn: @escaping (Publication, URL) -> Void) {
         self.centre = centre
+        self.onReturn = onReturn
     }
 
     public var body: some View {
@@ -70,15 +77,25 @@ public struct PlayerDock: View {
         }
     }
 
-    /// The publication and the chapter, and the whole of it opens the player.
+    /// The publication and the chapter, and the whole of it is the way back.
+    ///
+    /// **Where "back" is depends on the file, and ``CompactPlayer/wayBack`` decides it.** For
+    /// a narrated audiobook nothing took the listener away from a screen, so the player is
+    /// where the audio is and this opens it. For a publication being read aloud there is a
+    /// reader, and `ebook-reader` sends the listener there — "the compact bar is how the
+    /// reader gets back to it" — with the player one control to the right, so
+    /// `audio-playback`'s "a way to open the full player" is not traded away for it.
     ///
     /// `audio-playback`: "the same source that fed the compact bar feeds this, so opening it
     /// never restarts, reloads or repositions the audio". Nothing here touches the session —
-    /// it presents a sheet over the same ``PlayerCentre``, which is what makes that true by
-    /// construction rather than by care.
+    /// it presents a sheet over the same ``PlayerCentre``, or hands the publication to a
+    /// reader that adopts the session rather than starting a second one on the same book.
     private func wayIn(_ bar: CompactPlayer) -> some View {
         Button {
-            showingPlayer = true
+            switch bar.wayBack {
+            case .fullPlayer: showingPlayer = true
+            case .publication: onReturn(bar.book.publication, bar.book.url)
+            }
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 Text(bar.label.title)
@@ -98,7 +115,13 @@ public struct PlayerDock: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text("player.open", bundle: .module))
+        // The name says where it goes, because a screen-reader user learns the outcome
+        // before taking the action rather than after.
+        .accessibilityLabel(
+            bar.wayBack == .publication
+                ? Text("player.back", bundle: .module)
+                : Text("player.open", bundle: .module)
+        )
         .accessibilityValue(Text(bar.label.detail ?? bar.label.title))
     }
 
@@ -108,8 +131,21 @@ public struct PlayerDock: View {
     /// carrying them would be a second set of controls to learn. Skipping is left to the
     /// lock screen and to the player for the same reason the read-aloud dock left it there —
     /// the minimised tab bar is a strip with four destinations already in it.
+    ///
+    /// **The player's own glyph appears only where the row is not it.** For a narrated
+    /// audiobook the row opens the player, and a second control to the same place would be
+    /// one more thing in a strip that already holds four destinations. For a publication
+    /// being read aloud the row goes to the reader, so the player needs a way in of its own —
+    /// `audio-playback` asks the bar for "a way to open the full player" and does not stop
+    /// asking because the publication has a page.
     private func controls(_ bar: CompactPlayer) -> some View {
         HStack(spacing: isInline ? StoryArcSpace.xs : StoryArcSpace.sm) {
+            if bar.wayBack == .publication, !isInline {
+                button("chevron.up", Text("player.open", bundle: .module)) {
+                    showingPlayer = true
+                }
+            }
+
             button(
                 bar.isPlaying ? "pause.fill" : "play.fill",
                 bar.isPlaying

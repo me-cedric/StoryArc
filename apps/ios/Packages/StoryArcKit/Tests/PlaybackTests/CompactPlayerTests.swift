@@ -106,4 +106,46 @@ struct CompactPlayerTests {
         let bar = try #require(centre.compact)
         #expect(centre.handover(opening: bar.book.id) == .adopt)
     }
+
+    /// **Where the bar's one action goes — decided by the file, never by the engine.**
+    ///
+    /// `audio-playback` asks for two things of the same row: the bar offers "a way to open
+    /// the full player", and "the way back to where the audio is reading is one action from
+    /// the compact bar". For a narrated audiobook those are the same place — there is no
+    /// screen a listener was taken away from, and the player is where the audio is. For a
+    /// publication being read aloud they are not, and `ebook-reader` says which one wins:
+    /// "the compact bar is how the reader gets back to it", resuming "at the sentence being
+    /// spoken then".
+    ///
+    /// So the row goes to the publication when there is a publication to go back to, and
+    /// ``PlayerDock`` draws a separate control for the player in that case. What decides it
+    /// is `publication.format`, which is `audio-playback`'s own wording — "a fact about the
+    /// file, stated once where the publication is described" — and emphatically **not**
+    /// which ``PlaybackSource`` is behind the sound. The second half of each case below is
+    /// that distinction: the same file answers the same way through either engine.
+    @Test("The way back is decided by the file, not by the engine", arguments: SourceKind.allCases)
+    func wayBack(_ kind: SourceKind) throws {
+        let toRead = PlayerCentre()
+        toRead.begin(.stub(id: "sea-room", title: "Sea Room"), source: PlaybackSourceDouble(kind))
+        #expect(try #require(toRead.compact).wayBack == .publication)
+
+        let toListen = PlayerCentre()
+        toListen.begin(
+            .stub(id: "sea-room", title: "Sea Room", format: .audiobook),
+            source: PlaybackSourceDouble(kind)
+        )
+        #expect(try #require(toListen.compact).wayBack == .fullPlayer)
+    }
+
+    /// A folder of audio files is an audiobook too, and the row must not send a listener
+    /// into a reader that has nothing to render.
+    @Test("A folder of audio goes to the player, like any other audiobook")
+    func folderGoesToThePlayer() throws {
+        let centre = PlayerCentre()
+        centre.begin(
+            .stub(id: "folder", title: "Sea Room", format: .audioFolder),
+            source: PlaybackSourceDouble(.narrated)
+        )
+        #expect(try #require(centre.compact).wayBack == .fullPlayer)
+    }
 }

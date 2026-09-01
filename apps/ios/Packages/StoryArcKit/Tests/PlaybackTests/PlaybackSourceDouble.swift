@@ -103,10 +103,14 @@ final class PlaybackSourceDouble: PlaybackSource {
 
 extension Publication {
     /// A publication with nothing in it but a title, for a test that is about the player.
-    static func stub(id: String, title: String) -> Publication {
+    ///
+    /// The format defaults to an EPUB, because that is the publication a *reader* can be
+    /// sent back to. A test about where the bar's one action goes has to be able to ask for
+    /// an audiobook too — see `CompactPlayerTests.wayBack`.
+    static func stub(id: String, title: String, format: PublicationFormat = .epub) -> Publication {
         Publication(
             identity: PublicationIdentity(normalizedPath: "/\(id)"),
-            format: .epub,
+            format: format,
             displayTitle: title,
             origin: .embedded
         )
@@ -114,9 +118,9 @@ extension Publication {
 }
 
 extension SpokenBook {
-    static func stub(id: String, title: String) -> SpokenBook {
+    static func stub(id: String, title: String, format: PublicationFormat = .epub) -> SpokenBook {
         SpokenBook(
-            publication: .stub(id: id, title: title),
+            publication: .stub(id: id, title: title, format: format),
             url: URL(fileURLWithPath: "/\(id)")
         )
     }

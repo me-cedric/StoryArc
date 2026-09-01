@@ -120,6 +120,21 @@ public final class PlayerCentre {
     /// this object changes: every one of them ends in ``published()``.
     @ObservationIgnored public var platform: (any PlaybackPlatform)?
 
+    /// Gives this centre the platform's own half, once.
+    ///
+    /// Both sources start a session from a different place — a narrated book from the shelf,
+    /// a spoken one from inside the reader — and both owe the same audio session and the same
+    /// lock screen. Made once and kept: wiring them per session is how a listener who started
+    /// five books ends up with five handlers on every lock-screen button.
+    ///
+    /// Never called from a host test, which is why ``platform`` stays optional rather than
+    /// being built in ``init()``: there is no `AVAudioSession` and no `MPNowPlayingInfoCenter`
+    /// on the machine `pnpm test:ios` runs on.
+    public func adoptSystemPlatform() {
+        guard platform == nil else { return }
+        platform = SystemPlaybackPlatform(for: self)
+    }
+
     @ObservationIgnored private var source: (any PlaybackSource)?
 
     /// The one session there can be.

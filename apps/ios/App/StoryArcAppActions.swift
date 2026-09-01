@@ -126,10 +126,9 @@ extension StoryArcApp {
 
             // The audio session and the lock screen, made once and kept: wiring them per
             // session is how a listener who started five books ends up with five handlers
-            // on every lock-screen button.
-            if centre.platform == nil {
-                centre.platform = SystemPlaybackPlatform(for: centre)
-            }
+            // on every lock-screen button. Read-aloud asks for the same thing at the same
+            // seam — `ReadAloudCentre.begin` — because one player owes one platform half.
+            centre.adoptSystemPlatform()
             centre.begin(
                 SpokenBook(publication: publication, url: url),
                 source: NarratedSource(book)
