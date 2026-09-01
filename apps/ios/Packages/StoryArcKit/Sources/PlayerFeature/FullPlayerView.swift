@@ -75,23 +75,18 @@ public struct FullPlayerView: View {
 
     // MARK: - What is playing
 
-    /// The artwork, or the space it would occupy.
+    /// The artwork.
     ///
-    /// No cover is read out of an audiobook yet — see `PublicationIndexer.audiobook` — so
-    /// this is the same placeholder the library draws for a publication with no art rather
-    /// than a broken image or a gap.
+    /// No cover is read out of an audiobook yet — see `PublicationIndexer.audiobook` — so this
+    /// is the coverless treatment every other surface draws: **the title set as artwork**. It
+    /// drew `Image(systemName: "headphones")`, and the comment here claimed that was "the same
+    /// placeholder the library draws", which was wrong — see ``PlayerArtwork``, which is also
+    /// what the lock screen is given.
     private var cover: some View {
-        RoundedRectangle(cornerRadius: StoryArcRadius.lg, style: .continuous)
-            .fill(theme.palette.surfaceRaised)
-            .aspectRatio(1, contentMode: .fit)
+        PlayerArtwork(title: centre.compact?.label.title ?? "")
             .frame(maxWidth: 320)
-            .overlay {
-                Image(systemName: "headphones")
-                    .font(.system(size: 64))
-                    .foregroundStyle(theme.palette.textSecondary)
-            }
             // Decoration. The publication is named in words directly below, and a screen
-            // reader that stopped on a placeholder first would be reading furniture.
+            // reader that stopped on a stand-in title first would hear it twice.
             .accessibilityHidden(true)
     }
 

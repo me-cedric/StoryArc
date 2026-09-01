@@ -27,6 +27,16 @@ public final class NowPlaying {
     private weak var centre: PlayerCentre?
     private var isWired = false
 
+    #if os(iOS)
+    /// The artwork for the book being played, and which book it was drawn for.
+    ///
+    /// Cached because ``publish()`` runs on every change a listener could see — four times a
+    /// second while the clock moves — and rendering a 512-square image that often would burn a
+    /// battery to redraw a picture that cannot have changed. Keyed by the book so a second book
+    /// cannot inherit the first's cover.
+    private var artwork: (bookID: String, image: MPMediaItemArtwork)?
+    #endif
+
     public init(publishing centre: PlayerCentre) {
         self.centre = centre
     }
@@ -46,6 +56,9 @@ public final class NowPlaying {
         // Only when it is known. See the type's note: a zero here is a scrubber, not a
         // blank.
         if let total = centre.time.total { info[MPMediaItemPropertyPlaybackDuration] = total }
+        // The same picture the player draws, never a glyph. `audio-playback`: "a lock screen
+        // showing a headphones symbol is the one place a listener looks for an hour."
+        if let art = art(for: centre) { info[MPMediaItemPropertyArtwork] = art }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
         MPNowPlayingInfoCenter.default().playbackState = centre.isPlaying ? .playing : .paused
@@ -54,10 +67,13 @@ public final class NowPlaying {
 
     /// Takes the book off the lock screen when the session ends.
     ///
+    /// The cached artwork goes with it, so a second book cannot start under the first's cover.
+    ///
     /// `audio-playback` requires the end of a book to withdraw the media controls "rather
     /// than offering to play a book that has run out of words".
     public func clear() {
         #if os(iOS)
+        artwork = nil
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         MPNowPlayingInfoCenter.default().playbackState = .stopped
         let commands = MPRemoteCommandCenter.shared()
@@ -73,6 +89,25 @@ public final class NowPlaying {
     }
 
     #if os(iOS)
+    /// The artwork for what is playing, drawn once per book.
+    ///
+    /// The bytes come from ``PlayerCentre/onArtwork``, which the app wires to the very view the
+    /// full player draws — so the lock screen and the screen are the same picture rather than
+    /// two treatments that have to be kept in step.
+    ///
+    /// `MPMediaItemArtwork`'s request handler is asked for a size and hands back the one image
+    /// at every one of them: the system scales a 512-square bitmap down far better than it
+    /// scales a small one up, and re-rendering per requested size would mean holding a SwiftUI
+    /// renderer alive inside a callback the system makes whenever it likes.
+    private func art(for centre: PlayerCentre) -> MPMediaItemArtwork? {
+        guard let book = centre.book else { return nil }
+        if let artwork, artwork.bookID == book.id { return artwork.image }
+        guard let data = centre.onArtwork?(book), let image = UIImage(data: data) else { return nil }
+        let art = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+        artwork = (book.id, art)
+        return art
+    }
+
     /// Wires the buttons once, and enables the right ones for this session.
     ///
     /// **Which buttons depends on what the source can do, not on which source it is.** A

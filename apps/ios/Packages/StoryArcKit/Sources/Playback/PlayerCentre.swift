@@ -121,6 +121,23 @@ public final class PlayerCentre {
     /// A speed the listener chose, to be remembered against this publication.
     public var onRememberSpeed: (@MainActor (Publication, PlaybackSpeed) -> Void)?
 
+    /// The artwork the system's own media controls show, as PNG bytes.
+    ///
+    /// `audio-playback`: a publication with no cover gets "the same coverless treatment every
+    /// other surface draws — the title set as artwork", **and** "the system's own media controls
+    /// get that same artwork, because a lock screen showing a headphones symbol is the one place
+    /// a listener looks for an hour".
+    ///
+    /// A closure and bytes rather than an image, because drawing a title into a square needs
+    /// SwiftUI and this target has none: `Formats` depends on it for `AudiobookPart`, and a
+    /// parser has no business linking a design system. `PlayerArtworkImage` in `PlayerFeature`
+    /// owns the treatment and renders it from the very view the player draws; ``NowPlaying``
+    /// turns the bytes into an `MPMediaItemArtwork` and caches them per book.
+    ///
+    /// `nil`, or a `nil` return, publishes *no* artwork — which is what the lock screen showed
+    /// before this existed, so nothing is worse for a session the app cannot draw a cover for.
+    public var onArtwork: (@MainActor (SpokenBook) -> Data?)?
+
     /// What one press of a skip control moves here.
     ///
     /// Read by the surfaces and by the lock screen so each states the right thing — seconds

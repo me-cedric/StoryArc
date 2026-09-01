@@ -476,13 +476,39 @@ creep — see [`design.md`](design.md).
       the wavy variant "may not be as visible" at small sizes. Null progress draws **no**
       line rather than an empty one, which is `audio-playback`'s "position without a total
       rather than inventing one" carried into a pixel.
-- [ ] 4.4b Both: a publication with no cover gets the **same coverless treatment every other
+- [~] 4.4b Both: a publication with no cover gets the **same coverless treatment every other
       surface draws** — the title set as artwork — and so does the system's media controls.
       From a design review on 2026-09-01: `FullPlayerView.swift:89` draws
       `Image(systemName: "headphones")`, and its own comment claims that is "the same
       placeholder the library draws", which is **wrong** — the library draws `CoverlessWell`.
       The player is the one surface a listener stares at for an hour, and the lock screen
       inherits whatever it uses.
+      **iOS done, and the misleading comment is gone with the glyph.** `PlayerArtwork` sets the
+      title into the well, and `PlayerArtworkImage.png` renders **that same view** at 512 square
+      for `MPMediaItemPropertyArtwork` — so the lock screen, Control Centre and a car display
+      are given the picture the player draws rather than a second treatment that would have to
+      be kept in step. `NowPlaying` caches it per book, because `publish()` runs four times a
+      second while the clock moves and re-rendering that often would burn a battery redrawing
+      something that cannot have changed; the cache is cleared with the session so a second book
+      cannot start under the first's cover. Bytes rather than an image across the seam, because
+      `Playback` has no SwiftUI and must not — `Formats` depends on it for `AudiobookPart`.
+      **It is not `CoverlessWell` itself, and that is a compromise rather than a choice.** That
+      view lives in `LibraryFeature`, and `Package.swift` records the rule importing it would
+      break: "one module per screen area, and no feature depends on another". Its right home is
+      `DesignSystem`, which `LibraryFeature`, `PlayerFeature` and the app target **all already
+      depend on** — so the move needs no new module edge, only the file, its test, and one
+      `import` in `App/OnDeviceShelf.swift`. It was not done here because two other agents held
+      `LibraryFeature/**` and `DesignSystem/**` in the same wave. **Follow-up, and until it
+      happens there are two views drawing one treatment** — which is the drift
+      `CoverlessWell`'s own comment warns about at length.
+      One deliberate difference while they are apart: `CoverlessWell` drops the title at an
+      accessibility text size because a `headline` in a 146 pt grid cell holds part of one word,
+      and this well is 320 pt and holds four lines of the largest size. The rendered image must
+      draw it at any rate — a lock screen has no caption under it and no text size at all.
+      **Not done: a real cover.** Nothing extracts embedded artwork from an audiobook yet (4.5),
+      and a read-aloud EPUB that *has* a cover still gets the coverless well here, because
+      loading it needs the library's cover cache. No case is worse than the glyph it replaced.
+      *The Android half is not started.*
 - [~] 4.5 Both: the full player — cover, publication, chapter, position, duration,
       play/pause, skip both ways, scrub, chapter list, speed, sleep timer. Assert
       opening it never restarts, reloads or repositions the audio.

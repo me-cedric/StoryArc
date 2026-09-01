@@ -2,6 +2,7 @@ import Formats
 import LibraryFeature
 import Persistence
 import Playback
+import PlayerFeature
 import ReaderFeature
 import Smb
 import StoryArcCore
@@ -198,6 +199,13 @@ extension StoryArcApp {
         }
         centre.onRememberSpeed = { publication, speed in
             preferences.remember(speed.rate, of: publication.id, series: publication.series)
+        }
+        // The picture the lock screen shows, drawn by the same view the full player draws.
+        // `audio-playback`: the system's own media controls get "that same artwork, because a
+        // lock screen showing a headphones symbol is the one place a listener looks for an
+        // hour". Wired here rather than in `Playback`, which has no SwiftUI and must not.
+        centre.onArtwork = { book in
+            PlayerArtworkImage.png(title: book.label.title)
         }
     }
 
