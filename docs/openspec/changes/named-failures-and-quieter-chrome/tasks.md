@@ -120,9 +120,53 @@ worked around silently:
       is how a reader lands in selection without asking.
 - [ ] 2.4 Both: every standalone control names itself to assistive technology whatever it
       draws. Assert it for each.
-- [ ] 2.5 Android: no change to the library's own controls — it already uses menus for these
+- [x] 2.5 Android: no change to the library's own controls — it already uses menus for these
       choices. Confirm that by reading it, and say so in the tick rather than silently
       skipping the platform.
+      **Confirmed by reading. No Android control changed.** iOS's six `.primaryAction` items,
+      each matched to what Android already does:
+      1. **sort** — `LibraryControls.kt:92` → `:144` `SortChip`: a chip carrying the current
+         ordering, opening a `DropdownMenu` at `:161` with a radio per field and the two
+         directions under a divider. A named menu.
+      2. **filter** — `LibraryControls.kt:93` → `LibraryFilterMenu.kt:73`, whose chip at `:91`
+         reads *Filter* at rest and the active count as a plural once one is set, opening a
+         menu that shows one group at a time. A named menu.
+      3. **add** — `LibraryTopBar.kt:83` → `AddSourceMenu.kt:45`: one `+`, five kinds of source
+         behind it. A named menu.
+      4. **scope** — `LibraryControls.kt:91` → `:118` `AvailabilityChip`. **Not a menu, and
+         deliberately not one**: the axis has two values of which the wide one is the library's
+         normal state, so it is a single chip reading *On this device* that is selected or not.
+         The reasoning is recorded at `:106–116`, and `library-browsing` asks for this axis
+         "reachable without opening the filter sheet" and "visible while it is active" — a
+         chip is both, where a menu would satisfy neither.
+      5. **show** — `LibraryControls.kt:102` → `:193` `LayoutToggle`. Also not a menu: one
+         `IconButton` drawing the layout it would switch *to*, with a `contentDescription` at
+         `:201` naming that layout. A binary with no third value has nothing for a menu to
+         present.
+      6. **select** — `LibraryTopBar.kt:126`, an item **inside** the overflow menu, and this is
+         where Android diverges from §2.3. On iOS select stays out of the menus because a mode
+         switch among sort and filter choices is how a reader lands in selection without asking.
+         Android's `⋮` is not that menu: it holds *Select*, *Collections* and *Settings* — three
+         occasional acts, none of which is a choice about how the shelf is drawn — so the
+         confusion §2.3 prevents cannot arise from it. The requirement permits either ("**may**
+         stand on its own"), so this is a divergence within the spec rather than against it.
+      **And Android already made this correction, earlier and for a measured reason.**
+      `LibraryTopBar.kt:30–41` records what it replaced: a bar with **eight** action icons, in
+      which "Library" was squeezed into a column one letter wide at 411 dp and vanished at
+      320 dp with the last control pushed off the screen. So this is not a platform that
+      happened to use menus; it is a platform that hit the same defect two icons worse than
+      iOS's six and answered it with a flexible bar plus one overflow, moving the four
+      frequently-touched controls out under the bar into `LibraryControls`.
+      **§2.4's assertive-technology clause holds on the Android side already.** Three
+      standalone controls remain and every one names itself: `AddSourceMenu.kt:51`
+      (`library_add_source`), `LibraryTopBar.kt:120` (`library_more`), and
+      `LibraryControls.kt:201` (`library_layout_grid` / `library_layout_list`, whichever it
+      would switch to).
+      **Where the reading corrects the task's own framing**: "it already uses menus for these
+      choices" is true of three of the six, not all six. Two of the remaining three are
+      *deliberately* not menus and say why in the source, and the sixth sits in a menu that iOS
+      keeps its equivalent out of. Recorded rather than smoothed over, because "Android already
+      does this" is the kind of sentence that later reads as "so nobody needs to look".
 - [ ] 2.6 iOS: captures before and after, at default and largest text size.
 
 ## 3. Two smaller ones
