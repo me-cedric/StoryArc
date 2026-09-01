@@ -1,44 +1,58 @@
 # Design — brand identity and app icons
 
-## The colours, measured rather than eyeballed
+## The colours come from the designer's SVG
 
-The supplied artwork is raster, and the token file is authored in OKLCH. One of the two has
-to be converted and it is not the token file. Sampled on 2026-09-01 by decoding the PNGs
-(a 40-line pure-Python reader, the inverse of the fixture corpus's own hand-written encoder)
-and taking the median of a 28×28 patch inside each petal, away from the gloss highlight along
-each top edge and the bevel along each bottom:
+**A second artwork drop on 2026-09-01 replaced the first, and it changed the method.** The
+first was raster only, so the mark's proportions and its gradient had to be *measured* out of
+crops. The second is a hand-authored SVG, so both are simply *read*.
 
-| Sample | sRGB | OKLCH |
-| --- | --- | --- |
-| Icon, pink end | `#FD5EA8` | `oklch(70.9% 0.205 355)` |
-| Icon, violet end | `#6D33E9` | `oklch(51.6% 0.249 289)` |
-| Lockup, pink | `#FE649A` | `oklch(71.3% 0.193 2)` |
-| Lockup, magenta | `#EB4CC9` | `oklch(67.7% 0.233 338)` |
-| Lockup, violet | `#883FFB` | `oklch(57.1% 0.257 294)` |
-| Lockup, blue-violet | `#2B51FD` | `oklch(53.2% 0.256 267)` |
+`docs/designs/brand/storyarc-mark.svg` is the source of truth. Its gradient runs across four
+stops on a vector from (180,30) to (330,510):
 
-**The two renders disagree at the violet end** — the icon finishes at hue 289 and the lockup
-runs on to 267, which is blue. They are separate generations of the same idea, so the arc is
-taken as **pink 357 → violet 291** and the blue tail is treated as drift rather than as
-intent.
-
-### The one fact that makes this cheap
-
-**The brand pink lands at L≈71% and the accent it replaces sits at L=70%.** So this is a hue
-rotation at constant lightness, and every contrast relationship the token gate already
-validates is preserved rather than re-argued.
-
-| Token | Was | Becomes | Gate | Measured |
+| Stop | sRGB | OKLCH | On `dark.surfaceCanvas` | On `light.surfaceCanvas` |
 | --- | --- | --- | --- | --- |
-| `accent` (was `ember`) | `oklch(70% 0.165 52)` → `#EC7C27`, 6.91:1 on dark | `oklch(70% 0.19 357)` → `#F662A0` | ≥3.0 on `dark.surfaceCanvas` | **6.63:1**, and 7.17:1 on OLED |
-| `accentStrong` (was `emberStrong`) | `oklch(62% 0.165 48)` → `#D2600C`, 3.59:1 on light | `oklch(62% 0.19 357)` → `#D94788` | ≥3.0 on `light.surfaceCanvas` | **3.74:1** |
-| `accentMuted` (was `emberMuted`) | `oklch(45% 0.090 52)` | `oklch(45% 0.09 357)` | ungated (rails at rest) | 2.48:1, as before |
-| `arcEnd` *(new)* | — | `oklch(56% 0.23 291)` → `#7C4AED` | identity only, so ungated as a text colour | 3.75:1 on dark, 4.80:1 on light |
+| 0.00 | `#FF6B9D` | `oklch(72.4% 0.185 2)` | **7.24:1** | 2.48:1 |
+| 0.35 | `#F566B8` | `oklch(71.2% 0.195 347.7)` | 6.90:1 | 2.61:1 |
+| 0.62 | `#A855F7` | `oklch(62.7% 0.233 304)` | 4.90:1 | 3.67:1 |
+| 1.00 | `#5B4BF5` | `oklch(54.1% 0.2415 278.8)` | 3.48:1 | 5.17:1 |
 
-Every value is inside sRGB: a round trip back through OKLCH returns the same chroma, so none
-of them is a clipped colour pretending to a saturation it does not have. `C 0.20 H357` at
-L72% was checked too and is also in gamut; 0.19 is chosen because it sits nearer the two
-renders' average than either.
+Every OKLCH value above **round-trips to the designer's exact hex** through the token
+pipeline's own converter, not merely through a similar one. That took a small search: the
+naive conversion of three of the four landed one unit out in a channel, and a token whose hex
+differs by one from the artwork's is a token somebody will eventually "fix" in the wrong
+direction.
+
+### The token set
+
+| Token | Value | Role | Gate | Measured |
+| --- | --- | --- | --- | --- |
+| `accent` (was `ember`) | `oklch(72.4% 0.185 2)` → `#FF6B9D` | The UI accent, and the arc's first stop | ≥3.0 on `dark.surfaceCanvas` | **7.24:1** |
+| `accentStrong` (was `emberStrong`) | `oklch(62% 0.185 2)` → `#DA497D` | The light-theme accent | ≥3.0 on `light.surfaceCanvas` | **3.72:1** |
+| `accentMuted` (was `emberMuted`) | `oklch(45% 0.09 2)` → `#7D3E51` | Rails at rest | ungated | 2.48:1 |
+| `arcMid` *(new)* | `oklch(71.2% 0.195 347.7)` → `#F566B8` | The arc's second stop | identity only | — |
+| `arcLate` *(new)* | `oklch(62.7% 0.233 304)` → `#A855F7` | The arc's third stop | identity only | — |
+| `arcEnd` *(new)* | `oklch(54.1% 0.2415 278.8)` → `#5B4BF5` | The arc's last stop | identity only | — |
+| `iconPlate` *(new)* | `oklch(20.8% 0.016 285)` → `#17171F` | The icon's own plate | identity only | — |
+
+`accent` doubles as the arc's first stop rather than being a fourth near-pink, so the UI accent
+and the mark can never drift apart.
+
+**`accent` is flagged out of gamut by the token build, and that is correct rather than a
+problem to solve.** `#FF6B9D` has red at 255, on the sRGB boundary, so *any* OKLCH mapping to
+it clips. The build treats out-of-gamut as a warning rather than a failure, and the honest
+reading is that the designer picked a colour at the edge of the space. Nudging the brand to
+silence a warning would be backwards.
+
+**The lightness ladder still holds, which is what makes this cheap.** The old accent sat at
+L=70% and the new one is L=72.4%, so this remains close to a hue rotation at constant
+lightness and every contrast relationship the gate validates is preserved rather than
+re-argued — 7.24:1 against the old 6.91:1 on dark, 3.72:1 against 3.59:1 on light.
+
+**`iconPlate` is the designer's, not the app's.** Sampled from their own
+`ios-appicon-1024.png`: a near-black tinted toward the brand's violet at hue 285, where the
+app's `dark.surfaceCanvas` is warm at hue 70. Honoured rather than overridden — the icon is
+brand territory, and a violet-tinted plate under a violet-ending arc is a choice. Making it a
+token rather than a hex in the generator is what keeps it reviewable.
 
 ### Why the violet is identity-only
 
@@ -60,51 +74,70 @@ with a word boundary on it. Of the 14 files, seven are generated (`dist/`, `Gene
 `tokens.resolved.json`) and regenerate; the hand-written ones are Android's `Theme.kt` (10),
 iOS's `Palette.swift` (7), the token source (4), `docs/design.md` (3) and four test files.
 
-## The mark, as geometry
+## The mark is rendered, not reconstructed
 
-Six petals on a 2×3 grid. Each is a square with **one** corner rounded to a full quarter-circle
-and the other three square, and the arrangement of which corner is rounded is what makes the
-shape read as an *S*:
+`scripts/brand-mark.swift` parses the designer's SVG and renders it. It used to *reconstruct*
+the mark from proportions measured out of the raster crops, which was the right answer to a
+raster-only drop and is the wrong answer to an SVG: the supplied paths carry 14-unit radii on
+the "square" corners and a **different arc radius per tile** — 137, 123, 114, 108 — and no
+reconstruction from a crop was going to recover those numbers.
 
-| | Left column | Right column |
-| --- | --- | --- |
-| Top row | top-left rounded | top-right rounded |
-| Middle row | bottom-left rounded | bottom-right rounded |
-| Bottom row | **bookmark**: square top, notch cut up from the bottom edge | bottom-right rounded |
+### How faithful, in numbers
 
-Measured from the supplied icon for proportion: the mark occupies 528×660 of a 1024 canvas,
-so it is taller than wide at roughly **4:5**, and the gap between petals is about 3.5% of the
-mark's width. The bookmark's notch rises about a third of that petal's height.
+Rendered against the designer's own `ios-appicon-1024.png`, pixel for pixel across all
+1,048,576:
 
-**This is authored, not traced.** The supplied art is one AI generation of the idea and its
-petals are not quite congruent; a construction from exact squares and exact quarter-circles is
-the same mark drawn properly, and it is the version that survives being rendered at 40 px.
+| | |
+| --- | --- |
+| Byte-identical | **88.85%** |
+| Within 8/255 | 99.52% |
+| Beyond 96/255 | 0.225%, spanning exactly the mark's bounding box — the anti-aliased outlines |
+| Mean channel difference | **0.68 / 255** |
 
-### One definition, three outputs
+Their composition was measured rather than guessed: the mark spans 0.564 of the icon's side,
+so the inset is 0.218. That measurement also confirmed the parse independently — the rendered
+aspect came out at 0.796 against the viewBox's 0.794.
 
-`scripts/brand-mark.swift` holds the geometry once and emits:
+### What the script still owns
 
-- **iOS** — 1024×1024 PNGs, one per face, into the asset catalogue.
-- **Android** — a `<vector>` drawable for the adaptive icon's foreground, which is
-  resolution-independent and is what that platform actually wants.
-- **Docs** — an SVG, so `docs/` and any future web surface use the same shape.
+The SVG cannot say which faces exist, what plate each sits on, how far the mark insets for
+each platform's icon mask, or that the output must be byte-identical run to run. Fifteen
+assets from one source: five iOS faces with their `Contents.json`, the Android adaptive
+foreground *and* its monochrome twin, `AccentColor.colorset`, and a plateless PNG for the
+docs.
 
-Three hand-maintained copies of one shape is three chances to drift, which is the whole
-reason this is generated.
+**Android gets the designer's path data verbatim**, wrapped in a `<group>` that scales and
+translates it into the 108dp viewport. Re-emitting the geometry would mean converting arcs to
+cubics and hoping two renderers agree; a transform on the original leaves the numbers alone.
 
 ### Why Swift and CoreGraphics
 
 There is no rasteriser on this machine — no ImageMagick, no `rsvg-convert`, no Pillow — and
-the mark needs real anti-aliasing and a real linear gradient. CoreGraphics has both, ships
-with the OS this repo already builds Swift against, and needs no dependency added.
+the mark needs real anti-aliasing and a real four-stop gradient. CoreGraphics has both and
+ships with the OS this repository already builds Swift against. The SVG arc-to-cubic
+conversion is the specification's own appendix F.6, written against the general elliptical
+case so a designer can put an ellipse in the file later and nothing here changes.
 
-**Verified before it was chosen**: a 20-line probe rendered a rounded rect with a diagonal
-gradient and wrote a PNG through `ImageIO`, and two runs produced **byte-identical** files.
-Determinism is the property that matters, because the output is committed and gated.
+Verified before it was chosen: two runs produce byte-identical output, which is what makes
+`pnpm brand:check` a gate rather than a coin toss. macOS-only for *writing*, the same trade
+the audio fixtures make: the output is committed, so nothing that reads it needs the tool.
 
-macOS-only for *writing*, and that is the same trade the audio fixtures already make: the
-output is committed, so nothing that reads it needs the tool, and `--check` compares the
-committed bytes rather than re-rendering.
+### The parse is verified, and the first version of that check had a hole
+
+`--check` compares committed bytes, so it catches an asset that changed. It cannot catch a
+parse that silently lost a segment — and that failure is invisible in a thumbnail, because a
+path missing one arc closes across itself and fills a wedge that looks like part of the design.
+
+So the artwork is verified on every run, in both modes, before anything is written: six paths,
+each closed, their union matching the declared viewBox to within a unit, and the gradient's
+stops sorted and in range.
+
+**Ten mutations of the SVG, and the first version of the check missed the worst one.** It
+scanned for ` d="` attributes rather than `<path>` elements, so renaming an element to
+`<pathX` left its `d` in the document, six paths were still found, and *a dropped tile passed*.
+An attribute is only a path if it is on a path. All ten are caught now: a dropped path, a path
+with no `d`, an extra path, a missing `Z`, a removed gradient, a stop out of range, reordered
+stops, a shrunk viewBox, and a changed arc radius.
 
 ## The five faces
 
