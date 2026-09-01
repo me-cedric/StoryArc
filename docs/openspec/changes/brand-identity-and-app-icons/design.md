@@ -24,55 +24,55 @@ direction.
 
 ### The token set
 
-| Token | Value | Role | Gate | Measured |
-| --- | --- | --- | --- | --- |
-| `accent` (was `ember`) | `oklch(72.4% 0.185 2)` → `#FF6B9D` | The UI accent, and the arc's first stop | ≥3.0 on `dark.surfaceCanvas` | **7.24:1** |
-| `accentStrong` (was `emberStrong`) | `oklch(62% 0.185 2)` → `#DA497D` | The light-theme accent | ≥3.0 on `light.surfaceCanvas` | **3.72:1** |
-| `accentMuted` (was `emberMuted`) | `oklch(45% 0.09 2)` → `#7D3E51` | Rails at rest | ungated | 2.48:1 |
-| `arcMid` *(new)* | `oklch(71.2% 0.195 347.7)` → `#F566B8` | The arc's second stop | identity only | — |
-| `arcLate` *(new)* | `oklch(62.7% 0.233 304)` → `#A855F7` | The arc's third stop | identity only | — |
-| `arcEnd` *(new)* | `oklch(54.1% 0.2415 278.8)` → `#5B4BF5` | The arc's last stop | identity only | — |
-| `iconPlate` *(new)* | `oklch(20.8% 0.016 285)` → `#17171F` | The icon's own plate | identity only | — |
+**This changed after a design review on 2026-09-01, and the review was right.** The first
+version made the *pink* the UI accent, because it is the arc's first stop. The review argued
+for one accent taken from the middle of the arc, applied to tab bars, chips, sliders and
+progress ticks. Two facts decided it:
 
-`accent` doubles as the arc's first stop rather than being a fourth near-pink, so the UI accent
-and the mark can never drift apart.
+- **A single value clears both themes.** `#8A4DF0` measures 4.06:1 on `dark.surfaceCanvas` and
+  4.43:1 on `light.surfaceCanvas`, both against a 3.0 floor. The pink measures 7.24:1 on dark
+  and **2.48:1 on light** — it fails the light gate and needs a second token to exist at all.
+- **"Chrome recedes" is this palette's stated direction.** Hot pink on every chip, slider and
+  progress tick is not receding. A violet from the middle of the mark is unmistakably the same
+  brand and does not shout.
 
-**`accent` is flagged out of gamut by the token build, and that is correct rather than a
-problem to solve.** `#FF6B9D` has red at 255, on the sRGB boundary, so *any* OKLCH mapping to
-it clips. The build treats out-of-gamut as a warning rather than a failure, and the honest
-reading is that the designer picked a colour at the edge of the space. Nudging the brand to
-silence a warning would be backwards.
+**And it resolved a collision rather than creating one.** `brand.ink` — `oklch(48% 0.130 275)`
+— is Material's `secondary` in `Theme.kt`. A violet accent at hue 295 sitting 20° from it would
+read as the same colour said twice. So the pink takes the secondary role instead: a two-pole
+identity wants primary and secondary to *be* its two poles, not a near-neighbour of one of
+them. `ink` retires.
 
-**The lightness ladder still holds, which is what makes this cheap.** The old accent sat at
-L=70% and the new one is L=72.4%, so this remains close to a hue rotation at constant
-lightness and every contrast relationship the gate validates is preserved rather than
-re-argued — 7.24:1 against the old 6.91:1 on dark, 3.72:1 against 3.59:1 on light.
+| Token | Value | sRGB | Role | Gate | Measured |
+| --- | --- | --- | --- | --- | --- |
+| `accent` | `oklch(58% 0.2304 295.4)` | `#8A4DF0` | Material `primary`. Tab bars, chips, sliders, progress ticks, links. **One value, both themes.** | ≥3.0 dark *and* light | **4.06** / **4.43** |
+| `accentMuted` | `oklch(45% 0.10 295.4)` | `#5A4886` | Rails at rest | ungated | 2.50 dark |
+| `secondary` *(replaces `ink`)* | `oklch(72.4% 0.185 2)` | `#FF6B9D` | Material `secondary` on dark. The arc's first stop, so mark and palette cannot drift | ≥3.0 dark | **7.24** |
+| `secondaryStrong` | `oklch(62% 0.185 2)` | `#DA497D` | The same on light, where the pink fails | ≥3.0 light | **3.72** |
+| `arcMid` | `oklch(71.2% 0.195 347.7)` | `#F566B8` | The arc's second stop | identity only | — |
+| `arcLate` | `oklch(62.7% 0.233 304)` | `#A855F7` | The arc's third stop | identity only | — |
+| `arcEnd` | `oklch(54.1% 0.2415 278.8)` | `#5B4BF5` | The arc's last stop | identity only | — |
+| `iconPlate` | `oklch(20.8% 0.016 285)` | `#17171F` | The icon's own plate, sampled from the designer's render | identity only | — |
 
-**`iconPlate` is the designer's, not the app's.** Sampled from their own
-`ios-appicon-1024.png`: a near-black tinted toward the brand's violet at hue 285, where the
-app's `dark.surfaceCanvas` is warm at hue 70. Honoured rather than overridden — the icon is
-brand territory, and a violet-tinted plate under a violet-ending arc is a choice. Making it a
-token rather than a hex in the generator is what keeps it reviewable.
+Every value round-trips to its exact hex **through the token pipeline's own converter**, not
+merely a similar one. That took a search: the naive conversions landed a unit out in a channel
+for four of them, and a token whose hex differs by one from the artwork is a token somebody
+eventually "fixes" in the wrong direction.
 
-### Why the violet is identity-only
+`secondary` is flagged out of gamut, and that is correct rather than a problem to solve:
+`#FF6B9D` has red at 255, on the sRGB boundary, so *any* OKLCH mapping to it clips. The build
+treats it as a warning. Nudging the brand to silence a warning would be backwards.
 
-`brand.ink` — the existing secondary — is `oklch(48% 0.130 275)`, sixteen degrees from the new
-violet. Used as a UI accent they would read as the same thing said twice. And the palette's
-stated direction is *"chrome recedes so cover art and pages are the loudest thing on
-screen"*; a two-colour gradient across the chrome is the opposite of that. So the arc is the
-**mark, the icon and brand surfaces**, and the UI keeps one accent. `ink` is untouched.
+### One thing the review got wrong about Android, and it is worth writing down
 
-### The rename, and why it is worth 56 references
+The review read Android as "running blue/purple". It is not running a token: `Theme.kt` calls
+`dynamicDarkColorScheme`/`dynamicLightColorScheme` by default, so on a Material You device the
+scheme is **derived from the reader's wallpaper** — which `native-experience` asks for by name,
+with a setting to use the StoryArc palette instead. The purple was the wallpaper.
 
-`ember` describes a colour that is about to stop being true, and a token called `ember`
-holding a pink is a trap for the next reader. The new names say what the token is *for*, so
-the next brand change is a value change and not a rename.
-
-The cost was measured before it was decided: **56 real references across 14 files.** A naive
-grep says 1125, and 1069 of those are Compose's `remember` — the count only means anything
-with a word boundary on it. Of the 14 files, seven are generated (`dist/`, `Generated/`,
-`tokens.resolved.json`) and regenerate; the hand-written ones are Android's `Theme.kt` (10),
-iOS's `Palette.swift` (7), the token source (4), `docs/design.md` (3) and four test files.
+The mismatch is still real, because it is exactly what a reader sees with dynamic colour turned
+off, and because iOS has no equivalent excuse. But the fix is the token, not the dynamic-colour
+behaviour, and the two must not be confused: removing dynamic colour to make the brand
+consistent would break a requirement to make a screenshot look tidier.
 
 ## The mark is rendered, not reconstructed
 

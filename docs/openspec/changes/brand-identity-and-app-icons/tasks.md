@@ -10,12 +10,19 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 
 ## 1. The accent moves, and the tokens are renamed to their role
 
-- [ ] 1.1 `packages/design-tokens/tokens/color.json`: rename `ember`/`emberStrong`/
-      `emberMuted` to `accent`/`accentStrong`/`accentMuted`, keep each `use` note but rewrite
-      the amber language, and set the values from design.md's table. Add `arcEnd`.
+- [ ] 1.1 `packages/design-tokens/tokens/color.json`: the eight-token set in design.md's
+      table. `ember`/`emberStrong`/`emberMuted` become `accent`/`accentMuted` plus
+      `secondary`/`secondaryStrong`; `ink` **retires** — it is Material's `secondary` in
+      `Theme.kt` and would sit 20° from the new accent. Add `arcMid`, `arcLate`, `arcEnd`,
+      `iconPlate`. Keep every `use` note but rewrite the amber and indigo language.
+      **The accent is the violet, not the pink**, and design.md records why the first draft
+      had it the other way round: one value clears both themes (4.06 dark / 4.43 light) where
+      the pink fails light at 2.48, and "chrome recedes" argues against hot pink on every chip.
 - [ ] 1.2 Update the contrast gate in `packages/design-tokens/scripts/build.mjs` to the new
-      names. **Do not relax a threshold.** The values were chosen so the existing 3.0 floors
-      still pass with margin (6.63 and 3.74); if one fails, the value is wrong, not the gate.
+      names, and **add a row the old set did not need**: `accent` is gated on *both*
+      `dark.surfaceCanvas` and `light.surfaceCanvas`, because it is now one value serving both.
+      **Do not relax a threshold.** Every value was chosen so the 3.0 floors pass with margin —
+      4.06, 4.43, 7.24, 3.72. If one fails, the value is wrong, not the gate.
 - [ ] 1.3 `pnpm tokens:build && pnpm tokens:sync`, then `pnpm tokens:check` and
       `pnpm tokens:verify`. Both are in `pnpm lint`.
 - [ ] 1.4 Fix the hand-written call sites the compiler names: Android `Theme.kt`, iOS
@@ -24,9 +31,14 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 - [ ] 1.5 `docs/design.md` — the brand section, including the three `ember` mentions and the
       "reading-lamp amber" direction line. The direction itself does not change: chrome still
       recedes.
-- [ ] 1.6 Assert the arc is not used as a chrome accent. A source-level guard that `arcEnd`
-      appears only in the mark generator, the icon assets and brand surfaces — never in a
-      chrome accent position. Mutation-check it.
+- [ ] 1.6 Assert the arc's middle stops are not used as chrome. A source-level guard that
+      `arcMid`, `arcLate`, `arcEnd` and `iconPlate` appear only in the mark generator, the icon
+      assets and brand surfaces — never in a chrome accent position. `accent` and `secondary`
+      *are* chrome and are exempt. Mutation-check it.
+- [ ] 1.7 Apply the accent everywhere the review named it missing: tab bars, chips, sliders and
+      progress ticks, on **both** platforms. The compiler finds the token rename; it does not
+      find a surface that was never accented, so this is a pass over those four control kinds
+      rather than a rename follow-up.
 
 ## 2. The mark, generated from one definition
 
