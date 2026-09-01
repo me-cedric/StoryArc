@@ -36,18 +36,36 @@ app's; the outline is the launcher's, and it differs per device.
 | Android, light | `android-app-icon-chooser.png` | `android-app-icon-chooser-ax2.png` |
 | Android, dark | `android-app-icon-chooser-dark.png` | `android-app-icon-chooser-ax2-dark.png` |
 
-**The iOS tiles are blank in these captures, and that is the state of the code rather than a
-bad screenshot.** An `.appiconset` compiles into `Assets.car` as an *Icon Image*, and an icon
-asset is not fetchable by name: `Image("AppIcon-Paper")` and `UIImage(named: "AppIcon-Paper")`
-both answer nothing, which draws an empty tile and is not an error anywhere.
+**The iOS tiles were blank when these were first taken, and the four iOS pictures here are the
+re-take.** An `.appiconset` compiles into `Assets.car` as an *Icon Image*, and an icon asset is
+not fetchable by name: `Image("AppIcon-Paper")` and `UIImage(named: "AppIcon-Paper")` both answer
+nothing, which draws an empty tile and is **not an error anywhere** — no test and no gate could
+have caught it, which is why a capture did.
 `ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS` emits no loose file either, and listing the
 generator's own PNG a second time as a resource makes XcodeGen write a flattened path that does
 not build. `xcrun assetutil --info` on the built catalogue is where that was settled.
 
-The fix is in `scripts/brand-mark.swift`, which already writes those bytes: an `.imageset`
-beside each `.appiconset`, named `AppIconTile-<Face>` — the name `AppIconChoice.tileResourceName`
-declares and `AppIconChoiceTests` asserts. That file belongs to the mark rather than to this
-change's territory, so it is reported rather than edited.
+Fixed in `scripts/brand-mark.swift`, which already had the bytes: each face is now emitted
+**twice from one render at one inset** — the `.appiconset` the platform installs, and an
+`.imageset` named `AppIconTile-<Face>`, which is the name `AppIconChoice.tileResourceName`
+declares and `AppIconChoiceTests` asserts. One render rather than two is what keeps the tile a
+reader picks from drifting away from the icon they get. 180 px at `3x` — a 60 pt home-screen
+icon — rather than the 1024 px bytes, which would put 2.5 MB in the bundle to draw at 60 pt.
+
+Confirmed in the built catalogue as well as by eye, because a blank tile is invisible to every
+gate: `xcrun assetutil --info` reports all five as `AssetType: Image` at 180 px, where the
+`.appiconset`s remain `Icon Image`. **That inspection is worth doing carefully** — the first
+attempt read the newest `Assets.car` by modification time and got *another worktree's* build,
+which reported zero tiles and would have been filed as a failure of the fix.
+
+**And the re-take itself took three attempts, for a reason worth recording.** Two runs failed
+with *"Restarting after unexpected exit, crash, or test timeout"* and no assertion — a second
+`xcodebuild test` was driving the same simulator from a parallel worktree, and two UI-test runs
+on one device interfere. A third attempt on a **freshly created** simulator failed differently,
+with *"Simulator device failed to install the application"*, so a cold device is not the way
+round it either. What worked was waiting until the device was actually free. Reading either
+failure as a defect in the tiles would have been wrong, and the two messages are different for a
+reason: contention restarts the runner, a cold device fails the install.
 
 Android's tiles are the components' own launcher icons, read through `PackageManager` with
 `MATCH_DISABLED_COMPONENTS`, so a face whose manifest entry is wrong looks wrong in the chooser
