@@ -80,14 +80,39 @@ by restoring the obvious argument.
 
 ### Two tasks turned out to be blocked rather than merely unfinished
 
-**Read-aloud cannot offer a speed control, so it cannot drive the player yet.** Readium
-3.11.0's `PublicationSpeechSynthesizer.Configuration` carries a language and a voice and
-**no rate** — `AVTTSEngine.swift:131`, the line that would apply one, is commented out
-upstream. `audio-playback` requires that every control the player offers works or is absent,
-so wiring read-aloud into a surface with a speed control would break the spec on the day it
-landed. `ReadAloudDock` still draws the read-aloud session, chosen in one place with the
-blocker written at it. Three ways out are named in tasks.md and choosing between them is a
-decision for this document, not for an implementation.
+**Read-aloud's speed control: the block is real and there is a fourth way out, which is
+the one to take.**
+
+Readium 3.11.0's `PublicationSpeechSynthesizer.Configuration` carries a language and a voice
+and **no rate** — `AVTTSEngine.swift:131`, the line that would apply one, is commented out
+upstream. `audio-playback` requires every control the player offers to work or be absent, so
+wiring read-aloud into a surface with a speed control would break the spec the day it landed.
+All of that stands.
+
+The three ways out named in tasks.md were: let a source declare it offers no speed; replace
+Readium's engine with our own `AVSpeechSynthesizer`; or carry a patched dependency. The first
+takes the feature away from the reader, the second reimplements tokenisation and locator
+mapping we already get for free, and the third is a fork to maintain.
+
+**None of them is necessary.** Readium provides two extension points for exactly this, both
+public:
+
+- `PublicationSpeechSynthesizer.init(engineFactory:)` — the engine is injected, defaulting to
+  `{ AVTTSEngine() }`.
+- `AVTTSEngineDelegate.avTTSEngine(_:didCreateUtterance:)`, whose own doc comment reads
+  *"You can customize additional properties of the utterance."*
+
+The commented-out lines are not an oversight; they are upstream saying **the caller sets
+this now**. So the app supplies an `AVTTSEngine` with a delegate that applies the session's
+speed to each `AVSpeechUtterance` as it is created, and keeps Readium's tokenisation, its
+locators and its highlight mapping untouched.
+
+**Decided: take the delegate.** No fork, no reimplementation, no feature withdrawn, and the
+API is used the way its author documented. The mapping from the player's 0.5×–3× onto
+`AVSpeechUtterance.rate` is ours, because Readium's own `rateMultiplierToAVRate` is private —
+it belongs beside `PlaybackSpeed`, with a test pinning the endpoints and the default.
+
+With that, read-aloud can drive the player and tasks 4.2 and 6.2 are unblocked.
 
 **A truncated single file cannot be caught at index time.** `truncated.m4b` was cut with
 `+faststart`, so its `moov` is intact and `AVURLAsset` reports the full six seconds, all
@@ -155,6 +180,46 @@ the answer.
 compose-bom constraint, and defaults its controls to previous / play-pause / next —
 which is wrong for spoken word. The 1.11.0 bump is taken for the chapter metadata; the
 row is ours.
+
+## The position of a listener: a third case, and the two rules it must not break
+
+`§7` is blocked on `ReadingPosition`, which today is exactly two cases — `page(index:of:)`
+and `reflowable(progression:locator:)`. An audiobook is neither. Settled here so both
+platforms add the same thing:
+
+```
+case listening(part: Int, offset: TimeInterval, of: TimeInterval?)
+```
+
+**Three decisions inside that signature.**
+
+`part` is an index into the publication's parts, and the *name* is not stored — a chapter
+title belongs to the file, and a position that carried a stale copy of it would disagree with
+the book after a re-download.
+
+`offset` is seconds into that part, not into the whole publication. A folder audiobook's
+parts can be re-ordered or replaced one at a time, and a whole-publication offset silently
+moves when an earlier part changes length.
+
+**`of` is optional, and that is the load-bearing part.** A read-aloud session has no true
+duration — `PlaybackDuration.Estimated` exists on both platforms precisely so an estimate can
+never be presented as exact — so a position taken from one has no total to divide by.
+`fraction` must therefore answer for a position with no total, and the honest answer is the
+part index over the part count, not a guess refined by an estimate.
+
+**Two existing rules this must not break.**
+
+`fraction` is the currency the whole progress merge deals in, and `matches` compares by it.
+So a listening position must produce a fraction on the same 0…1 scale, or ADR-0006's merge
+table stops working for audiobooks — a remote position would never equal the local one it was
+stored from.
+
+And the store keeps `positionData` as **JSON of the enum**, which is what lets `StoryArcCore`
+stay free of SwiftData. A record written before this case existed decodes unchanged, because
+the new case never appears in it; the reverse is not true, and does not need to be — there is
+no older build in anybody's hands.
+
+Android mirrors the case in `:core:model` and its own store, as it mirrors the other two.
 
 ## Where the two platforms deliberately differ
 
