@@ -26,6 +26,9 @@
     <string name="library_folder_unavailable">%1$s kann nicht mehr gelesen werden.</string>
     <string name="library_repick_folder">Erneut auswählen</string>
     <string name="library_skipped">%1$d konnten nicht geöffnet werden</string>
+    <string name="library_skipped_one">„%1$s“ konnte nicht geöffnet werden</string>
+    <string name="library_skipped_list">Was nicht geöffnet werden konnte</string>
+    <string name="library_skipped_dismiss">Ausblenden</string>
     <string name="library_search">Suchen</string>
     <string name="library_search_recent">Letzte Suchen</string>
     <string name="library_search_recent_clear">Letzte Suchen löschen</string>

@@ -69,14 +69,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
 
-sealed interface LibraryScanState {
-    data object Idle : LibraryScanState
-
-    data class Scanning(val found: Int) : LibraryScanState
-
-    data class Finished(val found: Int, val skipped: Int) : LibraryScanState
-}
-
 class LibraryViewModel(
     application: Application,
     private val progressStore: ProgressStore? = null,
@@ -141,6 +133,12 @@ class LibraryViewModel(
 
     private val _scanState = MutableStateFlow<LibraryScanState>(LibraryScanState.Idle)
     val scanState: StateFlow<LibraryScanState> = _scanState.asStateFlow()
+
+    /** What the library could not open, and whether the reader has been told. */
+    private val _skipped = MutableStateFlow(SkippedPublications())
+    val skipped: StateFlow<SkippedPublications> = _skipped.asStateFlow()
+    /** The reader put the notice away. `library-browsing` keeps the list reachable. */
+    fun dismissSkipped() = _skipped.update { it.dismissing() }
 
     /** What the user is looking at. Setting it re-arranges the shelf. */
     private val _query = MutableStateFlow(
@@ -773,7 +771,8 @@ class LibraryViewModel(
         scanJob = viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 var found = _publications.value.size
-                var skipped = 0
+                // The pairs, not a tally -- see [SkippedPublications].
+                val refusals = mutableListOf<SkippedPublications.Entry>()
                 // What this walk actually saw, so what it did not see can go afterwards.
                 val seen = mutableSetOf<String>()
                 // Each walk carries the tree it came from, so a publication can be
@@ -803,10 +802,9 @@ class LibraryViewModel(
                                 seen += event.publication.id
                                 append(event.publication, tree)
                             }
-                            is ScanEvent.Skipped -> Unit
+                            is ScanEvent.Skipped -> refusals += event.asRefusal()
                             is ScanEvent.Finished -> {
                                 found += event.found
-                                skipped += event.skipped
                                 // Nothing left to resume. Cleared rather than kept: this is
                                 // a journal, not the metadata cache `sources` asks for, and
                                 // a journal that outlived its scan would be a stale library
@@ -837,7 +835,9 @@ class LibraryViewModel(
                 }
                 scanningFolder = null
                 scanned = mutableListOf()
-                _scanState.value = LibraryScanState.Finished(found, skipped)
+                _scanState.value = LibraryScanState.Finished(found, refusals.size)
+                // Once, after every tree -- settling replaces the list, it does not add.
+                _skipped.value = _skipped.value.settling(refusals)
                 // What each folder held at the moment the scan agreed with it. Without this
                 // the first reconcile would see every file as new and re-read the whole
                 // library to learn nothing.

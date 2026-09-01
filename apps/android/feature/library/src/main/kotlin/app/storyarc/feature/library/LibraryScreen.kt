@@ -34,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -298,6 +297,8 @@ fun LibraryScreen(
         .collectAsStateWithLifecycle()
     val unavailable by (viewModel?.unavailableFolders ?: MutableStateFlow(emptyList<String>()))
         .collectAsStateWithLifecycle()
+    val skipped by (viewModel?.skipped ?: MutableStateFlow(SkippedPublications()))
+        .collectAsStateWithLifecycle()
     val visible by (viewModel?.visible ?: MutableStateFlow(emptyList<Publication>()))
         .collectAsStateWithLifecycle()
     val continueReading by (viewModel?.continueReading ?: MutableStateFlow(emptyList<Publication>()))
@@ -386,7 +387,6 @@ fun LibraryScreen(
             )
         },
         bottomBar = {
-            val state = scanState
             if (selection.isActive && viewModel != null) {
                 BulkActionBar(
                     viewModel = viewModel,
@@ -409,26 +409,10 @@ fun LibraryScreen(
                     names = unavailable,
                     onRepick = { pickFolder.launch(null) },
                 )
-            } else if (state is LibraryScanState.Finished && state.skipped > 0) {
-                // Stated once, at the end, rather than per file — a messy folder
-                // would otherwise be a wall of notices. But stated: a count that
-                // silently omits what it could not read is a lie.
-                //
-                // Secondary, like the other three branches of this bar. Tertiary is the
-                // tone for a line beside something louder, and this strip holds one thing
-                // at a time — a notice that is the only content of its own bar is not
-                // subordinate to anything. iOS's equivalent moved to secondary for the
-                // readability of a notice under translucent chrome; Compose's `bottomBar`
-                // is opaque and the shelf is inset above it, so this is the consistency
-                // half of that change rather than the contrast half.
-                Text(
-                    text = stringResource(R.string.library_skipped, state.skipped),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.textSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(StoryArcSpace.sm),
-                )
             }
+            // The bare count that stood here is gone. It named no publication, offered no
+            // action, and sat at the foot of the shelf on every surface this screen draws —
+            // `SkippedNotice`, above the shelf, is what `library-browsing` asks for instead.
         },
     ) { insets ->
         Column(modifier = Modifier.fillMaxSize().padding(insets)) {
@@ -438,6 +422,13 @@ fun LibraryScreen(
             // the per-source destinations. A reader who wants a server's own pages reaches
             // it from Settings, where the connection lives. iOS removed its equivalent in
             // the same slice.
+
+            // Above the shelf and inside the layout, so it takes its own space rather than
+            // floating over artwork. `library-browsing`: the notice "does not float over the
+            // shelf's content in a way that obscures a cover".
+            if (viewModel != null) {
+                SkippedNotice(skipped = skipped, onDismiss = viewModel::dismissSkipped)
+            }
 
             KavitaSearchOffer(registry, query, onSearchOnServer)
 
