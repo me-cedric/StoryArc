@@ -52,7 +52,20 @@ object PlaybackHost {
             recordPosition?.invoke(source.publicationId, position, source.parts)
         },
     ).apply {
-        onChange = { _nowPlaying.value = it }
+        onChange = { playing ->
+            _nowPlaying.value = playing
+            if (playing == null) {
+                // The book ran out, or was displaced. Nothing to put back, so the carousel
+                // and a car both stop offering it.
+                memory?.forget()
+                PlaybackService.resumption = null
+            } else {
+                // Where the audio has reached, kept where a service the system starts on
+                // its own can read it. See [PlaybackMemory] — a field alone was null in
+                // exactly the case resumption exists for.
+                memory?.moveTo(playing.publicationId, playing.partIndex, playing.offsetMillis)
+            }
+        }
     }
 
     /** The id of the publication being played, or null. Feeds `SessionHandover.opening`. */
@@ -60,6 +73,7 @@ object PlaybackHost {
 
     private var controller: MediaController? = null
     private var current: AudiobookSource? = null
+    private var memory: PlaybackMemory? = null
 
     private val _sleep = MutableStateFlow<SleepTimer?>(null)
 
@@ -90,6 +104,9 @@ object PlaybackHost {
         speed: PlaybackSpeed = PlaybackSpeed.NORMAL,
         chapterWord: String = "Chapter",
     ) {
+        memory = PlaybackMemory.open(context).also {
+            it.remember(book, from?.partIndex ?: 0, from?.offsetMillis ?: 0)
+        }
         withController(context) { player ->
             val source = AudiobookSource(book, player, chapterWord)
             current = source

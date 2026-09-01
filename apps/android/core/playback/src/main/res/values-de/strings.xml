@@ -2,4 +2,5 @@
 <resources>
     <string name="playback_skip_back">15 Sekunden zurück</string>
     <string name="playback_skip_forward">30 Sekunden vor</string>
+    <string name="playback_browse_root">Hörbücher</string>
 </resources>

@@ -294,6 +294,18 @@ creep — see [`design.md`](design.md).
       **Nothing writes to `resumption` yet** — that is the app's job and it lands with the
       surfaces. And proving it needs the process killed between two runs, which is a device
       exercise nothing here has done.
+      **Android: the field is written now, and — more to the point — it is no longer the only
+      answer.** A process-wide field is null in exactly the case this callback exists for: a
+      process the system has just created. So `PlaybackMemory` keeps the handful of strings
+      needed to put the audio back — the URIs, the part titles, an index and an offset — in a
+      preferences file the service reads synchronously, and `onPlaybackResumption` falls back
+      to it. `PlaybackHost` writes it when a book starts and moves it on every publish, and
+      forgets it when the session ends.
+      **Not the reading position, deliberately.** That is `reading-progress`'s and the app
+      stores it; this is a service's own note of what to put on the air, kept where a service
+      with no scope and no database can read it. Eight cases in `PlaybackMemoryTest`.
+      **Still not proved end to end:** that a killed process comes back through the carousel
+      needs the process killed between two runs, and that has not been done.
 - [ ] 3.7 Android: `MediaLibraryService` and `automotive_app_desc.xml`.
       **Done.** The service is a `MediaLibraryService`; the descriptor declares `media` and
       nothing else, because declaring a capability the app cannot honour is how an app
@@ -303,6 +315,20 @@ creep — see [`design.md`](design.md).
       **The browse tree itself is still media3's default** — `onGetLibraryRoot` and
       `onGetChildren` are unimplemented, so a head unit can drive what is *playing* and
       cannot yet browse the library. That is the honest state of this task.
+      **Android: there is a tree now.** `onGetLibraryRoot` answers a browsable
+      `MEDIA_TYPE_FOLDER_AUDIO_BOOKS` root — unimplemented it answered an error, so a car that
+      had found the app in its launcher could start nothing — and `onGetChildren` puts the
+      book being listened to under it, from `PlaybackMemory`. `onGetItem` and `onSetMediaItems`
+      turn a chosen row into the audio *at the place the row named*, so pressing play in a car
+      carries on rather than restarting chapter one.
+      `PlayerBrowseTreeTest` binds a real `MediaBrowser` to the installed service and asks it,
+      which is what a car does; mutation-checked by restoring the error from
+      `onGetLibraryRoot`. Every controller call goes to the main thread and every wait comes
+      off it — media3 throws on the first and deadlocks on the reverse.
+      **Still not the library.** One node, and it is "carry on with this". `:core:playback`
+      has no library in it and a tree built from a copy of one goes stale the moment a
+      download finishes; offering the whole shelf from a car needs the app to publish it, and
+      that is not built.
 - [~] 3.8 Both: interruption tests — audio taken and returned with the resume hint
       resumes; a pause the listener made is never undone; audio taken for good ends
       the session and records the position.

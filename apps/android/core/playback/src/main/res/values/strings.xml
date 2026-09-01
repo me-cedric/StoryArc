@@ -14,4 +14,5 @@
 <resources>
     <string name="playback_skip_back">Back 15 seconds</string>
     <string name="playback_skip_forward">Forward 30 seconds</string>
+    <string name="playback_browse_root">Audiobooks</string>
 </resources>

@@ -6,12 +6,15 @@ import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionError
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -46,6 +49,15 @@ class PlaybackService : MediaLibraryService() {
 
     private var player: ExoPlayer? = null
     private var session: MediaLibrarySession? = null
+
+    /**
+     * What was playing last, read from disk rather than from a field.
+     *
+     * The field this used to be is null in exactly the case the resumption callback exists
+     * for — a process the system has just created to answer the carousel. See
+     * [PlaybackMemory].
+     */
+    private val memory: PlaybackMemory by lazy { PlaybackMemory.open(this) }
 
     override fun onCreate() {
         super.onCreate()
@@ -195,7 +207,10 @@ class PlaybackService : MediaLibraryService() {
             // chapter 1.
             isForPlayback: Boolean,
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-            val saved = resumption
+            // From the app while it is running, and from disk when it is not — which is
+            // the whole case this callback is for. A process-wide field alone answered
+            // null every time the system started this service on its own.
+            val saved = resumption ?: memory.last()?.let(::resumptionOf)
                 ?: return Futures.immediateFailedFuture(
                     UnsupportedOperationException("nothing was playing"),
                 )
@@ -208,13 +223,157 @@ class PlaybackService : MediaLibraryService() {
             )
         }
 
+        /**
+         * The top of the tree a head unit browses.
+         *
+         * Unimplemented, this answered `RESULT_ERROR_NOT_SUPPORTED` — so a car that had
+         * found the app in its launcher could drive what was already playing and could not
+         * start anything. The root is a browsable folder of audiobooks, which is what tells
+         * a head unit to draw a list rather than a grid of album art.
+         */
+        override fun onGetLibraryRoot(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            params: LibraryParams?,
+        ): ListenableFuture<LibraryResult<MediaItem>> =
+            Futures.immediateFuture(LibraryResult.ofItem(root(), params))
+
+        /**
+         * What is under the root: the book the listener is in the middle of.
+         *
+         * **One node, and its limits are worth stating.** A car's best use of a book player
+         * is carrying on with the book, and that is what this offers. It is *not* the
+         * library: `:core:playback` has no library in it, and a browse tree built from a
+         * copy of one would go stale the moment a download finished. Offering the whole
+         * shelf from a car needs the app to publish it, and that is not built.
+         *
+         * An empty list rather than an error where nothing has been played: a car showing
+         * an empty list is a car saying there is nothing to continue, which is true.
+         */
+        override fun onGetChildren(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            parentId: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?,
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+            if (parentId != ROOT_ID) {
+                return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.of(), params))
+            }
+            val last = memory.last()
+            val children = last?.let { ImmutableList.of(browseItem(it)) } ?: ImmutableList.of()
+            return Futures.immediateFuture(LibraryResult.ofItemList(children, params))
+        }
+
+        /** One item by id, which is what a head unit asks for before it plays one. */
+        override fun onGetItem(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            mediaId: String,
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            val last = memory.last()?.takeIf { it.id == mediaId }
+                ?: return Futures.immediateFuture(LibraryResult.ofError<MediaItem>(SessionError.ERROR_BAD_VALUE))
+            return Futures.immediateFuture(LibraryResult.ofItem(browseItem(last), null))
+        }
+
+        /**
+         * A browsed item, turned into audio.
+         *
+         * The id a car sends back is the publication's, and what it means is "carry on with
+         * this" — so the parts and the offset come from the same memory the row was drawn
+         * from, and pressing play in a car lands where the listener left off rather than at
+         * the start of chapter one.
+         */
+        override fun onSetMediaItems(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            mediaItems: MutableList<MediaItem>,
+            startIndex: Int,
+            startPositionMs: Long,
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            val asked = mediaItems.singleOrNull()?.mediaId
+            val last = memory.last()?.takeIf { it.id == asked }
+                ?: return super.onSetMediaItems(
+                    mediaSession,
+                    controller,
+                    mediaItems,
+                    startIndex,
+                    startPositionMs,
+                )
+            return Futures.immediateFuture(resumptionOf(last).let {
+                MediaSession.MediaItemsWithStartPosition(it.items, it.startIndex, it.startPositionMs)
+            })
+        }
+
         // No `onCustomCommand`. Every control this player offers is a *player* command —
         // play, pause, seek, seek-back, seek-forward, next, previous — so there is nothing
         // custom to answer, and media3's own default already refuses one. An override here
         // would be a refusal written twice.
     }
 
+    /** The one browsable node, so a head unit has a list to draw. */
+    private fun root(): MediaItem = MediaItem.Builder()
+        .setMediaId(ROOT_ID)
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setIsBrowsable(true)
+                .setIsPlayable(false)
+                .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_AUDIO_BOOKS)
+                .setTitle(getString(R.string.playback_browse_root))
+                .build(),
+        )
+        .build()
+
+    /**
+     * The row a car draws for the book being listened to.
+     *
+     * Playable and not browsable: a car that expanded it would be asking for a chapter list
+     * this tree does not carry, and choosing a chapter from a moving vehicle is not the
+     * gesture — carrying on is.
+     */
+    private fun browseItem(book: PlayedBook): MediaItem = MediaItem.Builder()
+        .setMediaId(book.id)
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setIsBrowsable(false)
+                .setIsPlayable(true)
+                .setMediaType(MediaMetadata.MEDIA_TYPE_AUDIO_BOOK)
+                .setTitle(book.title)
+                .setSubtitle(book.partTitle)
+                .setArtist(book.author)
+                .setArtworkUri(book.artworkUri?.let(android.net.Uri::parse))
+                .build(),
+        )
+        .build()
+
+    /** What the system needs to put a remembered book back on the air. */
+    private fun resumptionOf(book: PlayedBook): Resumption = Resumption(
+        items = book.uris.mapIndexed { index, uri ->
+            MediaItem.Builder()
+                .setUri(uri)
+                .setMediaId("${book.id}:$uri")
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(book.title)
+                        .setSubtitle(book.partTitles.getOrNull(index).orEmpty())
+                        .setArtist(book.author)
+                        .setArtworkUri(book.artworkUri?.let(android.net.Uri::parse))
+                        .setIsBrowsable(false)
+                        .setIsPlayable(true)
+                        .setMediaType(MediaMetadata.MEDIA_TYPE_AUDIO_BOOK_CHAPTER)
+                        .build(),
+                )
+                .build()
+        },
+        startIndex = book.partIndex.coerceIn(0, (book.uris.size - 1).coerceAtLeast(0)),
+        startPositionMs = book.offsetMillis.coerceAtLeast(0),
+    )
+
     companion object {
+        /** The id of the one browsable node. Stable, because a car caches it. */
+        const val ROOT_ID: String = "storyarc:root"
+
         /**
          * 15 seconds back. A **product decision** — media3's own default is 5 s.
          *
