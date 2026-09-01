@@ -9,6 +9,15 @@
 >
 > **No task here is affected**: nothing this change builds changed, and the carried
 > scenarios are already implemented by the changes that wrote them.
+>
+> **Its `navigation-shell` delta gained a requirement on 2026-09-01, for the same reason.**
+> `quiet-shell-and-search` carried a MODIFIED *Reaching search* against a capability with no
+> main spec — the one **this** change creates — so it had nothing to merge into and archiving
+> it would have carried the requirement off. Both deltas named the same requirement, which
+> that change's proposal said must trigger a reconciliation. Its newer statement, which is
+> the one the app implements, replaced the superseded first draft here. **Task 1.2 changed
+> with it** and says so; no other task did, because this change does not build search's
+> entry point.
 
 Ordered so that the two things that block everything else — the Android
 navigation rewrite and the iOS shell — are answered first, and so that no two
@@ -185,16 +194,25 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       cannot be ticked. Screenshots in
       `docs/designs/screenshots/after-2026-08-30/android-shell-*.png`, plus the
       tablet rail in `after-2026-08-31/android-tablet-rail-home-light.png`.
-- [ ] **1.2** **[D] iOS shell.** `TabView` with three `Tab`s, the search role,
-      `.tabViewStyle(.sidebarAdaptable)` and the minimize behaviour, around the
+- [ ] **1.2** **[D] iOS shell.** `TabView` with three `Tab`s, a **fourth destination for
+      search**, `.tabViewStyle(.sidebarAdaptable)` and the minimize behaviour, around the
       existing library view. Settings and add-source leave the library toolbar.
       Screenshot: each destination, iPhone and iPad, portrait and landscape.
 
+      **This task asked for "the search role" until 2026-09-01, and the requirement it was
+      written against has since been rewritten.** `Tab(role: .search)` morphs the tab into a
+      text field in place, which is what *Reaching search* now forbids — task 0.1 found it on
+      a device and `quiet-shell-and-search` replaced it with a destination. The clause is
+      corrected here rather than left to read as an instruction to rebuild the thing that was
+      removed. **No work is added to this task by the correction**: the destination is
+      shipped, by that change, and its captures are on its own list.
+
       **The shell is built. Two of the task's clauses are not met, one on purpose.**
       `apps/ios/App/AppShell.swift` has the three `Tab`s at `:73`, `:83` and `:93`,
-      the search role at `:107`, `.tabViewStyle(.sidebarAdaptable)` at `:118` and
+      `.tabViewStyle(.sidebarAdaptable)` at `:118` and
       `.tabBarMinimizeBehavior(.onScrollDown)` at `:119`, wrapped around
-      `LibraryView` at `:165-173`.
+      `LibraryView` at `:165-173`. The search role that used to sit at `:107` is gone, and
+      that is the fix above, not a regression.
 
       **Settings left the library toolbar; add-source did not.**
       `LibraryToolbar.swift:13-15` records the move and `HomeScreen.swift:99-107`

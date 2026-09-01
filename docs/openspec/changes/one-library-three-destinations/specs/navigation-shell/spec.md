@@ -51,24 +51,53 @@ response to anything the reader configures.
 ### Requirement: Reaching search
 
 Search SHALL be one action away from the home surface and from the library, and
-SHALL take over the screen while it is active. Its entry point is
-platform-specific, and each platform SHALL use its own system convention rather
-than a translation of the other's.
+SHALL take over the screen while it is active. It SHALL be a place a reader arrives
+at, and no control SHALL change shape or position to become it.
 
-#### Scenario: Reaching search on iOS
-- **WHEN** a reader looks for search on iOS
-- **THEN** it is offered by the same persistent navigation control as the three destinations, set apart from them rather than listed among them
-- **AND** activating it replaces the browse surface with search until the reader dismisses it
+Its entry point is platform-specific, and each platform SHALL use its own system
+convention rather than a translation of the other's — but on both, the control that
+offers search SHALL still be there after search opens, so a reader can see where they
+came from.
 
-#### Scenario: Reaching search on Android
-- **WHEN** a reader looks for search on Android
-- **THEN** it is a field at the top of the home surface and of the library, not a destination in the navigation control
-- **AND** activating it expands over the screen
+> **This requirement's first draft said something else, and the app disproved it.** It asked
+> that iOS offer search "set apart from" the destinations rather than listed among them, and
+> that Android's be "a field at the top … not a destination in the navigation control". The
+> iOS half was then built as `Tab(role: .search)`, which morphs the tab into a field in place
+> — confirmed on a device on 2026-08-31 — and that is the shape-changing the text above now
+> forbids: the bar moves under the reader's thumb and there is nowhere to land. Both halves
+> are replaced by an outcome rather than a control.
+>
+> **The rewrite was carried here from `quiet-shell-and-search` on 2026-09-01**, which is
+> where it was written and where it shipped. It could not stay there. It was a MODIFIED delta
+> against a requirement that has no main spec — *this* change is what creates
+> `navigation-shell` — so it had nothing to merge into, and archiving that change would have
+> carried the requirement off without it ever reaching the contract. That change's own
+> proposal set the trigger for reconciling: "this one adds a destination and removes a role;
+> it touches no requirement that change wrote. If that stops being true, the two must be
+> reconciled before either syncs, not after." **It was never true** — both deltas named
+> *Reaching search* — so the trigger was already met when it was written. Reconciled by
+> moving the newer statement to the change that creates the capability.
+>
+> The behaviour is shipped on both platforms and its tasks are in `quiet-shell-and-search`,
+> not here. `quiet-shell-and-search`'s design.md carries each platform's answer with the
+> guidance behind it. No task in *this* list builds it, which is why none changed with it.
+
+#### Scenario: Search is a destination, not a shape
+- **WHEN** a reader looks for search on either platform
+- **THEN** it is reachable in one action from the home surface and from the library
+- **AND** choosing it opens a screen of its own that takes over the browse surface
+- **AND** no existing control becomes the search field in place
 
 #### Scenario: What search opens onto
 - **WHEN** search is activated and nothing has been typed
-- **THEN** it presents recent searches, pinned shelves and what the reader is in the middle of — a page worth being on, not a blank field
+- **THEN** it presents recent searches, and publications the reader already has — at least one in progress, one never opened, and one that is next in a series they have read
+- **AND** every suggestion comes from the device or from a source the reader configured, and none is fetched in order to be suggested
 - **AND** recent searches can be cleared
+
+#### Scenario: Nothing to suggest
+- **WHEN** search opens and the library holds nothing to suggest from
+- **THEN** the screen says so in one sentence rather than drawing empty headings
+- **AND** it offers the same way of adding a source that the library's own empty state offers
 
 #### Scenario: Leaving search
 - **WHEN** a reader dismisses search

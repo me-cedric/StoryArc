@@ -84,13 +84,24 @@ divergence and the guidance behind each side.
 - **`library-browsing`** — search moves to a page; the page states its scope and
   offers suggestions and recent queries.
 - **`navigation-shell`** — search becomes a destination; the bar stops changing shape.
+  **This change builds that and no longer carries the delta for it.** The requirement was
+  reconciled into
+  [`one-library-three-destinations`](../one-library-three-destinations/specs/navigation-shell/spec.md)
+  on 2026-09-01, because that change is what creates the capability's main spec and a
+  MODIFIED delta needs one to merge into. See §4b of this change's tasks.
 - **`settings-and-about`** — what changed in this version, shown once.
 
-**A dependency worth stating plainly.** `navigation-shell` and `home-screen` have no
-main spec: they are new capabilities that
+**A dependency worth stating plainly, and the clause below turned out to be false.**
+`navigation-shell` and `home-screen` have no main spec: they are new capabilities that
 [`one-library-three-destinations`](../one-library-three-destinations/proposal.md)
-introduces and has not synced. So two active changes now carry a `navigation-shell`
-delta, whichever syncs first creates the main spec, and the two deltas must not
-contradict each other. This one adds a destination and removes a role; it touches no
-requirement that change wrote. If that stops being true, the two must be reconciled
+introduces and has not synced. So two active changes carried a `navigation-shell`
+delta, whichever synced first would create the main spec, and the two deltas must not
+contradict each other. This one adds a destination and removes a role; ~~it touches no
+requirement that change wrote~~. If that stops being true, the two must be reconciled
 before either syncs, not after.
+
+**It touched one.** Both deltas named *Reaching search*, so the trigger this paragraph
+sets was met the day the delta was written. `openspec validate` does not catch a MODIFIED
+delta whose target exists in no main spec, so nothing said so. Reconciled on 2026-09-01 by
+moving the newer statement — this change's, which is the one the app implements — into the
+change that creates the capability. §4b of the task list records it.

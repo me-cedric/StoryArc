@@ -130,26 +130,48 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       Android: fixed-dp icon column that does not scale with `fontScale`, content
       scrollable, Continue pinned.
 
-## 4b. Why this change is not archived, although every task is ticked
+## 4b. Why this change could not be archived, and what unblocked it
 
-**Archiving it now would lose a requirement.** Its `navigation-shell` delta modifies
+**Archiving it would have lost a requirement.** Its `navigation-shell` delta modified
 *Reaching search*, and `navigation-shell` **has no main spec**: it is a new capability
 `one-library-three-destinations` introduces and has not synced. So the sync merged the
 other two deltas and skipped this one, and an archive — which moves the change directory
-away — would carry that requirement off with it, never having reached the contract.
+away — would have carried that requirement off, never having reached the contract.
 
 `--skip-specs` does not help: it is the flag that says the specs are already updated, and
-for this one delta they are not.
+for that one delta they were not.
 
-**So this change waits on `one-library-three-destinations` to sync.** That change creates
-`navigation-shell`'s main spec; this one's delta then merges into it and this can archive.
-The proposal anticipated the dependency and said the two deltas must not contradict — they
-do not: this one adds a destination and removes a role, and touches no requirement that
-change wrote.
+**The wait was resolved by reconciling rather than by waiting, on 2026-09-01.** The plan of
+record was for this change to sit until `one-library-three-destinations` synced. Re-reading
+the two deltas showed that was not merely slow but wrong. This change's own proposal set the
+condition:
 
-The guard reports it as `[ready]` and the guard is right that the tasks are done. It cannot
-see that one of the three capabilities has nowhere to merge into, which is why this section
-exists rather than a comment on a task.
+> This one adds a destination and removes a role; it touches no requirement that change
+> wrote. If that stops being true, the two must be reconciled before either syncs, not after.
+
+**It was never true.** `one-library-three-destinations`'s ADDED block contains
+`### Requirement: Reaching search`, and this change's MODIFIED delta named exactly that
+requirement. The trigger was met the day the delta was written, and nobody noticed because
+`openspec validate` passes a MODIFIED delta whose target does not exist in any main spec —
+the same validator gap `brand-identity-and-app-icons` records at the foot of its own task
+list. Only `archive` would have caught it, at the point where the delta could no longer be
+applied.
+
+**So the rewritten requirement moved to the change that creates the capability.** It now
+lives in
+[`one-library-three-destinations`](../one-library-three-destinations/specs/navigation-shell/spec.md)
+as the ADDED *Reaching search*, replacing that change's superseded first draft, and carrying
+a note recording where it came from, what the old text said, and why the app disproved it.
+This change no longer carries a `navigation-shell` delta.
+
+**Nothing about the shipped behaviour changed, and no task here changed.** The work is in
+this change — sections 1 and 2 built it and their captures are on record — and the
+requirement is stated by the change that owns creating the capability. Which change *builds*
+a behaviour and which change *creates the capability's spec* are allowed to differ; a
+requirement with nowhere to merge into is not.
+
+With that delta gone, this change's two remaining deltas are both synced, and it is ready to
+verify and archive.
 
 ## 4. Docs and close-out
 
@@ -165,11 +187,13 @@ exists rather than a comment on a task.
       pre-existing orphan list.
 - [x] 4.5 Verified and synced on 2026-08-31. Main specs updated; the change stays
       open, per the lifecycle.
-      **`navigation-shell` is deliberately not synced.** It has no main spec: it is a new
-      capability `one-library-three-destinations` introduces and has not synced, so there is
-      nothing to merge into and creating one from this change's single requirement would
-      publish a fraction of the capability as if it were the whole contract. It syncs with
-      that change. The proposal anticipated this and the two deltas do not contradict.
+      **`navigation-shell` was not synced, and on 2026-09-01 stopped needing to be.** It has
+      no main spec: it is a new capability `one-library-three-destinations` introduces and
+      has not synced, so there was nothing to merge into, and creating one from this
+      change's single requirement would have published a fraction of the capability as if it
+      were the whole contract. The delta has since been reconciled into that change — the
+      two named the same requirement, which the proposal said must trigger a
+      reconciliation — and §4b records what moved and why.
       **The sync surfaced a coordination problem worth recording.** Two other open
       changes carried MODIFIED deltas on requirements this one changed, and a
       MODIFIED requirement replaces the whole block — so archiving either of them

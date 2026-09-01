@@ -9,8 +9,12 @@ Search SHALL say what it is about to search, and SHALL let a reader narrow it to
 what can be read with no network.
 
 > Where search is *reached* from, and what its screen opens onto before a query is
-> typed, belong to [`navigation-shell`](../navigation-shell/spec.md). This
-> requirement owns what searching *does*.
+> typed, belong to `navigation-shell`. This requirement owns what searching *does*.
+>
+> That requirement is carried by
+> [`one-library-three-destinations`](../../../one-library-three-destinations/specs/navigation-shell/spec.md),
+> which is the change that creates the capability — see §4b of this change's tasks for why
+> it moved there rather than staying beside this delta.
 
 #### Scenario: The scope is stated, and can be narrowed
 - **WHEN** the search screen is open
