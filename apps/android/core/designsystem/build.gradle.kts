@@ -95,4 +95,24 @@ tasks.withType<Test>().configureEach {
     )
         .withPropertyName("adaptiveNavigationWiringSource")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+
+    // `ArcStopsAreNotChromeTest` reads **every** module's main sources, not just this
+    // one's: the rule it enforces is that the mark's later arc stops never reach a chrome
+    // accent, and the controls that would break it live in `:feature:*` and `:app`. So the
+    // Android root is handed over the same way the module directory above is, and for the
+    // same reason — a walk that climbs looking for a marker leaves this checkout.
+    systemProperty("storyarc.android.rootDir", rootDir.absolutePath)
+    // And every file it reads is declared an input. Without this the task is UP-TO-DATE
+    // after a change in another module, so a violation added to `:feature:library` would
+    // not re-run the guard that exists to catch it — the same hole the note above
+    // describes, one module wider.
+    inputs.files(
+        fileTree(rootDir) {
+            include("app/src/main/**/*.kt")
+            include("core/*/src/main/**/*.kt")
+            include("feature/*/src/main/**/*.kt")
+        },
+    )
+        .withPropertyName("arcStopsGuardSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }

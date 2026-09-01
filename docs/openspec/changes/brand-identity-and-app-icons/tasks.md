@@ -47,10 +47,29 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 - [x] 1.5 `docs/design.md` — the brand section, including the three `ember` mentions and the
       "reading-lamp amber" direction line. The direction itself does not change: chrome still
       recedes.
-- [ ] 1.6 Assert the arc's middle stops are not used as chrome. A source-level guard that
+- [x] 1.6 Assert the arc's middle stops are not used as chrome. A source-level guard that
       `arcMid`, `arcLate`, `arcEnd` and `iconPlate` appear only in the mark generator, the icon
       assets and brand surfaces — never in a chrome accent position. `accent` and `secondary`
       *are* chrome and are exempt. Mutation-check it.
+      **Mirrored, four rules a side**: `ArcStopsAreNotChromeTests` walks the iOS tree and
+      `ArcStopsAreNotChromeTest` the Android one, each in its own platform's gate, because
+      `pnpm test:ios` would not fail for a Kotlin violation. Shaped on
+      `GlassIsUntintedTests`, and on `AdaptiveNavigationTest` for the Android half — the
+      Android root is *handed over* by `build.gradle.kts` rather than discovered, since a
+      walk up from the working directory escapes a worktree, and every file the guard reads
+      is declared a task input or the guard sits UP-TO-DATE while another module gains a
+      violation. Verified: all 154 `feature/**` sources are fingerprinted by content in the
+      `arcStopsGuardSources` property.
+      **Four mutations, and the coverage check failed two of them before it worked.** A
+      token used in app code and a token in an accent position inside an allow-listed file
+      were both caught naming file, line and token. Renaming `arcMid` in `color.json` breaks
+      both guards' **compile** rather than letting them search for a dead name — the tokens
+      are referenced beside their names for exactly that. But the coverage rule was useless
+      twice over: iOS's floor of "more than twenty files total" survived pointing its
+      largest root (331 files) at a missing path, and Android's "at least nine trees"
+      survived dropping the whole `feature` family (154 files, and the family where a chrome
+      accent lives) because `app` plus eight `core` modules is exactly nine. Both floors are
+      now **per root and per group, never summed**, and each catches its mutation by name.
 - [ ] 1.7 Apply the accent everywhere the review named it missing: tab bars, chips, sliders and
       progress ticks, on **both** platforms. The compiler finds the token rename; it does not
       find a surface that was never accented, so this is a pass over those four control kinds
