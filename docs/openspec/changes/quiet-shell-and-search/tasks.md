@@ -19,10 +19,21 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 - [x] 1.4 iOS: `ShellWiringTests` (new, source-level, in the manner of
       `CoverRoutingWiringTests`) — assert no `role: .search` remains in
       `AppShell.swift`. Mutation-check: restoring the role fails it.
-- [x] 1.5 Android: `LibraryDestinationTest` — the same four-entry assertion against
-      the Kotlin enum, so the two platforms' sets stay in step.
-- [x] 1.6 Android: add the destination to the enum and to `AdaptiveNavigation.kt`'s
-      item list, which builds bar, collapsed rail and expanded rail from one list.
+- [x] 1.5 Android: the same four-entry assertion against the Kotlin enum, so the two
+      platforms' sets stay in step. It is
+      `app/src/test/kotlin/app/storyarc/navigation/AppNavigationTest.kt:62`, over
+      `AppDestination.entries` — **not a `LibraryDestinationTest`**, which this task named and
+      which does not exist on Android. `LibraryDestinationTests` is iOS's name for it; the
+      Kotlin twin lives with the navigation it constrains.
+- [x] 1.6 Android: add the destination to the enum and to the item list that builds bar,
+      collapsed rail and expanded rail from one list.
+      **The effect is real; the location this task named is not.** That list is
+      `app/src/main/kotlin/app/storyarc/AppShell.kt:248`, which maps `AppDestination.entries`
+      into `NavigationEntry`s. `AdaptiveNavigation.kt` contains **zero** references to
+      `AppDestination`: it takes `entries: List<NavigationEntry>` at `:113` and knows nothing
+      about destinations, which is the seam that keeps `:core:designsystem` free of the app's
+      own vocabulary. A reader sent to that file to find the fourth destination finds no
+      destinations at all.
 - [x] 1.7 Android: `AdaptiveNavigationTest` — at `ShortNavigationBarMedium`, assert
       `iconPosition = NavigationItemIconPosition.Start` and
       `arrangement = ShortNavigationBarArrangement.Centered`. Material requires
@@ -51,9 +62,15 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       `rememberContainedSearchBarState` and the docked branch
       `rememberSearchBarWithGapState`. Each expanded bar names its required state
       partner in its own KDoc and only those carry the content-fade specs.
-- [x] 2.6 Android: hoist the state per branch; thread
-      `SearchBarDefaults.containedColors(state)` through `appBarWithSearchColors`
-      into both bar and input field.
+- [x] 2.6 Android: hoist the state per branch; compute
+      `SearchBarDefaults.containedColors(state)` and give it to the bar through
+      `appBarWithSearchColors` and to the input field **directly**, as
+      `searchColors.inputFieldColors`.
+      Corrected from "through `appBarWithSearchColors` into both": the field's colours do not
+      travel through that factory, which builds the app bar's colours and has no field in it.
+      `design.md`'s colours row said the same thing and is corrected with it. Both halves are
+      now asserted — `LibrarySearchBarTest` had nothing about the field, so deleting the field's
+      colours outright left it green.
 - [x] 2.7 Android: move `AppBarWithSearch` into `Scaffold(topBar =)` and pass
       `SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()`.
 - [x] 2.8 Android: hand-write the leading-icon swap — magnifier collapsed, back
@@ -64,8 +81,15 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
 - [x] 2.10 Android: narrowing as `FilterChip`s, **not** a segmented control — that
       component is retired in Expressive and its replacement is specified for two to
       five fixed views, which our source set is not.
-- [x] 2.11 Android: result rows as `ListItem(content =, leadingContent =)` with a
-      transparent container; group by gap and `SegmentedListItem`, not dividers.
+- [x] 2.11 Android: result rows as `ListItem(content =, supportingContent =)` with a
+      transparent container; grouped by `ListItemDefaults.segmentedShapes(index, count)`, not
+      dividers.
+      Two corrections to what this task claimed, both to the task rather than to the code.
+      There is **no `leadingContent`**: a result row carries no cover, and its second line is
+      the series or the author, which is `supportingContent`. And the separation is not a
+      *gap* — the `LazyColumn` sets no `verticalArrangement`; the rounding of a group's first
+      and last row is what reads as one group. `design.md`'s result-rows row repeated both and
+      is corrected with it.
 - [x] 2.11b Android: `SearchSuggestionsTest` — the three sections over `LibraryIndex` and
       `HomeShelves.upNext`, disjoint, capped, ordered by arrival, and `isEmpty` for the
       screen that says so in one sentence. Its own type over `HomeEntry`, **not** a port of
@@ -98,7 +122,12 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       `AppShell.kt:248`.
 - [x] 2.11d Android: the scope chips wrap. At `font_scale 2.0` in a 320 dp window a plain
       `Row` drew *On this device* over four lines with a lone "e" on the last —
-      photographed, fixed, photographed again.
+      photographed, fixed, photographed again, **and then asserted**, which this task
+      understated. `feature/library/src/test/.../ScopeChipsWrapTest.kt` composes the chips under
+      Robolectric at `w320dp-h2400dp` and the largest text scale, in all four shipped
+      languages — `:70`, `:73`, `:77`, `:81` — and fails if either chip is squeezed. The
+      correction matters in one direction only: a reader told the proof was a photograph takes
+      the photograph again.
 - [x] 2.11e Android: a suggestion the reader has never opened announces its title alone. Read
       off the device's accessibility tree: every card under *You have never opened these* said
       "…. Part-read", because `homeRemainingText`'s fallback is true of every shelf Home draws

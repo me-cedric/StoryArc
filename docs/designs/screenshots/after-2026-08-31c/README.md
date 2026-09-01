@@ -25,9 +25,13 @@ Taken by `ScreenshotTests.testCaptureSearch`, which is new and could not have be
 before this change: `destination("Search", in: app)` finds a tab, and until now search was a
 role rather than a tab.
 
-## The empty body is deliberate, and is not finished work
+## The empty body was deliberate, and is not what the app does now
 
-The Android search page has nothing under its bar yet. That is section 2 of
+**Read as a record of these pictures, not of the app.** Section 2 has since built the at-rest
+offer — `SearchAtRest.kt`, asserted in `SearchAtRestTest` — so `android-search-destination.png`
+shows a state the app no longer has. It is kept because it is half of the pair above it.
+
+The Android search page had nothing under its bar when this was taken. That is section 2 of
 `quiet-shell-and-search` — the at-rest offer of something to continue, something never
 opened and a next volume — and the source says so where the space is left. Section 1 moved
 search onto a page; it does not get to claim the page's content.
@@ -52,9 +56,13 @@ intended.
 | `android-search-expanded` | The expanded bar with nothing typed. The **back arrow** has replaced the magnifier — hand-written, because Material requires that "the back icon releases focus" and no API supplies it. The scope is **filter chips**, not a segmented control: Material retired that component in the Expressive update and its replacement is specified for a fixed set of two to five views, which our sources are not. And the bar **covers the navigation bar** with no code asked to hide it, which is the whole reason none was written. |
 | `android-search-typed` | The same bar with a term in it. The **clear icon** has appeared — also hand-written, because `SearchBarDefaults` publishes no clear affordance of any kind — and it appears only now, because a permanent one is a control that does nothing most of the time. Underneath: *Still looking…* while the fan-out runs, and *Reading Room didn't answer / Try again* in grey rather than red, per `sources`. |
 
-Both taken by hand with `adb input tap` and `adb exec-out screencap`, because
-`pnpm capture:android`'s route table has no entry that opens the search bar. Adding one is
-worth doing and is not done here.
+Both taken by hand with `adb input tap` and `adb exec-out screencap`.
+
+**The route table has a `Search` entry now**, added by task 1.10 at
+`scripts/android-routes.mjs:78`, so the page *at rest* is `pnpm capture:android Search`. Only
+the **expanded** bar still needs a hand: expanding it takes a tap on the field, which is a step
+the route vocabulary has no word for. This paragraph used to say adding the route was "worth
+doing and is not done here", which stopped being true in the same change.
 
 ## What these do not prove
 

@@ -34,7 +34,7 @@ about the count is strained.
 | --- | --- |
 | The bar | `TabView` with four `Tab`s, `.tabViewStyle(.sidebarAdaptable)`, `.tabBarMinimizeBehavior(.onScrollDown)` — all already there |
 | Search | `Tab(value: .search)` — **the `role: .search` is removed** |
-| The search screen | `LibraryView(surface: .search)` with `.searchable(text:placement:)` at the top of its own screen |
+| The search screen | `LibraryView(surface: .search)` with `.searchable(text:prompt:)` at the top of its own screen. **No `placement:`** — this row said there was one and there is not: the default placement is what a screen's own field wants, and naming a placement that is never passed sends the next reader looking for it |
 | Scope | `.searchScopes` — the platform's segmented scope bar, which is the iOS idiom |
 | Suggestions | `.searchSuggestions` is *not* used: it draws a list attached to the field, and what is wanted is a screen with headed sections. The screen draws them itself when the query is empty |
 | What's new | A `.sheet` with `.presentationDetents([.large])`, presented from `AppShell` on the first appearance after a version change |
@@ -60,12 +60,12 @@ platform's own answer is the right one there.
 | Items at medium width | `iconPosition = NavigationItemIconPosition.Start`, `arrangement = ShortNavigationBarArrangement.Centered` | *"Use vertical items in compact windows … horizontal items in medium windows"*. Both APIs are public and stable; `AdaptiveNavigation.kt` composes its own items so it does not inherit this from the suite |
 | The search screen's field | `AppBarWithSearch` in `Scaffold(topBar =)`, expanding to `ExpandedFullScreenContainedSearchBar` | The contained style is what `MaterialExpressiveTheme` mandates — Material marks the divided style *"Not recommended. Use contained"* |
 | Its state | `rememberContainedSearchBarState`, and `rememberSearchBarWithGapState` for the docked branch | Each expanded bar names its required state partner in its own KDoc, and only those carry the content fade specs. One shared `rememberSearchBarState` cannot be right for both |
-| Colours | `SearchBarDefaults.containedColors(state)` threaded through `appBarWithSearchColors` into the input field | The container colour interpolates as the bar expands; without it the contained bar is drawn with baseline colours |
+| Colours | `SearchBarDefaults.containedColors(state)`, fed to `appBarWithSearchColors` for the bar and to the input field **directly** as `searchColors.inputFieldColors` | The container colour interpolates as the bar expands; without it the contained bar is drawn with baseline colours. This row used to say the field's colours arrived *through* `appBarWithSearchColors`; they do not, and the code is right — that factory builds the app bar's colours and has no field in it |
 | Scroll | `SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()` | Material's scroll-away-and-return behaviour, which does not exist unless it is passed |
 | Scope | `FilterChip`s, **not** a segmented control | Material retired the segmented button in the Expressive update; its named replacement is specified for *"two to five toggleable views"*, and our sources are an open, growing set. Material's own search page lists *"Filter chips to narrow down results"* |
 | Leading icon | Hand-written swap: magnifier collapsed, back arrow calling `animateToCollapsed()` expanded | Material requires that *"the back icon releases focus"* and **no API supplies it** |
 | Clear the query | Hand-written trailing icon | Material asks for *"an optional clear icon"*; `SearchBarDefaults` has no clear affordance of any kind — verified by `javap` over the whole class |
-| Result rows | `ListItem(content =, leadingContent =)` with a transparent container; groups by gap and `SegmentedListItem` rather than dividers | *"Use segmented gaps and filled list items to define a list group"*; dividers are for uncontained lists |
+| Result rows | `ListItem(content =, supportingContent =)` with a transparent container; grouped by `ListItemDefaults.segmentedShapes(index, count)` rather than dividers | *"Use segmented gaps and filled list items to define a list group"*; dividers are for uncontained lists. Two corrections to what this row used to claim: there is **no `leadingContent`** — a result row carries no cover, and the second line is the series or the author, which is `supportingContent` — and the separation is not a *gap*: the `LazyColumn` sets no `verticalArrangement`, and the rounding of a group's first and last row is what reads as one group |
 | What's new | `ModalBottomSheet` | Material's modal-sheet guidance describes this content almost exactly — *"when items require longer descriptions and icons"* — and a full-screen dialog meets none of Material's three criteria for one, while StoryArc runs on tablets where Material says to use a dialog or side sheet instead |
 
 **Hiding the navigation bar during search needs no code.** The expanded full-screen
@@ -81,7 +81,7 @@ duplicate the component and fight predictive back.
 | The bar's container | Floating capsule, inset from the edges | Edge-to-edge, bottom-anchored | Material has declined the floating capsule for handheld navigation across two design eras, and the missing `shape` parameter makes the refusal structural. [ADR-0001](../../../decisions/0001-independent-native-cores.md) |
 | Narrowing the scope | Segmented scope bar | Filter chips | The segmented button is retired in Expressive; iOS's scope bar is current and idiomatic |
 | Hiding the bar in search | Authored | Free | The Android component is a full-screen dialog |
-| What's new | Large sheet | Modal bottom sheet capped and expandable | Material routes a tablet-capable app away from full-screen dialogs |
+| What's new | Large sheet | Modal bottom sheet, one stop | Material routes a tablet-capable app away from full-screen dialogs. **The component diverges; the shape does not** — this row said Android's was "capped and expandable", and `WhatsNewSheet.kt` passes `setOf(SheetValue.Hidden, SheetValue.Expanded)` with no partial detent, which is the same single stop iOS's `[.large]` has. It was written that way on purpose and the source records why: a modal sheet lays its content out at full height and is translated down to a partial offset, so the pinned *Continue* sat below the visible edge |
 
 ## What is not designed from guidance
 
