@@ -223,7 +223,34 @@ worked around silently:
       *deliberately* not menus and say why in the source, and the sixth sits in a menu that iOS
       keeps its equivalent out of. Recorded rather than smoothed over, because "Android already
       does this" is the kind of sentence that later reads as "so nobody needs to look".
-- [ ] 2.6 iOS: captures before and after, at default and largest text size.
+- [x] 2.6 iOS: captures before and after, at default and largest text size.
+      **Done, and in both appearances rather than one** —
+      `docs/designs/screenshots/quieter-toolbar-2026-09-02/`, eight pictures with a README.
+      Dark as well as light because this toolbar sits on Liquid Glass, and a capsule
+      photographed only on paper says nothing about what it does over a dark canvas. The dark
+      pair is also what `--appearance` made possible: it landed today, and neither
+      `testCaptureLibrary` nor `testCaptureLibraryAtLargestText` had ever had a dark twin —
+      `docs/designs/ui-revamp-2026-08.md` §7.5 states the requirement as "light and dark, at
+      default and largest text size", and for this screen only half of it had been met. Both
+      halves are taken now.
+      **§7.5 also counted the toolbar independently, and got six.** Its 2026-08-30 slice-zero
+      capture reports "six unlabelled icon buttons … in a floating pill at the top of the
+      phone, and seven on the iPad", which is the same number `LibraryToolbarTests` measured
+      and a second reason the review's five was an undercount. That document's own bullet is
+      now stale and belongs to §4.1.
+      The *before* was photographed on the pre-change sources restored over the tree with
+      `git checkout f30478bf -- Sources/LibraryFeature/`, then put back — the same route
+      §1.10 used.
+      **The largest-text pair answers a question rather than ticking a box.** Android's chip
+      row overflowed at `font_scale 2.0`; iOS draws these as toolbar icons and an icon does not
+      grow with the reader's text, so each row is the same width at both sizes and neither the
+      six-glyph row nor the four-item one overflows. The improvement at the largest size is the
+      same as at the default — two fewer glyphs to tell apart — and there was never an overflow
+      to fix. Said plainly rather than left implied by four files.
+      **Every run's case count was checked.** Each of the eight was a single
+      `-only-testing:ScreenshotTests/<test>` run that reported one screenshot attached;
+      `xcodebuild` exits 0 on a filter matching nothing, and the capture script's "attached
+      nothing" line is the only tell.
 
 ## 3. Two smaller ones
 

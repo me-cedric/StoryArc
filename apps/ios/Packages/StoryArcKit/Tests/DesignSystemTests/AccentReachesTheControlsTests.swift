@@ -25,7 +25,7 @@ import Testing
 /// to colour its selected segment is `UISegmentedControl.appearance()`, a global UIKit proxy
 /// that cannot follow the Natural theme's two accents, and `native-experience` asks this app
 /// to follow the platform's own conventions rather than fight them. The picture is in
-/// `docs/designs/screenshots/named-failures-2026-09-01/`.
+/// `docs/designs/screenshots/quieter-toolbar-2026-09-02/`.
 ///
 /// **This reads source text**, the same trade `GlassIsUntintedTests` makes and explains: a
 /// resolved `Color` cannot be compared on the host, and the thing that regresses is the

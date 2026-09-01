@@ -21,7 +21,7 @@ import Testing
 /// number of items declared in one placement. That is a thing text can count exactly.
 ///
 /// The picture is the other half and is not optional — `docs/designs/screenshots/`
-/// `named-failures-2026-09-01/` holds the before and after at two text sizes and two
+/// `quieter-toolbar-2026-09-02/` holds the before and after at two text sizes and two
 /// appearances.
 @Suite("The library toolbar keeps two controls and two menus")
 struct LibraryToolbarTests {
