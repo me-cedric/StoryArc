@@ -100,6 +100,16 @@ struct AppShell: View {
     /// It is the shell's rather than `StoryArcApp`'s because this is what a reader lands on,
     /// and `design.md` puts the presentation here.
     @State private var whatsNew: WhatsNewRelease? = WhatsNew.onLaunch()
+    /// Whether the full player is presented.
+    ///
+    /// **Held here, by the shell, because the shell is what outlives a session.** It was
+    /// `@State` inside `PlayerDock`, which attached the presentation inside
+    /// `if let bar = centre.compact` — a computed value that changes on every play/pause and
+    /// every chapter boundary, so pressing a transport control inside the player destroyed the
+    /// player's own host. `PlayerSheet.swift` in `PlayerFeature` carries the full account.
+    ///
+    /// The dock still decides *when* to open it; it no longer hosts it.
+    @State private var isShowingPlayer = false
 
     let model: LibraryModel
     let progress: ProgressStore?
@@ -167,7 +177,21 @@ struct AppShell: View {
         // The docked transport, for everything that speaks. `audio-playback` requires that
         // it reserve no space when there is no session, and ``PlaybackAccessory`` is what
         // holds that promise — see its own comment for why an empty builder is not enough.
-        .modifier(PlaybackAccessory(isPlaying: isPlaying, onReturn: onOpen))
+        .modifier(
+            PlaybackAccessory(
+                isPlaying: isPlaying,
+                isShowingPlayer: $isShowingPlayer,
+                onReturn: onOpen
+            )
+        )
+        // The player itself, hosted here rather than in the accessory above.
+        //
+        // `audio-playback` asks that opening the player "never restarts, reloads or
+        // repositions the audio", and the accessory could not keep that promise: the bar reads
+        // the book's chapter, so the bar is rebuilt as the audio moves, and a presentation
+        // attached inside it was torn down by its own transport controls. This is attached to
+        // the `TabView`, which exists for as long as the app does.
+        .playerSheet(isPresented: $isShowingPlayer, centre: .shared)
         // What changed, once, over whatever the reader landed on.
         //
         // `.large` and one detent, because the content is a heading and four rows: a medium
@@ -245,6 +269,9 @@ struct AppShell: View {
 /// existed. Delete the branch when the floor moves.
 private struct PlaybackAccessory: ViewModifier {
     let isPlaying: Bool
+    /// Passed through to the bar, which sets it. The presentation it drives is attached to the
+    /// `TabView` above, not inside this accessory — see `PlayerSheet.swift`.
+    @Binding var isShowingPlayer: Bool
     let onReturn: (Publication, URL) -> Void
 
     func body(content: Content) -> some View {
@@ -275,6 +302,10 @@ private struct PlaybackAccessory: ViewModifier {
     /// the book that is already being spoken is what `SessionHandover` answers with `adopt`:
     /// the reader picks up the sentence the voice is on and the voice never notices.
     private var bar: some View {
-        PlayerDock(centre: PlayerCentre.shared, onReturn: onReturn)
+        PlayerDock(
+            centre: PlayerCentre.shared,
+            isShowingPlayer: $isShowingPlayer,
+            onReturn: onReturn
+        )
     }
 }

@@ -72,7 +72,15 @@ const run = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', maxBuffer
 
 for (const path of [bundle, staging]) rmSync(path, { recursive: true, force: true })
 
-const target = only ? `StoryArcUITests/ScreenshotTests/${only}` : 'StoryArcUITests/ScreenshotTests'
+// `--only` takes a bare test name in `ScreenshotTests`, or `Class/testName` for a capture
+// suite of its own. Class-qualified because there is more than one: `PlayerScreenshotTests`
+// exists, and a bare name pointed at the wrong class **passed with nothing attached** — the
+// `-only-testing:` filter matched no test, xcodebuild reported success, and the only clue was
+// this script's own "attached nothing" message. Silent success is the worst answer a capture
+// harness can give.
+const target = only
+    ? `StoryArcUITests/${only.includes('/') ? only : `ScreenshotTests/${only}`}`
+    : 'StoryArcUITests/ScreenshotTests'
 const udid = udidFor(device)
 
 // Read it before setting it, and put it back afterwards even if the run fails. A capture

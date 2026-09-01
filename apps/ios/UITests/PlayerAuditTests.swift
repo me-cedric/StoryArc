@@ -150,6 +150,52 @@ final class PlayerAuditTests: XCTestCase {
         )
     }
 
+    /// Pressing a transport control inside the player must not close the player.
+    ///
+    /// **This is the test for a defect that shipped, and its shape is the interesting part.**
+    /// `PlayerDock` attached the player's `.sheet` inside `if let bar = centre.compact`, and
+    /// `compact` is *computed* — its value changes when play/pause flips and again whenever the
+    /// audio crosses a chapter. So the presentation's host was destroyed by the very action
+    /// taken inside the presentation: a listener who pressed pause was returned to the
+    /// publication page with the compact bar still playing.
+    ///
+    /// **It was not the Close pill's removal.** The identical walk against `365c39da` — the
+    /// commit before §3.2 — failed the same way, with the pill still on screen. Recorded here
+    /// because "the button I just removed broke the dismissal" is the first thing anybody will
+    /// suspect, and it is wrong.
+    ///
+    /// The assertion is on play/pause because that is the control every listener presses, and
+    /// the landmark is *Chapters* for §3.2's reason: it is a control `audio-playback` requires
+    /// the player to offer, so it cannot be removed without the spec changing.
+    func testATransportTapDoesNotDismissThePlayer() throws {
+        let app = launch()
+        try openAnAudiobook(in: app)
+        try openThePlayer(in: app)
+
+        let transport = try XCTUnwrap(hittablePlayPause(in: app), """
+            Neither Play nor Pause was hittable while the player was presented. \
+            Buttons on screen: \(app.buttons.allElementsBoundByIndex.map(\.label))
+            """)
+        transport.tap()
+
+        XCTAssertTrue(
+            app.buttons["Chapters"].firstMatch.exists,
+            "Pressing the player's own transport control dismissed the player. The sheet's host "
+                + "is being rebuilt by the state the tap changed — see this test's own comment."
+        )
+    }
+
+    /// The play/pause control *inside the presented player*, not the compact bar's.
+    ///
+    /// Both carry the same two labels, and the bar's still `exists` behind a presented sheet —
+    /// so `firstMatch` on the label is a coin toss between them. Hittability is the honest
+    /// discriminator: the player is full-height, so nothing behind it can be hit.
+    private func hittablePlayPause(in app: XCUIApplication) -> XCUIElement? {
+        app.buttons.allElementsBoundByIndex.first {
+            ($0.label == "Pause" || $0.label == "Play") && $0.isHittable
+        }
+    }
+
     /// Drags the presented sheet off the bottom of the screen.
     ///
     /// Twice if it has to: the first drag can be absorbed by the scroll view when the sheet has

@@ -45,10 +45,26 @@ public struct PlayerDock: View {
     /// publication and its URL rather than an identifier, so the return opens the same bytes
     /// instead of searching the library for something that looks like them.
     private let onReturn: (Publication, URL) -> Void
-    @State private var showingPlayer = false
+    /// Whether the full player is presented — owned by the shell, not by this view.
+    ///
+    /// **It was `@State` here, and that was the defect.** The `.sheet` was attached inside
+    /// ``dock(_:)``, which is reached through `if let bar = centre.compact`; `compact` is
+    /// computed and changes on every play/pause and every chapter boundary, so the
+    /// presentation's host was destroyed by the action taken inside it. See
+    /// ``SwiftUICore/View/playerSheet(isPresented:centre:)``, which is where the presentation
+    /// lives now and why it cannot live here.
+    ///
+    /// This view still *opens* the player — it is the only thing that knows which of its two
+    /// ways back applies — it simply no longer hosts it.
+    @Binding private var isShowingPlayer: Bool
 
-    public init(centre: PlayerCentre, onReturn: @escaping (Publication, URL) -> Void) {
+    public init(
+        centre: PlayerCentre,
+        isShowingPlayer: Binding<Bool>,
+        onReturn: @escaping (Publication, URL) -> Void
+    ) {
         self.centre = centre
+        self._isShowingPlayer = isShowingPlayer
         self.onReturn = onReturn
     }
 
@@ -71,10 +87,6 @@ public struct PlayerDock: View {
         // its play/pause action and its open action reachable separately".
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("player.nowPlaying", bundle: .module))
-        .sheet(isPresented: $showingPlayer) {
-            FullPlayerView(centre: centre)
-                .storyArcTheme()
-        }
     }
 
     /// The publication and the chapter, and the whole of it is the way back.
@@ -93,7 +105,7 @@ public struct PlayerDock: View {
     private func wayIn(_ bar: CompactPlayer) -> some View {
         Button {
             switch bar.wayBack {
-            case .fullPlayer: showingPlayer = true
+            case .fullPlayer: isShowingPlayer = true
             case .publication: onReturn(bar.book.publication, bar.book.url)
             }
         } label: {
@@ -142,7 +154,7 @@ public struct PlayerDock: View {
         HStack(spacing: isInline ? StoryArcSpace.xs : StoryArcSpace.sm) {
             if bar.wayBack == .publication, !isInline {
                 button("chevron.up", Text("player.open", bundle: .module)) {
-                    showingPlayer = true
+                    isShowingPlayer = true
                 }
             }
 

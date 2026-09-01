@@ -689,9 +689,27 @@ creep — see [`design.md`](design.md).
       host is rebuilt and the presentation is torn down. A skip-back tap and a chapter-row tap each
       left the publication page on screen with the compact bar still playing, and **the same run
       against the pre-§3.2 `FullPlayerView` failed identically**, which is what proves it predates
-      the Close pill's removal. Not fixed here: the remedy is to move the player's presentation off
-      the accessory's conditional content, which is a change to §4.2's own layout and belongs in a
-      task that names it.
+      the Close pill's removal.
+      **Fixed on 2026-09-01.** The presentation moved to the shell's `TabView`, which exists for
+      as long as the app does, through a `playerSheet(isPresented:centre:)` modifier in
+      `PlayerFeature`. Wrapping the dock's `if let` in a container would have fixed the teardown
+      and broken something else: `audio-playback` requires the compact bar to be "absent rather
+      than present and empty", so the dock's body must keep producing *nothing* when there is
+      nothing to draw — and a host that is stable cannot also be a host that sometimes does not
+      exist. The modifier owns the one case the old accident handled for free: the player closes
+      when the **session** ends, on `isRunning` and not `isPlaying`, because dismissing on a pause
+      would be the original defect rebuilt by hand.
+      `PlayerAuditTests.testATransportTapDoesNotDismissThePlayer` is the regression test, and it
+      was **mutation-checked against the whole pre-fix shape** — the sheet put back inside the dock
+      and the modifier removed from the shell — where it fails with its own message.
+      **The first attempt at this was parked for a day by its own mutation evidence, which is the
+      lesson worth keeping.** The parked branch left `PlayerDock`'s `.sheet` in place under a
+      `// MUTATION: the defect, put back on purpose` comment, so the committed tree had *two*
+      sheets bound to one binding, and a capture walk failed in a way that looked like a genuine
+      SwiftUI limitation. Its own note had even recorded that binding two sheets to one binding
+      "failed for a different reason" — and then shipped exactly that. **Undo a mutation before
+      committing, and never leave one behind a comment that explains it**; a comment does not
+      un-break the build it is sitting in.
       **Still `[~]`, and the reason is not a platform**: a *synthesised voice* cannot fade.
       `AVSpeechUtterance.volume` applies to the next utterance and not the one being spoken, so
       `setVolume` has a documented no-op default and a read-aloud timer stops the voice without
