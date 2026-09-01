@@ -129,6 +129,12 @@ struct StoryArcApp: App {
             return try await SmbClient(address: page.address).open(inside)
         }
 
+        // The speed a listener chose, remembered per publication and offered to the rest of the
+        // series. Here rather than beside the session's other wiring because a session can
+        // begin from either source and only one of the two paths runs through this target —
+        // see `wirePlayerSpeed`.
+        Self.wirePlayerSpeed()
+
         let store = try? ProgressStore()
         self.progress = store
         _library = State(

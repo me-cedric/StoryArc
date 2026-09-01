@@ -562,7 +562,31 @@ creep — see [`design.md`](design.md).
       **both** entries, which is what makes a series a *default* rather than a second setting.
       Applied before the first sound rather than after it. Seven cases in
       `PlaybackPreferencesTest`; instrumented, because `SharedPreferences` is a framework
-      component like every other store in the module. iOS half outstanding.
+      component like every other store in the module.
+      **iOS done, and the store is Android's rule with Android's cases.** The first three
+      clauses were already true — `AVPlayer.rate` with `audioTimePitchAlgorithm = .timeDomain`
+      keeps the pitch, `PlaybackSpeed` clamps to 0.5×–3×, and the number is on the control's
+      face and in its announced value. What was missing is the remembering, and the two hooks
+      that existed for it — `PlayerCentre.onRecallSpeed` and `onRememberSpeed` — had **no
+      caller anywhere in the app**, so every book started at 1× however often a listener had
+      changed it. `Persistence/PlaybackPreferences.swift` is the same two scopes resolved
+      publication-then-series, the publication's own always winning, and a choice writing both
+      entries. Nine cases in `PlaybackPreferencesTests`, seven of them Android's own.
+      **Two cases Android's store does not have, because `UserDefaults` differs from
+      `SharedPreferences` in exactly one dangerous way**: it answers `0` for a key it has never
+      seen with no way to pass a sentinel, so a stored zero is not believed — otherwise every
+      untouched book would start *stopped*, which is the one value a speed may never be. And a
+      rate outside the offered range comes back as stored rather than being rewritten: a store
+      is not where a range is validated, and `PlaybackSpeed(_:)` is what clamps it.
+      The wire is `StoryArcApp.wirePlayerSpeed`, called from the app's `init` rather than beside
+      the session's other wiring — **which is the one thing here that is not a mirror**.
+      `wirePlayerRecording()` is called from `listen(to:at:)`, so a listener who only ever read
+      a book aloud would never have run it, and read-aloud begins its session from
+      `ReadAloudCentre.begin` inside `StoryArcEpub`, which cannot see the app target. One call
+      at start-up is the only place that covers a session begun from either source.
+      Applied before the first sound: `begin(_:source:)` asks the hook and calls `setSpeed`
+      before `play`, and `NarratedSource.setSpeed` on a paused player records the number and
+      applies it on the next `play` rather than starting the audio.
 - [ ] 5.2 Both: skip states its interval on the control, is configurable, and
       crossing a chapter boundary continues rather than stopping. Defaults 15 s back
       and 30 s forward — a **product decision**, recorded as one; media3's own

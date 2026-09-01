@@ -172,6 +172,35 @@ extension StoryArcApp {
         }
     }
 
+    /// Remembers how fast a listener wants a book read, and asks before the first sound.
+    ///
+    /// `audio-playback`: the speed "is remembered for that publication and offered as the
+    /// default for others in the same series". ``PlaybackPreferences`` is the whole of that
+    /// rule — two scopes resolved publication-then-series, and a choice writing both — and this
+    /// is only the wire between it and the player. Android's half is
+    /// `PlaybackHost.start(speed:)` reading the same store.
+    ///
+    /// **Static, and called from `StoryArcApp.init`**, which is what makes it reach *both*
+    /// sources. `wirePlayerRecording()` is called from `listen(to:at:)`, so a listener who only
+    /// ever read a book aloud would never have run it — and read-aloud starts its session from
+    /// `ReadAloudCentre.begin`, deep inside `StoryArcEpub`, which cannot see this target. One
+    /// call at start-up is the only place that covers a session begun from either.
+    ///
+    /// **Before the first sound rather than after it**: ``PlayerCentre/begin(_:source:)`` asks
+    /// `onRecallSpeed` and calls `setSpeed` before `play`, so a listener never hears the
+    /// sentence that is about to be announced as the start of a chapter at the wrong pace.
+    static func wirePlayerSpeed(_ preferences: PlaybackPreferences = PlaybackPreferences()) {
+        let centre = PlayerCentre.shared
+        guard centre.onRecallSpeed == nil else { return }
+
+        centre.onRecallSpeed = { publication in
+            PlaybackSpeed(preferences.speed(of: publication.id, series: publication.series))
+        }
+        centre.onRememberSpeed = { publication, speed in
+            preferences.remember(speed.rate, of: publication.id, series: publication.series)
+        }
+    }
+
     /// Swaps the reader's contents for the next publication.
     ///
     /// The selection is replaced rather than a second cover presented: stacking
