@@ -122,6 +122,18 @@ public final class PlayerCentre {
 
     @ObservationIgnored private var source: (any PlaybackSource)?
 
+    /// The one session there can be.
+    ///
+    /// A process-wide singleton for the reason `ReadAloudCentre.shared` is one: the session
+    /// has to outlive every screen, and that is a lifetime no screen's state has.
+    /// `audio-playback` allows exactly one — "the first stops and its position is recorded
+    /// before the second begins" — and a singleton is that requirement stated where it
+    /// cannot be worked around.
+    ///
+    /// The initialiser stays public so a test makes its own. Every suite in `PlaybackTests`
+    /// does, which is the whole reason this type is host-testable.
+    public static let shared = PlayerCentre()
+
     public init() {}
 
     // MARK: - Starting, and changing hands

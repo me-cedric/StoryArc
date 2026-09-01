@@ -17,6 +17,7 @@ let package = Package(
         .library(name: "DesignSystem", targets: ["DesignSystem"]),
         .library(name: "Formats", targets: ["Formats"]),
         .library(name: "Playback", targets: ["Playback"]),
+        .library(name: "PlayerFeature", targets: ["PlayerFeature"]),
         .library(name: "StoryArcCore", targets: ["StoryArcCore"]),
         .library(name: "LibraryFeature", targets: ["LibraryFeature"]),
         .library(name: "ReaderFeature", targets: ["ReaderFeature"]),
@@ -101,6 +102,14 @@ let package = Package(
             // that requirement is why.
             resources: [.process("Resources")]
         ),
+        // The player's surfaces. Apart from `Playback` because that target must stay
+        // free of SwiftUI and DesignSystem: `Formats` depends on it for `AudiobookPart`,
+        // and a parser has no business linking a design system.
+        .target(
+            name: "PlayerFeature",
+            dependencies: ["DesignSystem", "Playback", "StoryArcCore"],
+            resources: [.process("Resources")]
+        ),
         // ADR-0006 names SwiftData here and Room on Android. The schema semantics
         // are shared; the implementations are not.
         .target(name: "Persistence", dependencies: ["StoryArcCore"]),
@@ -122,6 +131,7 @@ let package = Package(
         .testTarget(name: "StoryArcCoreTests", dependencies: ["StoryArcCore"]),
         .testTarget(name: "FormatsTests", dependencies: ["Formats"]),
         .testTarget(name: "PlaybackTests", dependencies: ["Playback"]),
+        .testTarget(name: "PlayerFeatureTests", dependencies: ["PlayerFeature"]),
         .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
         .testTarget(name: "CatalogueTests", dependencies: ["Catalogue"]),
         .testTarget(name: "KavitaTests", dependencies: ["Kavita"]),

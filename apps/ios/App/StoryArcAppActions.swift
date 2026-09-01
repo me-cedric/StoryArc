@@ -1,6 +1,7 @@
 import Formats
 import LibraryFeature
 import Persistence
+import Playback
 import ReaderFeature
 import Smb
 import StoryArcCore
@@ -26,9 +27,7 @@ extension StoryArcApp {
     func openHandedOver(_ url: URL) async {
         switch await OpenedFile.index(url) {
         case let .opened(publication):
-            let selection = ReadingSelection(publication: publication, url: url)
-            reading = selection
-            dismissed = selection
+            open(publication, at: url)
             _ = OpenedFile.remember(url, in: bookmarks)
         case let .unsupported(detected):
             refusedFile = RefusedFile(name: url.lastPathComponent, detected: detected)
@@ -72,15 +71,79 @@ extension StoryArcApp {
         await KavitaSync.report(index, for: origin, to: address, in: kavitaProgress)
     }
 
+    /// Opens a publication: a reader for a comic or a book, the player for an audiobook.
+    ///
+    /// **One seam, so every way in agrees.** A publication reaches the app from the shelf,
+    /// from a quick action, from a file another app handed over and from the end of the
+    /// previous issue, and each of those used to build a `ReadingSelection` itself. An
+    /// audiobook opened that way would have been handed to a comic reader, which is the
+    /// defect `publication-formats` describes as opening "in the player rather than in a
+    /// reader".
+    ///
+    /// It asks `format.isAudio` rather than listing the audio formats, so a format added
+    /// later cannot miss this branch.
+    func open(_ publication: Publication, at url: URL) {
+        guard !publication.format.isAudio else {
+            listen(to: publication, at: url)
+            return
+        }
+        let selection = ReadingSelection(publication: publication, url: url)
+        reading = selection
+        dismissed = selection
+    }
+
+    /// Starts, or returns to, an audiobook.
+    ///
+    /// `audio-playback`: opening the book that is already playing must not restart it, which
+    /// is what `SessionHandover` answers with `adopt` — so a listener who taps the same cover
+    /// again keeps their place instead of losing it.
+    ///
+    /// No screen is presented. The compact bar is the surface a listener gets, and it is
+    /// already above the navigation control; presenting the full player over the shelf would
+    /// take them away from what they were doing, which is the opposite of what playback
+    /// outliving the publication is for.
+    func listen(to publication: Publication, at url: URL) {
+        let centre = PlayerCentre.shared
+        guard centre.handover(opening: publication.id) != .adopt else { return }
+
+        Task {
+            // The scope has to be open for the whole session, not just the read: an
+            // `AVPlayer` keeps reading the file for as long as it plays, and a library
+            // folder the reader picked in a document picker is reachable only inside one.
+            // `OpenedFile.index` opens and closes a scope around its read for the same
+            // reason; the difference here is that the read is not the end of the story.
+            let scoped = url.startAccessingSecurityScopedResource()
+
+            let book = publication.format == .audioFolder
+                ? await AudiobookReader.read(folderAt: url)
+                : await AudiobookReader.read(fileAt: url)
+            // A book with no parts is a file nothing can play. Better to leave the shelf as
+            // it was than to open a player with nothing in it.
+            guard !book.parts.isEmpty else {
+                if scoped { url.stopAccessingSecurityScopedResource() }
+                return
+            }
+
+            // The audio session and the lock screen, made once and kept: wiring them per
+            // session is how a listener who started five books ends up with five handlers
+            // on every lock-screen button.
+            if centre.platform == nil {
+                centre.platform = SystemPlaybackPlatform(for: centre)
+            }
+            centre.begin(
+                SpokenBook(publication: publication, url: url),
+                source: NarratedSource(book)
+            )
+        }
+    }
+
     /// Swaps the reader's contents for the next publication.
     ///
     /// The selection is replaced rather than a second cover presented: stacking
     /// readers would leave a pile of them behind a long series.
     func openNext(_ publication: Publication) {
         guard let url = library.location(of: publication) else { return }
-        let selection = ReadingSelection(publication: publication, url: url)
-        reading = selection
-        dismissed = selection
+        open(publication, at: url)
     }
 
     /// Puts the reader where a quick action asked to be, from wherever it found them.

@@ -3,6 +3,8 @@ import SwiftUI
 import EpubReaderFeature
 import LibraryFeature
 import Persistence
+import Playback
+import PlayerFeature
 import SettingsFeature
 import StoryArcCore
 
@@ -111,6 +113,7 @@ struct AppShell: View {
         // is a session running — and not the book, whose chapter is rewritten on every
         // sentence: the shell has no business redrawing three times a minute for hours.
         let isReadingAloud = ReadAloudCentre.shared.isRunning
+        let isPlaying = PlayerCentre.shared.isRunning
 
         TabView(selection: $tab) {
             Tab(value: .destination(.home)) {
@@ -170,7 +173,13 @@ struct AppShell: View {
         // what `SessionHandover` answers with `adopt`: the reader picks up the sentence
         // the voice is on and the voice never notices. There is no second path back, and
         // that is the point — the one that exists is the one Phase 1 tested.
-        .modifier(ReadAloudAccessory(isSpeaking: isReadingAloud, onReturn: onOpen))
+        .modifier(
+            PlaybackAccessory(
+                isPlaying: isPlaying,
+                isSpeaking: isReadingAloud,
+                onReturn: onOpen
+            )
+        )
         // What changed, once, over whatever the reader landed on.
         //
         // `.large` and one detent, because the content is a heading and four rows: a medium
@@ -246,19 +255,46 @@ struct AppShell: View {
 /// the availability branch below — the app's only one. On 26.0 the empty capsule remains:
 /// the old behaviour, not a new defect, and the honest cost of a floor set before the API
 /// existed. Delete the branch when the floor moves.
-private struct ReadAloudAccessory: ViewModifier {
+private struct PlaybackAccessory: ViewModifier {
+    let isPlaying: Bool
     let isSpeaking: Bool
     let onReturn: (Publication, URL) -> Void
 
     func body(content: Content) -> some View {
         if #available(iOS 26.1, *) {
-            content.tabViewBottomAccessory(isEnabled: isSpeaking) {
-                ReadAloudDock(onReturn: onReturn)
-            }
+            content.tabViewBottomAccessory(isEnabled: isPlaying || isSpeaking) { bar }
         } else {
             content.tabViewBottomAccessory {
-                if isSpeaking { ReadAloudDock(onReturn: onReturn) }
+                if isPlaying || isSpeaking { bar }
             }
+        }
+    }
+
+    /// One slot, and the narrated player takes it when it is running.
+    ///
+    /// **Two bars is an interim state, and it is recorded here because nothing else would
+    /// record it.** `design.md` asks for one session object behind both sources, and
+    /// `audiobooks-and-playback` §4.2 is the task that folds read-aloud into it. That fold
+    /// is blocked on a measured fact rather than on effort: **Readium 3.11.0 cannot change
+    /// speech rate.** `PublicationSpeechSynthesizer.Configuration` carries a language and a
+    /// voice and nothing else, and `AVTTSEngine.swift:131` — the line that would apply a
+    /// rate to the utterance — is commented out upstream. So a read-aloud session driving
+    /// `PlayerCentre` would offer a speed control that does nothing, which is the one thing
+    /// `audio-playback` forbids by name: "every control the player offers works, or is
+    /// absent — none is present and refusing".
+    ///
+    /// Deciding between an absent speed control for one source, our own `AVSpeechSynthesizer`
+    /// in place of Readium's, and a patched dependency is a design decision, not an
+    /// implementation detail, and it belongs in `design.md` before it belongs in this file.
+    ///
+    /// The two cannot both be running: one audio session, and each source stops the other's
+    /// publication before it starts. The `||` is what keeps the slot open for whichever it
+    /// is; the order below is what decides the bar when a future defect makes both true.
+    @ViewBuilder private var bar: some View {
+        if isPlaying {
+            PlayerDock(centre: PlayerCentre.shared)
+        } else {
+            ReadAloudDock(onReturn: onReturn)
         }
     }
 }

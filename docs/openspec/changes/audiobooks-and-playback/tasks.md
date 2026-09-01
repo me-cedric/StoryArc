@@ -168,12 +168,37 @@ creep — see [`design.md`](design.md).
 
 ## 4. The surfaces
 
-- [ ] 4.1 Both: `CompactPlayerTests` / `CompactPlayerTest` — the bar names the
+- [~] 4.1 Both: `CompactPlayerTests` / `CompactPlayerTest` — the bar names the
       publication and the **chapter**, is absent when nothing plays, and does not
       displace, cover or resize the navigation control. Assert content behind it
       still scrolls to its end.
+      **iOS done, in two halves.** What a value can hold is in `CompactPlayerTests`: the
+      title and the chapter, the chapter following the audio, absence when nothing plays,
+      and all three endings withdrawing the bar. The layout half is not assertable from a
+      unit test — a tab bar cannot be one — so it is the pair of captures in
+      `docs/designs/screenshots/after-2026-09-01-ios-player/`: the same shelf with and
+      without a session, minutes apart, with the four destinations at the same height in
+      both. **Photographed on a device**, and the bar names *Sea Room* and the chapter
+      *Two* — read from the M4B's own chapter atom, which is also the end-to-end proof of
+      the locale correction in 2.7. *The Android half is not started.*
 - [ ] 4.2 iOS: generalise `ReadAloudDock` in `tabViewBottomAccessory` to the shared
       session, so a narrated book and a spoken one produce the same bar.
+      **Not done, and blocked on a measured fact rather than on effort.** `PlayerDock` exists
+      and takes the slot whenever `PlayerCentre` is running; `ReadAloudDock` still takes it
+      for a spoken session, and `AppShell.PlaybackAccessory` chooses between them in one
+      place with the blocker written at it.
+      **Readium 3.11.0 cannot change speech rate.**
+      `PublicationSpeechSynthesizer.Configuration` carries a `defaultLanguage` and a
+      `voiceIdentifier` and nothing else, and `AVTTSEngine.swift:131` — the line that would
+      apply a rate to the utterance — is **commented out upstream**; `rateMultiplier`
+      appears nowhere else in the TTS sources. Checked in the pinned checkout on 2026-09-01.
+      So a read-aloud session driving `PlayerCentre` would offer a speed control that does
+      nothing, which `audio-playback` forbids by name: "every control the player offers
+      works, or is absent — none is present and refusing".
+      There are three honest ways out and choosing between them is a `design.md` decision,
+      not an implementation detail: let a source declare that it offers no speed and have the
+      surface omit the control; replace Readium's engine with our own `AVSpeechSynthesizer`;
+      or carry a patched dependency. **`/opsx:update` before this task is picked up again.**
 - [ ] 4.3 Android: hand-compose the row in `NavigationSuiteScaffold`'s `content`
       slot, full-width `surfaceContainer`, sharing the navigation bar's container
       colour. **Not** `BottomSheetScaffold` (no `bottomBar` slot, so the peek row
@@ -181,11 +206,26 @@ creep — see [`design.md`](design.md).
       **not** `BottomAppBar` — both compile without complaint and both are ruled out
       by guidance. `design.md` records why, because the build will not.
 - [ ] 4.4 Android: flat `LinearProgressIndicator` for the progress line.
-- [ ] 4.5 Both: the full player — cover, publication, chapter, position, duration,
+- [~] 4.5 Both: the full player — cover, publication, chapter, position, duration,
       play/pause, skip both ways, scrub, chapter list, speed, sleep timer. Assert
       opening it never restarts, reloads or repositions the audio.
-- [ ] 4.6 Both: a publication with no chapter markers lists its parts in playing
+      **iOS done.** `FullPlayerView`, presented as a sheet from the compact bar. It holds no
+      engine and no state beyond which sheet is open — it reads `PlayerCentre` and writes to
+      it — so "opening it never restarts, reloads or repositions the audio" is true by
+      construction rather than by care, and there is nothing in the file that *could*
+      restart anything. The scrub control is drawn only where a duration exists, and the
+      branch asks the **time** whether it has a total rather than asking which source is
+      playing. **Photographed on a device** — cover, publication, chapter, a scrub control
+      reading the chapter's own `0:00 / 0:02`, skip glyphs carrying 15 and 30, and the
+      chapter list, speed and sleep timer.
+      *The Android half is not started.*
+- [~] 4.6 Both: a publication with no chapter markers lists its parts in playing
       order rather than showing an empty list.
+      **iOS done, and there is no branch for it.** A source with no chapter markers reports
+      one part rather than none — the rule lives in `AudiobookReader`, where the container is
+      read — so `ChapterListView` never has an empty case to handle. What is left is naming
+      an unnamed part, which `PlayerLabels.chapter` answers with its number and never with
+      the file's name. *The Android half is not started.*
 
 ## 5. Controls
 

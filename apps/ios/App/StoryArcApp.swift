@@ -157,11 +157,9 @@ struct StoryArcApp: App {
                 tab: $tab,
                 model: library,
                 progress: progress,
-                onOpen: { publication, url in
-                    let selection = ReadingSelection(publication: publication, url: url)
-                    reading = selection
-                    dismissed = selection
-                },
+                // One seam for every way in — see `open(_:at:)`. An audiobook goes to the
+                // player and everything else to a reader.
+                onOpen: { publication, url in open(publication, at: url) },
                 onOpenSettings: {
                     // Re-read on the way in, so a download made while browsing a catalogue
                     // is on this screen rather than one launch behind it.

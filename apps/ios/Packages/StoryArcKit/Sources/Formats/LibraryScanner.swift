@@ -40,20 +40,6 @@ public enum LibraryScanner {
         "jpg", "jpeg", "png", "gif", "webp", "avif", "heic", "bmp", "tif", "tiff",
     ]
 
-    /// Whether a file is a candidate part or a candidate audiobook.
-    ///
-    /// **Audio is deliberately not in ``candidateExtensions``.** Putting it there would make
-    /// every part of a folder of chapter MP3s its own publication, which is the one thing
-    /// `publication-formats` says a folder of audio is not — "a folder holds ordered audio
-    /// files … it is treated as a single audiobook". So audio is counted separately, exactly
-    /// as images already are, and the folder-versus-file decision below reads both.
-    ///
-    /// The set itself is `FolderKind`'s, so the walk and the kind cannot disagree about what
-    /// counts as audio.
-    private static func isAudio(_ url: URL) -> Bool {
-        FolderKind.audioExtensions.contains(url.pathExtension.lowercased())
-    }
-
     /// Publications in `folder`, emitted as they are found.
     ///
     /// Depth-first and alphabetical, so the order a user sees matches the order
@@ -191,7 +177,12 @@ public enum LibraryScanner {
         }
         let images = files.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
         let audio = files.filter { isAudio($0) }
-        if publications.isEmpty, !images.isEmpty || !audio.isEmpty {
+        // The same rule the walk uses, and it has to be the same one: `local-library`
+        // reconciles a returning app by comparing this listing against what was scanned, and
+        // a listing that called a folder one publication where the walk called it a shelf
+        // would report every publication in it as gone on every launch. `LibraryScannerTests`
+        // asserts the two agree, and caught exactly that.
+        if publications.isEmpty, !images.isEmpty || isAudiobookFolder(audio, directories) {
             found.append(entry(for: directory))
             return
         }
@@ -271,7 +262,7 @@ public enum LibraryScanner {
         let imageFiles = files.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
         let audioFiles = files.filter { isAudio($0) }
 
-        if publicationFiles.isEmpty, !imageFiles.isEmpty || !audioFiles.isEmpty {
+        if publicationFiles.isEmpty, !imageFiles.isEmpty || isAudiobookFolder(audioFiles, directories) {
             // Its subdirectories are chapters of it, not separate publications.
             //
             // Which kind of publication is `FolderKind`'s answer, not this one's: a folder

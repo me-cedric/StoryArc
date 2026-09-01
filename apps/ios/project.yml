@@ -58,6 +58,10 @@ targets:
         product: SettingsFeature
       - package: StoryArcKit
         product: Persistence
+      - package: StoryArcKit
+        product: Playback
+      - package: StoryArcKit
+        product: PlayerFeature
       - package: StoryArcEpub
         product: EpubReaderFeature
     info:
