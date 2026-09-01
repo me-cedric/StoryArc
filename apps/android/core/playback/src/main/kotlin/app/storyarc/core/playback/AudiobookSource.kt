@@ -37,6 +37,8 @@ class AudiobookSource(
 
     override var onChange: (() -> Unit)? = null
 
+    override var onInterruptionEnd: ((mayResume: Boolean) -> Unit)? = null
+
     /**
      * The parts, which for a single file are not known until the decoder has read it.
      *
@@ -74,16 +76,57 @@ class AudiobookSource(
      * Reports what the decoder did, so a listener's own pause is never confused with one
      * media3 made.
      *
-     * The session table is the shared one, and it is what decides. A press on the
-     * notification arrives here as `onIsPlayingChanged`, exactly like a press in the app,
-     * and both are the listener — media3 has no separate channel for "the user did this",
-     * so what separates a listener's pause from an interruption's is that [interrupted] is
-     * called by the thing that handled the audio focus loss, and this is not it.
+     * **This used to read every silence as the listener's**, and that was the defect: media3
+     * owns the audio focus here, and it reports a call taking the audio as the same
+     * `onIsPlayingChanged(false)` a thumb on the notification produces. So a book paused by
+     * a phone call was recorded as a book the listener had paused, and the rule
+     * `audio-playback` states twice — "a pause the listener made is never undone this way" —
+     * had nothing to enforce it on the narrated path; worse, a focus loss for good left the
+     * session paused for ever with no position written, which the same requirement forbids
+     * by name. Read-aloud had connected all of this through its own focus listener.
+     *
+     * What separates the cases is in [PlaybackFocus], read from the player rather than
+     * remembered, so the order media3 delivers these three callbacks in cannot change the
+     * answer.
      */
     private val listener = object : Player.Listener {
-        override fun onIsPlayingChanged(isPlaying: Boolean) {
-            session = if (isPlaying) session.started() else session.pausedByListener()
-            onChange?.invoke()
+        override fun onIsPlayingChanged(isPlaying: Boolean) = report()
+
+        /**
+         * The listener stopped wanting audio — or the platform stopped offering it.
+         *
+         * The reason is the whole content of this callback: media3 names its own when it
+         * gives the audio up, and that is the one signal a listener's pause does not carry.
+         */
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            if (!playWhenReady && PlaybackFocus.isAudioLostForGood(reason)) {
+                // Ends the session and writes the position, through the shared table. Not
+                // done here: the position has to be recorded before anything is stopped,
+                // and the centre is what owns that order.
+                onInterruptionEnd?.invoke(false)
+                return
+            }
+            report()
+        }
+
+        /**
+         * Something took the audio for a moment, or gave it back.
+         *
+         * media3 suppresses rather than pausing for a transient focus loss, which is what
+         * keeps `playWhenReady` true through a phone call and is exactly the distinction
+         * the session table needs.
+         */
+        override fun onPlaybackSuppressionReasonChanged(reason: Int) {
+            when {
+                PlaybackFocus.isInterruption(reason) -> report()
+                // Given back, and the listener still wants it. Whether that means play
+                // again is the session's decision, never this callback's.
+                player.playWhenReady -> onInterruptionEnd?.invoke(true)
+                // The suppression lifted because the *listener* paused during it — media3
+                // gives the focus up at that point. Nothing here starts a book somebody
+                // deliberately silenced.
+                else -> report()
+            }
         }
 
         override fun onPlaybackStateChanged(state: Int) {
@@ -113,6 +156,17 @@ class AudiobookSource(
         }
     }
 
+    /** Asks the player what it is doing now, and tells the table what that means. */
+    private fun report() {
+        session = PlaybackFocus.silenced(
+            session = session,
+            isPlaying = player.isPlaying,
+            playWhenReady = player.playWhenReady,
+            suppressionReason = player.playbackSuppressionReason,
+        )
+        onChange?.invoke()
+    }
+
     override fun play() {
         if (player.currentMediaItem == null) prepare()
         player.play()
@@ -123,20 +177,6 @@ class AudiobookSource(
     override fun pause() {
         player.pause()
         session = session.pausedByListener()
-        onChange?.invoke()
-    }
-
-    /**
-     * Something else took the audio.
-     *
-     * Its own entry point rather than a state media3 reports, because media3 does not
-     * report one: `onIsPlayingChanged(false)` is the same callback whoever caused it. The
-     * audio-focus handler calls this, and it is the whole reason a call ending starts the
-     * book again and a pause the listener made never does.
-     */
-    fun interrupted() {
-        player.pause()
-        session = session.interrupted()
         onChange?.invoke()
     }
 

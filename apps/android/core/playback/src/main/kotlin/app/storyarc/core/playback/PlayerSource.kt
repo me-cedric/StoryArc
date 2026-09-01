@@ -51,6 +51,23 @@ interface PlayerSource {
     /** Reports every change to whoever is driving. Set by [PlaybackCentre]. */
     var onChange: (() -> Unit)?
 
+    /**
+     * Reports that the thing which took the audio has finished with it.
+     *
+     * Set by [PlaybackCentre], and separate from [onChange] because the answer is not a
+     * redraw: `audio-playback` wants the audio back only when the pause was the
+     * interruption's, and the session ended outright when the audio is gone for good.
+     * [PlaybackSession.endingInterruption] decides between those three, and the centre is
+     * where it is asked — a source that decided for itself would be a second copy of the
+     * rule, which is what moving the table into this module removed.
+     *
+     * Required rather than defaulted: a source that quietly ignored this would be a book
+     * that never comes back after a phone call, and nothing in a build would say so.
+     *
+     * @param mayResume the platform's own answer to whether playback may start again.
+     */
+    var onInterruptionEnd: ((mayResume: Boolean) -> Unit)?
+
     fun play()
     fun pause()
     fun stop()

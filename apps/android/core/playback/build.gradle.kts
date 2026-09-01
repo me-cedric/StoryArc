@@ -18,6 +18,12 @@ android {
             allWarningsAsErrors.set(true)
         }
     }
+
+    // `MediaItem.Builder.setUri(String)` calls `Uri.parse`, and the unit-test JVM has no
+    // implementation of it. Robolectric supplies the Android runtime rather than
+    // `isReturnDefaultValues`, which would make every unmocked platform call answer null
+    // in silence — including ones a test meant to exercise.
+    testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 
 dependencies {
@@ -33,4 +39,5 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
 }

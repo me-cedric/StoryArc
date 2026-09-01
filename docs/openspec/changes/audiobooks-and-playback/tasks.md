@@ -321,6 +321,21 @@ creep — see [`design.md`](design.md).
       Read-aloud does connect it, through `ReadAloudController`'s own focus listener.
       Closing this means a focus listener beside media3's, or reading media3's own
       `Player.getPlaybackSuppressionReason`.
+      **Android half now done — the second way, and no second focus request.** `PlaybackFocus`
+      maps media3's three facts onto the shared table: `isPlaying`, `playWhenReady`, and the
+      suppression reason. A transient loss suppresses and leaves `playWhenReady` **true**,
+      which is the one signal a listener's pause does not carry; a loss for good clears
+      `playWhenReady` with `PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS`, and the source
+      hands that to `PlaybackCentre.endInterruption(false)` so the position is written before
+      anything is stopped. Read from the player rather than remembered, so media3's callback
+      order cannot change the answer. `PlayerInterruptionTest`, seven cases, four of them
+      failing before the change; mutation-checked three ways.
+      **One widening of the shared table, and iOS owes the same.**
+      `PlaybackSession.pausedByListener` guarded on `isPlaying`, so a listener pausing *during*
+      a call left the session marked as the interruption's — and the suppression then lifts by
+      itself, because media3 gives the focus up, which would have started a book somebody had
+      deliberately silenced. The guard is `isActive` now. iOS's `pausedByListener()` still
+      guards on `isPlaying`.
 - [~] 3.9 Both: route-change test — headphones removed pauses, and reconnecting does
       **not** resume.
       **iOS done.** `PlayerCentre.routeLost` records the pause as the *listener's*, which is
@@ -333,6 +348,15 @@ creep — see [`design.md`](design.md).
       own answer to the first half. Nothing asserts either half, and the second half — that
       reconnecting does not resume — is media3's behaviour rather than a decision this code
       makes, so it is *believed* and not *checked*.
+      **Android half now asserted, and the second half is this code's decision after all.**
+      media3 names its own reason when the route goes noisy —
+      `PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY` — and `PlaybackFocus` deliberately
+      leaves it out of "audio lost for good", so it lands as the **listener's** pause. That is
+      the same mechanism iOS's `PlayerCentre.routeLost` uses, and it is what makes "does not
+      resume by itself" true rather than believed: nothing the platform sends afterwards
+      undoes a listener's pause. `PlayerInterruptionTest`, one case. What is still believed
+      rather than checked is that a real disconnection produces that reason; that needs
+      headphones and a device.
 
 ## 4. The surfaces
 

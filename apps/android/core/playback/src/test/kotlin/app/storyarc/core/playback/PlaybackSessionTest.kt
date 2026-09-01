@@ -378,6 +378,8 @@ private class FakeSource(
 
     override var onChange: (() -> Unit)? = null
 
+    override var onInterruptionEnd: ((mayResume: Boolean) -> Unit)? = null
+
     override fun play() {
         log?.add("played $publicationId")
         session = session.started()

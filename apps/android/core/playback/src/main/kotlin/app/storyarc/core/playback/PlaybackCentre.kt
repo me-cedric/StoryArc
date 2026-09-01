@@ -41,6 +41,7 @@ class PlaybackCentre(
         displace()
         this.source = source
         source.onChange = { publish() }
+        source.onInterruptionEnd = { mayResume -> endInterruption(mayResume) }
         source.play()
         publish()
     }
@@ -108,6 +109,7 @@ class PlaybackCentre(
         // Detached before the stop, so the stop's own change does not republish a source
         // this centre has already given up.
         ending.onChange = null
+        ending.onInterruptionEnd = null
         ending.stop()
         source = null
     }
@@ -127,6 +129,7 @@ class PlaybackCentre(
             !source.session.isActive -> {
                 record(source, source.position)
                 source.onChange = null
+                source.onInterruptionEnd = null
                 this.source = null
                 null
             }

@@ -48,9 +48,24 @@ data class PlaybackSession(
     /** Starting, or restarting from a new position. */
     fun started(): PlaybackSession = PlaybackSession(PlaybackState.PLAYING)
 
-    /** The listener pressed pause. Nothing but the listener starts this again. */
+    /**
+     * The listener pressed pause. Nothing but the listener starts this again.
+     *
+     * **A pause the platform had already made becomes the listener's**, which is the one
+     * direction this converts in. A listener who presses pause while a call is in progress
+     * has decided, and the interruption ending must not undo that decision — the audio path
+     * gives the focus up at that point, so the suppression lifts on its own and a session
+     * still calling the pause the interruption's would start a book nobody asked to hear.
+     * The other direction is forbidden, and [interrupted] is where that is enforced.
+     *
+     * An idle session is left alone: nothing was playing, so nothing was paused.
+     *
+     * *iOS's `pausedByListener()` still guards on `isPlaying` and owes this widening. The
+     * case is reachable there too — a lock screen belongs to the interrupting app during a
+     * call, but a paired watch or a car control is not the interrupting app.*
+     */
     fun pausedByListener(): PlaybackSession =
-        if (isPlaying) PlaybackSession(PlaybackState.PAUSED, PauseCause.LISTENER) else this
+        if (isActive) PlaybackSession(PlaybackState.PAUSED, PauseCause.LISTENER) else this
 
     /**
      * Something else took the audio: a call, another app, a spoken direction.
