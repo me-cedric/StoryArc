@@ -360,22 +360,15 @@ creep — see [`design.md`](design.md).
       the largest-text case. iOS half outstanding.
 - [ ] 4.2 iOS: generalise `ReadAloudDock` in `tabViewBottomAccessory` to the shared
       session, so a narrated book and a spoken one produce the same bar.
-      **Not done, and blocked on a measured fact rather than on effort.** `PlayerDock` exists
-      and takes the slot whenever `PlayerCentre` is running; `ReadAloudDock` still takes it
-      for a spoken session, and `AppShell.PlaybackAccessory` chooses between them in one
-      place with the blocker written at it.
-      **Readium 3.11.0 cannot change speech rate.**
-      `PublicationSpeechSynthesizer.Configuration` carries a `defaultLanguage` and a
-      `voiceIdentifier` and nothing else, and `AVTTSEngine.swift:131` — the line that would
-      apply a rate to the utterance — is **commented out upstream**; `rateMultiplier`
-      appears nowhere else in the TTS sources. Checked in the pinned checkout on 2026-09-01.
-      So a read-aloud session driving `PlayerCentre` would offer a speed control that does
-      nothing, which `audio-playback` forbids by name: "every control the player offers
-      works, or is absent — none is present and refusing".
-      There are three honest ways out and choosing between them is a `design.md` decision,
-      not an implementation detail: let a source declare that it offers no speed and have the
-      surface omit the control; replace Readium's engine with our own `AVSpeechSynthesizer`;
-      or carry a patched dependency. **`/opsx:update` before this task is picked up again.**
+      **Unblocked, and the first half is in.** The blocker recorded here — Readium 3.11.0's
+      `Configuration` carries no rate and `AVTTSEngine.swift:131` is commented out upstream —
+      is still true and is no longer a blocker: `design.md` decided the fourth way out, the
+      `AVTTSEngineDelegate` upstream points the caller at two lines below the commented one.
+      `Playback/SpeechRate.swift` is the mapping that decision needs, with `SpeechRateTests`
+      pinning all three anchors. **Mutation-checked**: straightening it into the obvious
+      single lerp puts 1× at `0.2` against the platform's own default of `0.5`, and the suite
+      fails on exactly that.
+      The dock itself is not folded yet.
 - [ ] 4.3 Android: hand-compose the row in `NavigationSuiteScaffold`'s `content`
       slot, full-width `surfaceContainer`, sharing the navigation bar's container
       colour. **Not** `BottomSheetScaffold` (no `bottomBar` slot, so the peek row
