@@ -114,3 +114,8 @@ secrets/
 # Screenshots a device check writes. Evidence of one run on one emulator, not a
 # reference to compare against — `pnpm pseudo:android` rewrites them every time.
 artifacts/
+
+# Console and network logs a Playwright MCP session writes while driving a page.
+# Per-run diagnostics from one machine's browser, not evidence anybody compares
+# against — the visual proof §6 asks for is a PNG under docs/designs/screenshots/.
+.playwright-mcp/
