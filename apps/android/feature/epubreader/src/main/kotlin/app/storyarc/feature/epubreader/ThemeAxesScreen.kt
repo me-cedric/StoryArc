@@ -30,9 +30,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -49,6 +46,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import app.storyarc.core.designsystem.control.ConnectedButtonGroup
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -527,20 +525,25 @@ private fun AlignmentControl(
             style = MaterialTheme.typography.titleMedium,
             color = palette.textPrimary,
         )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            ReaderTextAlignment.entries.forEachIndexed { index, value ->
-                SegmentedButton(
-                    selected = values.textAlignment == value,
-                    onClick = { onChange(ThemeAxis.TEXT_ALIGNMENT, values.copy(textAlignment = value)) },
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index,
-                        ReaderTextAlignment.entries.size,
-                    ),
-                ) {
-                    Text(stringResource(value.labelRes))
-                }
-            }
-        }
+        // A connected button group, not the segmented row this was. Material 3 Expressive
+        // says the baseline segmented button "is no longer recommended" and nothing in the
+        // build says so — `SegmentedButton` carries no deprecation at material3
+        // 1.5.0-alpha26, so this was silent for as long as it stood.
+        //
+        // Read once into a list, because the group's shapes are keyed by position: the index
+        // it reports has to index the same list the labels came from. Every alignment is
+        // always offered — publisher styles are answered by `PublisherStylesNotice` above,
+        // not by dropping an option — but a filtered list here would otherwise reshape
+        // silently.
+        val alignments = ReaderTextAlignment.entries
+        ConnectedButtonGroup(
+            options = alignments.map { stringResource(it.labelRes) },
+            selectedIndex = alignments.indexOf(values.textAlignment),
+            onSelect = { index ->
+                onChange(ThemeAxis.TEXT_ALIGNMENT, values.copy(textAlignment = alignments[index]))
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

@@ -95,6 +95,10 @@ Android only. Test-first; a visible change owes a before/after capture per
       - [x] `feature/reader/.../PdfTextSheet.kt` — the Search/Marks tab switcher.
             `:feature:reader:testDebugUnitTest` 46 passed in 10 files, `:feature:reader:lint`
             passed. The three `Segmented*` imports are gone with it.
+      - [x] `feature/epubreader/.../ThemeAxesScreen.kt` — `AlignmentControl`.
+            `:feature:epubreader:testDebugUnitTest` 54 passed, `:feature:epubreader:lint`
+            passed. `ThemeSheetTest` asserts `AlignmentControl(` is drawn on level two and
+            not on level one; both still hold, unedited.
 - [ ] 2.2 Each site's existing behaviour test must still pass **unchanged**. If one needs
       editing, the change has altered behaviour and that is a defect, not a fixup.
 - [ ] 2.3 A source-level guard that no `SegmentedButtonRow` returns to `apps/android`.
