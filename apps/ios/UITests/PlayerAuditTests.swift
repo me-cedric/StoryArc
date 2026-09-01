@@ -83,9 +83,11 @@ final class PlayerAuditTests: XCTestCase {
     /// offered no speed control, which was true of the shelf it was looking at and false of
     /// the app.
     ///
-    /// Three sheets on one surface behaving three ways is the kind of inconsistency a
-    /// screen-reader user meets first. Nothing in `audio-playback` requires a close control,
-    /// so it is recorded here rather than changed.
+    /// **§3.2 removed the button that ambiguity came from**, so the player has no *Close* for a
+    /// predicate to bind to any more. The fresh walk stays: the three sheets still behave three
+    /// ways, and one of them still carries a control the other two do not. Nothing in
+    /// `audio-playback` requires a close control, so the inconsistency is recorded here rather
+    /// than changed.
     ///
     /// The name is the label `PlayerText` gives the control — *Speed* rather than the `1×` on
     /// its face, which is its *value*. A control announced by its value alone is exactly what
@@ -108,13 +110,73 @@ final class PlayerAuditTests: XCTestCase {
         try reportOnly(app, named: "Player > \(sheet)")
     }
 
+    /// The sheet is still dismissible with no Close button on it.
+    ///
+    /// `named-failures-and-quieter-chrome` §3.2 takes the player's *Close* pill away: a sheet
+    /// already has two ways out and the button sat exactly where the grabber wants to be. The
+    /// task says to "keep the sheet dismissible by every route it already had", and this is the
+    /// route that a picture cannot prove — the grabber shows that a drag is *offered*, not that
+    /// it works.
+    ///
+    /// **Two assertions, and the first is the one that would rot.** That no button labelled
+    /// *Close* is on the player is what makes this a check on §3.2 rather than a check that
+    /// sheets dismiss: re-add the toolbar item and this fails on the first assertion, before the
+    /// drag is even attempted.
+    ///
+    /// The VoiceOver route is not walked here because XCUITest has no API for the escape
+    /// gesture. `FullPlayerView` states it with `.accessibilityAction(.escape)` rather than
+    /// relying on the platform's default, and `testFullPlayerPassesTheAudit` is what would
+    /// notice the surface becoming unreachable.
+    func testASheetIsStillDismissibleWithoutACloseButton() throws {
+        let app = launch()
+        try openAnAudiobook(in: app)
+        try openThePlayer(in: app)
+
+        XCTAssertFalse(
+            app.buttons["Close"].firstMatch.exists,
+            "The player still carries a Close button. §3.2 hands that space to the grabber. "
+                + "Buttons on screen: \(app.buttons.allElementsBoundByIndex.map(\.label))"
+        )
+
+        // From the grabber's own strip, which is above the scroll view's content: a drag begun
+        // lower would scroll the player rather than dismiss it.
+        dragSheetAway(in: app)
+
+        let wayIn = app.buttons["Open the player"].firstMatch
+        XCTAssertTrue(
+            wayIn.waitForExistence(timeout: 5),
+            "Dragging the sheet down did not put the listener back on the shelf, so the player "
+                + "has no way out at all now that the button is gone."
+        )
+    }
+
+    /// Drags the presented sheet off the bottom of the screen.
+    ///
+    /// Twice if it has to: the first drag can be absorbed by the scroll view when the sheet has
+    /// not finished settling, and a single attempt made this flaky rather than false.
+    private func dragSheetAway(in app: XCUIApplication) {
+        for start in [0.08, 0.05] where app.buttons["Chapters"].firstMatch.exists {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: start))
+                .press(
+                    forDuration: 0.1,
+                    thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98))
+                )
+            _ = app.buttons["Chapters"].firstMatch.waitForNonExistence(timeout: 3)
+        }
+    }
+
     /// Opens the full player from the compact bar.
+    ///
+    /// **The landmark is *Chapters*, not *Close*.** It was Close, and §3.2 took that button
+    /// away; the chapter list is a control `audio-playback` requires the player to offer, so it
+    /// is a landmark that cannot be removed without the spec changing — which the old one could
+    /// be, and was.
     private func openThePlayer(in app: XCUIApplication) throws {
         let wayIn = try XCTUnwrap(app.buttons["Open the player"].firstMatch)
         XCTAssertTrue(wayIn.waitForExistence(timeout: 5), "The bar offered no way into the player.")
         wayIn.tap()
         XCTAssertTrue(
-            app.buttons["Close"].firstMatch.waitForExistence(timeout: 5),
+            app.buttons["Chapters"].firstMatch.waitForExistence(timeout: 5),
             "The player never appeared."
         )
     }

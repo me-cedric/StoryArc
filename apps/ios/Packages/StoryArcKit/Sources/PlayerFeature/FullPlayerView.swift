@@ -56,12 +56,21 @@ public struct FullPlayerView: View {
                 .frame(maxWidth: .infinity)
             }
             .background(theme.palette.surfaceCanvas)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button { dismiss() } label: { Text("player.close", bundle: .module) }
-                }
-            }
         }
+        // **No Close button, and the grabber in its place.** `named-failures-and-quieter-chrome`
+        // §3.2: a sheet already has two ways out and the button sat exactly where the grabber
+        // wants to be — top trailing, over the artwork. Drawing the grabber is what makes the
+        // drag *discoverable*; it was always available and unadvertised.
+        //
+        // **The route a screen reader used is not the button.** VoiceOver dismisses a sheet with
+        // the escape gesture, which the platform provides for every presented sheet and which
+        // `.accessibilityAction(.escape)` states here so nothing depends on that being true by
+        // default. `PlayerAuditTests.aSheetIsStillDismissibleWithoutACloseButton` walks it.
+        //
+        // Android does **not** get this change: its player is a destination rather than a sheet,
+        // so it needs its back affordance and has no grabber to defer to. `tasks.md` §3.3.
+        .presentationDragIndicator(.visible)
+        .accessibilityAction(.escape) { dismiss() }
         .sheet(isPresented: $showingChapters) {
             ChapterListView(centre: centre)
         }

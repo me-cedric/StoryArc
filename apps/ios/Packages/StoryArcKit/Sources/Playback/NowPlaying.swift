@@ -126,7 +126,7 @@ public final class NowPlaying {
     ///
     /// The image is captured rather than the bytes so the picture is decoded once, on the main
     /// actor, instead of on every size the system asks for.
-    private nonisolated static func artwork(_ image: UIImage) -> MPMediaItemArtwork {
+    nonisolated private static func artwork(_ image: UIImage) -> MPMediaItemArtwork {
         MPMediaItemArtwork(boundsSize: image.size) { _ in image }
     }
 

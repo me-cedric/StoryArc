@@ -60,12 +60,59 @@ scenarios in `one-library-three-destinations`; the player's artwork is one in
 - [ ] 3.1 Android: the sort chip says it is an ordering. `library_sort_title` is "Title" and
       the chip shows it alone, which beside a "Filter" chip reads as a filter value. Same for
       grouping, which is neither a sort nor a filter. Four languages.
-- [ ] 3.2 iOS: the player's `Close` button gives way to the sheet's grabber —
+- [x] 3.2 iOS: the player's `Close` button gives way to the sheet's grabber —
       `FullPlayerView.swift:61`. A sheet already has two ways out and the button sits where the
       grabber wants to be.
-- [ ] 3.3 Android: **no equivalent change to the player.** Its player is a destination rather
+      **Done.** The `ToolbarItem(placement: .confirmationAction)` is gone, and with it the whole
+      `.toolbar` — it held nothing else — so the artwork starts where the pill used to sit.
+      **The grabber is now drawn rather than merely available.** `.presentationDragIndicator(.visible)`
+      is the other half of the task and it is not cosmetic: the drag always worked and was
+      unadvertised, so removing the button without drawing the grabber would have left a sheet
+      with no *visible* way out at all. This is a full-height sheet, so there is no scrim to tap.
+      **The assistive-technology route is kept and made explicit.** VoiceOver dismisses a
+      presented sheet with the escape gesture rather than by finding a button, and
+      `.accessibilityAction(.escape)` states that on the view so the surface does not depend on
+      the platform continuing to provide it by default. It is stated rather than assumed because
+      nothing in the build would notice if it stopped being true.
+      **`PlayerAuditTests` asserted the button, and now asserts its absence.** Its walk waited on
+      `app.buttons["Close"]` to know the player had appeared; the landmark is `Chapters` now — a
+      control `audio-playback` *requires* the player to offer, so unlike Close it cannot be
+      removed without the spec changing, which is exactly what happened to the old one.
+      `testASheetIsStillDismissibleWithoutACloseButton` is new: it fails first if a Close button
+      is on the player at all, then drags the sheet away and asserts the listener is back on the
+      shelf with the compact bar. The XCUITest API has no escape gesture, so that route is
+      covered by the explicit action above and by the audit rather than by a walk — said here
+      rather than left as a silent gap.
+      `ReadAloudPlayerTests` also matches `app.buttons["Close"]`; that is the **reader's**
+      `reader.close`, not the player's, and is untouched. The `player.close` string stays in use
+      by `ChapterListView`, which keeps its own explicit Close.
+- [x] 3.3 Android: **no equivalent change to the player.** Its player is a destination rather
       than a sheet, so it needs its back affordance and has no grabber to defer to. A
       divergence from the platforms, not from taste — record it, do not "fix" it.
+      **Confirmed by reading, and no Android UI changed.** Four things in the source say it, and
+      the last two say it more strongly than the task assumed:
+      1. `navigation/Destinations.kt:192` — `data object Player : Screen`. It is a member of the
+         `Screen` sealed interface, which *is* the navigation stack's element type.
+      2. `AppNavigation.kt:69` / `:103` — it arrives by `push(Screen.Player)` from
+         `AppShell.kt:179` and `:323`, and leaves by the one `back` rule that pops the stack.
+      3. **A sheet is a different type on this platform, and the type's own comment says why.**
+         `AppSheet` is documented as "not part of `AppNavigation`: a bottom sheet is not a place,
+         it dismisses itself, and it brings its own back handling". The player is not one.
+      4. `Screen.Player.hidesNavigation` is `false`, with the reason recorded beside it: "the
+         player is somewhere a listener goes *to* while the book plays, and taking the
+         destinations away would strand them there". So it is not even a full-window screen —
+         the navigation bar stays under it. `AppShell.kt:302` hides the *compact bar* while the
+         player is current, which is a destination's business and something a sheet over the
+         shelf would never need to do.
+      Its back affordance is `PlayerScreen.kt:98` — a `TopAppBar` `navigationIcon` holding
+      `Icons.AutoMirrored.Filled.ArrowBack` with `R.string.player_back` as its
+      `contentDescription`, auto-mirrored for right-to-left. Removing it would leave a pushed
+      destination reachable only by the system back gesture, which is the opposite of what §3.2
+      does on iOS: there the platform supplies a dismissal the app was duplicating, and here the
+      app supplies the only one there is.
+      `Destinations.kt:185` also records that Android's drag-to-expand sheet "is deferred to its
+      own change and this is a screen until then" — so **if** that sheet ever lands, §3.2's
+      question arrives on Android with it. It has not, and this tick is not a decision about it.
 
 ## 4. Close-out
 
