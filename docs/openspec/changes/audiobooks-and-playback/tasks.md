@@ -1,5 +1,11 @@
 # Tasks — audiobooks, and one player for everything that speaks
 
+> **design.md moved on 2026-09-01 after this list did.** Three of its claims were
+> contradicted by measurement during the iOS half — the chapter call's locale argument, the
+> Readium rate that does not exist, and a truncated file that reports itself intact — and a
+> fourth, the Android starting point, was simply wrong. The corrections are in design.md;
+> the tasks they touch (2.5, 2.7, 4.2) carry them in their own entries.
+
 Test-first throughout. The Android list is longer than the iOS one on purpose:
 Android's media contract reaches the notification shade, the lock screen, process
 death and Android Auto, and iOS already has the compact-bar surface from
