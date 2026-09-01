@@ -36,16 +36,58 @@ Android only. Test-first; a visible change owes a before/after capture per
         hand cannot see and the 2.3 guard can.
 
       So: two call sites to replace, and a third file to clear of dead imports.
-- [ ] 1.2 `ConnectedButtonGroupTest` — a group of N options shapes its first with
+- [x] 1.2 `ConnectedButtonGroupTest` — a group of N options shapes its first with
       `connectedLeadingButtonShapes`, its last with `connectedTrailingButtonShapes` and
       every other with `connectedMiddleButtonShapes`, and a group of one gets a single
       shape rather than a leading one. Write it, watch it fail.
-- [ ] 1.3 Build it in `core/designsystem`: a `Row` with
+
+      Eight tests in
+      `core/designsystem/src/test/.../control/ConnectedButtonGroupTest.kt`, Robolectric with
+      `GraphicsMode.NATIVE` because the three shape helpers are `@Composable` and resolve
+      against `MaterialTheme.shapes` — a value read outside a composition is not the value
+      the group is drawn with. The expectations are equalities against **Material's own
+      helpers**, never against corner radii written down here: a copied radius is a second
+      source of truth that goes stale on the next alpha.
+
+      Watched fail twice, on purpose, before it was allowed to pass:
+
+      | Mutation | Result |
+      | --- | --- |
+      | *(no implementation yet)* | `Unresolved reference 'ConnectedButtonGroup'` ×4, `'connectedButtonShapes'` |
+      | `index == count - 1` → `index == count` | 2 failed — *"The last option is not shaped with connectedTrailingButtonShapes, so the group's right end is not rounded off"* |
+      | `count <= 1` → `count <= 0` | 1 failed — expected `RoundedCornerShape(50%…)`, got `topStart = 100%, topEnd = 8.0.dp` — a lone button squared off on the side where nothing follows it |
+
+      Both reverted; the file is byte-identical to its pre-mutation state and the suite is
+      back to 8 passed. One casualty on the way in: `ToggleButtonDefaults.shapes()` **does
+      not resolve** — the no-argument overload and the three-defaulted-argument one beside
+      it are both applicable to an empty argument list, and K2 reports it as
+      `Unresolved reference`. Both the component and the test name the three values
+      individually instead.
+- [x] 1.3 Build it in `core/designsystem`: a `Row` with
       `Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)` and `ToggleButton`
       children. Selection is the round-to-square shape change, **not** a fill.
-- [ ] 1.4 Assert the selected option is announced as selected to assistive technology, and
+
+      `control/ConnectedButtonGroup.kt`. Public, not `internal` as `design.md` says — Kotlin
+      `internal` is Gradle-module-scoped, and both call sites are in other modules, so an
+      internal composable here would be invisible to every caller it exists for. Nothing in
+      it paints a container colour: `checkedShape` arrives from Material and one test asserts
+      per position that it differs from `shape`, so a component that lost the distinction
+      fails rather than quietly drawing a segmented button with no fill.
+
+      Colour comes from `MaterialTheme` via `ToggleButton`'s own defaults — no brand token is
+      named, so the group is unaffected by the token rename landing in parallel.
+- [x] 1.4 Assert the selected option is announced as selected to assistive technology, and
       that the group is one element with N selectable children rather than N unrelated
       buttons.
+
+      Two of the eight. **`ToggleButton` announces `role = Role.Checkbox`** — read out of
+      `ToggleButtonKt`'s bytecode, not from documentation — so left alone a group of three
+      would tell a screen reader that each option is checked or unchecked and that any number
+      of them may be picked, when exactly one is ever true. Each child is given
+      `Role.RadioButton` and a `selected` state through the caller modifier, which does win
+      over Material's internal role, and the `Row` carries `selectableGroup()`. Asserted as
+      `assertIsSelected` / `assertIsNotSelected`, `SemanticsProperties.SelectableGroup`
+      defined on the row, and `Role.RadioButton` on all three children.
 
 ## 2. The call sites
 
