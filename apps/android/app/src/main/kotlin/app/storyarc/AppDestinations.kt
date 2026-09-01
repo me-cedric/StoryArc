@@ -58,6 +58,14 @@ private fun SearchDestination(host: AppHost) {
         viewModel = host.library,
         onOpenPage = host.openPage,
         onFollowToSource = { source, term -> host.browse(source, term) },
+        // The same three sheets `LibraryDestination` passes, from the same host.
+        // `navigation-shell` asks the search page's empty state for "the same way of adding a
+        // source that the library's own empty state offers", and the library's offers five —
+        // so two of them wired and three missing was the requirement half-met, on the one
+        // screen a reader with no books at all is most likely to be standing on.
+        onAddCatalogue = { host.sheet(AppSheet.AddOnlineLibrary) },
+        onAddKavita = { host.sheet(AppSheet.AddKavita) },
+        onAddShare = { host.sheet(AppSheet.AddSharedFolder) },
     )
 }
 

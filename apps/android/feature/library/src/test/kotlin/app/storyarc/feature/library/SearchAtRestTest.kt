@@ -71,15 +71,55 @@ class SearchAtRestTest {
     }
 
     @Test
-    fun `nothing to suggest is one sentence and the two ways in, not three empty headings`() {
+    fun `nothing to suggest is one sentence and no empty headings`() {
         val labels = show(SearchSuggestions())
 
         compose.onNodeWithText(labels.emptyTitle).assertIsDisplayed()
         compose.onNodeWithText(labels.openComic).assertIsDisplayed()
-        compose.onNodeWithText(labels.addFolder).assertIsDisplayed()
         compose.onNodeWithText(labels.inProgress).assertDoesNotExist()
         compose.onNodeWithText(labels.nextInSeries).assertDoesNotExist()
         compose.onNodeWithText(labels.neverOpened).assertDoesNotExist()
+    }
+
+    @Test
+    fun `nothing to suggest offers all five of the library's own ways in`() {
+        // `navigation-shell`'s *Nothing to suggest*: the screen "offers the same way of adding
+        // a source that the library's own empty state offers" — and `EmptyLibrary` offers
+        // five. Two of them were wired here and the other three were absent, so a reader who
+        // reached this page could add a folder and a file and had no way at all to reach a
+        // catalogue, a Kavita server or a share. All five are read out of the same resources
+        // `EmptyLibrary`'s own menu draws, so one of the two losing a row fails this.
+        val labels = show(SearchSuggestions())
+
+        compose.onNodeWithText(labels.addSource).performClick()
+
+        compose.onNodeWithText(labels.addFolder).assertIsDisplayed()
+        compose.onNodeWithText(labels.importFile).assertIsDisplayed()
+        compose.onNodeWithText(labels.catalogue).assertIsDisplayed()
+        compose.onNodeWithText(labels.kavita).assertIsDisplayed()
+        compose.onNodeWithText(labels.share).assertIsDisplayed()
+    }
+
+    @Test
+    fun `each of the five ways in reaches its own action`() {
+        // Wired, not merely drawn. The three that open a sheet the app layer owns were the
+        // ones missing, and a menu item that does nothing is worse than one that is not there.
+        val reached = mutableListOf<String>()
+        val labels = show(
+            SearchSuggestions(),
+            onOpenComic = { reached += "comic" },
+            onAddFolder = { reached += "folder" },
+            onAddCatalogue = { reached += "catalogue" },
+            onAddKavita = { reached += "kavita" },
+            onAddShare = { reached += "share" },
+        )
+
+        for (label in listOf(labels.addFolder, labels.importFile, labels.catalogue, labels.kavita, labels.share)) {
+            compose.onNodeWithText(labels.addSource).performClick()
+            compose.onNodeWithText(label).performClick()
+        }
+
+        assertEquals(listOf("folder", "comic", "catalogue", "kavita", "share"), reached)
     }
 
     @Test
@@ -155,7 +195,12 @@ class SearchAtRestTest {
         val neverOpened: String,
         val emptyTitle: String,
         val openComic: String,
+        val addSource: String,
         val addFolder: String,
+        val importFile: String,
+        val catalogue: String,
+        val kavita: String,
+        val share: String,
         val everywhere: String,
         val onThisDevice: String,
     )
@@ -163,6 +208,11 @@ class SearchAtRestTest {
     private fun show(
         suggestions: SearchSuggestions,
         onOpenPage: (Publication) -> Unit = {},
+        onOpenComic: () -> Unit = {},
+        onAddFolder: () -> Unit = {},
+        onAddCatalogue: () -> Unit = {},
+        onAddKavita: () -> Unit = {},
+        onAddShare: () -> Unit = {},
     ): Labels {
         lateinit var labels: Labels
         compose.setContent {
@@ -172,7 +222,12 @@ class SearchAtRestTest {
                 neverOpened = stringResource(R.string.search_suggestions_never_opened),
                 emptyTitle = stringResource(R.string.search_empty_title),
                 openComic = stringResource(R.string.library_open_comic),
+                addSource = stringResource(R.string.library_add_source),
                 addFolder = stringResource(R.string.library_add_folder),
+                importFile = stringResource(R.string.library_import),
+                catalogue = stringResource(R.string.catalogue_title),
+                kavita = stringResource(R.string.kavita_title),
+                share = stringResource(R.string.smb_title),
                 everywhere = stringResource(R.string.library_scope_all),
                 onThisDevice = stringResource(R.string.source_on_this_device),
             )
@@ -185,8 +240,11 @@ class SearchAtRestTest {
                     // is which headings exist, which is decided before a bitmap arrives.
                     cover = { _, _ -> null },
                     onOpenPage = onOpenPage,
-                    onOpenComic = {},
-                    onAddFolder = {},
+                    onOpenComic = onOpenComic,
+                    onAddFolder = onAddFolder,
+                    onAddCatalogue = onAddCatalogue,
+                    onAddKavita = onAddKavita,
+                    onAddShare = onAddShare,
                 )
             }
         }

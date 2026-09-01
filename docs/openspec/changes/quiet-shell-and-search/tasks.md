@@ -72,11 +72,30 @@ the full gate list is in [`AGENTS.md`](../../../../AGENTS.md) §6.
       iOS's `SearchSuggestions` — that one is a composition over its own home shelves and
       hands the screen bare publications.
 - [x] 2.11c Android: `SearchAtRest` draws them — the scope stated before a letter is typed,
-      a heading only over a section that has something, and one sentence with the two ways in
-      that need only a system picker when there is nothing to suggest. `SearchAtRestTest`
-      (Robolectric) asserts which headings exist, which no pure test can. The three network
-      transports need one line each in `SearchDestination`; `:app` is another agent's this
-      round and they are absent rather than drawn dead.
+      a heading only over a section that has something, and one sentence with **all five** of
+      the library's own ways in when there is nothing to suggest. `SearchAtRestTest`
+      (Robolectric) asserts which headings exist, which no pure test can, and that the five
+      ways in are both drawn and wired — each reaching its own action, read out of the same
+      resources `EmptyLibrary`'s menu draws.
+      **This tick claimed less than the requirement asks, and a re-verification found it.** The
+      screen offered two of the five — open a comic and add a folder — and this task said the
+      other three were "absent rather than drawn dead" because `:app` belonged to another agent
+      that round. Two things were wrong with that. The reason had expired: `SearchDestination`
+      receives the same `host` that `LibraryDestination` passes the identical three sheets from,
+      eight lines away in the same file, so it was resolvable when written. And *Nothing to
+      suggest* asks for "the same way of adding a source that the library's own empty state
+      offers" — `EmptyLibrary` offers five, iOS reuses the one `AddSourceMenu` for all five, and
+      a reader with no books at all is precisely the reader who needs a server. Wired now:
+      three parameters on `SearchScreen`, three lines in `SearchDestination`, and the same
+      labelled-button-and-menu shape `EmptyLibrary` uses.
+      **Two claims in the old tick were also simply untrue**, and are corrected rather than
+      deleted. It called the gap "the three network transports", which reads as though search
+      cannot reach the network: search's fan-out is fully wired — `RemoteSearch.kt:58` builds a
+      `KavitaClient` and `:137` an `OpdsClient`, reached from `LibrarySearch.kt:159`, and SMB is
+      deliberately unsearchable at `RemoteSearch.kt:35-38`. The gap was three *sheets*, not
+      three transports. And it implied `SearchDestination` was unreachable; it is reached at
+      `AppDestinations.kt:43` from `AppPanes.kt:147`, and offered from the bar at
+      `AppShell.kt:248`.
 - [x] 2.11d Android: the scope chips wrap. At `font_scale 2.0` in a 320 dp window a plain
       `Row` drew *On this device* over four lines with a lone "e" on the last —
       photographed, fixed, photographed again.

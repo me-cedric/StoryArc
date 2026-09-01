@@ -12,12 +12,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.RssFeed
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -60,6 +74,10 @@ internal fun SearchAtRest(
     /** Copies one file in and opens it. Configures nothing. */
     onOpenComic: () -> Unit,
     onAddFolder: () -> Unit,
+    /** The three the app layer owns, because each opens a sheet only it can put up. */
+    onAddCatalogue: () -> Unit,
+    onAddKavita: () -> Unit,
+    onAddShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (suggestions.isEmpty) {
@@ -68,6 +86,9 @@ internal fun SearchAtRest(
             onScopeChange = onScopeChange,
             onOpenComic = onOpenComic,
             onAddFolder = onAddFolder,
+            onAddCatalogue = onAddCatalogue,
+            onAddKavita = onAddKavita,
+            onAddShare = onAddShare,
             modifier = modifier,
         )
         return
@@ -163,15 +184,25 @@ private fun SearchSectionHeading(text: Int) {
  * drawing empty headings", and "it offers the same way of adding a source that the library's
  * own empty state offers".
  *
- * The second half is taken as far as this module can take it. Two of the library's five ways
- * in need nothing but a system picker and are wired here in full: open a comic, which
- * `sources` makes the primary action because it "opens a comic from the device with nothing to
- * configure first", and add a folder, which is the one kind of library that needs no address
- * and no credentials. The other three — a catalogue, a Kavita server, a share — are opened by
- * sheets the app layer owns, and `SearchScreen` has no way to reach them without a parameter
- * `AppDestinations` would have to pass. **They are absent rather than drawn dead**: a menu
- * item that does nothing is worse than one that is not there. Wiring them is one line each in
- * `SearchDestination`, and is named in the handoff rather than left to be discovered.
+ * The second half is taken literally: all five of the library's ways in, in the order and with
+ * the words `EmptyLibrary` uses one destination away. Open a comic is the primary action
+ * because `sources` says it "opens a comic from the device with nothing to configure first";
+ * the other four sit behind one labelled secondary button, which is where `EmptyLibrary` puts
+ * them and for the reason it gives — on an empty screen a reader has nothing to compare a lone
+ * plus glyph against.
+ *
+ * **Two of the five used to be missing**, and the source said the other three were "absent
+ * rather than drawn dead" because `SearchScreen` could not reach the sheets the app layer owns.
+ * That was true of the module and never true of the app: `SearchDestination` already had the
+ * host that puts those sheets up, eight lines from where `LibraryDestination` passes the same
+ * three. So a reader who arrived here with an empty library could add a folder and a file and
+ * had no way at all to reach a catalogue, a Kavita server or a share — which is the whole point
+ * of the requirement, since a reader with no books is exactly the reader who needs a server.
+ *
+ * The menu is composed here rather than shared with `EmptyLibrary`'s, whose own is private to
+ * `LibraryStates.kt`. The pair is held together by [SearchAtRestTest], which reads all five
+ * labels out of the same resources — the failure mode iOS's `AddSourceMenu` comment names, one
+ * of the two menus ending up a row short, is what that test exists to catch.
  *
  * The *sentence* is search's own. The library being empty and search having nothing to suggest
  * are the same cause and two different disappointments, and a reader on the search page told
@@ -189,6 +220,9 @@ private fun SearchNothingToSuggest(
     onScopeChange: (LibraryAvailability) -> Unit,
     onOpenComic: () -> Unit,
     onAddFolder: () -> Unit,
+    onAddCatalogue: () -> Unit,
+    onAddKavita: () -> Unit,
+    onAddShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -228,10 +262,71 @@ private fun SearchNothingToSuggest(
                 // Plain, and second, for the reason `HomeFirstRun` gives: a reader who has
                 // just installed a comic app wants to read a comic, and the shelf full of
                 // them can wait until they know the app opens one.
-                TextButton(onClick = onAddFolder) {
-                    Text(stringResource(R.string.library_add_folder))
-                }
+                SearchAddSourceMenu(
+                    onOpenComic = onOpenComic,
+                    onAddFolder = onAddFolder,
+                    onAddCatalogue = onAddCatalogue,
+                    onAddKavita = onAddKavita,
+                    onAddShare = onAddShare,
+                )
             }
         }
     }
+}
+
+/**
+ * The five kinds of place, one level down — the same five `EmptyLibrary` offers.
+ *
+ * A labelled button rather than the toolbar's plus glyph, per `sources`' *plain secondary
+ * action*: on a screen with nothing on it a reader has nothing to compare a lone icon against.
+ * The transports are named only inside the menu, where choosing between them is the question
+ * actually being asked rather than a wall to be understood first.
+ */
+@Composable
+private fun SearchAddSourceMenu(
+    onOpenComic: () -> Unit,
+    onAddFolder: () -> Unit,
+    onAddCatalogue: () -> Unit,
+    onAddKavita: () -> Unit,
+    onAddShare: () -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+
+    TextButton(onClick = { open = true }) {
+        Text(stringResource(R.string.library_add_source))
+    }
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        SearchAddSourceItem(R.string.library_add_folder, Icons.Filled.CreateNewFolder) {
+            open = false
+            onAddFolder()
+        }
+        // Beside the source kinds rather than among them: `local-library` gives imported
+        // copies a requirement of their own, and "On this device" is not a place a reader
+        // configures.
+        SearchAddSourceItem(R.string.library_import, Icons.Filled.FileDownload) {
+            open = false
+            onOpenComic()
+        }
+        SearchAddSourceItem(R.string.catalogue_title, Icons.Filled.RssFeed) {
+            open = false
+            onAddCatalogue()
+        }
+        SearchAddSourceItem(R.string.kavita_title, Icons.Filled.Dns) {
+            open = false
+            onAddKavita()
+        }
+        SearchAddSourceItem(R.string.smb_title, Icons.Filled.Storage) {
+            open = false
+            onAddShare()
+        }
+    }
+}
+
+@Composable
+private fun SearchAddSourceItem(label: Int, icon: ImageVector, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(stringResource(label)) },
+        leadingIcon = { Icon(icon, contentDescription = null) },
+        onClick = onClick,
+    )
 }

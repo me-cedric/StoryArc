@@ -54,6 +54,16 @@ fun SearchScreen(
     onOpenPage: (Publication) -> Unit,
     /** How the app layer reaches a library that is not on this device, carrying the term. */
     onFollowToSource: (Source, String) -> Unit,
+    /**
+     * The three ways in that open a sheet only the app layer can put up.
+     *
+     * Here for `navigation-shell`'s *Nothing to suggest*, which asks the search page for "the
+     * same way of adding a source that the library's own empty state offers" — and that state
+     * offers five. `LibraryScreen` takes the identical three from the identical host.
+     */
+    onAddCatalogue: () -> Unit,
+    onAddKavita: () -> Unit,
+    onAddShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -108,12 +118,12 @@ fun SearchScreen(
         }
     }
 
-    // The two ways in that need nothing but a system picker, for the page with nothing to
-    // suggest. `sources` makes opening a comic the primary action — it "opens a comic from the
-    // device with nothing to configure first" — and a folder is the one kind of library that
-    // needs no address and no credentials. `LibraryScreen` builds the identical pair for the
-    // shelf's own empty state; the persistable grant can only be taken here, with the result
-    // in hand.
+    // The two of the five ways in that need nothing but a system picker. `sources` makes
+    // opening a comic the primary action — it "opens a comic from the device with nothing to
+    // configure first" — and a folder is the one kind of library that needs no address and no
+    // credentials. `LibraryScreen` builds the identical pair for the shelf's own empty state;
+    // the persistable grant can only be taken here, with the result in hand. The other three
+    // arrive as parameters, because each opens a sheet the app layer owns.
     val importFile = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { file -> if (file != null) viewModel.importFile(file) }
@@ -159,6 +169,9 @@ fun SearchScreen(
             onOpenPage = onOpenPage,
             onOpenComic = { importFile.launch(arrayOf("*/*")) },
             onAddFolder = { pickFolder.launch(null) },
+            onAddCatalogue = onAddCatalogue,
+            onAddKavita = onAddKavita,
+            onAddShare = onAddShare,
             modifier = Modifier.fillMaxSize().padding(padding),
         )
     }
