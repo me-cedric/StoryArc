@@ -92,6 +92,9 @@ Android only. Test-first; a visible change owes a before/after capture per
 ## 2. The call sites
 
 - [ ] 2.1 Replace each site found in 1.1, one commit each, ticking as it lands.
+      - [x] `feature/reader/.../PdfTextSheet.kt` — the Search/Marks tab switcher.
+            `:feature:reader:testDebugUnitTest` 46 passed in 10 files, `:feature:reader:lint`
+            passed. The three `Segmented*` imports are gone with it.
 - [ ] 2.2 Each site's existing behaviour test must still pass **unchanged**. If one needs
       editing, the change has altered behaviour and that is a defect, not a fixup.
 - [ ] 2.3 A source-level guard that no `SegmentedButtonRow` returns to `apps/android`.

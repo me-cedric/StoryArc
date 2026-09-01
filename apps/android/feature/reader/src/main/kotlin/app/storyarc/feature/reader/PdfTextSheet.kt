@@ -20,9 +20,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,6 +39,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.control.ConnectedButtonGroup
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.swatch
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -90,21 +88,24 @@ internal fun PdfTextSheet(
     var tab by remember(opensOn) { mutableStateOf(opensOn) }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        SingleChoiceSegmentedButtonRow(
+        // A connected button group, not the segmented row this was: Material 3 Expressive
+        // says the baseline segmented button "is no longer recommended", and nothing in the
+        // build says so — `SegmentedButton` carries no deprecation at material3
+        // 1.5.0-alpha26. Two fixed tabs is exactly what the replacement is specified for.
+        //
+        // The tabs are read once into a list so the index the group hands back indexes the
+        // same list the labels came from. `PdfTextTab.entries` is fixed, so this cannot
+        // currently drift — but the group's shapes are per-position, and a call site that
+        // recovered the tab any other way would be one filter away from wrong.
+        val tabs = PdfTextTab.entries
+        ConnectedButtonGroup(
+            options = tabs.map { stringResource(it.labelRes) },
+            selectedIndex = tabs.indexOf(tab),
+            onSelect = { index -> tab = tabs[index] },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.sm),
-        ) {
-            PdfTextTab.entries.forEachIndexed { index, candidate ->
-                SegmentedButton(
-                    selected = tab == candidate,
-                    onClick = { tab = candidate },
-                    shape = SegmentedButtonDefaults.itemShape(index, PdfTextTab.entries.size),
-                ) {
-                    Text(stringResource(candidate.labelRes))
-                }
-            }
-        }
+        )
 
         when (tab) {
             PdfTextTab.SEARCH -> PdfSearchList(
