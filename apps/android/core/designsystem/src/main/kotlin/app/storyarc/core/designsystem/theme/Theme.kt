@@ -199,11 +199,56 @@ internal fun ColorScheme.groundedInContent(palette: StoryArcPalette): ColorSchem
  * Nothing in the token set clears 4.5 on this violet except pure white, at 4.77:1, so
  * that is what a label drawn on the accent is. `ACCENT_PAIRS` in the token build gates
  * the pair, so this cannot quietly go back.
+ *
+ * **`secondaryContainer` is set because leaving it unset was the whole of the design
+ * review's fourth item, and the design document's account of that item was incomplete.**
+ * `brand-identity-and-app-icons`' design.md answers the review's "Android runs blue/purple"
+ * with "the purple was the wallpaper" — true of the screenshot the reviewer was looking at,
+ * and not the whole story. A scheme built by [darkColorScheme] fills every role the caller
+ * omits from **Material's baseline palette**, which is lavender. So with dynamic colour
+ * *off* — the path that document correctly identifies as the one to fix — this app still
+ * drew `#4A4458` and `#E8DEF8`, Material's own tones, in the roles below.
+ *
+ * That mattered far more than one role usually would, because of what reads it. Measured
+ * against `MaterialExpressiveTheme(colorScheme = brandDarkScheme())` rather than assumed —
+ * `AccentReachesTheControlsTest` is that measurement, kept:
+ *
+ * | Drawn by | Read from |
+ * | --- | --- |
+ * | A selected `FilterChip`'s container, and its label | `secondaryContainer` / `onSecondaryContainer` |
+ * | `NavigationBar`'s selected indicator, and its icon | `secondaryContainer` / `onSecondaryContainer` |
+ * | `Slider`'s inactive track | `secondaryContainer` |
+ * | `LinearProgressIndicator`'s and `CircularProgressIndicator`'s track | `secondaryContainer` |
+ *
+ * **Tab bars, chips, sliders and progress ticks** — the four control kinds the review named,
+ * one for one, and they are four faces of a single role nobody had set. The accent already
+ * reached the *active* half of the last two through `primary`; what stayed Material's was
+ * everything at rest and everything selected.
+ *
+ * The value is `brand.accentMuted`, whose role in design.md's own token table is **"rails at
+ * rest"** — a slider track and a progress track are exactly that, and a selected chip or a
+ * navigation indicator is the same muted violet doing a container's job.
+ *
+ * **One value across all three appearances, for the reason the accent itself is one value.**
+ * A light theme conventionally wants a pale tint here with dark text on it, and no such
+ * tint exists in the token set; inventing one means a new token with a gated pairing in
+ * `packages/design-tokens`, which is a decision for whoever owns the palette rather than one
+ * to make while wiring it. So a selected chip and the navigation indicator are *filled*
+ * rather than tinted on paper, `onSecondaryContainer` is the same near-white every label on
+ * the accent uses, and the pair measures **7.76:1** — one calculation that holds on every
+ * canvas instead of two that have to be kept true.
+ *
+ * **Dynamic colour is untouched.** These functions are the `useDynamicColor == false` branch
+ * of [StoryArcTheme]; `dynamicDarkColorScheme` and `dynamicLightColorScheme` still return
+ * the reader's wallpaper scheme in full, which `native-experience` requires. Fixing the
+ * brand by taking Material You away would be trading a requirement for a tidier screenshot.
  */
 internal fun brandDarkScheme() = darkColorScheme(
     primary = StoryArcColor.Brand.accent,
     onPrimary = StoryArcColor.Light.surfaceRaised,
     secondary = StoryArcColor.Brand.secondary,
+    secondaryContainer = StoryArcColor.Brand.accentMuted,
+    onSecondaryContainer = StoryArcColor.Light.surfaceRaised,
     background = StoryArcColor.Dark.surfaceCanvas,
     onBackground = StoryArcColor.Dark.textPrimary,
     surface = StoryArcColor.Dark.surfaceRaised,
@@ -215,11 +260,17 @@ internal fun brandDarkScheme() = darkColorScheme(
     scrim = StoryArcColor.Dark.scrim,
 )
 
-/** See [brandDarkScheme] for why `onPrimary` is light rather than the canvas. */
+/**
+ * See [brandDarkScheme] for why `onPrimary` is light rather than the canvas, and for what
+ * `secondaryContainer` reaches — this appearance declines dynamic colour outright, so these
+ * are the only values a reader on true black ever sees.
+ */
 internal fun brandOledDarkScheme() = darkColorScheme(
     primary = StoryArcColor.Brand.accent,
     onPrimary = StoryArcColor.Light.surfaceRaised,
     secondary = StoryArcColor.Brand.secondary,
+    secondaryContainer = StoryArcColor.Brand.accentMuted,
+    onSecondaryContainer = StoryArcColor.Light.surfaceRaised,
     background = StoryArcColor.OledDark.surfaceCanvas,
     onBackground = StoryArcColor.OledDark.textPrimary,
     surface = StoryArcColor.OledDark.surfaceRaised,
@@ -243,6 +294,11 @@ internal fun brandLightScheme() = lightColorScheme(
     primary = StoryArcColor.Brand.accent,
     onPrimary = StoryArcColor.Light.surfaceRaised,
     secondary = StoryArcColor.Brand.secondaryStrong,
+    // The same pair as the two dark schemes, on purpose. See [brandDarkScheme]: the light
+    // tint this role conventionally wants does not exist in the token set, and adding one is
+    // a palette decision rather than a wiring one.
+    secondaryContainer = StoryArcColor.Brand.accentMuted,
+    onSecondaryContainer = StoryArcColor.Light.surfaceRaised,
     background = StoryArcColor.Light.surfaceCanvas,
     onBackground = StoryArcColor.Light.textPrimary,
     surface = StoryArcColor.Light.surfaceRaised,

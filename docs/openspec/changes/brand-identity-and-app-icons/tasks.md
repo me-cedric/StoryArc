@@ -90,7 +90,76 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       comes from the SVG, so `pnpm brand:check` still passes on 14 assets and only the colorset
       moved. design.md §2's claim that "`AccentColor` holds the same hex the token does" is true
       again; it had quietly stopped being.
-      **Still outstanding**: the four control kinds themselves, on both platforms.
+      **The Android half of the four control kinds is done. iOS's half is another agent's and
+      is still outstanding**, which is why this stays `[~]`.
+      **All four turned out to be one unset role, and the design document's account of the
+      review's item was incomplete.** design.md answers "Android runs blue/purple" with "the
+      purple was the wallpaper" — true of the screenshot the reviewer saw, and not the whole
+      story. `darkColorScheme()` and `lightColorScheme()` fill **every role the caller omits**
+      from Material's baseline palette, which is lavender; the brand schemes set eleven roles
+      and omitted the rest. So with dynamic colour *off* — the path design.md correctly names
+      as the one to fix — the app still drew Material's own `#4A4458` and `#E8DEF8`. Two
+      independent causes of the same complaint, and only the second was ours.
+      **Measured, not assumed.** Against `MaterialExpressiveTheme(colorScheme =
+      brandDarkScheme())`, `secondaryContainer` was read by: a selected `FilterChip`'s
+      container (**chips**), `NavigationBar`'s selected indicator (**tab bars**), `Slider`'s
+      inactive track (**sliders**), and both progress indicators' tracks (**progress ticks**).
+      `onSecondaryContainer` was the chip's selected label and the selected navigation icon.
+      The four control kinds the review named are four faces of one role nobody had set. The
+      accent already reached the *active* half of a slider and a progress bar through
+      `primary`; what stayed Material's was everything at rest and everything selected.
+      **Fixed in `Theme.kt`, three call sites, no new token.** `secondaryContainer =
+      brand.accentMuted` and `onSecondaryContainer = light.surfaceRaised`, on
+      `brandDarkScheme`, `brandOledDarkScheme` and `brandLightScheme`. `accentMuted`'s role in
+      design.md's own token table is **"rails at rest"**, which is exactly a slider track and a
+      progress track, and the same muted violet does a container's job behind a selected chip
+      or a navigation indicator. Its only previous reader was the settings-search highlight.
+      **One value on all three appearances, and the alternative is named rather than ignored.**
+      A light theme conventionally wants a pale tint here with dark text; no such tint exists
+      in the token set, and adding one means a new token with a gated pairing in
+      `packages/design-tokens`, which is a palette decision rather than a wiring one. So a
+      selected chip is *filled* rather than tinted on paper, and the pair measures **7.76:1** —
+      one calculation that holds on every canvas instead of two to keep true. This is the same
+      argument the accent itself won on.
+      **Dynamic colour was not touched, weakened, or removed.** These three functions are the
+      `useDynamicColor == false` branch; `dynamicDarkColorScheme` / `dynamicLightColorScheme`
+      still return the reader's wallpaper scheme in full. On a Material You device nothing in
+      this change is visible. With dynamic colour off, or on OLED Dark and Natural which
+      decline it, the four control kinds are the brand's.
+      **The `TextButton` question is answered at the scheme, once, and no `TextButton` was
+      touched.** Another agent reported the failure notice's two labels drawing "Material's
+      default `primary` (blue on this emulator's dynamic colour)" and matching every other
+      `TextButton` in the app. The brand scheme's `primary` **already is** the accent, so every
+      `TextButton` already follows it — photographed with no code change in
+      `before-light-home-buttons.png`, where *Add a folder* is violet and *Open a comic* is a
+      violet filled button. The blue was the wallpaper doing what `native-experience` requires.
+      Hard-coding `palette.accent` at those sites would override the reader's Material You
+      choice on a chrome control, which the chrome/content rule on `LocalStoryArcPalette`
+      forbids, and would answer a scheme-level question one call site at a time.
+      **Asserted, and the assertion fails on the defect.** `AccentReachesTheControlsTest` reads
+      the real `FilterChipDefaults`, `NavigationBarItemDefaults`, `SliderDefaults` and
+      `ProgressIndicatorDefaults` rather than restating them, so a material3 upgrade that moves
+      one of these defaults fails the build instead of quietly un-accenting a control — the
+      1.5.0-alpha pin is already a recorded risk. Removing the two lines from `brandDarkScheme`
+      fails all five of its tests, each naming its own control kind. Each assertion also checks
+      the value is **not** Material's baseline, which is what proves the role is set rather
+      than coincidentally agreeing.
+      **Photographed**, dynamic colour off, before and after, light and dark —
+      `docs/designs/screenshots/android-accent-2026-09-01/`. Its README records the
+      **third** shared-emulator trap, which cost one discarded capture: not a boot-snapshot
+      rollback and not a broken `/sdcard` mount, but **another agent installing their build
+      over mine between the install and the shutter**. The `after` captures are sandwiched
+      between two checks of the installed APK's *contents*, not just its timestamp.
+      **Two things are not proved by a picture, and are named rather than implied**: the slider
+      and the progress track, which share the role but were not on screen (no download in
+      progress; the `Comic reader > chrome` route reproducibly shoots after the reader's chrome
+      auto-hides), and Natural, which has the identical hole and is left to whoever owns that
+      theme because closing it means choosing a clay-family value with a gated pairing.
+      **Also found and deliberately not fixed**: `primaryContainer`, `tertiary`,
+      `tertiaryContainer`, `surfaceVariant`, `inversePrimary` and the `surfaceContainer` family
+      are still Material's baseline in the brand schemes — `inversePrimary` is literally
+      Material's `#6750A4`. None is read by the four control kinds §1.7 names, so none is in
+      this pass; the list is here so the next reader has it rather than rediscovering it.
 
 ## 2. The mark, generated from one definition
 
