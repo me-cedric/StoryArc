@@ -191,7 +191,7 @@ struct DownloadsDestination: View {
                     // On glass, so the material decides rather than a fixed palette colour.
                     // This bar floats over the on-device shelf with covers beneath it, and a
                     // constant cannot follow a ground that is whatever art is passing —
-                    // see `ScanSummary` in `LibraryStates.swift` for what that cost.
+                    // `View.storyArcGlassText(_:)` carries what that cost.
                     .storyArcGlassText(.primary)
                     .lineLimit(2)
 

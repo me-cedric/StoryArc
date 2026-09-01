@@ -45,7 +45,7 @@ extension LibraryModel {
                 await self?.walk(place)
             }
             guard !Task.isCancelled else { return }
-            await self?.settleSkipped()
+            self?.settleSkipped()
         }
     }
 

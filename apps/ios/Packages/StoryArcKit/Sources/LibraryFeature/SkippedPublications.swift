@@ -1,5 +1,3 @@
-public import Foundation
-
 /// The publications a scan could not open, and whether the reader has been told about them.
 ///
 /// `library-browsing`'s *What could not be opened*: the library "SHALL say **which**
@@ -8,7 +6,7 @@ public import Foundation
 /// **Nothing new is produced here.** `LibraryScanner` has always emitted the pair —
 /// `ScanEvent.skipped(path:reason:)`, with the reason `publication-formats` words for that
 /// refusal — and the library kept the tally and dropped the rest, so a scan that met a
-/// 7-Zip container and a broken EPUB reported "2 couldn't be opened" and lost both reasons.
+/// 7-Zip container and a protected archive reported "2 couldn't be opened" and lost both reasons.
 /// This is the thing that keeps them.
 ///
 /// A value type with no view in it, because every decision here is a rule rather than a

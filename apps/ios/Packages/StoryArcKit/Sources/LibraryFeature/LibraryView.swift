@@ -234,6 +234,22 @@ public struct LibraryView: View {
 
     /// The library itself: the grid or the list, and the chrome that belongs to it.
     var libraryColumn: some View {
+        VStack(spacing: 0) {
+            // Above the shelf and inside the layout, not floating over it. The notice this
+            // replaced was a glass capsule in the `safeAreaBar` below, which put a sentence
+            // over whatever cover happened to scroll under it — see ``SkippedNotice``.
+            //
+            // The shelf only. The toast appeared on Library, Search and Downloads alike,
+            // which is three surfaces reporting one folder walk; this belongs to the one
+            // that walked it.
+            if surface == .shelf {
+                SkippedNotice(skipped: model.skipped) { model.dismissSkipped() }
+            }
+            shelf
+        }
+    }
+
+    private var shelf: some View {
         searching(content)
             // Once, at the root of this stack, for every cover on all three of its surfaces:
             // the shelf, the on-device set, and the results of a search. The page opens
@@ -276,11 +292,6 @@ public struct LibraryView: View {
                     // Named, per `local-library`. "A folder is no longer available"
                     // sends someone hunting through four of them.
                     UnavailableFolderNotice(name: missing) { isPickingFolder = true }
-                } else if case let .finished(found, skipped) = model.scanState, skipped > 0 {
-                    // Stated once, at the end, rather than per file — a messy
-                    // folder would otherwise be a wall of notices. But stated:
-                    // a count that silently omits what it could not read is a lie.
-                    ScanSummary(found: found, skipped: skipped)
                 } else if let cachedAt = model.cachedAt {
                     // Last, because it is the quietest thing this strip has to say: a
                     // selection in progress or a folder that has gone missing both need the

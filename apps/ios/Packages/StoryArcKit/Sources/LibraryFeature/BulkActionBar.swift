@@ -87,8 +87,8 @@ struct BulkActionBar: View {
         HStack(spacing: StoryArcSpace.md) {
             Text("library.selected \(selection.count)", bundle: .module)
                 .textRole(.footnote)
-                // On glass, so the material decides — see ``ScanSummary``. This bar floats
-                // over the shelf with covers passing beneath it, exactly like that one.
+                // On glass, so the material decides — ``View/storyArcGlassText(_:)`` says
+                // why. This bar floats over the shelf with covers passing beneath it.
                 .storyArcGlassText()
 
             Spacer(minLength: 0)

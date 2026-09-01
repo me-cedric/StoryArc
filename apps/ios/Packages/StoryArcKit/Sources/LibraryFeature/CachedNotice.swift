@@ -26,14 +26,14 @@ struct CachedNotice: View {
             bundle: .module
         )
         .textRole(.footnote)
-        // On glass, so the material decides rather than a fixed palette colour — see
-        // ``ScanSummary`` for what a constant costs over a wall of moving cover art.
+        // On glass, so the material decides rather than a fixed palette colour —
+        // ``View/storyArcGlassText(_:)`` carries what a constant costs over cover art.
         .storyArcGlassText()
         .padding(.horizontal, StoryArcSpace.md)
         .padding(.vertical, StoryArcSpace.xs)
-        // A capsule that hugs the sentence, like every other piece of chrome in this app —
-        // see ``ScanSummary``. This one is the quietest thing the strip says, so a band
-        // across the whole window for it was the least defensible of the three.
+        // A capsule that hugs the sentence, like every other piece of chrome in this app.
+        // This one is the quietest thing the strip says, so a band across the whole window
+        // for it was the least defensible of the three.
         .storyArcGlass()
         .accessibilityAddTraits(.isStaticText)
     }

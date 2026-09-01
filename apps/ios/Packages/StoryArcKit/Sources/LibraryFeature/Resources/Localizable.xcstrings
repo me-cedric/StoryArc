@@ -6441,6 +6441,96 @@
         }
       }
     },
+    "library.skipped.dismiss": {
+      "comment": "Puts the notice away. The list stays reachable, so this is not a delete.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausblenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ignorer"
+          }
+        }
+      }
+    },
+    "library.skipped.list": {
+      "comment": "The named control that leads to the list of what could not be opened, and the list’s own title. library-browsing: the way to the list is a control with a name.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was nicht geöffnet werden konnte"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What couldn’t be opened"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que no se pudo abrir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce qui n’a pas pu être ouvert"
+          }
+        }
+      }
+    },
+    "library.skipped.one %@": {
+      "comment": "Names the one publication a scan could not open. library-browsing forbids a count where there is a name.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ konnte nicht geöffnet werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” couldn’t be opened"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no se pudo abrir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n’a pas pu être ouvert"
+          }
+        }
+      }
+    },
     "library.sort": {
       "extractionState": "manual",
       "localizations": {

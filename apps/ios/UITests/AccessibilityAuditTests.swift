@@ -93,7 +93,8 @@ final class AccessibilityAuditTests: XCTestCase {
         // it; see `coverlessWellDrawsTitle(at:)`.
         //
         // The count moves with the app's state rather than with the code: a run that lands
-        // while `ScanSummary` is on screen adds that sentence's own element to the strip.
+        // while the skipped-publications notice is on screen adds its own elements to the
+        // strip.
         // Nine issues were reported on 2026-08-31 and five on the runs since; the kinds are
         // what this expectation names, not the number.
         XCTExpectFailure("Five captions in the strip under the glass bar. See the report below.")

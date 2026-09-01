@@ -35,74 +35,6 @@ struct ScanningView: View {
     }
 }
 
-/// What a finished scan could not read.
-///
-/// The cached-shelf notice that used to sit here left for `CachedNotice.swift` when it was
-/// finally mounted; it is a statement about the whole shelf rather than about a scan.
-///
-/// **The colour follows the glass, because a fixed one cannot.** This sentence went from
-/// `textTertiary` to `textSecondary` and was still barely there: at
-/// `accessibility-extra-extra-extra-large` on a booted iPhone 17 Pro the covers are large
-/// enough that this strip always sits over one, and in *light* mode a dark grey over glass
-/// that had picked up a dark purple cover was very nearly invisible. It read fine in dark
-/// mode at the same size, which is the tell — the ground was moving and the text was not.
-///
-/// The move was never going to be a better token. No text token is gated against glass at
-/// all: `pnpm tokens:check` measures the three text roles on `surfaceCanvas`,
-/// `surfaceRaised` and `surfaceSunken`, and untinted Liquid Glass is none of them.
-/// ``View/storyArcGlassText(_:)`` carries the whole argument, and the app's own neutral
-/// comes back with the opaque fallback.
-///
-/// **A capsule that hugs its sentence, not a band across the window.** Every other piece of
-/// chrome this app draws is a floating capsule — the tab bar, the search field, the toolbar
-/// group at the top of the shelf — and this strip was the only rectangle in the app. A
-/// full-bleed bar pinned above the tab bar reads as a wall between the reader and the
-/// artwork, which is the opposite of the rule chrome here is held to: it recedes.
-struct ScanSummary: View {
-    /// Long enough to read a short sentence twice, short enough that it is not furniture.
-    private static let dwell = Duration.seconds(6)
-
-    @Environment(\.accessibilityVoiceOverEnabled) private var isSpeaking
-
-    let found: Int
-    let skipped: Int
-
-    /// Whether the sentence is still on screen. It leaves on its own — see the body.
-    @State private var isShowing = true
-
-    var body: some View {
-        Group {
-            if isShowing {
-                Text("library.skipped \(skipped)", bundle: .module)
-                    .textRole(.footnote)
-                    .storyArcGlassText()
-                    .padding(.horizontal, StoryArcSpace.md)
-                    .padding(.vertical, StoryArcSpace.sm)
-                    .storyArcGlass()
-                    // A gap, so the capsule reads as its own thing above the tab bar rather
-                    // than as a second row of it.
-                    .padding(.bottom, StoryArcSpace.sm)
-                    .transition(.opacity)
-            }
-        }
-        // It goes of its own accord, like ``CachedNotice``. This is news about a scan that
-        // has finished, and news that never leaves is furniture — `native-experience` asks
-        // chrome to recede, and a sentence parked above the tab bar for the rest of the
-        // session is the opposite of receding.
-        //
-        // **Except under VoiceOver.** A sentence that fades is a sentence a reader who has
-        // not yet swiped to it never hears, and the count is stated nowhere else. Sighted
-        // readers get a glance and their artwork back; VoiceOver readers keep the fact.
-        .task(id: skipped) {
-            isShowing = true
-            guard !isSpeaking else { return }
-            try? await Task.sleep(for: Self.dwell)
-            guard !Task.isCancelled else { return }
-            withAnimation(.easeOut(duration: 0.4)) { isShowing = false }
-        }
-    }
-}
-
 /// The first thing a reader ever sees when they own nothing.
 ///
 /// `sources`, the *Adding the first source* scenario, states the whole of it: "one sentence
@@ -272,7 +204,8 @@ struct UnavailableFolderNotice: View {
         HStack(spacing: StoryArcSpace.sm) {
             Text("library.folderUnavailable \(name)", bundle: .module)
                 .textRole(.footnote)
-                // On glass, so the material decides — see ``ScanSummary``.
+                // On glass, so the material decides rather than a fixed palette
+                // colour — ``View/storyArcGlassText(_:)`` carries the argument.
                 .storyArcGlassText()
 
             Spacer(minLength: 0)
@@ -284,9 +217,9 @@ struct UnavailableFolderNotice: View {
         }
         .padding(.horizontal, StoryArcSpace.md)
         .padding(.vertical, StoryArcSpace.sm)
-        // A capsule like the rest of this app's chrome — see ``ScanSummary``. It keeps its
-        // width here, because a sentence with an action beside it needs the room the
-        // sentence takes; what it stops doing is running to both edges of the window.
+        // A capsule like the rest of this app's chrome. It keeps its width here, because a
+        // sentence with an action beside it needs the room the sentence takes; what it
+        // stops doing is running to both edges of the window.
         .storyArcGlass()
         .padding(.horizontal, StoryArcSpace.gutter)
     }
