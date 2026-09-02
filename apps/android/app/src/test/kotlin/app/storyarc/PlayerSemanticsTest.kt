@@ -4,13 +4,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.playback.NowPlaying
@@ -18,8 +21,10 @@ import app.storyarc.core.playback.PlaybackDuration
 import app.storyarc.core.playback.PlaybackPart
 import app.storyarc.core.playback.PlaybackSession
 import app.storyarc.core.playback.PlaybackSpeed
+import app.storyarc.core.playback.SkipIntervals
 import app.storyarc.core.playback.SleepAfter
 import app.storyarc.core.playback.SleepTimer
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -70,6 +75,8 @@ class PlayerSemanticsTest {
         duration: PlaybackDuration = PlaybackDuration.Known(300_000),
         sleep: SleepTimer? = null,
         fontScale: Float = 1f,
+        intervals: SkipIntervals = SkipIntervals.DEFAULT,
+        onIntervals: (SkipIntervals) -> Unit = {},
     ) {
         val density = LocalDensity.current
         CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
@@ -84,6 +91,8 @@ class PlayerSemanticsTest {
                     sleep = sleep,
                     onSleep = {},
                     onBack = {},
+                    intervals = intervals,
+                    onIntervals = onIntervals,
                 )
             }
         }
@@ -99,6 +108,41 @@ class PlayerSemanticsTest {
         // a loose number.
         compose.onNodeWithContentDescription("Back 15 seconds").assertIsDisplayed()
         compose.onNodeWithContentDescription("Forward 30 seconds").assertIsDisplayed()
+    }
+
+    /**
+     * `audio-playback`: the interval is one "the listener can configure", and it is "stated
+     * on the control itself" — so the control has to state the *configured* one. A control
+     * that said fifteen while the audio moved ten would be worse than one that said nothing,
+     * which is why this is asserted rather than assumed from the default case above.
+     */
+    @Test
+    fun `the skip controls state the configured interval and not the default`() {
+        compose.setContent { Player(intervals = SkipIntervals.of(10, 5)) }
+
+        compose.onNodeWithContentDescription("Back 10 seconds").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Forward 5 seconds").assertIsDisplayed()
+        compose.onAllNodesWithContentDescription("Back 15 seconds").assertCountEquals(0)
+    }
+
+    /**
+     * And the choice is reachable: four intervals a direction, each named in full.
+     *
+     * The chip is announced in different words from the transport control it configures —
+     * "Skip forward 10 seconds" rather than "Forward 10 seconds" — which is what keeps a
+     * screen reader from offering two identically named controls, only one of which moves
+     * the audio.
+     */
+    @Test
+    fun `choosing an interval reports it for that direction alone`() {
+        var chosen: SkipIntervals? = null
+        compose.setContent {
+            Player(intervals = SkipIntervals.DEFAULT, onIntervals = { chosen = it })
+        }
+
+        compose.onNodeWithContentDescription("Skip forward 10 seconds").performClick()
+
+        assertEquals(SkipIntervals.of(15, 10), chosen)
     }
 
     @Test

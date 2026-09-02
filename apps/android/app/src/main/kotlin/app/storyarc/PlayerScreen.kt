@@ -49,6 +49,8 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.playback.NowPlaying
 import app.storyarc.core.playback.PlaybackPosition
 import app.storyarc.core.playback.PlaybackSpeed
+import app.storyarc.core.playback.SkipDirection
+import app.storyarc.core.playback.SkipIntervals
 import app.storyarc.core.playback.SleepAfter
 import app.storyarc.core.playback.SleepTimer
 
@@ -74,7 +76,7 @@ import app.storyarc.core.playback.SleepTimer
 internal fun PlayerScreen(
     playing: NowPlaying,
     onToggle: () -> Unit,
-    onSkip: (forward: Boolean) -> Unit,
+    onSkip: (SkipDirection) -> Unit,
     onSeek: (PlaybackPosition) -> Unit,
     onChooseChapter: (Int) -> Unit,
     onSpeed: (PlaybackSpeed) -> Unit,
@@ -82,6 +84,8 @@ internal fun PlayerScreen(
     onSleep: (SleepAfter?) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    intervals: SkipIntervals = SkipIntervals.DEFAULT,
+    onIntervals: (SkipIntervals) -> Unit = {},
 ) {
     val palette = LocalStoryArcPalette.current
     // A `Scaffold` with a top bar, like every other screen a reader comes back from. It is
@@ -138,7 +142,8 @@ internal fun PlayerScreen(
         }
 
         Position(playing, onSeek)
-        Transport(playing.isPlaying, onToggle, onSkip)
+        Transport(playing.isPlaying, intervals, onToggle, onSkip)
+        Skips(intervals, onIntervals)
         Speed(playing.speed, onSpeed)
         Sleep(playing, sleep, onSleep)
 
@@ -239,13 +244,19 @@ private fun Position(playing: NowPlaying, onSeek: (PlaybackPosition) -> Unit) {
 /**
  * Skip back, play/pause, skip forward.
  *
- * **Fifteen and thirty, stated on the control itself.** `audio-playback`: "the audio moves
- * by a fixed interval … and the interval is stated on the control itself". The numbers are
- * a **product decision** — media3's own defaults are 5 s and 15 s, and both are wrong for
- * spoken word in the same direction.
+ * **The listener's own interval, stated on the control itself.** `audio-playback`: "the
+ * audio moves by a fixed interval the listener can configure, and the interval is stated on
+ * the control itself" — so the number here is read from [intervals] and not from a constant,
+ * and it is the same value the audio moves by. The defaults are a **product decision**:
+ * media3's own are 5 s and 15 s, and both are wrong for spoken word in the same direction.
  */
 @Composable
-private fun Transport(isPlaying: Boolean, onToggle: () -> Unit, onSkip: (Boolean) -> Unit) {
+private fun Transport(
+    isPlaying: Boolean,
+    intervals: SkipIntervals,
+    onToggle: () -> Unit,
+    onSkip: (SkipDirection) -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
@@ -253,9 +264,9 @@ private fun Transport(isPlaying: Boolean, onToggle: () -> Unit, onSkip: (Boolean
     ) {
         Skip(
             icon = Icons.Filled.Replay,
-            seconds = BACK_SECONDS,
-            label = stringResource(R.string.player_skip_back),
-            onClick = { onSkip(false) },
+            seconds = intervals.backSeconds,
+            label = stringResource(R.string.player_skip_back, intervals.backSeconds),
+            onClick = { onSkip(SkipDirection.BACK) },
         )
         FilledIconButton(onClick = onToggle, modifier = Modifier.size(64.dp)) {
             Icon(
@@ -268,10 +279,82 @@ private fun Transport(isPlaying: Boolean, onToggle: () -> Unit, onSkip: (Boolean
         }
         Skip(
             icon = Icons.AutoMirrored.Filled.Redo,
-            seconds = FORWARD_SECONDS,
-            label = stringResource(R.string.player_skip_forward),
-            onClick = { onSkip(true) },
+            seconds = intervals.forwardSeconds,
+            label = stringResource(R.string.player_skip_forward, intervals.forwardSeconds),
+            onClick = { onSkip(SkipDirection.FORWARD) },
         )
+    }
+}
+
+/**
+ * How far those two controls move, chosen by the listener.
+ *
+ * `audio-playback` asks for an interval "the listener can configure", and this is where.
+ * **On the player rather than in Settings** for the reason the speed slider and the sleep
+ * timer are here: it is a listening decision, made while listening, and a listener who has
+ * just missed a sentence is holding the player and not the settings screen.
+ *
+ * **Four intervals, and the set is media3's rather than ours.** `CommandButton` draws a
+ * numbered glyph for exactly 5, 10, 15 and 30 seconds, so a fifth number would leave the
+ * notification's own button with either a lying figure or a bare arrow — and the shade's
+ * control and this one have to agree. See [SkipIntervals.OFFERED_SECONDS].
+ *
+ * Two rows, because the two directions are deliberately different numbers.
+ */
+@Composable
+private fun Skips(intervals: SkipIntervals, onIntervals: (SkipIntervals) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.player_skip),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SkipChoice(
+            name = stringResource(R.string.player_skip_back_interval),
+            chosen = intervals.backSeconds,
+            // Each chip says the whole thing to a screen reader, because "10 s" read out of
+            // the row it sits in names no direction — and it says it in *different words*
+            // from the transport control above, because two controls announced identically,
+            // one of which moves the audio and one of which does not, is worse than a chip
+            // that says nothing.
+            spoken = { seconds -> stringResource(R.string.player_skip_back_choice, seconds) },
+            onChoose = { onIntervals(SkipIntervals.of(it, intervals.forwardSeconds)) },
+        )
+        SkipChoice(
+            name = stringResource(R.string.player_skip_forward_interval),
+            chosen = intervals.forwardSeconds,
+            spoken = { seconds -> stringResource(R.string.player_skip_forward_choice, seconds) },
+            onChoose = { onIntervals(SkipIntervals.of(intervals.backSeconds, it)) },
+        )
+    }
+}
+
+/** One direction's row of intervals, wrapping rather than running off a narrow window. */
+@Composable
+private fun SkipChoice(
+    name: String,
+    chosen: Int,
+    spoken: @Composable (Int) -> String,
+    onChoose: (Int) -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = name,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(end = 8.dp),
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (seconds in SkipIntervals.OFFERED_SECONDS) {
+                val description = spoken(seconds)
+                FilterChip(
+                    selected = seconds == chosen,
+                    onClick = { onChoose(seconds) },
+                    label = { Text(stringResource(R.string.player_seconds, seconds)) },
+                    modifier = Modifier.semantics { contentDescription = description },
+                )
+            }
+        }
     }
 }
 
@@ -311,10 +394,6 @@ private fun Skip(
         )
     }
 }
-
-/** 15 back and 30 forward. A **product decision** — see `PlaybackService`, which sets them. */
-private const val BACK_SECONDS = 15
-private const val FORWARD_SECONDS = 30
 
 /**
  * How fast it runs, stated as a number.

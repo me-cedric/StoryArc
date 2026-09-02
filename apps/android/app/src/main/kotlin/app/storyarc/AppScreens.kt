@@ -239,6 +239,10 @@ internal fun HostedScreen(
                     sleep = PlaybackHost.sleep.collectAsStateWithLifecycle().value,
                     onSleep = PlaybackHost::setSleepTimer,
                     onBack = back,
+                    // How far a skip moves is the listener's, and the host is where it is
+                    // kept — the notification's buttons read the same store.
+                    intervals = PlaybackHost.skipIntervals.collectAsStateWithLifecycle().value,
+                    onIntervals = PlaybackHost::setSkipIntervals,
                 )
             }
         }

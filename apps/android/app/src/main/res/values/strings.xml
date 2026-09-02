@@ -13,13 +13,29 @@
 
     <!-- The player. The intervals are in the strings because they are on the controls:
          `audio-playback` asks the interval to be "stated on the control itself", and 15 s
-         back / 30 s forward is a **product decision** — media3's own defaults are 5 and 15. -->
+         back / 30 s forward is a **product decision** — media3's own defaults are 5 and 15.
+         Formatted in rather than written out, because the same requirement asks for an
+         interval "the listener can configure" and a label that said fifteen while the
+         button moved ten would be worse than one that said nothing. -->
     <string name="player_play">Play</string>
     <string name="player_pause">Pause</string>
     <string name="player_open">Open the player</string>
-    <string name="player_skip_back">Back 15 seconds</string>
-    <string name="player_skip_forward">Forward 30 seconds</string>
+    <string name="player_skip_back">Back %1$d seconds</string>
+    <string name="player_skip_forward">Forward %1$d seconds</string>
     <string name="player_seconds">%1$d s</string>
+    <!-- Where the interval is chosen. Two rows because the two directions are different
+         numbers on purpose: back is shorter because the reason to skip back is "I missed
+         that sentence" and the reason to skip forward is "I know this part". -->
+    <string name="player_skip">Skip</string>
+    <string name="player_skip_back_interval">Back</string>
+    <string name="player_skip_forward_interval">Forward</string>
+    <!-- What a chip in those two rows is called to a screen reader. Deliberately not the
+         same words as the transport control above it: "10 s" read out of the row it sits in
+         names no direction, and borrowing the button's own name would give a listener two
+         controls announced identically, one of which moves the audio and one of which does
+         not. -->
+    <string name="player_skip_back_choice">Skip back %1$d seconds</string>
+    <string name="player_skip_forward_choice">Skip forward %1$d seconds</string>
     <string name="player_sleep">Sleep timer</string>
     <string name="player_sleep_in">Sleep in %1$s</string>
     <string name="player_sleep_off">Off</string>

@@ -55,9 +55,14 @@
     <string name="player_play">Lire</string>
     <string name="player_pause">Pause</string>
     <string name="player_open">Ouvrir le lecteur</string>
-    <string name="player_skip_back">Reculer de 15 secondes</string>
-    <string name="player_skip_forward">Avancer de 30 secondes</string>
+    <string name="player_skip_back">Reculer de %1$d secondes</string>
+    <string name="player_skip_forward">Avancer de %1$d secondes</string>
     <string name="player_seconds">%1$d s</string>
+    <string name="player_skip">Saut</string>
+    <string name="player_skip_back_interval">Reculer</string>
+    <string name="player_skip_forward_interval">Avancer</string>
+    <string name="player_skip_back_choice">Saut arrière de %1$d secondes</string>
+    <string name="player_skip_forward_choice">Saut avant de %1$d secondes</string>
     <string name="player_sleep">Minuteur de veille</string>
     <string name="player_sleep_in">Veille dans %1$s</string>
     <string name="player_sleep_off">Aucun</string>

@@ -55,9 +55,14 @@
     <string name="player_play">Reproducir</string>
     <string name="player_pause">Pausa</string>
     <string name="player_open">Abrir el reproductor</string>
-    <string name="player_skip_back">Retroceder 15 segundos</string>
-    <string name="player_skip_forward">Avanzar 30 segundos</string>
+    <string name="player_skip_back">Retroceder %1$d segundos</string>
+    <string name="player_skip_forward">Avanzar %1$d segundos</string>
     <string name="player_seconds">%1$d s</string>
+    <string name="player_skip">Salto</string>
+    <string name="player_skip_back_interval">Retroceder</string>
+    <string name="player_skip_forward_interval">Avanzar</string>
+    <string name="player_skip_back_choice">Salto atrás de %1$d segundos</string>
+    <string name="player_skip_forward_choice">Salto adelante de %1$d segundos</string>
     <string name="player_sleep">Temporizador</string>
     <string name="player_sleep_in">Parar en %1$s</string>
     <string name="player_sleep_off">Ninguno</string>
