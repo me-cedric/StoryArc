@@ -177,9 +177,13 @@ class PlaybackService : MediaLibraryService() {
         slot: Int,
     ): CommandButton {
         val seconds = intervals.seconds(direction)
+        // A plural, not a string. The interval is a number the listener chose, and a
+        // language that inflects around it has to be able to.
         val label = when (direction) {
-            SkipDirection.BACK -> getString(R.string.playback_skip_back, seconds)
-            SkipDirection.FORWARD -> getString(R.string.playback_skip_forward, seconds)
+            SkipDirection.BACK ->
+                resources.getQuantityString(R.plurals.playback_skip_back, seconds, seconds)
+            SkipDirection.FORWARD ->
+                resources.getQuantityString(R.plurals.playback_skip_forward, seconds, seconds)
         }
         val action = when (direction) {
             SkipDirection.BACK -> COMMAND_SKIP_BACK

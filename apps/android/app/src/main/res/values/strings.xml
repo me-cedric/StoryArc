@@ -20,8 +20,16 @@
     <string name="player_play">Play</string>
     <string name="player_pause">Pause</string>
     <string name="player_open">Open the player</string>
-    <string name="player_skip_back">Back %1$d seconds</string>
-    <string name="player_skip_forward">Forward %1$d seconds</string>
+    <!-- Plurals rather than strings, and lint is right to insist: the interval is a number
+         a listener chose, and a language that inflects around it has to be able to. -->
+    <plurals name="player_skip_back">
+        <item quantity="one">Back %1$d second</item>
+        <item quantity="other">Back %1$d seconds</item>
+    </plurals>
+    <plurals name="player_skip_forward">
+        <item quantity="one">Forward %1$d second</item>
+        <item quantity="other">Forward %1$d seconds</item>
+    </plurals>
     <string name="player_seconds">%1$d s</string>
     <!-- Where the interval is chosen. Two rows because the two directions are different
          numbers on purpose: back is shorter because the reason to skip back is "I missed
@@ -34,8 +42,14 @@
          names no direction, and borrowing the button's own name would give a listener two
          controls announced identically, one of which moves the audio and one of which does
          not. -->
-    <string name="player_skip_back_choice">Skip back %1$d seconds</string>
-    <string name="player_skip_forward_choice">Skip forward %1$d seconds</string>
+    <plurals name="player_skip_back_choice">
+        <item quantity="one">Skip back %1$d second</item>
+        <item quantity="other">Skip back %1$d seconds</item>
+    </plurals>
+    <plurals name="player_skip_forward_choice">
+        <item quantity="one">Skip forward %1$d second</item>
+        <item quantity="other">Skip forward %1$d seconds</item>
+    </plurals>
     <string name="player_sleep">Sleep timer</string>
     <string name="player_sleep_in">Sleep in %1$s</string>
     <string name="player_sleep_off">Off</string>

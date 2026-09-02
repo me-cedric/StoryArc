@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="playback_skip_back">%1$d Sekunden zurück</string>
-    <string name="playback_skip_forward">%1$d Sekunden vor</string>
+    <plurals name="playback_skip_back">
+        <item quantity="one">%1$d Sekunde zurück</item>
+        <item quantity="other">%1$d Sekunden zurück</item>
+    </plurals>
+    <plurals name="playback_skip_forward">
+        <item quantity="one">%1$d Sekunde vor</item>
+        <item quantity="other">%1$d Sekunden vor</item>
+    </plurals>
     <string name="playback_browse_root">Hörbücher</string>
 </resources>

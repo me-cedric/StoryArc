@@ -54,14 +54,26 @@
     <string name="player_play">Abspielen</string>
     <string name="player_pause">Pause</string>
     <string name="player_open">Player öffnen</string>
-    <string name="player_skip_back">%1$d Sekunden zurück</string>
-    <string name="player_skip_forward">%1$d Sekunden vor</string>
+    <plurals name="player_skip_back">
+        <item quantity="one">%1$d Sekunde zurück</item>
+        <item quantity="other">%1$d Sekunden zurück</item>
+    </plurals>
+    <plurals name="player_skip_forward">
+        <item quantity="one">%1$d Sekunde vor</item>
+        <item quantity="other">%1$d Sekunden vor</item>
+    </plurals>
     <string name="player_seconds">%1$d s</string>
     <string name="player_skip">Sprung</string>
     <string name="player_skip_back_interval">Zurück</string>
     <string name="player_skip_forward_interval">Vor</string>
-    <string name="player_skip_back_choice">Sprung %1$d Sekunden zurück</string>
-    <string name="player_skip_forward_choice">Sprung %1$d Sekunden vor</string>
+    <plurals name="player_skip_back_choice">
+        <item quantity="one">Sprung %1$d Sekunde zurück</item>
+        <item quantity="other">Sprung %1$d Sekunden zurück</item>
+    </plurals>
+    <plurals name="player_skip_forward_choice">
+        <item quantity="one">Sprung %1$d Sekunde vor</item>
+        <item quantity="other">Sprung %1$d Sekunden vor</item>
+    </plurals>
     <string name="player_sleep">Sleeptimer</string>
     <string name="player_sleep_in">Schlafen in %1$s</string>
     <string name="player_sleep_off">Aus</string>

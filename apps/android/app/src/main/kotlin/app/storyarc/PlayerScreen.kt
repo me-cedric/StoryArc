@@ -265,7 +265,11 @@ private fun Transport(
         Skip(
             icon = Icons.Filled.Replay,
             seconds = intervals.backSeconds,
-            label = stringResource(R.string.player_skip_back, intervals.backSeconds),
+            label = pluralStringResource(
+                R.plurals.player_skip_back,
+                intervals.backSeconds,
+                intervals.backSeconds,
+            ),
             onClick = { onSkip(SkipDirection.BACK) },
         )
         FilledIconButton(onClick = onToggle, modifier = Modifier.size(64.dp)) {
@@ -280,7 +284,11 @@ private fun Transport(
         Skip(
             icon = Icons.AutoMirrored.Filled.Redo,
             seconds = intervals.forwardSeconds,
-            label = stringResource(R.string.player_skip_forward, intervals.forwardSeconds),
+            label = pluralStringResource(
+                R.plurals.player_skip_forward,
+                intervals.forwardSeconds,
+                intervals.forwardSeconds,
+            ),
             onClick = { onSkip(SkipDirection.FORWARD) },
         )
     }
@@ -317,13 +325,17 @@ private fun Skips(intervals: SkipIntervals, onIntervals: (SkipIntervals) -> Unit
             // from the transport control above, because two controls announced identically,
             // one of which moves the audio and one of which does not, is worse than a chip
             // that says nothing.
-            spoken = { seconds -> stringResource(R.string.player_skip_back_choice, seconds) },
+            spoken = { seconds ->
+                pluralStringResource(R.plurals.player_skip_back_choice, seconds, seconds)
+            },
             onChoose = { onIntervals(SkipIntervals.of(it, intervals.forwardSeconds)) },
         )
         SkipChoice(
             name = stringResource(R.string.player_skip_forward_interval),
             chosen = intervals.forwardSeconds,
-            spoken = { seconds -> stringResource(R.string.player_skip_forward_choice, seconds) },
+            spoken = { seconds ->
+                pluralStringResource(R.plurals.player_skip_forward_choice, seconds, seconds)
+            },
             onChoose = { onIntervals(SkipIntervals.of(intervals.backSeconds, it)) },
         )
     }

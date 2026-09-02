@@ -55,14 +55,32 @@
     <string name="player_play">Reproducir</string>
     <string name="player_pause">Pausa</string>
     <string name="player_open">Abrir el reproductor</string>
-    <string name="player_skip_back">Retroceder %1$d segundos</string>
-    <string name="player_skip_forward">Avanzar %1$d segundos</string>
+    <!-- `many` is Spanish's millions category. Lint fails the build without it, and it
+         reads the same as `other` here — as it does for `player_skipped_parts` below. -->
+    <plurals name="player_skip_back">
+        <item quantity="one">Retroceder %1$d segundo</item>
+        <item quantity="many">Retroceder %1$d segundos</item>
+        <item quantity="other">Retroceder %1$d segundos</item>
+    </plurals>
+    <plurals name="player_skip_forward">
+        <item quantity="one">Avanzar %1$d segundo</item>
+        <item quantity="many">Avanzar %1$d segundos</item>
+        <item quantity="other">Avanzar %1$d segundos</item>
+    </plurals>
     <string name="player_seconds">%1$d s</string>
     <string name="player_skip">Salto</string>
     <string name="player_skip_back_interval">Retroceder</string>
     <string name="player_skip_forward_interval">Avanzar</string>
-    <string name="player_skip_back_choice">Salto atrás de %1$d segundos</string>
-    <string name="player_skip_forward_choice">Salto adelante de %1$d segundos</string>
+    <plurals name="player_skip_back_choice">
+        <item quantity="one">Salto atrás de %1$d segundo</item>
+        <item quantity="many">Salto atrás de %1$d segundos</item>
+        <item quantity="other">Salto atrás de %1$d segundos</item>
+    </plurals>
+    <plurals name="player_skip_forward_choice">
+        <item quantity="one">Salto adelante de %1$d segundo</item>
+        <item quantity="many">Salto adelante de %1$d segundos</item>
+        <item quantity="other">Salto adelante de %1$d segundos</item>
+    </plurals>
     <string name="player_sleep">Temporizador</string>
     <string name="player_sleep_in">Parar en %1$s</string>
     <string name="player_sleep_off">Ninguno</string>

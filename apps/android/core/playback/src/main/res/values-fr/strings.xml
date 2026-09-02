@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="playback_skip_back">Reculer de %1$d secondes</string>
-    <string name="playback_skip_forward">Avancer de %1$d secondes</string>
+    <!-- `many` is French's millions category. Lint fails the build without it, and no skip
+         interval is a million seconds — it reads as `other`. -->
+    <plurals name="playback_skip_back">
+        <item quantity="one">Reculer de %1$d seconde</item>
+        <item quantity="many">Reculer de %1$d secondes</item>
+        <item quantity="other">Reculer de %1$d secondes</item>
+    </plurals>
+    <plurals name="playback_skip_forward">
+        <item quantity="one">Avancer de %1$d seconde</item>
+        <item quantity="many">Avancer de %1$d secondes</item>
+        <item quantity="other">Avancer de %1$d secondes</item>
+    </plurals>
     <string name="playback_browse_root">Livres audio</string>
 </resources>

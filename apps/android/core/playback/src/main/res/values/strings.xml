@@ -16,7 +16,13 @@
     moved ten would be worse than a label that said nothing.
 -->
 <resources>
-    <string name="playback_skip_back">Back %1$d seconds</string>
-    <string name="playback_skip_forward">Forward %1$d seconds</string>
+    <plurals name="playback_skip_back">
+        <item quantity="one">Back %1$d second</item>
+        <item quantity="other">Back %1$d seconds</item>
+    </plurals>
+    <plurals name="playback_skip_forward">
+        <item quantity="one">Forward %1$d second</item>
+        <item quantity="other">Forward %1$d seconds</item>
+    </plurals>
     <string name="playback_browse_root">Audiobooks</string>
 </resources>

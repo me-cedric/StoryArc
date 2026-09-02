@@ -322,6 +322,20 @@ creep — see [`design.md`](design.md).
       with no scope and no database can read it. Eight cases in `PlaybackMemoryTest`.
       **Still not proved end to end:** that a killed process comes back through the carousel
       needs the process killed between two runs, and that has not been done.
+      **The half of it a host test can reach is now reached, and it was the half where a
+      silent error would have lived.** "Written, not proved" was accurate about the carousel
+      and it was hiding an untested mapping: the `startIndex` handed back is one media3 throws
+      on if the book no longer has it, *inside a callback the system is already showing a row
+      for*, and a folder re-downloaded with fewer files is exactly how that index arrives.
+      `PlaybackResumption` is that mapping, lifted out of the service so it can be asserted
+      without one — seven cases in `PlaybackResumptionTest`: the saved place is the place it
+      starts, a stale index and a negative offset clamp, an empty memory starts at zero rather
+      than at minus one, a ragged title list still produces an item, and every item names the
+      publication and its own chapter. Mutation-checked: dropping the clamp fails two.
+      `onSetMediaItems` builds its answer there too, which is what keeps a car's "carry on"
+      and the shade's "resume" one place rather than two nearly identical calculations.
+      **Still owed, and still a device exercise:** `adb shell am force-stop app.storyarc` while
+      a book is paused, then the shade's carousel row, then play. Nothing else can prove it.
 - [x] 3.7 Android: `MediaLibraryService` and `automotive_app_desc.xml`.
       **Done.** The service is a `MediaLibraryService`; the descriptor declares `media` and
       nothing else, because declaring a capability the app cannot honour is how an app
@@ -665,10 +679,57 @@ creep — see [`design.md`](design.md).
       Applied before the first sound: `begin(_:source:)` asks the hook and calls `setSpeed`
       before `play`, and `NarratedSource.setSpeed` on a paused player records the number and
       applies it on the next `play` rather than starting the audio.
-- [ ] 5.2 Both: skip states its interval on the control, is configurable, and
+- [~] 5.2 Both: skip states its interval on the control, is configurable, and
       crossing a chapter boundary continues rather than stopping. Defaults 15 s back
       and 30 s forward — a **product decision**, recorded as one; media3's own
       defaults (5 s / 15 s) are wrong for spoken word.
+      **Android done, and the boundary clause was quietly false before this.**
+      `PlaybackHost.skip` added the interval to the offset, clamped at zero, and carried a
+      comment saying the hard case was free: "for a single file that is free … for a folder
+      media3 carries the seek into the next item itself". **media3 does not.**
+      `BasePlayer.seekToOffset`, read out of the shipped `media3-common-1.11.0.aar` with
+      `javap -c` on 2026-09-02, is `min(getCurrentPosition() + offset, getDuration())` then
+      `max(…, 0)` then `seekToCurrentItem(…)` — the current *item*, clamped at both of its
+      own ends. So skipping back five seconds into chapter two landed at the start of chapter
+      two, which is the stop this task forbids by name, and nothing in a build said so.
+      `PlaybackTimeline` is the fix and it is iOS's, mirrored case for case: out to whole-book
+      time, add, and back. Fourteen cases, mutation-checked — restoring the clamp fails four.
+      **A folder had no part lengths at all, and three other features were waiting on that.**
+      The format layer deliberately does not measure them (`OpenedAudiobook`: an extractor per
+      file would cost a five-hundred-book library a decode pass per scan) and media3 has no
+      per-item duration API — `getDuration()` answers for the item playing and the rest are on
+      a `Timeline`'s windows. `AudiobookSource.adoptDurations` takes them from
+      `onTimelineChanged`, which is what makes the carry possible *and* gives a folder its
+      whole-publication progress line, its elapsed/total pair and *end of chapter* on the
+      sleep timer. Eleven cases in `AudiobookSkipTest`, mutation-checked twice.
+      **Configurable, and the shade agrees with the app about it.** `SkipIntervals` is the
+      pair (iOS's field for field), `SkipPreferences` stores it beside `PlaybackMemory` and for
+      its reason — the service has no scope and no database — and the label is formatted from
+      the stored number in all four languages rather than written out. The choice is on the
+      player, where the speed slider and the sleep timer already are.
+      **The notification's two buttons had to stop being player commands.**
+      `COMMAND_SEEK_BACK`/`_FORWARD` are answered by media3 itself, with the clamp above, so
+      the shade would have stopped at a folder's boundary while the app carried across it.
+      They are session commands now, handled in `onCustomCommand` through the same
+      `PlaybackTimeline`. The player commands stay declared, because a car's voice command and
+      an Assistant send those and they are not ours to redirect — that one path still clamps,
+      at the right interval, and it is the honest remainder.
+      **Four intervals, and the set is media3's rather than a fifth product decision.**
+      `CommandButton` draws a numbered glyph for exactly 5, 10, 15 and 30 seconds each way, so
+      anything else leaves the notification with a lying figure or a bare arrow. Both defaults
+      are in the set and neither was re-litigated.
+      **Not exercised on a device.** Everything above is asserted by host tests —
+      `pnpm gradle :core:playback:testDebugUnitTest` and `:app:testDebugUnitTest` — and nothing
+      in the notification, the lock screen or a car has been pressed. The emulator was held by
+      another agent. Owed: `pnpm capture:android Player --out shot.png` at both text sizes and
+      both appearances, and a press of each shade button on a folder audiobook at a file
+      boundary.
+      *The iOS half is not started, and it is smaller than it looks:* `SkipIntervals`,
+      `SkipDirection`, `SkipUnit`, `PlayerCentre.skipIntervals` and
+      `PlaybackTimeline.skip(_:by:from:)` all exist, and `PlayerLabels.skip` already states the
+      configured interval. What is missing there is a store and a control — `skipIntervals` has
+      **no setter anywhere in the app**, so the value is configurable in the type and not by a
+      listener.
 - [~] 5.3 Both: sleep timer offers durations **and end-of-chapter**, shows the
       remaining time, fades out rather than cutting, and records a position slightly
       before where the fade ended.

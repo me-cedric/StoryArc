@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="playback_skip_back">Retroceder %1$d segundos</string>
-    <string name="playback_skip_forward">Avanzar %1$d segundos</string>
+    <!-- `many` is Spanish's millions category. Lint fails the build without it, and it
+         reads the same as `other` here. -->
+    <plurals name="playback_skip_back">
+        <item quantity="one">Retroceder %1$d segundo</item>
+        <item quantity="many">Retroceder %1$d segundos</item>
+        <item quantity="other">Retroceder %1$d segundos</item>
+    </plurals>
+    <plurals name="playback_skip_forward">
+        <item quantity="one">Avanzar %1$d segundo</item>
+        <item quantity="many">Avanzar %1$d segundos</item>
+        <item quantity="other">Avanzar %1$d segundos</item>
+    </plurals>
     <string name="playback_browse_root">Audiolibros</string>
 </resources>
