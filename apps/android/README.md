@@ -24,8 +24,23 @@ apps/android/
 | --- | --- | --- |
 | `:core:model` | `Source`, `PublicationIdentity`, `ReadingProgress`, `ProgressMerge`, reader preferences. **No Compose.** | — |
 | `:core:designsystem` | `StoryArcTheme`, `StoryArcPalette`, typography, `tokens/StoryArcTokens.kt`, `grid/` — `rememberCoverColumns`, `coverMinimumWidth`, `coverMaximumWidth`, `COVER_MAXIMUM_WIDTH`, `steppedForFontScale`, `BoundedAdaptive`, `cover/` — `CoverlessWell` | Compose, Material 3 |
-| `:feature:library` | `LibraryScreen`, empty state, source presentation, localised strings | `:core:designsystem`, `:core:model` |
-| `:app` | `MainActivity`, `StoryArcApplication`, manifest, launch theme | all of the above |
+| `:core:format` | Reading the bytes: `ComicArchive`, `AudiobookFolder`, `ByteReader`, the ZIP/TAR/RAR readers and the indexer. No Compose | `:core:model` |
+| `:core:persistence` | Every store on disk — settings, reader preferences, sources, downloads, progress, annotations, bookmarks, certificate pins | `:core:model` |
+| `:core:catalogue` | OPDS: `OpdsClient`, `OpdsAtom`, `CatalogueAcquisition` | `:core:model` |
+| `:core:kavita` | A Kavita server: `KavitaClient`, `KavitaAddress`, `KavitaExchange` | `:core:catalogue`, `:core:model` |
+| `:core:smb` | A network share: `SmbClient`, `SmbAddress`, `SmbDiscovery` | `:core:format` |
+| `:core:playback` | The audiobook player — `PlaybackService`, `PlaybackCentre`, `AudiobookSource`, `PlaybackTimeline`, `SleepTimer`, `SkipIntervals` | `:core:model` |
+| `:feature:library` | `LibraryScreen`, home, search, shelves, publication page, the selection's contextual bar, empty states | `:core:catalogue`, `:core:designsystem`, `:core:format`, `:core:kavita`, `:core:model`, `:core:persistence`, `:core:smb` |
+| `:feature:reader` | The comic and PDF reader: paging, the thumbnail strip, adjustments, reader chrome | `:core:designsystem`, `:core:format`, `:core:model`, `:core:persistence` |
+| `:feature:epubreader` | The EPUB reader on Readium: theme sheet, annotations, bookmarks, read-aloud | `:core:designsystem`, `:core:model`, `:core:persistence`, `:core:playback` |
+| `:feature:settings` | Settings and its groups — appearance, reading, privacy, about, sources, the app-icon chooser | `:core:designsystem`, `:core:model`, `:core:persistence` |
+| `:app` | `MainActivity`, `StoryArcApplication`, the shell and its navigation, the player screen, manifest, launch theme | all of the above |
+
+> **This table listed four modules of twelve until 2026-09-03**, which is a §7 breach that no
+> gate catches: `pnpm lint:android` compiles the modules and says nothing about whether a
+> document mentions them. Eight were missing, including every one added after the first three —
+> `:core:playback` had shipped a whole audiobook player without appearing here. The dependency
+> column is read from each module's own `build.gradle.kts` rather than remembered.
 
 `:core:model` has no Compose dependency so the domain is testable as plain JVM
 code. Presentation for a domain type — an icon for a source kind, a colour for a
