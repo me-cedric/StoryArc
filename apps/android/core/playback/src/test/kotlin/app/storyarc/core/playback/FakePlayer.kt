@@ -1,8 +1,10 @@
 package app.storyarc.core.playback
 
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import java.lang.reflect.Proxy
 
 /**
@@ -50,6 +52,8 @@ internal class FakePlayer : Player by UNUSED {
     private var items = emptyList<MediaItem>()
     private var positionMs = 0L
     private var itemIndex = 0
+    private var timeline: Timeline = Timeline.EMPTY
+    private var durationMs = 0L
 
     var isStopped = false
         private set
@@ -72,7 +76,9 @@ internal class FakePlayer : Player by UNUSED {
 
     override fun getCurrentPosition(): Long = positionMs
 
-    override fun getDuration(): Long = 0L
+    override fun getDuration(): Long = durationMs
+
+    override fun getCurrentTimeline(): Timeline = timeline
 
     override fun getPlaybackParameters(): PlaybackParameters = PlaybackParameters.DEFAULT
 
@@ -125,6 +131,31 @@ internal class FakePlayer : Player by UNUSED {
     /** The listener is somewhere in the book. Sets the position a stop would record. */
     fun reach(millis: Long) {
         positionMs = millis
+    }
+
+    /** Which part of a folder is playing, without a transition having been reported. */
+    fun reachPart(index: Int, millis: Long) {
+        itemIndex = index
+        positionMs = millis
+    }
+
+    /**
+     * The decoder has read the playlist and knows how long each file is.
+     *
+     * media3 reports this as a timeline change, and the durations are on the *windows* —
+     * there is no per-item duration API anywhere else, which is why the source reads a
+     * `Timeline` at all. A negative millis here stands for `C.TIME_UNSET`: a file the
+     * decoder has not measured.
+     */
+    fun measure(vararg durationsMs: Long) {
+        timeline = WindowDurations(durationsMs.toList())
+        listeners.toList()
+            .forEach { it.onTimelineChanged(timeline, Player.TIMELINE_CHANGE_REASON_SOURCE_UPDATE) }
+    }
+
+    /** How long the one file of a single-file book is, as the decoder eventually says. */
+    fun measureFile(millis: Long) {
+        durationMs = millis
     }
 
     /**
@@ -180,4 +211,37 @@ internal class FakePlayer : Player by UNUSED {
             snapshot.forEach { it.onIsPlayingChanged(playing) }
         }
     }
+}
+
+/**
+ * A timeline that carries nothing but a duration per window.
+ *
+ * Which is all [AudiobookSource] reads out of one. Hand-written rather than media3's own
+ * `FakeTimeline`: that lives in `media3-test-utils`, is `@UnstableApi`, and would put a
+ * whole artifact on this module's test classpath to supply six overrides. The duration is
+ * set on the window's public field instead of through the fourteen-argument `set`, because
+ * every other argument is a value nothing here asks about.
+ */
+private class WindowDurations(private val durationsMs: List<Long>) : Timeline() {
+
+    override fun getWindowCount(): Int = durationsMs.size
+
+    override fun getWindow(
+        windowIndex: Int,
+        window: Window,
+        defaultPositionProjectionUs: Long,
+    ): Window {
+        val millis = durationsMs[windowIndex]
+        window.uid = windowIndex
+        window.durationUs = if (millis < 0) C.TIME_UNSET else millis * 1_000
+        return window
+    }
+
+    override fun getPeriodCount(): Int = durationsMs.size
+
+    override fun getPeriod(periodIndex: Int, period: Period, setIds: Boolean): Period = period
+
+    override fun getIndexOfPeriod(uid: Any): Int = uid as? Int ?: C.INDEX_UNSET
+
+    override fun getUidOfPeriod(periodIndex: Int): Any = periodIndex
 }

@@ -1,8 +1,10 @@
 package app.storyarc.core.playback
 
 import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.extractor.metadata.Chapter
@@ -154,6 +156,15 @@ class AudiobookSource(
         override fun onTracksChanged(tracks: Tracks) {
             adoptChapters(tracks)
         }
+
+        /**
+         * The decoder has read the playlist and knows how long each file is.
+         *
+         * Which is the only place those lengths come from — see [adoptDurations].
+         */
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+            adoptDurations(timeline)
+        }
     }
 
     /** Asks the player what it is doing now, and tells the table what that means. */
@@ -194,6 +205,35 @@ class AudiobookSource(
             PartLayout.MARKS -> player.seekTo(to.offsetMillis)
         }
         onChange?.invoke()
+    }
+
+    /**
+     * Moves by an interval, and crosses a part boundary rather than stopping at it.
+     *
+     * **The two layouts get there differently, and only one needs arithmetic.** A single
+     * file's offsets are file-wide, so a mark is a number the position passes and nothing
+     * more; what has to be honoured there is the file's own two ends. A folder's offsets are
+     * per item, so the interface's default converts to whole-book time and back — which is
+     * why a folder's parts have to know their lengths, and [adoptDurations] is where they
+     * learn them.
+     *
+     * Neither case is media3's `seekBack()` / `seekForward()`. Those clamp to the current
+     * item at both ends — `BasePlayer.seekToOffset`, read out of the 1.11.0 bytecode — which
+     * is the boundary stop `audio-playback` forbids.
+     */
+    override fun skip(direction: SkipDirection, byMillis: Long) {
+        val by = if (direction == SkipDirection.BACK) -byMillis else byMillis
+        when (book.layout) {
+            PartLayout.FILES -> super.skip(direction, byMillis)
+            PartLayout.MARKS -> {
+                val reached = player.currentPosition.coerceAtLeast(0)
+                val total = player.duration.takeIf { it != C.TIME_UNSET && it > 0 }
+                val target = (reached + by).coerceAtLeast(0).let { at ->
+                    if (total == null) at else at.coerceAtMost(total)
+                }
+                seek(PlaybackPosition(AudiobookChapters.partAt(offsets, target), target))
+            }
+        }
     }
 
     /** Moves to the start of a part, whichever way this publication's parts are laid out. */
@@ -290,9 +330,50 @@ class AudiobookSource(
                 )
             }
 
-        val duration = player.duration.takeIf { it != androidx.media3.common.C.TIME_UNSET }
+        val duration = player.duration.takeIf { it != C.TIME_UNSET }
         parts = AudiobookChapters.parts(marks, duration, book.title, chapterWord)
         offsets = AudiobookChapters.offsets(marks)
+        onChange?.invoke()
+    }
+
+    /**
+     * Takes a folder's part lengths from the decoder, because nothing else has them.
+     *
+     * **Where they are is the part worth writing down.** media3 has no per-item duration
+     * API: `Player.getDuration()` answers for the item playing, and the only place the rest
+     * are is a `Timeline`'s windows, which arrive as a timeline change once the source has
+     * been read. The format layer deliberately does not measure them — `OpenedAudiobook`
+     * records why, an extractor per file would cost a five-hundred-book library a decode
+     * pass per scan — so a folder starts with three unmeasured parts and learns.
+     *
+     * **What this unlocks is more than a number on a row.** A skip across a file boundary,
+     * the whole-publication progress line, and *end of chapter* on the sleep timer all ask
+     * `PlaybackPart.duration` and all answer "unknown" for a folder without this.
+     *
+     * A single file is left alone: its one window is the whole book, and adopting it as the
+     * current part's length would give a three-chapter book one part the length of three.
+     * A timeline whose window count is not the playlist's is not this book's — media3
+     * reports an empty one before it has read anything — and adopting it would throw away
+     * the names the format layer supplied.
+     */
+    private fun adoptDurations(timeline: Timeline) {
+        if (book.layout != PartLayout.FILES) return
+        if (timeline.windowCount != book.sources.size) return
+
+        val window = Timeline.Window()
+        val measured = book.sources.mapIndexed { index, part ->
+            val millis = timeline.getWindow(index, window).durationMs
+            PlaybackPart(
+                title = part.title,
+                duration = if (millis == C.TIME_UNSET || millis <= 0) {
+                    PlaybackDuration.Unknown
+                } else {
+                    PlaybackDuration.Known(millis)
+                },
+            )
+        }
+        if (measured == parts) return
+        parts = measured
         onChange?.invoke()
     }
 }

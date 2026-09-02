@@ -73,6 +73,26 @@ interface PlayerSource {
     fun stop()
     fun seek(to: PlaybackPosition)
     fun setSpeed(speed: PlaybackSpeed)
+
+    /**
+     * Moves by an interval, carrying on into the neighbouring part where it has to.
+     *
+     * `audio-playback` requires a skip past the start or the end of a chapter to continue
+     * "into the neighbouring one rather than stopping at the boundary", and the default
+     * below is that rule: whole-book time, out and back, through [PlaybackTimeline]. It is
+     * the second of the two places `design.md` says the sources may differ — **what a skip
+     * moves** — so a source that measures its parts some other way overrides it, and
+     * `AudiobookSource` does for a single chaptered file.
+     *
+     * Nothing happens where the arithmetic cannot be done. That is deliberate: the fallback
+     * would be a clamp, and a clamp is the boundary stop this exists to avoid.
+     *
+     * @param byMillis how far, always positive. [direction] says which way.
+     */
+    fun skip(direction: SkipDirection, byMillis: Long) {
+        val by = if (direction == SkipDirection.BACK) -byMillis else byMillis
+        PlaybackTimeline.skip(parts, position, by)?.let(::seek)
+    }
 }
 
 /**
