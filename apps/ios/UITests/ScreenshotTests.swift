@@ -95,6 +95,29 @@ final class ScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "library-end")
     }
 
+    /// The shelf in selection mode, scrolled to its end.
+    ///
+    /// **The end-of-scroll walk above does not cover this, and the difference is the point.**
+    /// With a selection running, the library owes a bottom inset for the selection bar *and*
+    /// the tab bar under it — a taller one than the tab bar alone — and the selection bar is a
+    /// near-opaque surface rather than the tab bar's glass, so a caption disappearing behind it
+    /// reads as broken whether or not it can be scrolled clear. This is the capture that says
+    /// which of the two it is.
+    func testCaptureLibrarySelectingAtTheEnd() throws {
+        let app = launch()
+        try XCTUnwrap(destination("Library", in: app)).tap()
+        let shelf = app.scrollViews.firstMatch
+        _ = shelf.waitForExistence(timeout: 10)
+        try XCTUnwrap(app.buttons["Select"].firstMatch).tap()
+        XCTAssertTrue(
+            app.buttons["Done"].waitForExistence(timeout: 5),
+            "Tapping Select did not put the shelf into selection mode."
+        )
+        for _ in 0..<8 { shelf.swipeUp() }
+        settle(1)
+        attach(app.screenshot(), named: "library-selecting-end")
+    }
+
     /// The search destination, which is the whole point of `quiet-shell-and-search`.
     ///
     /// **This capture could not have been written before the change.** Search was
