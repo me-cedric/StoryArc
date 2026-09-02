@@ -293,6 +293,7 @@
     </plurals>
     <string name="library_select">Sélectionner</string>
     <string name="library_select_done">Terminé</string>
+    <string name="library_select_stop">Arrêter la sélection</string>
     <string name="library_bulk_download">Télécharger</string>
     <string name="library_bulk_download_none">Elles sont déjà toutes sur cet appareil.</string>
     <string name="library_bulk_download_size">%1$s seront copiés dans l’espace de StoryArc.</string>

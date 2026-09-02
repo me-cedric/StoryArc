@@ -291,6 +291,7 @@
     </plurals>
     <string name="library_select">Seleccionar</string>
     <string name="library_select_done">Listo</string>
+    <string name="library_select_stop">Dejar de seleccionar</string>
     <string name="library_bulk_download">Descargar</string>
     <string name="library_bulk_download_none">Ya están todas en este dispositivo.</string>
     <string name="library_bulk_download_size">Se copiarán %1$s al almacenamiento de StoryArc.</string>

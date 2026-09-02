@@ -307,6 +307,7 @@
     </plurals>
     <string name="library_select">Select</string>
     <string name="library_select_done">Done</string>
+    <string name="library_select_stop">Stop selecting</string>
     <string name="library_bulk_download">Download</string>
     <string name="library_bulk_download_none">Every one of them is already on this device.</string>
     <string name="library_bulk_download_size">%1$s will be copied into StoryArc’s own storage.</string>

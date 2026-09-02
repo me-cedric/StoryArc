@@ -184,6 +184,14 @@ fun LibraryScreen(
     var selection by remember { mutableStateOf(LibrarySelection()) }
     /** Whether the add-to sheet is open over the whole selection rather than one cover. */
     var isShelvingSelection by remember { mutableStateOf(false) }
+    /**
+     * Whether the reader has asked to download the selection.
+     *
+     * Held here rather than inside the bar because the bar is a `Scaffold`'s `topBar` slot,
+     * measured for the height of a bar, and the two dialogs the request opens are windows.
+     * See [BulkDownloadPrompt].
+     */
+    var isDownloadingSelection by remember { mutableStateOf(false) }
     /** The last bulk action, until its ten seconds are up. */
     var undo by remember { mutableStateOf<BulkUndo?>(null) }
 
@@ -364,35 +372,17 @@ fun LibraryScreen(
         containerColor = palette.surfaceCanvas,
         snackbarHost = { SnackbarHost(snackbars) },
         topBar = {
-            LibraryTopBar(
-                scrollBehavior = topBarScroll,
-                onAddFolder = { pickFolder.launch(null) },
-                onAddCatalogue = onAddCatalogue,
-                onAddKavita = onAddKavita,
-                onAddShare = onAddShare,
-                onImport = { importFile.launch(arrayOf("*/*")) },
-                // The way in. The way out is in the bar the selection puts up, so the
-                // menu does not gain an entry that is only half useful.
-                onSelect = if (viewModel != null && publications.isNotEmpty() &&
-                    !selection.isActive
-                ) {
-                    { selection = selection.begin() }
-                } else {
-                    null
-                },
-                // A wide window already shows both of these as rail items, and a menu that
-                // repeated them would be two ways to one place.
-                onOpenShelves = if (windowClass.showsSidebar) null else onOpenShelves,
-                onOpenSettings = if (windowClass.showsSidebar) null else onOpenSettings,
-            )
-        },
-        bottomBar = {
+            // **Selecting swaps the bar rather than adding one at the foot.** Material's
+            // answer to a selection mode is a contextual top app bar, and the bottom of an
+            // Android window already belongs to the navigation bar — see
+            // `LibrarySelectionTopBar`, which also records why this diverges from iOS on
+            // purpose rather than by neglect.
             if (selection.isActive && viewModel != null) {
-                BulkActionBar(
-                    viewModel = viewModel,
+                LibrarySelectionTopBar(
                     selection = selection,
                     onSelectionChange = { selection = it },
                     onAddToShelf = { isShelvingSelection = true },
+                    onDownload = { isDownloadingSelection = true },
                     onMarkRead = {
                         val changing = BulkSelection.marking(
                             selection.ids,
@@ -402,9 +392,31 @@ fun LibraryScreen(
                         publications.filter { it.id in changing }.forEach { onMark(it, true) }
                         undo = BulkUndo(BulkUndo.Kind.Read(true), changing)
                     },
-                    onChange = { undo = it },
                 )
-            } else if (unavailable.isNotEmpty()) {
+            } else {
+                LibraryTopBar(
+                    scrollBehavior = topBarScroll,
+                    onAddFolder = { pickFolder.launch(null) },
+                    onAddCatalogue = onAddCatalogue,
+                    onAddKavita = onAddKavita,
+                    onAddShare = onAddShare,
+                    onImport = { importFile.launch(arrayOf("*/*")) },
+                    // The way in. The way out is the close affordance the contextual bar
+                    // puts at its start, so this menu gains no half-useful entry.
+                    onSelect = if (viewModel != null && publications.isNotEmpty()) {
+                        { selection = selection.begin() }
+                    } else {
+                        null
+                    },
+                    // A wide window already shows both of these as rail items, and a menu
+                    // that repeated them would be two ways to one place.
+                    onOpenShelves = if (windowClass.showsSidebar) null else onOpenShelves,
+                    onOpenSettings = if (windowClass.showsSidebar) null else onOpenSettings,
+                )
+            }
+        },
+        bottomBar = {
+            if (unavailable.isNotEmpty()) {
                 UnavailableFolders(
                     names = unavailable,
                     onRepick = { pickFolder.launch(null) },
@@ -583,6 +595,18 @@ fun LibraryScreen(
             onMark = { changing, isRead -> changing.forEach { onMark(it, isRead) } },
             onRestart = { restarting = shelved },
             onAddToServerList = onAddToServerList,
+        )
+    }
+
+    // The count and the size, before anything is copied. Outside the `Scaffold` for the
+    // reason `BulkDownloadPrompt` gives: the tap is in the top bar and a dialog is not.
+    if (viewModel != null) {
+        BulkDownloadPrompt(
+            viewModel = viewModel,
+            selection = selection,
+            requested = isDownloadingSelection && selection.isActive,
+            onSettled = { isDownloadingSelection = false },
+            onChange = { undo = it },
         )
     }
 
