@@ -362,6 +362,55 @@ worked around silently:
       own change and this is a screen until then" — so **if** that sheet ever lands, §3.2's
       question arrives on Android with it. It has not, and this tick is not a decision about it.
 
+## 3b. The selection chrome, which had no requirement at all
+
+Added on 2026-09-02, after the owner reported it twice. **This section exists because the
+behaviour shipped before anything specified it** — `collections-and-reading-lists` says a reader
+may select in bulk and `native-experience` asks for the platform's conventions in general terms,
+and neither reaches the *shape*. A `native-experience` delta now states it; see
+`specs/native-experience/spec.md`.
+
+- [x] 3b.1 iOS: the selection's actions **replace** the tab bar rather than stacking above it.
+      `LibraryView` hides the tab bar for the mode's duration, and the actions are a
+      `Capsule()` on glass inset by the gutter, inside a `GlassEffectContainer` with the undo
+      capsule so their edges morph. `.controlSize(.large)`, the scale floating chrome uses here.
+      **This is the line that fixes "two bars"**, and it is mutation-checked: commenting it out
+      fails `BulkSelectionChromeTests` by name.
+      The guard's first version was too loose and the agent caught it — a 160-character lookback
+      reached the `navigationBarTitleDisplayMode` line above and would have lent the test the
+      word it was searching for. Scoped to the enclosing `.toolbar(` statement instead.
+- [x] 3b.2 iOS: the count moves to the navigation title and *Select* is **replaced** by *Done*
+      in the trailing toolbar slot. The three view choices stand down for the mode, so changing
+      what the shelf shows cannot carry picks off screen.
+- [x] 3b.3 Android: a contextual `TopAppBar` — close at the start, the plural count as title,
+      download and mark-as-read as actions, *Add to…* named in words in the overflow.
+      `BulkActionBar.kt` is deleted and the screen's `bottomBar` no longer has a selection
+      branch. **Android never puts selection chrome at the bottom**: that is the navigation
+      bar's territory, and `native-experience` asks for the platform's own convention. An
+      ADR-0001 divergence by design, recorded in both platforms' doc comments.
+- [x] 3b.4 Both: the actions are inert at nought picked and **shown rather than hidden**.
+      Chrome that arrives on the first pick appears under a thumb mid-tap and changes the
+      shelf's bottom inset mid-scroll; shown-and-inert says what the mode is for. The way out is
+      never in the disabled group.
+- [x] 3b.5 Both: every action names itself to assistive technology. Glyph-only survives in
+      exactly two places, both on Android's top bar where an action slot holds no word at any
+      width, and both glyphs the platform already establishes. *Add to…* is named in words,
+      because `PlaylistAdd` is the ambiguous glyph the review objected to.
+- [x] 3b.6 **A second instance of the same slab, which the brief did not name.**
+      `ShelfBulkActions` drew the identical full-bleed `BulkUndoBar` one screen over. Floated as
+      an inset capsule in the same pass. The complaint had two homes and only one was reported.
+- [ ] 3b.7 Captures, owed and not taken — both devices were sweeping every screen when this
+      landed, and two UI-test runs on one device interfere.
+      iOS: `testCaptureLibrarySelectingAtTheEnd` (exists), plus `LibrarySelectionCapture.swift`'s
+      two new walks. **They live in a sibling extension because `ScreenshotTests.swift` sits one
+      line under SwiftLint's 400-line file warning** and had no room.
+      Android: the contextual bar at 0 and at many, light and dark, default and largest text — no
+      walk exists yet.
+      **One thing the pictures must settle**: the action row takes
+      `.storyArcGlassText(.primary)`, but the automatic button style may colour its own labels
+      with the tint and win over the ancestor `foregroundStyle`. Either outcome is legible and
+      neither tints the *material*, so no rule is broken — but only a picture says which it is.
+
 ## 4. Close-out
 
 - [ ] 4.1 `docs/openspec/STATUS.md`, and `docs/designs/ui-revamp-2026-08.md` if it describes
