@@ -16,6 +16,8 @@
  * Usage:
  *   node scripts/capture-ios.mjs --out docs/designs/screenshots/after-x
  *   node scripts/capture-ios.mjs --out /tmp/shots --only testCaptureDownloads
+ *   node scripts/capture-ios.mjs --out /tmp/shots --only SweepLibraryTests
+ *   node scripts/capture-ios.mjs --out /tmp/shots --only SweepLibraryTests/testCaptureCoverGrid
  *   node scripts/capture-ios.mjs --out /tmp/shots --appearance dark
  *
  * `--appearance` exists because the app's default appearance is `.system`, and the settings
@@ -72,14 +74,23 @@ const run = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', maxBuffer
 
 for (const path of [bundle, staging]) rmSync(path, { recursive: true, force: true })
 
-// `--only` takes a bare test name in `ScreenshotTests`, or `Class/testName` for a capture
-// suite of its own. Class-qualified because there is more than one: `PlayerScreenshotTests`
-// exists, and a bare name pointed at the wrong class **passed with nothing attached** — the
-// `-only-testing:` filter matched no test, xcodebuild reported success, and the only clue was
-// this script's own "attached nothing" message. Silent success is the worst answer a capture
-// harness can give.
+// `--only` takes a bare test name in `ScreenshotTests`, a whole class, or `Class/testName`.
+// Class-qualified because there is more than one: `PlayerScreenshotTests` exists, and a bare
+// name pointed at the wrong class **passed with nothing attached** — the `-only-testing:`
+// filter matched no test, xcodebuild reported success, and the only clue was this script's
+// own "attached nothing" message. Silent success is the worst answer a capture harness can
+// give.
+//
+// **A bare class name used to be that same silent success.** This file's own usage note and
+// `AppIconCapture.swift`'s both say `--only AppIconCaptureTests` runs the class; it was
+// rewritten to `ScreenshotTests/AppIconCaptureTests`, which is not a test, so the run passed
+// and attached nothing. Whether an unqualified argument is a class or a test is decided by
+// the one convention XCTest itself enforces — a test method begins with `test` — rather than
+// by guessing, so `--only testCaptureHome` still reaches `ScreenshotTests` and `--only
+// SweepLibraryTests` reaches the class.
+const qualified = only && (only.includes('/') || !/^test/.test(only))
 const target = only
-    ? `StoryArcUITests/${only.includes('/') ? only : `ScreenshotTests/${only}`}`
+    ? `StoryArcUITests/${qualified ? only : `ScreenshotTests/${only}`}`
     : 'StoryArcUITests/ScreenshotTests'
 const udid = udidFor(device)
 
@@ -109,6 +120,46 @@ const putBack = () => {
     }
 }
 
+/** How many cases actually ran, because `xcodebuild` exits 0 when the filter matches none.
+ *
+ * Read out of the result bundle rather than scraped from the log: `-quiet` prints no
+ * `Test Case … passed` line at all, so a regex over the output reported "matched nothing"
+ * on a run that had just taken four screenshots. The bundle is the same artifact the
+ * attachments come out of, and it counts skips — which is the number that matters here,
+ * because a walk that skips passes and photographs nothing.
+ */
+function report() {
+    try {
+        const summary = JSON.parse(run('xcrun', [
+            'xcresulttool', 'get', 'test-results', 'summary',
+            '--path', bundle, '--format', 'json',
+        ]))
+        const { passedTests = 0, failedTests = 0, skippedTests = 0 } = summary
+        const total = passedTests + failedTests + skippedTests
+        if (total === 0) {
+            console.warn('The run executed no test case. The -only-testing filter matched nothing.')
+            return
+        }
+        console.log(
+            `${total} test case(s): ${passedTests} passed, ${failedTests} failed, `
+            + `${skippedTests} skipped`
+        )
+        for (const failure of summary.testFailures ?? []) {
+            console.log(`  failed: ${failure.testName ?? '?'} — ${failure.failureText ?? ''}`)
+        }
+    } catch {
+        // Not worth failing a capture over. The "attached nothing" check below is the gate.
+        console.warn('Could not read the run summary out of the result bundle.')
+    }
+}
+
+// The project is generated and gitignored, and a UI-test file added since the last
+// `xcodegen generate` is in no target — so the filter matches nothing, xcodebuild exits 0,
+// and the only symptom is this script's "attached nothing". `build:ios` and
+// `build:ios:tests` both regenerate first; a capture that did not was the one way to add a
+// walk and photograph none of it.
+run('xcodegen', ['generate', '--project', 'apps/ios', '--spec', 'apps/ios/project.yml'])
+
 console.log(`Capturing ${target} on ${device}…`)
 try {
     run('xcodebuild', [
@@ -120,7 +171,9 @@ try {
         '-resultBundlePath', bundle,
         '-quiet',
     ])
+    report()
 } catch (error) {
+    report()
     putBack()
     console.error('The capture run failed. Its output:')
     console.error((error.stdout ?? '') + (error.stderr ?? ''))
