@@ -150,7 +150,12 @@ export const ROUTES = [
     ['Publication page', [NAMES.library, ', CBZ']],
     ['Comic reader', [NAMES.library, ', CBZ', NAMES.read]],
     ['Comic reader > chrome', [NAMES.library, ', CBZ', NAMES.read, '!@tap-centre']],
-    ['EPUB reader', [NAMES.library, ', EPUB', NAMES.read]],
+    // Named, rather than "the first thing labelled EPUB". The corpus's first EPUB by title
+    // is `Bright Panels`, which `corpus.mjs` builds `fixed: true` — a pre-paginated book
+    // opens in the *comic* reader, not the EPUB activity. So this route was photographing
+    // the comic reader under a name that says EPUB, which is precisely the confusion the
+    // header above says a shared route table exists to prevent. `Glasshouse` is reflowable.
+    ['EPUB reader', [NAMES.library, 'Glasshouse', NAMES.read]],
     // Settings left the browse path in the shell revamp: it is behind the library's
     // overflow, which is why naming it as a first step found nothing.
     ['Settings', [NAMES.library, NAMES.more, NAMES.settings]],
@@ -211,17 +216,17 @@ export const ROUTES = [
     ['Comic reader > bad page', [NAMES.library, 'Foreign Codec', NAMES.read]],
 
     // --- The EPUB reader, which is a second activity ---------------------------------
-    ['EPUB reader > chrome', [NAMES.library, ', EPUB', NAMES.read, '!@tap-centre']],
-    ['EPUB reader > menu', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu')]],
-    ['EPUB reader > themes', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes')]],
+    ['EPUB reader > chrome', [NAMES.library, 'Glasshouse', NAMES.read, '!@tap-centre']],
+    ['EPUB reader > menu', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu')]],
+    ['EPUB reader > themes', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes')]],
     // The preset sheet opens at its smaller detent; the second one is a drag, not a tap.
-    ['EPUB reader > themes expanded', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes'), '@drag-sheet-up']],
-    ['EPUB reader > axes', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes'), named('theme_customise')]],
-    ['EPUB reader > contents', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_contents')]],
-    ['EPUB reader > bookmarks', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_bookmarks')]],
-    ['EPUB reader > search', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_search')]],
-    ['EPUB reader > search typed', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_search'), '@type the']],
-    ['EPUB reader > notes', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('annotations_title')]],
+    ['EPUB reader > themes expanded', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes'), '@drag-sheet-up']],
+    ['EPUB reader > axes', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes'), named('theme_customise')]],
+    ['EPUB reader > contents', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_contents')]],
+    ['EPUB reader > bookmarks', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_bookmarks')]],
+    ['EPUB reader > search', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_search')]],
+    ['EPUB reader > search typed', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_search'), '@type the']],
+    ['EPUB reader > notes', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('annotations_title')]],
 
     // --- Search ----------------------------------------------------------------------
     // The bar at rest is the `Search` route above. Tapping it is a second condition, and
@@ -255,12 +260,13 @@ export const ROUTES = [
     // --- Reachable only once an audiobook is in the library --------------------------
     // Android's player is a destination rather than a sheet, on purpose:
     // `named-failures-and-quieter-chrome` section 3.3 records the divergence.
-    ['Player', [NAMES.library, ', M4B|Sea Room', NAMES.read]],
-    ['Player > chapters', [NAMES.library, ', M4B|Sea Room', NAMES.read, '@swipe-up', '@swipe-up']],
-    ['Player > compact bar', [NAMES.library, ', M4B|Sea Room', NAMES.read, named('player_play'), NAMES.home]],
+    ['Audiobook page', [NAMES.library, 'Audiobook folder|, M4B']],
+    ['Player', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read]],
+    ['Player > chapters', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read, '@swipe-up', '@swipe-up']],
+    ['Player > compact bar', [NAMES.library, 'Audiobook folder|, M4B', NAMES.read, named('player_play'), NAMES.home]],
 
     // --- Reachable only once a source list is not empty ------------------------------
-    ['Settings > source detail', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Audiobooks|Download|Comics']],
+    ['Settings > source detail', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Audiobooks']],
 ]
 
 /**
