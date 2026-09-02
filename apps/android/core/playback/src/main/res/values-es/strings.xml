@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="playback_skip_back">Retroceder 15 segundos</string>
-    <string name="playback_skip_forward">Avanzar 30 segundos</string>
+    <string name="playback_skip_back">Retroceder %1$d segundos</string>
+    <string name="playback_skip_forward">Avanzar %1$d segundos</string>
     <string name="playback_browse_root">Audiolibros</string>
 </resources>

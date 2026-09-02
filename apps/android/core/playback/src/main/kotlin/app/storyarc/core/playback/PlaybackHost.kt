@@ -2,7 +2,9 @@ package app.storyarc.core.playback
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Bundle
 import androidx.media3.session.MediaController
+import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
@@ -74,6 +76,9 @@ object PlaybackHost {
     private var controller: MediaController? = null
     private var current: AudiobookSource? = null
     private var memory: PlaybackMemory? = null
+    private var skips: SkipPreferences? = null
+
+    private val _skipIntervals = MutableStateFlow(SkipIntervals.DEFAULT)
 
     private val _sleep = MutableStateFlow<SleepTimer?>(null)
 
@@ -106,6 +111,13 @@ object PlaybackHost {
     ) {
         memory = PlaybackMemory.open(context).also {
             it.remember(book, from?.partIndex ?: 0, from?.offsetMillis ?: 0)
+        }
+        // Read before the first sound, so the first press of a skip control moves by what
+        // the listener chose rather than by the default and then by their choice.
+        skips = SkipPreferences.open(context).also {
+            val intervals = it.intervals()
+            _skipIntervals.value = intervals
+            centre.skipIntervals = intervals
         }
         withController(context) { player ->
             val source = AudiobookSource(book, player, chapterWord)
@@ -205,20 +217,41 @@ object PlaybackHost {
         current?.seekToPart(index)
     }
 
-    /** Skips by the player's own interval, which is a product decision and not media3's. */
-    fun skip(forward: Boolean) {
-        val playing = _nowPlaying.value ?: return
-        val by = if (forward) PlaybackService.SEEK_FORWARD_MS else -PlaybackService.SEEK_BACK_MS
-        // Clamped at zero and nowhere else. `audio-playback`: "skipping past the start or
-        // the end of a chapter continues into the neighbouring one rather than stopping at
-        // the boundary" — for a single file that is free, because a chapter is a mark and
-        // not an item; for a folder media3 carries the seek into the next item itself.
-        centre.seek(
-            PlaybackPosition(
-                partIndex = playing.partIndex,
-                offsetMillis = (playing.offsetMillis + by).coerceAtLeast(0),
-            ),
-        )
+    /**
+     * Skips by the listener's own interval, which is a product decision and not media3's.
+     *
+     * **This used to do the arithmetic here, and it was wrong in two ways.** It added the
+     * interval to the offset and clamped at zero, and a comment said the boundary case was
+     * free: "for a single file that is free … for a folder media3 carries the seek into the
+     * next item itself". media3 does not — `BasePlayer.seekToOffset` clamps to the current
+     * item at both ends. So skipping back five seconds into chapter two landed at the start
+     * of chapter two, which is the stop `audio-playback` forbids by name. Both halves are
+     * now [PlaybackCentre.skip]'s, over [PlaybackTimeline].
+     */
+    fun skip(direction: SkipDirection) = centre.skip(direction)
+
+    /** How far a skip moves, for a control that has to state its own interval. */
+    val skipIntervals: StateFlow<SkipIntervals> = _skipIntervals.asStateFlow()
+
+    /**
+     * Changes how far a skip moves, and remembers it.
+     *
+     * `audio-playback` asks for an interval "the listener can configure". Written as it is
+     * chosen rather than when the book ends, for [setSpeed]'s reason: a listener who adjusts
+     * it and then loses the process would otherwise be asked the same question again.
+     *
+     * **The notification is told rather than left to notice.** Its two outer buttons carry
+     * the interval in their glyph and their label, and those are set when a controller
+     * connects — so a change made while the shade is showing the old number needs a nudge,
+     * and [PlaybackService.COMMAND_REFRESH_BUTTONS] is it.
+     */
+    fun setSkipIntervals(intervals: SkipIntervals) {
+        _skipIntervals.value = intervals
+        centre.skipIntervals = intervals
+        skips?.remember(intervals)
+        val refresh = SessionCommand(PlaybackService.COMMAND_REFRESH_BUTTONS, Bundle.EMPTY)
+        controller?.takeIf { it.isSessionCommandAvailable(refresh) }
+            ?.sendCustomCommand(refresh, Bundle.EMPTY)
     }
 
     /**

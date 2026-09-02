@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="playback_skip_back">15 Sekunden zurück</string>
-    <string name="playback_skip_forward">30 Sekunden vor</string>
+    <string name="playback_skip_back">%1$d Sekunden zurück</string>
+    <string name="playback_skip_forward">%1$d Sekunden vor</string>
     <string name="playback_browse_root">Hörbücher</string>
 </resources>
