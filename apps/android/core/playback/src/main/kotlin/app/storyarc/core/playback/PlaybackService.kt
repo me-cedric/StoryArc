@@ -473,28 +473,13 @@ class PlaybackService : MediaLibraryService() {
         )
         .build()
 
-    /** What the system needs to put a remembered book back on the air. */
-    private fun resumptionOf(book: PlayedBook): Resumption = Resumption(
-        items = book.uris.mapIndexed { index, uri ->
-            MediaItem.Builder()
-                .setUri(uri)
-                .setMediaId("${book.id}:$uri")
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(book.title)
-                        .setSubtitle(book.partTitles.getOrNull(index).orEmpty())
-                        .setArtist(book.author)
-                        .setArtworkUri(book.artworkUri?.let(android.net.Uri::parse))
-                        .setIsBrowsable(false)
-                        .setIsPlayable(true)
-                        .setMediaType(MediaMetadata.MEDIA_TYPE_AUDIO_BOOK_CHAPTER)
-                        .build(),
-                )
-                .build()
-        },
-        startIndex = book.partIndex.coerceIn(0, (book.uris.size - 1).coerceAtLeast(0)),
-        startPositionMs = book.offsetMillis.coerceAtLeast(0),
-    )
+    /**
+     * What the system needs to put a remembered book back on the air.
+     *
+     * [PlaybackResumption] rather than a method here, so the mapping can be asserted without
+     * a service — see its own note on which half of resumption a host test can reach.
+     */
+    private fun resumptionOf(book: PlayedBook): Resumption = PlaybackResumption.of(book)
 
     companion object {
         /** The id of the one browsable node. Stable, because a car caches it. */
