@@ -214,7 +214,7 @@ creep — see [`design.md`](design.md).
       would. **What is still missing is an instrumented test** that drives an `ExoPlayer`
       over the corpus's own `chaptered.m4b` and asserts the manifest's three — a
       screenshot is evidence and not a gate.
-- [ ] 2.8 Android: bump media3 to **1.11.0** and declare `media3-exoplayer` and
+- [x] 2.8 Android: bump media3 to **1.11.0** and declare `media3-exoplayer` and
       `media3-session` explicitly in the version catalog. Readium only puts 1.10.0 on
       the classpath at runtime scope. **Nothing else in this section is blocked on
       the bump** — see `design.md`: ID3 chapters already parse at 1.10.0, so the
@@ -234,6 +234,17 @@ creep — see [`design.md`](design.md).
       `assembleDebug` passes.
       **One thing the plan does not say and every caller hits:** `metadata.Chapter` is
       `@UnstableApi`, so reading an MP4's chapter marks needs an opt-in at the call site.
+      **Ticked after re-checking what was actually missing, which was neither the version
+      nor the catalog entries.** Both were already there — `libs.versions.toml:63` reads
+      `media3 = "1.11.0"` and both aliases resolve to it. What the tick needed was the
+      *declaration* reaching a module: `:core:playback:dependencies --configuration
+      debugCompileClasspath` now shows `media3-exoplayer` and `media3-session` 1.11.0 on the
+      **compile** classpath, which a runtime transitive never is, and
+      `:feature:epubreader:dependencies --configuration debugRuntimeClasspath` shows
+      Readium's own `1.10.0 -> 1.11.0` with no conflict. The `@UnstableApi` opt-in is at two
+      sites and no more: `AudiobookSource.adoptChapters`, which is the only place a
+      `metadata.Chapter` is read, and `PlaybackService`, whose whole media3 session surface
+      is unstable.
 
 ## 3. The platform session
 
@@ -262,7 +273,7 @@ creep — see [`design.md`](design.md).
       build saying so. `setSpeed` while paused records the number instead of applying it,
       because `rate` is also what starts an `AVPlayer`.
       **Not heard.** Nothing here has been listened to on a device; see §9.
-- [ ] 3.4 Android: a real `MediaSessionService` with
+- [x] 3.4 Android: a real `MediaSessionService` with
       `foregroundServiceType="mediaPlayback"` and both `FOREGROUND_SERVICE`
       permissions. Assert the service is declared in the merged manifest.
       **Done.** `PlaybackService` is a `MediaLibraryService`, which is a
@@ -274,6 +285,11 @@ creep — see [`design.md`](design.md).
       is exactly where that mistake lands. Five assertions, run on `storyarc-j6`, all
       passing. Mutation-checked on the device: changing the type to `dataSync` and dropping
       the `MediaBrowserService` action fails two of them.
+      **Ticked on that recorded device run, and the tick is worth reading narrowly.** The
+      code exists and something asserts it; the assertion is instrumented, and the emulator
+      was held by another agent, so it was re-*compiled* here rather than re-run —
+      `pnpm build:android:tests` passes. `pnpm gradle :app:connectedDebugAndroidTest --tests
+      "app.storyarc.PlayerServiceIsDeclaredTest"` is the command that re-proves it.
 - [x] 3.5 Android: media3's automatic `MediaStyle` notification — hand-rolling it is
       how the shade and the lock screen fall out of step.
       **Done, and the work was to install nothing.** No `MediaNotification.Provider` is
@@ -306,15 +322,16 @@ creep — see [`design.md`](design.md).
       with no scope and no database can read it. Eight cases in `PlaybackMemoryTest`.
       **Still not proved end to end:** that a killed process comes back through the carousel
       needs the process killed between two runs, and that has not been done.
-- [ ] 3.7 Android: `MediaLibraryService` and `automotive_app_desc.xml`.
+- [x] 3.7 Android: `MediaLibraryService` and `automotive_app_desc.xml`.
       **Done.** The service is a `MediaLibraryService`; the descriptor declares `media` and
       nothing else, because declaring a capability the app cannot honour is how an app
       appears in a car's launcher and then does nothing.
       `PlayerServiceIsDeclaredTest` reads the `com.google.android.gms.car.application`
       meta-data off the installed package, which is how a head unit reaches it.
-      **The browse tree itself is still media3's default** — `onGetLibraryRoot` and
-      `onGetChildren` are unimplemented, so a head unit can drive what is *playing* and
-      cannot yet browse the library. That is the honest state of this task.
+      **When this entry was first written the browse tree was still media3's default** —
+      `onGetLibraryRoot` and `onGetChildren` were unimplemented, so a head unit could drive
+      what was *playing* and could not browse anything. Superseded by the paragraph below;
+      kept because it says what the tree replaced.
       **Android: there is a tree now.** `onGetLibraryRoot` answers a browsable
       `MEDIA_TYPE_FOLDER_AUDIO_BOOKS` root — unimplemented it answered an error, so a car that
       had found the app in its launcher could start nothing — and `onGetChildren` puts the
@@ -329,6 +346,13 @@ creep — see [`design.md`](design.md).
       has no library in it and a tree built from a copy of one goes stale the moment a
       download finishes; offering the whole shelf from a car needs the app to publish it, and
       that is not built.
+      **Ticked for the two things this task names**, both of which exist: `PlaybackService`
+      *is* a `MediaLibraryService` and `res/xml/automotive_app_desc.xml` declares `media`
+      alone, with the `<meta-data>` on the `<application>` where Android looks for it. The
+      whole-shelf tree above is not this task and is not owed by it. Same narrow reading as
+      3.4: the assertions are instrumented and were re-compiled rather than re-run —
+      `pnpm gradle :app:connectedDebugAndroidTest --tests "app.storyarc.PlayerBrowseTreeTest"`
+      re-proves them.
 - [~] 3.8 Both: interruption tests — audio taken and returned with the resume hint
       resumes; a pause the listener made is never undone; audio taken for good ends
       the session and records the position.
@@ -446,7 +470,7 @@ creep — see [`design.md`](design.md).
       check` sees it — it is a runtime isolation check, and the app compiles clean. The fix is
       `SpokenVoice.makeEngine`, a `nonisolated` method reference.
       *The Android half of the compact bar is 4.3.*
-- [ ] 4.3 Android: hand-compose the row in `NavigationSuiteScaffold`'s `content`
+- [x] 4.3 Android: hand-compose the row in `NavigationSuiteScaffold`'s `content`
       slot, full-width `surfaceContainer`, sharing the navigation bar's container
       colour. **Not** `BottomSheetScaffold` (no `bottomBar` slot, so the peek row
       would sit behind the navigation bar), **not** `HorizontalFloatingToolbar` and
@@ -470,12 +494,32 @@ creep — see [`design.md`](design.md).
       at `w1024dp-h800dp` and measures both claims; before the change the bar spanned
       `0..1024 dp` from the top of the window with the rail's destinations at `0..96 dp`
       underneath it. Mutation-checked by restoring the single arrangement, which fails both.
-- [ ] 4.4 Android: flat `LinearProgressIndicator` for the progress line.
+      **Ticked against a run rather than against the entry**: eight host cases across
+      `CompactPlayerTest` and `CompactPlayerRailTest` pass —
+      `pnpm gradle :core:designsystem:testDebugUnitTest --tests "*CompactPlayer*"`.
+      **One thing this task does not deliver, and it is `design.md`'s, not the spec's.** The
+      *Where the two platforms deliberately differ* table gives Android's bar
+      seek-back / play-pause / seek-forward, "the same three controls" as the notification's
+      three slots. The shipped bar carries play/pause alone. `audio-playback` asks the bar
+      only for "play, pause and a way to open the full player", so the spec is satisfied and
+      the design is not. `CompactPlayerBar` is `:core:designsystem`'s and was held by another
+      agent this wave; the two skip controls are a separate, small piece of work.
+- [x] 4.4 Android: flat `LinearProgressIndicator` for the progress line.
       **Done**, in the compact bar and in the full player. Flat, not wavy: Material says a
       linear indicator "shouldn't be used in any elements smaller than 40dp" and cautions
       the wavy variant "may not be as visible" at small sizes. Null progress draws **no**
       line rather than an empty one, which is `audio-playback`'s "position without a total
       rather than inventing one" carried into a pixel.
+      **Re-checked against both call sites, and the claim above is accurate.**
+      `CompactPlayerBar` draws its line inside `progress?.let { … }`, and `AppShell` hands it
+      null unless the part states a duration greater than zero; `PlayerScreen.Position` draws
+      the whole-publication line only when `elapsedTotalMillis`, `statedTotalMillis` and a
+      positive total are all present, and offers the scrub `Slider` only where the duration
+      is `Known`. Both use the flat indicator; neither has a wavy one anywhere.
+      **What is not true is that a test says so.** Neither the null case nor the flatness is
+      asserted: `CompactPlayerTest` composes the bar with `progress = 0.4f` in every case, and
+      no case composes it with null. The tick is a reading of two call sites, not a
+      regression guard, and adding one belongs with `:core:designsystem`'s owner.
 - [~] 4.4b Both: a publication with no cover gets the **same coverless treatment every other
       surface draws** — the title set as artwork — and so does the system's media controls.
       From a design review on 2026-09-01: `FullPlayerView.swift:89` draws
@@ -808,7 +852,19 @@ creep — see [`design.md`](design.md).
       then failed on two values that printed identically, and the whole suite took `SIGSEGV`.
       Neither is a defect and neither is flaky: `swift package clean` fixes both. Worth knowing
       before spending an hour on a compiler bug that is not there.
+> **7.2 and 7.3 each appeared twice, and the duplication had eaten text.** Two pairs of
+> entries carried the same heading: 7.2's first copy had lost its second line — "returning
+> never offers a choice of two" — under a pasted Android body, and 7.3's first copy carried an
+> Android paragraph that is about 7.2's subject, one position and no choice of two, not about
+> finishing. Merged below with nothing dropped: each heading is whole again, the misfiled
+> paragraph sits under 7.2 where it answers the requirement, and one stale "iOS half
+> outstanding" is gone because the iOS paragraph it preceded is now in the same entry.
+> **8.2 and 8.3 carry the identical defect** — duplicated entries, and 8.3's first copy holds
+> a body about the skip and speed controls that belongs to 8.1/8.2. Left alone here: §8 is
+> another agent's and both entries are already `[x]`.
+
 - [~] 7.2 Both: a publication both read and listened to has **one** position, and
+      returning never offers a choice of two.
       **Android: the position now exists, is stored, and survives.** `design.md` decided it
       on 2026-09-01 and `ReadingPosition.Listening(part, partCount, offsetMillis, ofMillis)`
       is it — a **third** case beside `Page` and `Reflowable`, not a fourth: there are two.
@@ -838,9 +894,14 @@ creep — see [`design.md`](design.md).
       the local store authoritative and an app killed in the background is the ordinary way a
       phone closes one; a book has no page turns to hang that on. The writer's scope is the
       process's, not an activity's — the audio outlives every screen and so must the writing.
-      iOS half outstanding.
-- [~] 7.2 Both: a publication both read and listened to has **one** position, and
-      returning never offers a choice of two.
+      **Android: one position, by construction, and asserted.** There is one `position` field
+      on `ReadingProgress` and one row in the store, so the second kind of position replaces
+      the first rather than sitting beside it — `ProgressStoreTest` pins that a listening
+      write over a reflowable record leaves one row holding the listening one. The "never
+      offers a choice" half is `ListenedPosition.resume` answering **null** for a position
+      left by reading: the book opens at its beginning, with no prompt, because there is no
+      second place to offer. *(This paragraph was filed under 7.3 by the duplication above;
+      it answers 7.2's requirement, so it is here.)*
       **iOS half done, and it is a guard rather than a feature.** `wirePlayerRecording` writes a
       listening position **only** for a publication whose format `isAudio`. A publication read
       aloud is still a reflowable publication, and what the voice writes for it is the
@@ -858,15 +919,6 @@ creep — see [`design.md`](design.md).
       **The end-of-publication offers are `FinishedCleanup`'s and the next-in-series shelf's**,
       and neither was traced from a finished audiobook. They hang off the same `isFinished` flag
       a comic sets, so the reasoning is that they follow; nobody watched them.
-      **Android: true by construction, and asserted.** There is one `position` field on
-      `ReadingProgress` and one row in the store, so the second kind of position replaces the
-      first rather than sitting beside it — `ProgressStoreTest` pins that a listening write
-      over a reflowable record leaves one row holding the listening one. The "never offers a
-      choice" half is `ListenedPosition.resume` answering **null** for a position left by
-      reading: the book opens at its beginning, with no prompt, because there is no second
-      place to offer. iOS half outstanding.
-- [~] 7.3 Both: finishing by listening marks the publication finished and makes the
-      same end-of-publication offers as finishing a comic.
       **Android: the marking is done.** `ListenedPosition.isFinished` uses the fraction and
       the same 0.999 threshold `EpubReaderViewModel` uses, so the end of the last part marks
       the publication finished and the *start* of it does not; finished is sticky in the
