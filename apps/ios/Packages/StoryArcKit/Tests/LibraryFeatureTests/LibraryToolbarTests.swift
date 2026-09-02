@@ -161,9 +161,33 @@ struct LibraryToolbarTests {
             Self.toolbar.contains("selection.begin()"),
             "the way into selection has left the toolbar"
         )
-        // And it is disabled rather than absent while a selection is running, so the
-        // control does not move when the reader is using it.
-        #expect(Self.toolbar.contains(".disabled(selection.isActive)"))
+        // **This assertion used to read `.disabled(selection.isActive)`** — select stayed
+        // mounted and dead through the mode, on the argument that a control should not move
+        // while a reader is using it. The argument was sound and the premise was not: the
+        // way *out* was an item inside the selection's own bottom bar, so a reader who had
+        // entered the mode had a dead *Select* in the navigation bar and a live *Done* at
+        // the foot of the screen, which is not where any Apple app puts an exit. Select and
+        // Done are one switch in one slot now — Photos, Files and Mail all do exactly this
+        // — and the control still does not move, because the slot does not.
+        //
+        // `BulkSelectionChromeTests` owns the other half: that *Done* is in the toolbar and
+        // no longer in the bar, and that the toolbar's exit is not gated on what is picked.
+        #expect(
+            !Self.toolbar.contains(".disabled(selection.isActive)"),
+            """
+            *Select* is mounted-but-disabled during a selection again. The trailing slot is \
+            the mode's one switch: it says *Select* on the way in and *Done* on the way \
+            out, and a dead *Select* beside a live *Done* is two controls arguing.
+            """
+        )
+        #expect(
+            Self.toolbar.contains("if selection.isActive {"),
+            """
+            The toolbar does not change while a selection is running, so either the way out \
+            is somewhere else — the bottom bar, which is the shape being replaced — or the \
+            three view choices are still offered mid-pick and can carry picks off screen.
+            """
+        )
     }
 
     /// Every standalone control names itself, whatever it draws.

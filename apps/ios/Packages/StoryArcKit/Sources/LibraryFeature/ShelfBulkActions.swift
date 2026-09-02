@@ -36,10 +36,17 @@ struct ShelfBulkActions: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            // A floating capsule, inset — not the full-bleed rectangle of glass that stood
+            // here. It is the same ``BulkUndoBar`` the library's selection puts up, and the
+            // library's is a capsule now; a slab on this surface beside a pill on that one
+            // is the "two bars that do not look like the same product" the owner reported,
+            // one screen over. The hard top edge was its own defect too: it cut the captions
+            // of the collection's covers in half as they scrolled under it.
             .safeAreaInset(edge: .bottom) {
                 if let undo {
                     BulkUndoBar(record: undo, model: model) { self.undo = nil }
-                        .storyArcGlass(in: Rectangle())
+                        .storyArcGlass(in: Capsule())
+                        .padding(.horizontal, StoryArcSpace.gutter)
                 }
             }
             .toolbar { ToolbarItem(placement: .primaryAction) { menu } }

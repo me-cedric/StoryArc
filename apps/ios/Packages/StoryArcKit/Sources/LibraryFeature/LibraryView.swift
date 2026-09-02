@@ -258,7 +258,32 @@ public struct LibraryView: View {
             // what `publication-detail` asks for and what a sheet or a separate stack would
             // have cost.
             .publicationPages(in: model, onOpen: onOpen)
-            .navigationTitle(title)
+            // The title becomes the selection state while one is running, which is the
+            // first of the three things Photos, Files and Mail all do and StoryApp did
+            // none of: with the count in the navigation bar, no bottom bar has to carry a
+            // label, and the bottom bar was full-bleed with a left-aligned label precisely
+            // because it did. Inline for the duration, so the count sits on one line
+            // beside *Done* rather than under a large title that has nothing to say.
+            .navigationTitle(selection.isActive ? selectionTitle : title)
+            // `#if os(iOS)` around both of the modifiers below, and around nothing else:
+            // `swift test` builds this package for the host, and a navigation bar's display
+            // mode and a tab bar are both things macOS does not have. Same guard, and same
+            // reason, as `ReaderSystemChrome` and the pager's style.
+            #if os(iOS)
+            // Inline for the duration, so the count sits on one line beside *Done* rather
+            // than under a large title that has nothing left to say.
+            .navigationBarTitleDisplayMode(selection.isActive ? .inline : .automatic)
+            // **And the tab bar goes down for exactly as long as the selection is up.**
+            // This is the line that fixes what the owner reported: the actions used to be
+            // drawn in a bar stacked *above* the rounded glass tab bar, so the foot of the
+            // screen showed two bars of two shapes at once. While a reader is picking, the
+            // bottom of the screen is not for going somewhere else — it is for acting on
+            // what was picked — which is why every Apple app with a selection takes its own
+            // tab bar down and puts it back on the way out. `BulkSelectionChromeTests`
+            // pins it, and the way out stays in the navigation bar throughout so nothing
+            // is stranded by it.
+            .toolbar(selection.isActive ? .hidden : .automatic, for: .tabBar)
+            #endif
             .toolbar { if surface == .shelf { toolbarItems } }
             // Reloaded on every appearance, which is what makes the bar under a
             // cover reflect the page the reader just reached.
@@ -311,5 +336,16 @@ public struct LibraryView: View {
         case .onDevice: Text("library.downloads.title", bundle: .module)
         case .search: Text("library.search.prompt", bundle: .module)
         }
+    }
+
+    /// What the navigation bar says instead, while a selection is running.
+    ///
+    /// The count, stated in the one place a reader is already looking for the name of what
+    /// they are on. It is a plural in all four languages — `library.selected %lld` carries
+    /// the variations — and it is stated at nought as well: the mode can be entered without
+    /// picking anything, and a title that only appeared on the first pick would leave the
+    /// navigation bar naming a shelf the reader has stopped browsing.
+    var selectionTitle: Text {
+        Text("library.selected \(selection.count)", bundle: .module)
     }
 }
