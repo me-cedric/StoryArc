@@ -9,7 +9,6 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
-import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.CommandButton
@@ -209,18 +208,8 @@ class PlaybackService : MediaLibraryService() {
         val exo = player ?: return
         val timeline = exo.currentTimeline
         if (timeline.isEmpty) return
-        val window = Timeline.Window()
-        val parts = (0 until timeline.windowCount).map { index ->
-            val millis = timeline.getWindow(index, window).durationMs
-            PlaybackPart(
-                title = "",
-                duration = if (millis == C.TIME_UNSET || millis <= 0) {
-                    PlaybackDuration.Unknown
-                } else {
-                    PlaybackDuration.Known(millis)
-                },
-            )
-        }
+        // Titles are the app's, and a skip does not need one. What it needs is the lengths.
+        val parts = timeline.partDurations().map { PlaybackPart(title = "", duration = it) }
         val interval = skips.intervals().millis(direction)
         val by = if (direction == SkipDirection.BACK) -interval else interval
         val from = PlaybackPosition(

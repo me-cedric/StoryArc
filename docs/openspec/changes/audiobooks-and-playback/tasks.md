@@ -1109,7 +1109,17 @@ creep — see [`design.md`](design.md).
 
 ## 9. Docs and close-out
 
-- [ ] 9.1 Module `README`s for the new player modules on both platforms.
+- [~] 9.1 Module `README`s for the new player modules on both platforms.
+      **Android done**, as a side effect of §5.2 rather than as this task: `:core:playback`
+      had none and now carries one — files, public API, the two preferences files and why
+      they are not in `:core:persistence`, the data flow across the service boundary, and
+      which claims rest on host tests rather than on anything that has been heard.
+      **Two things this does not cover.** iOS's `Playback` target has no `README`, and
+      `apps/android/README.md`'s own module table is three modules old: it lists four, and
+      the tree holds eight `core` modules and four `feature` ones. `:core:playback`,
+      `:core:format`, `:core:persistence`, `:core:catalogue`, `:core:kavita`, `:core:smb`,
+      `:feature:epubreader`, `:feature:reader` and `:feature:settings` are all missing from
+      it. Left alone here because two other agents held rows in that table this wave.
 - [ ] 9.2 Update `docs/openspec/STATUS.md` and the format table in the docs.
 - [ ] 9.3 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.

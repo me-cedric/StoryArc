@@ -360,17 +360,9 @@ class AudiobookSource(
         if (book.layout != PartLayout.FILES) return
         if (timeline.windowCount != book.sources.size) return
 
-        val window = Timeline.Window()
+        val durations = timeline.partDurations()
         val measured = book.sources.mapIndexed { index, part ->
-            val millis = timeline.getWindow(index, window).durationMs
-            PlaybackPart(
-                title = part.title,
-                duration = if (millis == C.TIME_UNSET || millis <= 0) {
-                    PlaybackDuration.Unknown
-                } else {
-                    PlaybackDuration.Known(millis)
-                },
-            )
+            PlaybackPart(title = part.title, duration = durations[index])
         }
         if (measured == parts) return
         parts = measured
