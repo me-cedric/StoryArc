@@ -32,8 +32,47 @@ is not archivable yet.
 ## 3. Reachability — the one behaviour still missing
 
 - [ ] 3.1 Wire a reachability observer to the probe on iOS so an unreachable source is retried when connectivity returns and when the app returns to the foreground, and verify with a unit test that drives the observer's callback rather than a real network. Decide the observer's placement — library model or beside the probe — in this task's review; `NWPathMonitor` is `Assumed` and unused in this repository so far
+      **Placement decided: beside the probe.** `StoryArcCore/SourceReachability.swift` holds
+      `RetryTrigger` (the two occasions `sources` names) and the three functions that decide
+      what to do with one — `shouldProbe(on:sources:isReading:)`, the edge detector
+      `trigger(hasNetwork:previously:)`, and `triggers(from:)` over an injected
+      `AsyncStream<Bool>`. The same reason `SourceProbe` is there: a decision a test can
+      reach without a network. Sixteen cases in `SourceReachabilityTests`, none of which
+      touches a monitor.
+      **What is not done is the wiring, and it is in `LibraryFeature`.** Two edits, named in
+      full in the handoff: an `NWPathMonitor` → `AsyncStream<Bool>` adapter beside
+      `NetworkCost.swift`, which already holds one monitor for the same framework, and a
+      `.task` in `LibraryView` that consumes the triggers and calls
+      `probeNetworkSources(credentials:pins:)`. The foreground half needs the same loop and a
+      `scenePhase` observation: `.task` is **not** re-run when the app returns to the
+      foreground — it fires on appear, and backgrounding does not disappear the view — so the
+      claim in `retryUnreachableSources`' own doc comment that "returning is what starts it
+      again" holds only when the library actually went away.
 - [ ] 3.2 The same on Android with `ConnectivityManager.NetworkCallback`, asserted by the same mirrored test cases, and verify `pnpm gradle :core:model:testDebugUnitTest` passes
+      `core/model/SourceReachability.kt` mirrors the iOS file function for function, and
+      `SourceReachabilityTest` mirrors its sixteen cases name for name — including the
+      eight-report flapping signal, which is the same list of booleans on both platforms.
+      `:core:model:testDebugUnitTest` passes: 16 tests, 0 failures.
+      **The wiring is in `feature/library` and is not done.** A `callbackFlow` around
+      `ConnectivityManager.NetworkCallback` feeding `SourceReachability.triggers`, collected
+      in `LibraryViewModel`. The foreground half is a one-line addition to `LibraryScreen`'s
+      existing `LifecycleEventEffect(ON_RESUME)`, which today refreshes progress, imports and
+      watched folders and does **not** re-probe.
 - [ ] 3.3 Confirm neither platform reconnects while the reader is reading — the scenario's "does not interrupt reading" clause — and verify by a test that asserts no probe is scheduled while a reader session is open
+      **The guard exists and is asserted; it is not yet consulted, and today both platforms
+      do reconnect mid-read.** `shouldProbe` refuses on `isReading` before it looks at
+      anything else, and three cases assert the absence — *no probe is scheduled while a
+      reader is open*, *the reader outranks every other reason to probe*, and the both-occasions
+      case, on each platform. Mutation-checked in both directions: deleting the one guard line
+      fails exactly those three tests on iOS (6 issues) and exactly those three on Android,
+      each failure naming `isReading = true` against a scheduled probe. Both files were
+      restored byte for byte.
+      **What is left is that nothing calls it yet, and the existing backoff loop needs it
+      too.** iOS's loop runs from `LibraryView`'s `.task`, which is not cancelled when the
+      reader opens — the file says so itself at `LibraryView.swift:94` — so it probes every
+      5 s to 300 s through a chapter. Android's is stopped by `onDispose`, which the comic
+      reader triggers and the EPUB reader, being an activity of its own, does not. Both fixes
+      are one condition in a file this task could not edit.
 
 ## 4. Visual proof — what blocks archiving
 
