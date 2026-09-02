@@ -12,11 +12,78 @@
  * asks whether it is usable, `capture-android.mjs` photographs it.
  */
 import { execFileSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 export const PKG = 'app.storyarc.debug'
 export const ACTIVITY = `${PKG}/app.storyarc.MainActivity`
 
 export const sleep = (ms) => execFileSync('/bin/sleep', [String(ms / 1000)])
+
+const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
+
+/** Every module that ships strings, and every language the app ships them in. */
+const STRING_MODULES = ['app', 'core/playback', 'feature/library', 'feature/reader', 'feature/epubreader', 'feature/settings']
+const STRING_LOCALES = ['', '-de', '-es', '-fr']
+
+/**
+ * Every `<string>` in the app, by resource name, in all four languages.
+ *
+ * Read out of the app's own resources rather than copied here. The hand-copied table
+ * below carries a long note about why a walk that invents its own translation passes
+ * against an app that says something else — and the answer to that is not more care with
+ * the copying, it is not copying. A sweep that names sixty controls cannot hand-maintain
+ * two hundred and forty translations, and the one it got wrong would be indistinguishable
+ * from a control that had moved.
+ *
+ * Two transformations, both because `centre()` matches a substring of what is on screen:
+ *
+ *  - `\uXXXX` escapes and XML entities are decoded, because the file holds
+ *    `What’s new` and the screen holds `What’s new`.
+ *  - Everything from the first format specifier on is dropped, because `Sort: %1$s` never
+ *    appears and `Sort: ` always does.
+ */
+const STRINGS = (() => {
+    const decode = (value) =>
+        value
+            .replaceAll(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+            .replaceAll('\\n', '\n')
+            .replaceAll("\\'", "'")
+            .replaceAll('&lt;', '<')
+            .replaceAll('&gt;', '>')
+            .replaceAll('&quot;', '"')
+            .replaceAll('&#8230;', '…')
+            .replaceAll('&amp;', '&')
+    const table = new Map()
+    for (const module of STRING_MODULES) {
+        for (const locale of STRING_LOCALES) {
+            const file = join(ROOT, `apps/android/${module}/src/main/res/values${locale}/strings.xml`)
+            if (!existsSync(file)) continue
+            for (const [, name, body] of readFileSync(file, 'utf8').matchAll(/<string name="([\w.]+)"[^>]*>([\s\S]*?)<\/string>/g)) {
+                // A step matches on the literal part, so a placeholder ends the useful prefix.
+                const value = decode(body).split('%')[0].trim()
+                if (value.length < 2) continue
+                if (!table.has(name)) table.set(name, new Set())
+                table.get(name).add(value)
+            }
+        }
+    }
+    return table
+})()
+
+/**
+ * One step naming a control, in every language the app draws it in.
+ *
+ * Throws on a name the app does not define, which is the point: a renamed resource fails
+ * the route table at import rather than one screenshot at 3am, and a typo cannot quietly
+ * become "could not reach".
+ */
+export function named(resource) {
+    const values = STRINGS.get(resource)
+    if (!values) throw new Error(`No <string name="${resource}"> in any Android module — the route table names one that does not exist.`)
+    return [...values].join('|')
+}
 
 /**
  * Every route worth reaching, as the taps that reach it.
@@ -82,7 +149,7 @@ export const ROUTES = [
     // navigation rewrite: it was still describing the app as it had been.
     ['Publication page', [NAMES.library, ', CBZ']],
     ['Comic reader', [NAMES.library, ', CBZ', NAMES.read]],
-    ['Comic reader > chrome', [NAMES.library, ', CBZ', NAMES.read, '@tap-centre']],
+    ['Comic reader > chrome', [NAMES.library, ', CBZ', NAMES.read, '!@tap-centre']],
     ['EPUB reader', [NAMES.library, ', EPUB', NAMES.read]],
     // Settings left the browse path in the shell revamp: it is behind the library's
     // overflow, which is why naming it as a first step found nothing.
@@ -96,6 +163,104 @@ export const ROUTES = [
     ['Settings > Your libraries', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources]],
     ['Settings > Downloads', [NAMES.library, NAMES.more, NAMES.settings, NAMES.storage]],
     ['Settings > Language', [NAMES.library, NAMES.more, NAMES.settings, NAMES.language]],
+
+    // ---------------------------------------------------------------------------------
+    // Below here: the states a destination can be *in*, rather than the destinations.
+    //
+    // Added for the 2026-09-02 sweep, whose brief was every surface and every state of
+    // it. The eighteen routes above reach eighteen screens and photograph each of them
+    // at rest — which left every menu, every sheet, every dialog, every empty state and
+    // every failure notice in this app unphotographed, and a surface nobody looks at is
+    // a surface that gets no design feedback. Names come from `named()`, so each step is
+    // the app's own string in all four languages and a renamed resource fails at import.
+    // ---------------------------------------------------------------------------------
+
+    // --- Library: the chip row, the menus behind it, and what narrowing produces ------
+    ['Library > list layout', [NAMES.library, named('library_layout_list')]],
+    // The shelf opens narrowed to what is on the device. Tapping the chip widens it.
+    ['Library > everywhere', [NAMES.library, named('source_on_this_device')]],
+    ['Library > sort menu', [NAMES.library, named('library_sort_chip')]],
+    ['Library > filter menu', [NAMES.library, named('library_filter')]],
+    ['Library > filter values', [NAMES.library, named('library_filter'), named('library_filter_read_state')]],
+    ['Library > filter active', [NAMES.library, named('library_filter'), named('library_filter_read_state'), named('library_read_state_in_progress'), '@back']],
+    ['Library > overflow menu', [NAMES.library, NAMES.more]],
+    ['Library > add source menu', [NAMES.library, named('library_add_source')]],
+    // Everything the shelf holds is a local file, so "not downloaded" matches nothing —
+    // which is the only way to reach the narrowed-to-nothing state without inventing data.
+    ['Library > nothing matches', [NAMES.library, named('library_filter'), named('library_filter_download'), named('library_filter_download_no'), '@back']],
+    ['Library > skipped list', [NAMES.library, named('library_skipped_list')]],
+    // Selection mode is the app's own overflow entry, not a long press, and it opens with
+    // nothing selected — a state of its own, and the one the bar is designed around.
+    ['Library > selection none', [NAMES.library, NAMES.more, named('library_select')]],
+    ['Library > selection two', [NAMES.library, NAMES.more, named('library_select'), 'Fine Print', 'Foreign Codec']],
+    ['Library > add to shelf', [NAMES.library, '@long Fine Print']],
+
+    // --- The publication page, in the three shapes its own layout has ----------------
+    ['Publication page > overflow', [NAMES.library, ', CBZ', named('detail_more')]],
+    ['Publication page > add to shelf', [NAMES.library, ', CBZ', named('detail_more'), named('detail_add_to_shelf')]],
+    ['Publication page > PDF', [NAMES.library, ', PDF']],
+    ['Publication page > series', [NAMES.library, 'Tidal Reach #2']],
+
+    // --- The comic reader ------------------------------------------------------------
+    ['Comic reader > menu', [NAMES.library, ', CBZ', NAMES.read, '@tap-centre', named('reader_menu')]],
+    ['Comic reader > pages', [NAMES.library, ', CBZ', NAMES.read, '@tap-centre', named('reader_menu'), named('reader_menu_contents')]],
+    ['Comic reader > adjustments', [NAMES.library, ', CBZ', NAMES.read, '@tap-centre', named('reader_menu'), named('reader_menu_themes')]],
+    // The outer edge of the width turns a page, so four taps there run off the end of a
+    // three-page fixture and land on the finished screen.
+    ['Comic reader > end', [NAMES.library, ', CBZ', NAMES.read, '@tap 0.95,0.5', '@tap 0.95,0.5', '@tap 0.95,0.5', '@tap 0.95,0.5']],
+    ['Comic reader > bad page', [NAMES.library, 'Foreign Codec', NAMES.read]],
+
+    // --- The EPUB reader, which is a second activity ---------------------------------
+    ['EPUB reader > chrome', [NAMES.library, ', EPUB', NAMES.read, '!@tap-centre']],
+    ['EPUB reader > menu', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu')]],
+    ['EPUB reader > themes', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes')]],
+    // The preset sheet opens at its smaller detent; the second one is a drag, not a tap.
+    ['EPUB reader > themes expanded', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes'), '@drag-sheet-up']],
+    ['EPUB reader > axes', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes'), named('theme_customise')]],
+    ['EPUB reader > contents', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_contents')]],
+    ['EPUB reader > bookmarks', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_bookmarks')]],
+    ['EPUB reader > search', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_search')]],
+    ['EPUB reader > search typed', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_search'), '@type the']],
+    ['EPUB reader > notes', [NAMES.library, ', EPUB', NAMES.read, '@tap-centre', named('epub_menu'), named('annotations_title')]],
+
+    // --- Search ----------------------------------------------------------------------
+    // The bar at rest is the `Search` route above. Tapping it is a second condition, and
+    // the note on that route says this table had no vocabulary for it. Now it does.
+    ['Search > expanded', [NAMES.search, named('library_search')]],
+    ['Search > mid query', [NAMES.search, named('library_search'), '@type harb']],
+    ['Search > no results', [NAMES.search, named('library_search'), '@type zzzqqq']],
+    ['Search > on this device', [NAMES.search, named('source_on_this_device')]],
+    ['Search > add source menu', [NAMES.search, named('library_add_source')]],
+
+    // --- Downloads -------------------------------------------------------------------
+    ['Downloads > remove dialog', [NAMES.downloads, '@long Bright Panels', named('downloads_remove_action')]],
+    // The undo bar lasts a few seconds, so the removal itself is the last thing done.
+    ['Downloads > undo', [NAMES.downloads, '@long Bright Panels', named('downloads_remove_action'), '!' + named('downloads_remove')]],
+
+    // --- Shelves ---------------------------------------------------------------------
+    ['Shelves', [NAMES.library, NAMES.more, named('shelves_title')]],
+    ['Shelves > new menu', [NAMES.library, NAMES.more, named('shelves_title'), named('shelves_new')]],
+    ['Shelves > create dialog', [NAMES.library, NAMES.more, named('shelves_title'), named('shelves_new'), named('shelves_new_collection')]],
+
+    // --- Settings: the states the seven groups can be in -----------------------------
+    ['Settings > reset dialog', [NAMES.library, NAMES.more, NAMES.settings, named('settings_reset')]],
+    ['Settings > search results', [NAMES.library, NAMES.more, NAMES.settings, named('settings_search'), '@type icon']],
+    ['Settings > search empty', [NAMES.library, NAMES.more, NAMES.settings, named('settings_search'), '@type zzzqqq']],
+    ['Settings > app icon', [NAMES.library, NAMES.more, NAMES.settings, NAMES.appearance, '@swipe-up', '@swipe-up']],
+    ['Settings > Reading defaults', [NAMES.library, NAMES.more, NAMES.settings, NAMES.reading, '@swipe-up', '@swipe-up']],
+    ['Settings > Privacy diagnostic', [NAMES.library, NAMES.more, NAMES.settings, NAMES.privacy, named('privacy_diagnostic_show')]],
+    ['Settings > Privacy clear history', [NAMES.library, NAMES.more, NAMES.settings, NAMES.privacy, named('privacy_clear_history')]],
+    ['Settings > About acknowledgements', [NAMES.library, NAMES.more, NAMES.settings, NAMES.about, '@swipe-up', '@swipe-up']],
+
+    // --- Reachable only once an audiobook is in the library --------------------------
+    // Android's player is a destination rather than a sheet, on purpose:
+    // `named-failures-and-quieter-chrome` section 3.3 records the divergence.
+    ['Player', [NAMES.library, ', M4B|Sea Room', NAMES.read]],
+    ['Player > chapters', [NAMES.library, ', M4B|Sea Room', NAMES.read, '@swipe-up', '@swipe-up']],
+    ['Player > compact bar', [NAMES.library, ', M4B|Sea Room', NAMES.read, named('player_play'), NAMES.home]],
+
+    // --- Reachable only once a source list is not empty ------------------------------
+    ['Settings > source detail', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Audiobooks|Download|Comics']],
 ]
 
 /**
@@ -154,6 +319,28 @@ export function navigator(sh) {
         sleep(1700)
     }
 
+    const swipe = ([x1, y1], [x2, y2], ms = 260) => {
+        sh('shell', 'input', 'swipe', String(x1), String(y1), String(x2), String(y2), String(ms))
+        sleep(1200)
+    }
+
+    /**
+     * The window, in pixels, as the device reports it.
+     *
+     * Asked for rather than assumed because this sweep varies it. `wm size` prints
+     * `Physical size: 1080x2400` and, once overridden, an `Override size:` line as well —
+     * the override is the one the app is laid out in, so the *last* match wins. Every
+     * coordinate below is a fraction of this, which is the difference between a step that
+     * survives `wm size 1280x576` and one that taps 260 pixels past the right edge. The
+     * old `@tap-centre` was the literal pair `540, 1200`; at the large breakpoint that is
+     * off-screen, and an off-screen tap does nothing and reports nothing.
+     */
+    const window = () => {
+        const sizes = [...sh('shell', 'wm', 'size').matchAll(/(\d+)x(\d+)/g)]
+        const last = sizes.at(-1)
+        return last ? [Number(last[1]), Number(last[2])] : [1080, 2400]
+    }
+
     /** A fresh launch, so no route depends on where the previous one left the app. */
     const launch = () => {
         sh('shell', 'am', 'force-stop', PKG)
@@ -162,40 +349,131 @@ export function navigator(sh) {
     }
 
     /**
-     * Walks one route from a fresh launch. Returns the step it could not reach, or null.
+     * Performs a list of steps on the app as it stands. Returns the step it could not
+     * reach, or null.
      *
      * Scrolls and retries before giving up: a control below the fold is present and simply
      * not on screen, and reporting that as unreachable is how this reported a working app
      * as broken.
      */
-    const walk = (steps) => {
-        launch()
-        for (const step of steps) {
-            if (step === '@tap-centre') {
+    const perform = (steps) => {
+        const [width, height] = window()
+        // A fraction of the window, so one step reads the same at 360 dp and at 1280 dp.
+        const at = (fx, fy) => [Math.round(width * fx), Math.round(height * fy)]
+
+        /**
+         * A step that is a gesture rather than a name, or null when the step is a name.
+         *
+         * Selection mode, a typed query, the second level of a sheet and the state left
+         * behind by a Back are all real conditions of this app, and none of them is a tap on
+         * a named control. Driving them from the shell instead put coordinates in a
+         * screenshot log, where they are correct exactly once — the day the layout moves,
+         * the picture is of the wrong thing and nothing says so. A named route is
+         * repeatable; a coordinate is a claim about a layout.
+         */
+        const gesture = (step) => {
+            const [verb, argument = ''] = step.split(/\s+(.*)/s)
+            switch (verb) {
                 // Revealing the reader chrome is a tap on the page, not on a named control.
-                tap(540, 1200)
+                case '@tap-centre':
+                    return () => tap(...at(0.5, 0.5))
+                // `@tap 0.5,0.86` — the last resort, and it says which corner it means.
+                case '@tap':
+                    return () => tap(...at(...argument.split(',').map(Number)))
+                case '@back':
+                    return () => {
+                        sh('shell', 'input', 'keyevent', 'KEYCODE_BACK')
+                        sleep(1700)
+                    }
+                // The soft keyboard is already up: the step before this one focused a field.
+                case '@type':
+                    return () => {
+                        sh('shell', 'input', 'text', argument.replaceAll(' ', '%s'))
+                        sleep(2000)
+                    }
+                // A press held long enough to mean "select", which is how this app's
+                // selection mode opens and the only way in.
+                case '@long':
+                    return () => {
+                        const spot = centre(dump(), argument)
+                        if (!spot) return false
+                        sh('shell', 'input', 'swipe', String(spot[0]), String(spot[1]), String(spot[0]), String(spot[1]), '800')
+                        sleep(1700)
+                        return true
+                    }
+                case '@swipe-up':
+                    return () => swipe(at(0.5, 0.78), at(0.5, 0.3))
+                case '@swipe-down':
+                    return () => swipe(at(0.5, 0.3), at(0.5, 0.78))
+                // A sheet that opens at one detent and has a second one is dragged, not tapped.
+                case '@drag-sheet-up':
+                    return () => swipe(at(0.5, 0.55), at(0.5, 0.12), 500)
+                case '@wait':
+                    return () => sleep(2500)
+                default:
+                    return null
+            }
+        }
+
+        for (const raw of steps) {
+            const act = gesture(raw)
+            if (act) {
+                // A gesture that had to find something may fail, and then the route failed.
+                if (act() === false) return raw
                 continue
             }
+            // `?Name` is a step that may legitimately not be there — a one-time notice, a
+            // control that only appears once something is downloaded. Absent is not a
+            // failure; carrying on and photographing the screen behind it would be.
+            const optional = raw.startsWith('?')
+            const step = optional ? raw.slice(1) : raw
             // Any one of the alternatives will do, and each is tried against the same
             // tree before scrolling: a page offering *Continue* is not a page missing *Read*.
             const wanted = step.split('|')
             let spot = null
-            for (let attempt = 0; attempt < 3 && !spot; attempt += 1) {
+            for (let attempt = 0; attempt < (optional ? 1 : 3) && !spot; attempt += 1) {
                 const tree = dump()
                 for (const name of wanted) {
                     spot = centre(tree, name)
                     if (spot) break
                 }
-                if (!spot) {
-                    sh('shell', 'input', 'swipe', '540', '1800', '540', '800', '260')
-                    sleep(1200)
-                }
+                if (!spot && !optional) swipe(at(0.5, 0.78), at(0.5, 0.33))
             }
-            if (!spot) return step
+            if (!spot) {
+                if (optional) continue
+                return step
+            }
             tap(...spot)
         }
         return null
     }
 
-    return { dump, tap, launch, walk }
+    /** A fresh launch, then the whole route. What the crash walk and the a11y scan want. */
+    const walk = (steps) => {
+        launch()
+        return perform(steps)
+    }
+
+    return { dump, tap, launch, walk, perform, window }
+}
+
+/**
+ * A route split at its first `!` step, into what may be done early and what may not.
+ *
+ * Some conditions perish. The comic reader's chrome hides itself four seconds after the
+ * tap that revealed it (`CHROME_TIMEOUT_MILLIS` in `ReaderScreen.kt`), and an undo bar
+ * goes the same way. `capture-android.mjs` spends about four seconds between the last
+ * step and the shutter — a `uiautomator` read to prove the screen drew, then a settle —
+ * so the committed `Comic reader > chrome` route lost that race and filed a picture of a
+ * bare page under a name that says chrome. Nothing failed; the file was simply wrong,
+ * which is the one failure this whole harness exists to prevent.
+ *
+ * So a route may mark its last steps `!`, and the capture does them *after* it has
+ * proved the screen drew, immediately before the shutter. A walk that only asks whether
+ * the screen crashed does not care and runs the lot in order.
+ */
+export function splitLate(steps) {
+    const at = steps.findIndex((step) => step.startsWith('!'))
+    if (at === -1) return [steps, []]
+    return [steps.slice(0, at), steps.slice(at).map((step) => step.slice(1))]
 }

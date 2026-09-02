@@ -26,7 +26,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
 import { adbRunner, hasDevice, resolveAdb } from './adb.mjs'
-import { ROUTES, navigator, sleep } from './android-routes.mjs'
+import { ROUTES, navigator, sleep, splitLate } from './android-routes.mjs'
 
 const argv = process.argv.slice(2)
 const flag = (name, fallback = null) => {
@@ -85,8 +85,12 @@ sh('shell', 'cmd', 'uimode', 'night', dark ? 'yes' : 'no')
 // first tap lands on a screen that is about to be thrown away.
 sleep(2500)
 
-const { walk, dump } = navigator(sh)
-const missed = walk(steps)
+const { walk, perform, dump } = navigator(sh)
+// A route's `!` steps are held back until the screen has been proved drawn — see
+// `splitLate`. A condition that expires in four seconds cannot be set up before a
+// four-second check, and the committed reader-chrome route was filing a bare page.
+const [early, late] = splitLate(steps)
+const missed = walk(early)
 if (missed !== null) {
     console.error(`Could not reach "${missed}" on the way to ${name}.`)
     console.error('The route map may be stale, or this device has no publication in the state it needs.')
@@ -119,9 +123,17 @@ if (!drawn()) {
     process.exit(1)
 }
 
+// The perishable part of the route, now that nothing slow is left to do.
+const missedLate = perform(late)
+if (missedLate !== null) {
+    console.error(`Could not reach "${missedLate}" on the way to ${name}.`)
+    process.exit(1)
+}
+
 // Settled: the last tap animates, and a screenshot mid-transition is a screenshot of
-// neither screen.
-sleep(1200)
+// neither screen. A `!` step already waited for its own animation, and waiting the full
+// settle again is what expired the chrome, so that case gets the shorter one.
+sleep(late.length > 0 ? 250 : 1200)
 // `exec-out` rather than `shell`, because a screenshot is bytes and the shell mangles them.
 const png = execFileSync(adb, ['exec-out', 'screencap', '-p'], { maxBuffer: 1 << 28 })
 mkdirSync(dirname(out), { recursive: true })
