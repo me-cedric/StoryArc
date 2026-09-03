@@ -304,6 +304,17 @@ publications under *On this device* and a space total under them. `ios-settings-
 against `ios-downloads-shelf.png`. Both are defensible — one counts download records, the
 other counts local files — and a reader cannot see which.
 
+**A successful search is mostly failure.** Two results under *Titles*, then three separate
+*didn't answer* lines — one per unreachable source, each with its own *Try again*.
+`ios-search-results.png`. On a device with three servers configured and none running, which is
+every train journey, the notices outnumber the answers.
+
+**The results screen states no scope.** The segmented *Everywhere · On this device* control is
+on the at-rest screen and in the field's own bar while the field is active, and nowhere on the
+results. `library-browsing` asks the screen to state its scope "when the search screen is
+open"; a reader looking at two results cannot see which half of their library was asked.
+`ios-search-at-rest.png` against `ios-search-results.png`.
+
 **Add a folder opens nothing.** *Open a file*, one row below it in the same menu, puts up the
 system's document browser within three seconds — `ios-add-file-picker.png` is a picture of it.
 *Add a folder* leaves the library's own toolbar reachable and presents no picker at all, which

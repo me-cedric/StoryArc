@@ -199,7 +199,14 @@ putBack()
 // attached — a fourteen-minute run for nothing, and the temptation to delete the failing
 // walk rather than fix it. A capture harness should hand back what it managed to take.
 
-run('xcrun', ['xcresulttool', 'export', 'attachments', '--path', bundle, '--output-path', staging])
+// A run that was killed leaves a bundle with no `Info.plist`, and the export then threw a
+// forty-line Node stack trace over the reason the run had stopped. Say it in one line.
+try {
+    run('xcrun', ['xcresulttool', 'export', 'attachments', '--path', bundle, '--output-path', staging])
+} catch {
+    console.error(`No attachments could be read out of ${bundle}: the run did not finish.`)
+    process.exit(1)
+}
 
 mkdirSync(out, { recursive: true })
 const manifest = JSON.parse(readFileSync(join(staging, 'manifest.json'), 'utf8'))

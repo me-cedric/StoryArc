@@ -132,18 +132,39 @@ final class SweepHomeTests: XCTestCase {
     private func openShelves(in app: XCUIApplication) throws {
         try showHome(in: app)
         hold(2)
-        // `control(_:in:)`, not `hittable(_:in:)`. The link is a `NavigationLink` carrying a
-        // `Label`, and what the accessibility tree makes of that is the platform's decision:
-        // at the largest text size it was a button and this walk passed, at the default size
-        // it was not and the walk failed on a screen that had the row on it. `AuditWalk` made
-        // exactly this discovery about the seven settings rows.
+        // **Three ways in, tried in turn, because this row is not what it looks like.** It is
+        // a `NavigationLink { destination } label: { HStack }` with `.buttonStyle(.plain)`,
+        // and what the accessibility tree makes of that is the platform's decision rather
+        // than the app's: the walk passed at the largest text size and failed at the default
+        // one, on a screen that had the row plainly on it, first through `hittable` and then
+        // through `control`. So each candidate is tapped and the arrival checked, and the
+        // failure names every button it could see — which is the only thing that will settle
+        // what this row actually is.
         _ = scrollTo(app.staticTexts["Shelves"], in: app, swipes: 8)
-        try XCTUnwrap(control("Shelves", in: app), "Home offers no way into Shelves.").tap()
-        XCTAssertTrue(
-            app.navigationBars["Shelves"].waitForExistence(timeout: 5)
-                || app.staticTexts["Collections"].waitForExistence(timeout: 3),
-            "Shelves opened nothing. Texts: "
+        let ways = [app.buttons["Shelves"], app.cells["Shelves"], app.staticTexts["Shelves"]]
+        for way in ways where way.exists && way.isHittable {
+            way.tap()
+            if arrivedAtShelves(app) { return }
+        }
+        // A coordinate on the row, for a link whose label is drawn but whose element is not
+        // the thing that takes the tap.
+        let row = app.staticTexts["Shelves"]
+        if row.exists {
+            // Twice the label's own width to the right of it, which for a seven-letter word
+            // is still well inside a phone's row and past whatever element owns the text.
+            row.coordinate(withNormalizedOffset: CGVector(dx: 2, dy: 0.5)).tap()
+            if arrivedAtShelves(app) { return }
+        }
+        XCTFail(
+            "Nothing on Home opened Shelves. Buttons: "
+                + "\(app.buttons.allElementsBoundByIndex.map(\.label)). Texts: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
+    }
+
+    /// Whether the shelves screen is on top.
+    private func arrivedAtShelves(_ app: XCUIApplication) -> Bool {
+        app.navigationBars["Shelves"].waitForExistence(timeout: 4)
+            || app.staticTexts["Collections"].waitForExistence(timeout: 2)
     }
 }
