@@ -197,8 +197,9 @@ key is now stated on every launch.
 | Online library | `ios-add-catalogue-sheet-ax5.png` | Largest text size |
 | Kavita server | `ios-add-kavita-sheet.png` | Address, API key, where the key is kept |
 | Shared folder | `ios-add-share-sheet.png` | Host, share, credentials, what is on this network |
-| A folder | `ios-add-folder-picker.png` | The system's own document browser |
-| A file | `ios-add-file-picker.png` | The same picker, choosing a file |
+| A file | `ios-add-file-picker.png` | The system's own document browser |
+
+*Add a folder* has no frame. It presented no picker — see the last section.
 
 ## iPad, landscape
 
@@ -302,6 +303,14 @@ the page's hero disagree about the same problem.
 publications under *On this device* and a space total under them. `ios-settings-root.png`
 against `ios-downloads-shelf.png`. Both are defensible — one counts download records, the
 other counts local files — and a reader cannot see which.
+
+**Add a folder opens nothing.** *Open a file*, one row below it in the same menu, puts up the
+system's document browser within three seconds — `ios-add-file-picker.png` is a picture of it.
+*Add a folder* leaves the library's own toolbar reachable and presents no picker at all, which
+is why there is no `ios-add-folder-picker.png` in this folder. On iOS the folder picker is the
+*whole* of adding a local library, so if this is what it looks like on a device then a reader
+cannot add one. `SweepSourcesTests.testCaptureFolderPicker` now polls for ten seconds before
+saying so.
 
 **Every source says it holds nothing, and every source says it is still connecting.**
 *Your libraries* lists four sources; all four read `0 titles`, while the shelf next door holds

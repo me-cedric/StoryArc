@@ -220,10 +220,7 @@ final class SweepComicReaderTests: XCTestCase {
 
     /// Opens the reader's menu, proving the sheet is up rather than the page behind it.
     private func openMenu(in app: XCUIApplication) throws {
-        if !app.buttons["Menu"].exists || !app.buttons["Menu"].isHittable {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        }
-        try XCTUnwrap(hittable("Menu", in: app), "The reader revealed no menu to open.").tap()
+        try XCTUnwrap(revealed("Menu", in: app), "The reader revealed no menu to open.").tap()
         XCTAssertTrue(
             app.buttons["Contents"].waitForExistence(timeout: 5),
             "The menu did not open: it offers no Contents row. Buttons: "

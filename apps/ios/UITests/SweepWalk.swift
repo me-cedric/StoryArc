@@ -271,6 +271,30 @@ extension XCTestCase {
         return matches.allElementsBoundByIndex.first(where: \.isHittable)
     }
 
+    /// A control in a reader's chrome, with the chrome actually up.
+    ///
+    /// **A centre tap toggles, and that is what made eight walks fail at once.** Both readers
+    /// fade their chrome out after four seconds, so a walk that arrives, does something for
+    /// three seconds and then asks whether the chrome is there gets a half-faded answer:
+    /// `exists` is true and `isHittable` is false. Tapping the centre *then* toggles the
+    /// chrome **off**, and the control the walk was after never appears — eight captures of
+    /// the comic reader's menu reported "the reader revealed no menu to open" on a reader
+    /// that had drawn one twice.
+    ///
+    /// So the fade is waited out rather than raced: if the control is already reachable, take
+    /// it; otherwise let the countdown finish, tap once, and wait. Three attempts, because a
+    /// tap that lands during the *fade-in* is the same trap in the other direction.
+    func revealed(_ name: String, in app: XCUIApplication, attempts: Int = 3) -> XCUIElement? {
+        for _ in 0..<attempts {
+            if let hit = hittable(name, in: app, timeout: 1) { return hit }
+            // Past the four seconds `comic-reader` gives the chrome, so its state is known.
+            hold(5)
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            hold(1)
+        }
+        return hittable(name, in: app, timeout: 2)
+    }
+
     /// The covers a sweep may tap, and nothing that merely sits where a cover does.
     ///
     /// ``coversOnScreen(in:named:ofFormat:)`` filters `app.buttons` by position — a band
