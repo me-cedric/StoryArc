@@ -222,7 +222,7 @@ final class SweepComicReaderTests: XCTestCase {
     private func openMenu(in app: XCUIApplication) throws {
         try XCTUnwrap(revealed("Menu", in: app), "The reader revealed no menu to open.").tap()
         XCTAssertTrue(
-            app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Contents")).firstMatch.waitForExistence(timeout: 5),
+            hittableRow("Contents", in: app) != nil,
             "The menu did not open: it offers no Contents row. Buttons: "
                 + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
