@@ -39,6 +39,16 @@ download filter, the sort and the query all persist between launches, because
 the first run of this sweep produced a `library-grid` frame that is a picture of a list. Every
 key is now stated on every launch.
 
+**Pinning has one cost, and it is worth knowing before reading a frame.** The availability
+axis and the download filter are `@AppStorage`, read through `UserDefaults` on every access —
+and the argument domain outranks the standard one, which is what makes the pinning work. A
+walk that then *taps* one of those pickers writes to the standard domain and reads the launch
+argument straight back, so the choice appears never to take. It looked like two defects before
+it was understood, so: those two frames are launched into their state rather than tapped into
+it, and no frame here proves that either picker works. `LibraryToolbarTests` proves that on
+the host side. Everything else — the layout, the sort, the query, the filters — is a stored
+property on the model, changes in memory, and is tapped for real.
+
 ## Home
 
 | Surface | File | State |
@@ -336,12 +346,6 @@ never resolves.
 chevrons, *Stop*, and a bare progress bar. `offline-downloads` asks for the size to be shown,
 and the bar is the only thing that says a transfer is 37% of the way through.
 `ios-downloads-queue.png`, `ios-downloads-queue-ax5.png`.
-
-**Two filters that ought to exclude each other exclude nothing.** Narrowing the shelf to
-*unread* **and** *downloaded* left every publication on it; so did *unread* and *not
-downloaded*. Whatever `isDownloaded` answers for a file the reader picked themselves, one of
-those two pairs should have emptied the shelf. There is no frame of it because the walk was
-changed to narrow by library instead — see `SweepLibraryTests.testCaptureNarrowedToNothing`.
 
 **The View menu's icon is an ellipsis.** The menu that decides availability, layout, sort and
 direction is drawn as `ellipsis.circle` — "…" in a circle — beside the filter funnel.

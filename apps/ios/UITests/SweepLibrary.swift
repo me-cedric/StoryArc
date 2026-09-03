@@ -193,26 +193,29 @@ final class SweepLibraryTests: XCTestCase {
     /// It is the one narrowing the toolbar states in its own glyph — `ViewMenu` swaps the
     /// platform's view-options icon for the availability symbol while it is on — so the
     /// picture is as much about the control as about the shelf.
+    /// **Launched narrowed, not narrowed by tapping**, and the reason is a limit of this
+    /// sweep rather than of the app. The axis is `@AppStorage`, so it is read through
+    /// `UserDefaults` on every access — and `UserDefaults`'s *argument* domain outranks the
+    /// standard one, which is exactly what pins these choices for the sweep. A walk that then
+    /// taps the picker writes to the standard domain and reads the launch argument back, so
+    /// the choice appears never to take. It looked like a defect: the first version of this
+    /// walk asserted the control's value and reported that choosing *On this device* did
+    /// nothing. It does; nothing in a run pinned this way can see it.
+    ///
+    /// What is asserted instead is the state the launch put the app in, which is what the
+    /// frame is of. The picker's own behaviour is `LibraryToolbarTests`' to prove.
     func testCaptureNarrowedToDevice() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try showTheShelf(in: app)
-        try openViewMenu(in: app)
-        try XCTUnwrap(
-            hittable("On this device", in: app),
-            "The View menu offers no availability picker."
-        ).tap()
-        // **The assertion this walk was missing, and it caught a wrong capture.** Every
-        // publication on this device *is* on this device, so narrowing to the device changes
-        // no cover — the shelf looks identical whether the choice took or not, and the first
-        // run of this walk filed an unnarrowed shelf under the narrowed name. What does
-        // change is the control: `library-browsing` requires the choice to be "visible while
-        // it is active", and `ViewMenu` states it as its accessibility value.
+        // Every publication on this device *is* on this device, so narrowing changes no cover
+        // and the shelf looks identical either way. The control is the only difference:
+        // `library-browsing` requires the choice to be "visible while it is active", and
+        // `ViewMenu` states it as its accessibility value and swaps its glyph for it.
         let control = app.buttons.matching(NSPredicate(format: "label == %@", "View")).firstMatch
         XCTAssertTrue(control.waitForExistence(timeout: 5), "The toolbar lost its View control.")
         XCTAssertEqual(
             control.value as? String, "On this device",
-            "The View control does not state that the shelf is narrowed to this device, so "
-                + "either the choice did not take or nothing on screen says it did."
+            "The View control does not state that the shelf is narrowed to this device."
         )
         hold(1.5)
         shutter(app, named: "library-on-this-device")
