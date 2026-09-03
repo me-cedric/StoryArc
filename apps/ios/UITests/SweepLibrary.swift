@@ -56,7 +56,10 @@ final class SweepLibraryTests: XCTestCase {
         try openViewMenu(in: app)
         try XCTUnwrap(hittable("List", in: app), "The View menu offers no List layout.").tap()
         try assertIsAList(app)
-        hold(1.5)
+        // Longer than its default-size twin, and measured rather than padded: the shutter
+        // itself timed out here once — "Failed to get screenshot: Timed out while requesting
+        // screenshot" — while the list was still laying out rows a cell and a half tall.
+        hold(3)
         shutter(app, named: "library-list-ax5")
     }
 
@@ -157,7 +160,11 @@ final class SweepLibraryTests: XCTestCase {
             hittable("Downloaded or not", in: app),
             "The Filter menu offers no download group."
         ).tap()
-        try XCTUnwrap(hittable("Downloaded", in: app), "No Downloaded option.").tap()
+        // *Not downloaded*, not *Downloaded*, and the difference is the whole test. Every
+        // publication on this device is a local file, and `DownloadFilter.keeps(isDownloaded:)`
+        // counts a local file as downloaded — so *Downloaded* excludes nothing and the shelf
+        // stayed full under a filename saying it was empty. The complement excludes everything.
+        try XCTUnwrap(hittable("Not downloaded", in: app), "No Not-downloaded option.").tap()
 
         // Any of the four, not one of them. `NarrowedToNothing` chooses its sentence from the
         // *reason* — a search term, the device axis, the filters, or one library — and which
@@ -226,63 +233,24 @@ final class SweepLibraryTests: XCTestCase {
 
     // MARK: - Selecting
 
-    /// Selection mode with nothing picked yet.
-    ///
-    /// **Captured as it is, and it is being redesigned in another worktree.** The bar states
-    /// `0 selected` and offers every action anyway; the owner knows. Nothing here changes it.
-    func testCaptureSelectionEmpty() throws {
-        let app = sweepLaunch()
-        try beginSelecting(in: app)
-        hold(1)
-        shutter(app, named: "library-selecting-none")
-    }
-
-    /// Selection mode with two covers picked.
-    func testCaptureSelectionTwo() throws {
-        let app = sweepLaunch()
-        try beginSelecting(in: app)
-        try pick(2, in: app)
-        hold(1)
-        shutter(app, named: "library-selecting-two")
-    }
-
-    /// Two picked, at the largest accessibility text size, where the bar has six labels and a
-    /// count to fit across a phone.
-    func testCaptureSelectionTwoAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try beginSelecting(in: app)
-        try pick(2, in: app)
-        hold(1)
-        shutter(app, named: "library-selecting-two-ax5")
-    }
-
-    /// The shelf menu a selection opens — *Add to…*, which is the same menu a long press gives.
-    func testCaptureSelectionAddToShelf() throws {
-        let app = sweepLaunch()
-        try beginSelecting(in: app)
-        try pick(2, in: app)
-        guard let addTo = hittable("Add to…", in: app) ?? hittable("Add to...", in: app) else {
-            throw XCTSkip(
-                "The selection bar offers no Add-to control. Buttons: "
-                    + "\(app.buttons.allElementsBoundByIndex.map(\.label))"
-            )
-        }
-        addTo.tap()
-        hold(0.75)
-        shutter(app, named: "library-selecting-add-to-shelf")
-    }
+    // **Not here, and deliberately.** The selection chrome was rebuilt while this sweep was
+    // being taken — the tab bar hides, the actions float as a glass capsule where it was, the
+    // count moved into the navigation title and *Done* into the toolbar — and
+    // `LibrarySelectionCapture.swift` landed with it, carrying two walks: the capsule live
+    // with two covers picked, and the same at the largest accessibility text size.
+    // `ScreenshotTests.testCaptureLibrarySelectingAtTheEnd` carries the third, the mode
+    // scrolled to the end of the shelf where the inset is decided.
+    //
+    // Three walks for one surface written twice is how two of them come to disagree, which is
+    // the argument `AuditWalk.opensAPublication` makes about a predicate that existed in two
+    // copies and matched nothing in one of them. The sweep's README says which commands
+    // produce those frames into its own folder.
+    //
+    // The `Add to…` menu a selection opens is still uncaptured, and it is the same menu a
+    // long press on a single cover gives — `AddToShelfMenu` — so it belongs with whichever
+    // walk owns the new capsule rather than with a fourth one here.
 
     // MARK: - The walk
-
-    /// Puts the shelf into selection mode, and proves it is in it.
-    private func beginSelecting(in app: XCUIApplication) throws {
-        try showTheShelf(in: app)
-        try XCTUnwrap(hittable("Select", in: app), "The toolbar offers no Select.").tap()
-        XCTAssertTrue(
-            app.buttons["Done"].waitForExistence(timeout: 5),
-            "Tapping Select did not put the shelf into selection mode."
-        )
-    }
 
     /// That the shelf is drawn as a list rather than a grid.
     ///
@@ -293,29 +261,6 @@ final class SweepLibraryTests: XCTestCase {
         XCTAssertTrue(
             app.collectionViews.firstMatch.waitForExistence(timeout: 10),
             "Choosing List left no list on screen."
-        )
-    }
-
-    /// Taps `count` covers and asserts the bar agrees about how many.
-    ///
-    /// The count is the proof. A cover tap that misses in selection mode does nothing visible
-    /// at all — no page opens, no cell moves — so without asking the bar, a walk that picked
-    /// nothing photographs `0 selected` under a filename saying two. It did: the first
-    /// version asked ``coversOnScreen(in:named:ofFormat:)`` for "the covers", which on this
-    /// device returns the skipped-notice's two controls as well, and tapped those.
-    private func pick(_ count: Int, in app: XCUIApplication) throws {
-        let covers = realCovers(in: app)
-        try XCTSkipUnless(
-            covers.count >= count,
-            "This device's shelf shows \(covers.count) pickable covers, fewer than the "
-                + "\(count) needed. Buttons: \(app.buttons.allElementsBoundByIndex.map(\.label)). "
-                + "Other elements: \(app.otherElements.allElementsBoundByIndex.prefix(30).map(\.label))"
-        )
-        for cover in covers.prefix(count) { cover.tap() }
-        XCTAssertTrue(
-            app.staticTexts["\(count) selected"].waitForExistence(timeout: 5),
-            "The selection bar does not say \(count) selected. Texts: "
-                + "\(app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label))"
         )
     }
 

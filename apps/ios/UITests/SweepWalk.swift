@@ -274,19 +274,25 @@ extension XCTestCase {
         // `PublicationFormat.displayName`'s nine, which is the whole set — a cover with a
         // format this misses would be silently unpickable, which is the failure above again.
         let formats = ["CBZ", "CBR", "CB7", "CBT", "EPUB", "PDF", "Folder", "Audiobook", "Audio folder"]
-        let asButtons = formats.flatMap { coversOnScreen(in: app, ofFormat: $0) }
+        // **One snapshot of the hierarchy, not nine.** Asking the shared helper once per
+        // format enumerated every button on the screen nine times over, and at
+        // `accessibilityExtraExtraExtraLarge` — where a cell is 1.4 times wider, so the shelf
+        // is taller and the tree deeper — that was most of a twenty-two-minute suite. Same
+        // filter, one round trip to the app.
+        let ceiling = app.frame.height - 100
+        let isACover = { (element: XCUIElement) in
+            element.isHittable
+                && element.frame.midY > 150
+                && element.frame.midY < ceiling
+                && formats.contains { element.label.contains(", \($0)") }
+        }
+        let asButtons = app.buttons.allElementsBoundByIndex.filter(isACover)
         if !asButtons.isEmpty { return asButtons }
         // **In selection mode a cover may not be a button.** `CoverCell` drops the
         // `NavigationLink` for a plain view with an `onTapGesture` while the shelf is
         // picking, so what the accessibility tree calls it is the platform's decision rather
         // than this app's. Falling back rather than asserting: a walk that reported "no
         // covers" on a shelf full of them sent the last reader to the wrong file.
-        return app.otherElements.allElementsBoundByIndex
-            .filter { element in
-                element.isHittable
-                    && element.frame.midY > 150
-                    && element.frame.midY < app.frame.height - 100
-                    && formats.contains { element.label.contains(", \($0)") }
-            }
+        return app.otherElements.allElementsBoundByIndex.filter(isACover)
     }
 }
