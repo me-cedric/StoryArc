@@ -317,6 +317,22 @@ likely they are to be a defect rather than a decision.
 `2 pages left` for `Sea Room`, which is an M4B. `ios-home-top.png`. `home.pagesLeft` is the
 string; an audiobook has a duration, not a page count.
 
+**Every row in the reader's menu is drawn in the accent colour, on glass tinted by the page.**
+*Contents*, *Appearance*, *Transition*, *Done* — all purple, because they are `Button`s in a
+`List` and nothing sets their foreground. The sheet's material picks up the artwork behind it,
+so over the salmon page in `ios-comic-reader-menu.png` the menu is warm brown and the purple
+labels sit on it at low contrast; the page position, *1 of 3*, is grey on the same brown. This
+is the surface `quiet-reader` moved eleven controls **into**, so it is where a reader now goes
+to change anything about how a comic is drawn. It is the first thing in this sweep a design
+reviewer should look at.
+
+**Three different fallbacks for one missing cover.** A publication with no artwork is drawn as
+its own title on the shelf, as a book glyph with the format under it on the publication page,
+and as a flat grey square with the title in the middle in the player — and an *audiobook* gets
+the book glyph too. `ios-library-grid.png`, `ios-detail-audiobook.png`,
+`ios-player-sleep-sheet.png`. The app says the artwork is the interface; this is what it does
+when there is none, in three unrelated ways.
+
 **A cover-less cell says the title twice.** On every shelf, a publication with no artwork
 draws its title *inside* the well and again as the caption underneath — `Foreign Codec`,
 `Harbour Lights 01`, `Sea Room`. `ios-library-grid.png`, `ios-downloads-shelf.png`,
@@ -325,10 +341,13 @@ and the format instead (`ios-detail-no-cover.png`), which reads better. The shel
 the page's hero disagree about the same problem.
 
 **Settings and Downloads disagree about what is on the device.** Settings' root says
-*Downloads and storage — Nothing on this device* while the Downloads destination shows nine
-publications under *On this device* and a space total under them. `ios-settings-root.png`
-against `ios-downloads-shelf.png`. Both are defensible — one counts download records, the
-other counts local files — and a reader cannot see which.
+*Downloads and storage — Nothing on this device*, its own screen says *Space used — Zero kB*,
+and the Privacy screen says *Downloads · 0 bytes* with its *Clear* greyed out — while the
+Downloads destination shows nine publications under *On this device*.
+`ios-settings-root.png`, `ios-settings-downloads.png`, `ios-settings-privacy.png` against
+`ios-downloads-shelf.png`. Both readings are defensible — one counts download *records*, the
+other counts local files — and a reader cannot see which. *Zero kB* is also an odd way to
+write nothing; the same number is *0 bytes* one screen away.
 
 **Narrowing to one library is answered with a sentence about the device.** Filter → *Which
 library* → `Attic NAS` empties the shelf and says *Nothing from Attic NAS is on this device
@@ -347,13 +366,20 @@ results. `library-browsing` asks the screen to state its scope "when the search 
 open"; a reader looking at two results cannot see which half of their library was asked.
 `ios-search-at-rest.png` against `ios-search-results.png`.
 
+**The add-a-library forms give their action the same shape as their empty fields.** *Connect*
+on the shared-folder sheet is a full-width grey capsule, identical in colour, height and corner
+to the *Host*, *Share*, *User name* and *Password* fields above it — so the one thing on the
+screen that does something looks like a fifth thing to type into.
+`ios-add-share-sheet.png`, `ios-add-catalogue-sheet.png`, `ios-add-kavita-sheet.png`.
+
 **Add a folder opens nothing.** *Open a file*, one row below it in the same menu, puts up the
 system's document browser within three seconds — `ios-add-file-picker.png` is a picture of it.
 *Add a folder* leaves the library's own toolbar reachable and presents no picker at all, which
 is why there is no `ios-add-folder-picker.png` in this folder. On iOS the folder picker is the
 *whole* of adding a local library, so if this is what it looks like on a device then a reader
-cannot add one. `SweepSourcesTests.testCaptureFolderPicker` now polls for ten seconds before
-saying so.
+cannot add one. `SweepSourcesTests.testCaptureFolderPicker` polls for ten seconds before saying
+so, and it said so in both the light and the dark run — the file picker beside it passed in
+both.
 
 **Every source says it holds nothing, and every source says it is still connecting.**
 *Your libraries* lists four sources; all four read `0 titles`, while the shelf next door holds
