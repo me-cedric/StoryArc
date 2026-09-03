@@ -8,9 +8,10 @@ import XCTest
 /// controls, which is the largest single settings surface in the app — the contents, the
 /// search, the bookmarks or the notes.
 ///
-/// The walk is `openTheEpubReader(in:)`, in `EpubWalk.swift`. It searches rather than assuming:
-/// a cover says `EPUB` whether the book is reflowable or pre-paginated, and the app opens
-/// those in two different readers.
+/// Reaching the reader is `openReader(in:)`: a named reflowable book first, and
+/// `EpubWalk.openTheEpubReader(in:)`'s search when the device does not hold it. Both prove the
+/// same thing — a web view — because a cover says `EPUB` whether the book is reflowable or
+/// pre-paginated and the app opens those in two different readers.
 @MainActor
 final class SweepEpubReaderTests: XCTestCase {
 
@@ -22,7 +23,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// The page with nothing on it: the reader as a reader spends their time in it.
     func testCaptureEpubPage() throws {
         let app = sweepLaunch()
-        try openTheEpubReader(in: app)
+        try openReader(in: app)
         hold(6)
         shutter(app, named: "epub-reader-page")
     }
@@ -30,7 +31,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// The menu: five doors and a read-aloud row, at the medium detent with the page behind.
     func testCaptureEpubMenu() throws {
         let app = sweepLaunch()
-        try openTheEpubReader(in: app)
+        try openReader(in: app)
         try openMenu(in: app)
         hold(1)
         shutter(app, named: "epub-reader-menu")
@@ -39,7 +40,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// The menu at the largest accessibility text size.
     func testCaptureEpubMenuAtLargestText() throws {
         let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try openTheEpubReader(in: app)
+        try openReader(in: app)
         try openMenu(in: app)
         hold(1)
         shutter(app, named: "epub-reader-menu-ax5")
@@ -105,7 +106,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// The table of contents.
     func testCaptureEpubContents() throws {
         let app = sweepLaunch()
-        try openTheEpubReader(in: app)
+        try openReader(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
         XCTAssertTrue(
@@ -123,7 +124,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// screen a reader lands on is the one with the empty field and its prompt on it.
     func testCaptureEpubSearch() throws {
         let app = sweepLaunch()
-        try openTheEpubReader(in: app)
+        try openReader(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Search", in: app), "The menu offers no Search row.").tap()
         hold(1.5)
@@ -133,7 +134,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// Bookmarks, which on a book nobody has marked is an empty state with an instruction.
     func testCaptureEpubBookmarks() throws {
         let app = sweepLaunch()
-        try openTheEpubReader(in: app)
+        try openReader(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Bookmarks", in: app), "The menu offers no Bookmarks row.").tap()
         hold(1.5)
@@ -143,7 +144,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// Notes and highlights, likewise empty and likewise instructive.
     func testCaptureEpubNotes() throws {
         let app = sweepLaunch()
-        try openTheEpubReader(in: app)
+        try openReader(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Notes", in: app), "The menu offers no Notes row.").tap()
         hold(1.5)
@@ -158,7 +159,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// menu — so the walk states what it saw rather than photographing the page.
     func testCaptureEpubNoteDialog() throws {
         let app = sweepLaunch()
-        try openTheEpubReader(in: app)
+        try openReader(in: app)
         hold(3)
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.4)).press(forDuration: 1.2)
         hold(1.5)
@@ -176,7 +177,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// The reader with a book being read aloud, so the docked transport is over the page.
     func testCaptureEpubReadAloud() throws {
         let app = sweepLaunch()
-        try openTheEpubReader(in: app)
+        try openReader(in: app)
         try openMenu(in: app)
         guard let start = hittableRow("Read aloud", in: app, timeout: 3) else {
             throw XCTSkip(
@@ -191,6 +192,44 @@ final class SweepEpubReaderTests: XCTestCase {
 
     // MARK: - The walk
 
+    /// The reflowable reader, reached by name first and by search second.
+    ///
+    /// **`openTheEpubReader(in:)` is the honest walk and it is expensive here.** It asks the
+    /// shelf for "an EPUB", which a fixed-layout book satisfies while opening the *comic*
+    /// reader — so on this corpus, under the title sort this sweep pins, it tries `Bright
+    /// Panels` and `Glasshouse` first, waits fifteen seconds for a web view that will never
+    /// come, relaunches, and only then reaches `Harbour Lights 01`. Twelve walks paying that
+    /// three times each is most of an hour, twice over for light and dark.
+    ///
+    /// So the named book is tried first, and the proof is unchanged: a web view, which
+    /// `EpubWalk` argues at length is the only thing that distinguishes the two readers from
+    /// outside. When the device does not hold it, or it does not open, the shared search runs
+    /// and its skip messages are what the caller gets.
+    private func openReader(in app: XCUIApplication) throws {
+        if openReflowable(named: "The Long Field", in: app) { return }
+        app.launch()
+        try openTheEpubReader(in: app)
+    }
+
+    /// Opens one publication by name and says whether a reflowable page arrived.
+    private func openReflowable(named title: String, in app: XCUIApplication) -> Bool {
+        guard (try? showTheShelf(in: app)) != nil else { return false }
+        let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
+        var cover: XCUIElement?
+        for _ in 0..<8 where cover == nil {
+            cover = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+            if cover == nil { app.swipeUp() }
+        }
+        guard let cover else { return false }
+        cover.tap()
+        guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 8),
+              let action = app.buttons.matching(opensAPublication)
+                  .allElementsBoundByIndex.first(where: \.isHittable)
+        else { return false }
+        action.tap()
+        return app.webViews.firstMatch.waitForExistence(timeout: 20)
+    }
+
     /// Reveals the chrome and opens the menu, proving the sheet is up.
     private func openMenu(in app: XCUIApplication) throws {
         try XCTUnwrap(revealed("Menu", in: app), "The reader revealed no menu to open.").tap()
@@ -203,7 +242,7 @@ final class SweepEpubReaderTests: XCTestCase {
 
     /// The theme sheet, over a page in the reflowable reader.
     private func openThemeSheet(in app: XCUIApplication) throws {
-        try openTheEpubReader(in: app)
+        try openReader(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Reading themes", in: app), "no reading themes row").tap()
         XCTAssertTrue(
