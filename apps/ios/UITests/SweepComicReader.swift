@@ -88,10 +88,18 @@ final class SweepComicReaderTests: XCTestCase {
         try openComic(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Fit", in: app), "The reader menu offers no Fit row.").tap()
+        // A `Picker` in a `List` takes the navigation-link style on iOS, so this **pushes a
+        // screen** inside the sheet rather than opening a menu — and what the four options
+        // are called in the accessibility tree is the platform's choice. Asking only for a
+        // button named *Width* failed on a screen that was showing all four.
+        let width = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Width")).firstMatch
         XCTAssertTrue(
-            app.buttons["Width"].waitForExistence(timeout: 5),
+            width.waitForExistence(timeout: 8) || app.navigationBars["Fit"].exists,
             "The Fit row opened no picker. Buttons: "
-                + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
+                + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label)). Cells: "
+                + "\(app.cells.allElementsBoundByIndex.prefix(10).map(\.label)). Texts: "
+                + "\(app.staticTexts.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
         hold(0.75)
         shutter(app, named: "comic-reader-fit-picker")
@@ -108,9 +116,15 @@ final class SweepComicReaderTests: XCTestCase {
         try openComic(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Transition", in: app), "The menu offers no Transition row.").tap()
+        // A `Menu` here rather than a `Picker`, precisely so a row can be disabled and carry
+        // a reason — so this one does open a menu. Asked of any element for the same reason
+        // the fit picker is: what the platform calls a menu row is not this file's business.
+        let slide = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Slide")).firstMatch
         XCTAssertTrue(
-            app.buttons["Slide"].waitForExistence(timeout: 5),
-            "The Transition row opened no picker."
+            slide.waitForExistence(timeout: 8),
+            "The Transition row opened no picker. Buttons: "
+                + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
         hold(0.75)
         shutter(app, named: "comic-reader-transition-picker")
