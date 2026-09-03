@@ -161,6 +161,8 @@ function report() {
 run('xcodegen', ['generate', '--project', 'apps/ios', '--spec', 'apps/ios/project.yml'])
 
 console.log(`Capturing ${target} on ${device}…`)
+/** Whether some case failed. The screenshots the others took are still worth having. */
+let failed = false
 try {
     run('xcodebuild', [
         'test',
@@ -169,37 +171,66 @@ try {
         '-destination', `id=${udid}`,
         '-only-testing:' + target,
         '-resultBundlePath', bundle,
+        // Ten minutes, spent after every failure, collecting a simulator diagnostic nobody
+        // reads — then reported as `Failure collecting diagnostics from simulator: Timed
+        // out after 600.0 seconds`. A fourteen-minute run of which four minutes were the
+        // tests. `test:ios:epub` already passes this.
+        '-collect-test-diagnostics', 'never',
         '-quiet',
     ])
     report()
 } catch (error) {
+    failed = true
     report()
-    putBack()
-    console.error('The capture run failed. Its output:')
-    console.error((error.stdout ?? '') + (error.stderr ?? ''))
-    process.exit(1)
+    // The diagnostics, then the tail. A failed `swift-frontend` invocation is echoed in
+    // full — one command line of about six thousand characters — and it buried the two
+    // lines that named the file and the error underneath it.
+    const output = (error.stdout ?? '') + (error.stderr ?? '')
+    const lines = output.split('\n')
+    const diagnostics = lines.filter((line) => /error:|warning: .*deprecat|Testing failed/.test(line))
+    console.error('The capture run failed. Its diagnostics:')
+    console.error((diagnostics.length ? diagnostics : lines.slice(-25)).join('\n'))
+    console.error(`(${lines.length} lines of output suppressed; re-run the xcodebuild line to see it all.)`)
 }
 putBack()
+
+// **Exported even when a case failed, which it was not.** One failing walk in a suite of
+// sixteen exited here and threw away the eleven screenshots the passing ones had already
+// attached — a fourteen-minute run for nothing, and the temptation to delete the failing
+// walk rather than fix it. A capture harness should hand back what it managed to take.
 
 run('xcrun', ['xcresulttool', 'export', 'attachments', '--path', bundle, '--output-path', staging])
 
 mkdirSync(out, { recursive: true })
 const manifest = JSON.parse(readFileSync(join(staging, 'manifest.json'), 'utf8'))
 let saved = 0
+let skipped = 0
 for (const test of manifest) {
     for (const attachment of test.attachments ?? []) {
         // `downloads_0_<uuid>.png` — the name the test gave it is everything before the
         // first underscore, and the rest is XCTest making it unique.
         const name = attachment.suggestedHumanReadableName.split('_')[0]
+        // XCTest attaches its own artefacts on a failure — a screenshot of the moment, an
+        // activity log, a crash report — and they arrive in the same manifest. Filed under
+        // `ios-<name>.png` they would sit in the deliverable looking like captures. Only
+        // what a walk named, and a walk here names in lower-case kebab.
+        if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name) || !attachment.exportedFileName.endsWith('.png')) {
+            skipped += 1
+            continue
+        }
         copyFileSync(join(staging, attachment.exportedFileName), join(out, `ios-${name}${suffix}.png`))
         console.log(`  ios-${name}${suffix}.png`)
         saved += 1
     }
 }
+if (skipped > 0) console.log(`${skipped} attachment(s) XCTest added itself were left behind.`)
 
 if (saved === 0) {
-    console.error('The run passed and attached nothing. Check that the attachments are `.keepAlways`:')
-    console.error('an attachment on a passing test is discarded by default.')
+    console.error('The run attached nothing this harness recognised. Check that the attachments')
+    console.error('are `.keepAlways`: an attachment on a passing test is discarded by default.')
     process.exit(1)
 }
 console.log(`${saved} screenshot(s) in ${out}`)
+// The exit code is the run's, not the export's. A suite with one failing walk has still
+// handed back everything the others took, and the caller needs to know both.
+if (failed) process.exit(1)
