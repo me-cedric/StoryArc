@@ -55,8 +55,13 @@ if (appearance && !['light', 'dark'].includes(appearance)) {
 }
 /** So a light run and a dark run of the same walk do not overwrite each other. */
 const suffix = appearance === 'dark' ? '-dark' : ''
-const bundle = '/tmp/storyarc-shots.xcresult'
-const staging = '/tmp/storyarc-shots'
+// Per-run, because two runs sharing one path destroy each other's bundle. It happened: a
+// capture chain was interrupted, one of its children survived, and the next run's
+// `xcresulttool export` reported "the run did not finish" on a suite that had finished — the
+// other process was writing the same `.xcresult` at the same time. Eleven walks were lost to
+// it, and the symptom named the wrong run.
+const bundle = `/tmp/storyarc-shots-${process.pid}.xcresult`
+const staging = `/tmp/storyarc-shots-${process.pid}`
 
 /** A booted simulator's udid, because `-destination name=` does not match a renamed device. */
 function udidFor(nameOrUdid) {
