@@ -25,7 +25,7 @@ final class SweepEmptyTests: XCTestCase {
 
     /// The library with nothing in it: a sentence, and the two actions that change it.
     func testCaptureEmptyLibrary() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(recents: "()")
         try XCTUnwrap(destination("Library", in: app), "no Library tab").tap()
         try requireEmpty(app, landmark: "Nothing here yet")
         shutter(app, named: "empty-library")
@@ -33,7 +33,7 @@ final class SweepEmptyTests: XCTestCase {
 
     /// The same at the largest accessibility text size.
     func testCaptureEmptyLibraryAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
+        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL", recents: "()")
         try XCTUnwrap(destination("Library", in: app), "no Library tab").tap()
         try requireEmpty(app, landmark: "Nothing here yet")
         shutter(app, named: "empty-library-ax5")
@@ -41,7 +41,7 @@ final class SweepEmptyTests: XCTestCase {
 
     /// Home with nothing open yet.
     func testCaptureEmptyHome() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(recents: "()")
         try XCTUnwrap(destination("Home", in: app), "no Home tab").tap()
         hold(3)
         shutter(app, named: "empty-home")
@@ -52,7 +52,7 @@ final class SweepEmptyTests: XCTestCase {
     /// `offline-downloads`: with nothing downloaded the destination "says so in one sentence
     /// and offers the action that changes it".
     func testCaptureEmptyDownloads() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(recents: "()")
         try XCTUnwrap(destination("Downloads", in: app), "no Downloads tab").tap()
         try requireEmpty(app, landmark: "Go to your library")
         shutter(app, named: "empty-downloads")
@@ -60,7 +60,7 @@ final class SweepEmptyTests: XCTestCase {
 
     /// Search with nothing to suggest, which offers the five ways in instead.
     func testCaptureEmptySearch() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(recents: "()")
         try XCTUnwrap(destination("Search", in: app), "no Search tab").tap()
         try requireEmpty(app, landmark: "Nothing to suggest yet")
         shutter(app, named: "empty-search")
@@ -68,7 +68,7 @@ final class SweepEmptyTests: XCTestCase {
 
     /// Settings with no libraries added.
     func testCaptureEmptySources() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(recents: "()")
         try openSettings(in: app)
         try XCTUnwrap(control("Your libraries", in: app), "no libraries row").tap()
         try requireEmpty(app, landmark: "No libraries yet. Add a folder from your library to get started.")
@@ -78,7 +78,7 @@ final class SweepEmptyTests: XCTestCase {
     /// Settings' root on a device with nothing configured, where five of the seven summaries
     /// say *nothing yet* in five different wordings.
     func testCaptureEmptySettingsRoot() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(recents: "()")
         try openSettings(in: app)
         hold(1)
         shutter(app, named: "empty-settings-root")

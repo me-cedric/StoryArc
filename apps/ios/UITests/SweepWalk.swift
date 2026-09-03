@@ -71,7 +71,8 @@ extension XCTestCase {
         language: String? = nil,
         searchScope: String = "everywhere",
         availability: String = "everywhere",
-        layout: String = "grid"
+        layout: String = "grid",
+        recents: String = "(\"Harbour\", \"Vermillion\", \"Fine Print\")"
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += [
@@ -100,7 +101,10 @@ extension XCTestCase {
             // `LibrarySearchSurface` asks on `.onChange(of:initial:)` — so tapping one runs
             // the term exactly as typing it would. `Harbour` matches; `Vermillion` matches
             // nothing on this corpus.
-            "-app.storyarc.librarySearches", "(\"Harbour\", \"Vermillion\", \"Fine Print\")",
+            // `()` — an empty old-style plist array — is what the first-run walks pass, so
+            // the at-rest search screen can reach its *nothing to suggest* branch. It is
+            // gated on the recents being empty as well as the suggestions.
+            "-app.storyarc.librarySearches", recents,
         ]
         if let contentSize {
             app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize]

@@ -154,14 +154,23 @@ final class SweepSourcesTests: XCTestCase {
 
     /// Photographs the whole screen, for a sheet drawn by another process.
     private func shutterSystemSheet(named name: String, in app: XCUIApplication) throws {
-        hold(3)
         // The picker is `com.apple.DocumentManagerUICore`'s, so StoryArc's own hierarchy is
-        // the wrong thing to ask. That it is up at all is asserted through the springboard's
-        // view of the screen: the shelf's toolbar is behind it and no longer hittable.
-        XCTAssertFalse(
-            app.buttons["Add books"].isHittable,
-            "No system sheet came up over the shelf — the toolbar is still reachable."
+        // the wrong thing to ask. That it is up at all is asserted through the shelf behind
+        // it: the toolbar is covered and no longer hittable.
+        //
+        // Polled to ten seconds rather than waited out once, because the claim this makes if
+        // it fails — *this control opens no picker* — is worth more than a three-second hold.
+        var covered = false
+        for _ in 0..<20 where !covered {
+            hold(0.5)
+            covered = !app.buttons["Add books"].isHittable
+        }
+        XCTAssertTrue(
+            covered,
+            "Nothing came up over the shelf in ten seconds — the toolbar is still reachable, "
+                + "so this control presented no picker."
         )
+        hold(1)
         shutter(shot: XCUIScreen.main.screenshot(), named: name)
     }
 }

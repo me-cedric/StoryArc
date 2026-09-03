@@ -42,7 +42,11 @@ final class SweepComicReaderTests: XCTestCase {
         try openComic(in: app)
         try revealChrome(in: app)
         hold(1)
-        shutter(app, named: "comic-reader-chrome")
+        // Not `comic-reader-chrome`: `ScreenshotTests.testCaptureComicReaderChrome` already
+        // files that name, photographing the chrome the reader draws *on arrival*. This is
+        // the chrome brought back after the countdown has taken it, which is a different
+        // state — and two walks writing one filename means whichever ran last is the picture.
+        shutter(app, named: "comic-reader-chrome-revealed")
     }
 
     /// The menu: nine controls as named rows, at the sheet's medium detent.
