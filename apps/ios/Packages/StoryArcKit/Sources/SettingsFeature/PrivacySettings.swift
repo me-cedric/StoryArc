@@ -197,7 +197,11 @@ struct PrivacySettings: View {
             settings: settings,
             readerStore: readerStore,
             historyBytes: historyBytes,
-            cacheBytes: cacheBytes
+            cacheBytes: cacheBytes,
+            // Read here rather than held, the way the byte totals are: the report states what
+            // is configured at the moment the reader asks for it, and only the count survives
+            // into the text.
+            sources: SourceStore().registry()
         )
     }
 

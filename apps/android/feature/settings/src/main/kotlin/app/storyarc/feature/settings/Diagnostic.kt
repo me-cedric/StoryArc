@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import app.storyarc.core.model.DiagnosticRedaction
+import app.storyarc.core.model.SourceRegistry
 import app.storyarc.core.model.ThemeScope
 import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.persistence.SettingsStore
@@ -28,7 +29,19 @@ import java.util.Locale
  */
 internal object Diagnostic {
 
-    fun text(context: Context): String {
+    /**
+     * @param registry the source registry, so the count below is the real one.
+     *
+     *   It used to be the literal `0`, which is a count in shape and a falsehood in fact -- a
+     *   reader with four servers filed a report saying they had none.
+     *
+     *   **The registry rather than an `Int`, deliberately.** An `Int` would make a leak
+     *   unexpressible, which sounds stronger and is worse to depend on: it moves the
+     *   guarantee out of this file and into whichever caller does the counting, where nothing
+     *   asserts it. Passing the registry keeps the boundary *here*, two lines wide and
+     *   pointed at by a test that fails the moment a hostname joins the section.
+     */
+    fun text(context: Context, registry: SourceRegistry): String {
         val settings = SettingsStore.open(context).settings()
         val reader = ReaderPreferences.open(context)
         val memory = reader.themes()
@@ -74,15 +87,33 @@ internal object Diagnostic {
             add("cacheBytes = ${usage.cacheBytes()}")
             add("historyBytes = ${usage.historyBytes()}")
             add("")
-            add("[Sources]")
-            // Reported as a count rather than a list. A source's display name is text the
-            // reader typed, which is exactly where a hostname would be — so the report
-            // does not carry it at all, rather than carrying it redacted.
-            add("configured = 0")
+            addAll(sourceLines(registry))
         }
 
         return DiagnosticRedaction.redact(lines.joinToString("\n"))
     }
+
+    /**
+     * The report's `[Sources]` section: a heading and a count, and never a row per source.
+     *
+     * **Three values a source holds must not appear in a diagnostic, and this is the only
+     * place in the report where any of them could.** The display name is text the reader
+     * typed, and a reader names a server after the machine -- so it *is* the hostname. The
+     * locator is a URL, which is where an embedded credential would survive. The credential
+     * reference is a handle into the platform secure store. `sources` forbids a secret
+     * reaching "preferences, logs, crash reports, backups, or exported diagnostics", and
+     * `AGENTS.md` §2.4 says it again without the escape hatch.
+     *
+     * So the section carries none of them, rather than carrying them redacted: redaction is a
+     * rule about strings that got out, and this is a string that never leaves.
+     *
+     * Its own function so that a test has something to point at, and so the mutation that
+     * would break it -- appending anything derived from a source -- is one line long and one
+     * line to catch. `DiagnosticSourcesTest` and iOS's `DiagnosticSourcesTests` assert the
+     * same three refusals.
+     */
+    fun sourceLines(registry: SourceRegistry): List<String> =
+        listOf("[Sources]", "configured = ${registry.sources.size}")
 
     /**
      * Hands the text to whatever the reader picks.

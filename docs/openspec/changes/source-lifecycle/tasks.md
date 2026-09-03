@@ -131,7 +131,27 @@ dark, at default and largest text size. A `#Preview` and a `@Preview` do not cou
       state case and nothing else. Each mutation was reverted and the store restored byte for
       byte.
 - [ ] 6.2 Assert the library-feature behaviours nothing currently covers on either platform: the empty state, the cached notice, the incremental refresh, and the disappearance removal. Four cases per platform, mirrored case for case
-- [ ] 6.3 Assert that the diagnostic export's source section is a count and never a list, on both platforms — the one regression that would leak a hostname or a token
+- [x] 6.3 Assert that the diagnostic export's source section is a count and never a list, on both platforms — the one regression that would leak a hostname or a token
+      **Seven cases per platform, and the section is now a real count.** It was the literal
+      `configured = 0` on both — a count in shape and a falsehood in fact, so a reader with
+      four servers filed a report saying they had none. `Diagnostic.sourceLines` takes the
+      registry, and `Diagnostic.text` takes it through from `PrivacySettings` and
+      `PrivacyGroup`.
+      **The registry rather than an `Int`, deliberately.** An `Int` makes a leak
+      unexpressible, which sounds stronger and is worse to depend on: it moves the guarantee
+      out of the export and into whichever caller counts, where nothing asserts it. Passing
+      the registry keeps the boundary in the file, two lines wide, with a test pointed at it.
+      **Three refusals, asserted on the section and again on the whole report:** no display
+      name (a reader names a server after the machine, so it *is* the hostname), no locator
+      (a URL is where an embedded credential survives — the fixture's carries `s3cr3t`), no
+      credential reference (a handle into the secure store). Plus the two that stop the
+      section satisfying them by disappearing: it still says `[Sources]` and still says how
+      many.
+      **Mutation-checked, exactly as asked.** Appending `name = <displayName>` to the section
+      fails five of the seven on each platform, and *no source value reaches the report at
+      all* names the hostname in its failure. Both files restored byte for byte.
+      Android's suite is Robolectric, so it is still a host test —
+      `:feature:settings:testDebugUnitTest`, 7 tests, 0 skipped, no device.
 
 ## 7. Close the change
 

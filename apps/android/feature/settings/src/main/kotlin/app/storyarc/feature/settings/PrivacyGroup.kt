@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontFamily
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.persistence.ProgressStore
+import app.storyarc.core.persistence.SourceStore
 import app.storyarc.core.persistence.StorageUsage
 import kotlinx.coroutines.launch
 
@@ -221,7 +222,16 @@ private fun DiagnosticRow(highlight: SettingsAnchor?) {
             OutlinedButton(
                 // Built on show rather than on composition. It reads five stores, and a
                 // Privacy screen should not do that to draw a row nobody expanded.
-                onClick = { text = if (text == null) Diagnostic.text(context) else null },
+                onClick = {
+                    text = if (text == null) {
+                        // The registry is read here rather than held, the way the byte totals
+                        // are: the report states what is configured at the moment the reader
+                        // asks for it, and only the count survives into the text.
+                        Diagnostic.text(context, SourceStore.open(context).registry())
+                    } else {
+                        null
+                    }
+                },
             ) {
                 Text(
                     stringResource(
