@@ -154,8 +154,13 @@ export const ROUTES = [
     // is `Bright Panels`, which `corpus.mjs` builds `fixed: true` — a pre-paginated book
     // opens in the *comic* reader, not the EPUB activity. So this route was photographing
     // the comic reader under a name that says EPUB, which is precisely the confusion the
-    // header above says a shared route table exists to prevent. `Glasshouse` is reflowable.
-    ['EPUB reader', [NAMES.library, 'Glasshouse', NAMES.read]],
+    // header above says a shared route table exists to prevent.
+    //
+    // `Glasshouse` is no better and was the second wrong guess: `spineCoverEpub` writes
+    // `rendition:layout pre-paginated` too. Two of the corpus's four EPUBs are fixed-layout,
+    // and they are the two a route reaching for "the first EPUB" finds first. So the book
+    // is named, and the name is one `corpus.mjs` builds from chapters of prose.
+    ['EPUB reader', [NAMES.library, 'Harbour Lights 01', NAMES.read, '!@tap-centre']],
     // Settings left the browse path in the shell revamp: it is behind the library's
     // overflow, which is why naming it as a first step found nothing.
     ['Settings', [NAMES.library, NAMES.more, NAMES.settings]],
@@ -216,17 +221,21 @@ export const ROUTES = [
     ['Comic reader > bad page', [NAMES.library, 'Foreign Codec', NAMES.read]],
 
     // --- The EPUB reader, which is a second activity ---------------------------------
-    ['EPUB reader > chrome', [NAMES.library, 'Glasshouse', NAMES.read, '!@tap-centre']],
-    ['EPUB reader > menu', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu')]],
-    ['EPUB reader > themes', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes')]],
+    // Reversed from what the comic reader needs. The EPUB reader opens with its chrome up
+    // and keeps it there, so the chrome shot is the plain arrival and the *page* shot is
+    // the one that needs a tap -- which hides it. Photographed the other way round, the
+    // file named `chrome` held a page and the file named `page` held the chrome.
+    ['EPUB reader > chrome', [NAMES.library, 'Harbour Lights 01', NAMES.read]],
+    ['EPUB reader > menu', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu')]],
+    ['EPUB reader > themes', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('reader_menu_themes')]],
     // The preset sheet opens at its smaller detent; the second one is a drag, not a tap.
-    ['EPUB reader > themes expanded', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes'), '@drag-sheet-up']],
-    ['EPUB reader > axes', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_themes'), named('theme_customise')]],
-    ['EPUB reader > contents', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_contents')]],
-    ['EPUB reader > bookmarks', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_bookmarks')]],
-    ['EPUB reader > search', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_search')]],
-    ['EPUB reader > search typed', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('reader_menu_search'), '@type the']],
-    ['EPUB reader > notes', [NAMES.library, 'Glasshouse', NAMES.read, '@tap-centre', named('epub_menu'), named('annotations_title')]],
+    ['EPUB reader > themes expanded', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('reader_menu_themes'), '@drag-sheet-up']],
+    ['EPUB reader > axes', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('reader_menu_themes'), named('theme_customise')]],
+    ['EPUB reader > contents', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('reader_menu_contents')]],
+    ['EPUB reader > bookmarks', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('reader_menu_bookmarks')]],
+    ['EPUB reader > search', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('reader_menu_search')]],
+    ['EPUB reader > search typed', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('reader_menu_search'), '@type the']],
+    ['EPUB reader > notes', [NAMES.library, 'Harbour Lights 01', NAMES.read, named('epub_menu'), named('annotations_title')]],
 
     // --- Search ----------------------------------------------------------------------
     // The bar at rest is the `Search` route above. Tapping it is a second condition, and
