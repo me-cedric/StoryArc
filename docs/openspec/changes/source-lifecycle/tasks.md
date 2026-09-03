@@ -31,7 +31,7 @@ is not archivable yet.
 
 ## 3. Reachability — the one behaviour still missing
 
-- [ ] 3.1 Wire a reachability observer to the probe on iOS so an unreachable source is retried when connectivity returns and when the app returns to the foreground, and verify with a unit test that drives the observer's callback rather than a real network. Decide the observer's placement — library model or beside the probe — in this task's review; `NWPathMonitor` is `Assumed` and unused in this repository so far
+- [x] 3.1 Wire a reachability observer to the probe on iOS so an unreachable source is retried when connectivity returns and when the app returns to the foreground, and verify with a unit test that drives the observer's callback rather than a real network. Decide the observer's placement — library model or beside the probe — in this task's review; `NWPathMonitor` is `Assumed` and unused in this repository so far
       **Placement decided: beside the probe.** `StoryArcCore/SourceReachability.swift` holds
       `RetryTrigger` (the two occasions `sources` names) and the three functions that decide
       what to do with one — `shouldProbe(on:sources:isReading:)`, the edge detector
@@ -48,6 +48,30 @@ is not archivable yet.
       foreground — it fires on appear, and backgrounding does not disappear the view — so the
       claim in `retryUnreachableSources`' own doc comment that "returning is what starts it
       again" holds only when the library actually went away.
+      **Wired on 2026-09-03, and the wiring found the requirement's other half was never met.**
+      `NetworkPaths.satisfied()` is the adapter, beside `NetworkCost.swift` for the reason given
+      — and deliberately a *second* monitor rather than a shared one, because the two questions
+      have different lifetimes: the cost is asked synchronously whenever a download is weighed,
+      this is consumed by a `.task` that ends with the view, and one object answering both is how
+      one of them reads a stale path.
+      **The foreground occasion is `scenePhase`, not the `.task` restarting.** Both this task's
+      own note and `retryUnreachableSources`' doc comment said returning to the foreground was
+      free because "returning is what starts it again". It is not: a `.task` fires on *appear*,
+      and backgrounding does not disappear a view — `LibraryView`'s own header says so a hundred
+      lines above where it started the loop. So **neither platform retried on returning to the
+      foreground**, for as long as both comments claimed it did. `.onChange(of: scenePhase)` is
+      the trigger now.
+      **And the backoff loop ran straight through a chapter.** §3.3 asked me to *confirm* nothing
+      reconnects mid-read; the answer was that iOS's loop is never cancelled when a reader opens,
+      so it probed every configured server every 5 s, then 10, up to every 5 minutes, for as long
+      as anything was away. `isReading` now travels from `StoryArcApp.reading` through the shell
+      to the view — a closure, not a value, because a reader opens a publication *while* the loop
+      is waiting — and it is checked **after** each wait rather than once at the top.
+      `LibraryView.swift` crossed SwiftLint's 400-line cap, so the two triggers are a
+      `SourceRetryTriggers` modifier in its own file. **Its first version built its own
+      `CertificatePins` and that was a defect**: the view loads the reader's pinned certificates
+      into `@State`, so a fresh pair would have trusted nothing they pinned and failed against
+      exactly the servers pinning exists for. It takes the view's own now.
 - [ ] 3.2 The same on Android with `ConnectivityManager.NetworkCallback`, asserted by the same mirrored test cases, and verify `pnpm gradle :core:model:testDebugUnitTest` passes
       `core/model/SourceReachability.kt` mirrors the iOS file function for function, and
       `SourceReachabilityTest` mirrors its sixteen cases name for name — including the
@@ -58,7 +82,7 @@ is not archivable yet.
       in `LibraryViewModel`. The foreground half is a one-line addition to `LibraryScreen`'s
       existing `LifecycleEventEffect(ON_RESUME)`, which today refreshes progress, imports and
       watched folders and does **not** re-probe.
-- [ ] 3.3 Confirm neither platform reconnects while the reader is reading — the scenario's "does not interrupt reading" clause — and verify by a test that asserts no probe is scheduled while a reader session is open
+- [x] 3.3 Confirm neither platform reconnects while the reader is reading — the scenario's "does not interrupt reading" clause — and verify by a test that asserts no probe is scheduled while a reader session is open
       **The guard exists and is asserted; it is not yet consulted, and today both platforms
       do reconnect mid-read.** `shouldProbe` refuses on `isReading` before it looks at
       anything else, and three cases assert the absence — *no probe is scheduled while a

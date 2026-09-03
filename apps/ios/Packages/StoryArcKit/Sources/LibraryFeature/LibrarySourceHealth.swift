@@ -57,10 +57,27 @@ extension LibraryModel {
     /// network. This is only the loop.
     ///
     /// Cancellation is the caller's: run from a `task` modifier, this stops when the
-    /// library goes away, which is exactly when nobody is looking at the answer. That also
-    /// gives the requirement's other half — the retry "when the app returns to the
-    /// foreground" — because returning is what starts it again.
-    func retryUnreachableSources(credentials: CredentialStore?, pins: CertificatePins) async {
+    /// library goes away, which is exactly when nobody is looking at the answer.
+    ///
+    /// **It does not give the requirement's other half, and this comment claimed it did.**
+    /// "Retries … when the app returns to the foreground" was said to follow because
+    /// "returning is what starts it again" — but a `.task` fires on *appear*, and
+    /// backgrounding does not disappear a view. `LibraryView` says so itself, a few lines
+    /// from where it starts this loop. The foreground trigger is `RetryTrigger`, wired
+    /// through ``SourceReachability``, and it is a separate mechanism because the two
+    /// occasions arrive from different places: one from a view's lifetime, one from the
+    /// system's.
+    ///
+    /// - Parameter isReading: whether a reader has a publication open. `sources`' automatic
+    ///   recovery must not "interrupt reading", and this loop ran straight through a
+    ///   chapter — every 5 s, then every 10, up to every 5 minutes, for as long as anything
+    ///   was away. The guard is checked **each time round** rather than once at the top,
+    ///   because a reader opens a publication *while* the loop is waiting.
+    func retryUnreachableSources(
+        credentials: CredentialStore?,
+        pins: CertificatePins,
+        isReading: @escaping @MainActor () -> Bool = { false }
+    ) async {
         var failures = 0
         while !Task.isCancelled {
             guard registry.sources.contains(where: { if case .unreachable = $0.state { true } else { false } })
@@ -72,8 +89,22 @@ extension LibraryModel {
             } catch {
                 return // Cancelled mid-wait: the library is gone.
             }
+            // Asked after the wait, not before it: the reader who matters is the one who is
+            // reading *now*, and a five-minute-old answer is the wrong one.
+            guard !isReading() else { continue }
             await probeNetworkSources(credentials: credentials, pins: pins)
         }
+    }
+
+    /// One immediate probe, when the system says something changed.
+    ///
+    /// `sources`' *Retry policy* names two occasions beside the backoff — connectivity
+    /// regained, and the app returning to the foreground. ``SourceReachability`` decides
+    /// whether a trigger earns a probe; this is what happens when it does.
+    func probe(on trigger: RetryTrigger, credentials: CredentialStore?, pins: CertificatePins, isReading: Bool) async {
+        guard SourceReachability.shouldProbe(on: trigger, sources: registry.sources, isReading: isReading)
+        else { return }
+        await probeNetworkSources(credentials: credentials, pins: pins)
     }
 
     /// Adds a publication to one of a server's reading lists.

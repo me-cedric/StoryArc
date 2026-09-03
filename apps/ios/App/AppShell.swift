@@ -118,6 +118,14 @@ struct AppShell: View {
     /// See ``LibraryView/init(model:surface:progress:onOpen:showLibrary:)``.
     let showLibrary: Int
 
+    /// Whether a reader has a publication open.
+    ///
+    /// The shell's, because only the app layer can see a reader presented *over* the shelf —
+    /// `StoryArcApp.reading` is the state and the shelf cannot reach it. `sources`' automatic
+    /// recovery must not "interrupt reading", and the library is where both retry mechanisms
+    /// are started, so the answer has to travel that far down.
+    let isReading: @MainActor () -> Bool
+
     var body: some View {
         // Read in `body`, where Observation registers the dependency, rather than inside
         // the accessory's own builder, which SwiftUI may run later. The narrow question —
@@ -247,7 +255,11 @@ struct AppShell: View {
             surface: surface,
             progress: progress,
             onOpen: onOpen,
-            showLibrary: showLibrary
+            showLibrary: showLibrary,
+            // `sources`' automatic recovery must not interrupt reading, and the app layer is
+            // the only place that knows whether a publication is open — the shelf cannot see
+            // a reader presented over it.
+            isReading: isReading
         )
     }
 }

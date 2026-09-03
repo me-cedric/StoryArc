@@ -174,7 +174,12 @@ struct StoryArcApp: App {
                     isShowingDownloads = false
                     isShowingSettings = true
                 },
-                showLibrary: libraryRequests
+                showLibrary: libraryRequests,
+                // The one place that knows. A reader is presented *over* the shelf, so the
+                // shelf cannot see it — and `sources` forbids automatic recovery from
+                // interrupting reading, which is checked each time the backoff comes round
+                // rather than once, because a reader opens a publication while it waits.
+                isReading: { reading != nil }
             )
             .storyArcTheme(appearance: settings.appearance)
             .speaking(settings.language)

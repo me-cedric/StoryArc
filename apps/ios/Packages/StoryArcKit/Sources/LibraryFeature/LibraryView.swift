@@ -98,6 +98,12 @@ public struct LibraryView: View {
     let model: LibraryModel
 
     let onOpen: (Publication, URL) -> Void
+
+    /// Whether a reader has a publication open — see the initialiser.
+    let isReading: @MainActor () -> Bool
+
+    /// Whether the app is in the foreground, for the second of the two retry occasions.
+    @Environment(\.scenePhase) private var scenePhase
     let progress: ProgressStore?
     /// See the initialiser. Watched rather than read: only a *change* is a request.
     let showLibrary: Int
@@ -133,13 +139,22 @@ public struct LibraryView: View {
         /// not wherever the reader last was. Where this view has navigated to is `@State`,
         /// which nothing outside can reach, so the app layer changes a number and the view
         /// answers by unwinding itself.
-        showLibrary: Int = 0
+        showLibrary: Int = 0,
+        /// Whether a reader currently has a publication open.
+        ///
+        /// `sources`' automatic recovery must not "interrupt reading", and this view is where
+        /// both retry mechanisms are started — so this is where the answer has to arrive. A
+        /// closure rather than a value because the reader may open a publication *while* the
+        /// backoff loop is waiting, and a value captured at `init` would be stale by then.
+        /// The app layer owns the state (`StoryArcApp.reading`); this view only asks.
+        isReading: @escaping @MainActor () -> Bool = { false }
     ) {
         self.model = model
         self.surface = surface
         self.progress = progress
         self.showLibrary = showLibrary
         self.onOpen = onOpen
+        self.isReading = isReading
 
         let store = CertificatePinStore()
         let loaded = CertificatePins(store.pins())
@@ -295,8 +310,20 @@ public struct LibraryView: View {
                 // the probe rather than beside it: the loop stops as soon as nothing is
                 // unreachable, so started before the first answer it would stop before
                 // there was one.
-                await model.retryUnreachableSources(credentials: credentials, pins: pins)
+                await model.retryUnreachableSources(
+                    credentials: credentials,
+                    pins: pins,
+                    isReading: isReading
+                )
             }
+            .modifier(
+                SourceRetryTriggers(
+                    model: model,
+                    isReading: isReading,
+                    credentials: credentials,
+                    pins: pins
+                )
+            )
             // `local-library`'s "reconciles ... after files changed": a provider notifies
             // nobody while the app is away. Android does the same on `ON_RESUME`.
             .watchingFolders(of: model)
