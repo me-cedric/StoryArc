@@ -19,6 +19,10 @@ ios-<surface>-<state>[-ax5][-dark].png
 offers. `-dark` is the dark appearance. No suffix means the default text size and the light
 appearance.
 
+**The tables below name the light frame only.** Every row has a `-dark` twin under the same
+name unless this file says otherwise, so a table of two hundred rows is a table of a hundred
+saying the same thing twice. Where a dark frame is missing, the last section says so.
+
 ## How these were taken, and why that matters
 
 Every frame is a real UI-test walk on a booted simulator — `StoryArc-iPhone17Pro`, iPhone 17
@@ -191,6 +195,7 @@ property on the model, changes in memory, and is tapped for real.
 | Language | `ios-settings-language.png` | The four StoryArc speaks, and System |
 | Your libraries | `ios-settings-sources.png` | Five sources with their states |
 | One source | `ios-settings-source-detail.png` | An OPDS catalogue: status, last sync, actions |
+| The same, from Sources | `ios-source-catalogue-detail.png` | Reached through *Your libraries* |
 | An unreachable source | `ios-source-unreachable-detail.png` | *Not answering* — grey, never red |
 | About | `ios-settings-about.png` | Version, licence, acknowledgements |
 | About | `ios-about.png` | The same screen from the older walk |
@@ -288,6 +293,17 @@ is `SweepEpubReaderTests.testCaptureEpubNoteDialog` and it skips with what it sa
 and typing into the simulator garbles ASCII — a French keyboard layout, recorded in this
 repository twice. The empty-query root is here; a search result page is not.
 
+**Starting again from page one.** The confirmation exists and is worth a frame, but the
+control that opens it is only offered on a publication with a recorded position, and this sweep
+pins the query and the settings rather than reading anything. `detail-restart-confirm` skips
+with that reason. Open any publication by hand first and the walk takes it.
+
+**The library-wide *nothing can be reached* notice.** `library-browsing`'s *None of the places
+you added can be reached right now* needs every source unreachable **and** the library not
+already browsable from local files. This device's shelf is local files, so the notice never
+appears; `SweepSourcesTests.testCaptureAwayNotice` skips saying so. It would take a device
+whose only sources are servers.
+
 **The end of a publication**, the offline notice over a page from an unreachable share, and the
 metered-data confirmations. All three need a state that takes either a real network or reading
 a publication to its last page.
@@ -313,6 +329,12 @@ the page's hero disagree about the same problem.
 publications under *On this device* and a space total under them. `ios-settings-root.png`
 against `ios-downloads-shelf.png`. Both are defensible — one counts download records, the
 other counts local files — and a reader cannot see which.
+
+**Narrowing to one library is answered with a sentence about the device.** Filter → *Which
+library* → `Attic NAS` empties the shelf and says *Nothing from Attic NAS is on this device
+yet.* `ios-library-narrowed-to-nothing.png`. The reader narrowed by library and is told the
+problem is the device; those are the two axes `library-browsing` is careful to keep apart, and
+the string that answers one of them names the other. `library.empty.scope`.
 
 **A successful search is mostly failure.** Two results under *Titles*, then three separate
 *didn't answer* lines — one per unreachable source, each with its own *Try again*.
@@ -342,6 +364,13 @@ Documents folder and attributed to no source, so the per-source count can never 
 shelf; the *Connecting* state on a local folder is a separate thing and looks like a probe that
 never resolves.
 
+**Stopping a transfer is confirmed with the words for deleting a finished download.** *Stop*
+on a row that is still arriving asks *Remove this download?* — "This deletes the copy of
+Harbour Lights 03 on this device. Your reading position is kept, and it can be downloaded
+again." — and the destructive button says *Remove download*. `ios-downloads-stop-confirm.png`.
+There is no copy on the device yet and no reading position to keep; the reader is cancelling
+something in flight. One string is doing two jobs.
+
 **A transfer states no size and no percentage.** A queue row is a title, two reorder
 chevrons, *Stop*, and a bare progress bar. `offline-downloads` asks for the size to be shown,
 and the bar is the only thing that says a transfer is 37% of the way through.
@@ -366,6 +395,12 @@ its kind on a screen otherwise made of horizontal cover shelves. `ios-home-lower
 **The hero's title is legible through the navigation bar.** Scrolling Home puts the inline
 title *Home* over the hero, and the hero's own large title stays readable behind it, colliding
 with the status-bar clock. `ios-home-lower.png`, top edge.
+
+**The shelves screen is two sentences and two pills in a screen and a half of void.** Both
+sections are empty on a clean device, and their empty state is a heading, a line of
+explanation and a *New …* pill — after which two-thirds of the screen is nothing.
+`ios-shelves.png`, `ios-shelves-dark.png`. It is the emptiest surface in the app and the one a
+reader most likely lands on by accident, from the row wedged into the middle of Home.
 
 **The filter menu is taller than it shows.** Six of its nine groups are visible and there is
 no affordance saying the rest are below. `ios-library-filter-menu.png`.
