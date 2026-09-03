@@ -28,7 +28,7 @@ final class SweepIpadTests: XCTestCase {
     /// Home, in landscape, with the sidebar showing.
     func testCaptureIpadHome() throws {
         let app = try landscape()
-        try XCTUnwrap(destination("Home", in: app), "no Home").tap()
+        try go(to: "Home", in: app)
         hold(2.5)
         shutter(app, named: "ipad-home")
     }
@@ -40,7 +40,7 @@ final class SweepIpadTests: XCTestCase {
     /// is for" rather than the same lattice widened. This is the frame that says whether it is.
     func testCaptureIpadLibrary() throws {
         let app = try landscape()
-        try showTheShelf(in: app)
+        try go(to: "Library", in: app)
         hold(2.5)
         shutter(app, named: "ipad-library")
     }
@@ -48,7 +48,7 @@ final class SweepIpadTests: XCTestCase {
     /// The library at the largest accessibility text size, where the tier steps again.
     func testCaptureIpadLibraryAtLargestText() throws {
         let app = try landscape(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        try showTheShelf(in: app)
+        try go(to: "Library", in: app)
         hold(2.5)
         shutter(app, named: "ipad-library-ax5")
     }
@@ -56,7 +56,7 @@ final class SweepIpadTests: XCTestCase {
     /// The library as a list, where a row has an iPad's whole width to fill.
     func testCaptureIpadList() throws {
         let app = try landscape(layout: "list")
-        try showTheShelf(in: app)
+        try go(to: "Library", in: app)
         hold(2.5)
         shutter(app, named: "ipad-library-list")
     }
@@ -64,7 +64,7 @@ final class SweepIpadTests: XCTestCase {
     /// Downloads, in landscape.
     func testCaptureIpadDownloads() throws {
         let app = try landscape()
-        try XCTUnwrap(destination("Downloads", in: app), "no Downloads").tap()
+        try go(to: "Downloads", in: app)
         hold(2.5)
         shutter(app, named: "ipad-downloads")
     }
@@ -72,7 +72,7 @@ final class SweepIpadTests: XCTestCase {
     /// Search at rest, in landscape, where three suggestion shelves have room to be shelves.
     func testCaptureIpadSearch() throws {
         let app = try landscape()
-        try XCTUnwrap(destination("Search", in: app), "no Search").tap()
+        try go(to: "Search", in: app)
         hold(2.5)
         shutter(app, named: "ipad-search")
     }
@@ -93,7 +93,7 @@ final class SweepIpadTests: XCTestCase {
     /// rather than the page instead of it.
     func testCaptureIpadDetail() throws {
         let app = try landscape()
-        try showTheShelf(in: app)
+        try go(to: "Library", in: app)
         hold(2.5)
         let covers = realCovers(in: app)
         try XCTSkipUnless(!covers.isEmpty, "This iPad's shelf drew no cover to open.")
@@ -110,7 +110,7 @@ final class SweepIpadTests: XCTestCase {
     /// pair up, and where does the chrome sit when there is this much of it?
     func testCaptureIpadReader() throws {
         let app = try landscape()
-        try showTheShelf(in: app)
+        try go(to: "Library", in: app)
         hold(2.5)
         let covers = coversOnScreen(in: app, ofFormat: "CBZ")
         try XCTSkipUnless(!covers.isEmpty, "This iPad's shelf drew no CBZ cover.")
@@ -129,6 +129,28 @@ final class SweepIpadTests: XCTestCase {
     }
 
     // MARK: - The walk
+
+    /// One destination, whatever a sidebar makes of it.
+    ///
+    /// **`destination(_:in:)` cannot see these.** It asks for a `tabBars` button, a button and
+    /// a static text — which is the right set for a phone's tab bar and the wrong one for a
+    /// regular window, where `.sidebarAdaptable` draws the same four entries as rows of a
+    /// `List` and the platform calls them cells. Six iPad walks failed with "no Home" on a
+    /// window whose sidebar had *Home* at the top of it.
+    ///
+    /// `control(_:in:)` already tries cells, and is what `AuditWalk` reaches for when a row is
+    /// a `NavigationLink` rather than a button. The sidebar is asked to open first, because a
+    /// window that starts with it collapsed has no rows to find.
+    private func go(to name: String, in app: XCUIApplication) throws {
+        if control(name, in: app) == nil { try? showSidebar(in: app) }
+        try XCTUnwrap(
+            control(name, in: app),
+            "This window offers no way to \(name). Cells: "
+                + "\(app.cells.allElementsBoundByIndex.prefix(12).map(\.label)). Buttons: "
+                + "\(app.buttons.allElementsBoundByIndex.prefix(12).map(\.label))"
+        ).tap()
+        hold(1)
+    }
 
     /// Launches in landscape, and refuses to photograph a compact window under an iPad's name.
     ///

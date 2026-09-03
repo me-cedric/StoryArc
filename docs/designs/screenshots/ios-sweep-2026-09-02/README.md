@@ -249,6 +249,28 @@ five sources since August. They are taken on a simulator created for them —
 | Your libraries | `ios-empty-sources.png` | No libraries yet |
 | Settings root | `ios-empty-settings-root.png` | Five of seven summaries saying *nothing yet* |
 
+## The frames the older suites contribute
+
+`ScreenshotTests`, `PlayerScreenshotTests` and `AppIconCaptureTests` were already in the
+repository and were run into this folder too, under their own names. Several are a second view
+of a surface the sweep also photographs; the ones below are the surfaces only they reach.
+
+| Surface | File | State |
+| --- | --- | --- |
+| Home | `ios-home.png` | The destination at rest |
+| Library | `ios-library.png` | The shelf at rest |
+| Library | `ios-library-ax5.png` | Largest text size |
+| Library, scrolled | `ios-library-end.png` | The end of the shelf, where the tab-bar inset is settled |
+| Search | `ios-search.png` | At rest |
+| Search | `ios-search-ax5.png` | Largest text size |
+| Downloads | `ios-downloads.png` | The destination at rest |
+| Reflowable reader | `ios-reader-on-arrival.png` | The chrome the reader draws itself |
+| Reflowable reader | `ios-reader-after-the-countdown.png` | Four seconds later, chrome gone |
+| Reflowable reader | `ios-reader-after-centre-tap.png` | Brought back |
+| Theme sheet | `ios-theme-sheet.png` | The six presets |
+| Theme sheet | `ios-theme-sheet-largest.png` | Largest text size |
+| Comic reader | `ios-comic-reader-chrome.png` | The chrome over a saturated page |
+
 ## What is not here, and why
 
 **The selection chrome.** It was rebuilt while this sweep was being taken — the tab bar hides,
@@ -316,6 +338,15 @@ likely they are to be a defect rather than a decision.
 **An audiobook's progress is measured in pages.** Home's *Continue reading* hero says
 `2 pages left` for `Sea Room`, which is an M4B. `ios-home-top.png`. `home.pagesLeft` is the
 string; an audiobook has a duration, not a page count.
+
+**Tapping the *Fit* row in the reader's menu opens nothing.** Twice, in the light and the dark
+run: after the tap the sheet still reads *Fit — Screen*, at the same detent, with the same
+rows. The *Transition* row directly beneath it — reached by the same lookup and tapped the
+same way — opens its menu and offers *Slide*, which is why there is a
+`ios-comic-reader-transition-picker.png` and no `ios-comic-reader-fit-picker.png`. The
+difference between the two rows is the control: `Transition` is a `Menu` and `Fit` is a
+`Picker`. **Worth a finger before it is called a defect** — a UI test's tap on a picker row is
+not identical to a touch — but the pair of frames is the evidence either way.
 
 **Every row in the reader's menu is drawn in the accent colour, on glass tinted by the page.**
 *Contents*, *Appearance*, *Transition*, *Done* — all purple, because they are `Button`s in a

@@ -122,7 +122,8 @@ final class SweepSearchTests: XCTestCase {
     /// A recent search is a control that writes straight to `model.query.search`, which is
     /// the value the field is bound to and the value `LibrarySearchSurface` asks on. So this
     /// is the same event as typing, minus the layout that garbles ASCII. The terms are
-    /// injected by ``sweepLaunch(contentSize:appearance:natural:downloads:language:search:searchScope:availability:layout:)``.
+    /// injected by ``sweepLaunch(contentSize:appearance:natural:downloads:language:searchScope:availability:layout:recents:)``,
+    /// whose own comment says why the query cannot carry one.
     private func run(_ term: String, in app: XCUIApplication) throws {
         try XCTUnwrap(
             hittable(term, in: app, timeout: 8),
