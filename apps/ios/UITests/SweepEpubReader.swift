@@ -257,9 +257,11 @@ final class SweepEpubReaderTests: XCTestCase {
         // reading-themes row" on a menu that had one, one detent away. Expanded only when the
         // row is not already there, so the default-size frames stay at the medium detent the
         // reader actually sees.
-        if hittableRow("Reading themes", in: app, timeout: 2) == nil {
+        // Five swipes, not one: at the largest text size the rows above it are three lines
+        // each, so one swipe reaches the second row and not the sixth.
+        for _ in 0..<5 where hittableRow("Reading themes", in: app, timeout: 1) == nil {
             app.swipeUp()
-            hold(1)
+            hold(0.7)
         }
         XCTAssertTrue(
             hittableRow("Reading themes", in: app) != nil,
