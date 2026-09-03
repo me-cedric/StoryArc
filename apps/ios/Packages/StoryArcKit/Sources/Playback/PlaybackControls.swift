@@ -82,6 +82,14 @@ public struct SkipIntervals: Sendable, Equatable, Codable {
 
     public static let `default` = SkipIntervals()
 
+    /// What the picker offers, in seconds.
+    ///
+    /// **The same four Android offers**, and that is the point of stating them here rather than
+    /// in the view: a listener who sets ten seconds on a phone and finds no ten on a tablet is a
+    /// listener the set has drifted under. A product decision like the defaults above, with no
+    /// platform guidance behind it either way.
+    public static let offered: [TimeInterval] = [5, 10, 15, 30]
+
     public func interval(_ direction: SkipDirection) -> TimeInterval {
         switch direction {
         case .back: back

@@ -679,7 +679,7 @@ creep — see [`design.md`](design.md).
       Applied before the first sound: `begin(_:source:)` asks the hook and calls `setSpeed`
       before `play`, and `NarratedSource.setSpeed` on a paused player records the number and
       applies it on the next `play` rather than starting the audio.
-- [~] 5.2 Both: skip states its interval on the control, is configurable, and
+- [x] 5.2 Both: skip states its interval on the control, is configurable, and
       crossing a chapter boundary continues rather than stopping. Defaults 15 s back
       and 30 s forward — a **product decision**, recorded as one; media3's own
       defaults (5 s / 15 s) are wrong for spoken word.
@@ -730,6 +730,33 @@ creep — see [`design.md`](design.md).
       configured interval. What is missing there is a store and a control — `skipIntervals` has
       **no setter anywhere in the app**, so the value is configurable in the type and not by a
       listener.
+      **iOS's half landed 2026-09-03, and it was the smaller half in code and the larger one
+      in consequence.** `SkipIntervals`, `SkipDirection`, `SkipUnit`, `PlayerCentre.skipIntervals`
+      and `PlaybackTimeline.skip` all existed; `PlayerLabels.skip` already stated the configured
+      interval. **What was missing was a setter — `skipIntervals` was written by nothing anywhere
+      in the app**, so every listener got the defaults for ever and this task's *configurable*
+      clause was unmet with nothing failing. That is the shape of gap a tick hides.
+      `SkipPreferences` mirrors Android's store case for case, including the one decision that
+      matters: **a half-written pair reads as the defaults, not as a control that moves nothing**.
+      Zero is what an unwritten key answers *and* the one value a skip may never have, and
+      neither `UserDefaults` nor `SharedPreferences` offers a sentinel between them — so the pair
+      is read as a pair. Seven host cases.
+      `SkipIntervalsSheet` is the control, two sections because back and forward are genuinely
+      different distances, one store because to a listener they are one setting. **The offered set
+      is stated in `SkipIntervals.offered` rather than in the view, and it is Android's** — a
+      listener who sets ten seconds on a phone and finds no ten on a tablet is a listener the set
+      has drifted under.
+      **It is not drawn where a skip cannot mean seconds.** A synthesised voice skips a
+      *sentence*; `SkipUnit` carries that and `audio-playback`'s "works, or is absent" says the
+      control is not drawn rather than drawn and inert.
+      **And the lock screen had to be told.** `MPRemoteCommandCenter.preferredIntervals` is
+      published once when the commands are wired, so without `skipIntervalsChanged` the player
+      would say ten seconds while the lock screen, Control Centre and a car display went on
+      saying fifteen — three surfaces this task requires the interval to be stated on.
+      `PlayerCentre.swift` crossed SwiftLint's 400-line cap, so the setter is in `PlayerSkip.swift`
+      beside `PlayerSleep.swift`, which took the same seam for the same reason.
+      **Captures owed**: the sheet and the control, light and dark, default and largest text. Both
+      devices were sweeping every screen when this landed.
 - [~] 5.3 Both: sleep timer offers durations **and end-of-chapter**, shows the
       remaining time, fades out rather than cutting, and records a position slightly
       before where the fade ended.

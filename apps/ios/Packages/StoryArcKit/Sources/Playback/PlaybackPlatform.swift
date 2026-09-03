@@ -34,6 +34,21 @@ public protocol PlaybackPlatform: AnyObject {
     ///   a clock left running after the timer is spent is a phone woken twice a second for
     ///   nothing.
     func sleepTimerChanged(isRunning: Bool)
+
+    /// The listener changed how far a skip moves, so the system's own controls must be told.
+    ///
+    /// `MPRemoteCommandCenter` publishes its `preferredIntervals` once, when the commands are
+    /// wired. Without this the full player would say ten seconds and the lock screen would go on
+    /// saying fifteen — and `audio-playback` requires the interval to be "stated on the control
+    /// itself", which makes that a defect on two controls rather than a stale label on one.
+    ///
+    /// Defaulted, because a platform that publishes no remote commands has nothing to update and
+    /// the host tests run with no platform at all.
+    func skipIntervalsChanged(_ intervals: SkipIntervals)
+}
+
+public extension PlaybackPlatform {
+    func skipIntervalsChanged(_ intervals: SkipIntervals) {}
 }
 
 /// The audio session and the lock screen, as one thing to hand ``PlayerCentre``.
@@ -78,6 +93,17 @@ public final class SystemPlaybackPlatform: PlaybackPlatform {
     /// `Task.sleep` rather than a `Timer`: the interval is half a second and the drift a
     /// coalesced timer would introduce over a thirty-minute count is real, whereas a suspended
     /// task costs nothing while it waits.
+    /// Re-publishes the intervals the lock screen states.
+    ///
+    /// `wire()` sets `preferredIntervals` once when the commands are created, so a listener who
+    /// changes the interval afterwards would otherwise see the old number on every system
+    /// surface until the next session.
+    public func skipIntervalsChanged(_ intervals: SkipIntervals) {
+        #if os(iOS)
+        nowPlaying.republishSkipIntervals(intervals)
+        #endif
+    }
+
     public func sleepTimerChanged(isRunning: Bool) {
         countdown?.cancel()
         countdown = nil

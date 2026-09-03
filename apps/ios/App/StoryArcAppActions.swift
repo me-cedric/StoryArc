@@ -190,6 +190,23 @@ extension StoryArcApp {
     /// **Before the first sound rather than after it**: ``PlayerCentre/begin(_:source:)`` asks
     /// `onRecallSpeed` and calls `setSpeed` before `play`, so a listener never hears the
     /// sentence that is about to be announced as the start of a chapter at the wrong pace.
+    /// How far a skip moves, restored before the first sound and kept when it changes.
+    ///
+    /// **`skipIntervals` had no setter anywhere in the app until 2026-09-03**, so every listener
+    /// got the product defaults for ever and `audio-playback`'s "an interval the listener can
+    /// configure" was unmet with nothing failing. Applied here rather than on the first play,
+    /// for the reason the speed's own wiring gives: a value restored *after* a session starts is
+    /// a control that changes under a listener who has already pressed something.
+    ///
+    /// Global rather than per publication — see ``PlayerCentre/setSkipIntervals(_:)``.
+    static func wirePlayerSkip(_ preferences: SkipPreferences = SkipPreferences()) {
+        let centre = PlayerCentre.shared
+        guard centre.onRememberSkip == nil else { return }
+
+        centre.skipIntervals = preferences.intervals()
+        centre.onRememberSkip = { intervals in preferences.remember(intervals) }
+    }
+
     static func wirePlayerSpeed(_ preferences: PlaybackPreferences = PlaybackPreferences()) {
         let centre = PlayerCentre.shared
         guard centre.onRecallSpeed == nil else { return }

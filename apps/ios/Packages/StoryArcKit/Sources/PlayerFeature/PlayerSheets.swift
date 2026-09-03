@@ -186,3 +186,78 @@ public struct SleepTimerSheet: View {
         .accessibilityAddTraits(isChosen ? [.isButton, .isSelected] : .isButton)
     }
 }
+
+/// How far one press of a skip control moves.
+///
+/// **`audio-playback` asks for an interval "the listener can configure", and until this sheet
+/// there was nothing to configure it with.** `PlayerCentre.skipIntervals` was read by the
+/// player, the timeline and the lock screen and written by nobody, so the requirement's second
+/// clause was unmet with nothing failing — the kind of gap a task list ticks and a reader finds.
+///
+/// Two pickers rather than one, because the two directions are genuinely different distances:
+/// the reason to skip back is "I missed that sentence" and the reason to skip forward is "I know
+/// this part". They are stored together because to a listener they are one setting.
+public struct SkipIntervalsSheet: View {
+    @Environment(\.theme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    private let centre: PlayerCentre
+
+    public init(centre: PlayerCentre) {
+        self.centre = centre
+    }
+
+    public var body: some View {
+        NavigationStack {
+            List {
+                section(.back, title: Text("player.skip.back", bundle: .module))
+                section(.forward, title: Text("player.skip.forward", bundle: .module))
+            }
+            .navigationTitle(Text("player.skip", bundle: .module))
+        }
+    }
+
+    @ViewBuilder
+    private func section(_ direction: SkipDirection, title: Text) -> some View {
+        Section {
+            ForEach(SkipIntervals.offered, id: \.self) { seconds in
+                row(direction, seconds: seconds)
+            }
+        } header: {
+            title
+        }
+    }
+
+    private func row(_ direction: SkipDirection, seconds: TimeInterval) -> some View {
+        let isChosen = centre.skipIntervals.interval(direction) == seconds
+        return Button {
+            centre.setSkipIntervals(changing(direction, to: seconds))
+        } label: {
+            HStack {
+                Text("player.skip.seconds \(Int(seconds))", bundle: .module)
+                    .foregroundStyle(theme.palette.textPrimary)
+                Spacer()
+                if isChosen {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(theme.accent)
+                        .accessibilityHidden(true)
+                }
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isChosen ? [.isButton, .isSelected] : .isButton)
+    }
+
+    /// The pair with one direction changed. The sheet stays open: a listener setting both
+    /// would otherwise have to reopen it, and this is the one sheet in the player that holds
+    /// two decisions rather than one.
+    private func changing(_ direction: SkipDirection, to seconds: TimeInterval) -> SkipIntervals {
+        var intervals = centre.skipIntervals
+        switch direction {
+        case .back: intervals.back = seconds
+        case .forward: intervals.forward = seconds
+        }
+        return intervals
+    }
+}

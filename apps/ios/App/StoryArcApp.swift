@@ -134,6 +134,7 @@ struct StoryArcApp: App {
         // begin from either source and only one of the two paths runs through this target —
         // see `wirePlayerSpeed`.
         Self.wirePlayerSpeed()
+        Self.wirePlayerSkip()
 
         let store = try? ProgressStore()
         self.progress = store

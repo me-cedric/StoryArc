@@ -33,6 +33,7 @@ public struct FullPlayerView: View {
     @State private var showingChapters = false
     @State private var showingSpeed = false
     @State private var showingSleep = false
+    @State private var showingSkip = false
     /// The scrub in progress, so dragging does not fight the clock ticking underneath it.
     @State private var scrubbing: TimeInterval?
 
@@ -79,6 +80,9 @@ public struct FullPlayerView: View {
         }
         .sheet(isPresented: $showingSleep) {
             SleepTimerSheet(centre: centre).presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showingSkip) {
+            SkipIntervalsSheet(centre: centre).presentationDetents([.medium])
         }
     }
 
@@ -251,6 +255,18 @@ public struct FullPlayerView: View {
                 label: Text("player.sleep", bundle: .module),
                 value: centre.sleep == nil ? nil : sleepText
             ) { showingSleep = true }
+            // Only where a skip means seconds. A synthesised voice skips a *sentence*, which is
+            // not a distance a listener can set — `SkipUnit` carries that difference, and
+            // `audio-playback`'s "works, or is absent" says a control that cannot be honoured is
+            // not drawn rather than drawn and inert.
+            if centre.skipUnit == .time {
+                settingButton(
+                    "arrow.trianglehead.counterclockwise",
+                    Text("player.skip.seconds \(Int(centre.skipIntervals.back))", bundle: .module),
+                    label: Text("player.skip", bundle: .module),
+                    value: Text("player.skip.seconds \(Int(centre.skipIntervals.back))", bundle: .module)
+                ) { showingSkip = true }
+            }
         }
     }
 

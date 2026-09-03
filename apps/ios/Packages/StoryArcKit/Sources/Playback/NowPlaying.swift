@@ -137,6 +137,22 @@ public final class NowPlaying {
     /// sentence skip and no scrubber, because it has no seconds to scrub through. That is
     /// `audio-playback`'s "every control the player offers works, or is absent — none is
     /// present and refusing", applied to the lock screen.
+    /// Tells the system's own controls that the interval changed.
+    ///
+    /// ``wire()`` publishes `preferredIntervals` once, when the commands are created, so a
+    /// listener who changes the interval afterwards would go on seeing the old number on the
+    /// lock screen, in Control Centre and on a car display. `audio-playback` requires the
+    /// interval to be "stated on the control itself", and those are controls — so a stale
+    /// number there is a defect on three surfaces rather than a cosmetic lag on one.
+    ///
+    /// Inside the `#if os(iOS)` region with `wire()`, because `MPRemoteCommandCenter` is not on
+    /// the host this package also builds for.
+    func republishSkipIntervals(_ intervals: SkipIntervals) {
+        let commands = MPRemoteCommandCenter.shared()
+        commands.skipBackwardCommand.preferredIntervals = [NSNumber(value: intervals.back)]
+        commands.skipForwardCommand.preferredIntervals = [NSNumber(value: intervals.forward)]
+    }
+
     private func wire() {
         guard let centre else { return }
         let commands = MPRemoteCommandCenter.shared()

@@ -121,6 +121,9 @@ public final class PlayerCentre {
     /// A speed the listener chose, to be remembered against this publication.
     public var onRememberSpeed: (@MainActor (Publication, PlaybackSpeed) -> Void)?
 
+    /// Told when the listener changes how far a skip moves, so it can be kept.
+    public var onRememberSkip: (@MainActor (SkipIntervals) -> Void)?
+
     /// The artwork the system's own media controls show, as PNG bytes.
     ///
     /// `audio-playback`: a publication with no cover gets "the same coverless treatment every
