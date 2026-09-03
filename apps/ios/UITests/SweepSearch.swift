@@ -44,11 +44,12 @@ final class SweepSearchTests: XCTestCase {
     /// person, tag", and `MatchHeading` is what names each group. Whether four headings over
     /// short runs of covers reads as one answer or as four is the design question here.
     func testCaptureSearchWithResults() throws {
-        let app = sweepLaunch(search: "harbour")
+        let app = sweepLaunch()
         try showSearch(in: app)
+        try run("Harbour", in: app)
         XCTAssertTrue(
-            app.staticTexts["Titles"].waitForExistence(timeout: 10)
-                || app.staticTexts["Series"].waitForExistence(timeout: 2),
+            app.staticTexts["Titles"].waitForExistence(timeout: 15)
+                || app.staticTexts["Series"].waitForExistence(timeout: 3),
             "A term with matches produced no grouped results. On screen: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
@@ -58,9 +59,10 @@ final class SweepSearchTests: XCTestCase {
 
     /// The same at the largest accessibility text size.
     func testCaptureSearchWithResultsAtLargestText() throws {
-        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL", search: "harbour")
+        let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
         try showSearch(in: app)
-        hold(2.5)
+        try run("Harbour", in: app)
+        hold(3)
         shutter(app, named: "search-results-ax5")
     }
 
@@ -70,10 +72,13 @@ final class SweepSearchTests: XCTestCase {
     /// two servers that are not running, so the *could not answer* notice is up beside it.
     /// That pairing is a real state and a reader meets it on every train.
     func testCaptureSearchWithNoResults() throws {
-        let app = sweepLaunch(search: "vermillion")
+        let app = sweepLaunch()
         try showSearch(in: app)
+        try run("Vermillion", in: app)
         XCTAssertTrue(
-            app.staticTexts["Nothing matches “vermillion”."].waitForExistence(timeout: 15),
+            app.staticTexts.matching(
+                NSPredicate(format: "label BEGINSWITH %@", "Nothing matches")
+            ).firstMatch.waitForExistence(timeout: 20),
             "A term with no matches produced no empty sentence. On screen: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
@@ -87,9 +92,10 @@ final class SweepSearchTests: XCTestCase {
     /// term, one axis apart — and it is the only way to see that the notice is gone rather
     /// than merely late.
     func testCaptureSearchOnThisDevice() throws {
-        let app = sweepLaunch(search: "vermillion", searchScope: "onThisDevice")
+        let app = sweepLaunch(searchScope: "onThisDevice")
         try showSearch(in: app)
-        hold(3)
+        try run("Vermillion", in: app)
+        hold(4)
         shutter(app, named: "search-on-this-device")
     }
 
@@ -103,6 +109,32 @@ final class SweepSearchTests: XCTestCase {
         try showSearch(in: app)
         hold(1.5)
         shutter(app, named: "search-at-rest-on-this-device")
+    }
+
+    /// Runs a term the way a reader would, without touching the keyboard.
+    ///
+    /// **An injected query cannot carry a term.** `LibraryPreferences.query()` clears `search`
+    /// on restore, deliberately — "a filter is a decision that outlives a session; a
+    /// half-typed search is not" — so the first version of these walks photographed the
+    /// at-rest screen under filenames saying *results* and *no results*, and passed until an
+    /// assertion was put on the results themselves.
+    ///
+    /// A recent search is a control that writes straight to `model.query.search`, which is
+    /// the value the field is bound to and the value `LibrarySearchSurface` asks on. So this
+    /// is the same event as typing, minus the layout that garbles ASCII. The terms are
+    /// injected by ``sweepLaunch(contentSize:appearance:natural:downloads:language:search:searchScope:availability:layout:)``.
+    private func run(_ term: String, in app: XCUIApplication) throws {
+        try XCTUnwrap(
+            hittable(term, in: app, timeout: 8),
+            "The search screen offers no recent search called “\(term)”. Buttons: "
+                + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
+        ).tap()
+        // The field, because a tap that missed leaves the at-rest screen up and every state
+        // of this screen is a plausible picture of it.
+        XCTAssertEqual(
+            app.searchFields.firstMatch.value as? String, term,
+            "Tapping the recent search did not put “\(term)” in the field."
+        )
     }
 
     /// Search, on screen, proved to be search.

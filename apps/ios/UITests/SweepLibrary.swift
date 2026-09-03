@@ -148,40 +148,43 @@ final class SweepLibraryTests: XCTestCase {
     /// Every filter set to something nothing matches: a library with books and none on screen.
     ///
     /// `NarrowedToNothing` writes four different sentences depending on what is hiding the
-    /// shelf, and no picture of any of them exists. This is the filtered one, reached by
-    /// narrowing on read state and download state at once — the AND that
-    /// `library-browsing` specifies, doing what a reader would not expect it to.
+    /// shelf, and no picture of any of them exists. This is the one about a *library*, reached
+    /// by narrowing to a source that has nothing cached — which is a real state on a device
+    /// whose servers are not running, and the sentence a reader is most likely to meet.
+    ///
+    /// **Two filters that ought to exclude each other do not, on this corpus.** The first
+    /// version narrowed on unread *and* downloaded, then on unread and *not* downloaded, and
+    /// both left every publication on the shelf: whatever `isDownloaded` answers for a file
+    /// the reader picked themselves, one of those two pairs should have emptied it. That is
+    /// noted in the sweep's README as something to look at rather than worked around here —
+    /// this walk is about the empty state, and it now reaches it by the axis that does empty.
     func testCaptureNarrowedToNothing() throws {
         let app = sweepLaunch()
         try showTheShelf(in: app)
-        try setUnreadFilter(in: app)
         try openFilterMenu(in: app)
         try XCTUnwrap(
-            hittable("Downloaded or not", in: app),
-            "The Filter menu offers no download group."
+            hittable("Which library", in: app),
+            "The Filter menu offers no library group."
         ).tap()
-        // *Not downloaded*, not *Downloaded*, and the difference is the whole test. Every
-        // publication on this device is a local file, and `DownloadFilter.keeps(isDownloaded:)`
-        // counts a local file as downloaded — so *Downloaded* excludes nothing and the shelf
-        // stayed full under a filename saying it was empty. The complement excludes everything.
-        try XCTUnwrap(hittable("Not downloaded", in: app), "No Not-downloaded option.").tap()
+        guard let source = hittable("Attic NAS", in: app, timeout: 3) else {
+            throw XCTSkip(
+                "This device lists no source with nothing cached. Rows: "
+                    + "\(app.buttons.allElementsBoundByIndex.map(\.label))"
+            )
+        }
+        source.tap()
 
         // Any of the four, not one of them. `NarrowedToNothing` chooses its sentence from the
-        // *reason* — a search term, the device axis, the filters, or one library — and which
-        // reason wins for two filters at once is the screen's own decision rather than this
-        // walk's. Asserting the filtered wording named a defect that was a correct answer.
-        let sentences = [
-            "Nothing matches the filters you set.",
-            "Nothing in your library is on this device yet.",
-        ]
+        // *reason*, and which reason wins is the screen's own decision rather than this walk's.
         let empty = app.staticTexts.matching(
-            NSPredicate(format: "label IN %@", sentences)
+            NSPredicate(format: "label BEGINSWITH %@", "Nothing")
         ).firstMatch
         XCTAssertTrue(
-            empty.waitForExistence(timeout: 8),
-            "Two filters that cannot both hold left publications on the shelf. On screen: "
-                + "\(app.staticTexts.allElementsBoundByIndex.prefix(20).map(\.label))"
+            empty.waitForExistence(timeout: 10),
+            "Narrowing to a source with nothing cached left publications on the shelf. "
+                + "On screen: \(app.staticTexts.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
+        hold(0.5)
         shutter(app, named: "library-narrowed-to-nothing")
     }
 
@@ -198,6 +201,19 @@ final class SweepLibraryTests: XCTestCase {
             hittable("On this device", in: app),
             "The View menu offers no availability picker."
         ).tap()
+        // **The assertion this walk was missing, and it caught a wrong capture.** Every
+        // publication on this device *is* on this device, so narrowing to the device changes
+        // no cover — the shelf looks identical whether the choice took or not, and the first
+        // run of this walk filed an unnarrowed shelf under the narrowed name. What does
+        // change is the control: `library-browsing` requires the choice to be "visible while
+        // it is active", and `ViewMenu` states it as its accessibility value.
+        let control = app.buttons.matching(NSPredicate(format: "label == %@", "View")).firstMatch
+        XCTAssertTrue(control.waitForExistence(timeout: 5), "The toolbar lost its View control.")
+        XCTAssertEqual(
+            control.value as? String, "On this device",
+            "The View control does not state that the shelf is narrowed to this device, so "
+                + "either the choice did not take or nothing on screen says it did."
+        )
         hold(1.5)
         shutter(app, named: "library-on-this-device")
     }

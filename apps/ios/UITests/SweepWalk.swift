@@ -46,11 +46,6 @@ extension XCTestCase {
     ///     photographed by starting a real download would need a server, a network and a
     ///     file that takes long enough to photograph.
     ///   - language: a BCP-47 tag for the app's own language override.
-    ///   - search: a term for the shared query, because the search field is bound to it.
-    ///     Typed input is not an option here — the simulator's keyboard layout garbles
-    ///     ASCII, which is recorded in this repository twice — and a term the app restored
-    ///     runs exactly as one that was typed: `LibrarySearchSurface` asks on
-    ///     `.onChange(of: model.query.search, initial: true)`.
     ///   - searchScope: `everywhere` or `onThisDevice`, the search screen's own axis.
     ///   - layout: `grid` or `list`, the shelf's own persisted layout.
     ///
@@ -74,7 +69,6 @@ extension XCTestCase {
         natural: Bool = false,
         downloads: String = "[]",
         language: String? = nil,
-        search: String = "",
         searchScope: String = "everywhere",
         availability: String = "everywhere",
         layout: String = "grid"
@@ -86,16 +80,27 @@ extension XCTestCase {
             // The transfer record. `[]` rather than absent, so a queue one walk injected is
             // not still in the frame of the next one.
             "-app.storyarc.downloads", asPlistData(downloads),
-            "-app.storyarc.libraryQuery", asPlistData(queryJSON(search)),
+            "-app.storyarc.libraryQuery", asPlistData(queryJSON()),
             "-app.storyarc.libraryAvailability", availability,
             "-app.storyarc.searchScope", searchScope,
             "-app.storyarc.libraryDownloadFilter", "either",
             // Per-scope, and `all` is `LibraryScope.allSources.storageKey` — the shelf and
             // the search surface both read that one.
             "-app.storyarc.libraryLayout.all", layout,
-            // One recent search, so the section exists on the search screen at rest and does
-            // not grow by one every time a query walk runs.
-            "-app.storyarc.librarySearches", "(\"Fine Print\")",
+            // The recent searches, which are also **how a term gets into the field**.
+            //
+            // Not through the query: `LibraryPreferences.query()` clears `search` on restore
+            // on purpose — "a filter is a decision that outlives a session; a half-typed
+            // search is not" — so an injected term is discarded before any screen sees it,
+            // and the search walks photographed the at-rest screen under names saying
+            // *results* and *no results*. Not through the keyboard either: typing into the
+            // simulator goes through a French layout and garbles ASCII.
+            //
+            // A recent search is a control that sets `model.query.search` directly, and
+            // `LibrarySearchSurface` asks on `.onChange(of:initial:)` — so tapping one runs
+            // the term exactly as typing it would. `Harbour` matches; `Vermillion` matches
+            // nothing on this corpus.
+            "-app.storyarc.librarySearches", "(\"Harbour\", \"Vermillion\", \"Fine Print\")",
         ]
         if let contentSize {
             app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize]
@@ -104,15 +109,19 @@ extension XCTestCase {
         return app
     }
 
-    /// The shelf query with a term in it and every other axis at rest.
+    /// The shelf query with every axis at rest: no filters, sorted by title, ascending.
     ///
     /// The field's shape rather than `LibraryQuery`'s encoder, for the reason
     /// ``settingsJSON(_:_:)`` gives: the UI-test bundle cannot see `StoryArcCore`.
     /// `LibraryQueryTests` pins the encoding on the host side.
-    private func queryJSON(_ term: String) -> String {
+    ///
+    /// **It carries no search term and cannot.** `LibraryPreferences.query()` clears `search`
+    /// on the way out of storage on purpose. A term reaches a screen by tapping a recent
+    /// search — see `SweepSearchTests.run(_:in:)`.
+    private func queryJSON() -> String {
         """
         {"publishers":[],"sort":"title","scope":"all","readStates":[],"years":{},\
-        "ascending":true,"tags":[],"search":"\(term)","genres":[],"formats":[],"languages":[]}
+        "ascending":true,"tags":[],"search":"","genres":[],"formats":[],"languages":[]}
         """
     }
 

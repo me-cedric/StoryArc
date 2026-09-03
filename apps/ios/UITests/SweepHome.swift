@@ -132,9 +132,13 @@ final class SweepHomeTests: XCTestCase {
     private func openShelves(in app: XCUIApplication) throws {
         try showHome(in: app)
         hold(2)
-        let shelves = app.buttons["Shelves"]
-        _ = scrollTo(shelves, in: app, swipes: 8)
-        try XCTUnwrap(hittable("Shelves", in: app), "Home offers no way into Shelves.").tap()
+        // `control(_:in:)`, not `hittable(_:in:)`. The link is a `NavigationLink` carrying a
+        // `Label`, and what the accessibility tree makes of that is the platform's decision:
+        // at the largest text size it was a button and this walk passed, at the default size
+        // it was not and the walk failed on a screen that had the row on it. `AuditWalk` made
+        // exactly this discovery about the seven settings rows.
+        _ = scrollTo(app.staticTexts["Shelves"], in: app, swipes: 8)
+        try XCTUnwrap(control("Shelves", in: app), "Home offers no way into Shelves.").tap()
         XCTAssertTrue(
             app.navigationBars["Shelves"].waitForExistence(timeout: 5)
                 || app.staticTexts["Collections"].waitForExistence(timeout: 3),
