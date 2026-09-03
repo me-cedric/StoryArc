@@ -102,10 +102,39 @@ object LibraryScanner {
      *   `local-library` requires a scan to be "cancellable and resumable", and this is the
      *   resumable half: the walk still visits them, which costs one directory listing, and
      *   opens none of them, which is where the minutes go.
+     * @param onUnreadableFolder called with the path of every directory the walk could not
+     *   list, as it meets one.
+     *
+     *   **This is the difference between a folder that is empty and one the app may no longer
+     *   read**, and without it the two are the same event. A walk over a folder whose
+     *   permission has lapsed lists nothing, opens nothing, and finishes `Finished(0, 0)` --
+     *   the same terminal event as a reader who deleted every book. `sources`' metadata cache
+     *   turns on that distinction: the cached-content indicator must stay up when a walk saw
+     *   nothing because it could see nothing, and leave only when a walk genuinely found an
+     *   empty folder. A caller that ignores this tells a reader whose folder access lapsed
+     *   that their library is empty.
+     *
+     *   Reported per directory rather than as one flag at the end, because a subdirectory that
+     *   cannot be listed makes the walk partial in exactly the same way: what it did not see
+     *   is unaccounted for rather than gone.
+     *
+     *   A lambda rather than a fourth [ScanEvent], for a reason worth writing down: the
+     *   terminal event is matched exhaustively by both apps, and widening it is a change in
+     *   files this one does not own. The lambda also outlives the flow, which is when the
+     *   caller needs the answer -- the decision is made at `Finished`.
+     *
+     *   iOS's `LibraryScanner.scan(folderAt:known:skipping:onUnreadableFolder:)` reports the
+     *   same fact the same way.
      */
-    fun scan(folder: File, skipping: Set<String> = emptySet()): Flow<ScanEvent> = flow {
+    fun scan(
+        folder: File,
+        skipping: Set<String> = emptySet(),
+        onUnreadableFolder: (String) -> Unit = {},
+    ): Flow<ScanEvent> = flow {
         // The picked folder's own name is not a series: it is the library.
-        val tally = walk(folder, seriesHint = null, skipping = skipping) { emit(it) }
+        val tally = walk(folder, seriesHint = null, skipping = skipping, onUnreadableFolder) {
+            emit(it)
+        }
         emit(ScanEvent.Finished(tally.found, tally.skipped))
     }
 
@@ -130,10 +159,17 @@ object LibraryScanner {
      * same image-folder-is-a-publication decision. A user who moves a shelf from
      * internal storage to an SD card should see the same library.
      */
+    /**
+     * @param onUnreadableFolder as the `File` overload above, and this is the overload where
+     *   it matters most: a picked folder reaches the app as a tree `Uri`, and the permission
+     *   behind that `Uri` is exactly the one a reader can revoke without telling the app.
+     *   [SafTree.childrenOrNull] is what still knows the difference by the time the walk asks.
+     */
     fun scan(
         resolver: ContentResolver,
         tree: Uri,
         skipping: Set<String> = emptySet(),
+        onUnreadableFolder: (String) -> Unit = {},
     ): Flow<ScanEvent> = flow {
         // The library's own folder is never a publication, so it needs no date of
         // its own — the zero here is read as "not stated" and never reaches a row.
@@ -144,6 +180,7 @@ object LibraryScanner {
             seriesHint = null,
             modifiedAt = 0L,
             skipping = skipping,
+            onUnreadableFolder = onUnreadableFolder,
         ) { emit(it) }
         emit(ScanEvent.Finished(tally.found, tally.skipped))
     }
@@ -324,11 +361,20 @@ object LibraryScanner {
         directory: File,
         seriesHint: String?,
         skipping: Set<String>,
+        onUnreadableFolder: (String) -> Unit,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         currentCoroutineContext().ensureActive()
+        // Bound to a name before the fallback, which is the whole of this change: `?: empty`
+        // spends the one fact that separates a folder with nothing in it from a folder the
+        // app cannot read, and the walk is the only place that still has it. `listFiles`
+        // returns null for both a missing directory and a refused one.
+        val listing = directory.listFiles() ?: run {
+            onUnreadableFolder(directory.absolutePath)
+            return Tally()
+        }
         // Alphabetical, case-insensitively, so the order matches a file browser's.
-        val children = (directory.listFiles() ?: emptyArray())
+        val children = listing
             .filterNot { it.name.startsWith(".") }
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
 
@@ -369,7 +415,7 @@ object LibraryScanner {
         }
         for (child in directories) {
             currentCoroutineContext().ensureActive()
-            tally += walk(child, child.name, skipping, emit)
+            tally += walk(child, child.name, skipping, onUnreadableFolder, emit)
         }
         return tally
     }
@@ -388,10 +434,18 @@ object LibraryScanner {
         seriesHint: String?,
         modifiedAt: Long,
         skipping: Set<String>,
+        onUnreadableFolder: (String) -> Unit,
         emit: suspend (ScanEvent) -> Unit,
     ): Tally {
         currentCoroutineContext().ensureActive()
-        val children = SafTree.children(resolver, tree, documentId)
+        // The tree's own half of the change above. A revoked permission makes the provider
+        // refuse the query, and `children` turns that into an empty folder -- which is the
+        // shelf emptying itself on a walk that never saw anything.
+        val listing = SafTree.childrenOrNull(resolver, tree, documentId) ?: run {
+            onUnreadableFolder(SafTree.documentUri(tree, documentId).toString())
+            return Tally()
+        }
+        val children = listing
             .filterNot { it.name.startsWith(".") }
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
 
@@ -425,7 +479,8 @@ object LibraryScanner {
         for (child in directories) {
             currentCoroutineContext().ensureActive()
             tally += walkTree(
-                resolver, tree, child.documentId, child.name, child.modifiedAtEpochMillis, skipping, emit,
+                resolver, tree, child.documentId, child.name, child.modifiedAtEpochMillis,
+                skipping, onUnreadableFolder, emit,
             )
         }
         return tally

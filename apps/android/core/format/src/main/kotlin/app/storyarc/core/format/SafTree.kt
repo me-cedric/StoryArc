@@ -121,12 +121,27 @@ object SafTree {
      * revoked reads as empty rather than throwing, and the caller reports the scan
      * as finding nothing rather than crashing on a folder the user removed from
      * their device.
+     *
+     * **That conflation is why [childrenOrNull] exists.** A caller that has to tell an empty
+     * folder from one it may no longer read — the library walk does, or the cached-content
+     * indicator leaves the moment a lapsed permission empties the shelf — asks that one
+     * instead. This stays for the callers that only want the rows.
      */
-    fun children(resolver: ContentResolver, tree: Uri, documentId: String): List<Entry> {
+    fun children(resolver: ContentResolver, tree: Uri, documentId: String): List<Entry> =
+        childrenOrNull(resolver, tree, documentId) ?: emptyList()
+
+    /**
+     * What is directly inside a directory, or null when it could not be listed at all.
+     *
+     * The distinction [children] spends. A revoked tree permission makes the query throw and
+     * a provider that has gone makes it return no cursor; both arrive here as null, and
+     * neither is a folder with nothing in it.
+     */
+    fun childrenOrNull(resolver: ContentResolver, tree: Uri, documentId: String): List<Entry>? {
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(tree, documentId)
         val cursor: Cursor = runCatching {
             resolver.query(childrenUri, PROJECTION, null, null, null)
-        }.getOrNull() ?: return emptyList()
+        }.getOrNull() ?: return null
 
         return cursor.use {
             // By name, not by position: a provider is free to return fewer columns

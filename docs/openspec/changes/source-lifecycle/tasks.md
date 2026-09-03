@@ -90,6 +90,27 @@ dark, at default and largest text size. A `#Preview` and a `@Preview` do not cou
 ## 5. The honest limit in the cached indicator
 
 - [ ] 5.1 Make the scanner report whether it could read the folder, so the cached notice stays when a walk saw nothing because the folder was unreadable and leaves only when a walk genuinely found an empty folder. Write the failing test first — a walk over an unreadable folder keeps the notice — then change the scanner on both platforms
+      **The scanner now reports it, on both platforms.** `scan` takes an
+      `onUnreadableFolder` reporter, called with the path of every directory the walk could
+      not list. A lambda rather than a fourth `ScanEvent`: the terminal event is matched
+      exhaustively in `LibraryFeature` and `feature/library`, which this change does not own,
+      and the answer has to outlive the stream because the decision is made at `finished`.
+      Reported per directory, because a subdirectory that cannot be listed makes the walk
+      partial in the same way — what it did not see is unaccounted for rather than gone.
+      **Android needed it in two places, and the second is the one that matters.** A picked
+      folder arrives as a tree `Uri`, and `SafTree.children` turned a refused query into an
+      empty folder — its own doc comment said so: "a folder whose permission was revoked reads
+      as empty rather than throwing". `SafTree.childrenOrNull` keeps the distinction and
+      `children` delegates to it, so the callers that only want rows are unchanged.
+      **Six mirrored cases per platform**, including the defect stated as an assertion — *the
+      finished event alone cannot tell the two apart* — and a genuinely mode-0 directory, which
+      both suites make and both actually ran (0 skipped). Mutation-checked on Android:
+      restoring the swallowed listing failure fails four of the six; restored byte for byte.
+      **The consumer is not changed and the notice therefore still leaves.** `LibraryScanning`
+      and `LibraryViewModel` must pass a reporter and refuse to clear `cachedAt` / remove
+      vanished publications on a walk that reported one. Named in the handoff. `entries(in:)`
+      still swallows the same failure, deliberately and with a note: nothing compares a
+      snapshot without having just walked the same folder.
 
 ## 6. Test gaps the audit named
 

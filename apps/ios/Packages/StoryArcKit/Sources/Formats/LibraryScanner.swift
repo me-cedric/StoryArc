@@ -32,11 +32,15 @@ public enum LibraryScanner {
     /// Extensions worth opening. A cheap pre-filter, not the decision — format is
     /// still determined from content, so a `.cbz` that is really a RAR opens as a
     /// RAR. This only avoids opening every text file in a folder.
-    private static let candidateExtensions: Set<String> = [
+    ///
+    /// Internal rather than private since the listing moved to
+    /// `LibraryScanner+Listing.swift`: the walk and the listing have to filter by the same
+    /// set, which is the point of there being one.
+    static let candidateExtensions: Set<String> = [
         "cbz", "cbr", "cb7", "cbt", "epub", "pdf", "zip", "rar",
     ]
 
-    private static let imageExtensions: Set<String> = [
+    static let imageExtensions: Set<String> = [
         "jpg", "jpeg", "png", "gif", "webp", "avif", "heic", "bmp", "tif", "tiff",
     ]
 
@@ -71,15 +75,39 @@ public enum LibraryScanner {
     ///   The two are different refusals and both are wanted: `known` still emits a
     ///   publication and only declines to reopen its container, while `skipping` emits
     ///   nothing at all because the caller has already put those back itself.
+    /// - Parameter onUnreadableFolder: called with the path of every directory the walk could
+    ///   not list, as it meets one.
+    ///
+    ///   **This is the difference between a folder that is empty and one the app may no
+    ///   longer read**, and without it the two are the same event. A walk over a folder whose
+    ///   permission has lapsed lists nothing, opens nothing, and finishes
+    ///   `.finished(found: 0, skipped: 0)` — the same terminal event as a reader who deleted
+    ///   every book. `sources`' metadata cache turns on that distinction: the cached-content
+    ///   indicator must stay up when a walk saw nothing because it could see nothing, and
+    ///   leave only when a walk genuinely found an empty folder. A caller that ignores this
+    ///   tells a reader whose folder access lapsed that their library is empty.
+    ///
+    ///   Reported per directory rather than as one flag at the end, because a subdirectory
+    ///   that cannot be listed makes the walk partial in exactly the same way: what it did
+    ///   not see is unaccounted for rather than gone.
+    ///
+    ///   A closure rather than a fourth `ScanEvent`, for a reason worth writing down: the
+    ///   terminal event is matched exhaustively by both apps, and widening it is a change in
+    ///   files this one does not own. The closure also outlives the stream, which is when the
+    ///   caller needs the answer — the decision is made at `finished`.
     public static func scan(
         folderAt folder: URL,
         known: (@Sendable (URL) -> Publication?)? = nil,
-        skipping: Set<String> = []
+        skipping: Set<String> = [],
+        onUnreadableFolder: (@Sendable (String) -> Void)? = nil
     ) -> AsyncStream<ScanEvent> {
         AsyncStream<ScanEvent> { continuation in
             let task = Task {
                 // The picked folder's own name is not a series: it is the library.
-                let tally = await walk(folder, seriesHint: nil, known: known, skipping: skipping) {
+                let tally = await walk(
+                    folder, seriesHint: nil, known: known,
+                    skipping: skipping, onUnreadableFolder: onUnreadableFolder
+                ) {
                     continuation.yield($0)
                 }
                 if !Task.isCancelled {
@@ -138,71 +166,6 @@ public enum LibraryScanner {
         return publications
     }
 
-    // MARK: - Listing
-
-    /// What a folder holds, without opening anything in it.
-    ///
-    /// The cheap half of `local-library`'s watched changes: the app "reconciles by comparing
-    /// file modification times and sizes rather than re-reading every archive". A directory
-    /// listing is one call per folder; opening an archive is hundreds of reads, and a
-    /// reconcile that opened them all would be the full rescan the requirement forbids.
-    ///
-    /// The same decisions as ``scan(folderAt:)`` — the same extensions, and the same
-    /// a-folder-of-images-is-one-publication rule — because the two lists are compared
-    /// against each other. A disagreement would make the same publication appear and
-    /// disappear on every pass.
-    public static func entries(in folder: URL) -> [FolderSnapshot.Entry] {
-        var found: [FolderSnapshot.Entry] = []
-        list(folder, into: &found)
-        return found
-    }
-
-    private static func list(_ directory: URL, into found: inout [FolderSnapshot.Entry]) {
-        let children = (try? FileManager.default.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: [.isDirectoryKey, .contentModificationDateKey, .fileSizeKey],
-            options: [.skipsHiddenFiles]
-        )) ?? []
-
-        var files: [URL] = []
-        var directories: [URL] = []
-        for child in children {
-            let isDirectory = (try? child.resourceValues(forKeys: [.isDirectoryKey]))?
-                .isDirectory ?? false
-            if isDirectory { directories.append(child) } else { files.append(child) }
-        }
-
-        let publications = files.filter {
-            candidateExtensions.contains($0.pathExtension.lowercased())
-        }
-        let images = files.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
-        let audio = files.filter { isAudio($0) }
-        // The same rule the walk uses, and it has to be the same one: `local-library`
-        // reconciles a returning app by comparing this listing against what was scanned, and
-        // a listing that called a folder one publication where the walk called it a shelf
-        // would report every publication in it as gone on every launch. `LibraryScannerTests`
-        // asserts the two agree, and caught exactly that.
-        if publications.isEmpty, !images.isEmpty || isAudiobookFolder(audio, directories) {
-            found.append(entry(for: directory))
-            return
-        }
-        // A lone audiobook beside packed comics is its own row. It is not in
-        // `candidateExtensions` on purpose — see that property's own note.
-        for file in publications + audio { found.append(entry(for: file)) }
-        for child in directories { list(child, into: &found) }
-    }
-
-    /// One listing row. A folder of images has no size of its own, so it is compared on its
-    /// modification date alone — which is what changes when a page is added to it.
-    private static func entry(for url: URL) -> FolderSnapshot.Entry {
-        let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
-        return FolderSnapshot.Entry(
-            path: normalized(url),
-            modified: values?.contentModificationDate ?? .distantPast,
-            size: Int64(values?.fileSize ?? 0)
-        )
-    }
-
     // MARK: - Walking
 
     /// How much a walk found, so counts add up across recursion without shared
@@ -230,26 +193,14 @@ public enum LibraryScanner {
         seriesHint: String?,
         known: (@Sendable (URL) -> Publication?)? = nil,
         skipping: Set<String>,
+        onUnreadableFolder: (@Sendable (String) -> Void)? = nil,
         emit: @Sendable (ScanEvent) -> Void
     ) async -> Tally {
         var tally = Tally()
         guard !Task.isCancelled else { return tally }
-        let children = (try? FileManager.default.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        )) ?? []
-        // Alphabetical, case-insensitively, so the order matches a file browser's.
-        let sorted = children.sorted {
-            $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
-        }
-
-        var files: [URL] = []
-        var directories: [URL] = []
-        for child in sorted {
-            let isDirectory = (try? child.resourceValues(forKeys: [.isDirectoryKey]))?
-                .isDirectory ?? false
-            if isDirectory { directories.append(child) } else { files.append(child) }
+        guard let (files, directories) = contents(of: directory) else {
+            onUnreadableFolder?(normalized(directory))
+            return tally
         }
 
         // A directory holding images and no publications is itself one publication.
@@ -286,10 +237,38 @@ public enum LibraryScanner {
             guard !Task.isCancelled else { return tally }
             tally += await walk(
                 child, seriesHint: child.lastPathComponent,
-                known: known, skipping: skipping, emit: emit
+                known: known, skipping: skipping,
+                onUnreadableFolder: onUnreadableFolder, emit: emit
             )
         }
         return tally
+    }
+
+    /// What a directory holds, split and ordered the way the walk reads it — or nil when it
+    /// could not be listed at all.
+    ///
+    /// **The nil is the point.** The `?? []` this replaces is where the one fact that
+    /// separates a folder with nothing in it from a folder the app cannot read used to be
+    /// spent, and the walk is the only place that still has it.
+    private static func contents(of directory: URL) -> (files: [URL], directories: [URL])? {
+        guard let children = try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+
+        // Alphabetical, case-insensitively, so the order matches a file browser's.
+        let sorted = children.sorted {
+            $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
+        }
+        var files: [URL] = []
+        var directories: [URL] = []
+        for child in sorted {
+            let isDirectory = (try? child.resourceValues(forKeys: [.isDirectoryKey]))?
+                .isDirectory ?? false
+            if isDirectory { directories.append(child) } else { files.append(child) }
+        }
+        return (files, directories)
     }
 
     /// The form a publication's identity records a path in.
