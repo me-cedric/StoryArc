@@ -68,7 +68,7 @@ final class SweepEpubReaderTests: XCTestCase {
     func testCaptureEpubThemeAxes() throws {
         let app = sweepLaunch()
         try openThemeSheet(in: app)
-        try XCTUnwrap(hittableRow("Customise", in: app), "The theme sheet offers no Customise.").tap()
+        try openAxes(in: app)
         XCTAssertTrue(
             app.staticTexts["Line spacing"].waitForExistence(timeout: 5)
                 || app.staticTexts["Typeface"].waitForExistence(timeout: 3),
@@ -84,7 +84,7 @@ final class SweepEpubReaderTests: XCTestCase {
     func testCaptureEpubThemeAxesAtLargestText() throws {
         let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
         try openThemeSheet(in: app)
-        try XCTUnwrap(hittableRow("Customise", in: app), "The theme sheet offers no Customise.").tap()
+        try openAxes(in: app)
         hold(1.5)
         shutter(app, named: "epub-theme-axes-ax5")
     }
@@ -97,7 +97,7 @@ final class SweepEpubReaderTests: XCTestCase {
     func testCaptureEpubPageColour() throws {
         let app = sweepLaunch()
         try openThemeSheet(in: app)
-        try XCTUnwrap(hittableRow("Customise", in: app), "The theme sheet offers no Customise.").tap()
+        try openAxes(in: app)
         _ = scrollTo(app.staticTexts["Page colour"], in: app, swipes: 8)
         hold(0.75)
         shutter(app, named: "epub-theme-page-colour")
@@ -230,13 +230,41 @@ final class SweepEpubReaderTests: XCTestCase {
         return app.webViews.firstMatch.waitForExistence(timeout: 20)
     }
 
+    /// Opens level two of the theme sheet, scrolling the sheet to reach its action.
+    ///
+    /// `ThemeSheet` is a preview, then a three-by-two grid of presets, then *Customise* — one
+    /// full-width prominent button at the foot of a scroll view inside a sheet. On a phone
+    /// that button is below the fold, so it is not merely off-screen but absent from the tree,
+    /// and three walks reported "the theme sheet offers no Customise" on a sheet that has one.
+    private func openAxes(in app: XCUIApplication) throws {
+        for _ in 0..<6 where hittableRow("Customise", in: app, timeout: 1) == nil {
+            app.swipeUp()
+            hold(0.5)
+        }
+        try XCTUnwrap(
+            hittableRow("Customise", in: app),
+            "The theme sheet offers no Customise, scrolled to its foot. Buttons: "
+                + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
+        ).tap()
+    }
+
     /// Reveals the chrome and opens the menu, proving the sheet is up.
     private func openMenu(in app: XCUIApplication) throws {
         try XCTUnwrap(revealed("Menu", in: app), "The reader revealed no menu to open.").tap()
+        // **The sheet opens at its medium detent, and at the largest text size that is three
+        // rows.** `Search`, `Notes`, *Reading themes* and read-aloud are then below the fold
+        // and do not exist in the tree at all — so four walks reported "the menu offers no
+        // reading-themes row" on a menu that had one, one detent away. Expanded only when the
+        // row is not already there, so the default-size frames stay at the medium detent the
+        // reader actually sees.
+        if hittableRow("Reading themes", in: app, timeout: 2) == nil {
+            app.swipeUp()
+            hold(1)
+        }
         XCTAssertTrue(
             hittableRow("Reading themes", in: app) != nil,
-            "The menu did not open: it offers no reading-themes row. Buttons: "
-                + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
+            "The menu did not open: it offers no reading-themes row, at either detent. "
+                + "Buttons: \(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
     }
 
