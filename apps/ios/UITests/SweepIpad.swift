@@ -142,14 +142,36 @@ final class SweepIpadTests: XCTestCase {
     /// a `NavigationLink` rather than a button. The sidebar is asked to open first, because a
     /// window that starts with it collapsed has no rows to find.
     private func go(to name: String, in app: XCUIApplication) throws {
-        if control(name, in: app) == nil { try? showSidebar(in: app) }
+        var entry = sidebarEntry(name, in: app)
+        if entry == nil {
+            try? showSidebar(in: app)
+            hold(1)
+            entry = sidebarEntry(name, in: app)
+        }
         try XCTUnwrap(
-            control(name, in: app),
+            entry,
             "This window offers no way to \(name). Cells: "
                 + "\(app.cells.allElementsBoundByIndex.prefix(12).map(\.label)). Buttons: "
                 + "\(app.buttons.allElementsBoundByIndex.prefix(12).map(\.label))"
         ).tap()
         hold(1)
+    }
+
+    /// The sidebar row for a destination, out of everything that carries its name.
+    ///
+    /// **The name is not unique and the first match is not the row.** The sidebar lists the
+    /// four destinations and then a *Library* section header above *Recently added* and
+    /// *Series* — so `app.cells["Library"]` binds to whichever the platform ordered first,
+    /// and `control(_:in:)`, which asks each element type for its subscript, gave up when
+    /// that one was a header nobody can tap. Every match is considered, and the first one a
+    /// finger could reach is the row.
+    private func sidebarEntry(_ name: String, in app: XCUIApplication) -> XCUIElement? {
+        let named = NSPredicate(format: "label == %@", name)
+        for query in [app.cells.matching(named), app.buttons.matching(named)] {
+            _ = query.firstMatch.waitForExistence(timeout: 3)
+            if let hit = query.allElementsBoundByIndex.first(where: \.isHittable) { return hit }
+        }
+        return nil
     }
 
     /// Launches in landscape, and refuses to photograph a compact window under an iPad's name.
