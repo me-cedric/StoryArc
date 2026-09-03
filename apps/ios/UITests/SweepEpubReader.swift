@@ -67,7 +67,7 @@ final class SweepEpubReaderTests: XCTestCase {
     func testCaptureEpubThemeAxes() throws {
         let app = sweepLaunch()
         try openThemeSheet(in: app)
-        try XCTUnwrap(hittable("Customise", in: app), "The theme sheet offers no Customise.").tap()
+        try XCTUnwrap(hittableRow("Customise", in: app), "The theme sheet offers no Customise.").tap()
         XCTAssertTrue(
             app.staticTexts["Line spacing"].waitForExistence(timeout: 5)
                 || app.staticTexts["Typeface"].waitForExistence(timeout: 3),
@@ -83,7 +83,7 @@ final class SweepEpubReaderTests: XCTestCase {
     func testCaptureEpubThemeAxesAtLargestText() throws {
         let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
         try openThemeSheet(in: app)
-        try XCTUnwrap(hittable("Customise", in: app), "The theme sheet offers no Customise.").tap()
+        try XCTUnwrap(hittableRow("Customise", in: app), "The theme sheet offers no Customise.").tap()
         hold(1.5)
         shutter(app, named: "epub-theme-axes-ax5")
     }
@@ -96,7 +96,7 @@ final class SweepEpubReaderTests: XCTestCase {
     func testCaptureEpubPageColour() throws {
         let app = sweepLaunch()
         try openThemeSheet(in: app)
-        try XCTUnwrap(hittable("Customise", in: app), "The theme sheet offers no Customise.").tap()
+        try XCTUnwrap(hittableRow("Customise", in: app), "The theme sheet offers no Customise.").tap()
         _ = scrollTo(app.staticTexts["Page colour"], in: app, swipes: 8)
         hold(0.75)
         shutter(app, named: "epub-theme-page-colour")
@@ -107,7 +107,7 @@ final class SweepEpubReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openTheEpubReader(in: app)
         try openMenu(in: app)
-        try XCTUnwrap(hittable("Contents", in: app), "The menu offers no Contents row.").tap()
+        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
         XCTAssertTrue(
             app.navigationBars["Contents"].waitForExistence(timeout: 5)
                 || app.staticTexts["Contents"].waitForExistence(timeout: 3),
@@ -125,7 +125,7 @@ final class SweepEpubReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openTheEpubReader(in: app)
         try openMenu(in: app)
-        try XCTUnwrap(hittable("Search", in: app), "The menu offers no Search row.").tap()
+        try XCTUnwrap(hittableRow("Search", in: app), "The menu offers no Search row.").tap()
         hold(1.5)
         shutter(app, named: "epub-search")
     }
@@ -135,7 +135,7 @@ final class SweepEpubReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openTheEpubReader(in: app)
         try openMenu(in: app)
-        try XCTUnwrap(hittable("Bookmarks", in: app), "The menu offers no Bookmarks row.").tap()
+        try XCTUnwrap(hittableRow("Bookmarks", in: app), "The menu offers no Bookmarks row.").tap()
         hold(1.5)
         shutter(app, named: "epub-bookmarks")
     }
@@ -145,7 +145,7 @@ final class SweepEpubReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openTheEpubReader(in: app)
         try openMenu(in: app)
-        try XCTUnwrap(hittable("Notes", in: app), "The menu offers no Notes row.").tap()
+        try XCTUnwrap(hittableRow("Notes", in: app), "The menu offers no Notes row.").tap()
         hold(1.5)
         shutter(app, named: "epub-notes")
     }
@@ -178,7 +178,7 @@ final class SweepEpubReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openTheEpubReader(in: app)
         try openMenu(in: app)
-        guard let start = hittable("Read aloud", in: app, timeout: 3) else {
+        guard let start = hittableRow("Read aloud", in: app, timeout: 3) else {
             throw XCTSkip(
                 "The menu offers no read-aloud row on this publication. Buttons: "
                     + "\(app.buttons.allElementsBoundByIndex.map(\.label))"
@@ -195,7 +195,7 @@ final class SweepEpubReaderTests: XCTestCase {
     private func openMenu(in app: XCUIApplication) throws {
         try XCTUnwrap(revealed("Menu", in: app), "The reader revealed no menu to open.").tap()
         XCTAssertTrue(
-            app.buttons["Reading themes"].waitForExistence(timeout: 5),
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Reading themes")).firstMatch.waitForExistence(timeout: 5),
             "The menu did not open: it offers no reading-themes row. Buttons: "
                 + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
@@ -205,7 +205,7 @@ final class SweepEpubReaderTests: XCTestCase {
     private func openThemeSheet(in app: XCUIApplication) throws {
         try openTheEpubReader(in: app)
         try openMenu(in: app)
-        try XCTUnwrap(hittable("Reading themes", in: app), "no reading themes row").tap()
+        try XCTUnwrap(hittableRow("Reading themes", in: app), "no reading themes row").tap()
         XCTAssertTrue(
             app.staticTexts.matching(
                 NSPredicate(format: "label CONTAINS %@", "Original")

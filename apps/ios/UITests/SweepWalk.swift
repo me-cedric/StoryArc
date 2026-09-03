@@ -271,6 +271,22 @@ extension XCTestCase {
         return matches.allElementsBoundByIndex.first(where: \.isHittable)
     }
 
+    /// A named control whose label may carry its own value after the name.
+    ///
+    /// The reader's menu is built from rows that state a name *and* the current setting —
+    /// `LabeledContent { Text(chosen) } label: { Text("Transition") }`, a menu-styled `Picker`
+    /// with its selection beside it, a *Contents* row with the page position on a second line
+    /// — and `.accessibilityElement(children: .combine)` joins them into one label. So the
+    /// element is called `Transition, Slide` and an exact-label lookup finds nothing, on a
+    /// screen that is showing the row.
+    ///
+    /// A prefix rather than `CONTAINS`, so *Search* cannot match *Search this PDF*.
+    func hittableRow(_ name: String, in app: XCUIApplication, timeout: TimeInterval = 5) -> XCUIElement? {
+        let matches = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", name))
+        _ = matches.firstMatch.waitForExistence(timeout: timeout)
+        return matches.allElementsBoundByIndex.first(where: \.isHittable)
+    }
+
     /// A control in a reader's chrome, with the chrome actually up.
     ///
     /// **A centre tap toggles, and that is what made eight walks fail at once.** Both readers

@@ -87,7 +87,7 @@ final class SweepComicReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openComic(in: app)
         try openMenu(in: app)
-        try XCTUnwrap(hittable("Fit", in: app), "The reader menu offers no Fit row.").tap()
+        try XCTUnwrap(hittableRow("Fit", in: app), "The reader menu offers no Fit row.").tap()
         XCTAssertTrue(
             app.buttons["Width"].waitForExistence(timeout: 5),
             "The Fit row opened no picker. Buttons: "
@@ -107,7 +107,7 @@ final class SweepComicReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openComic(in: app)
         try openMenu(in: app)
-        try XCTUnwrap(hittable("Transition", in: app), "The menu offers no Transition row.").tap()
+        try XCTUnwrap(hittableRow("Transition", in: app), "The menu offers no Transition row.").tap()
         XCTAssertTrue(
             app.buttons["Slide"].waitForExistence(timeout: 5),
             "The Transition row opened no picker."
@@ -121,7 +121,7 @@ final class SweepComicReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openComic(in: app)
         try openMenu(in: app)
-        try XCTUnwrap(hittable("Contents", in: app), "The menu offers no Contents row.").tap()
+        try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
         XCTAssertTrue(
             app.buttons["Page 1"].waitForExistence(timeout: 8)
                 || app.staticTexts["Pages"].waitForExistence(timeout: 3),
@@ -138,7 +138,7 @@ final class SweepComicReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openComic(in: app)
         try openMenu(in: app)
-        try XCTUnwrap(hittable("Appearance", in: app), "The menu offers no Appearance row.").tap()
+        try XCTUnwrap(hittableRow("Appearance", in: app), "The menu offers no Appearance row.").tap()
         XCTAssertTrue(
             app.staticTexts["Brightness"].waitForExistence(timeout: 5)
                 || app.staticTexts["Image adjustments"].waitForExistence(timeout: 3),
@@ -158,7 +158,7 @@ final class SweepComicReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openPublication(named: "Field Notes", in: app)
         try openMenu(in: app)
-        guard let search = hittable("Search", in: app) else {
+        guard let search = hittableRow("Search", in: app) else {
             throw XCTSkip(
                 "This PDF's menu offers no Search row, so it carries no text layer. Buttons: "
                     + "\(app.buttons.allElementsBoundByIndex.map(\.label))"
@@ -222,7 +222,7 @@ final class SweepComicReaderTests: XCTestCase {
     private func openMenu(in app: XCUIApplication) throws {
         try XCTUnwrap(revealed("Menu", in: app), "The reader revealed no menu to open.").tap()
         XCTAssertTrue(
-            app.buttons["Contents"].waitForExistence(timeout: 5),
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Contents")).firstMatch.waitForExistence(timeout: 5),
             "The menu did not open: it offers no Contents row. Buttons: "
                 + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
