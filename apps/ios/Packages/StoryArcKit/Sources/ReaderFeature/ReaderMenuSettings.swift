@@ -85,13 +85,7 @@ extension ReaderView {
                 }
             }
         } label: {
-            // The name, then the value. The whole reason these left the page is that a
-            // reader could not read them.
-            LabeledContent {
-                Text(choices.effective.titleKey, bundle: .module)
-            } label: {
-                Text("reader.transition", bundle: .module)
-            }
+            choiceLabel("reader.transition", value: choices.effective.titleKey)
         }
 
         // The reason under a mode this device refuses, in the quieter of the two roles
@@ -112,18 +106,27 @@ extension ReaderView {
 
     /// How the page is sized.
     ///
-    /// A menu-styled `Picker`, which draws the label and the chosen value on one row. The
-    /// segmented control this replaces truncated all four titles to a character each at an
-    /// accessibility text size, and needed a second code path to survive it.
+    /// **A `Menu` rather than a menu-styled `Picker`, and the reason is where a tap lands.**
+    /// The two look identical in a `List` — a name, a value, an up/down chevron — and they are
+    /// not the same control: a picker's button is the *trailing value alone*, so the name of
+    /// the setting is dead space. Measured on a booted iPhone 17 Pro: a tap on `Screen ⌄`
+    /// opens all four options, a tap on the word `Fit` opens nothing, and a tap on the middle
+    /// of the row opens nothing. The `Transition` row directly above it, a `Menu` since it was
+    /// written, opens from any of the three.
+    ///
+    /// That is what `SweepComicReaderTests.testCaptureComicFitPicker` photographed twice and
+    /// what the September sweep asked for a finger on before calling it a defect. It is one:
+    /// `XCUIElement.tap()` lands on the element's centre, which is exactly where a reader's
+    /// tap misses too.
+    ///
+    /// The segmented control this row replaced truncated all four titles to a character each
+    /// at an accessibility text size; a menu row states the chosen one in full.
     private var fitRow: some View {
-        Picker(selection: fitBinding) {
-            ForEach(PageFit.allCases, id: \.self) { candidate in
-                Text(candidate.shortTitleKey, bundle: .module).tag(candidate)
-            }
+        Menu {
+            choices(PageFit.allCases, chosen: fit, title: \.shortTitleKey) { model.choose($0) }
         } label: {
-            Text("reader.fit", bundle: .module)
+            choiceLabel("reader.fit", value: fit.shortTitleKey)
         }
-        .pickerStyle(.menu)
     }
 
     /// Which way the publication runs.
@@ -133,15 +136,70 @@ extension ReaderView {
     /// than anywhere else on this screen: metadata gets it wrong often enough that a reader
     /// who suspects it needs to see which way the comic is running, not only be able to
     /// change it.
+    ///
+    /// A `Menu` for the reason ``fitRow`` gives: a picker's row is tappable at its trailing
+    /// edge and nowhere else.
     private var directionRow: some View {
-        Picker(selection: directionBinding) {
-            ForEach(ReadingDirection.allCases, id: \.self) { candidate in
-                Text(candidate.titleKey, bundle: .module).tag(candidate)
+        Menu {
+            choices(
+                ReadingDirection.allCases,
+                chosen: model.readingDirection,
+                title: \.titleKey
+            ) { model.choose($0) }
+        } label: {
+            choiceLabel("reader.direction", value: model.readingDirection.titleKey)
+        }
+    }
+
+    /// One menu's worth of choices, with the current one ticked.
+    ///
+    /// The tick is what a picker drew for free and a menu does not, and it is the only thing
+    /// on an open menu that says which of the options is in force.
+    @ViewBuilder
+    private func choices<Choice: Hashable>(
+        _ candidates: [Choice],
+        chosen: Choice,
+        title: KeyPath<Choice, LocalizedStringKey>,
+        choose: @escaping (Choice) -> Void
+    ) -> some View {
+        ForEach(candidates, id: \.self) { candidate in
+            Button {
+                choose(candidate)
+            } label: {
+                if candidate == chosen {
+                    Label {
+                        Text(candidate[keyPath: title], bundle: .module)
+                    } icon: {
+                        Image(systemName: "checkmark")
+                    }
+                } else {
+                    Text(candidate[keyPath: title], bundle: .module)
+                }
+            }
+        }
+    }
+
+    /// The row a choice sits on: the name, the value, and the sign that it opens.
+    ///
+    /// The name then the value, because the whole reason these controls left the page is that
+    /// a reader could not read them — a filled `rectangle.split.2x1` against an outlined one is
+    /// not a sentence.
+    ///
+    /// **The chevron is drawn rather than inherited.** A menu-styled `Picker` draws
+    /// `chevron.up.chevron.down` after its value, and it is the only thing on a row of two
+    /// plain sentences that says the row opens something. Converting these rows to `Menu`s for
+    /// the hit area would otherwise have taken that affordance away from the section instead
+    /// of giving `Transition` — which never had one — the same one.
+    private func choiceLabel(_ name: LocalizedStringKey, value: LocalizedStringKey) -> some View {
+        LabeledContent {
+            HStack(spacing: StoryArcSpace.hair) {
+                Text(value, bundle: .module)
+                Image(systemName: "chevron.up.chevron.down")
+                    .imageScale(.small)
             }
         } label: {
-            Text("reader.direction", bundle: .module)
+            Text(name, bundle: .module)
         }
-        .pickerStyle(.menu)
     }
 
     #if os(iOS)
@@ -157,12 +215,9 @@ extension ReaderView {
     }
     #endif
 
-    var directionBinding: Binding<ReadingDirection> {
-        Binding(
-            get: { model.readingDirection },
-            set: { model.choose($0) }
-        )
-    }
+    // The fit and the direction had a `Binding` each, which is what a `Picker` takes and what a
+    // `Menu` has no use for: a menu's options set the value themselves. They went with the
+    // pickers — see ``fitRow`` for why the pickers went.
 
     var spreadOffsetBinding: Binding<Bool> {
         Binding(
@@ -176,13 +231,6 @@ extension ReaderView {
         Binding(
             get: { model.settings.showsPageSeparator },
             set: { model.choosePageSeparator($0) }
-        )
-    }
-
-    var fitBinding: Binding<PageFit> {
-        Binding(
-            get: { fit },
-            set: { new in model.choose(new) }
         )
     }
 }

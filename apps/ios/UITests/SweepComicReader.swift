@@ -88,15 +88,21 @@ final class SweepComicReaderTests: XCTestCase {
         try openComic(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Fit", in: app), "The reader menu offers no Fit row.").tap()
-        // A `Picker` in a `List` takes the navigation-link style on iOS, so this **pushes a
-        // screen** inside the sheet rather than opening a menu — and what the four options
-        // are called in the accessibility tree is the platform's choice. Asking only for a
-        // button named *Width* failed on a screen that was showing all four.
+        // **This tap used to reach nothing, and the row was the reason rather than the tap.**
+        // `Fit` was a menu-styled `Picker`, whose button is its *trailing value alone*, so
+        // `tap()` — which lands on the element's centre — pressed the dead space between the
+        // name and the value. Established on a booted iPhone 17 Pro on 2026-09-04: a tap on
+        // `Screen ⌄` opened all four options, a tap on the word `Fit` opened nothing, and so
+        // did a tap on the middle of the row. It is a `Menu` now, like `Transition` beside it,
+        // and opens from anywhere on the row — see `ReaderMenuHitAreaTests`.
+        //
+        // Asked of any element rather than of a button: what the platform calls the rows of an
+        // open menu is not this file's business.
         let width = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label == %@", "Width")).firstMatch
         XCTAssertTrue(
-            width.waitForExistence(timeout: 8) || app.navigationBars["Fit"].exists,
-            "The Fit row opened no picker. Buttons: "
+            width.waitForExistence(timeout: 8),
+            "The Fit row opened no menu. Buttons: "
                 + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label)). Cells: "
                 + "\(app.cells.allElementsBoundByIndex.prefix(10).map(\.label)). Texts: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(20).map(\.label))"
