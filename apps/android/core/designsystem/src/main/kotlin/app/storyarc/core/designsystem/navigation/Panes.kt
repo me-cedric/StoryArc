@@ -14,7 +14,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * **The one place `ExperimentalMaterial3AdaptiveApi` is opted into.**
+ * **The one place `ExperimentalMaterial3AdaptiveApi` is opted into for a component that
+ * draws two panes, and one of two places in the app that opt into it at all.**
+ *
+ * This comment claimed to be the only one until 2026-09-05, and it was not:
+ * `feature/library/…/PublicationDetailScreen.kt` opts into the same API, deliberately.
+ * That page asks the pane *directive* whether the window has room for two panes **before**
+ * deciding whether to draw a scaffold at all, and draws its one-pane case as a plain
+ * `Column` — so neither wrapper below fits it, and hiding a pane instead would leave a
+ * shelf the reader cannot reach. Recorded rather than quietly widened: the count is what a
+ * reader checks before an alpha bump, and a comment that under-reports it is worse than no
+ * comment.
  *
  * The pane scaffolds are stable components on adaptive 1.3.0; the pieces used to *drive*
  * them by hand — `calculatePaneScaffoldDirective`, `PaneAdaptedValue`, `AnimatedPane` — are

@@ -48,8 +48,10 @@ material3 = "1.5.0-alpha26"
 # The adaptive libraries are a different line and a stable one: 1.3.0 shipped on
 # 12 Aug 2026 and carries none of the material3 alpha risk. `adaptive` supplies
 # `currentWindowAdaptiveInfo()`, which is what tells the scaffold how much room the
-# window has. `adaptive-layout` and `adaptive-navigation` are declared here for the
-# pane scaffolds the tablet slice needs, and are not applied to a module yet.
+# window has. `adaptive-layout` is applied to `:core:designsystem`, which re-exports its two
+# pane scaffolds as `StoryArcListDetailPanes` and `StoryArcSupportingPanes`.
+# `adaptive-navigation` is declared and is still applied to no module. This note said
+# neither was applied until 2026-09-05 — true when written, and untrue since.
 material3Adaptive = "1.3.0"
 # The audiobook player. Readium already drags media3 1.10.0 onto the runtime
 # classpath — `:feature:epubreader:dependencies` shows `media3-session` and

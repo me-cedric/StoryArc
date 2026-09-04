@@ -113,6 +113,59 @@ a deliberate trade — the Expressive design language is a product requirement �
 and it is the one dependency in the project that is not stable. Move to 1.5.0
 stable as soon as it ships.
 
+### The resolved graph, and what it costs
+
+The alpha sits beside `material3.adaptive` **1.3.0**, which is a different line and a
+stable one. Whether the two resolve together was an open question for a month and was only
+ever answered by "the module compiles". Here is the resolution itself, from
+`:core:designsystem:dependencies --configuration debugCompileClasspath`, run 2026-09-05:
+
+```
++--- androidx.compose.material3:material3:1.5.0-alpha26
++--- androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0-alpha26
+|    \--- ...-android:1.5.0-alpha26
+|         +--- androidx.compose.material3:material3:1.4.0 -> 1.5.0-alpha26
+|         \--- androidx.compose.material3.adaptive:adaptive:1.2.0 -> 1.3.0
++--- androidx.compose.material3.adaptive:adaptive:1.3.0
+\--- androidx.compose.material3.adaptive:adaptive-layout:1.3.0
+     \--- ...-android:1.3.0
+          \--- androidx.compose.material3.adaptive:adaptive:1.3.0
+```
+
+Two upgrades and no conflict. The navigation suite asks for `material3` 1.4.0 and gets the
+alpha — which is why the catalogue gives it `version.ref = "material3"` rather than a
+version of its own; a suite resolved to 1.4.0 against a 1.5.0-alpha26 `material3` is the
+one combination its strict dependency exists to refuse. And it asks for `adaptive` 1.2.0
+and gets 1.3.0, because the direct declaration is higher. Nothing is downgraded, nothing is
+forced, and no `resolutionStrategy` is involved.
+
+### Where the experimental opt-ins actually are
+
+`ExperimentalMaterial3AdaptiveApi` is opted into in **two** files, not one:
+`core/designsystem/…/navigation/Panes.kt` and
+`feature/library/…/PublicationDetailScreen.kt`. The second is deliberate and is explained
+at its own `@OptIn` — it needs the pane *directive* outside the scaffold, to decide whether
+to draw two panes at all, and it wants no `AnimatedPane` around either half, so neither of
+`Panes.kt`'s two wrappers fits it.
+
+`ExperimentalMaterial3Api` and `ExperimentalMaterial3ExpressiveApi` are a different matter
+and are **not** contained: they are annotated per file across `:feature:library`,
+`:feature:reader`, `:feature:epubreader`, `:feature:settings` and `:app`. That is a
+deliberate choice rather than an oversight — no module-wide `optIn` exists in any
+`build.gradle.kts`, so every one of them is a line somebody wrote — but it means the cost
+of the alpha moving is measured in files, and the file count is the number to look at
+before the bump, not after:
+
+```bash
+grep -rl 'ExperimentalMaterial3' apps/android --include='*.kt' | wc -l
+```
+
+Two of the four symbols this pin was taken for are not reachable under the names the
+original note used. `TopSearchBar` does not exist at alpha26 — the app calls
+`AppBarWithSearch`, with the rename recorded at `LibrarySearchBar.kt`. `WideNavigationRail`
+needs no opt-in at all. `ExpandedFullScreenContainedSearchBar` and `MediumFlexibleTopAppBar`
+do need `ExperimentalMaterial3Api`.
+
 ## Build and run
 
 ```bash

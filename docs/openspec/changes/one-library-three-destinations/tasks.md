@@ -115,7 +115,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `Tab(value: .search, role: .search)`, and `LibraryView.swift:311` puts the
       field inside it. `proposal.md:148` still says "One iOS behaviour is
       unverified" and is stale — it wants correcting when this change is synced.
-- [ ] **0.2** Confirm `androidx.compose.material3.adaptive` 1.3.0 resolves
+- [x] **0.2** Confirm `androidx.compose.material3.adaptive` 1.3.0 resolves
       alongside `material3 1.5.0-alpha26`, and that `TopSearchBar`,
       `ExpandedFullScreenContainedSearchBar`, `WideNavigationRail` and
       `MediumFlexibleTopAppBar` are reachable without an experimental opt-in
@@ -154,6 +154,40 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       in any `build.gradle.kts`, so every one is a deliberate per-file annotation.
       **To close this:** produce the graph, and either re-scope the containment
       promise or correct `Panes.kt:17`.
+
+      *Done, 2026-09-05. Both halves, and the graph is written down.*
+      `apps/android/README.md` gains **"The resolved graph, and what it costs"**, which
+      is the artefact: the resolved `:core:designsystem:dependencies
+      --configuration debugCompileClasspath` tree, with the two upgrades named. The suite
+      asks for `material3` 1.4.0 and gets the alpha; it asks for `adaptive` 1.2.0 and gets
+      1.3.0 from the higher direct declaration. **Nothing is downgraded, nothing is forced
+      and no `resolutionStrategy` is involved**, which is the part "the module compiles"
+      never established — a forced resolution compiles too.
+
+      The containment promise is corrected rather than re-scoped, because the divergence
+      turned out to be defensible and worth keeping. `Panes.kt` now says it is one of
+      **two** places opting into `ExperimentalMaterial3AdaptiveApi`, names the other, and
+      says why neither of its wrappers fits it: `PublicationDetailScreen` asks the pane
+      directive whether the window has room *before* deciding to draw a scaffold at all,
+      and draws its one-pane case as a plain `Column` — a hidden supporting pane would be a
+      series shelf the reader cannot reach. The README also records that the other two
+      annotations are **not** contained, across five modules, with the `grep` that counts
+      them, because the file count is what a reader needs before the alpha bump and not
+      after.
+
+      **The audit above was right about the opt-in spread and wrong about its shape.**
+      `ExperimentalMaterial3AdaptiveApi` — the API `Panes.kt` was claiming — is in exactly
+      two files, not the fifteen-plus the note implies; the wider spread is the other two
+      annotations, which `Panes.kt` never claimed. Both facts are now written where the
+      bump will be planned.
+
+      **A third stale comment was found on the way and corrected.**
+      `libs.versions.toml` said `adaptive-layout` and `adaptive-navigation` "are not
+      applied to a module yet". `adaptive-layout` has been `api`-scoped in
+      `core/designsystem/build.gradle.kts` since the pane scaffolds landed;
+      `adaptive-navigation` is still applied to nothing. No version was touched — the
+      task's own rule that catalogue edits belong to their owner holds, and a comment that
+      describes the tree wrongly is not a version.
 - [x] **0.3** Confirm the availability projection can be computed from the
       download record plus the local-file case for every source type, with no
       source consulted. Deliverable: a host unit test that answers it for one
