@@ -666,7 +666,7 @@ creep — see [`design.md`](design.md).
       than the requirement asks for. `AudiobookChaptersTest` mutation-checks the rule at its
       source: returning an empty list for an unchaptered book fails two cases.
       Ticked 2026-09-04 after reading both surfaces, not the entry.
-- [~] 4.7 Both: the publication page's primary action says what a **listener** does.
+- [x] 4.7 Both: the publication page's primary action says what a **listener** does.
       **Not in this list until now, and it should have been.** The page's one button said
       *Read* for an audiobook. The routing was never wrong — `StoryArcApp.open(_:at:)` has
       asked `format.isAudio` since audiobooks landed and sends one to the player — so this was
@@ -679,7 +679,42 @@ creep — see [`design.md`](design.md).
       single progress-first branch would have got wrong for a *started* audiobook. New strings
       `detail.listen` and `detail.continueListening` in all four languages. `AuditWalk`'s shared
       `opensAPublication` predicate matches all four wordings now; it matched two, and
-      `PlayerScreenshotTests` looked for the literal *Read*. *The Android half is not started.*
+      `PlayerScreenshotTests` looked for the literal *Read*.
+      **Android half done 2026-09-04, and the defect was identical down to the routing.**
+      `AppShell.open` has asked `OpenedAudiobook.of` since audiobooks landed and pushes the
+      player, so an audiobook's button said *Read* and opened a player — the same promise
+      unkept, on the other platform, with nothing failing.
+      `PrimaryAction` grows from five cases to seven: `LISTEN` and `CONTINUE_LISTENING` beside
+      `READ` and `CONTINUE`. **Where the branch lives is the whole of it.** The two questions —
+      what will happen to this, and has it been started — are answered together in one private
+      `Publication.opening(hasProgress)`, called from *both* arms of `primaryActionOf` that
+      open a book. A progress-first branch was the obvious alternative and is exactly what got
+      it wrong: a *started* audiobook then says `Continue`, in the reader's words, for
+      something nobody is going to read. Mutation-checked by writing that branch, which fails
+      `aStartedAudiobookSaysContinueListening` by name.
+      It asks `format.isAudio` rather than listing containers, so a format added later cannot
+      miss it — iOS's rule, for iOS's reason — and a case drives every audio container from
+      `PublicationFormat.entries`, so a folder of parts is covered without naming it.
+      **The three exhaustive tests already in the file did the rest of the work for free.**
+      `onlyTheTwoOpeningStatesGoWithoutAnExplanation`, `onlyTheRefusedStateGoesWithoutALabel`
+      and `theDownloadIsOfferedByExactlyOneControl` all iterate `PrimaryAction.entries`, so the
+      two new cases had to earn a label, no explanation and an overflow download the moment
+      they existed. `opensTheBook` is an exhaustive `when` now rather than two `==` comparisons,
+      which is what makes a seventh case a compile error instead of a silent `false`.
+      New strings `detail_action_listen` and `detail_action_continue_listening` in all four
+      languages, **worded exactly as iOS's `detail.listen` and `detail.continueListening`** —
+      Anhören / Weiterhören, Escuchar / Continuar escuchando, Écouter / Reprendre l'écoute.
+      Five host cases; `pnpm gradle :feature:library:testDebugUnitTest --tests
+      "*DetailActionsTest*"` passes, as do `pnpm lint:android` and `pnpm test:android`.
+      **Not photographed.** The button is a visible change and owes a frame on both platforms:
+      **owed on Android**, the publication page of an audiobook that has not been started
+      (*Listen*) and one that has (*Continue listening*), light and dark. There is no route for
+      it: `scripts/android-routes.mjs` reaches a detail page by a format suffix — `Publication
+      page` is `[NAMES.library, ', CBZ']` — and no audio row is listed. `[', M4B']` reaches
+      `chaptered.m4b`, which is the one-line addition that would make it capturable. Not added
+      here: that file is shared and both devices were sweeping when this landed.
+      **Owed on iOS too**, for the same button and for the same reason — `PrimaryActionTests`
+      pins the four wordings and no frame shows one.
 
 > **Two things about §5 that a reader of this list needs before picking it up.**
 >

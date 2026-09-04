@@ -1,6 +1,7 @@
 package app.storyarc.feature.library
 
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.StreamingCapability
 
 /**
@@ -22,6 +23,21 @@ internal enum class PrimaryAction {
     /** Something has been read. Opens where the reader stopped. */
     CONTINUE,
 
+    /**
+     * An audiobook nobody has started. Opens the player at the beginning.
+     *
+     * **Four opening states rather than two, and the missing pair was a defect.** The page's
+     * one button said *Read* for an audiobook. The routing was never wrong — `PlayingBook`
+     * and `StoryArcApp` have asked `isAudio` since audiobooks landed and send one to the
+     * player — so this was a promise the button did not keep, and a promise nothing fails on.
+     * `publication-detail` makes it a requirement rather than a preference: the label says
+     * which of the outcomes will happen, so a screen-reader user learns it before acting.
+     */
+    LISTEN,
+
+    /** An audiobook already started. Opens the player where the listener stopped. */
+    CONTINUE_LISTENING,
+
     /** Readable, but only once the whole file is local. A solid archive, say. */
     NEEDS_DOWNLOAD,
 
@@ -33,7 +49,7 @@ internal enum class PrimaryAction {
 }
 
 /**
- * Which of the five is true, from what the page already knows.
+ * Which of the seven is true, from what the page already knows.
  *
  * Ordered so that a refusal beats an absence and an absence beats a reading position: a
  * publication the app cannot open must not be offered as *Continue* merely because a
@@ -47,26 +63,51 @@ internal fun primaryActionOf(
 ): PrimaryAction = when {
     !publication.isOpenable -> PrimaryAction.REFUSED
 
-    isOnDevice -> if (hasProgress) PrimaryAction.CONTINUE else PrimaryAction.READ
+    isOnDevice -> publication.opening(hasProgress)
 
     provenance.readiness == Provenance.Readiness.SOURCE_AWAY -> PrimaryAction.NEEDS_SOURCE
 
     publication.streaming == StreamingCapability.DOWNLOAD_ONLY -> PrimaryAction.NEEDS_DOWNLOAD
 
-    hasProgress -> PrimaryAction.CONTINUE
+    else -> publication.opening(hasProgress)
+}
 
+/**
+ * Which of the four ways in this publication offers.
+ *
+ * Two questions, asked in one place because both openings need both answers: *what will
+ * happen to it* and *has it been started*. A single progress-first branch was the obvious
+ * alternative and it is what got this wrong before — a started audiobook then says
+ * *Continue*, in the reader's words, for something nobody is going to read.
+ *
+ * It asks [PublicationFormat.isAudio] rather than listing the audio containers, so a format added
+ * later cannot miss this branch. That is the same rule the routing uses, and it is the reason
+ * the two cannot drift: both ask the model the same question.
+ */
+private fun Publication.opening(hasProgress: Boolean): PrimaryAction = when {
+    format.isAudio && hasProgress -> PrimaryAction.CONTINUE_LISTENING
+    format.isAudio -> PrimaryAction.LISTEN
+    hasProgress -> PrimaryAction.CONTINUE
     else -> PrimaryAction.READ
 }
 
 /**
  * Whether taking the primary action opens the book, rather than asking for it.
  *
- * Two of the five states are a sentence with a button beside it rather than a way in, and
+ * Three of the seven states are a sentence with a button beside it rather than a way in, and
  * the screen has to keep the difference: a filled button that reports a problem when it is
  * pressed is the failure the delta names outright.
  */
 internal val PrimaryAction.opensTheBook: Boolean
-    get() = this == PrimaryAction.READ || this == PrimaryAction.CONTINUE
+    get() = when (this) {
+        PrimaryAction.READ,
+        PrimaryAction.CONTINUE,
+        PrimaryAction.LISTEN,
+        PrimaryAction.CONTINUE_LISTENING,
+        -> true
+
+        PrimaryAction.NEEDS_DOWNLOAD, PrimaryAction.NEEDS_SOURCE, PrimaryAction.REFUSED -> false
+    }
 
 /**
  * How the primary action is worded, or null where the page draws no button at all.
@@ -90,6 +131,8 @@ internal val PrimaryAction.opensTheBook: Boolean
 internal fun PrimaryAction.label(): Int? = when (this) {
     PrimaryAction.READ -> R.string.detail_action_read
     PrimaryAction.CONTINUE -> R.string.detail_action_continue
+    PrimaryAction.LISTEN -> R.string.detail_action_listen
+    PrimaryAction.CONTINUE_LISTENING -> R.string.detail_action_continue_listening
     PrimaryAction.NEEDS_DOWNLOAD, PrimaryAction.NEEDS_SOURCE -> R.string.detail_action_download
     PrimaryAction.REFUSED -> null
 }
@@ -143,7 +186,11 @@ internal fun downloadControl(action: PrimaryAction, canDownload: Boolean): Downl
  * same breath, and the two states that owe one are the two the reader did not cause.
  */
 internal fun PrimaryAction.explanation(): Int? = when (this) {
-    PrimaryAction.READ, PrimaryAction.CONTINUE -> null
+    PrimaryAction.READ,
+    PrimaryAction.CONTINUE,
+    PrimaryAction.LISTEN,
+    PrimaryAction.CONTINUE_LISTENING,
+    -> null
     PrimaryAction.NEEDS_DOWNLOAD -> R.string.detail_needs_download
     PrimaryAction.NEEDS_SOURCE -> R.string.detail_needs_source
     PrimaryAction.REFUSED -> R.string.detail_refused_body

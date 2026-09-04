@@ -23,9 +23,10 @@ class DetailActionsTest {
 
     private fun book(
         streaming: StreamingCapability = StreamingCapability.STREAMS,
+        format: PublicationFormat = PublicationFormat.CBZ,
     ) = Publication(
         identity = PublicationIdentity(contentDigest = "bone"),
-        format = PublicationFormat.CBZ,
+        format = format,
         displayTitle = "Bone",
         origin = MetadataOrigin.EMBEDDED,
         streaming = streaming,
@@ -58,6 +59,58 @@ class DetailActionsTest {
         val action = primaryActionOf(book(), here, isOnDevice = true, hasProgress = true)
 
         assertEquals(PrimaryAction.CONTINUE, action)
+    }
+
+    // What a *listener* does. The page's one button said `Read` for an audiobook, and the
+    // routing was never wrong — `StoryArcApp` and `PlayingBook` have asked `isAudio` since
+    // audiobooks landed — so this was a promise the button did not keep, which is the kind
+    // of wrong nothing fails on. iOS pins the same four in `PrimaryActionTests`.
+
+    @Test
+    fun anAudiobookNobodyHasStartedSaysListen() {
+        val action = primaryActionOf(
+            book(format = PublicationFormat.M4B), here, isOnDevice = true, hasProgress = false,
+        )
+
+        assertEquals(PrimaryAction.LISTEN, action)
+        assertTrue(action.opensTheBook)
+    }
+
+    @Test
+    fun aStartedAudiobookSaysContinueListening() {
+        val action = primaryActionOf(
+            book(format = PublicationFormat.M4B), here, isOnDevice = true, hasProgress = true,
+        )
+
+        assertEquals(PrimaryAction.CONTINUE_LISTENING, action)
+    }
+
+    @Test
+    fun everyAudioContainerIsListenedTo() {
+        // `isAudio` rather than a list of formats, so a container added later cannot miss
+        // this branch — the rule the routing already uses, for the same reason. A folder of
+        // parts is as much an audiobook as a single file.
+        for (format in PublicationFormat.entries.filter { it.isAudio }) {
+            assertEquals(
+                format.name,
+                PrimaryAction.LISTEN,
+                primaryActionOf(book(format = format), here, isOnDevice = true, hasProgress = false),
+            )
+        }
+    }
+
+    @Test
+    fun readingAndListeningNeverBorrowEachOthersWords() {
+        // The defect a single progress-first branch would have reintroduced: a *started*
+        // audiobook saying `Continue` in the reader's words. Four states, four strings.
+        val words = listOf(
+            PrimaryAction.READ,
+            PrimaryAction.CONTINUE,
+            PrimaryAction.LISTEN,
+            PrimaryAction.CONTINUE_LISTENING,
+        ).map { it.label() }
+
+        assertEquals("four openings, four labels", words.size, words.toSet().size)
     }
 
     @Test

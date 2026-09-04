@@ -368,6 +368,8 @@
     <string name="detail_more">Weitere Aktionen</string>
     <string name="detail_action_read">Lesen</string>
     <string name="detail_action_continue">Weiterlesen</string>
+    <string name="detail_action_listen">Anhören</string>
+    <string name="detail_action_continue_listening">Weiterhören</string>
     <string name="detail_action_download">Herunterladen</string>
     <string name="detail_needs_download">Diese muss erst auf Ihrem Gerät sein, bevor sie sich öffnet.</string>
     <string name="detail_needs_source">Sie ist nicht auf diesem Gerät, und die Bibliothek, in der sie liegt, antwortet nicht. Sie wird geholt, sobald diese wieder da ist.</string>
