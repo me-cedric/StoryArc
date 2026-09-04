@@ -155,12 +155,20 @@ they can name.
 > the earlier block is a subset of this one, which is what these additions make true. Do not
 > remove them to "keep this delta about the destinations" — that reopens the drop.
 
+> **The two scenarios below keep every clause the main spec already holds.** An earlier
+> draft of this delta reworded them and lost two: *Switching layout* dropped "per scope …
+> does not force it everywhere", and *Adaptive columns* dropped "an iPad in Split View".
+> `pnpm delta:drop` did not see either, because it compares scenarios by **name** — a
+> scenario that keeps its name and loses a clause passes the check. Restored 2026-09-05 by
+> reading the two blocks against `specs/library-browsing/spec.md` by hand.
+
 #### Scenario: Switching layout
 - **WHEN** a reader switches between grid and list
-- **THEN** the choice persists, so a dense list does not have to be chosen again on every visit
+- **THEN** the choice persists per scope, so a dense list for one library does not force it everywhere
+- **AND** it persists across visits, so a dense list does not have to be chosen again every time the shelf is opened
 
 #### Scenario: Adaptive columns
-- **WHEN** the app is shown on a phone, a tablet, a foldable in either posture, or in a resized window
+- **WHEN** the app is shown on a phone, a tablet, a foldable in either posture, an iPad in Split View, or any other resized window
 - **THEN** the number of grid columns follows the available width, and cover size stays within the readable range defined in the design tokens
 - **AND** a wide window shows fewer, larger covers rather than the phone's lattice widened
 
