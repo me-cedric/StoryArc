@@ -438,8 +438,27 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
 
 ## 4. Close-out
 
-- [ ] 4.1 `docs/openspec/STATUS.md`, and `docs/designs/ui-revamp-2026-08.md` if it describes
+- [x] 4.1 `docs/openspec/STATUS.md`, and `docs/designs/ui-revamp-2026-08.md` if it describes
       the toolbar or the notice.
+      **Three downstream artifacts were stale, and a verification pass named each.**
+
+      - **`STATUS.md` had a heading for this change and no section.** It now has one: §1's
+        state-not-event decision and the four scenarios that fall out of it, §2's six-to-four
+        toolbar, §3's sort chip, and §3b's two deliberately divergent selection chromes. Its
+        "last updated" moved from 2026-09-01 to 2026-09-04.
+      - **`ui-revamp-2026-08.md` still stated the six unlabelled toolbar buttons as a live
+        defect**, three days after §2 folded them into two controls and two named menus. Marked
+        *Settled*, following the convention its neighbour established. That bullet is also one
+        of the two independent places the **six** was counted — the review of the same screen
+        said five, which was an undercount — so it is worth keeping rather than deleting.
+      - **`android-sweep-2026-09-02/README.md` labelled its seven selection frames
+        "Current"** while photographing the full-bleed bottom slab §3b deleted. They are the
+        *before* now, and they say so.
+
+      One more, not owed by this task and taken while the file was open:
+      `quieter-toolbar-2026-09-02/README.md` now records that its "after" frames show the View
+      menu's superseded two-state glyph, and points at the folder that photographs what
+      shipped.
 - [ ] 4.2 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
 - [ ] 4.3 `pnpm spec:guard:strict`.

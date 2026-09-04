@@ -243,9 +243,30 @@ change** — never the whole repository when one module moved.
 | `docs/openspec/changes` | `pnpm spec:validate && pnpm spec:guard` — validate checks the files that are there, the guard checks the ones that should be |
 | A `[~]` partial in a task list | `pnpm partial:tasks` — part of `pnpm lint`. `openspec-guard`'s `taskProgress` counts `- [ ]` and `- [x]` and **nothing else**, so a partial sits in neither the numerator nor the denominator: `audiobooks-and-playback` reports 15/29 where the honest figure is 15 of 51, and `[ready]` fires on the last `[ ]` even with twenty `[~]` open — announcing a change as archivable, which is the one action that is expensive to undo. This prints the three-way count and fails on that shape. The guard is vendored, so it is not edited |
 | A `## MODIFIED` delta | `pnpm delta:drop` — part of `pnpm lint`. A MODIFIED requirement replaces the **whole block**, so anything the main spec holds and the delta omits is deleted the moment the change is archived. Neither `validate` nor the guard looks at that, and it has cost this repo three requirements' worth of near-misses. Carry the sentence, or record the removal in `.delta-drops.json` **with its reason** — a stale entry there is itself an error, so the file drains |
+| **Two** changes with a `## MODIFIED` delta on one requirement | The same `pnpm delta:drop`. Each delta can be spotless against the main spec and lethal to the other: whichever syncs second replaces the block and takes the first's scenarios with it, after the first change has archived and its delta is gone. Identical blocks are safe in any order and are not reported. Otherwise make the **later** block a superset of the earlier one and record the order in `.delta-drops.json`; an order over a genuinely disjoint pair is refused, because no order saves it. This check was added on 2026-09-04 and found **four** live instances on its first run, one on a requirement that was about to be synced |
 | `docs/openspec/config.yaml` | `pnpm spec:guard` — a broken list item makes the CLI report an empty project |
 | The `@fission-ai/openspec` version | `pnpm openspec:workflows` then commit the regenerated workflow files |
 | Any Swift or Kotlin file | `pnpm lines:check` — part of `pnpm lint`. The 800-line cap is a ratchet: five files are already over it and recorded in `scripts/line-cap.mjs` with the length they had, so they may shrink and may not grow. A sixth crossing fails the build. |
+
+**A guard you add must be proved able to fail, in the same change that adds it.** Three
+checks in this repository could not fail, and each looked exactly like protection:
+
+- `NoSegmentedButtonsTest`'s retired-spelling list caught four spellings and not a bare
+  `import androidx.compose.material3.SegmentedButton` — which is the residue its own change
+  had to clean by hand.
+- `AppIconManifestTest`'s foreground assertion accepted either the coloured art or the flat
+  art, and every mipmap carries the flat art in its `<monochrome>` element, so the second half
+  of the disjunction was satisfied for all five faces whatever the `<foreground>` said. Not
+  permissive: **vacuous**.
+- `delta-drop-check.mjs` itself was written from an incident it could not detect, because it
+  compared each delta against the main spec and never against a sibling delta.
+
+Two of the three were found by verification passes months of gate runs would never have
+found, because a check that always passes is indistinguishable from a codebase that is clean.
+So: mutate the thing the check protects, watch the check fail **by name**, and revert. Where
+the check is a script, ship the mutation as a `--self-test` — `delta-drop-check.mjs` and
+`partial-tasks-check.mjs` both have one, and `pnpm lint` is not where you discover that a
+self-test was worth writing.
 
 **Android needs a JDK 21 and an SDK, and neither is on the path by default.**
 `pnpm gradle <task>` (and `pnpm lint:android` / `test:android` / `build:android`) find

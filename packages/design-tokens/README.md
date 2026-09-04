@@ -23,6 +23,19 @@ pnpm tokens:check   # run the contrast gate only, write nothing (CI uses this)
 pnpm tokens:sync    # build, then copy the generated files into both apps
 ```
 
+The app icons and the accent colour set are generated from a **separate** source —
+one SVG, through `scripts/brand-mark.swift` — and they read `brand.accent` from
+this package, so the two generators have to agree:
+
+```bash
+pnpm brand:build    # render the 24 icon assets and AccentColor.colorset
+pnpm brand:check    # render them again and fail if a byte differs (CI uses this)
+```
+
+`brand:check` is in `pnpm lint`. It reports the count it actually wrote rather
+than a number in a document, because that number has been wrong in three places
+at once.
+
 ## Why OKLCH
 
 Perceptual lightness is the only way to keep a dark ramp and a light ramp

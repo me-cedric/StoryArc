@@ -375,6 +375,36 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       the same face twice and a failure mid-sequence. Zero enabled makes the app vanish from
       the launcher and is unrecoverable without a reinstall, so this is the invariant that
       matters most in this change.
+      **And the invariant held for every write the app makes, while leaving the app unable to
+      recover from the state it is about to describe.** A verification pass on 2026-09-04 asked
+      what happens when *zero* are enabled by something outside the app —
+      `COMPONENT_ENABLED_STATE_DISABLED_UNTIL_USED`, or a `pm disable` over ADB; stock Settings
+      offers no per-alias toggle, so a reader cannot reach it unaided. `applied()` was
+      `firstOrNull { isEnabled } ?: DEFAULT`, so the chooser marked Ink as in use, and
+      `if (applied != face)` then refused a press on Ink as a press on the face already drawn.
+      **The one press that would put the launcher entry back was the press the app refused.**
+      Fixed by making `applied()` nullable: `null != face` is true for every face, so every row
+      becomes pressable and none is marked. No second condition was needed. A refusal with
+      nothing enabled cannot name a face still in use, so it carries its own string — built in
+      each locale from the first sentence of that locale's existing refusal, so no new prose was
+      translated — and the delta's refusal scenario now covers that state instead of requiring
+      a name there is none of. `AppIconSwitcherTest`'s "a platform that will not report a
+      component reads as the default" was **kept unchanged**: a platform that cannot report a
+      state is one where nothing has changed it, so the default is honest there. The
+      all-disabled *device* is two new tests beside it.
+
+      **`AppIconManifestTest`'s foreground assertion could not fail, for any face.** It accepted
+      a `<foreground>` of either `ic_launcher_foreground` or `ic_launcher_monochrome` — and
+      every one of the five mipmaps carries
+      `<monochrome android:drawable="@drawable/ic_launcher_monochrome" />`, which satisfies the
+      second half of that disjunction whatever the `<foreground>` says, or whether one is
+      written at all. Not merely permissive for four faces: **vacuous for five**. Narrowed so
+      Mono may point its coloured layer at the flat art and the other four may not, and
+      demonstrated by pointing Paper's at it and watching the test fail by name.
+      **This is the third check in this repository that could not fail**, after the two named in
+      `scripts/delta-drop-check.mjs`'s own docstring — which is why every gate here now ships
+      with a self-test that mutates a passing tree.
+
       **Asserted against a modelled device rather than by reading the sequencing.**
       `AppIconAliasesTest` starts from the component states a *fresh install* has — every face
       at `DEFAULT`, not "Ink enabled and the rest disabled", which would quietly make the
@@ -571,7 +601,7 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       What is asserted without a device: `AppIconManifestTest` checks that all five adaptive
       icons point `<monochrome>` at the flat art and never at the gradient foreground. That is
       4.2's whole reasoning, but it is not a photograph of it.
-- [~] 6.4 Update `docs/design.md`, `docs/openspec/STATUS.md`, and
+- [x] 6.4 Update `docs/design.md`, `docs/openspec/STATUS.md`, and
       `packages/design-tokens/README.md` if it names the accent.
       **§1's share is done, and the list was two files short.** `docs/design.md` and
       `packages/design-tokens/README.md` landed with 1.5 — including two numbers that were
@@ -593,8 +623,35 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       accent; a fifth line telling a first-ever reader that a colour they have never seen has
       changed is exactly the clutter that decision was made against. Recorded here so the next
       session does not "fix" it.
-      **Still outstanding**: the §3–§5 sections, which have not been built, and whatever 1.7
-      changes on the four control kinds.
+      **Closed on 2026-09-04, and the sentence that used to end this task was wrong twice
+      over.** It said "still outstanding: the §3–§5 sections, which have not been built, and
+      whatever 1.7 changes on the four control kinds" — §3, §4 and §5 were built, and §1.7 was
+      ticked. What was actually outstanding was the *documentation* of them, and it is written
+      now:
+
+      - **`STATUS.md`'s own section was the most wrong document in the repository**, and this
+        task is what claimed credit for adding it. It said the icons had not shipped, that the
+        accent reached no control on either platform, and that none of §3–§5 was built, at 7 of
+        36 tasks. `CLAUDE.md` tells every agent to read that file *before* claiming a
+        capability is missing, so the likely cost of leaving it was somebody building the
+        chooser a second time. Rewritten, with the two device findings that changed the design
+        and the one gap that remains.
+      - **The asset count was fifteen in three places and twenty-four on disk.** Corrected in
+        `design.md`, in §1.7 and in the §2 note, with the reason a face needs its art twice —
+        an `.appiconset` cannot be drawn by `UIImage(named:)`, so a chooser has nothing to put
+        in its rows.
+      - **`pnpm brand:build` and `pnpm brand:check` were documented nowhere durable** — one
+        incidental mention in a status document. On archive this change's `design.md` moves and
+        the generator would have lost its only real description. Now in the root `README.md`
+        and in `packages/design-tokens/README.md`, beside the `tokens:*` scripts it has to
+        agree with.
+      - **Natural's flattened `accentMuted` had no `CHANGELOG` entry.** It is a real palette
+        consequence decided during implementation — retiring `ink` took a token Natural was
+        also reading — and it was reasoned only at the call site. Recorded, with why inventing
+        a `clayMuted` no gate covers was the worse trade.
+
+      **Still outstanding, and it is only §6.3**: the Android themed-icon capture. Named as a
+      gap in its own task rather than folded into this one.
 - [ ] 6.5 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
 - [ ] 6.6 `pnpm spec:guard:strict`.

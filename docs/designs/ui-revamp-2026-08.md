@@ -1077,6 +1077,23 @@ Android `MaterialTheme.shapes` wiring is one line; and the mislabelled Android e
 > - **Six unlabelled icon buttons** sit in a floating pill at the top of the phone, and seven
 >   on the iPad. No labels, no grouping, no overflow — the single clearest example of the
 >   "management surface stapled to the discovery surface" this document names in §1.
+>
+>   **Settled on 2026-09-03.** `named-failures-and-quieter-chrome` §2 folded them into **two
+>   controls and two named menus**: the show and scope choices moved into the menus that were
+>   already there, and *Select* stayed on its own because entering a mode is not the same kind
+>   of act as picking a sort — a distinction the test now states rather than leaves to taste.
+>   Four `ToolbarItem`s in three groups, asserted by a count that fails with the number named.
+>   The pair in `docs/designs/screenshots/quieter-toolbar-2026-09-02/` is the before and after,
+>   at default and largest text size. **The six was a measurement, and this bullet is one of
+>   the two independent places it was counted** — a review of the same screen said five, which
+>   was an undercount. Android needed no equivalent change: it already reached three of the six
+>   through menus, and what it needed was for its sort chip to say *Sort: Title* rather than
+>   *Title*, which is a value passing for an ordering.
+>
+>   One glyph in those "after" frames is already superseded: the View menu drew
+>   `ellipsis.circle` while the shelf showed everything, and later work made it draw the
+>   availability symbol unconditionally, so the axis is visible in both states rather than one.
+>   `docs/designs/screenshots/stated-axes-2026-09-04/` is the picture of what shipped.
 > - **`Attic NAS` is a primary navigation destination** on both, exactly as §6 predicted —
 >   and it says *NAS* to a reader, which §5 has to fix.
 > - **The iPad wastes most of its width**: phone-sized cells, eight of them, in a 13-inch

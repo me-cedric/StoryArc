@@ -752,3 +752,21 @@ when a cover was the resume affordance. Whoever syncs should add a
       filename alone. Four of this change's are among the ones that cannot be:
       `ios-detail-iphone-contrast-{light,dark}-{top,foot}.png` is read as *increased*
       contrast by convention, and nothing in the repository says so.
+
+## Delta merge, 2026-09-04 — not this change's own work
+
+`pnpm delta:drop` gained a check for **two active changes carrying a `## MODIFIED` delta on
+one requirement**, and this change was one side of a pair. A MODIFIED requirement replaces the
+whole block, so whichever of the two synced second would have deleted the other's scenarios —
+silently, after the first change had archived and its delta was gone.
+
+The pair was `native-experience` → *Dynamic colour*, with
+`brand-identity-and-app-icons`. That change adds one clause to *Chrome accent* — that the
+accent is a single colour, and the brand's pink-to-violet arc belongs to the mark rather than
+to chrome — and carries the requirement's other scenarios unchanged. **This change's block now
+carries that clause**, so its later sync keeps rather than deletes it, and the order
+(`brand-identity-and-app-icons` first) is recorded in `.delta-drops.json`.
+
+Nothing here changes what this change builds or what its tasks say. It is recorded because the
+edit lands in this change's delta and `openspec-guard` would otherwise report the plan as
+having moved after the task list for no visible reason.

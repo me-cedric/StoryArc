@@ -208,3 +208,33 @@ Android only. Test-first; a visible change owes a before/after capture per
       pre-existing orphan list (six main specs named by no change).
 - [ ] 3.4 `/opsx:verify connected-button-groups`, then `/opsx:archive` — there is no
       `/opsx:sync` step, because this change declares `skip_specs` and has no delta.
+
+## Artifact corrections, 2026-09-04 — from `/opsx:verify`
+
+The verify pass before archiving found nothing wrong with what shipped and two documentation
+errors, both in artifacts that archiving freezes:
+
+- **`design.md` named two call sites that never held the control.** "The reader's text-size
+  control and the theme sheet's alignment picker" — task 1.1 disproved both, and the plan had
+  pre-authorised its own inaccuracy ("the implementation should re-grep rather than trust this
+  list"). The two real files are now named there, and in `proposal.md`, which carried the same
+  pair. The sentence is left standing beside the correction because being unable to name its
+  own call sites *is* the argument for the change.
+- **`design.md` said "one internal composable"**, and Kotlin's `internal` is Gradle-module
+  scoped, so an internal composable in `:core:designsystem` is invisible to the only two
+  modules that call it. Corrected with the reason.
+- **All three artifacts said selection is shown "not by a fill"**, which is true of what this
+  component paints — there is no `colors` argument anywhere in it — and not of what a reader
+  sees: `ToggleButton`'s own Material default changes container colour when checked, and in the
+  captures that reads louder at a glance than the shape does. The screenshot README already had
+  the honest version; the three artifacts that archive did not.
+- **`STATUS.md` said three call sites.** Two, plus a third file cleared of dead imports.
+
+Two suggestions were taken as code rather than as notes, and are in
+`fix(android): the connected group announces one radio button and nothing else`: the guard
+gained a fifth retired spelling, because a bare `material3.SegmentedButton` import with no call
+passed all four it listed — the exact residue this change cleaned by hand — and its Gradle
+input globs went depth-independent, because they matched one directory level while the sweep
+matches none. The verify pass also flagged, unconfirmed, that overriding `ToggleButton`'s role
+might leave its checkbox state behind. It does, and that is fixed and asserted there.
+

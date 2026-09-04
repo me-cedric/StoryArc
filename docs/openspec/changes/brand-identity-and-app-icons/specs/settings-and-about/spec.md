@@ -30,7 +30,8 @@ option here.
 
 #### Scenario: The platform refuses
 - **WHEN** the platform declines the change — an unsupported device, a launcher that does not honour it, an error from the system
-- **THEN** the app says the icon could not be changed and which one is still in use, and the stored choice does not move
+- **THEN** the app says the icon could not be changed, and names which one is still in use where one is
+- **AND** where no icon is in use at all, it says the change was refused without naming a face, because there is none to name
 - **AND** it does not retry silently, because an icon that changes minutes later with no action is indistinguishable from a bug
 
 #### Scenario: At the largest text size

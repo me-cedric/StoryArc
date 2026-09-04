@@ -350,3 +350,23 @@ them to the count.
 - [ ] **5.6** Screenshots complete and referenced in the handoff, including the
       Android notification, which is a screen a reader sees even though it is not
       a screen the app draws.
+
+## Delta merge, 2026-09-04 — not this change's own work
+
+`pnpm delta:drop` gained a check for **two active changes carrying a `## MODIFIED` delta on
+one requirement**, and this change was one side of a pair. A MODIFIED requirement replaces the
+whole block, so whichever of the two synced second would have deleted the other's scenarios —
+silently, after the first change had archived and its delta was gone.
+
+The pair was `ebook-reader` → *Reading aloud*, with
+`audiobooks-and-playback`. **The two had also named one behaviour twice**: *Leaving the
+publication while it speaks* and *Closing the publication while it is being read* are the same
+scenario, and the gate compares scenarios by name, so the duplicate read as one dropped and
+one added. This change's block keeps the richer wording under the **earlier** name — the name
+that reaches the main spec when `audiobooks-and-playback` syncs — and gained that change's
+player clause, its *The same controls as a narrated book* scenario, and the two compact-bar
+bullets. The two blocks now agree, so the pair needs no recorded order at all.
+
+Nothing here changes what this change builds or what its tasks say. It is recorded because the
+edit lands in this change's delta and `openspec-guard` would otherwise report the plan as
+having moved after the task list for no visible reason.

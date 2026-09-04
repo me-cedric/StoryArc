@@ -763,3 +763,23 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       so its 133 captures have to be identified by filename alone. Several of them
       cannot be — `ios-detail-iphone-contrast-*` is read as *increased* contrast by
       convention and nothing in the repository says so.
+
+## Delta merge, 2026-09-04 — not this change's own work
+
+`pnpm delta:drop` gained a check for **two active changes carrying a `## MODIFIED` delta on
+one requirement**, and this change was one side of a pair. A MODIFIED requirement replaces the
+whole block, so whichever of the two synced second would have deleted the other's scenarios —
+silently, after the first change had archived and its delta was gone.
+
+The pair was `library-browsing` → *Presentation*, with
+`named-failures-and-quieter-chrome`. That change adds a grouping rule and three scenarios —
+*The controls that change the view are grouped*, *A control that stands alone carries a name*,
+*An ordering says that it is an ordering* — to a requirement this change rewrites wholesale,
+and the two blocks were disjoint in both directions. **This change's block now carries all
+three plus the grouping clause**, which makes it a strict superset, and the sync order
+(`named-failures` first, this change second) is recorded in `.delta-drops.json`. Do not remove
+them to keep this delta about the destinations: that reopens the drop.
+
+Nothing here changes what this change builds or what its tasks say. It is recorded because the
+edit lands in this change's delta and `openspec-guard` would otherwise report the plan as
+having moved after the task list for no visible reason.

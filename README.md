@@ -235,6 +235,15 @@ else drew.
 - Comic covers keep a 4 pt radius. A comic cover is printed stock — rounding it
   like an app icon reads as wrong.
 
+The **mark itself is generated too**, from one SVG. `pnpm brand:build` renders
+twenty-four assets from it — per face an `.appiconset` for the icon and an
+ordinary `.imageset` so the in-app chooser has something to draw, plus
+`AccentColor.colorset`, the Android adaptive foreground and its monochrome twin,
+and a plateless PNG for the docs. `pnpm brand:check` renders the same set and
+fails if a byte differs, which is what stops a hand-edited icon. The accent hex
+is read from the same token the apps read, so the icon and the chrome cannot
+disagree.
+
 Colour, type, spacing, radius and motion are authored once in OKLCH and
 generated into Swift and Kotlin, so neither app can drift by hand-editing a hex
 code. **Contrast is a build gate**: 58 pairs across five appearance ramps, with

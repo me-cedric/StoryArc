@@ -400,6 +400,19 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   canvas and never said what may be drawn *on* the accent, so nothing checked a primary
   button's label. It now does, and finding that is what caught the entry under *Fixed*
   below.
+- **Natural's accent at rest is now the same value as its accent.** Retiring `ink` took a
+  token the Natural theme was also reading, and the replacement pair — `accent` plus
+  `accentMuted` — has no earthy twin: clay at 66 % lightness does not clear 3:1 on warm
+  paper, which is why `secondaryStrong` exists at all, so Natural's accent is `clayStrong`
+  in both roles. The alternative was inventing a `clayMuted` whose only reader is the
+  settings-search highlight, drawn at a low alpha, and which no contrast gate would cover.
+  A token no gate covers, serving one wash, is the worse trade. Reasoned at the
+  `NaturalTheme` call site as well as here, because it is a palette consequence decided
+  during implementation rather than a plan anyone wrote down.
+- **The app icon and its chooser are generated from one SVG**, and `pnpm brand:build` /
+  `pnpm brand:check` are now described in the root `README.md` and in
+  `packages/design-tokens/README.md`. They had been mentioned once, in a status document,
+  which is not where a generator's only description belongs.
 
 ### Fixed
 
