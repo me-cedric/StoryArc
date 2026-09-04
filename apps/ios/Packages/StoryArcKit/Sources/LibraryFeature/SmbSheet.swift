@@ -108,15 +108,36 @@ public struct SmbSheet: View {
         }
 
         Section {
+            // **The one thing on this form that does something, shaped like it.** Left
+            // unstyled inside a `Form`, this drew as a list row — a white capsule the same
+            // colour, height and corner as the four field groups above it, with its label in
+            // the grey a placeholder wears while it is disabled, which is the state a reader
+            // meets it in. The 2026-09-02 sweep called it "a fifth thing to type into", and
+            // `ios-add-share-sheet.png` is a picture of five identical white capsules.
+            //
+            // So the row's own background goes and the button draws its own shape.
+            // `.glassProminent` is how this app emphasises: `design.md` §5 keeps chrome glass
+            // untinted so it picks up what is behind it, and the prominent variant is the one
+            // meant to carry a tint — `.tint` on plain `.glass` tints the *material* and
+            // flattens it, which `GlassIsUntintedTests` fails the build over.
             Button {
                 Task { await connection.connect() }
             } label: {
-                if case .connecting = connection.step {
-                    ProgressView()
-                } else {
-                    Text("smb.connect", bundle: .module)
+                Group {
+                    if case .connecting = connection.step {
+                        ProgressView()
+                    } else {
+                        Text("smb.connect", bundle: .module)
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, StoryArcSpace.xs)
             }
+            .buttonStyle(.glassProminent)
+            .controlSize(.large)
+            .tint(theme.accent)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
             .disabled(!connection.canConnect)
 
             // `network-share` wants the specific failure, and the four the client separates
@@ -168,12 +189,22 @@ public struct SmbSheet: View {
         }
 
         Section {
+            // The other half of the same journey, and the same argument: this is the action
+            // that adds the library, and a list row full of folder rows is where it must not
+            // look like one more folder.
             Button {
                 connection.source().map(onAdd)
                 dismiss()
             } label: {
                 Text("smb.useFolder", bundle: .module)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, StoryArcSpace.xs)
             }
+            .buttonStyle(.glassProminent)
+            .controlSize(.large)
+            .tint(theme.accent)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
         }
     }
 }

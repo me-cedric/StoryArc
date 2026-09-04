@@ -89,17 +89,10 @@ struct SearchAtRest: View {
     /// `.segmented`, which is the same shape the field's own `.searchScopes` bar draws — one
     /// idea should not look like two controls depending on whether a reader has tapped the
     /// field yet.
+    /// Shared with the results screen rather than drawn twice — see ``SearchScopeStatement``.
     private var scopeStatement: some View {
-        Picker(selection: $scope) {
-            ForEach(LibraryAvailability.allCases, id: \.self) { option in
-                Text(option.titleKey, bundle: .module).tag(option)
-            }
-        } label: {
-            Text("library.scope.all", bundle: .module)
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .padding(.horizontal, StoryArcSpace.gutter)
+        SearchScopeStatement(scope: $scope)
+            .padding(.horizontal, StoryArcSpace.gutter)
     }
 
     /// One suggestion shelf, or nothing at all.

@@ -71,6 +71,15 @@ struct SearchResultsView: View {
 
     var body: some View {
         List {
+            // What was asked, before what came back. `library-browsing` wants the scope
+            // stated "when the search screen is open", and the results *are* the search
+            // screen — the at-rest screen had this and the results had nothing, so a reader
+            // looking at two answers could not see which half of their library had been
+            // asked. The same control as at rest, bound to the same value.
+            SearchScopeStatement(scope: $scope)
+                .listRowSeparator(.hidden)
+                .listRowBackground(theme.palette.surfaceCanvas)
+
             if listing.rows.isEmpty, !listing.isWaiting {
                 // Named, per `library-browsing`: an empty state that does not say what was
                 // searched for leaves a reader wondering whether the app heard them.
@@ -121,9 +130,7 @@ struct SearchResultsView: View {
                 .listRowBackground(theme.palette.surfaceCanvas)
             }
 
-            ForEach(listing.silent) { source in
-                silentNotice(source)
-            }
+            if !listing.silent.isEmpty { silentNotice(listing.silent) }
         }
         .listStyle(.plain)
         // The scroll view's own material, hidden so the app's canvas is what results sit on.
@@ -203,18 +210,32 @@ struct SearchResultsView: View {
         }
     }
 
-    /// A library that could not answer, named once, with a way to try again.
+    /// The libraries that could not answer, named once between them, with one way to try
+    /// again.
     ///
     /// `sources`: an unreachable library "is grey, never red". It is a sentence at the foot
     /// of a list of results the reader can already use, not an alert over the top of them.
-    private func silentNotice(_ source: SearchListing.SilentSource) -> some View {
+    ///
+    /// **One row for all of them, because one row each is a screen about failure.** This was
+    /// a `ForEach` over the silent sources, so a device with three servers configured and
+    /// none running — which is every train journey — answered a successful search with two
+    /// results and *three* notices, each with a *Try again* of its own. The notices
+    /// outnumbered the answers. `ios-search-results.png`, 2026-09-02.
+    ///
+    /// `library-browsing` asks the screen to name "the sources it could not ask", and a
+    /// locale-aware list does that in one sentence with no new string to translate: the
+    /// existing *%@ didn't answer* reads correctly whether `%@` is one name or three joined
+    /// with the reader's own conjunction.
+    private func silentNotice(_ sources: [SearchListing.SilentSource]) -> some View {
         HStack {
-            Text("search.silent \(source.name)", bundle: .module)
+            Text("search.silent \(Self.named(sources))", bundle: .module)
                 .textRole(.footnote)
                 .foregroundStyle(theme.palette.textSecondary)
             Spacer()
             Button {
-                onRetry(source.sourceID)
+                // Every one of them. The reader is retrying *the search*, and asking them to
+                // press three buttons to do it is the same defect as printing three rows.
+                for source in sources { onRetry(source.sourceID) }
             } label: {
                 Text("search.retry", bundle: .module).textRole(.footnote)
             }
@@ -223,5 +244,16 @@ struct SearchResultsView: View {
         }
         .listRowSeparator(.hidden)
         .listRowBackground(theme.palette.surfaceCanvas)
+    }
+
+    /// The silent libraries as one phrase, in the reader's own language.
+    ///
+    /// `.storyArc` rather than the process locale, the way every other string in this module
+    /// is resolved: the app's language is the reader's choice and not the device's.
+    ///
+    /// Internal and static so the join can be asserted on the host — this is the part that
+    /// decides whether one notice reads as a sentence or as a list of identifiers.
+    static func named(_ sources: [SearchListing.SilentSource]) -> String {
+        sources.map(\.name).formatted(.list(type: .and).locale(.storyArc))
     }
 }

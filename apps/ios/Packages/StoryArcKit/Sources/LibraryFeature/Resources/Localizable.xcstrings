@@ -4722,28 +4722,29 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Von %@ ist noch nichts auf diesem Gerät."
+            "value": "Nichts in deiner Bibliothek stammt aus %@."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing from %@ is on this device yet."
+            "value": "Nothing in your library came from %@."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todavía no hay nada de %@ en este dispositivo."
+            "value": "Nada de tu biblioteca viene de %@."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien de %@ n'est encore sur cet appareil."
+            "value": "Rien dans votre bibliothèque ne vient de %@."
           }
         }
-      }
+      },
+      "comment": "Shown when the shelf is narrowed to one library and that library has contributed nothing. It names the library, never the device: narrowing by source and narrowing by availability are the two axes library-browsing keeps apart."
     },
     "library.empty.search %@": {
       "extractionState": "manual",

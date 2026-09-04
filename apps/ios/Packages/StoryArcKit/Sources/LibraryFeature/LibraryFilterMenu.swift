@@ -1,5 +1,6 @@
 internal import SwiftUI
 
+internal import DesignSystem
 internal import StoryArcCore
 
 /// What the library is narrowed to.
@@ -65,17 +66,29 @@ struct FilterMenu: View {
                 }
             }
         } label: {
-            Label {
-                Text("library.filter", bundle: .module)
-            } icon: {
+            // **The count is drawn now, and it used to be spoken only.** The comment this
+            // replaced said a menu label "cannot carry" a badge, which is true of
+            // `.badge(_:)` and not of the label's own content: a glyph and a number beside it
+            // is a label like any other. So a reader who could not hear VoiceOver knew *that*
+            // the shelf was narrowed — the funnel fills — and never by how much, on a screen
+            // whose whole job is to show them a set they have narrowed. `design.md` forbids a
+            // state carried by appearance alone, and one filter looked exactly like six.
+            HStack(spacing: StoryArcSpace.hair) {
                 Image(
                     systemName: narrowing.isActive
                         ? "line.3.horizontal.decrease.circle.fill"
                         : "line.3.horizontal.decrease.circle"
                 )
+                if narrowing.isActive {
+                    // Monospaced digits so the toolbar item does not resize as the count
+                    // crosses from one glyph width to another while a reader is using it.
+                    Text(narrowing.activeCount, format: .number)
+                        .monospacedDigit()
+                }
             }
+            // The words, for a reader who gets neither the glyph nor the digit.
+            .accessibilityLabel(Text("library.filter", bundle: .module))
         }
-        // The count, spoken rather than drawn as a badge a menu label cannot carry.
         .accessibilityValue(
             narrowing.isActive
                 ? Text("library.filter.active \(narrowing.activeCount)", bundle: .module)

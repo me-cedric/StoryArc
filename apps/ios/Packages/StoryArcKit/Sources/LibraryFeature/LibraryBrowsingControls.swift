@@ -42,9 +42,17 @@ public import StoryArcCore
 /// **The icon states the axis, because the control that used to state it is gone.**
 /// `library-browsing` asks that the availability choice "persists until changed, **and is
 /// visible while it is active**", and it was `ScopeMenu`'s own glyph that held that promise.
-/// So this menu draws the platform's own view-options glyph while the shelf shows everything
-/// and the availability symbol while it does not — the same trade ``FilterMenu`` makes with
-/// its filled and unfilled variants, for the same requirement.
+/// So this menu draws the availability symbol — always, and not only while the shelf is
+/// narrowed.
+///
+/// **It used to draw `ellipsis.circle` at `.everywhere`**, on the argument that the platform's
+/// own view-options glyph is the honest label for a menu of view options. Two things were
+/// wrong with it. The requirement is satisfied only in one of the two states, so the reader
+/// learns the glyph means *downloaded* rather than *availability*, and an ellipsis is the one
+/// symbol in the system that promises nothing at all: beside a filter funnel it reads as
+/// *everything else*, which is exactly what this menu is not. `ios-library-grid.png`,
+/// 2026-09-02. The picker rows inside already draw these two symbols against these two
+/// choices, so the label is now the same statement the reader will see when they open it.
 struct ViewMenu: View {
     let model: LibraryModel
 
@@ -105,15 +113,12 @@ struct ViewMenu: View {
             Label {
                 Text("library.view", bundle: .module)
             } icon: {
-                Image(
-                    systemName: availability == .everywhere
-                        ? "ellipsis.circle"
-                        : availability.symbolName
-                )
+                Image(systemName: availability.symbolName)
             }
         }
-        // What the shelf is narrowed to, spoken. The icon says that a narrowing is set and
-        // cannot say which one, and design.md forbids a state carried by appearance alone.
+        // What the shelf is narrowed to, spoken as well as drawn. The glyph states the axis
+        // and a reader who does not know the two symbols still gets the words; design.md
+        // forbids a state carried by appearance alone.
         .accessibilityValue(Text(availability.titleKey, bundle: .module))
     }
 

@@ -34,7 +34,23 @@ public struct KavitaSheet: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, StoryArcSpace.xs)
                     }
-                    .buttonStyle(.borderedProminent)
+                    // **The one thing on this form that does something, shaped like it.**
+                    // `.borderedProminent` renders as a plain grey capsule while it is
+                    // disabled — which is the state a reader meets it in, because the form
+                    // starts empty — the same colour, height and corner as the field above
+                    // it. The 2026-09-02 sweep called it "a fifth thing to type into", and
+                    // the frames agree.
+                    //
+                    // `.glassProminent` is how this app emphasises: `design.md` §5 keeps
+                    // chrome glass untinted so it picks up what is behind it, and the
+                    // prominent variant is the one meant to carry a tint — a `.tint` on plain
+                    // `.glass` tints the *material* and flattens it, which
+                    // `GlassIsUntintedTests` fails the build over. `DetailActions` already
+                    // uses exactly this trio for the *Read* button, which is the same job:
+                    // the one functional action on the screen.
+                    .buttonStyle(.glassProminent)
+                    .controlSize(.large)
+                    .tint(theme.accent)
                     .disabled(!connection.canConnect)
 
                     switch connection.step {
