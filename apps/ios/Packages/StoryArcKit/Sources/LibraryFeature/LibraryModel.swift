@@ -117,7 +117,12 @@ public final class LibraryModel {
     /// Where each publication came from, so a cover can be loaded later.
     var locations: [String: URL] = [:]
 
-    let libraryCache = LibraryCache()
+    /// Last session's shelf. See ``LibraryCaching``.
+    ///
+    /// Injectable for the reason ``documentsFolder`` is: a test that reached the real caches
+    /// directory would share one file with every other test in the process and with whatever
+    /// the machine's own build left there.
+    let libraryCache: LibraryCache
 
     /// When the shelf on screen was last confirmed, while it is still the cached one.
     ///
@@ -143,9 +148,10 @@ public final class LibraryModel {
     /// What each watched folder held when it was last looked at, keyed by the folder's path.
     ///
     /// In memory rather than on disk. `local-library` asks for a change made while the app
-    /// was away to be reconciled cheaply, and a launch has nothing to reconcile *against* —
-    /// the publications themselves are not cached either, so a snapshot read from disk would
-    /// describe a library this process has not built yet.
+    /// was away to be reconciled cheaply, and a launch has nothing to reconcile *against*: a
+    /// listing describes a folder at a moment, and the moment a launch cares about is the one
+    /// the walk it is about to run establishes. ``LibraryCache`` persists the shelf, which is
+    /// a different question — what the reader may browse before the walk finishes.
     var snapshots: [String: FolderSnapshot] = [:]
     let watcher = FolderWatcher()
     let progressStore: ProgressStore?
@@ -205,8 +211,10 @@ public final class LibraryModel {
         sourceStore: SourceStore? = nil,
         shelvesStore: ShelvesStore? = nil,
         downloadStore: DownloadStore? = nil,
-        journal: ScanJournal? = nil
+        journal: ScanJournal? = nil,
+        cache: LibraryCache = LibraryCache()
     ) {
+        self.libraryCache = cache
         self.journal = journal
         self.documentsFolder = documents
         self.downloadStore = downloadStore

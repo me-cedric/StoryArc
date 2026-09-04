@@ -2,6 +2,7 @@ import Foundation
 import Testing
 
 @testable import LibraryFeature
+import Persistence
 
 /// A real scan of two files that fail differently, and what the library keeps of it.
 ///
@@ -51,8 +52,13 @@ struct SkippedScanTests {
         return root
     }
 
+    /// A model whose cached shelf is its own.
+    ///
+    /// Handed a directory rather than left to default, since a walk writes a snapshot at its
+    /// end: the default is the machine's caches directory, which every model in the process
+    /// would share and which a later test would then restore from.
     private func model(scanning folder: URL) async -> LibraryModel {
-        let model = LibraryModel(documents: folder)
+        let model = LibraryModel(documents: folder, cache: LibraryCache(directory: folder))
         await model.rescan()
         return model
     }

@@ -77,6 +77,16 @@ struct LibraryRestoreTests {
         }
     }
 
+    /// A model whose cached shelf is its own.
+    ///
+    /// The cache goes in the same stand-in directory for the reason that one exists: a walk
+    /// writes a snapshot at its end, the default location is the machine's caches directory,
+    /// and a restore is exactly what this suite drives — so a snapshot left by another test
+    /// would be put on the shelf before the walk this test is about had begun.
+    private func model(bookmarks: FolderBookmarks, documents: URL) -> LibraryModel {
+        LibraryModel(bookmarks: bookmarks, documents: documents, cache: LibraryCache(directory: documents))
+    }
+
     /// An empty directory standing in for the app's own Documents folder, so a restore in a
     /// test process never reaches the machine's real one.
     private func documents() throws -> URL {
@@ -104,7 +114,7 @@ struct LibraryRestoreTests {
 
         let stand = try documents()
         defer { try? FileManager.default.removeItem(at: stand) }
-        let model = LibraryModel(bookmarks: store.bookmarks, documents: stand)
+        let model = self.model(bookmarks: store.bookmarks, documents: stand)
         model.restoreFolders()
         await model.scanTask?.value
 
@@ -125,7 +135,7 @@ struct LibraryRestoreTests {
 
         let stand = try documents()
         defer { try? FileManager.default.removeItem(at: stand) }
-        let model = LibraryModel(bookmarks: store.bookmarks, documents: stand)
+        let model = self.model(bookmarks: store.bookmarks, documents: stand)
         model.restoreFolders()
         await model.scanTask?.value
 
@@ -161,7 +171,7 @@ struct LibraryRestoreTests {
 
         let stand = try documents()
         defer { try? FileManager.default.removeItem(at: stand) }
-        let model = LibraryModel(bookmarks: store.bookmarks, documents: stand)
+        let model = self.model(bookmarks: store.bookmarks, documents: stand)
         model.restoreFolders()
         await model.scanTask?.value
 
@@ -183,7 +193,7 @@ struct LibraryRestoreTests {
 
         let stand = try documents()
         defer { try? FileManager.default.removeItem(at: stand) }
-        let model = LibraryModel(bookmarks: store.bookmarks, documents: stand)
+        let model = self.model(bookmarks: store.bookmarks, documents: stand)
         model.restoreFolders()
         await model.scanTask?.value
 

@@ -241,7 +241,14 @@ class LibraryViewModel(
      * filesystem path, or a document `Uri` from a picked folder.
      */
     private val locations = mutableMapOf<String, String>()
-    private var scanJob: Job? = null
+    /**
+     * The walk currently running.
+     *
+     * Internal rather than private so a test can wait for it, which is what iOS's
+     * `LibraryModel.scanTask` is internal for. Polling a state flow for `Finished` would be
+     * the same wait with a sleep in it.
+     */
+    internal var scanJob: Job? = null
 
     /**
      * One progress load at a time.
@@ -1421,7 +1428,7 @@ class LibraryViewModel(
      * only what it can prove is gone — so the reader sees their library at once and watches
      * it correct itself, instead of watching it appear.
      */
-    private fun restoreCachedLibrary() {
+    internal fun restoreCachedLibrary() {
         if (_publications.value.isNotEmpty()) return
         val snapshot = libraryCache.read() ?: return
         _publications.value = snapshot.publications
