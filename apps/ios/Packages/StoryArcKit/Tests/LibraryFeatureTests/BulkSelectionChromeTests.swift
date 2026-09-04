@@ -356,6 +356,42 @@ struct BulkSelectionChromeTests {
         )
     }
 
+    /// That being inert is **visible**, which `.disabled` alone did not make it.
+    ///
+    /// The capsule sets an explicit `foregroundStyle` through `storyArcGlassText`, and that
+    /// wins over the lowered foreground `.disabled` normally dims a control with. So the inert
+    /// capsule was **pixel-identical** to the live one: 0 differing pixels in all four
+    /// appearance and text-size pairs, measured against frames that differ by 0.25-1.46 %
+    /// elsewhere. `.disabled` was doing its behavioural half and nothing visual, and *present
+    /// and inert rather than absent* was true only for a reader who tried one of them.
+    ///
+    /// **Asserted as one expression rather than two readings of the same state.** A separate
+    /// `selection.ids.isEmpty` in the opacity would drift from the one in `.disabled` - most
+    /// likely by being inverted, which dims the live capsule and lights the dead one. So the
+    /// test requires the same text in both, and it is a source-text guard because opacity is
+    /// a rendered value: only the captures in `ios-selection-chrome-2026-09-04/` prove what a
+    /// reader sees, and this stops the declaration going away between captures.
+    @Test("The inert capsule is dimmed, because the glass text defeats the system's own dimming")
+    func theInertCapsuleLooksInert() {
+        #expect(
+            Self.bar.contains(".opacity(selection.ids.isEmpty ?"),
+            "The inert capsule is drawn exactly like the live one. `.disabled` cannot dim it."
+        )
+        // Ordered, because an opacity *before* the glass text is not the thing being fixed -
+        // the point is that it lands after the modifier that took the dimming away.
+        let disabledAt = Self.bar.range(of: ".disabled(selection.ids.isEmpty)")
+        let dimmedAt = Self.bar.range(of: ".opacity(selection.ids.isEmpty ?")
+        let glassAt = Self.bar.range(of: ".storyArcGlassText(.primary)")
+        #expect(disabledAt != nil && dimmedAt != nil && glassAt != nil)
+        if let disabledAt, let dimmedAt, let glassAt {
+            #expect(
+                disabledAt.upperBound < glassAt.lowerBound
+                    && glassAt.upperBound < dimmedAt.lowerBound,
+                "The dimming does not sit after the glass text that overrides the foreground."
+            )
+        }
+    }
+
     /// The library's string catalogue, for one key.
     private static func localizations(of key: String) -> [String: Any] {
         let catalogue = URL(fileURLWithPath: #filePath)

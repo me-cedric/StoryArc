@@ -36,7 +36,23 @@ worked around silently:
       a verification pass on 2026-09-04 against this change's own `ios-skipped-list.png`, which
       shows two English rows inside a translated frame. The debt is written up in `design.md`
       and belongs to `publication-formats` + `localization`, not here. The scan keeps only the
-      tally. Carry
+      tally.
+
+      **A second scan path was still discarding every refusal, and it is gone.**
+      `LibraryViewModel.scan(File)` carried `is ScanEvent.Skipped -> Unit` — the exact line this
+      task existed to remove — and never settled `_skipped`, so a scan through it would neither
+      raise the notice nor clear it. Its comment claimed "the instrumented tests and the
+      emulator use this", and `:feature:library` has no `androidTest` source set at all, so the
+      comment was untrue on the day it was written: `git log -S` finds its last two callers
+      replaced with `rescan()` in the same commit that added it. Proved dead over the whole
+      repository — every `scan(` in any file type grouped by receiver, the reflection surface,
+      Kotlin string literals, the one ProGuard file (which holds no rules), every Gradle and
+      properties file, and all five `androidTest` trees — then deleted rather than repaired,
+      because `rescan()` already walks the managed folder through `ScanTargets.of` and
+      `scan(managedFolder)` was a strictly worse duplicate that blanked the shelf first.
+      `SkippedScanTest` gained the guard: no `-> Unit` on a refusal, `_skipped` settled, and
+      `ScanEvent.Skipped` collected in **exactly one place** — that third assertion is the one
+      that catches a second walk which keeps its refusals but settles them separately. Carry
       the pairs through. Test first, with `refused.cb7` and `rar4-solid.cbr` from the corpus —
       two files that fail *differently*, which is the case a merged reason would hide.
       **Done.** `SkippedPublications` on both platforms; `LibraryScanning.swift` and
@@ -395,6 +411,22 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
       `LibraryView` hides the tab bar for the mode's duration, and the actions are a
       `Capsule()` on glass inset by the gutter, inside a `GlassEffectContainer` with the undo
       capsule so their edges morph. `.controlSize(.large)`, the scale floating chrome uses here.
+      **Android's half was structural and unasserted until 2026-09-04.** An `if/else` in
+      `LibraryScreen.kt` swaps the contextual bar for the ordinary one and `bottomBar` has no
+      selection branch at all — but `BulkSelectionChromeTest` composed the bar in isolation and
+      never asked the *screen* whether the two could coexist, so splitting that `if/else` into
+      two independent conditionals, or putting a selection branch back in the foot, passed every
+      Android test. It now walks the `Scaffold`'s `topBar` slot with balanced braces, finds the
+      contextual bar, walks back to the enclosing `if`, requires the condition to name
+      `selection.isActive` and the ordinary bar to be in *that statement's* `else`, and requires
+      the foot to hold no `selection` reference. Four mutations checked, each failing on its own
+      assertion. A source-text guard rather than a composition, and for a reason worth keeping:
+      the way into selection mode is an `onSelect` the screen passes as `null` unless a
+      populated store exists, so a Robolectric assertion would need an `Application`, a
+      `ContentResolver` and a document tree before its first line — and "the foot holds no
+      selection branch" is the absence of a code path, which no single composition settles.
+      `LibraryScreen.kt` is a declared task input, so the guard re-runs when it moves.
+
       **This is the line that fixes "two bars"**, and it is mutation-checked: commenting it out
       fails `BulkSelectionChromeTests` by name.
       The guard's first version was too loose and the agent caught it — a 160-character lookback
@@ -413,13 +445,29 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
       Chrome that arrives on the first pick appears under a thumb mid-tap and changes the
       shelf's bottom inset mid-scroll; shown-and-inert says what the mode is for. The way out is
       never in the disabled group.
-- [x] 3b.5 Both: every action names itself to assistive technology. Glyph-only survives for
-      **two of the mode's actions**, both on Android's top bar where an action slot holds no
-      word at any width, and both glyphs the platform already establishes. (This said "exactly
-      two places", which undercounts the bar itself: `LibrarySelectionTopBar` draws four
-      glyph-only controls once the exit and the overflow are counted. All four carry a
-      `contentDescription` from a string resource and all four are platform-established
-      symbols, so the requirement holds — it is the count that was loose.) *Add to…* is named in words,
+- [x] 3b.5 Both: every action names itself to assistive technology. **Glyph-only survives on
+      both platforms, and both earlier versions of this line were wrong about where.**
+      It first said "exactly two places, both on Android's top bar"; corrected on 2026-09-04
+      to "two of the mode's actions"; and the captures taken that afternoon show the count and
+      the platform were both wrong.
+
+      - **Android**: `LibrarySelectionTopBar` draws **four** glyph-only controls — close,
+        download, mark-as-read and the overflow — once the exit and the overflow are counted,
+        not two. *Add to…* is named in words, because `PlaylistAdd` is the ambiguous glyph the
+        review objected to.
+      - **iOS**: three bare glyphs, at the **default** text size and not only at the
+        accessibility sizes. `ViewThatFits` offers the named row first, and a phone never has
+        the width for it: 402 pt leaves the capsule 338 pt and three names at
+        `.controlSize(.large)` need more. `BulkActionBar`'s own doc comment made the same
+        claim and now carries the arithmetic.
+
+      **The requirement holds on both, and it is the only reason this stays `[x]`.** Every one
+      of those controls carries a name — a `contentDescription` from a string resource on
+      Android, a `Label`'s title kept as the accessibility label on iOS whatever the label
+      style draws — and every glyph is one the platform already establishes. What was wrong was
+      the account of *where* drawn text survives, which no test could have caught:
+      `BulkSelectionChromeTests` greps for `.titleAndIcon` and so proves the named row is
+      offered, never which branch a device takes. That took a screenshot. *Add to…* is named in words,
       because `PlaylistAdd` is the ambiguous glyph the review objected to.
 - [x] 3b.6 **A second instance of the same slab, which the brief did not name.**
       `ShelfBulkActions` drew the identical full-bleed `BulkUndoBar` one screen over. Floated as

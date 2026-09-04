@@ -118,10 +118,23 @@ struct BulkActionBar: View {
     /// from six unlabelled glyphs to two controls and two *named* menus the day before this;
     /// three bare glyphs here would repeat the mistake one surface over. So `ViewThatFits`
     /// offers the named row first and falls back to glyphs only at a width that cannot hold
-    /// the names — which on a phone is the accessibility text sizes, where the fallback is
-    /// doing real work. The name survives the fallback either way: a `Label` keeps its title
-    /// as its accessibility label whatever the label style draws, which is exactly why these
-    /// are `Label`s rather than bare `Image`s.
+    /// the names. The name survives the fallback either way: a `Label` keeps its title as its
+    /// accessibility label whatever the label style draws, which is exactly why these are
+    /// `Label`s rather than bare `Image`s.
+    ///
+    /// **On a phone the fallback is always taken, and this comment claimed it was taken only
+    /// at the accessibility text sizes.** Photographed on 2026-09-04: every frame in
+    /// `docs/designs/screenshots/ios-selection-chrome-2026-09-04/` shows three bare glyphs,
+    /// at the **default** size as well as at `AccessibilityXXXL`. The arithmetic says why —
+    /// a 402 pt window leaves the capsule 402 − 2×20 − 2×12 = 338 pt, and three names at
+    /// `.controlSize(.large)` need more than that. So the named row is a wider-window
+    /// affordance, not an accessibility one, and the objection this comment answers is
+    /// answered on a phone by the accessibility label rather than by drawn text.
+    ///
+    /// **The declaration is what `BulkSelectionChromeTests` can see, not the branch.** It
+    /// greps for `.titleAndIcon`, which proves the named row is offered and cannot prove
+    /// which of the two a device picks — that took a screenshot, and it is why the assertion
+    /// and the captures are both required rather than either standing alone.
     @ViewBuilder
     private var actions: some View {
         ViewThatFits(in: .horizontal) {
@@ -182,11 +195,31 @@ struct BulkActionBar: View {
         // why, and says it about a fixed colour that had been sitting on this very surface.
         // Covers pass under this capsule and its luminance is whichever one is passing.
         .storyArcGlassText(.primary)
+        // **And the dimming is ours, because the line above took the system's away.**
+        // `.disabled` normally dims a control by lowering its foreground; an explicit
+        // `foregroundStyle` after it wins, so the inert capsule came out **pixel-identical**
+        // to the live one — 0 differing pixels across all four appearance and text-size pairs,
+        // measured on 2026-09-04 against frames that differ by 0.25–1.46 % elsewhere and 45 %
+        // over a cover's tick. So `.disabled` was doing its behavioural half and nothing at
+        // all visually, and the requirement that the actions be "present and inert rather
+        // than absent" was satisfied only for a reader who tried one.
+        //
+        // The condition is deliberately the same expression as `.disabled`'s rather than a
+        // second reading of the same state: two conditions is how one of them ends up
+        // inverted. `BulkSelectionChromeTests` asserts they are the same text.
+        .opacity(selection.ids.isEmpty ? Self.inertOpacity : 1)
         // Large, which is the scale the system draws floating chrome at and the scale
         // `ReaderChrome` uses for the same reason: a control with no bar to sit in has to
         // carry its own presence.
         .controlSize(.large)
     }
+
+    /// How far the inert actions are dimmed, given the system's own dimming does not reach them.
+    ///
+    /// Matches what `.disabled` draws on a control that has not overridden its foreground —
+    /// low enough to read as unavailable at a glance, high enough that the three names are
+    /// still legible, which is what makes a shown-and-inert capsule say what the mode is for.
+    private static let inertOpacity: Double = 0.4
 
     private var picked: [Publication] {
         model.publications.filter { selection.contains($0.id) }
