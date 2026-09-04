@@ -33,6 +33,34 @@ final class SweepIpadTests: XCTestCase {
         shutter(app, named: "ipad-home")
     }
 
+    /// Home on an iPad **with something part-read**, which is the control the first frame
+    /// needed and did not have.
+    ///
+    /// The September sweep read `ios-ipad-home.png` as "the widest window in the app drops
+    /// the largest thing on the screen": the phone opens on *Continue reading* with a
+    /// full-width cover and the iPad opened straight into *Recently added*. The device state
+    /// was **not** the same. `HomeScreen` draws the hero on `model.continueReading` being
+    /// non-empty and on nothing else — there is no size class anywhere in that decision —
+    /// and reading positions live in a per-device SwiftData store that no launch argument
+    /// reaches. The phone had read a book across four months of walks; this iPad, whose
+    /// corpus was copied in on 2026-09-02, had never opened one.
+    ///
+    /// This walk reads one, and photographs Home afterwards. If the hero is in the frame,
+    /// the finding was the empty device — which is exactly the mistake
+    /// `one-library-three-destinations` task 0b.5 already records against Android's hero:
+    /// "The review reported it missing because the device had nothing in progress."
+    ///
+    /// It is left in the suite rather than run once and deleted: it is the only iPad walk
+    /// that photographs the hero at all, and the next person to look at an iPad's Home
+    /// should find the frame beside the empty one rather than repeat the reading.
+    func testCaptureIpadHomeInProgress() throws {
+        let app = try landscape()
+        try readAPage(in: app)
+        try go(to: "Home", in: app)
+        hold(3)
+        shutter(app, named: "ipad-home-in-progress")
+    }
+
     /// The library: the same shelf, given twice the width and asked how many columns it wants.
     ///
     /// `coverMinimumWidth(shelfWidth:textSize:)` steps to 158 pt past 900 pt of shelf, which
@@ -129,6 +157,63 @@ final class SweepIpadTests: XCTestCase {
     }
 
     // MARK: - The walk
+
+    /// Opens a comic, turns a page, and comes back out — so that this device has something
+    /// `LibraryIndex.continueReading` will call in progress.
+    ///
+    /// **One page of a long comic, and it has to be both.** The projection asks for
+    /// `.inProgress`, and `home-screen` removes a publication from Keep reading the moment it
+    /// is finished — so reaching the last page produces the same empty Home for the opposite
+    /// reason. Two earlier runs of this did exactly that and photographed a Home carrying a
+    /// *Finished* shelf and no hero, which would have read as the finding confirmed.
+    ///
+    /// `Tidal Reach` is eight pages (`scripts/corpus.mjs`), which is the margin that makes one
+    /// swipe safe; `Foreign Codec` is three and the first run finished it. It is reached from
+    /// Home's *Recently added* shelf rather than from the library grid, because the grid is
+    /// sorted by title and the long comics are past the first screenful of it.
+    private func readAPage(in app: XCUIApplication) throws {
+        try go(to: "Home", in: app)
+        hold(2.5)
+        // Not `coversOnScreen(in:)`. That asks every button on the screen whether it is
+        // hittable, and a lazy horizontal shelf holds cells whose frames the platform
+        // refuses to answer for — "Failed to determine hittability of Paper Lanterns
+        // Button: Activation point invalid", which is a thrown error rather than a `false`
+        // and fails the walk before it reaches the comic. Judged on the frame instead.
+        let named = NSPredicate(format: "label BEGINSWITH 'Tidal Reach'")
+        let window = app.frame
+        guard let cover = app.buttons.matching(named).allElementsBoundByIndex.first(where: {
+            let box = $0.frame
+            return box.width > 40 && window.contains(box)
+        }) else {
+            throw XCTSkip(
+                "Home's shelves offered no Tidal Reach issue to part-read. Buttons: "
+                    + "\(app.buttons.allElementsBoundByIndex.prefix(16).map(\.label))"
+            )
+        }
+        cover.tap()
+        guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 10),
+              let action = app.buttons.matching(opensAPublication)
+                  .allElementsBoundByIndex.first(where: \.isHittable)
+        else { throw XCTSkip("The publication page offered no hittable way in.") }
+        action.tap()
+        try XCTSkipUnless(
+            app.buttons["Close"].waitForExistence(timeout: 15),
+            "Opening the comic reached no reader, so nothing can be part-read."
+        )
+        hold(2)
+        app.swipeLeft()
+        hold(1.5)
+        // Out through the reader's own control. A back swipe on an iPad in landscape lands
+        // on the page-turn gesture as readily as on the navigation one.
+        if app.buttons["Close"].isHittable {
+            app.buttons["Close"].tap()
+        } else {
+            app.tap()
+            hold(1)
+            app.buttons["Close"].tap()
+        }
+        hold(2)
+    }
 
     /// One destination, whatever a sidebar makes of it.
     ///

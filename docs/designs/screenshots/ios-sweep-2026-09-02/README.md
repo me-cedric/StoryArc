@@ -363,16 +363,41 @@ a publication to its last page.
 Nothing here was fixed. Each item names the frame that shows it. They are ordered by how
 likely they are to be a defect rather than a decision.
 
-**Home has no hero on an iPad.** The phone opens on *Continue reading* with a full-width
+> **Five of these were worked on 2026-09-04, and two of them were not defects.** The two iPad
+> findings immediately below are withdrawn — see
+> [`../ipad-hero-2026-09-04/`](../ipad-hero-2026-09-04/README.md), which reproduces both
+> frames and disproves both readings. Three others are fixed and photographed in
+> [`../downloads-and-storage-2026-09-04/`](../downloads-and-storage-2026-09-04/README.md):
+> *Stopping a transfer is confirmed with the words for deleting a finished download*,
+> *A transfer states no size and no percentage*, and *Settings and Downloads disagree about
+> what is on the device*. The text below is left as it was written, because a report that
+> edits itself teaches nobody how the reading was made.
+
+**Home has no hero on an iPad.** ~~The phone opens on *Continue reading* with a full-width
 cover; the iPad opens straight into *Recently added*, with no hero at all, on the same device
-state and the same publication with a recorded position. `ios-ipad-home.png` against
+state and the same publication with a recorded position.~~ `ios-ipad-home.png` against
 `ios-home-top.png`. The widest window in the app is the one that drops the largest thing on
 the screen.
 
-**A horizontal shelf on an iPad stretches its covers.** In *Recently added* on the iPad the
-cells are wider than they are tall, while the same artwork in the iPad's own library grid is
+> **Withdrawn.** The device state was not the same: this iPad had never opened a book, and
+> `HomeScreen` draws the hero on `model.continueReading` being non-empty and on nothing else
+> — no size class, no window width. Reading positions live in a per-device store no launch
+> argument reaches. One page read, and the hero is there:
+> `../ipad-hero-2026-09-04/ios-ipad-home-in-progress-portrait.png`.
+> `one-library-three-destinations` task 0b.5 had already recorded this exact reading against
+> Android's hero.
+
+**A horizontal shelf on an iPad stretches its covers.** ~~In *Recently added* on the iPad the
+cells are wider than they are tall~~, while the same artwork in the iPad's own library grid is
 the portrait 2:3 the fixtures actually are. `ios-ipad-home.png` against `ios-ipad-library.png`.
 `design.md` says letterbox rather than crop, and neither is happening here.
+
+> **Withdrawn, and it is this file's own note two sections up that explains it.** The iPad
+> frames are the landscape window on a portrait canvas — so they are *rotated*, not merely
+> letterboxed, and rotation swaps exactly the axis this finding is about. Un-rotated, the
+> cells are 2:3; the card is `.frame(width: width, height: width * 3 / 2)` in `HomeRow.swift`
+> with no device branch. `HomeArtwork` does letterbox, `.scaledToFit()` over `surfaceSunken`;
+> it is invisible because the generated covers are already 2:3 and fill their frames exactly.
 
 **An audiobook's progress is measured in pages.** Home's *Continue reading* hero says
 `2 pages left` for `Sea Room`, which is an M4B. `ios-home-top.png`. `home.pagesLeft` is the
