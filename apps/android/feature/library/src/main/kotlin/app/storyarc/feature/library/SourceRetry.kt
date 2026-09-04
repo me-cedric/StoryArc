@@ -109,6 +109,11 @@ fun LibraryViewModel.probe(
 /**
  * Asks every source that can be asked, and what each server holds.
  *
+ * On appearance and on the schedule above rather than on a timer of its own: a state older
+ * than the last time the library was on screen is a claim about the past, and polling for one
+ * would be guessing. (That sentence was stranded in `LibraryViewModel` above a function it
+ * did not describe, three doc comments deep, until this file took the code it belongs to.)
+ *
  * Internal rather than private: `private` is file-scoped in Kotlin as it is in Swift, and
  * the loop above and the trigger beside it are the two callers.
  */

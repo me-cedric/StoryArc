@@ -275,19 +275,6 @@ class LibraryViewModel(
             ?: getApplication<Application>().filesDir
 
     /**
-     * Re-opens the folders from a previous launch and scans them.
-     *
-     * Called once, when the library first appears. The permissions themselves come
-     * back from the system, so this only has to decide which of them still point at
-     * something readable.
-     */
-    /**
-     * Asks every network source whether it is there, and records the answer.
-     *
-     * On appearance rather than on a timer: a state older than the last time the library was
-     * on screen is a claim about the past, and polling for one would be guessing.
-     */
-    /**
      * Marks a publication read or unread, and tells the server it came from.
      *
      * `reading-progress` allows a reader to mark a publication read by hand rather than by
@@ -370,6 +357,13 @@ class LibraryViewModel(
         return true
     }
 
+    /**
+     * Re-opens the folders from a previous launch and scans them.
+     *
+     * Called once, when the library first appears. The permissions themselves come
+     * back from the system, so this only has to decide which of them still point at
+     * something readable.
+     */
     fun restoreFolders() {
         if (_folders.value.isNotEmpty()) return
         // Before anything is walked, and before any early return below. `sources` asks for
@@ -670,12 +664,6 @@ class LibraryViewModel(
     }
 
     /**
-     * Scans every folder, and the managed folder when there are none.
-     *
-     * One job over all of them rather than one job each: cancelling is then a
-     * single action, and the found count is the library's rather than a folder's.
-     */
-    /**
      * Walks the folders again, without emptying the shelf first.
      *
      * `sources` asks a refresh to update "the view incrementally rather than clearing it
@@ -689,6 +677,10 @@ class LibraryViewModel(
      * reading progress is retained". Retaining the progress needs no code — it lives in
      * `ProgressStore`, keyed by identity, and nothing here touches it. A file that comes
      * back finds its position waiting.
+     *
+     * Every folder, and the managed folder when there are none — under one job rather than
+     * one job each, so cancelling is a single action and the found count is the library's
+     * rather than a folder's.
      */
     fun rescan() {
         scanJob?.cancel()
