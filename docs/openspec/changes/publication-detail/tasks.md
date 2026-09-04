@@ -109,7 +109,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       because the *cause* is the reusable part: the gradient was inside an `if let`, and a view
       that is inserted has no previous value to animate from, so adding `.animation` to the old
       shape would have changed nothing and looked like a platform bug.
-- [~] **0.2** Decide where the Android accent slot lives, and confirm it composes with the
+- [x] **0.2** Decide where the Android accent slot lives, and confirm it composes with the
       dynamic-colour scheme without tinting chrome.
       Deliverable: the slot, with a test that chrome colour is unchanged when an
       accent is set.
@@ -117,9 +117,10 @@ when a cover was the resume affordance. Whoever syncs should add a
       composition local beside the palette, matching the shape of the iOS environment
       modifier". That clause is struck: the shipped parameter in
       `feature/library/…/DetailAccent.kt` is the right Compose answer, for the three reasons
-      below. **The test is still owed** and is the only thing keeping this at a partial.
+      below. **Closed 2026-09-05: the test is written and both halves are in.**
 
-      **Neither half of the deliverable exists.** There is no composition local for
+      **What the audit of 2026-08-31 found, kept because the census is still the argument.**
+      Neither half of the deliverable existed then. There is no composition local for
       the accent: `core/designsystem/…/theme/Theme.kt:139` declares
       `LocalStoryArcPalette`, `VolumeKeys.kt:31` declares `LocalVolumeTurns` and
       `back/PredictiveBack.kt:90` declares `LocalBackGesture`, and that is the
@@ -130,13 +131,14 @@ when a cover was the resume affordance. Whoever syncs should add a
       and it is therefore neither beside the palette nor the shape of iOS's
       environment modifier (`DesignSystem/Theme.swift:47-49`).
 
-      **And there is no chrome test of any kind.**
-      `feature/library/src/androidTest/` does not exist, so the screen has no
-      Compose UI test at all; `DetailAccentTest.kt` runs 6 cases and every one is
-      hex parsing or an extractor invariant — none reads
-      `MaterialTheme.colorScheme`. The chrome/content separation is asserted only
-      structurally, by `Theme.kt:178-182` and by the accent never entering the
-      theme. That is an argument, and this task asks for a test.
+      **And there was no chrome test of any kind.** ~~`feature/library/src/androidTest/` does
+      not exist, so the screen has no Compose UI test at all~~ — that framing was wrong about
+      the tree in one way worth correcting: this module runs **Robolectric** compositions in
+      `src/test/`, so a composition test never needed an instrumented source set at all.
+      `DetailAccentTest.kt` runs 6 cases and every one is hex parsing or an extractor
+      invariant — none reads `MaterialTheme.colorScheme`. The chrome/content separation was
+      asserted only structurally, by `Theme.kt`'s `groundedInContent` and by the accent never
+      entering the theme. That is an argument, and this task asked for a test. It has one.
 
       **Decided 2026-09-01: the parameter is the decision. The task is amended, not the
       code.** Three reasons, and the first is the one that settles it:
@@ -158,12 +160,30 @@ when a cover was the resume affordance. Whoever syncs should add a
         deliverable forbids. So the accent must travel *beside* the scheme rather than in it,
         and a parameter is what that looks like.
 
-      **The test still stands and is the remaining work.** A Robolectric composition test in
-      `feature/library/src/test/` — `GraphicsMode.NATIVE`, for `CompactPlayerTest`'s reason —
-      that renders the screen with an accent set and asserts `MaterialTheme.colorScheme` is
-      byte-identical to the same render with no accent. That is the assertion the structural
-      argument was standing in for, and it belongs where the separation lives rather than in
-      the design system.
+      **The test is written: `feature/library/src/test/…/DetailChromeTest.kt`, 2026-09-05.**
+      A Robolectric composition, `GraphicsMode.NATIVE`, composing `DetailHero` with an accent
+      and reading `MaterialTheme.colorScheme` from **inside** its action slot — which is the
+      subtree a Material component drawn by this page would read from — against the ambient
+      scheme captured outside it in the same composition. Compared twelve chrome roles by
+      value for a readable failure, and by `assertSame` for the exhaustive one, because
+      `ColorScheme` overrides no `equals` and a re-provided scheme is a different instance
+      whatever its values are.
+
+      **Two amendments to what this task asked for, and both are corrections rather than
+      shortcuts.** It asked to render *the screen*: `PublicationDetailScreen` needs a
+      `LibraryViewModel` with a populated library before its first frame, and it offers no
+      seam to read the scheme from inside the accent-carrying subtree. `DetailHero` is where
+      the accent lands and where the failure would live. And it asked for "byte-identical",
+      which a `ColorScheme` cannot be asked for directly — hence the pair of comparisons.
+
+      **Proved able to fail, per `AGENTS.md` §5, in both directions.** Wrapping `DetailHero`'s
+      `Surface` in `MaterialTheme(colorScheme = …copy(primary = accent.accent))` failed
+      `an accent set on the hero leaves the scheme its own subtree reads untouched` by name.
+      And a second test in the same file, `theAccentDoesReachTheContent`, keeps the first from
+      being vacuous: a cover lands on a live hero and the root's pixels are compared either
+      side of it, so *the chrome did not move* is a claim about a page the accent reached.
+      Dropping `accent?.wash` from `animateColorAsState` failed that one by name. Both
+      mutations reverted.
 
 ## Phase 1 — The colour reaches the library half of the app
 
@@ -186,18 +206,19 @@ when a cover was the resume affordance. Whoever syncs should add a
       `grep` finds no `.coverAccent(` anywhere in `ReaderFeature`. Before this
       change the property had **no setter at all**, which makes the task's own
       framing — a slot with no caller — more true than it claimed, not less.
-- [ ] **1.2** Android: the slot from 0.2, plus the caller.
-      **The caller shipped; the slot as specified did not.** The caller is
-      `PublicationDetailScreen.kt:121` (`val accent = rememberDetailAccent(cover)`),
-      feeding `DetailHero.kt:73`/`:94-101` for the wash and
-      `PublicationDetailScreen.kt:351-352` for the primary button's container and
-      content colours, with the extractor itself at `core/model/…/CoverAccent.kt:22`
-      and the bridge at `DetailAccent.kt:83-91`.
+- [x] **1.2** Android: the slot from 0.2, plus the caller.
+      **The caller shipped; the slot is the parameter, and 0.2 is now closed on that.** The
+      caller is `PublicationDetailScreen.kt:142` (`val accent = rememberDetailAccent(cover)`),
+      feeding `DetailHero.kt:94-98` for the wash and `PublicationDetailScreen.kt:411-412` for
+      the primary button's container and content colours, with the extractor itself at
+      `core/model/…/CoverAccent.kt:22` and the bridge at `DetailAccent.kt:83-91`.
 
-      **What is missing is exactly what 0.2 is missing** — a composition local in
-      `:core:designsystem` rather than a feature-internal data class passed through
-      four call sites. This task cannot close before 0.2 decides; if 0.2 is amended
-      to accept the parameter, this closes with it.
+      **Closed 2026-09-05 with 0.2, exactly as this note said it would.** The previous note
+      called the composition local "what is missing"; 0.2 struck that clause and decided the
+      parameter *is* the Android answer, for three reasons recorded there — the shortest being
+      that the value is read by one screen's own subtree, and that Material's own subtree
+      mechanism is the thing the deliverable forbids. The line counts above were stale by
+      twenty and sixty lines respectively and are corrected here from the source.
 - [ ] **1.3** Host tests, mirrored case for case per the project's rule for
       mirrored code: a colour that clears the floor, one that must be adjusted to
       clear it, a monochrome cover that yields nothing, and an undecodable cover.
