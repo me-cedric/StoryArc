@@ -1349,8 +1349,10 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       **Reassurance first: StoryArc's own mapping does not diverge.** `ReadiumMapping.swift`
       and `ReadiumMapping.kt` set the same thirteen preference keys to the same values with
       the same null-versus-`false` semantics — including the Original early return, which on
-      both keeps `fontSize`, `publisherStyles` and `scroll` and nothing else. So a layout
-      divergence is not coming from this app.
+      both keeps `fontSize`, `publisherStyles` and `scroll` and nothing else. And the values
+      being mapped start level: `ThemeValues`' ten defaults are the same numbers on each side,
+      down to `lineHeight` 1.4, `paragraphSpacing` 0.5 and `pageMargins` 1.0. So "matched
+      typography" is reachable by construction, and a layout divergence is not this app's.
 
       **Divergence 1 — the two toolkits do not bundle the same build of readium-css, and
       the difference is in the pagination geometry.** All three modules hash differently.

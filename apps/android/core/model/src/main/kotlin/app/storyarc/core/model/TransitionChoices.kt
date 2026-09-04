@@ -87,9 +87,16 @@ val PageTransition.needsARasteredPage: Boolean
  * takes that before the navigator moves.
  *
  * Curl cannot yet. It needs the *incoming* page as a second texture before it is on
- * screen, which means a second offscreen navigator or a snapshot round-trip. Task 4.3b of
- * `reader-theming-and-page-transitions` owns that, and Apple Books doing it over
- * reflowable text is the evidence that it can be done.
+ * screen. Task 4.3b of `reader-theming-and-page-transitions` owns that, and Apple Books
+ * doing it over reflowable text is the evidence that it can be done.
+ *
+ * **A second offscreen navigator is not what it needs, and this line used to say it was.**
+ * Readium keeps the neighbouring pages laid out already — `FadeTurn`'s own note records
+ * that `goForward(animated = false)` returns before the next frame here — so the incoming
+ * page is reachable by moving the pager under a still of the outgoing one.
+ *
+ * What is unsettled is the *timing*, not the source. 4.3b records the measurement, and it
+ * is iOS that has the expensive half.
  */
 val PageTransition.needsTwoRasters: Boolean
     get() = this == PageTransition.PAGE_CURL
