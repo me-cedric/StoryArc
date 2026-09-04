@@ -4,6 +4,7 @@ import app.storyarc.core.format.LibraryScanner
 import app.storyarc.core.format.ScanEvent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -27,9 +28,13 @@ import java.nio.file.Files
  * it and say why rather than drop it — so it never reaches a skip at all.
  *
  * iOS asserts the same pair in `SkippedScanTests`, which can go further and drive its whole
- * library model; this stops at the scanner because Android's view model needs an
- * `Application`, a `ContentResolver` and a document tree to walk one, and the branch above is
- * a one-line exhaustive `when`.
+ * library model; the three tests here stop at the scanner because Android's view model needs
+ * an `Application`, a `ContentResolver` and a document tree to walk one, and the branch above
+ * is a one-line exhaustive `when`.
+ *
+ * **The fourth test asks the view model anyway, in the only way it can: as text.** There
+ * turned out to be two scan paths, and only one of them had been fixed — see that test for
+ * the second one and why it is gone rather than repaired.
  */
 class SkippedScanTest {
 
@@ -106,8 +111,72 @@ class SkippedScanTest {
         }
     }
 
+    /**
+     * And the view model keeps exactly one scan path, which does not discard a refusal.
+     *
+     * **There were two, and the second still had the line the first had lost.** `rescan` was
+     * fixed; `scan(File)` beside it went on matching `is ScanEvent.Skipped -> Unit` and never
+     * touched `_skipped`, so a scan through it would neither raise the notice nor clear one
+     * already up. It had no caller anywhere — its last one left `LibraryScreen` in `bce7dfb3`,
+     * the same commit that gave it a comment claiming the instrumented tests used it, and
+     * `:feature:library` has never had an `androidTest` source set for them to live in — so
+     * it is gone rather than repaired. This is what stops the pair coming back: a second walk
+     * added later gets the same line back with nothing to notice, exactly as the first one
+     * did.
+     *
+     * **Text over the view model's source, and for the reason this file's own header gives:**
+     * driving a walk through the view model needs an `Application`, a `ContentResolver` and a
+     * document tree, and the branch in question is one arm of a `when`. So the three tests
+     * above assert the rules against a real scan of real files, and this one asserts that
+     * nothing in the view model throws the result of one away. A tripwire, not a proof.
+     */
+    @Test
+    fun `the view model has one scan path and it keeps what was refused`() {
+        val source = File(
+            requireNotNull(System.getProperty(MODULE_DIRECTORY)) {
+                "$MODULE_DIRECTORY is not set — see this module's build.gradle.kts"
+            },
+            VIEW_MODEL_SOURCE,
+        )
+        assertTrue("$VIEW_MODEL_SOURCE is not at ${source.absolutePath}", source.isFile)
+        // Prose stripped: the KDoc on `rescan` and the comments around the settling call
+        // both quote the branch below in order to say it is gone, and a guard that read
+        // those would pass on the documentation of the fix.
+        val code = source.readText().lineSequence().joinToString("\n") { it.substringBefore("//") }
+
+        assertFalse(
+            "The view model matches `$DISCARDED` again. That is the line this change existed" +
+                " to remove: a walk that hits it neither raises the notice nor clears one" +
+                " that is already up, and `rescan` settling correctly elsewhere does not" +
+                " help a reader whose scan went the other way.",
+            code.contains(DISCARDED),
+        )
+        assertTrue(
+            "Nothing in the view model settles `_skipped`, so a refusal is collected and" +
+                " never reaches the notice. Refusals are settled once after every tree —" +
+                " settling replaces the list rather than adding to it.",
+            code.contains(SETTLED),
+        )
+        assertEquals(
+            "The view model collects `ScanEvent.Skipped` in more than one place, so there is" +
+                " a second scan path and the two can disagree about what a reader is told." +
+                " One walk, one settle.",
+            1,
+            code.split(REFUSAL).size - 1,
+        )
+    }
+
     private companion object {
         /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
         const val MODULE_DIRECTORY = "storyarc.library.projectDir"
+        const val VIEW_MODEL_SOURCE =
+            "src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt"
+
+        /** The branch that threw a refusal away. */
+        const val DISCARDED = "is ScanEvent.Skipped -> Unit"
+
+        /** The branch that keeps one, and the call that turns the pairs into the notice. */
+        const val REFUSAL = "is ScanEvent.Skipped ->"
+        const val SETTLED = "_skipped.value = _skipped.value.settling("
     }
 }

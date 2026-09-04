@@ -961,33 +961,6 @@ class LibraryViewModel(
             ?.id
     }
 
-    /** Scans one local folder. The instrumented tests and the emulator use this. */
-    fun scan(folder: File = managedFolder) {
-        scanJob?.cancel()
-        _publications.value = emptyList()
-        _visible.value = emptyList()
-        _continueReading.value = emptyList()
-        covers.clear()
-        locations.clear()
-        _scanState.value = LibraryScanState.Scanning(0)
-
-        scanJob = viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                LibraryScanner.scan(folder).collect { event ->
-                    when (event) {
-                        is ScanEvent.Found -> append(event.publication)
-                        is ScanEvent.Skipped -> Unit
-                        is ScanEvent.Finished -> {
-                            _scanState.value = LibraryScanState.Finished(event.found, event.skipped)
-                            rebuild()
-                        }
-                    }
-                }
-            }
-            refreshProgress()
-        }
-    }
-
     fun cancelScan() {
         scanJob?.cancel()
         scanJob = null

@@ -80,6 +80,17 @@ tasks.withType<Test>().configureEach {
     )
         .withPropertyName("bulkSelectionChromeSource")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // And the view model, for `SkippedScanTest`. Its other three tests walk a real folder of
+    // real refused files; the fourth asks the view model the one thing a walk cannot show it,
+    // which is that no scan path throws the walk's refusals away. There were two paths and
+    // only one had been fixed.
+    inputs.files(
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt",
+        ),
+    )
+        .withPropertyName("skippedScanWiringSource")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {
