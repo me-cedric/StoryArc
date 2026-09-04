@@ -46,12 +46,21 @@ extension LibraryModel {
         // Rows whose copy has been deleted go. The record is the authority here, not a
         // filesystem walk: this store is the app's own, so an empty list means the reader
         // deleted their last import rather than that a folder could not be read.
+        //
+        // **Only the rows this store made, though.** "On this device" also carries what the
+        // scan finds in the app's own Documents folder — see ``LibraryModel/source(of:)`` —
+        // and the import store has never heard of those. Pruning by the import records alone
+        // would sweep the whole Documents shelf off the screen on the next appearance, which
+        // is a far worse bug than the one being fixed.
         publications.removeAll { publication in
             guard publication.sourceID == ImportedCopies.sourceID else { return false }
-            return !files.contains(locations[publication.id]?.path ?? "")
+            guard let location = locations[publication.id] else { return true }
+            guard !isAppStorage(location) else { return false }
+            return !files.contains(location.path)
         }
 
-        guard !imports.isEmpty else {
+        // Emptied only when *nothing* is filed under it, by either route.
+        guard !imports.isEmpty || holdsAppStorage else {
             forgetImportedSource()
             rebuild()
             return
@@ -82,12 +91,45 @@ extension LibraryModel {
         locations[publication.id] = file
     }
 
+    /// Whether the shelf holds anything found in the app's own storage.
+    ///
+    /// Asked of the shelf rather than of the disk: the row is what the source screen counts,
+    /// so the row is what decides whether the source should be listed at all.
+    var holdsAppStorage: Bool {
+        publications.contains { publication in
+            guard publication.sourceID == ImportedCopies.sourceID,
+                  let location = locations[publication.id]
+            else { return false }
+            return isAppStorage(location)
+        }
+    }
+
+    /// Lists "On this device" when something is filed under it, and stops listing it when
+    /// nothing is.
+    ///
+    /// Called at the end of a folder walk rather than per publication: it is a question about
+    /// the whole shelf, and asking it once per file during a ten-thousand-file scan is
+    /// quadratic for an answer that cannot change more than twice.
+    func reconcileAppStorageSource() {
+        if publications.contains(where: { $0.sourceID == ImportedCopies.sourceID }) {
+            registerImportedSource()
+            return
+        }
+        // Nothing on the shelf under it, and nothing in the import store either — so the row
+        // would be a library holding nothing that the reader never added.
+        guard let store = downloadStore, !store.imports(in: store.library()).isEmpty else {
+            forgetImportedSource()
+            return
+        }
+        registerImportedSource()
+    }
+
     /// Puts "On this device" in the registry, if it is not there already.
     ///
     /// Added the moment there is something in it rather than at launch: `sources` requires
     /// the empty state to name the four source types, and a fifth row for a source holding
     /// nothing would be a source the reader never added.
-    private func registerImportedSource() {
+    func registerImportedSource() {
         guard registry[ImportedCopies.sourceID] == nil else { return }
         registry = registry.adding(
             Source(

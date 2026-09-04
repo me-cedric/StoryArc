@@ -100,7 +100,7 @@ extension LibraryView {
     /// patient the timer behind it is.
     func retrySources() {
         Task {
-            await model.probeNetworkSources(credentials: credentials, pins: pins)
+            await model.resolveSources(credentials: credentials, pins: pins)
             await model.rescan()
         }
     }

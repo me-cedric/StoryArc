@@ -85,6 +85,21 @@ struct SourcesSettings: View {
                 }
             }
         }
+        // **The screen that shows a state is the screen that has to ask for it.** Until this
+        // line nothing here asked: every state was resolved by the library's own `.task`, so
+        // a reader who opened Settings without visiting the Library tab saw the state the
+        // registry loads with — `connecting`, on every row, for ever, because state is
+        // deliberately never persisted and nothing on this path answered. That is what
+        // `ios-settings-sources.png` photographed on 2026-09-02: four libraries, all
+        // *Connecting*, two of them pointed at hosts that were plainly not running.
+        //
+        // `.testConnection` is the action `sources` already gives this screen — "actions to
+        // test the connection" — and it answers each kind the way that kind can answer: a
+        // folder from the filesystem, immediately, and a server over the network, saying
+        // *Connecting* while it waits, which is the one moment that word is true.
+        .task {
+            for source in sources { await perform(source, .testConnection) }
+        }
         // A drag needs edit mode, and edit mode needs a way in. Hidden below two sources,
         // because a list with one row has no order to change and a button that does
         // nothing is worse than no button.

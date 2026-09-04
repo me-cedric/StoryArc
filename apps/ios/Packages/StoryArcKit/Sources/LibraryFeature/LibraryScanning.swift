@@ -184,6 +184,10 @@ extension LibraryModel {
         // first reconcile would see every file as new and re-read the whole library to
         // learn nothing.
         snapshots[folder.path] = FolderSnapshot(LibraryScanner.entries(in: folder))
+        // A walk of the app's own storage decides whether "On this device" is a library the
+        // reader has. Here, once, rather than per publication: it is a question about the
+        // whole shelf and the answer cannot change more than twice in a scan.
+        if isAppStorage(folder) { reconcileAppStorageSource() }
     }
 
     /// Drops what this folder no longer holds.

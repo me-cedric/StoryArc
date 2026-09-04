@@ -198,7 +198,7 @@ extension LibraryModel {
     /// or it is not, which is the distinction ``SourceProbe/isRemote(_:)`` draws.
     public func test(_ source: Source) async {
         guard SourceProbe.isRemote(source.kind) else {
-            registry = registry.marking(source.id, as: folderState(of: source))
+            markLocal(source)
             return
         }
         registry = registry.marking(source.id, as: .connecting)
@@ -259,10 +259,57 @@ extension LibraryModel {
     /// answer as one that is no longer readable: unreachable, and grey — `local-library`
     /// names an unavailable folder separately, and a red badge on a share that is simply
     /// not mounted would contradict "offline is a normal state".
-    private func folderState(of source: Source) -> SourceConnectionState {
+    func folderState(of source: Source) -> SourceConnectionState {
+        // "On this device" is storage the app owns. There is no folder to stat and no
+        // network to ask: the source is created when something is filed under it and
+        // discarded when nothing is, so its existence *is* its reachability.
+        guard source.locator != Self.importedLocator else { return .connected }
         guard let folder = folder(of: source),
               FileManager.default.fileExists(atPath: folder.path())
         else { return .unreachable(since: Date()) }
         return .connected
+    }
+
+    /// Answers the question no local library was ever asked.
+    ///
+    /// **`connecting` is a network's state, and a folder has no network.** `sources` gives
+    /// every source the same four states, and the app read that as permission to load every
+    /// source in the one that means *waiting for an answer* — which is right for a server and
+    /// meaningless for a directory, because `FileManager` answers on the spot. State is never
+    /// persisted, deliberately, so something has to ask on every launch; the only thing that
+    /// did was ``probeNetworkSources(credentials:pins:)``, which walks past local folders by
+    /// design. A folder whose bookmark did not restore therefore sat on *Connecting* for the
+    /// life of the process, which looks exactly like a probe that never resolves — and that
+    /// is what the 2026-09-02 sweep photographed in `ios-settings-sources.png`.
+    ///
+    /// Synchronous, because nothing here waits for anything. That is the point.
+    public func resolveLocalSources() {
+        for source in registry.sources where source.kind == .localFolder {
+            markLocal(source)
+        }
+    }
+
+    /// Files one local source under the answer the filesystem just gave.
+    ///
+    /// Shared with ``test(_:)`` so an explicit *Test connection* and the automatic pass
+    /// cannot disagree about what a folder is.
+    func markLocal(_ source: Source) {
+        let answer = folderState(of: source)
+        // A folder that is still gone keeps the moment it *went*. Recomputing `Date()` on
+        // every appearance would leave "No answer since …" reading *just now* for a folder
+        // that has been missing a week, which is the one thing that line is for.
+        if case .unreachable = answer, case .unreachable = source.state { return }
+        guard answer != source.state else { return }
+        registry = registry.marking(source.id, as: answer)
+    }
+
+    /// Every source's state, asked the way each kind is able to answer.
+    ///
+    /// The pair rather than the probe alone, so a screen that wants the truth about the
+    /// registry cannot get half of it by calling the obvious one. `sources` asks for health
+    /// to be *shown*; a screen that shows it has to be a screen that asked.
+    func resolveSources(credentials: CredentialStore?, pins: CertificatePins) async {
+        resolveLocalSources()
+        await probeNetworkSources(credentials: credentials, pins: pins)
     }
 }

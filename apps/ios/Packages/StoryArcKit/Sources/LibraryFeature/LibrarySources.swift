@@ -24,16 +24,41 @@ extension LibraryModel {
 
     // Internal, not private: `private` is file-scoped, and the callers now sit
     // in the other half of this type.
-    /// The source a folder belongs to, if it is registered as one.
+    /// The source a folder belongs to, if it is one.
     ///
-    /// Matched on the folder's name, the same key ``register(_:)`` uses. The app's own
-    /// Documents folder is not a source, so a publication found there is unattributed —
-    /// which is the honest answer rather than pretending it belongs to a library the
-    /// reader picked.
+    /// Matched on the folder's name, the same key ``register(_:)`` uses — except for the
+    /// app's own Documents folder, which is matched on identity because it has no locator
+    /// and never had one.
+    ///
+    /// **The Documents folder used to be nobody's, and that was called the honest answer.**
+    /// The argument was that it "is not a source", so pretending a publication found there
+    /// belonged to a library the reader picked would be a lie. The first half is right and
+    /// the conclusion did not follow: the alternative to attributing it to the *wrong*
+    /// source is not attributing it to *none*. An unattributed row is invisible to
+    /// ``itemCount(of:)``, so Settings' *Your libraries* listed four sources holding nothing
+    /// beside a shelf holding fourteen publications, with nothing on any screen to say where
+    /// the fourteen had come from — `ios-settings-sources.png`, 2026-09-02.
+    ///
+    /// They belong to "On this device", which is the source that already means *in storage
+    /// the app owns* — see ``ImportedCopies``. That is exactly what the Documents folder is:
+    /// where a file lands when it arrives through Files, AirDrop or another app's Open-in.
+    /// A reader cannot tell those bytes from an imported copy, and should not have to.
     func source(of folder: URL) -> UUID? {
-        registry.sources.first {
+        if isAppStorage(folder) { return ImportedCopies.sourceID }
+        return registry.sources.first {
             $0.kind == .localFolder && $0.locator == folder.lastPathComponent
         }?.id
+    }
+
+    /// Whether a URL is inside the app's own Documents folder.
+    ///
+    /// Standardised on both sides: the same directory reaches this as `/private/var/…` and
+    /// `/var/…` depending on who asked, and a string comparison between the two is how a
+    /// folder becomes two folders.
+    func isAppStorage(_ url: URL) -> Bool {
+        let here = url.standardizedFileURL.resolvingSymlinksInPath().path
+        let documents = documentsFolder.standardizedFileURL.resolvingSymlinksInPath().path
+        return here == documents || here.hasPrefix(documents + "/")
     }
 
     /// Adds a source the reader configured elsewhere, such as a catalogue.

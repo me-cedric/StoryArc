@@ -298,7 +298,7 @@ public struct LibraryView: View {
             .task {
                 model.restoreFolders()
                 await model.refreshProgress()
-                await model.probeNetworkSources(credentials: credentials, pins: pins)
+                await model.resolveSources(credentials: credentials, pins: pins)
                 // And keeps asking while anything is away, per `sources`' backoff. After
                 // the probe rather than beside it: the loop stops as soon as nothing is
                 // unreachable, so started before the first answer it would stop before
@@ -323,7 +323,7 @@ public struct LibraryView: View {
             // `sources` names pull-to-refresh: a refresh "re-fetches the catalogue in the
             // background" and updates the view "incrementally rather than clearing it".
             .refreshable {
-                await model.probeNetworkSources(credentials: credentials, pins: pins)
+                await model.resolveSources(credentials: credentials, pins: pins)
                 await model.rescan()
             }
             // A bar, so the notice floats on glass and the shelf fades out beneath it
