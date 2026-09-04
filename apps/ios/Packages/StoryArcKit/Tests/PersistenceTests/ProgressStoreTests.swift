@@ -209,6 +209,65 @@ struct ProgressStoreTests {
         )
         #expect(try await store.progress(for: id)?.position == position)
     }
+
+    @Test("A listening position survives the round trip intact")
+    func listeningPosition() async throws {
+        // `reading-progress`: an audiobook's position "is an offset in time within a named
+        // part" and "survives the app being closed, the device restarting". Both halves of
+        // that are this store handing back what it was given — and it keeps `positionData`
+        // as JSON of the enum, so a case added with no schema change is exactly the kind
+        // that comes back subtly wrong with nothing saying so.
+        let store = try store()
+        let id = identity(path: "/books/sea-room.m4b")
+        let position = ReadingPosition.listening(part: 2, partCount: 5, offset: 42, of: 300)
+        try await store.save(
+            ReadingProgress(identity: id, position: position, updatedAt: .now)
+        )
+        #expect(try await store.progress(for: id)?.position == position)
+    }
+
+    @Test("A listening position with no total keeps the absence rather than storing a zero")
+    func listeningWithoutATotal() async throws {
+        // The read-aloud shape. `of` is optional precisely so an estimate is never stated as
+        // an exact total, and a store that wrote nil and read back 0 would undo that at the
+        // one point nobody looks. Android's `ProgressStoreTest` pins the same case.
+        let store = try store()
+        let id = identity(path: "/books/sea-room.epub")
+        let position = ReadingPosition.listening(part: 1, partCount: 9, offset: 8, of: nil)
+        try await store.save(
+            ReadingProgress(identity: id, position: position, updatedAt: .now)
+        )
+        #expect(try await store.progress(for: id)?.position == position)
+    }
+
+    @Test("A listening position is found again by its digest, like every other position")
+    func listeningResolvesThroughContentIdentity() async throws {
+        // `reading-progress`: it "survives … the file being re-downloaded, exactly as a page
+        // index does". A re-download lands the same content at a new path, so what has to
+        // hold is that the record is keyed by identity and not by the kind of position in it
+        // — which is `identityMerges()` above, asked of the case that arrived last.
+        let store = try store()
+        let position = ReadingPosition.listening(part: 3, partCount: 9, offset: 61, of: 900)
+        try await store.save(
+            ReadingProgress(
+                identity: identity(path: "/downloads/sea-room.m4b"),
+                position: position,
+                updatedAt: .now
+            )
+        )
+        try await store.save(
+            ReadingProgress(
+                identity: identity(digest: "sea-room-digest", path: "/downloads/sea-room.m4b"),
+                position: position,
+                updatedAt: .now
+            )
+        )
+
+        // Re-downloaded: the same content, at a path the library has never seen.
+        let again = identity(digest: "sea-room-digest", path: "/downloads/sea-room (1).m4b")
+        #expect(try await store.progress(for: again)?.position == position)
+        #expect(try await store.recent().count == 1, "one publication, one record")
+    }
     @Test("A position written against a server identifier comes back with it")
     func serverIdentifierSurvivesARoundTrip() async throws {
         // It did not. `domain(_:)` rebuilt the identity with `serverIdentifier: nil`, so a

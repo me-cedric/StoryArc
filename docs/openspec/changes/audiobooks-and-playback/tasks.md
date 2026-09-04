@@ -81,7 +81,7 @@ creep — see [`design.md`](design.md).
       *Still to come with the player:* turning an audiobook folder into a
       `Publication`, which needs the model to carry an audio format.
       **The folder half is now done on Android** — see 2.3.
-- [~] 2.3 Both: an audiobook with no chapter markers opens, its parts standing in for
+- [x] 2.3 Both: an audiobook with no chapter markers opens, its parts standing in for
       chapters, and nothing is reported as missing.
       **iOS done.** `AudiobookReader.read(fileAt:)` returns one unnamed part rather than an
       empty list, and `skippedPageCount` stays 0 so `isPartial` is false — nothing is
@@ -110,7 +110,14 @@ creep — see [`design.md`](design.md).
       gap. An extractor per file would cost a library of five hundred audiobooks a full
       decode pass per scan to fill a list nobody opened; the player reads the container's
       markers when it opens the book. An unchaptered single file indexes as one part
-      standing in for the whole, with nothing reported as missing. iOS half outstanding.
+      standing in for the whole, with nothing reported as missing.
+      **Ticked 2026-09-04, and the entry's own last three words were the only thing wrong with
+      it.** "iOS half outstanding" was a line pasted in beside the Android body while the iOS
+      paragraph above it already said `AudiobookReader.read(fileAt:)` returns one unnamed part
+      and `skippedPageCount` stays 0. Both are still true — `AudiobookReader.swift:31` carries
+      the rule and `AudiobookReaderTests` and `AudiobookIndexingTests` drive it from the corpus;
+      Android's `AudiobookFolder`, `PublicationIndexer` and `LibraryScanner` carry theirs. Two
+      halves done, neither outstanding, and a stale sentence held the task open.
 - [~] 2.4 Both: an `.aax`/`.aaxc` is refused by name, states the store's content
       protection as the reason, prompts for no key or account, and is distinct from
       an unsupported container. **Detection done and mutation-checked** — the brand is
@@ -444,7 +451,7 @@ creep — see [`design.md`](design.md).
 
 ## 4. The surfaces
 
-- [~] 4.1 Both: `CompactPlayerTests` / `CompactPlayerTest` — the bar names the
+- [x] 4.1 Both: `CompactPlayerTests` / `CompactPlayerTest` — the bar names the
       publication and the **chapter**, is absent when nothing plays, and does not
       displace, cover or resize the navigation control. Assert content behind it
       still scrolls to its end.
@@ -465,8 +472,13 @@ creep — see [`design.md`](design.md).
       the *relationship* between the two and a bar composed on its own has none.
       Mutation-checked twice: putting the bar in a `Box` over the navigation control fails
       the displace/cover/resize case, and pinning the bar to 64 dp with one-line text fails
-      the largest-text case. iOS half outstanding.
-- [ ] 4.2 iOS: generalise `ReadAloudDock` in `tabViewBottomAccessory` to the shared
+      the largest-text case.
+      **Ticked 2026-09-04 on the same stale sentence 2.3 carried.** The iOS paragraph above
+      states the value half (`CompactPlayerTests`, nine cases) and the layout half (the pair in
+      `after-2026-09-01-ios-player/`, both present), and the Android paragraph states its six;
+      "iOS half outstanding" contradicted the entry it was appended to. Both halves exist and
+      both are asserted.
+- [x] 4.2 iOS: generalise `ReadAloudDock` in `tabViewBottomAccessory` to the shared
       session, so a narrated book and a spoken one produce the same bar.
       **Unblocked, and the first half is in.** The blocker recorded here — Readium 3.11.0's
       `Configuration` carries no rate and `AVTTSEngine.swift:131` is commented out upstream —
@@ -504,6 +516,12 @@ creep — see [`design.md`](design.md).
       check` sees it — it is a runtime isolation check, and the app compiles clean. The fix is
       `SpokenVoice.makeEngine`, a `nonisolated` method reference.
       *The Android half of the compact bar is 4.3.*
+      **Ticked 2026-09-04. This is an iOS-only task and its box was never ticked**, which is
+      the shape `partial-tasks-check` cannot see: an open `[ ]` under a body reading "iOS
+      done". Re-checked rather than read: `SpokenSource.swift` is the second `PlaybackSource`,
+      `ReadAloudDock.swift` and `ReadAloudControls.swift` are gone from the tree, `PlayerDock`
+      is the one bar, and both capture folders hold the frames the entry names. 4.3, the
+      Android half of the same surface, was already `[x]`.
 - [x] 4.3 Android: hand-compose the row in `NavigationSuiteScaffold`'s `content`
       slot, full-width `surfaceContainer`, sharing the navigation bar's container
       colour. **Not** `BottomSheetScaffold` (no `bottomBar` slot, so the peek row
@@ -675,7 +693,7 @@ creep — see [`design.md`](design.md).
 
 ## 5. Controls
 
-- [~] 5.1 Both: speed changes without changing pitch, states a number, is remembered
+- [x] 5.1 Both: speed changes without changing pitch, states a number, is remembered
       per publication and offered as the series default. Range 0.5×–3×.
       **Android done.** The first three clauses were already true — media3 keeps the pitch
       when only the speed moves, `PlaybackSpeed.label` states the number, and `PlaybackSpeed`
@@ -710,6 +728,12 @@ creep — see [`design.md`](design.md).
       Applied before the first sound: `begin(_:source:)` asks the hook and calls `setSpeed`
       before `play`, and `NarratedSource.setSpeed` on a paused player records the number and
       applies it on the next `play` rather than starting the audio.
+      **Ticked 2026-09-04: both halves say done and neither says anything is left.** Verified
+      rather than taken on trust — `Persistence/PlaybackPreferences.swift` with
+      `PlaybackPreferencesTests` beside it, `StoryArcApp.swift:136` calling `wirePlayerSpeed()`
+      from the app's `init`, and Android's `core/persistence/PlaybackPreferences.kt` with its
+      instrumented `PlaybackPreferencesTest`. Nothing here is owed a device: pitch is the
+      platform's guarantee on both sides and the rest is a store.
 - [x] 5.2 Both: skip states its interval on the control, is configurable, and
       crossing a chapter boundary continues rather than stopping. Defaults 15 s back
       and 30 s forward — a **product decision**, recorded as one; media3's own
@@ -944,7 +968,7 @@ creep — see [`design.md`](design.md).
 
 ## 7. Position
 
-- [ ] 7.1 Both: an audiobook's position is an offset in a named part, survives close,
+- [x] 7.1 Both: an audiobook's position is an offset in a named part, survives close,
       restart and re-download, and resolves through content identity like every other
       position.
       **Android: the shape exists and nothing writes it.** `PlaybackPosition` is an offset
@@ -971,6 +995,26 @@ creep — see [`design.md`](design.md).
       then failed on two values that printed identically, and the whole suite took `SIGSEGV`.
       Neither is a defect and neither is flaky: `swift package clean` fixes both. Worth knowing
       before spending an hour on a compiler bug that is not there.
+      **Ticked 2026-09-04, and the Android paragraph above is stale rather than wrong-in-kind.**
+      "The shape exists and nothing writes it" was true when it was written and is not now:
+      `PlayingBook.follow` sets `PlaybackHost.recordPosition` and starts a book from what the
+      store remembers — the wiring is described under 7.2, which is where it landed, and 7.1's
+      own entry never learnt of it. Re-checked at `PlayingBook.kt:110` rather than taken from
+      that entry. So 3.6's resumption is no longer answering from a position nothing updates
+      either, and `reading-progress` got its third `ReadingPosition` case rather than a fourth.
+      **The third clause had no gate on either platform, and now it has one.** "Survives … the
+      file being re-downloaded, and resolves through content identity like every other
+      position" rested on the record being keyed by `PublicationIdentity` for every kind of
+      position alike — true by construction, asserted for a page and never for a listening
+      place. Three cases added to iOS's `ProgressStoreTests` (the round trip, the absent total,
+      and a re-download found by digest at a path the library has never seen) and the
+      re-download case added to Android's `ProgressStoreTest` beside its two. Mutation-checked
+      on iOS by coercing a null total to zero on the way out of the store, which fails the
+      absent-total case by name.
+      **The Android three are instrumented and were compiled, not run** — `pnpm
+      build:android:tests` passes and the device was the parent's. `pnpm gradle
+      :core:persistence:connectedDebugAndroidTest --tests
+      "app.storyarc.core.persistence.ProgressStoreTest"` is what re-proves them.
 > **7.2 and 7.3 each appeared twice, and the duplication had eaten text.** Two pairs of
 > entries carried the same heading: 7.2's first copy had lost its second line — "returning
 > never offers a choice of two" — under a pasted Android body, and 7.3's first copy carried an
@@ -982,7 +1026,7 @@ creep — see [`design.md`](design.md).
 > a body about the skip and speed controls that belongs to 8.1/8.2. Left alone here: §8 is
 > another agent's and both entries are already `[x]`.
 
-- [~] 7.2 Both: a publication both read and listened to has **one** position, and
+- [x] 7.2 Both: a publication both read and listened to has **one** position, and
       returning never offers a choice of two.
       **Android: the position now exists, is stored, and survives.** `design.md` decided it
       on 2026-09-01 and `ReadingPosition.Listening(part, partCount, offsetMillis, ofMillis)`
@@ -1027,6 +1071,15 @@ creep — see [`design.md`](design.md).
       reflowable position the eye would have written — `SpokenPosition`, unchanged. Without
       that guard the player would have written a second, time-shaped position for the same
       book, which is exactly the "choice of two places" `reading-progress` forbids.
+      **Ticked 2026-09-04: both halves are described as done and neither names anything left.**
+      Verified rather than read — Android's `ProgressStoreTest` pins that a listening write
+      over a reflowable record leaves one row holding the listening one, `ListenedPosition.resume`
+      answers null for a position left by reading so there is no second place to offer, and
+      iOS's `wirePlayerRecording` writes a listening position only where `format.isAudio`, so a
+      publication read aloud keeps the reflowable position the eye would have written.
+      **One position is structural on both sides**: there is a single `position` field on
+      `ReadingProgress` and a single row per identity, so a second kind replaces the first
+      rather than sitting beside it. Nothing here is owed a device.
 - [~] 7.3 Both: finishing by listening marks the publication finished and makes the
       same end-of-publication offers as finishing a comic.
       **iOS: the marking is done; the offers are not checked.** `ReachedListening.isFinished`

@@ -363,6 +363,38 @@ class ProgressStoreTest {
     }
 
     /**
+     * `reading-progress`: it "survives … the file being re-downloaded, exactly as a page
+     * index does".
+     *
+     * A re-download lands the same content at a path the library has never seen, so what has
+     * to hold is that the record is keyed by content identity and not by the kind of position
+     * in it. That is `aRecordWrittenAgainstAPathIsFoundAgainByItsDigest` above, asked of the case
+     * that arrived last — the one the columns were added for. iOS pins the same in
+     * `ProgressStoreTests`.
+     */
+    @Test
+    fun aListeningPositionIsFoundAgainByItsDigest() = runTest {
+        val store = store()
+        val position = ReadingPosition.Listening(3, 9, 61_000, 900_000)
+        store.save(
+            ReadingProgress(
+                identity(path = "/downloads/sea-room.m4b"), position, false,
+                updatedAtEpochMillis = 1_000,
+            ),
+        )
+        store.save(
+            ReadingProgress(
+                identity(digest = "sea-room-digest", path = "/downloads/sea-room.m4b"),
+                position, false, updatedAtEpochMillis = 2_000,
+            ),
+        )
+
+        val again = identity(digest = "sea-room-digest", path = "/downloads/sea-room (1).m4b")
+        assertEquals(position, store.progress(again)?.position)
+        assertEquals("one publication, one record", 1, store.recent(10).size)
+    }
+
+    /**
      * A page position is still a page position.
      *
      * The new columns are what tells the three cases apart, and a row written without them
