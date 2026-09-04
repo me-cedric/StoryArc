@@ -604,7 +604,14 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
       `quieter-toolbar-2026-09-02/README.md` now records that its "after" frames show the View
       menu's superseded two-state glyph, and points at the folder that photographs what
       shipped.
-- [ ] 4.2 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
-      `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
-- [ ] 4.3 `pnpm spec:guard:strict`.
+- [x] 4.2 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
+      `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests` — all green on
+      2026-09-04, on `main` with every one of this change's commits merged. 1857 iOS tests in
+      236 suites; SwiftLint 0 violations in **659** files, the same count the cached run inside
+      `pnpm check` reports. The agreement is the point of running the no-cache pass separately:
+      from a working directory that has drifted into `apps/ios/Packages/StoryArcKit` SwiftLint
+      silently reads no config and reports 759 files and hundreds of phantom violations, so a
+      file count that does not match the last run is measuring a different thing.
+- [x] 4.3 `pnpm spec:guard:strict` — 0 errors, 1 warning, and that warning is the pre-existing
+      orphan list (six main specs named by no change, none of them this one's).
 - [ ] 4.4 `/opsx:verify named-failures-and-quieter-chrome`, then `/opsx:sync`.
