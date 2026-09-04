@@ -106,11 +106,17 @@ tasks.withType<Test>().configureEach {
     // after a change in another module, so a violation added to `:feature:library` would
     // not re-run the guard that exists to catch it — the same hole the note above
     // describes, one module wider.
+    //
+    // The pattern is depth-independent, because the three globs it replaced
+    // (`app/`, `core/*/`, `feature/*/`) matched exactly one directory level and the sweep
+    // matches none: a nested module — `core/net/http` — would be read by the guard and
+    // declared by nobody, which is this same UP-TO-DATE hole one level further down.
+    // `build` is excluded because generated sources are not what the guard is auditing and
+    // the sweep prunes them too.
     inputs.files(
         fileTree(rootDir) {
-            include("app/src/main/**/*.kt")
-            include("core/*/src/main/**/*.kt")
-            include("feature/*/src/main/**/*.kt")
+            include("**/src/main/**/*.kt")
+            exclude("**/build/**")
         },
     )
         .withPropertyName("arcStopsGuardSources")

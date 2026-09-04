@@ -161,12 +161,20 @@ class NoSegmentedButtonsTest {
          * listed, and deliberately: `SegmentedListItem` and `ListItemDefaults.segmentedShapes`
          * — a different API, current, and what Material asks for to group list rows. Neither
          * contains "SegmentedButton", so neither is caught by accident.
+         *
+         * **`material3.SegmentedButton` is the fifth entry because the four above missed the
+         * residue this change had to clean by hand.** `ThemeSheet.kt` held three imports of
+         * the retired API and called none of them, so a bare `import
+         * androidx.compose.material3.SegmentedButton` with no call site passed every spelling
+         * listed here. An import is how the component comes back: it compiles, it is what a
+         * copied snippet brings with it, and the next author reads it as permission.
          */
         val RETIRED = listOf(
             "SingleChoiceSegmentedButtonRow",
             "MultiChoiceSegmentedButtonRow",
             "SegmentedButtonDefaults",
             "SegmentedButton(",
+            "material3.SegmentedButton",
         )
     }
 }

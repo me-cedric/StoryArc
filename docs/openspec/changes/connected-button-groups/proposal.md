@@ -8,7 +8,10 @@ by a round-to-square shape change rather than by a fill.
 
 StoryArc themes with `MaterialExpressiveTheme`, so that guidance applies to it. It uses
 `SingleChoiceSegmentedButtonRow` in at least two places — the reader's text-size control
-and the theme sheet's alignment picker.
+and the theme sheet's alignment picker. **Both of those names turned out to be wrong**; the
+two real sites are the PDF text sheet's tabs and the EPUB theme screen's alignment control,
+per task 1.1. The sentence above is left as written because being unable to name its own call
+sites is the argument for the change, not a slip in stating it.
 
 **Nothing in the build will tell anybody.** Compose has *not* deprecated
 `SegmentedButton`; `javap` over `material3-1.5.0-alpha26.aar` shows no deprecation on it at

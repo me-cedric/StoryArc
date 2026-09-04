@@ -13,7 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 
 /**
  * One choice out of a small fixed set, drawn as Material's connected button group.
@@ -33,10 +36,16 @@ import androidx.compose.ui.semantics.semantics
  * wrong, is ours. That is the whole reason this is a shared component rather than a line
  * copied into each sheet.
  *
- * **Selection is the round-to-square shape change, not a fill.** That is the distinction the
- * Expressive guidance actually draws, and it arrives from Material's own `checkedShape` —
- * nothing here paints a container colour. Reproducing the retired component's fill inside the
- * new one would have been the change without the point.
+ * **Selection is the round-to-square shape change, and this component paints no fill.** That
+ * is the distinction the Expressive guidance actually draws, and it arrives from Material's
+ * own `checkedShape` — there is no `colors` argument anywhere below. Reproducing the retired
+ * component's fill inside the new one would have been the change without the point.
+ *
+ * That is a claim about what this component *adds*, not about what a reader sees.
+ * `ToggleButton`'s own default container colour still changes when checked, and in the
+ * captures it reads louder at a glance than the shape does. The point is that the colour is
+ * Material's current answer rather than the retired component's fill re-drawn by us — so it
+ * moves when the library moves.
  *
  * **Accessibility is not what `ToggleButton` gives you.** `ToggleButton` announces
  * `role = Role.Checkbox` — read out of `ToggleButtonKt`'s bytecode, not from the
@@ -44,6 +53,9 @@ import androidx.compose.ui.semantics.semantics
  * reader may pick any number of them. Exactly one of these is ever true, so each child is
  * given `Role.RadioButton` and a `selected` state, and the row is a `selectableGroup`: one
  * control with N selectable children rather than N unrelated buttons.
+ *
+ * Overriding the role is not enough on its own, and the note at the `clearAndSetSemantics`
+ * call says what the merged node actually held before the semantics were cleared instead.
  *
  * **Where this is the wrong component.** Material specifies a connected group for two to
  * five *fixed* toggleable views. The library's search scope chips are neither fixed nor small
@@ -85,9 +97,31 @@ fun ConnectedButtonGroup(
                     // Equal thirds, which is what `SingleChoiceSegmentedButtonRow` gave its
                     // children for free and a plain `Row` does not.
                     .weight(1f)
-                    .semantics {
+                    // **`clearAndSetSemantics`, not `semantics`** — and the difference was
+                    // measured rather than reasoned about. Adding `role` and `selected` on
+                    // top of `ToggleButton` leaves its `ToggleableState` in place: the merged
+                    // node came back
+                    // `Role=RadioButton | Selected=true | ToggleableState=On`, so the option
+                    // announced a radio button's role and a checkbox's state at once. Both
+                    // derive from the same boolean, so they could never disagree — but the
+                    // node this produces, role plus `selected` and nothing else, is exactly
+                    // what `Modifier.selectable` builds, and that is the canonical
+                    // single-select node rather than one with a spare property on it.
+                    //
+                    // The label is re-declared because clearing takes the descendant `Text`'s
+                    // semantics with it, and `onClick` because it takes the button's. **Both
+                    // are a maintenance trap worth naming**: an icon added beside the label
+                    // here will be invisible to a screen reader unless it is named on this
+                    // line too. What is deliberately not restored is autofill and
+                    // text-substitution — a three-option view control is neither a form field
+                    // nor translatable text — and semantic `RequestFocus`, which is an
+                    // accessibility service's `ACTION_FOCUS`; keyboard and D-pad focus is
+                    // `Modifier.focusable`'s behaviour and is untouched.
+                    .clearAndSetSemantics {
                         role = Role.RadioButton
                         selected = isSelected
+                        text = AnnotatedString(label)
+                        onClick { onSelect(index); true }
                     },
             ) {
                 // No `maxLines`, and deliberately: Material forbids a truncated label, and at

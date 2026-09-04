@@ -269,8 +269,12 @@ notice is state rather than an event now — mirrored `SkippedPublications` with
 publication that later opens leave the list without being dismissed. The six-second `dwell` is
 deleted, and it no longer floats over covers.
 
-**Android's retired segmented buttons are connected button groups**, at three call sites — the
-change's design predicted two and named neither correctly.
+**Android's retired segmented buttons are connected button groups**, at **two** call sites,
+with a third file cleared of dead imports — and the change's design named neither call site
+correctly. Three *files* were touched, which is where the "three call sites" this paragraph
+used to claim came from; `ThemeSheet.kt` imported the retired API and called nothing. The
+guard the change installed encodes the real number (`callers.size >= 2`), and a sweep of all
+354 Android main sources finds exactly the two.
 
 **The player's presentation moved to a host its own transport cannot destroy.** Pressing any
 transport control inside the full player dismissed it: `PlayerDock` attached the `.sheet` inside

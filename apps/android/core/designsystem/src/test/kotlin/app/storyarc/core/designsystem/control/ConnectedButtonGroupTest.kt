@@ -223,6 +223,15 @@ class ConnectedButtonGroupTest {
             compose.onNodeWithText(label).assert(
                 SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton),
             )
+            // And the checkbox state is *gone*, not merely overridden. Semantics merge, so
+            // setting `Role.RadioButton` over `ToggleButton`'s own role does not by itself
+            // remove the `ToggleableState` it also sets — and a node carrying both is read
+            // out as a radio button that is checked or unchecked, which is the announcement
+            // this component exists to correct. Asserting the role alone passed while that
+            // was still possible.
+            compose.onNodeWithText(label).assert(
+                SemanticsMatcher.keyNotDefined(SemanticsProperties.ToggleableState),
+            )
         }
     }
 

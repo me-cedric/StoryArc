@@ -23,11 +23,23 @@ per position, and then rolled out to every call site is a piece of work with a s
 
 ## The shape
 
-One internal composable in `core/designsystem`, taking the options and the selected index,
-because there are at least two call sites and a third would otherwise copy the shape logic.
-Selection is shown by Material's own round-to-square change, not by a fill — that is the
-distinction the Expressive guidance actually makes, and reproducing the old fill inside a
+One composable in `core/designsystem`, taking the options and the selected index, because
+there are at least two call sites and a third would otherwise copy the shape logic.
+
+**This paragraph said `internal`, and the implementation had to make it public.** Kotlin's
+`internal` is scoped to the Gradle module, so an `internal` composable in `:core:designsystem`
+is invisible to `:feature:reader` and `:feature:epubreader` — which are the only two things
+that call it. Recorded at task 1.7.
+
+Selection is shown by Material's own round-to-square change rather than by a fill of ours —
+that is the distinction the Expressive guidance makes, and reproducing the old fill inside a
 new component would be the change without the point.
+
+**What shipped still changes colour, and the artifacts should not be read as saying it does
+not.** The component passes no `colors` argument at all, so nothing here paints a container:
+but `ToggleButton`'s own Material default *does* change container colour when checked, and in
+`after-pdf-light-default.png` that reads louder at a glance than the shape does. "Not by a
+fill" is a statement about what this component adds, not about what a reader sees.
 
 ## Where it goes
 
@@ -35,6 +47,14 @@ The `SingleChoiceSegmentedButtonRow` call sites, found by grep at the time of wr
 than assumed: the reader's text-size control and the theme sheet's alignment picker. The
 implementation should re-grep rather than trust this list — the whole premise of the change
 is that nothing in the build tracks these.
+
+**It re-grepped, and both names above were wrong.** Task 1.1 has the detail; the two real
+sites are `feature/reader/.../PdfTextSheet.kt` (the PDF text sheet's *Search* / *Highlights*
+tabs) and `feature/epubreader/.../ThemeAxesScreen.kt` (`AlignmentControl`). There is no
+segmented text-size control anywhere in the app — `FontSizeControl` is two `IconButton`s
+around a `StepDots` row — and the alignment picker is not in `ThemeSheet.kt`, which only held
+the imports. These two lines are here because archiving freezes this file beside the task
+list, and a reader who opens the plan first would go looking for a control that never existed.
 
 ## What is deliberately not touched
 
