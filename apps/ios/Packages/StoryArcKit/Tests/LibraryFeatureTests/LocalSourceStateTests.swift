@@ -78,8 +78,9 @@ struct LocalSourceStateTests {
         ])
 
         model.resolveLocalSources()
-        guard case .unreachable = model.registry.sources.first?.state else {
-            Issue.record("A folder with no restored URL still reads \(String(describing: model.registry.sources.first?.state)).")
+        let state = model.registry.sources.first?.state
+        guard case .unreachable = state else {
+            Issue.record("A folder with no restored URL still reads \(String(describing: state)).")
             return
         }
     }
