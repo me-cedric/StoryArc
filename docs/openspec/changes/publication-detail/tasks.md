@@ -575,7 +575,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       shelf card is `HomeRow.swift:125` and `HomeScreen.kt:358`. `pnpm capture:android --list`
       has the Home route; on iOS the walk is Home ▸ tap, twice, with
       `xcrun simctl io booted screenshot` between.
-- [ ] **2.4** The page for a publication with no series, no year, no description
+- [~] **2.4** The page for a publication with no series, no year, no description
       and no cover — the composition has to hold up with a title and a placeholder.
       Screenshot both platforms.
 
@@ -604,13 +604,55 @@ when a cover was the resume affordance. Whoever syncs should add a
       `after-2026-08-30/ios-detail-iphone-bare-{light,dark}-{top,foot}.png` and
       `ios-detail-iphone-nocover-dark-{top,foot}.png`.
 
-      No test on either platform asserts the four-absence composition.
+      ~~No test on either platform asserts the four-absence composition.~~ **Both do, as of
+      2026-09-05** — `Tests/LibraryFeatureTests/DetailAbsencesTests.swift` (8 cases) and
+      `feature/library/src/test/…/DetailAbsencesTest.kt` (3 compositions). They reach the same
+      four answers differently and deliberately: iOS's host suite composes nothing, so the
+      rules moved out of the two view bodies into `Sources/LibraryFeature/DetailAbsences.swift`
+      — free and pure, for `seriesLine(for:)`'s stated reason — while Android composes
+      `DetailSubtitle` and `DetailMainPane` under Robolectric and asserts what is *drawn*.
+      That is the stronger reach for exactly one of the four: the app bar's subtitle slot
+      being **empty** rather than **blank** is a fact about measured height, not about what a
+      function returned, and the Android test pins it at 0 dp with a control beside it.
 
-      **One correction for whoever picks this up:** `CoverlessWell.swift` is *not*
-      this page's coverless branch. `coverlessWellDrawsTitle(at:)`
-      (`CoverlessWell.swift:37`) has two callers and both are browse surfaces —
-      `CoverCell.swift:211` and `HomeArtwork.swift:76`. The page's branch is
-      `DetailHero.swift:68-83`, and it never draws the title into the well.
+      **A cross-platform divergence found while writing them, and fixed.** iOS drew the
+      description on `!summary.isEmpty` and Android on `takeIf { it.isNotBlank() }`, so a
+      description of three spaces was an absence on Android and, on iOS, a paragraph of the
+      page's own spacing with nothing in it — the delta's "shown empty" exactly. That is not
+      hypothetical: `ComicInfo.xml` writes `<Summary></Summary>` indented onto its own line
+      often enough that whitespace-only is the ordinary shape of "no description". iOS now
+      blank-checks, and **both** suites assert it, because only one of the two would otherwise
+      catch it drifting back. The rule trims for the decision and never for the text — what
+      the scan collected is what the page shows.
+
+      **Proved able to fail.** Reverting `detailSummary(of:)` to `!summary.isEmpty` failed
+      *A description of whitespace is an absence, not an empty paragraph* by name, on four of
+      its five inputs. Reverted.
+
+      **One thing the Android test found about the page rather than about itself:** the
+      coverless well's format name is not in the merged semantics tree at all. `DetailCover`
+      carries `clearAndSetSemantics {}` on purpose — the well is decoration and the title is
+      read out of the app bar — so the assertion has to use `useUnmergedTree`. Worth knowing
+      before someone reads a passing `assertDoesNotExist` as proof the placeholder is gone.
+
+      **~~One correction for whoever picks this up:~~ that correction is now itself out of
+      date.** It said `CoverlessWell.swift` is *not* this page's coverless branch, and it was
+      true when written. `DetailHero.swift`'s `artwork` branch calls `CoverlessWell(format:)`
+      today, and its comment records why: the glyph and the format were written out inline
+      here, which is how the page came to give an **audiobook** a book — `book.closed` was
+      hard-coded. So the page's branch *is* the shared well now, and it still never draws the
+      title into it, which is the half of the old note that still stands.
+
+      **What keeps this at a partial is the layout decision and the capture that would settle
+      it, and neither is a test.** The frame owed: **Android, the degenerate page on a tablet
+      at expanded width**, light, default text size — a publication with no series, no year,
+      no description and no cover — showing whether the composition holds after whatever
+      layout answer is chosen. `after-2026-08-31/android-detail-from-a-cover-light.png` is the
+      before, and its README says three fifths of the page is empty wash with the action
+      pinned to the foot. iOS's own bare captures already exist
+      (`after-2026-08-30/ios-detail-iphone-bare-{light,dark}-{top,foot}.png` and
+      `ios-detail-iphone-nocover-dark-{top,foot}.png`) and are identified in that folder's new
+      README, so iOS owes nothing here.
 
 ## Phase 3 — Provenance and the seam
 

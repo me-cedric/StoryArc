@@ -55,9 +55,12 @@ struct DetailMainColumn: View {
     ///
     /// Absent rather than empty: the delta refuses a placeholder, and this change does not
     /// alter what the scan collects — if a description is missing today it is missing here.
+    /// The rule is ``detailSummary(of:)``, free and pure so the absence is asserted rather
+    /// than read off this `if let`, and blank-checked so a description of three spaces is an
+    /// absence rather than an empty paragraph with the page's own spacing around it.
     @ViewBuilder
     private var summary: some View {
-        if let summary = publication.summary, !summary.isEmpty {
+        if let summary = detailSummary(of: publication) {
             Text(summary)
                 .textRole(.body)
                 .foregroundStyle(theme.palette.textSecondary)

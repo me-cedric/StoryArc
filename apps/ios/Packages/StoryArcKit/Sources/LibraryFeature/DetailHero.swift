@@ -137,11 +137,9 @@ struct DetailTitleBlock: View {
     // and repeated `Ashfall #1` underneath it in the headline role. The hero is where that
     // reads worst, because both lines are large.
 
-    /// Author and year, joined only where both exist.
-    private var secondaryLine: String? {
-        var parts: [String] = []
-        if let author = publication.authors.first { parts.append(author) }
-        if let year = publication.year { parts.append(String(year)) }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
-    }
+    /// Author and year, joined only where both exist — ``detailSecondaryLine(for:)``.
+    ///
+    /// Free and pure there rather than computed here, so the delta's "absent rather than
+    /// shown empty" is a test instead of a reading of the `if let` above it.
+    private var secondaryLine: String? { detailSecondaryLine(for: publication) }
 }
