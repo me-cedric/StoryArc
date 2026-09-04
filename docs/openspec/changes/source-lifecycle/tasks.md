@@ -146,7 +146,7 @@ dark, at default and largest text size. A `#Preview` and a `@Preview` do not cou
 
 ## 5. The honest limit in the cached indicator
 
-- [ ] 5.1 Make the scanner report whether it could read the folder, so the cached notice stays when a walk saw nothing because the folder was unreadable and leaves only when a walk genuinely found an empty folder. Write the failing test first — a walk over an unreadable folder keeps the notice — then change the scanner on both platforms
+- [x] 5.1 Make the scanner report whether it could read the folder, so the cached notice stays when a walk saw nothing because the folder was unreadable and leaves only when a walk genuinely found an empty folder. Write the failing test first — a walk over an unreadable folder keeps the notice — then change the scanner on both platforms
       **The scanner now reports it, on both platforms.** `scan` takes an
       `onUnreadableFolder` reporter, called with the path of every directory the walk could
       not list. A lambda rather than a fourth `ScanEvent`: the terminal event is matched
@@ -163,11 +163,29 @@ dark, at default and largest text size. A `#Preview` and a `@Preview` do not cou
       finished event alone cannot tell the two apart* — and a genuinely mode-0 directory, which
       both suites make and both actually ran (0 skipped). Mutation-checked on Android:
       restoring the swallowed listing failure fails four of the six; restored byte for byte.
-      **The consumer is not changed and the notice therefore still leaves.** `LibraryScanning`
-      and `LibraryViewModel` must pass a reporter and refuse to clear `cachedAt` / remove
-      vanished publications on a walk that reported one. Named in the handoff. `entries(in:)`
-      still swallows the same failure, deliberately and with a note: nothing compares a
-      snapshot without having just walked the same folder.
+      **The consumers are changed now, on 2026-09-05, and the notice stays.** `LibraryScanning`
+      and `LibraryViewModel` pass a reporter per walked scope; `cacheLibrary` takes the answer
+      and neither clears the indicator nor stamps `now` into the snapshot, and
+      `ScanReconciliation.vanished` takes the partial scopes and removes nothing from one.
+      **The reconcile's half is the one the emptiness rule could never have covered.** "A walk
+      that found nothing removes nothing" was an inference, and it only ever caught the folder
+      that became unreadable *whole*. A folder that loses one subdirectory still returns rows,
+      so the walk looked complete and every book under the branch it could not list was
+      removed as though the reader had deleted it. That is the case both new suites drive.
+      **And on iOS nothing had ever called `cacheLibrary` after a walk at all.** Its only
+      caller was the per-source *clear cache* action, so no snapshot was ever written, none was
+      restored, `cachedAt` was never set — and `CachedNotice`, a drawn view with its own
+      string, could not appear. The honest limit 5.1 set out to close was therefore not the
+      only thing wrong with the notice on that platform; the scan writes a snapshot now, at the
+      end of every place it walked, where Android has always written one. `LibraryModel.swift`
+      was one line under SwiftLint's file length, so the pair moved to `LibraryCaching.swift`.
+      **Asserted by the four readability cases in 6.2's suites**, mutation-checked on both
+      platforms: dropping the reconcile's guard fails exactly *a walk that lost one subfolder
+      still holds the books that were under it*; dropping the snapshot's fails exactly *a walk
+      that could not read the folder keeps the cached notice*; removing the snapshot write
+      fails four iOS cases. Every file restored byte for byte.
+      `entries(in:)` still swallows the same failure, deliberately and with a note: nothing
+      compares a snapshot without having just walked the same folder.
 
 ## 6. Test gaps the audit named
 
@@ -187,7 +205,31 @@ dark, at default and largest text size. A `#Preview` and a `@Preview` do not cou
       fails the drop case and nothing else; carrying `Connected` through `toDomain` fails the
       state case and nothing else. Each mutation was reverted and the store restored byte for
       byte.
-- [ ] 6.2 Assert the library-feature behaviours nothing currently covers on either platform: the empty state, the cached notice, the incremental refresh, and the disappearance removal. Four cases per platform, mirrored case for case
+- [x] 6.2 Assert the library-feature behaviours nothing currently covers on either platform: the empty state, the cached notice, the incremental refresh, and the disappearance removal. Four cases per platform, mirrored case for case
+      **Eight per platform, not four**, in `LibraryShelfLifecycleTests.swift` and
+      `ShelfLifecycleTest.kt`, mirrored name for name: the four this task names plus the four
+      5.1 owes — the notice leaving on a good walk, the notice staying on an unreadable one,
+      the wholly unreadable folder that removes nothing, and the partial walk that keeps what
+      was under the branch it could not list.
+      **Two of the four were broken, and neither broke a test.** The cached notice could not
+      appear on iOS at all (5.1's note has the reason), and the reconcile removed books under
+      an unlistable subdirectory on both.
+      **Real folders and the real corpus**, driving the actual model rather than a fake walk.
+      Android runs under Robolectric over the app's *managed* folder, which is what makes it
+      possible at all: with no picked folder there is no document tree, so `rescan` takes the
+      `File` overload a JVM can reach. `SkippedScanTest`'s note — that Android's view model
+      cannot be driven from a unit test — held only for the tree overload.
+      **The incremental refresh is asserted at the moment it could go wrong**: the instant the
+      second walk is started, before anything has been found again. Asserting the end state
+      would pass against a model that emptied the shelf and refilled it, which is the thing
+      `sources` forbids.
+      **The unreadable directories are genuinely mode 0**, and both suites report 0 skipped, so
+      neither `assumeTrue` fired and neither process was running as root.
+      **A consequence worth recording:** the iOS suites that scan now take their own
+      `LibraryCache`. From this change on a walk writes a snapshot, the default location is the
+      machine's caches directory, and `LibraryRestoreTests` was putting another test's shelf up
+      before its own walk began — two of its cases failed on the first run after the write was
+      wired, which is the shared-cache defect finding itself.
 - [x] 6.3 Assert that the diagnostic export's source section is a count and never a list, on both platforms — the one regression that would leak a hostname or a token
       **Seven cases per platform, and the section is now a real count.** It was the literal
       `configured = 0` on both — a count in shape and a falsehood in fact, so a reader with

@@ -184,10 +184,15 @@ rather than two the reader must correlate.
   hostname or a token.
 - **[The metadata cache becomes a second source of truth.]** → The staleness
   window and the refresh are visible, per the spec's "cached-content indicator".
-  **One honest limit remains:** the cached notice leaves when a walk completes,
-  even a walk that saw nothing, because the scanner does not report whether it
-  could read the folder. The shelf survives such a walk but stops saying it is
-  cached. Task 5.1 closes it.
+  **The honest limit recorded here is closed** (task 5.1, 2026-09-05): the scanner
+  reports every directory it could not list, and the notice now leaves only when a
+  walk genuinely read the folder. Closing it turned up two things this section had
+  not seen. The emptiness rule it described — a walk that found nothing removes
+  nothing — was an inference that only ever covered a folder unreadable *whole*; a
+  folder that lost one subdirectory still returned rows, so the books under the
+  branch it could not list were removed as though deleted. And on iOS nothing had
+  ever called `cacheLibrary` after a walk at all, so no snapshot was written, none
+  was restored, and the indicator could not appear in the first place.
 - **[Everything above compiles and is asserted, and nobody has watched it work.]**
   → This is the largest open risk in the change and it is not a test gap. The
   Simulator control this repo uses has been down and no emulator was available, so
