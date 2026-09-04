@@ -204,6 +204,17 @@ private struct HomeHeroCard: View {
                 .multilineTextAlignment(.leading)
                 .minimumScaleFactor(0.7)
 
+            if let byline {
+                Text(byline)
+                    .textRole(.footnote)
+                    .foregroundStyle(.white.opacity(0.82))
+                    .lineLimit(1)
+            }
+
+            if let fraction {
+                progressBar(fraction)
+            }
+
             if let line {
                 Text(line)
                     .textRole(.footnote)
@@ -222,23 +233,42 @@ private struct HomeHeroCard: View {
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
     }
 
-    /// The small line above the title: what this issue belongs to.
+    /// What this issue belongs to. ``HomeCardIdentity/kicker(of:)``.
+    private var kicker: String? { HomeCardIdentity.kicker(of: publication) }
+
+    /// Who wrote it, where the card has room to say so. ``HomeCardIdentity/byline(of:)``.
+    private var byline: String? { HomeCardIdentity.byline(of: publication) }
+
+    /// How far through, as a thing to see rather than a thing to read.
     ///
-    /// The series where there is one, because that is what a reader recognises before they
-    /// recognise an issue title. Otherwise whoever published it, and otherwise nothing —
-    /// an uppercase "CBZ" over someone's artwork is a file extension wearing a kicker.
+    /// `nil` where ``LibraryModel/readFraction(of:)`` is: a bar at zero under every card
+    /// would be a promise of information the app does not have. An unreachable publication
+    /// keeps its bar — the reader's position is still true, and taking it away would make
+    /// a Wi-Fi drop look like lost reading, which is what the dimming rule exists to avoid.
+    private var fraction: Double? { model.readFraction(of: publication) }
+
+    /// The bar itself: fixed light on the scrim, like the words above it.
     ///
-    /// Absent when the title already carries the series, which is most of a folder library:
-    /// a title guessed from a filename usually *is* the series and the issue joined back
-    /// together, and "EMBER LINES" set over "Ember Lines #2" is an echo rather than a
-    /// second fact.
-    private var kicker: String? {
-        if let series = publication.series,
-            !publication.displayTitle.localizedCaseInsensitiveContains(series) {
-            return series
+    /// Hand-drawn rather than a `ProgressView`, because a `.linear` progress view takes the
+    /// tint from the environment and this bar sits on a dark scrim in every theme — the
+    /// accent that is legible on paper is not legible here. Hidden from assistive
+    /// technology: the line under it already says what it shows, and a bar that announced
+    /// "58 per cent" beside "42 pages left" would say the same thing twice in two units.
+    private func progressBar(_ fraction: Double) -> some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(.white.opacity(0.28))
+                Capsule()
+                    .fill(.white)
+                    .frame(width: proxy.size.width * min(max(fraction, 0), 1))
+            }
         }
-        return publication.publisher
+        .frame(height: Self.progressBarHeight)
+        .accessibilityHidden(true)
     }
+
+    /// Thin enough to read as a rule under the byline rather than as a control.
+    private static let progressBarHeight: CGFloat = 4
 
     /// What is left to read, or why it cannot be read right now.
     private var line: String? {
@@ -249,6 +279,6 @@ private struct HomeHeroCard: View {
     }
 
     private var spoken: String {
-        [publication.displayTitle, kicker, line].compactMap { $0 }.joined(separator: ", ")
+        [publication.displayTitle, byline, kicker, line].compactMap { $0 }.joined(separator: ", ")
     }
 }

@@ -53,6 +53,49 @@ extension LibraryModel {
     }
 }
 
+/// The two lines above and below a hero card's title.
+///
+/// Pure, and separate from the view, for the reason ``HomeRemainder`` gives: the rule is the
+/// requirement and the rendering is not. Both decisions are one-liners with a condition in
+/// them, and a condition inside a `View`'s body is a condition no host test can reach.
+enum HomeCardIdentity {
+
+    /// The small line above the title: what this issue belongs to.
+    ///
+    /// The series where there is one, because that is what a reader recognises before they
+    /// recognise an issue title. Otherwise whoever published it, and otherwise nothing —
+    /// an uppercase "CBZ" over someone's artwork is a file extension wearing a kicker.
+    ///
+    /// Absent when the title already carries the series, which is most of a folder library:
+    /// a title guessed from a filename usually *is* the series and the issue joined back
+    /// together, and "EMBER LINES" set over "Ember Lines #2" is an echo rather than a
+    /// second fact.
+    static func kicker(of publication: Publication) -> String? {
+        if let series = publication.series,
+            !publication.displayTitle.localizedCaseInsensitiveContains(series) {
+            return series
+        }
+        return publication.publisher
+    }
+
+    /// Who wrote it, where the card has room to say so.
+    ///
+    /// `home-screen`: the author is named "because a title alone is not enough to recognise
+    /// a book by" — a folder library is full of `Vol 3` and `Chapter 12`, and a shelf of
+    /// those is a shelf of strangers.
+    ///
+    /// The first author rather than all of them, which is what every other cell in this app
+    /// shows — ``CoverCell``, ``CoverList``, ``HomeRow`` — so the same book reads the same
+    /// way wherever the reader meets it. And nothing at all when the kicker already carries
+    /// the name: a self-published author is their own publisher, and the card would set one
+    /// fact twice, once in small caps and once under the title.
+    static func byline(of publication: Publication) -> String? {
+        guard let author = publication.authors.first, !author.isEmpty else { return nil }
+        guard let kicker = kicker(of: publication) else { return author }
+        return author.caseInsensitiveCompare(kicker) == .orderedSame ? nil : author
+    }
+}
+
 /// What Home can honestly say is left of a publication.
 ///
 /// A decision rather than a string, for the reason ``LibraryModel/remaining(of:)`` gives.

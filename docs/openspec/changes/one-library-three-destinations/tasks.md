@@ -80,8 +80,53 @@ card carries a kicker, a title and one line, has **no** `ProgressView`, names no
 kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up to 420pt — about
 **half** a phone's height, where the review said "nearly a full viewport".
 
-- [ ] 0b.1 Both: progress is visible as well as stated, and the author is named where the card
+- [~] 0b.1 Both: progress is visible as well as stated, and the author is named where the card
       has room. A title alone is not enough to recognise a book by.
+
+      **Code landed on both platforms 2026-09-05; the frames are owed.**
+
+      **The task's own preamble was half wrong, and the half it got wrong saved work.**
+      It says the card "has **no** `ProgressView`" — true of iOS, and not of Android, which
+      has drawn `LinearWavyProgressIndicator` in `HomeKeepReadingCard` since the card was
+      written. So *progress is visible* was already met on one platform and only iOS needed
+      it. What neither platform had was the author.
+
+      iOS: `HomeHero.swift` gains a byline under the title and a hand-drawn capsule bar fed
+      by `LibraryModel.readFraction(of:)`. Hand-drawn rather than a `ProgressView`, because
+      a linear progress view takes its tint from the environment and this bar sits on a dark
+      scrim in **every** theme — the accent that is legible on paper is not legible there.
+      The bar is `accessibilityHidden`: the line beside it already states what is left in
+      pages, and a bar announcing a percentage next to it is one fact in two units, which is
+      the thing *Resuming* names as not to do.
+
+      Android: `HomeCards.kt` gains the byline. The carousel's height budget went from
+      `homeCaptionHeight(lines = 5)` to `6` with it — a budget that had not moved would clip
+      the last line at exactly the text sizes it matters most at.
+
+      **The two rules are deliberately not the same rule, and that is worth reading before
+      "fixing" it.** iOS's card carries a kicker above the title, and its byline is
+      suppressed when it would repeat that kicker — a self-published author is their own
+      publisher, and the publisher is the kicker's fallback. Android's card has no kicker,
+      so there is nothing to repeat and the rule is the shorter one. Each test says so.
+
+      Tests: `Tests/LibraryFeatureTests/HomeCardIdentityTests.swift` (7 cases over the new
+      pure `HomeCardIdentity`, which is where the kicker and byline decisions moved out of
+      the view so a host test could reach them) plus a two-case wiring guard that the hero
+      still asks for a fraction and still draws it;
+      `feature/library/…/HomeCardBylineTest.kt` (3 cases). All green.
+
+      **Frames owed** — the hero, before and after, on both platforms:
+      - iOS, iPhone, Home with at least two publications in progress: light and dark, at
+        default and largest text size (4 frames). The byline and the bar have to be legible
+        over a **pale** cover as well as a dark one, so the walk must put a light-covered
+        publication first — that is what the scrim exists for and it is the one thing a
+        dark-cover capture cannot show.
+      - Android, phone, Home carousel: light and dark, default and largest text size
+        (4 frames). At largest text size the point is the `lines = 6` budget — the "what is
+        left" line must not be clipped.
+      - Route: `pnpm capture:android Home --dark --font-scale 2.0` and the matching light
+        and default runs; iOS by the `LibrarySelectionCapture`-style walk that opens a book,
+        reads a page, backs out, and lands on Home with something in progress.
 - [ ] 0b.2 Both: a named resume action on the card, as well as the card being tappable. Both do
       the same thing — a card that is a button with no button on it teaches nothing about what
       tapping does.

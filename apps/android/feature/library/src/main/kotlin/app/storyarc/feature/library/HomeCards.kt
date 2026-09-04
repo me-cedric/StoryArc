@@ -123,6 +123,13 @@ internal fun HomeCoverArt(
  * The progress line is `LinearWavyProgressIndicator`, Expressive's own determinate
  * indicator, and it carries no text of its own — how much is left is said in pages beside
  * it, because `home-screen` refuses a percentage as the only answer.
+ *
+ * **The byline was added 2026-09-05**, against *The card shows how far through, not only
+ * how much is left*: "the publication's author is named where the card has room for it,
+ * because a title alone is not enough to recognise a book by". A folder library is full of
+ * `Vol 3` and `Chapter 12`, and a shelf of those is a shelf of strangers. The first author
+ * only, which is what `CoverGrid` and `CoverList` already show, so a book reads the same
+ * way wherever the reader meets it.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -172,6 +179,16 @@ internal fun HomeKeepReadingCard(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+
+        homeBylineText(entry.publication)?.let { author ->
+            Text(
+                text = author,
+                style = MaterialTheme.typography.bodyMedium,
+                color = palette.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
 
         LinearWavyProgressIndicator(
             progress = { entry.fraction.toFloat() },
@@ -248,6 +265,24 @@ internal fun HomeShelfCell(
         }
     }
 }
+
+/**
+ * Who wrote it, where the card has room to say so.
+ *
+ * `home-screen`: the author is named "because a title alone is not enough to recognise a
+ * book by" — a folder library is full of `Vol 3` and `Chapter 12`, and a shelf of those is
+ * a shelf of strangers.
+ *
+ * The first author rather than all of them, which is what `CoverGrid` and `CoverList`
+ * already show, so a book reads the same way wherever the reader meets it. `null` rather
+ * than a blank where there is no name: a row held open for the publications that have no
+ * author is a gap the reader reads as a bug.
+ *
+ * Not `@Composable`, for the reason `homeHeroWidth` is not: it is a rule, and a rule inside
+ * a composable is a rule no plain JVM suite can reach. `HomeCardBylineTest` is that reach.
+ */
+internal fun homeBylineText(publication: Publication): String? =
+    publication.authors.firstOrNull()?.takeIf { it.isNotBlank() }
 
 /**
  * What one card announces to a screen reader.
