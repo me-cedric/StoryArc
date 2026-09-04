@@ -9,6 +9,10 @@ It exists to be read by someone who has never seen the code. Every row below say
 file is a picture of and what state the app was in; the last two sections say what is **not**
 here, and what looked wrong to the person taking it.
 
+244 frames, covering 130 surfaces: an iPhone 17 Pro in light and dark, an iPad Pro 11-inch in
+landscape, and a simulator created bare for the first-run states a development device can
+never show.
+
 ## How to read a filename
 
 ```
@@ -83,9 +87,6 @@ property on the model, changes in memory, and is tapped for real.
 | On this device | `ios-library-on-this-device.png` | The availability axis narrowed |
 | Add books | `ios-library-add-books.png` | The menu open: five ways in |
 | Add books | `ios-library-add-books-ax5.png` | Open, largest text size |
-| Failure notice | `ios-skipped-notice.png` | Two publications that could not be opened |
-| Failure notice | `ios-skipped-notice-ax5.png` | Largest text size |
-| What could not be opened | `ios-skipped-list.png` | The list behind the notice, with a reason each |
 
 ## Search
 
@@ -121,7 +122,6 @@ property on the model, changes in memory, and is tapped for real.
 | Bare | `ios-detail-bare.png` | No series, no description, no other issue |
 | An audiobook | `ios-detail-audiobook.png` | The primary action reads *Listen* |
 | Overflow menu | `ios-detail-more-actions.png` | Everything that is not *open it* |
-| Restart | `ios-detail-restart-confirm.png` | Starting again from page one, confirmed |
 
 ## The comic reader
 
@@ -133,7 +133,6 @@ property on the model, changes in memory, and is tapped for real.
 | Menu | `ios-comic-reader-menu.png` | The medium detent, page visible behind |
 | Menu | `ios-comic-reader-menu-ax5.png` | Largest text size |
 | Menu, expanded | `ios-comic-reader-menu-expanded.png` | The large detent |
-| Fit picker | `ios-comic-reader-fit-picker.png` | Screen · Width · Height · 1:1 |
 | Transition picker | `ios-comic-reader-transition-picker.png` | With the reasons under refused modes |
 | Thumbnails | `ios-comic-reader-thumbnails.png` | Every page, current one marked |
 | Image adjustments | `ios-comic-reader-adjustments.png` | The one surface that changes the artwork |
@@ -154,25 +153,20 @@ property on the model, changes in memory, and is tapped for real.
 | Search in book | `ios-epub-search.png` | At rest, with its prompt |
 | Bookmarks | `ios-epub-bookmarks.png` | Empty, with the instruction |
 | Notes | `ios-epub-notes.png` | Empty, with the instruction |
-| Read aloud | `ios-epub-read-aloud.png` | The docked transport over the page |
+| A note | `ios-epub-note-dialog.png` | Being written over a selected passage |
 
 ## The player
 
 | Surface | File | State |
 | --- | --- | --- |
-| Compact bar | `ios-compact-player.png` | Over the library |
 | Compact bar | `ios-player-compact-on-home.png` | Over Home |
 | Compact bar | `ios-player-compact-on-search.png` | Over Search |
 | Compact bar | `ios-player-compact-ax5.png` | Largest text size |
-| The control | `ios-library-nothing-playing.png` | The same shelf with no session — the control frame |
 | Full player | `ios-player-full.png` | Cover, transport, scrub, three settings |
-| Full player | `ios-full-player-largest-text.png` | Largest text size |
 | Chapters | `ios-player-chapters.png` | Each with its length, the current one marked |
 | Chapters | `ios-player-chapters-ax5.png` | Largest text size |
 | Speed | `ios-player-speed.png` | The stops, current one ticked |
 | Sleep timer | `ios-player-sleep-sheet.png` | The picker, including *End of chapter* |
-| Sleep timer | `ios-sleep-timer-set.png` | Set to five minutes |
-| Sleep timer | `ios-sleep-timer-counting.png` | Three seconds of playback later — it moved |
 
 ## Settings
 
@@ -184,8 +178,6 @@ property on the model, changes in memory, and is tapped for real.
 | Appearance | `ios-settings-appearance.png` | Four modes, Natural, the reading-theme link |
 | Appearance | `ios-settings-appearance-ax5.png` | Largest text size |
 | Appearance, Natural on | `ios-settings-appearance-natural.png` | The axis that crosses the four modes |
-| App icon chooser | `ios-app-icon-chooser.png` | Five faces at the foot of Appearance |
-| App icon chooser | `ios-app-icon-chooser-ax5.png` | Largest text size |
 | Reading | `ios-settings-reading.png` | The volume-buttons sentence, and the defaults |
 | Reading | `ios-settings-reading-ax5.png` | Largest text size |
 | Reading, matte | `ios-settings-reading-matte.png` | The colour behind a comic page |
@@ -198,10 +190,6 @@ property on the model, changes in memory, and is tapped for real.
 | The same, from Sources | `ios-source-catalogue-detail.png` | Reached through *Your libraries* |
 | An unreachable source | `ios-source-unreachable-detail.png` | *Not answering* — grey, never red |
 | About | `ios-settings-about.png` | Version, licence, acknowledgements |
-| About | `ios-about.png` | The same screen from the older walk |
-| What's new | `ios-whats-new.png` | The sheet, on the launch after an update |
-| What's new | `ios-whats-new-ax5.png` | Largest text size |
-| What's new | `ios-whats-new-from-about.png` | Reached from About, which does not mark it seen |
 | Reset | `ios-settings-reset-confirm.png` | Naming what survives |
 
 ## Adding a library
@@ -219,7 +207,13 @@ property on the model, changes in memory, and is tapped for real.
 ## iPad, landscape
 
 Sixteen iPad frames already exist in `../after-2026-08-30/` and every one of them is portrait.
-These are the landscape pass, on an iPad Pro 11-inch.
+These are the landscape pass, on an iPad Pro 11-inch (iOS 26.5), with the phone's corpus copied
+into it.
+
+**They are letterboxed, and that is the screenshot rather than the app.** `XCUIScreenshot`
+returns the device's own canvas, which stays portrait while the interface is landscape — so
+each frame is the landscape window with black above and below it. Crop before showing one to
+anybody; nothing about the bands is the app's.
 
 | Surface | File | State |
 | --- | --- | --- |
@@ -229,7 +223,7 @@ These are the landscape pass, on an iPad Pro 11-inch.
 | Library, list | `ios-ipad-library-list.png` | A row with an iPad's width to fill |
 | Downloads | `ios-ipad-downloads.png` | Landscape |
 | Search | `ios-ipad-search.png` | Landscape, at rest |
-| Sidebar | `ios-ipad-sidebar.png` | The four destinations, then the rows a phone never draws |
+| Sidebar | `ios-ipad-sidebar-dark.png` | The four destinations, then the rows a phone never draws — **dark only** |
 | Detail column | `ios-ipad-detail.png` | A publication page beside the shelf |
 | Comic reader | `ios-ipad-comic-reader.png` | A page filling a landscape iPad |
 
@@ -260,16 +254,23 @@ of a surface the sweep also photographs; the ones below are the surfaces only th
 | Home | `ios-home.png` | The destination at rest |
 | Library | `ios-library.png` | The shelf at rest |
 | Library | `ios-library-ax5.png` | Largest text size |
-| Library, scrolled | `ios-library-end.png` | The end of the shelf, where the tab-bar inset is settled |
 | Search | `ios-search.png` | At rest |
 | Search | `ios-search-ax5.png` | Largest text size |
 | Downloads | `ios-downloads.png` | The destination at rest |
-| Reflowable reader | `ios-reader-on-arrival.png` | The chrome the reader draws itself |
-| Reflowable reader | `ios-reader-after-the-countdown.png` | Four seconds later, chrome gone |
-| Reflowable reader | `ios-reader-after-centre-tap.png` | Brought back |
-| Theme sheet | `ios-theme-sheet.png` | The six presets |
-| Theme sheet | `ios-theme-sheet-largest.png` | Largest text size |
 | Comic reader | `ios-comic-reader-chrome.png` | The chrome over a saturated page |
+| Skipped notice | `ios-skipped-notice.png` | Two publications that could not be opened |
+| Skipped notice | `ios-skipped-notice-ax5.png` | Largest text size |
+| What could not be opened | `ios-skipped-list.png` | The list behind it, with a reason each |
+| About | `ios-about.png` | Version, licence, acknowledgements |
+| Compact player | `ios-compact-player.png` | Over the library |
+| Full player | `ios-full-player.png` | Cover, transport, scrub, three settings |
+| Full player | `ios-full-player-largest-text.png` | Largest text size |
+| Sleep timer | `ios-sleep-timer-set.png` | Set to five minutes |
+| Sleep timer | `ios-sleep-timer-counting.png` | Three seconds of playback later — it moved |
+| The control | `ios-library-nothing-playing.png` | The same shelf with no session |
+| What's new | `ios-whats-new.png` | The sheet, on the launch after an update |
+| What's new | `ios-whats-new-ax5.png` | Largest text size |
+| What's new | `ios-whats-new-from-about.png` | Reached from About, which does not mark it seen |
 
 ## What is not here, and why
 
@@ -315,6 +316,33 @@ is `SweepEpubReaderTests.testCaptureEpubNoteDialog` and it skips with what it sa
 and typing into the simulator garbles ASCII — a French keyboard layout, recorded in this
 repository twice. The empty-query root is here; a search result page is not.
 
+**The app-icon chooser, the theme sheet's preset grid under its own name, and the reflowable
+reader's arrival trio.** All five come from `ScreenshotTests` and `AppIconCaptureTests`, whose
+runs were stopped: their walk to the reflowable reader is `EpubWalk.openTheEpubReader(in:)`,
+which on this corpus opens two fixed-layout books and waits fifteen seconds for each before
+finding a reflowable one — twenty-five minutes a suite, twice for light and dark. The sweep's
+own `epub-theme-presets` is the same sheet, and the icon chooser has a folder of its own at
+`../app-icon-chooser-2026-09-01/`. To take them anyway:
+
+```
+node scripts/capture-ios.mjs --out docs/designs/screenshots/ios-sweep-2026-09-02 \
+  --only ScreenshotTests --appearance light
+node scripts/capture-ios.mjs --out docs/designs/screenshots/ios-sweep-2026-09-02 \
+  --only AppIconCaptureTests/testCaptureAppIconChooser --appearance light
+```
+
+**The comic reader's fit picker.** Tapping the row opens nothing — see the last section. There
+is no frame because there was nothing to photograph.
+
+**Two iPad frames have one appearance rather than two.** `ios-ipad-comic-reader.png` is light
+only — the dark walk found no CBZ cover in the screenful it looked at — and
+`ios-ipad-sidebar-dark.png` is dark only, the light walk having opened on a window whose
+sidebar was already out, which its own guard treats as nothing to reveal. Both are one re-run
+away; neither shows anything the other appearance would contradict.
+
+**The EPUB reader's read-aloud bar.** `SweepEpubReaderTests.testCaptureEpubReadAloud` finds no
+read-aloud row in the menu on this publication and skips saying so.
+
 **Starting again from page one.** The confirmation exists and is worth a frame, but the
 control that opens it is only offered on a publication with a recorded position, and this sweep
 pins the query and the settings rather than reading anything. `detail-restart-confirm` skips
@@ -334,6 +362,17 @@ a publication to its last page.
 
 Nothing here was fixed. Each item names the frame that shows it. They are ordered by how
 likely they are to be a defect rather than a decision.
+
+**Home has no hero on an iPad.** The phone opens on *Continue reading* with a full-width
+cover; the iPad opens straight into *Recently added*, with no hero at all, on the same device
+state and the same publication with a recorded position. `ios-ipad-home.png` against
+`ios-home-top.png`. The widest window in the app is the one that drops the largest thing on
+the screen.
+
+**A horizontal shelf on an iPad stretches its covers.** In *Recently added* on the iPad the
+cells are wider than they are tall, while the same artwork in the iPad's own library grid is
+the portrait 2:3 the fixtures actually are. `ios-ipad-home.png` against `ios-ipad-library.png`.
+`design.md` says letterbox rather than crop, and neither is happening here.
 
 **An audiobook's progress is measured in pages.** Home's *Continue reading* hero says
 `2 pages left` for `Sea Room`, which is an M4B. `ios-home-top.png`. `home.pagesLeft` is the
