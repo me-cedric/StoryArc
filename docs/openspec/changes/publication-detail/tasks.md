@@ -219,7 +219,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       that the value is read by one screen's own subtree, and that Material's own subtree
       mechanism is the thing the deliverable forbids. The line counts above were stale by
       twenty and sixty lines respectively and are corrected here from the source.
-- [ ] **1.3** Host tests, mirrored case for case per the project's rule for
+- [x] **1.3** Host tests, mirrored case for case per the project's rule for
       mirrored code: a colour that clears the floor, one that must be adjusted to
       clear it, a monochrome cover that yields nothing, and an undecodable cover.
       Both platforms assert the same answers.
@@ -250,6 +250,52 @@ when a cover was the resume affordance. Whoever syncs should add a
       zero-size-bitmap path at `CoverAccent.kt:169` is uncovered. Before this can
       be ticked the two suites have to assert the same answers about the same
       thing, which first means deciding whether Android should have a `DetailWash`.
+
+      ---
+
+      **Closed 2026-09-05. The decision first: Android does not get a `DetailWash`, and the
+      reason is compositional rather than a shortcut.** iOS's wash is the *page's background*
+      — `DetailBackground` behind a scroll with the title block, the description and the
+      provenance line drawn over it — so it needs a second adjustment iOS's `DetailWash`
+      performs and `CoverAccent` cannot: a blend strength walked down until **body text**
+      clears 4.5:1 against the washed canvas. Android's wash is a *container*: `DetailHero`'s
+      `Surface`, holding the cover in its own `surfaceSunken` well and the filled action, and
+      **no text is drawn on it at all** — the title and the series ride the
+      `LargeFlexibleTopAppBar` (`DetailHero.kt:198`, `:216`) and the coverless placeholder's
+      format name sits inside the cover's own well (`DetailHero.kt:180-186`). A `DetailWash`
+      here would walk a blend against a text colour this surface never carries.
+      `CoverAccent.wash` already darkens until white clears AA, which is the pair Android
+      actually draws, and the accent is then floor-checked against that wash. Same answers,
+      different composition — ADR-0001's case, and the divergence is recorded at
+      `DetailAccentTest.aColourThatCannotBeUsedRawIsAdjustedUntilItClearsTheFloor` rather
+      than left implicit.
+
+      **So the four named cases are now asserted at feature level on both, answer for
+      answer.** Android gained the two it lacked, in `DetailAccentTest.kt`: *must be
+      adjusted* (a near-black cover whose accent has to move off the wash, with the label's
+      own floor against the accent asserted beside it) and *undecodable*
+      (`CoverAccent.derived(IntArray(0))`). iOS gained the symmetric adjustment case it did
+      not have — a **pale** cover on the **light** palette, `aPaleColourIsAdjusted`; every
+      "must be adjusted" assertion in that file had walked the same direction, and
+      `CoverAccent.legible` tries darker and lighter as separate paths.
+
+      **The "genuinely undecodable" finding was right about the tests and wrong about where
+      the case lives, and the correction is the useful half.** Neither `pixels` branch is
+      reachable from the app. On iOS `derivedWash()` guards `let cover` *before* calling
+      `CoverAccent.pixels(of:)`, so a cover that failed to decode never becomes an empty
+      census — the page has no cover and `DetailWash.drawn` returns zero. On Android
+      `rememberDetailAccent` is handed `null` for the same reason, and
+      `CoverAccent.pixels`' `width <= 0` guard cannot be reached at all: `Bitmap` throws
+      `IllegalArgumentException` on a zero dimension, measured under Robolectric rather than
+      assumed. The empty census is the *defensive* shape; both suites now pin it, and both
+      say so.
+
+      **One case stopped being unmirrorable.** `CoverAccent.kt` recorded `pixels` as "the one
+      part of this file no JVM unit test reaches", which was true of a plain JVM test and not
+      of a Robolectric one. `DetailAccentTest.aRealCoverComesBackAsTheGrid` puts a solid
+      64x64 `Bitmap` through it and asserts the census size and the dominant colour — iOS's
+      `samplesToTheGrid`, mirrored. The doc comment is corrected in the same pass, so the
+      extractor suites are 14 against 14 rather than 14 against 13.
 - [ ] **1.4** Screenshot the wash under increased contrast and reduced
       transparency, where the delta requires a plain surface rather than a softened
       one.

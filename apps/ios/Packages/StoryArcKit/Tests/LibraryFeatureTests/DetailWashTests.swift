@@ -62,11 +62,45 @@ struct DetailWashTests {
         #expect(DetailWash.of(cover: field(0xFFFF_FF), canvas: lightCanvas, text: lightText) == nil)
     }
 
-    /// A cover that could not be decoded reaches this as no pixels at all. It reads the same
-    /// way as a cover with no colour, which is what keeps the page from having a third state.
+    /// Task 1.3's fourth case, and the record of where it actually lives.
+    ///
+    /// **This used to say a cover that could not be decoded "reaches this as no pixels at
+    /// all", and it does not.** ``PublicationDetailView/derivedWash()`` guards on
+    /// `let cover` before it calls ``StoryArcCore/CoverAccent/pixels(of:)``, so a cover that
+    /// failed to decode never becomes an empty census — the page simply has no cover and
+    /// ``DetailWash/drawn(_:isPlain:)`` returns zero, which ``nothingToDraw`` is the
+    /// assertion for. Android's page is in the same position for the same reason:
+    /// `rememberDetailAccent` is handed `null` and never asks the extractor, and
+    /// `CoverAccent.pixels`' own zero-size guard is unreachable because `Bitmap` refuses a
+    /// zero dimension at construction.
+    ///
+    /// So the empty census is the *defensive* shape rather than the reachable one, and it is
+    /// still worth pinning: it is what keeps a cover with no colour and a cover with no
+    /// pixels from becoming two different states on the page. Android asserts the same
+    /// answer from the same shape in `DetailAccentTest.aCoverThatNeverDecodedYieldsNothing`.
     @Test("An undecodable cover yields no wash")
     func noPixelsYieldNothing() {
         #expect(DetailWash.of(cover: [], canvas: darkCanvas, text: darkText) == nil)
+        #expect(DetailWash.of(cover: [], canvas: lightCanvas, text: lightText) == nil)
+    }
+
+    /// The adjustment case again, from the other end of the scale.
+    ///
+    /// A pale cover on the light palette is the symmetric failure to a near-black cover on
+    /// the dark one, and it was untested: every "must be adjusted" assertion in this file
+    /// walked the same direction. ``StoryArcCore/CoverAccent/legible(_:on:)`` tries darker
+    /// and lighter at each step, so the two directions are separate code paths and a change
+    /// that broke one would leave the other green.
+    @Test("A pale colour on the light palette is adjusted too")
+    func aPaleColourIsAdjusted() throws {
+        let wash = try #require(
+            DetailWash.of(cover: field(0xF2D9_8C), canvas: lightCanvas, text: lightText)
+        )
+
+        #expect(wash.tint != "#F2D98C")
+        #expect(ReadingContrast.ratio(wash.tint, lightCanvas) >= CoverAccent.floor)
+        let washed = DetailWash.blend(wash.tint, into: lightCanvas, by: wash.strength)
+        #expect(ReadingContrast.ratio(washed, lightText) >= ReadingContrast.aa)
     }
 
     /// Both palettes, because the wash is checked against the page it is drawn on and the

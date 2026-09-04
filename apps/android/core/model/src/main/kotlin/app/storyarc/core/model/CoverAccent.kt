@@ -165,8 +165,17 @@ object CoverAccent {
      * A row at a time, because the alternative is a second full-size copy of the page
      * in memory to scale it into, and `native-experience` puts a budget on that.
      *
-     * The one part of this file no JVM unit test reaches, which is why it does nothing
-     * but hand pixels to [dominant].
+     * **This used to say "the one part of this file no JVM unit test reaches", and that was
+     * only ever true of a plain JVM test.** `:feature:library` runs Robolectric, which
+     * supplies a real `Bitmap`, so `DetailAccentTest.aRealCoverComesBackAsTheGrid` puts a
+     * solid 64x64 through this and asserts the census grid and the dominant colour -- iOS's
+     * `samplesToTheGrid`, which had been the one case the two extractor suites did not
+     * share. It still does nothing but hand pixels to [dominant], which is why one case is
+     * enough.
+     *
+     * The `width <= 0` guard is defensive and unreachable from the app: `Bitmap` refuses a
+     * zero dimension at construction. A cover that cannot be decoded arrives as `null` and
+     * never reaches here at all.
      */
     fun pixels(bitmap: Bitmap): IntArray {
         val width = bitmap.width
