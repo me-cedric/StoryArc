@@ -19,12 +19,23 @@ exists under `docs/designs/screenshots/` with something on record saying what it
 shows. A task whose code has landed and whose capture has not stays **unticked**
 — its note says which capture is owed and what it has to prove. A task that asks
 for something the change has since decided against is left unticked with the
-decision cited, never ticked and never dropped. Six of twenty-three are ticked.
+decision cited, never ticked and never dropped. **A `[~]` is a third state**: the code and
+its tests have landed and a named capture has not. `pnpm partial:tasks` counts all three,
+because `openspec-guard` counts only the first two and would otherwise call this change
+archivable. **Twelve of twenty-three are ticked, eight are partial, three are open.**
 
 **Audited against `main` at `6c931e61`, 2026-08-31**, with `path:line` evidence
 read from the source rather than from any note. Two ticks were **withdrawn** in
 that audit — 2.3 and 3.4 — because reading the code found work each of them still
 owes. What landed under them is kept in their notes; only the tick moved.
+
+**Worked again on 2026-09-05 with no simulator and no emulator**, on `main` at `8ee74e46`.
+Every open task was re-read against the source before it was believed, and **five of them had
+notes the tree had already overtaken** — 1.2, 2.2, 2.3, 3.4 and 4.2 each described work that
+was done. Those corrections are in the tasks themselves, because a note that is wrong about
+the code costs more than a missing tick. What could not be done is the photography: every
+frame this change owes is now named by surface, state, appearance and walk, in its own task
+and again on 5.5's list, which is how §6 is discharged by a pass that has no device.
 
 ---
 
@@ -893,6 +904,24 @@ when a cover was the resume affordance. Whoever syncs should add a
       twenty of them added in one commit (`e3cff4ac`) in all four locales at once,
       plus `detail_pane_empty` from task 4.3.
 
+      **Re-counted 2026-09-05: it is now 33, not 32, and one of the eleven listed above no
+      longer exists.** iOS carries **13** `detail.*` keys and Android **20** `detail_*`
+      strings. What moved since the note was written, in both directions:
+
+      - `detail_action_refused` is **deleted** on Android — the unreachable label task 2.2
+        found. So the "one of the twenty-one is unreachable" sentence above is discharged
+        rather than outstanding.
+      - iOS gained `detail.listen` and `detail.continueListening` from
+        `audiobooks-and-playback`, which is a different change spending this page's vocabulary.
+      - `detail.back` / `detail_back` and `detail_series_heading` were not in the original
+        count.
+
+      **This pass added none, and that is deliberate.** Task 3.2's fix — a downloaded
+      publication saying it is on this device and also elsewhere — reused
+      `detail_provenance_also`, the wrapper that already existed, rather than writing a
+      thirty-fourth. Where a sentence a reader can see was needed, an existing key was found;
+      where none existed, the work was left rather than the catalogue grown.
+
       **Why the constraint was overtaken, honestly.** The page has states no
       existing string covers — four availability clauses, a refusal that has to
       explain itself, and a whole "this one is gone" screen — and the delta requires
@@ -933,7 +962,19 @@ when a cover was the resume affordance. Whoever syncs should add a
       Android and unmet on iOS for exactly one reason — there is no second pane to
       put a sentence in. Whoever gives iOS a real split column writes that sentence
       back with the pane it belongs to.
-- [ ] **4.2** Android: the detail pane, with predictive back animated by the
+
+      **Re-verified 2026-09-05 and unchanged: still open, and still not this pass's to close.**
+      `grep -rn "NavigationSplitView"` over `apps/ios` returns the same two hits and both are
+      comments explaining the absence (`PublicationRoute.swift:137`, `LibraryView.swift:19`).
+      The hero half is still built — `DetailHero.swift:42` is `.backgroundExtensionEffect()`.
+      Giving iOS a detail column means replacing the shell's `TabView`, which is
+      `one-library-three-destinations`' file and its argument; a page cannot grow a pane the
+      app has nowhere to put. **The three frames owed are unchanged and unreachable until it
+      does**: iPad portrait, iPad landscape, and Split View beside another app — each showing
+      whether the hero art reads as carrying under the sidebar in a `TabView` rather than in a
+      split, which is the one thing `backgroundExtensionEffect` here has never been watched
+      doing.
+- [~] **4.2** Android: the detail pane, with predictive back animated by the
       scaffold. Screenshot expanded width, and the narrow-then-widen path.
 
       **The pane is real and it is Material's own scaffold. Predictive back is not
@@ -968,6 +1009,52 @@ when a cover was the resume affordance. Whoever syncs should add a
       `after-2026-08-31/android-tablet-two-panes-light.png`. **The narrow-then-widen
       path is captured nowhere** — `android-large-list-detail-back.png` is a back
       press, not a resize.
+
+      ---
+
+      **Both defects are fixed and this note had not caught up — verified in the source
+      2026-09-05. Captures-only now.**
+
+      **Predictive back is animated.** `PredictiveBackHost` had zero call sites when this was
+      written; it has two. The second wraps the shell's **navigation area**
+      (`AppShell.kt:345`), which is where the app's one consolidated back rule lives and where
+      `AppContent` — and therefore the panes — is composed, so the pane's gesture is previewed
+      by the app's own shrink-and-round transform. What was a plain
+      `androidx.activity.compose.BackHandler` with no progress is a `PredictiveBack` inside a
+      host. The host sits inside the navigation area rather than around the whole shell,
+      because back never takes the bar or the rail away and shrinking them would preview an
+      exit that is not going to happen; Settings' own host nests inside it, and the static
+      composition local makes each transform apply exactly once.
+
+      **One correction to this task's framing rather than to the code.** It reads the clause as
+      "animated by *the scaffold*", which is `design.md`'s composition table. The **delta**
+      says only "on Android the gesture previews that return as the system requires"
+      (*Going back*), and `Panes.kt` records why the scaffold is deliberately not the animator:
+      `NavigableListDetailPaneScaffold` would add a second back rule beside `AppNavigation.back`.
+      The requirement is met by the app's own host; the design table's wording is what is out
+      of date.
+
+      **And the back arrow knows about the pane.** `PublicationDetailScreen` takes
+      `isBesideList` and draws no navigation icon when it is true, with the reason at the
+      parameter: there is nowhere to go back *to* when the list has never left the window, and
+      Material's own `ListDetailPaneScaffold` hides the affordance for exactly that. It is
+      passed `true` from `AppPanes.kt:128` and defaults to `false` everywhere else, so a
+      pushed page keeps its arrow. `onBack` is still called — by the system gesture, and by
+      the "this is gone" screen's own button, which does have somewhere to go.
+
+      **The frame owed, named exactly: the narrow-then-widen path on Android**, and it is a
+      **sequence of three**, at the default text size, light:
+
+      1. Expanded width, a publication chosen, both panes drawn.
+      2. The same window resized below 840 dp — the page fills it, and the shelf is gone.
+      3. Widened again — both panes, **with the same publication still shown**, which is the
+         clause (`The window narrows`: "widening the window again restores both panes, with
+         the same publication shown"). A single frame proves nothing here; the claim is that
+         state survived a resize, and only the third frame against the first says so.
+
+      Walk: an emulator in multi-window or a foldable AVD, dragging the split. The three
+      existing expanded-width captures are all step 1 and none is step 3; the one named
+      `android-large-list-detail-back.png` is a back press rather than a resize.
 - [x] **4.3** The empty second pane before a publication is chosen — one
       sentence, not an arbitrary publication. Screenshot both platforms.
       **Done on Android, and the screenshot the previous note called outstanding
@@ -1016,7 +1103,7 @@ when a cover was the resume affordance. Whoever syncs should add a
 
 - [x] **5.1** `corepack pnpm spec:validate`. **Green**, 2026-08-31 at `6c931e61`:
       23 items passed, 0 failed, this change among them.
-- [ ] **5.2** iOS: `swiftlint lint --strict`, `swift build`, `swift test`,
+- [x] **5.2** iOS: `swiftlint lint --strict`, `swift build`, `swift test`,
       `pnpm build:ios`. The new screen must not put any Swift file over 400 lines —
       compose it from several.
       **The composition clause is comfortably met and the four commands were not
@@ -1029,13 +1116,58 @@ when a cover was the resume affordance. Whoever syncs should add a
       the largest of 468 is `Sources/Formats/EpubReader.swift` at exactly 400.
       Note that no script enforces this: `package.json:22` runs ten checks and none
       counts a line.
-- [ ] **5.3** Android: `./gradlew test lint`, 800-line cap.
+
+      **Run 2026-09-05, and the four commands are five here, because the repository's own
+      wrappers are what CI uses. All from the repository root, on this change's tree:**
+
+      | Command | Result |
+      | --- | --- |
+      | `swiftlint --strict --no-cache` | **passed** — 0 violations in 662 files. From the root and only the root: it reads `.swiftlint.yml` from the working directory, so a run after a `cd` into the package lints `.build/checkouts` too and reports hundreds of phantom violations |
+      | `pnpm test:ios` (`swift build` + `swift test`) | **partial** — 1872 tests, 3 issues, **all pre-existing and none in this change's files** |
+      | `pnpm build:ios` | **passed**, and **cold**: `xcodebuild clean` first, then a full build, exit 0, zero `error:` lines |
+      | `pnpm build:ios:tests` | **passed**, exit 0 — nothing else compiles `apps/ios/UITests` |
+      | `pnpm lines:check` | **passed** — 4 recorded files, none grew, nothing new crossed 800 |
+
+      **The three pre-existing failures, so the next runner does not chase them.**
+      `LibraryRestoreTests` — *A file handed over by another app comes back as a publication*
+      (2 issues) and *A remembered file joins the folders rather than replacing them* (1). Both
+      fail on `holdsSomething(from: handed, in: model)`: a file bookmarked out of the corpus
+      does not come back on the shelf after `restoreFolders()`.
+
+      **Proved not this change's, twice over.** They reproduce with every one of its iOS source
+      edits stashed and its two new files moved out of the tree, and
+      `swift test --filter rememberedFileIsAPublication` fails on its own, so it is not
+      interference from a neighbouring suite either. They also **passed on this session's first
+      run** and have failed on every run since, including on that clean tree — so the trigger is
+      machine state outside the repository rather than any diff. `pnpm fixtures:check` reports
+      the corpus current and the fixture the test copies is present. Worth knowing before the
+      next gate run reads it as a regression.
+
+      **The composition clause still holds after this wave.** The page gained
+      `DetailAbsences.swift` at 45 lines and `DetailMainColumn.swift` gave up two to it;
+      nothing is near the 400-line cap.
+- [x] **5.3** Android: `./gradlew test lint`, 800-line cap.
       **This change's own file is inside the cap and the commands were not run
       here.** `feature/library/…/PublicationDetailScreen.kt` is 492 lines,
       `DetailHero.kt` and `DetailActions.kt` are smaller again. Five Kotlin files in
       the repository are over 800 and none of them belongs to this change; the list
       and the counts are in `one-library-three-destinations` task 6.3, which owns
       that gate.
+
+      **Run 2026-09-05, all green, from the repository root:**
+
+      | Command | Result |
+      | --- | --- |
+      | `pnpm test:android` | **passed**, exit 0 |
+      | `pnpm lint:android` | **passed**, exit 0 |
+      | `pnpm build:android:tests` | **passed**, exit 0 — nothing else compiles `src/androidTest` |
+      | `pnpm lines:check` | **passed** — the 800-line ratchet, which *is* scripted here even though iOS's 400 is not |
+
+      `PublicationDetailScreen.kt` is **568** lines after this wave — the note's 492 was two
+      waves out of date and it is still comfortably inside the cap. `LibraryViewModel.kt`
+      **shrank**, from the 1690 the ratchet has recorded to 1688, because task 3.4's deletion
+      took out more than the tombstone put back. That is the one file in this change's reach
+      that is already over the cap, so it is the one where the direction matters.
 - [x] **5.4** `corepack pnpm lint`, which includes `tokens:check` — the derived
       colour has to clear the same contrast gate the palette does.
       **Green**, 2026-08-31 at `6c931e61`, exit 0. `tokens:check` passes, and it is
@@ -1072,6 +1204,56 @@ when a cover was the resume affordance. Whoever syncs should add a
       filename alone. Four of this change's are among the ones that cannot be:
       `ios-detail-iphone-contrast-{light,dark}-{top,foot}.png` is read as *increased*
       contrast by convention, and nothing in the repository says so.
+
+      ---
+
+      **Re-listed 2026-09-05, after a pass with no device on it. One item is discharged, one
+      is added, and every remaining frame is named by surface, state, appearance and the walk
+      that takes it — in the task it belongs to, not only here.**
+
+      **Discharged: the identification problem.** `after-2026-08-30/README.md` now exists,
+      scoped to this change's own `*-detail-*` captures and saying so in its first line, so
+      the four contrast frames are identified and read off the pixels: against the plain
+      capture four minutes earlier on the same device, the contrast ground is the palette's
+      plain surface where the other carries a wash pulled from the cover, and the platform's
+      increased-contrast hairline on the cover, the button and the overflow is the control
+      that makes it evidence. Identifying the folder's other ~110 files is still nobody's, and
+      it is still this task's finding rather than its work.
+
+      **The list, nine frames or sequences, seven of them still owed as they were:**
+
+      1. **The three states of the page** — a downloaded local publication, a cached remote
+         one, one whose source is unreachable — light and dark, both platforms. Tasks 2.1 and
+         2.2, where each is spelled out with the branch it exercises and the `pnpm opds` walk
+         that produces it.
+      2. **The two paths from the home surface**, each a *pair* of frames because a picture of
+         a page says nothing about which affordance opened it. Task 2.3.
+      3. **The four browse surfaces with no origin on them** — home, library **in the list
+         layout**, on-device, and search, which is the exception and therefore has to show the
+         opposite. Task 3.4.
+      4. **The wash under reduced transparency on iOS**, and **Android's high-contrast
+         branch**. Task 1.4. There is deliberately no third frame for Android under reduced
+         transparency: the platform has no such setting, and the delta now carries that as a
+         clause rather than a code comment.
+      5. **iPad portrait, landscape and Split View.** Task 4.1 — and unreachable until iOS has
+         a detail column at all, which is the shell's business.
+      6. **The narrow-then-widen path on Android**, a sequence of three: two panes, narrowed,
+         widened again *with the same publication still shown*. Task 4.2.
+      7. **A capture of the degenerate page that holds up.** Task 2.4 — the one that exists
+         shows that it does not, and the layout decision comes before the frame.
+      8. **New, and this pass's own debt: the provenance line on a downloaded server
+         publication**, light and dark. Task 3.2's fix changed that sentence from *From
+         ‹server›* to *On this device · also elsewhere in your library*, which is a change a
+         reader can see and therefore owes §6 proof. Walk: `pnpm kavita`, add the source,
+         download a chapter, open its page.
+      9. **Still nothing on either platform at the largest text size for this page except
+         iOS's `-ax5-` pair**, which predates most of what the page now draws.
+
+      **What a device-less pass could do instead, and did:** every frame above is now named to
+      the point where taking it is mechanical — which surface, which state, which appearance,
+      which walk, and what the frame has to *show* rather than merely contain. Three of the
+      nine are sequences or pairs rather than single frames, and that distinction was not in
+      this list before; a single frame would have been taken and would have proved nothing.
 
 ## Delta merge, 2026-09-04 — not this change's own work
 
