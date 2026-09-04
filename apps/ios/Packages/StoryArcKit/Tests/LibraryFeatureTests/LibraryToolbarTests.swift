@@ -61,6 +61,17 @@ struct LibraryToolbarTests {
     private static let toolbar = code(of: "Sources/LibraryFeature/LibraryToolbar.swift")
     private static let controls = code(of: "Sources/LibraryFeature/LibraryBrowsingControls.swift")
 
+    /// The toolbar's code with every whitespace character removed.
+    ///
+    /// **So the count cannot be evaded by a line break.** `ToolbarItem(placement:` is 42
+    /// characters before anything is nested in it, and the 120-column limit puts a fifth
+    /// item one qualifier away from being wrapped as
+    /// `ToolbarItem(\n    placement: .primaryAction\n)` — the same declaration, a different
+    /// string, and a count that reads four against five items. Packed, both spellings are
+    /// `ToolbarItem(placement:.primaryAction)`, so the needle below carries no spaces
+    /// either.
+    private static let packedToolbar = toolbar.filter { !$0.isWhitespace }
+
     /// One toolbar item: what it is, the key it is named by, and where it is declared.
     ///
     /// The *path* rather than the source text. A tuple carrying the whole file put four
@@ -86,9 +97,13 @@ struct LibraryToolbarTests {
         Item(what: "add books", key: "library.addSource", file: "AddSourceMenu.swift"),
     ]
 
+    /// Counted against the packed source, so the spelling cannot drift out from under it.
+    ///
+    /// ``theCountCannotBeEvaded`` holds the other two routes past this number, which are the
+    /// two other ways to declare a control in the same bar.
     @Test("There are four items in the primary action, not six")
     func fourItems() {
-        let found = Self.toolbar.ranges(of: "ToolbarItem(placement: .primaryAction)").count
+        let found = Self.packedToolbar.ranges(of: "ToolbarItem(placement:.primaryAction)").count
         #expect(
             found == 4,
             """
@@ -97,6 +112,41 @@ struct LibraryToolbarTests {
             add books. There were six before this change — the review that reported the \
             defect counted five and undercounted — and every one added back is another \
             unlabelled glyph in a row of them.
+            """
+        )
+    }
+
+    /// The two other spellings that put a control in this bar, neither of which is counted.
+    ///
+    /// **A count of one exact literal is a control over one exact literal.** `ToolbarItem`
+    /// is not the only way to declare an item, and `.primaryAction` is not the only
+    /// placement that draws into the same row: `ToolbarItemGroup` is a single declaration
+    /// holding as many controls as it is handed, so the count stays four while the row
+    /// grows; and `.secondaryAction` puts an item behind the bar's overflow, which is a
+    /// fifth thing this toolbar offers and is invisible to a count of the first placement.
+    ///
+    /// Neither is used today and neither should start being. A fifth choice belongs inside
+    /// `ViewMenu` or `FilterMenu` — that is what folding two of the six in established, and
+    /// an overflow arrived at from a bar of four is the row of unlabelled glyphs again with
+    /// one more tap in front of it.
+    @Test("Neither of the two spellings that evade the count is used")
+    func theCountCannotBeEvaded() {
+        #expect(
+            !Self.toolbar.contains("ToolbarItemGroup("),
+            """
+            The toolbar declares a `ToolbarItemGroup`, which holds any number of controls in \
+            one declaration — so `fourItems` goes on counting four while the row grows. Four \
+            items are four declarations here; what groups them visually is `ToolbarSpacer`.
+            """
+        )
+        #expect(
+            !Self.toolbar.contains(".secondaryAction"),
+            """
+            The toolbar mounts an item in `.secondaryAction`, which lands it behind the \
+            bar's overflow rather than in the bar — so `fourItems` does not see it. It is \
+            still a fifth control this toolbar offers, and `library-browsing` asks for the \
+            choices to be reached through the two named menus rather than through an \
+            overflow of their own.
             """
         )
     }
