@@ -989,30 +989,29 @@
     },
     "downloads.manageInDestination": {
       "extractionState": "manual",
-      "comment": "Where the files went when they left this screen for their own destination.",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alles auf diesem Gerät, und alles, was noch ankommt, finden Sie unter Downloads."
+            "value": "Gezählt wird, was StoryArc heruntergeladen oder importiert hat. Ein Ordner, den Sie hinzugefügt haben, ist ebenfalls ohne Netz lesbar, und seine Dateien werden hier nicht gezählt. Alles auf diesem Gerät finden Sie unter Downloads."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Everything on this device, and anything still arriving, is in Downloads."
+            "value": "This counts what StoryArc downloaded or imported. A folder you added is readable without a network too, and its files are not counted here. Everything on this device is in Downloads."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todo lo que hay en este dispositivo, y todo lo que aún está llegando, está en Descargas."
+            "value": "Esto cuenta lo que StoryArc ha descargado o importado. Una carpeta que hayas añadido también se puede leer sin red, y sus archivos no se cuentan aquí. Todo lo que hay en este dispositivo está en Descargas."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tout ce qui est sur cet appareil, et tout ce qui arrive encore, se trouve dans Téléchargements."
+            "value": "Ceci compte ce que StoryArc a téléchargé ou importé. Un dossier que vous avez ajouté est lui aussi lisible sans réseau, et ses fichiers ne sont pas comptés ici. Tout ce qui est sur cet appareil se trouve dans Téléchargements."
           }
         }
       }
@@ -1459,25 +1458,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Belegter Speicher"
+            "value": "Von Downloads belegter Speicher"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Space used"
+            "value": "Space used by downloads"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Espacio utilizado"
+            "value": "Espacio utilizado por las descargas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Espace utilisé"
+            "value": "Espace utilisé par les téléchargements"
           }
         }
       }
@@ -2996,25 +2995,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nichts auf diesem Gerät"
+            "value": "Nichts heruntergeladen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing on this device"
+            "value": "Nothing downloaded"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nada en este dispositivo"
+            "value": "Nada descargado"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien sur cet appareil"
+            "value": "Rien de téléchargé"
           }
         }
       }
@@ -3054,25 +3053,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ auf diesem Gerät"
+            "value": "%@ heruntergeladen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ on this device"
+            "value": "%@ downloaded"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ en este dispositivo"
+            "value": "%@ descargados"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ sur cet appareil"
+            "value": "%@ téléchargés"
           }
         }
       }

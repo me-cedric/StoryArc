@@ -184,13 +184,13 @@ private struct DownloadQueueRow: View {
         }
     }
 
-    /// A byte count as a person reads it.
+    /// A byte count as a person reads it, through the app's one helper for it.
     ///
-    /// `spellsOutZero: false`, which is the app's one way of writing a size — see
-    /// ``SettingsFeature/PrivacySettings``. A transfer that has not started yet reads
-    /// "0 bytes of 41 MB", never "Zero kB of 41 MB".
+    /// ``Persistence/DownloadStore/formatted(_:)``, so a transfer that has not started yet
+    /// reads "0 bytes of 41 MB" and the total at the foot of this same screen reads
+    /// "0 bytes" too, rather than "Zero kB".
     private func size(_ bytes: Int64) -> String {
-        bytes.formatted(.byteCount(style: .file, spellsOutZero: false))
+        DownloadStore.formatted(bytes)
     }
 
     private func reorder(later: Bool, symbol: String) -> some View {

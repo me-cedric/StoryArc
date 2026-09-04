@@ -181,6 +181,26 @@ public struct DownloadStore {
         return without
     }
 
+    /// A size as this app writes it, everywhere it writes one.
+    ///
+    /// Here rather than at each call site because the September sweep found the same figure
+    /// written two ways one screen apart: Settings › Downloads and storage said *Space used
+    /// — Zero kB* while Privacy said *Downloads · 0 bytes*. Both are `bytesOnDisk`; the
+    /// platform formatter spells zero out unless it is told not to, and only one of the
+    /// three call sites had told it. A number that changes its wording between screens
+    /// reads as a different number.
+    ///
+    /// `spellsOutZero: false`, so an empty device reads "0 bytes" beside "129 kB" rather
+    /// than "Zero kB" — the argument `PrivacySettings` had already made for its own row
+    /// while the other two carried on spelling it out.
+    ///
+    /// On the store because the store is what measures it: ``bytesOnDisk()`` walks the
+    /// directory, and the type that produces the number is the one place its spelling
+    /// cannot drift away from.
+    public static func formatted(_ bytes: Int64) -> String {
+        bytes.formatted(.byteCount(style: .file, spellsOutZero: false))
+    }
+
     /// The file extension a media type implies, or `bin` when it implies none.
     ///
     /// Here rather than in the caller: the store chose the name when the file was written

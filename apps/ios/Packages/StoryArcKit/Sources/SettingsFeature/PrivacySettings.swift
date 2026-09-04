@@ -217,13 +217,16 @@ struct PrivacySettings: View {
 
     /// The downloads total, in the units the rest of the app shows it in.
     ///
-    /// The platform formatter rather than ``formattedBytes``: this is the one figure on this
-    /// screen a reader can also see elsewhere — the Downloads group and the Settings summary
-    /// show the same `bytesOnDisk` this way, and one number rendered two ways reads as two
-    /// numbers. `spellsOutZero` is off because an empty device should read "0 kB" beside
-    /// "129 kB", not "Zero kB".
+    /// ``DownloadStore/formatted(_:)`` rather than ``formattedBytes``: this is the one
+    /// figure on this screen a reader can also see elsewhere, and one number rendered two
+    /// ways reads as two numbers.
+    ///
+    /// This comment used to claim the Downloads group and the Settings summary showed
+    /// `bytesOnDisk` "this way". They did not — both spelled the zero out, so a reader went
+    /// from *Zero kB* to *0 bytes* in two taps. The claim is true now because there is one
+    /// function and all three call it.
     private func formattedDownloads(_ bytes: Int64) -> String {
-        bytes.formatted(.byteCount(style: .file, spellsOutZero: false))
+        DownloadStore.formatted(bytes)
     }
 
     private func clearable(

@@ -679,25 +679,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Belegter Speicher"
+            "value": "Von Downloads belegter Speicher"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Space used"
+            "value": "Space used by downloads"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Espacio utilizado"
+            "value": "Espacio utilizado por las descargas"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Espace utilisé"
+            "value": "Espace utilisé par les téléchargements"
           }
         }
       }

@@ -193,12 +193,20 @@ struct DownloadsDestination: View {
     }
 
     /// What the files weigh, stated once and quietly.
+    ///
+    /// **It says *downloads*, and the shelf above it says *on this device*, because those
+    /// are two different sets.** The shelf is everything readable with no network, which
+    /// `offline-downloads` asks for "whatever source it came from and however it got there"
+    /// — a folder the reader picked included. This figure is the app's own downloads
+    /// directory, walked. A reader with nine local publications and no downloads sees nine
+    /// covers over a line reading zero, and until this row named what it counts that read
+    /// as the screen contradicting itself.
     private var space: some View {
         HStack {
             Text("downloads.total")
                 .foregroundStyle(theme.palette.textSecondary)
             Spacer(minLength: StoryArcSpace.md)
-            Text(bytesOnDisk.formatted(.byteCount(style: .file)))
+            Text(DownloadStore.formatted(bytesOnDisk))
                 .foregroundStyle(theme.palette.textSecondary)
         }
         .textRole(.footnote)
@@ -243,7 +251,7 @@ struct DownloadsDestination: View {
     }
 
     private func size(_ download: Download) -> String {
-        download.downloadedBytes.formatted(.byteCount(style: .file))
+        DownloadStore.formatted(download.downloadedBytes)
     }
 
     /// Moves a queued download one place. One place at a time rather than a drag, because

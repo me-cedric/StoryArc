@@ -1,6 +1,7 @@
 internal import SwiftUI
 
 internal import DesignSystem
+internal import Persistence
 internal import StoryArcCore
 
 /// What the reader has asked of the queue, and what it has spent.
@@ -36,15 +37,19 @@ struct DownloadsSettings: View {
 
             Section {
                 LabeledContent {
-                    Text(bytesOnDisk.formatted(.byteCount(style: .file)))
+                    Text(DownloadStore.formatted(bytesOnDisk))
                         .foregroundStyle(theme.palette.textSecondary)
                 } label: {
                     Text("downloads.total", bundle: .module)
                         .foregroundStyle(theme.palette.textPrimary)
                 }
             } footer: {
-                // Said rather than implied. A reader who came here looking for their files
-                // has to be told where they went, or the move is a feature that vanished.
+                // Said rather than implied, twice over. A reader who came here looking for
+                // their files has to be told where they went, or the move is a feature that
+                // vanished — and a reader looking at this figure has to be told what it
+                // counts, or the nine publications on the Downloads shelf make it a lie.
+                // It counts what StoryArc fetched or imported; a folder the reader added is
+                // readable with no network and is nobody's bytes but theirs.
                 Text("downloads.manageInDestination", bundle: .module)
             }
         }
