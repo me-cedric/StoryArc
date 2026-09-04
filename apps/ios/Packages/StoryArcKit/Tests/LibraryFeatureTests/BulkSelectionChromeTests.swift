@@ -34,43 +34,14 @@ import Testing
 struct BulkSelectionChromeTests {
 
     // MARK: - Where the chrome is mounted
+    //
+    // The `#filePath` walk and the catalogue reader moved to ``LibraryFeatureSource`` when this
+    // file crossed SwiftLint's 400-line cap, because a second suite now reads them too.
 
-    /// A source file in the package under test, reached from `#filePath` rather than found.
-    ///
-    /// So it is inside the checkout being compiled, by construction. Walking up looking for
-    /// a marker leaves it: this repository nests agent worktrees at `.claude/worktrees/`,
-    /// and a walk climbs out of the one under test.
-    private static func source(_ relativePath: String) -> String {
-        let package = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let file = package.appending(path: relativePath)
-        guard let text = try? String(contentsOf: file, encoding: .utf8) else {
-            fatalError("\(relativePath) is not at \(file.path) — has it moved?")
-        }
-        return text
-    }
-
-    /// A file's code, with `//` prose removed.
-    ///
-    /// Every one of these files explains the defect it fixes, and those comments name the
-    /// tab bar, the rectangle and the icon-only labels in order to say they are gone. A
-    /// guard that searched the prose would pass on the documentation of the change.
-    private static func code(of relativePath: String) -> String {
-        source(relativePath)
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { line -> String in
-                guard let comment = line.range(of: "//") else { return String(line) }
-                return String(line[line.startIndex..<comment.lowerBound])
-            }
-            .joined(separator: "\n")
-    }
-
-    private static let view = code(of: "Sources/LibraryFeature/LibraryView.swift")
-    private static let toolbar = code(of: "Sources/LibraryFeature/LibraryToolbar.swift")
-    private static let bar = code(of: "Sources/LibraryFeature/BulkActionBar.swift")
-    private static let shelfActions = code(of: "Sources/LibraryFeature/ShelfBulkActions.swift")
+    private static let view = LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryView.swift")
+    private static let toolbar = LibraryFeatureSource.code(of: "Sources/LibraryFeature/LibraryToolbar.swift")
+    private static let bar = LibraryFeatureSource.code(of: "Sources/LibraryFeature/BulkActionBar.swift")
+    private static let shelfActions = LibraryFeatureSource.code(of: "Sources/LibraryFeature/ShelfBulkActions.swift")
 
     /// **The assertion that pins the fix.** The tab bar is not up while the actions are.
     ///
@@ -278,7 +249,7 @@ struct BulkSelectionChromeTests {
     func eachNameIsTranslated(_ action: Action) throws {
         for language in ["en", "fr", "de", "es"] {
             #expect(
-                Self.localizations(of: action.key)[language] != nil,
+                LibraryFeatureSource.localizations(of: action.key)[language] != nil,
                 "`\(action.key)` — \(action.what) — has no \(language) translation"
             )
         }
@@ -287,7 +258,7 @@ struct BulkSelectionChromeTests {
     /// And the count itself, which is a plural rather than a word.
     @Test("The count is a plural in all four languages")
     func theCountIsPluralised() throws {
-        let record = Self.localizations(of: "library.selected %lld")
+        let record = LibraryFeatureSource.localizations(of: "library.selected %lld")
         for language in ["en", "fr", "de", "es"] {
             let localization = try #require(
                 record[language] as? [String: Any],
@@ -390,23 +361,5 @@ struct BulkSelectionChromeTests {
                 "The dimming does not sit after the glass text that overrides the foreground."
             )
         }
-    }
-
-    /// The library's string catalogue, for one key.
-    private static func localizations(of key: String) -> [String: Any] {
-        let catalogue = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Sources/LibraryFeature/Resources/Localizable.xcstrings")
-        guard
-            let data = try? Data(contentsOf: catalogue),
-            let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let strings = parsed["strings"] as? [String: Any],
-            let record = strings[key] as? [String: Any]
-        else {
-            fatalError("the library's string catalogue is not readable at \(catalogue.path)")
-        }
-        return record["localizations"] as? [String: Any] ?? [:]
     }
 }
