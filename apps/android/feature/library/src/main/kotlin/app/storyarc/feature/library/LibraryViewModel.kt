@@ -714,13 +714,25 @@ class LibraryViewModel(
                 // What each walk actually saw, so what it did not see can go afterwards --
                 // per source, never pooled. See [ScanReconciliation].
                 val seenBySource = mutableMapOf<UUID?, MutableSet<String>>()
+                // And which of them could not account for themselves. A walk that met a
+                // directory it could not list has not proved anything absent -- see
+                // [ScanReconciliation] and [cacheLibrary], which are the two decisions that
+                // used to treat "found nothing" and "could see nothing" as one answer.
+                val partial = mutableSetOf<UUID?>()
                 // Each walk carries the tree it came from, so a publication can be
                 // attributed to the source it was reached through. The managed folder is
                 // not a source, so its walk carries null -- and it is walked on every scan,
                 // never instead of the picked trees. See [ScanTargets].
                 val walks: List<Pair<Uri?, Flow<ScanEvent>>> =
                     ScanTargets.of(trees.map { it.toString() }).map { target ->
-                        if (target == null) return@map null to LibraryScanner.scan(managedFolder)
+                        // The scope this walk answers for, resolved once so the reporter
+                        // below closes over it rather than over the loop variable.
+                        val scope = sourceOf(target?.let(Uri::parse))
+                        val unreadable: (String) -> Unit = { partial += scope }
+                        if (target == null) {
+                            return@map null to
+                                LibraryScanner.scan(managedFolder, onUnreadableFolder = unreadable)
+                        }
                         val tree = Uri.parse(target)
                         // Matched on the path, which is what a directory walk knows. A
                         // publication whose identity is a content digest is still filed
@@ -729,7 +741,7 @@ class LibraryViewModel(
                             .orEmpty()
                             .mapNotNull { it.identity.normalizedPath }
                             .toSet()
-                        tree to LibraryScanner.scan(resolver, tree, done)
+                        tree to LibraryScanner.scan(resolver, tree, done, unreadable)
                     }
                 for ((tree, walk) in walks) {
                     scanningFolder = tree?.toString()
@@ -763,6 +775,7 @@ class LibraryViewModel(
                 val vanished = ScanReconciliation.vanished(
                     seenBySource,
                     _publications.value.map { it.id to it.sourceId },
+                    partial,
                 )
                 if (vanished.isNotEmpty()) {
                     _publications.update { list -> list.filterNot { it.id in vanished } }
@@ -781,7 +794,7 @@ class LibraryViewModel(
                         FolderSnapshot.of(LibraryScanner.entries(resolver, tree))
                 }
                 rebuild()
-                cacheLibrary()
+                cacheLibrary(partial.isNotEmpty())
             }
             // After the walk, not before it. Recorded positions are matched against
             // the publications the scan produced, so refreshing while the list is
@@ -1424,7 +1437,15 @@ class LibraryViewModel(
      * mid-scan is a half-library, and restoring one would show a shelf missing books for no
      * reason a reader could see.
      */
-    private fun cacheLibrary() {
+    private fun cacheLibrary(partial: Boolean = false) {
+        // **The honest limit this change closes.** The notice said "cached, refreshed at X"
+        // and left the moment a walk finished — including a walk that saw nothing because it
+        // could see nothing, which is when a reader most needs to be told the shelf is last
+        // session's. `sources` asks the indicator to say the content is cached and when it
+        // was last refreshed; a walk that could not list a directory has refreshed nothing,
+        // and writing `now` into the snapshot would put that lie on disk for the next launch
+        // as well.
+        if (partial) return
         // Same reason as the reconciliation above: a walk that found nothing must not
         // replace a good snapshot with an empty one, or one unreadable folder costs the
         // reader their whole cached shelf on the next launch too.

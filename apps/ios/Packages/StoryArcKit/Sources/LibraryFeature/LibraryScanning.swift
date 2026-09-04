@@ -1,4 +1,5 @@
 internal import Foundation
+internal import Synchronization
 
 internal import Formats
 internal import Persistence
@@ -40,12 +41,23 @@ extension LibraryModel {
         scanTask?.cancel()
         skipsInThisScan = []
         scanTask = Task { [weak self] in
+            // Whether any place this scan walked met a directory it could not list. Carried
+            // as a return value rather than held on the model, because it is true of one
+            // scan and nothing outside this task ever asks: see ``cacheLibrary(partial:)``,
+            // which is the only reader, and the model is one line under its length cap.
+            var partial = false
             for place in places {
                 guard !Task.isCancelled else { return }
-                await self?.walk(place)
+                if await self?.walk(place) == true { partial = true }
             }
             guard !Task.isCancelled else { return }
             self?.settleSkipped()
+            // Written down here rather than per folder: a snapshot taken between two places
+            // is a half-library, and restoring one would show a shelf missing books for no
+            // reason a reader could see. **Nothing called this at all until 2026-09-05**, so
+            // the file the next launch reads was never written — Android has always written
+            // it at the same point, at the end of its one job over every tree.
+            self?.cacheLibrary(partial: partial)
         }
     }
 
@@ -69,14 +81,19 @@ extension LibraryModel {
     /// Decided here rather than by the caller, from the filesystem rather than from the
     /// URL's spelling, so that a bookmark that resolves to something other than what was
     /// remembered still lands in the right half.
-    private func walk(_ place: URL) async {
+    ///
+    /// - Returns: whether the walk met a directory it could not list. A remembered file is
+    ///   never partial: it is one archive, and failing to open it is a refusal the reader is
+    ///   told about by name rather than a hole in what the walk can account for.
+    @discardableResult
+    private func walk(_ place: URL) async -> Bool {
         let isDirectory = (try? place.resourceValues(forKeys: [.isDirectoryKey]))?
             .isDirectory ?? false
         if isDirectory {
-            await walkFolder(place)
-        } else {
-            await adoptRememberedFile(place)
+            return await walkFolder(place)
         }
+        await adoptRememberedFile(place)
+        return false
     }
 
     /// Puts a publication another app handed over back on the shelf.
@@ -112,7 +129,9 @@ extension LibraryModel {
     }
 
     /// Walks a folder, picking up where an interrupted scan of it stopped.
-    private func walkFolder(_ folder: URL) async {
+    ///
+    /// - Returns: whether any directory under it could not be listed.
+    private func walkFolder(_ folder: URL) async -> Bool {
         // Put back before the walk starts, so a reader who left mid-scan comes back to the
         // library they had rather than to an empty grid filling up again.
         let resumed = journal?.indexed(inFolder: folder.path) ?? []
@@ -127,8 +146,20 @@ extension LibraryModel {
         // identity is a content digest is still filed under the file it came out of.
         let done = Set(resumed.compactMap(\.identity.normalizedPath))
 
-        for await event in LibraryScanner.scan(folderAt: folder, skipping: done) {
-            guard !Task.isCancelled else { return }
+        // The walk reports an unlistable directory from whichever executor it is running on,
+        // and this is read back on the main actor, so it cannot be a plain `var`. It is a
+        // single flag rather than the paths themselves: nothing here names the folder, and
+        // the two decisions that consult it — the reconcile and the snapshot — need only to
+        // know that the walk cannot account for everything it was asked about.
+        let unreadable = Mutex(false)
+
+        let walk = LibraryScanner.scan(
+            folderAt: folder,
+            skipping: done,
+            onUnreadableFolder: { _ in unreadable.withLock { $0 = true } }
+        )
+        for await event in walk {
+            guard !Task.isCancelled else { return unreadable.withLock { $0 } }
             switch event {
             case let .found(publication):
                 append(publication, in: folder)
@@ -141,7 +172,12 @@ extension LibraryModel {
                 // pairs reach the notice's list now instead of a tally.
                 skipsInThisScan.append(.init(name: path, reason: reason))
             case let .finished(found, skipped):
-                finish(folder, found: found + resumed.count, skipped: skipped)
+                finish(
+                    folder,
+                    found: found + resumed.count,
+                    skipped: skipped,
+                    partial: unreadable.withLock { $0 }
+                )
                 // Progress is loaded here rather than only when the view
                 // appears. The view appears before the scan produces anything,
                 // so a load at that point matches recorded positions against an
@@ -149,6 +185,7 @@ extension LibraryModel {
                 await refreshProgress()
             }
         }
+        return unreadable.withLock { $0 }
     }
 
     /// Walks every folder again, without emptying the shelf first.
@@ -168,11 +205,15 @@ extension LibraryModel {
     }
 
     /// Everything a finished scan settles.
-    private func finish(_ folder: URL, found: Int, skipped: Int) {
+    ///
+    /// - Parameter partial: whether the walk met a directory it could not list. Passed on
+    ///   rather than acted on here, because the two things it changes are two decisions:
+    ///   what may be forgotten, and whether the shelf is still the cached one.
+    private func finish(_ folder: URL, found: Int, skipped: Int, partial: Bool) {
         scanState = .finished(found: found, skipped: skipped)
         // Before the snapshot below, so what the walk did not meet is gone from the shelf
         // and from the snapshot alike.
-        forgetVanished(under: folder, seen: seenInThisScan)
+        forgetVanished(under: folder, seen: seenInThisScan, partial: partial)
         seenInThisScan = []
         // Nothing left to resume. Cleared rather than kept: this is a journal, not the
         // metadata cache `sources` asks for, and a journal that outlived its scan would be
@@ -200,7 +241,7 @@ extension LibraryModel {
     /// Scoped to the folder that was walked. A scan of one source must not evict another
     /// source's titles just because it did not happen to see them, which is the mistake
     /// that turns a refresh into a library that empties one folder at a time.
-    private func forgetVanished(under folder: URL, seen: Set<String>) {
+    private func forgetVanished(under folder: URL, seen: Set<String>, partial: Bool) {
         // Only when the walk actually saw something. A walk that found nothing at all is
         // far more likely to be a folder it could not read — a permission dropped, a share
         // offline — than a reader who deleted every book they own. `sources` promises cached
@@ -208,6 +249,12 @@ extension LibraryModel {
         // on a failed walk is exactly the opposite. A library genuinely emptied is
         // reconciled by the next walk that finds anything.
         guard !seen.isEmpty else { return }
+        // And only when it saw *everything*. The rule above was an inference from an empty
+        // result, which covers the folder that became unreadable whole and misses the one
+        // that lost a single subdirectory: that walk still returns rows, and every book under
+        // the branch it could not list looked deleted. The walk reports the fact now, per
+        // directory, for exactly this.
+        guard !partial else { return }
 
         let gone = publications.filter { publication in
             guard !seen.contains(publication.id),

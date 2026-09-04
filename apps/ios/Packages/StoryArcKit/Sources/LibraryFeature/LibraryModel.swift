@@ -229,53 +229,6 @@ public final class LibraryModel {
         }
     }
 
-    // Internal, not private: the restore half of this type lives in another file, and
-    // `private` is file-scoped.
-    /// Puts last session's shelf back before anything is walked.
-    ///
-    /// `sources` asks the cached catalogue to be shown "within 500 ms of the library view
-    /// appearing", and a folder walk is not that — it is a directory tree, an archive
-    /// opened per file, and a metadata read per archive. This is a single JSON read.
-    ///
-    /// What follows is a scan, which now appends to this rather than replacing it, and
-    /// removes only what it can prove is gone. So the reader sees their library at once and
-    /// watches it correct itself, instead of watching it appear.
-    func restoreCachedLibrary() {
-        guard publications.isEmpty, let snapshot = libraryCache.read() else { return }
-        publications = snapshot.publications
-        locations = snapshot.locations.reduce(into: [:]) { result, pair in
-            result[pair.key] = URL(fileURLWithPath: pair.value)
-        }
-        cachedAt = snapshot.refreshedAt
-        rebuild()
-    }
-
-    /// Records the shelf as it now stands, for the next launch.
-    ///
-    /// Called when a walk finishes rather than as publications arrive: a snapshot written
-    /// mid-scan is a half-library, and restoring one would show a shelf that is missing
-    /// books for no reason a reader could see.
-    func cacheLibrary() {
-        // Same reason as the reconciliation: a walk that found nothing must not replace a
-        // good snapshot with an empty one, or one unreadable folder costs the reader their
-        // whole cached shelf on the next launch too.
-        if publications.isEmpty, libraryCache.read()?.publications.isEmpty == false { return }
-        libraryCache.write(
-            LibraryCache.Snapshot(
-                refreshedAt: .now,
-                publications: publications,
-                // `percentEncoded: false` because the read side is
-                // `URL(fileURLWithPath:)`, which takes its string literally. `path()`
-                // encodes by default, so a location under "Application Support" was written
-                // as "Application%20Support" and never matched again on the next launch:
-                // a downloaded publication silently lost its on-device mark and came back
-                // as a second row beside itself.
-                locations: locations.reduce(into: [:]) { $0[$1.key] = $1.value.path(percentEncoded: false) }
-            )
-        )
-        cachedAt = nil
-    }
-
     /// The app's own Documents directory.
     ///
     /// Not a library the user picked — it is where a file shared to StoryArc or
