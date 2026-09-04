@@ -120,8 +120,9 @@ val LocalIsNaturalTheme = staticCompositionLocalOf { false }
 /**
  * Warm cream stock and an earthier accent. Natural's light variant.
  *
- * The accent is `clayStrong` for the reason light uses `emberStrong`: clay at 66 %
- * lightness does not clear 3:1 on warm paper. `pnpm tokens:check` gates that pair.
+ * The accent is `clayStrong` for the reason `secondaryStrong` exists: clay at 66 % lightness
+ * does not clear 3:1 on warm paper, exactly as the lighter pink does not. The app's own accent
+ * needs no such pair — it is one violet on every appearance. `pnpm tokens:check` gates it.
  *
  * `accentMuted` is the same value rather than a `clayMuted` that does not exist. Its only
  * reader is the settings-search highlight, which draws it at a low alpha, and inventing a

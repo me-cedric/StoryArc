@@ -36,13 +36,13 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppIconChoice
 
 /**
- * The size a launcher draws an app icon at.
+ * The side of one chooser tile.
  *
  * `settings-and-about` asks each option to be shown "as the icon it actually is, at the size a
- * home screen draws it" — 48dp is the launcher icon size on this platform. Fixed rather than
- * scaled with the reader's text: the requirement at the largest accessibility size is that the
- * *names* are readable and the tiles are still large enough to tell apart, and a tile that grew
- * with the text would push the name it exists beside off the row.
+ * home screen draws it", and the plan settles that at 56dp here and 60pt on iOS. Fixed rather
+ * than scaled with the reader's text: the requirement at the largest accessibility size is that
+ * the *names* are readable and the tiles are still large enough to tell apart, and a tile that
+ * grew with the text would push the name it exists beside off the row.
  */
 private val tileSide = 56.dp
 
