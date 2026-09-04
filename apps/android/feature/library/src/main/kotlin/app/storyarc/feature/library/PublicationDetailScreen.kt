@@ -2,7 +2,9 @@ package app.storyarc.feature.library
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +26,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
@@ -39,6 +42,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,6 +53,15 @@ import app.storyarc.core.model.Publication
 
 /** Enough pixels for the largest the cover is ever drawn, on the densest screen. */
 private const val DETAIL_COVER_PIXELS = 1200
+
+/**
+ * Below this the window is short, and the page stops spending height it does not have.
+ *
+ * Material's compact *height* class. A landscape phone is 360 dp tall and a 152 dp app bar
+ * over an 88 dp navigation bar left the book 96 dp — see [DetailHeroLayout] for what that
+ * did to the one action the screen exists for.
+ */
+private val SHORT_WINDOW_HEIGHT = 480.dp
 
 /**
  * The page a publication has.
@@ -154,6 +168,13 @@ fun PublicationDetailScreen(
     var isMenuOpen by remember { mutableStateOf(false) }
     var isShelfSheetOpen by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val density = LocalDensity.current
+    val windowHeight = with(density) { LocalWindowInfo.current.containerSize.height.toDp() }
+    // A `LargeFlexibleTopAppBar` carrying a subtitle is 152 dp whatever the window is, so on
+    // a landscape phone it and the navigation bar were two thirds of the screen and the page
+    // had 96 dp to draw a book in. Material's compact *height* class is where a large bar
+    // stops being an editorial flourish and starts being the screen.
+    val isShort = windowHeight < SHORT_WINDOW_HEIGHT
 
     // Decided once, here, and handed to exactly one of the two controls below. The primary
     // and the overflow used to reach for `onDownload` independently, so a publication that
@@ -165,46 +186,61 @@ fun PublicationDetailScreen(
         containerColor = palette.surfaceCanvas,
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeFlexibleTopAppBar(
-                title = { DetailTitle(publication) },
-                subtitle = { DetailSubtitle(publication) },
-                navigationIcon = {
-                    if (!isBesideList) {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.detail_back),
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { isMenuOpen = true }) {
+            val back: @Composable () -> Unit = {
+                if (!isBesideList) {
+                    IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Filled.MoreVert,
-                            contentDescription = stringResource(R.string.detail_more),
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.detail_back),
                         )
                     }
-                    DetailOverflowMenu(
-                        isOpen = isMenuOpen,
-                        onDismiss = { isMenuOpen = false },
-                        isFinished = publication.id in viewModel.finishedPublications(),
-                        onMark = { isRead -> onMark(publication, isRead) },
-                        onAddToShelf = { isShelfSheetOpen = true },
-                        onDownload = onDownload.takeIf { download == DownloadControl.OVERFLOW },
-                        onRemoveDownload = onRemoveDownload,
+                }
+            }
+            val overflow: @Composable RowScope.() -> Unit = {
+                IconButton(onClick = { isMenuOpen = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = stringResource(R.string.detail_more),
                     )
-                },
-                scrollBehavior = scrollBehavior,
-            )
+                }
+                DetailOverflowMenu(
+                    isOpen = isMenuOpen,
+                    onDismiss = { isMenuOpen = false },
+                    isFinished = publication.id in viewModel.finishedPublications(),
+                    onMark = { isRead -> onMark(publication, isRead) },
+                    onAddToShelf = { isShelfSheetOpen = true },
+                    onDownload = onDownload.takeIf { download == DownloadControl.OVERFLOW },
+                    onRemoveDownload = onRemoveDownload,
+                )
+            }
+            if (isShort) {
+                // The subtitle goes with the large bar. It repeats the series, which the
+                // page states again below, and on a 360 dp window it costs 40 dp the book
+                // needs more.
+                TopAppBar(
+                    title = { DetailTitle(publication) },
+                    navigationIcon = back,
+                    actions = overflow,
+                    scrollBehavior = scrollBehavior,
+                )
+            } else {
+                LargeFlexibleTopAppBar(
+                    title = { DetailTitle(publication) },
+                    subtitle = { DetailSubtitle(publication) },
+                    navigationIcon = back,
+                    actions = overflow,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
         },
     ) { insets ->
         val directive = calculatePaneScaffoldDirective(currentWindowAdaptiveInfoV2())
-        val main: @Composable (Modifier) -> Unit = { modifier ->
+        val main: @Composable (Modifier, DetailHeroLayout) -> Unit = { modifier, hero ->
             DetailMainPane(
                 publication = publication,
                 cover = cover,
                 accent = accent,
+                hero = hero,
                 action = action,
                 provenance = provenance,
                 downloadFraction = downloadFraction,
@@ -222,37 +258,43 @@ fun PublicationDetailScreen(
             )
         }
 
-        if (directive.maxHorizontalPartitions > 1) {
-            // The delta's "two panes": the series reads beside the book rather than under
-            // it. The scaffold, rather than a hand-rolled `Row`, because it is what carries
-            // Material's own partition sizes and spacer, and because the same component is
-            // what the library will host this page inside once it adopts the list-detail
-            // scaffold.
-            SupportingPaneScaffold(
-                directive = directive,
-                value = ThreePaneScaffoldValue(
-                    primary = PaneAdaptedValue.Expanded,
-                    secondary = PaneAdaptedValue.Expanded,
-                    tertiary = PaneAdaptedValue.Hidden,
-                ),
-                mainPane = { main(Modifier.verticalScroll(rememberScrollState())) },
-                supportingPane = { supporting(Modifier.verticalScroll(rememberScrollState())) },
-                modifier = Modifier.fillMaxSize().padding(insets),
-            )
-        } else {
-            // One pane, one column, and the series under the book. Not the scaffold with a
-            // hidden pane: a hidden supporting pane is a shelf the reader cannot reach, and
-            // the shelf is required on every window size.
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StoryArcSpace.section),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(insets)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.lg),
-            ) {
-                main(Modifier)
-                supporting(Modifier)
+        // The room the page actually has, measured rather than derived: the app bar's height
+        // is Material's and the navigation bar is taken out before this page is laid out at
+        // all, so the only honest way to ask is to be told. Outside the scroll, because
+        // inside one the height constraint is infinite and the question has no answer.
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(insets)) {
+            val hero = DetailHeroLayout.of(windowHeight, maxHeight)
+            if (directive.maxHorizontalPartitions > 1) {
+                // The delta's "two panes": the series reads beside the book rather than under
+                // it. The scaffold, rather than a hand-rolled `Row`, because it is what carries
+                // Material's own partition sizes and spacer, and because the same component is
+                // what the library will host this page inside once it adopts the list-detail
+                // scaffold.
+                SupportingPaneScaffold(
+                    directive = directive,
+                    value = ThreePaneScaffoldValue(
+                        primary = PaneAdaptedValue.Expanded,
+                        secondary = PaneAdaptedValue.Expanded,
+                        tertiary = PaneAdaptedValue.Hidden,
+                    ),
+                    mainPane = { main(Modifier.verticalScroll(rememberScrollState()), hero) },
+                    supportingPane = { supporting(Modifier.verticalScroll(rememberScrollState())) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                // One pane, one column, and the series under the book. Not the scaffold with a
+                // hidden pane: a hidden supporting pane is a shelf the reader cannot reach, and
+                // the shelf is required on every window size.
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(StoryArcSpace.section),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = StoryArcSpace.gutter, vertical = StoryArcSpace.lg),
+                ) {
+                    main(Modifier, hero)
+                    supporting(Modifier)
+                }
             }
         }
     }
@@ -287,6 +329,8 @@ internal fun DetailMainPane(
     publication: Publication,
     cover: Bitmap?,
     accent: DetailAccent?,
+    /** How the hero arranges itself in the room the page has. See [DetailHeroLayout]. */
+    hero: DetailHeroLayout = DetailHeroLayout(isSideBySide = false, coverHeight = 360.dp),
     action: PrimaryAction,
     provenance: Provenance,
     downloadFraction: Float?,
@@ -299,7 +343,7 @@ internal fun DetailMainPane(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
     ) {
-        DetailHero(publication = publication, cover = cover, accent = accent) {
+        DetailHero(publication = publication, cover = cover, accent = accent, layout = hero) {
             DetailPrimaryAction(
                 action = action,
                 accent = accent,
