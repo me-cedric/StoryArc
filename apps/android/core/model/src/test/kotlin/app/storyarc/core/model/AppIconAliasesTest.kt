@@ -30,7 +30,19 @@ class AppIconAliasesTest {
     private fun freshInstall() =
         AppIconChoice.entries.associateWith { AppIconAliasState.DEFAULT }.toMutableMap()
 
-    /** How many of the modelled components the launcher would draw. */
+    /**
+     * How many of the modelled components the launcher would draw.
+     *
+     * **The five faces only, so `visible() >= 1` does not mean "the app is launchable".** An
+     * `<activity-alias>` stops resolving when its target activity is disabled, and there is no
+     * `MainActivity` in this model at all — a device with the target off would still report 1
+     * here while nothing on the home screen starts anything, which is the failure that forced
+     * this design to five aliases in the first place. That half is guarded where it can be
+     * seen: `AppIconChoiceTest` refuses any face naming [AppIconChoice.TARGET_ACTIVITY], and
+     * `AppIconManifestTest` reads the manifest and asserts `MainActivity` carries neither the
+     * launcher filter nor an `android:enabled` a switch could ever flip. What this counts is
+     * the alias invariant alone.
+     */
     private fun visible(device: Map<AppIconChoice, AppIconAliasState>) =
         device.count { (face, state) -> AppIconAliases.isEnabled(face, state) }
 
