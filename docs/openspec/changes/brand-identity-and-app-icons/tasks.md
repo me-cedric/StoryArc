@@ -592,15 +592,35 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       violet, Mono white on black — with Ink check-marked in violet and labelled *Default*.
       An unusual staleness, because the tick made the change look **worse** than it was; still
       stale evidence a reader would have acted on, and the only reason 5.6 read as half-failed.
-- [~] 6.3 Android: a themed-icon capture, since 4.2 is the reason the monochrome layer exists.
-      **A gap, not an exception.** Turning themed icons on could not be automated on this
-      emulator in the time available: writing `themed_icons` into the Pixel launcher's own
-      preferences read back `true` and changed nothing — every icon in the drawer stayed full
-      colour — and `android.intent.action.SET_WALLPAPER` opens a disambiguation dialog rather
-      than the Wallpaper & style screen the toggle lives on.
-      What is asserted without a device: `AppIconManifestTest` checks that all five adaptive
-      icons point `<monochrome>` at the flat art and never at the gradient foreground. That is
-      4.2's whole reasoning, but it is not a photograph of it.
+- [x] 6.3 Android: a themed-icon capture, since 4.2 is the reason the monochrome layer exists.
+      **Taken on 2026-09-04**, in `docs/designs/screenshots/android-themed-icon-2026-09-04/`:
+      all five faces on one home screen, themed and in their own colours.
+      **This was recorded as a gap that could not be closed, and it was one launcher restart
+      away.** The earlier pass had already got both flags right — the secure setting
+      `theme_customization_overlay_packages` was `{android.theme.customization.themed_icon:1}`
+      and the launcher's own `themed_icons` key read `true` — and concluded from unchanged
+      icons that the toggle had not taken. It had. The launcher caches its icons and re-reads
+      neither flag until it restarts: `am force-stop com.google.android.apps.nexuslauncher`
+      then `KEYCODE_HOME`, and the themed icons are there. Nothing else was needed, and no
+      wallpaper had to be set — the stock wallpaper already supplies a tonal palette.
+      `cmd uimode` is a dead end for this: it offers `night`, `car` and `time` and no
+      themed-icon verb. **Worth generalising**: two passes read a flag back, saw no change on
+      screen, and drew opposite conclusions about the same true value. The flag was never the
+      question; whether anything had re-read it was.
+
+      **What the frames settle, and it is 4.2's premise.** Every cut, notch and negative-space
+      gap in the mark holds when the layer is tinted flat — which is what shipping real
+      single-colour art for it is *for*, and what `AppIconManifestTest`'s exact-string match on
+      all five `<monochrome>` elements could assert the wiring of but never the look of.
+
+      **And one design question the frames raise rather than answer.** All five adaptive icons
+      declare the same `@drawable/ic_launcher_monochrome`, so **themed mode collapses the five
+      faces into one** — Arc and Paper draw identically once tinted. That is correct for a
+      themed icon, whose whole point is to take the wallpaper's colour rather than its own, and
+      it does mean a reader who picks a face and turns themed icons on stops seeing their
+      choice. Recorded here, not fixed: five monochrome variants would differ only in shape,
+      and the chooser does not say the choice is conditional. Whether it should is a question
+      for `settings-and-about`, not for this task.
 - [x] 6.4 Update `docs/design.md`, `docs/openspec/STATUS.md`, and
       `packages/design-tokens/README.md` if it names the accent.
       **§1's share is done, and the list was two files short.** `docs/design.md` and

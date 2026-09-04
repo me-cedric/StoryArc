@@ -505,8 +505,35 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
       differ, against 45 % over a cover's tick in the same pair — so §3b.4's inertness is
       invisible. Likely the explicit `foregroundStyle` defeating the disabled dimming; stated
       as an inference, not a measurement.
-      Android, still owed: the contextual bar at 0 and at many, light and dark, default and
-      largest text — no walk exists yet. **This section stays `[~]` until it does.**
+
+      **(b) is confirmed and fixed on both platforms, and the inference was right.** The
+      remedy is measured rather than argued: iOS's capsule glyphs go from `rgb(0,0,0)` to
+      `rgb(148,146,146)` at nought picked, which is exactly what `0.4 × 0 + 0.6 × 245`
+      predicts against the light glass ground. The four pairs that all differed by **0**
+      pixels now differ by 3 100 (light, default), 3 084 (dark, default), 26 426 (light, AX5)
+      and 26 407 (dark, AX5).
+      **Android had the identical defect from the mirror-image cause**, found by cropping the
+      action region out of its own two frames and getting byte-identical PNGs: an `IconButton`
+      dims a disabled child by lowering `LocalContentColor`, and every `Icon` passed
+      `tint = palette.accent`, which never reads it. Two platforms, two explicit colours, one
+      bug — so the delta gained the clause that was missing from both: *an inert action is
+      drawn inert, so a reader can tell it apart from a live one without pressing it*. The old
+      wording, "present and inert rather than absent", was satisfied by an invisible inert
+      state, which is how this shipped twice.
+
+      **Android, taken on 2026-09-04**: eight frames in
+      `docs/designs/screenshots/android-selection-2026-09-04/` — nothing selected and two
+      selected, each light, dark and at `font_scale 2.0` — plus a new
+      `Library > selection overflow` route, which is the only frame that proves *Add to…* is
+      named in words. A route rather than a hand-driven tap, because a named route is
+      repeatable and a coordinate is not; the other two routes already existed and worked
+      against the rebuilt bar. The navigation bar is intact in all eight, and at `font_scale
+      2.0` the title grows without ellipsizing while all four controls stay on one row. That
+      folder's README pairs every frame by name with the sweep's before.
+      One finding it carries that no test does: the Material-baseline purple the sweep's §4
+      flagged **survived the rebuild** on the close, the three actions and the ticks. Captured
+      dynamic-colour-on only, so the colour is re-confirmed and the "same in both schemes" half
+      is not.
       Also named and not reached, with reasons, in that folder's README: the undo capsule and
       §3b.6's `ShelfBulkActions` (both need a persisted write or a collection the corpus does
       not build), the *Add to…* menu open, Reduce Transparency and Increased Contrast (the
