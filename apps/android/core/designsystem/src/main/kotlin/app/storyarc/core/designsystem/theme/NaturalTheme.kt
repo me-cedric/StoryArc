@@ -193,9 +193,13 @@ val StoryArcPalette.Companion.NaturalDark: StoryArcPalette get() = naturalDarkPa
  * pairings clear at 5.47 and 5.84.
  *
  * So each variant's `secondary` is the accent it already gates, which flattens the two
- * Material roles onto one value. Nothing in this app reads `colorScheme.secondary`, so it
- * costs nothing today, and it keeps the brand change out of Natural the way `design.md`
- * asks. Giving Natural a real second pole means adding a token to `color.json` with a
+ * Material roles onto one value. That flattening turns out to be the *right* answer rather
+ * than a free one: `ShortNavigationBarItemDefaults.colors()` reads `secondary` for a
+ * selected navigation label — measured, not assumed — so the claim that nothing in this app
+ * reads the role was already false when it was written, and it is what leaves the brand
+ * schemes drawing a crimson label under a violet pill. Natural's label is its own accent,
+ * matching the indicator above it. It keeps the brand change out of Natural the way
+ * `design.md` asks. Giving Natural a real second pole means adding a token to `color.json` with a
  * gated pairing, and that is a decision for whoever owns the Natural theme — not one to
  * invent while renaming the brand's.
  */
@@ -212,7 +216,7 @@ internal fun naturalLightScheme(): ColorScheme = lightColorScheme(
     outlineVariant = StoryArcColor.NaturalLight.borderSubtle,
     error = StoryArcColor.Status.danger,
     scrim = StoryArcColor.NaturalLight.scrim,
-)
+).groundedInChrome(StoryArcPalette.NaturalLight, isDark = false)
 
 /** @see naturalLightScheme */
 internal fun naturalDarkScheme(): ColorScheme = darkColorScheme(
@@ -228,4 +232,4 @@ internal fun naturalDarkScheme(): ColorScheme = darkColorScheme(
     outlineVariant = StoryArcColor.NaturalDark.borderSubtle,
     error = StoryArcColor.Status.danger,
     scrim = StoryArcColor.NaturalDark.scrim,
-)
+).groundedInChrome(StoryArcPalette.NaturalDark, isDark = true)

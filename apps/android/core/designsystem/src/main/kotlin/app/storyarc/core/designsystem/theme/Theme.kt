@@ -187,6 +187,60 @@ internal fun ColorScheme.groundedInContent(palette: StoryArcPalette): ColorSchem
     scrim = palette.scrim,
 )
 
+/**
+ * Every ground a Material component can draw itself on, held to a StoryArc surface.
+ *
+ * **The second half of the same hole [brandDarkScheme] describes, and by area the larger
+ * one.** A scheme built by [darkColorScheme] or [lightColorScheme] fills every omitted role
+ * from Material's baseline palette, and the roles nobody had set included the whole
+ * `surfaceContainer` family. Measured off the sweep of 2026-09-02 rather than reasoned
+ * about — `android-library-selection-two-nodynamic.png` reads `#F3EDF7` in the navigation
+ * band against a page of `#F8F6F4`, and `android-comic-menu-nodynamic-dark.png` reads
+ * `#1D1B20` in the sheet against an app surface of `#1A1815`. Both are Material's own
+ * lavender greys, drawn on the path a reader takes with Material You **off**.
+ *
+ * That is every sheet, every dialog, every menu and the navigation bar. Asked of the real
+ * defaults rather than assumed, in `ChromeGroundsAreStoryArcsTest`:
+ *
+ * | Drawn by | Role |
+ * | --- | --- |
+ * | `ModalBottomSheet` | `surfaceContainerLow` |
+ * | `DropdownMenu`, `ShortNavigationBar`, a scrolled `TopAppBar` | `surfaceContainer` |
+ * | `AlertDialog` | `surfaceContainerHigh` |
+ * | `Card` | `surfaceContainerHighest` |
+ *
+ * **No colour is invented, because the token file already names this mapping.** `raised` is
+ * documented as "cards, list rows, sheets", `overlay` as "menus, popovers", `sunken` as
+ * "inset wells", `canvas` as the app background. Menus take `raised` rather than `overlay`
+ * for the one reason a mapping has to break its own vocabulary: a menu and the navigation
+ * bar read the *same* role, and a bar sitting a whole step above the page is what the
+ * baseline was doing right.
+ *
+ * **Applied to the brand and Natural schemes, never to the dynamic one.** `native-experience`
+ * asks for Material You where the platform offers it, so a wallpaper scheme keeps its own
+ * containers in full; these functions are the branch a reader reaches by turning it off, and
+ * the only branch OLED Dark and Natural ever have.
+ *
+ * @param isDark which way "brighter" runs. It is the one thing that cannot be read off the
+ *   palette: `surfaceBright` is the lightest surface on paper and the lightest surface on
+ *   black, and those are not the same token.
+ */
+internal fun ColorScheme.groundedInChrome(
+    palette: StoryArcPalette,
+    isDark: Boolean,
+): ColorScheme = copy(
+    surfaceVariant = palette.surfaceSunken,
+    surfaceDim = palette.surfaceSunken,
+    surfaceBright = if (isDark) palette.surfaceOverlay else palette.surfaceRaised,
+    // Level with the page. Nothing in the app draws it today; it is set so that the
+    // component which one day does cannot fall back to lavender on its own.
+    surfaceContainerLowest = palette.surfaceCanvas,
+    surfaceContainerLow = palette.surfaceRaised,
+    surfaceContainer = palette.surfaceRaised,
+    surfaceContainerHigh = palette.surfaceOverlay,
+    surfaceContainerHighest = palette.surfaceOverlay,
+)
+
 
 /**
  * The StoryArc palette dressed as a Material scheme, for a reader who turned Material You
@@ -258,7 +312,7 @@ internal fun brandDarkScheme() = darkColorScheme(
     outlineVariant = StoryArcColor.Dark.borderSubtle,
     error = StoryArcColor.Status.danger,
     scrim = StoryArcColor.Dark.scrim,
-)
+).groundedInChrome(StoryArcPalette.Dark, isDark = true)
 
 /**
  * See [brandDarkScheme] for why `onPrimary` is light rather than the canvas, and for what
@@ -280,7 +334,7 @@ internal fun brandOledDarkScheme() = darkColorScheme(
     outlineVariant = StoryArcColor.OledDark.borderSubtle,
     error = StoryArcColor.Status.danger,
     scrim = StoryArcColor.OledDark.scrim,
-)
+).groundedInChrome(StoryArcPalette.OledDark, isDark = true)
 
 /**
  * Light takes **the same `primary` as dark** — one accent, both appearances, which is the
@@ -308,7 +362,7 @@ internal fun brandLightScheme() = lightColorScheme(
     outlineVariant = StoryArcColor.Light.borderSubtle,
     error = StoryArcColor.Status.danger,
     scrim = StoryArcColor.Light.scrim,
-)
+).groundedInChrome(StoryArcPalette.Light, isDark = false)
 
 /**
  * The app theme.
