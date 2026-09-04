@@ -69,6 +69,18 @@ extension ScreenshotTests {
         let app = sweepLaunch()
         try startSelecting(in: app)
         try pickTwo(in: app)
+        // The other end of the boundary the German walk pins. In English both names fit, so
+        // *Download* carries a title and is far wider than the overflow's pure glyph. Asserted
+        // here rather than in `assertSelectionChrome`, because that helper runs at the
+        // accessibility sizes too, where this is deliberately false.
+        let download = app.buttons["Download"].frame.width
+        let more = app.buttons["More actions"].frame.width
+        XCTAssertGreaterThan(
+            download,
+            more * 1.6,
+            "English draws *Download* as a bare glyph (\(download) pt against the overflow's "
+                + "\(more) pt), so a phone is taking a narrower tier than the frames show."
+        )
         hold(1)
         attach(app.screenshot(), named: "library-selecting-picked")
     }
@@ -90,12 +102,13 @@ extension ScreenshotTests {
     /// Two picked, at the largest accessibility text size.
     ///
     /// **This is the capture the `ViewThatFits` in `BulkActionBar` exists for**, and the only
-    /// thing that can settle it. Each action is named — *Add to…*, *Download*, *Mark as
-    /// read* — wherever the width holds all three, and gives way to its glyph where it does
-    /// not. A host test can prove the fallback is declared; it cannot prove which branch a
-    /// phone at `accessibility-extra-extra-extra-large` takes, in a language whose words are
-    /// longer again. Three glyphs in this frame means the fallback is doing real work and the
-    /// names are still there for VoiceOver. Clipped text means the capsule is wrong.
+    /// thing that can settle it. The capsule degrades by control, so this is the tier where
+    /// only *Download* and the overflow survive — both glyphs the platform has established —
+    /// and mark-as-read's name is drawn inside the menu instead. A host test can prove the
+    /// tiers are declared; it cannot prove which one a phone at
+    /// `accessibility-extra-extra-extra-large` takes, in a language whose words are longer
+    /// again. Two glyphs in this frame means the floor is doing real work and every name is
+    /// still there for VoiceOver. Clipped text means the capsule is wrong.
     func testCaptureLibrarySelectingAtLargestText() throws {
         let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
         try startSelecting(in: app)
@@ -192,11 +205,14 @@ extension ScreenshotTests {
     /// broken to a German reader — which is why shortening the English copy was rejected
     /// outright rather than tried.
     ///
-    /// What this walk proves is the **degradation**, not the layout: at the default text size
-    /// English draws both names and German cannot, so German falls to the tier that draws one.
-    /// The assertion is that the one it draws is *Als gelesen markieren* — the action whose
-    /// glyph is the one already spoken for by the selection ticks. Estimating this from
-    /// character counts is what the old comment did, and it was wrong by a whole tier.
+    /// **Existence is not the assertion, and that took a verification pass to notice.** A
+    /// `Label` keeps its title as its accessibility label whatever the label style draws, so
+    /// `app.buttons["Als gelesen markieren"].exists` is true at every tier and cannot tell
+    /// tier 1 from tier 2 — the one distinction this walk is for. What separates them is
+    /// **width**: at tier 2 *Download* is drawn icon-only, so its frame is about as wide as
+    /// the overflow's pure glyph; at tier 1 it carries a title and is far wider. Comparing the
+    /// two controls rather than either against a constant is what keeps this true at any text
+    /// size and on any device, since both grow together.
     func testCaptureLibrarySelectingInGerman() throws {
         let app = sweepLaunch(language: "de")
         try startSelecting(in: app, library: "Bibliothek", select: "Auswählen", done: "Fertig")
@@ -207,6 +223,21 @@ extension ScreenshotTests {
             app.buttons["Als gelesen markieren"].waitForExistence(timeout: 5),
             "The capsule draws no named action in German. On screen: "
                 + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
+        )
+        let download = app.buttons["Herunterladen"].frame.width
+        let more = app.buttons["Weitere Aktionen"].frame.width
+        let markRead = app.buttons["Als gelesen markieren"].frame.width
+        XCTAssertLessThan(
+            download,
+            more * 1.6,
+            "German draws *Herunterladen* as well (\(download) pt against the overflow's "
+                + "\(more) pt), so this is tier 1 and the German fallback is not being taken."
+        )
+        XCTAssertGreaterThan(
+            markRead,
+            more * 2,
+            "German draws no name at all (\(markRead) pt against the overflow's \(more) pt), "
+                + "so it has fallen past tier 2 to the glyph-only floor."
         )
         hold(1)
         attach(app.screenshot(), named: "library-selecting-picked-de")

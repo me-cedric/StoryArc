@@ -146,17 +146,25 @@ internal fun LibrarySelectionTopBar(
                     contentDescription = stringResource(R.string.library_bulk_download),
                 )
             }
-            IconButton(
-                onClick = onMarkRead,
+            // **Mark-as-read is in the overflow, not the bar, and the reason is one frame
+            // away.** `PickMark` draws a picked cover as `Icons.Filled.CheckCircle` tinted
+            // `palette.accent` — the same vector, the same tint — so a bar action drawn that
+            // way is the picked state's own mark asked to mean something else, four rows
+            // below dozens of it. `native-experience`'s *Every action names itself* refuses
+            // exactly that: a mark another control in the same frame already uses is not
+            // established here, whatever it means elsewhere.
+            //
+            // iOS reached the same verdict about `checkmark.circle` on its own capsule, where
+            // the case was *weaker* — a ring-with-a-check is the visual union of the picked
+            // disc and the unpicked ring rather than the picked mark itself — and answered it
+            // by keeping the word beside the glyph wherever a word fits. A top app bar's
+            // action slot has no room for a word at any width, so this platform's answer to
+            // the same rule is the overflow, where the name is drawn in full.
+            SelectionOverflowMenu(
                 enabled = enabled,
-                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.accent),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.CheckCircle,
-                    contentDescription = stringResource(R.string.library_mark_read),
-                )
-            }
-            SelectionOverflowMenu(enabled = enabled, onAddToShelf = onAddToShelf)
+                onAddToShelf = onAddToShelf,
+                onMarkRead = onMarkRead,
+            )
         },
     )
 }
@@ -164,16 +172,21 @@ internal fun LibrarySelectionTopBar(
 /**
  * The action whose glyph would lie, named in words.
  *
- * One row today. It is a menu rather than a fourth icon because of what the row *is*, not
- * because of how many there are: an action that opens a chooser wants a name and an ellipsis,
- * and `PlaylistAdd` gives a reader neither. [LibraryOverflowMenu] does the same thing for the
- * library's own bar, and this is where a fourth bulk action — copying a list to a server, say
- * — would land without turning the bar into a row of glyphs again.
+ * Two rows, and both are here for the same reason rather than to shorten the bar: an action
+ * whose glyph would lie wants a name, and a top app bar's action slot has no room for a word at
+ * any width. `PlaylistAdd` gives a reader neither a name nor a readable symbol. `CheckCircle`
+ * is worse than unreadable — it is the mark `PickMark` puts on every picked cover in the same
+ * frame, so in the bar it asks one symbol to mean *picked* and *mark as read* at once.
+ *
+ * [LibraryOverflowMenu] does the same thing for the library's own bar, and this is where a
+ * fourth bulk action — copying a list to a server, say — would land without turning the bar
+ * into a row of glyphs again.
  */
 @Composable
 private fun SelectionOverflowMenu(
     enabled: Boolean,
     onAddToShelf: () -> Unit,
+    onMarkRead: () -> Unit,
 ) {
     val palette = LocalStoryArcPalette.current
     var open by remember { mutableStateOf(false) }
@@ -189,6 +202,14 @@ private fun SelectionOverflowMenu(
         )
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.library_mark_read)) },
+            leadingIcon = { Icon(Icons.Filled.CheckCircle, contentDescription = null) },
+            onClick = {
+                open = false
+                onMarkRead()
+            },
+        )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.shelves_add_to)) },
             leadingIcon = {

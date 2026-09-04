@@ -27,25 +27,12 @@ import Testing
 @Suite("The notice is not on a timer")
 struct SkippedNoticeTimerTests {
 
-    /// A source file in the package under test, reached from this file rather than discovered.
-    ///
-    /// Built from `#filePath`, so it is inside the checkout being compiled by construction.
-    /// Walking up looking for a marker leaves it: this repository nests agent worktrees at
-    /// `.claude/worktrees/<name>/`, and a walk climbs out of the one under test.
-    private static func source(_ relativePath: String) -> String {
-        let package = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let file = package.appending(path: relativePath)
-        guard let text = try? String(contentsOf: file, encoding: .utf8) else {
-            fatalError("\(relativePath) is not at \(file.path) — has it moved?")
-        }
-        return text
-    }
+    // The `#filePath` walk lives in ``LibraryFeatureSource``. This file carried a third copy
+    // of it — the split that created that type warned a third copy was a third chance for one
+    // of them to point at the wrong checkout, and this was already it.
 
-    private static let notice = source("Sources/LibraryFeature/SkippedNotice.swift")
-    private static let states = source("Sources/LibraryFeature/LibraryStates.swift")
+    private static let notice = LibraryFeatureSource.source("Sources/LibraryFeature/SkippedNotice.swift")
+    private static let states = LibraryFeatureSource.source("Sources/LibraryFeature/LibraryStates.swift")
 
     @Test("The notice never sleeps")
     func noSleep() {

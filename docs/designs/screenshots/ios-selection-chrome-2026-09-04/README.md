@@ -1,6 +1,6 @@
 # The selection chrome, photographed at last
 
-Ten pictures, iOS only, taken on `StoryArc-iPhone17Pro`
+Eleven pictures, iOS only, taken on `StoryArc-iPhone17Pro`
 (`11DFC984-7DF7-4E1A-99F6-B7B4BED091F8`, 402 × 874 pt at @3x) against the corpus
 `scripts/corpus.mjs` builds.
 

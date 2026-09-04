@@ -183,11 +183,17 @@ worked around silently:
 - [x] 2.3 iOS: **select stays on its own**, and the test says why: it changes the surface's
       *mode* where the rest present a choice and leave. A mode switch inside a menu of choices
       is how a reader lands in selection without asking.
-      **Done.** `selectStandsAlone` asserts three things and its doc comment carries the reason
+      **Done.** `selectStandsAlone` asserts four things and its doc comment carries the reason
       in the spec's own terms: the toolbar contains no `Menu {` of its own — so there is nowhere
-      in this file for `selection.begin()` to have been folded into — the way in is still here,
-      and it is `.disabled(selection.isActive)` rather than absent, so the control does not move
-      while the reader is using it. The "why" is the load-bearing half: a reader who went looking
+      in this file for `selection.begin()` to have been folded into — and the way in is still
+      here.
+      **This paragraph said *Select* stays mounted and disabled while a selection runs, and
+      §3b.2 reversed that the same week without anyone editing here.** *Select* is **replaced**
+      by *Done* now, in one trailing slot, which is what Photos does and what stops a mode's
+      chrome sitting beside the control that entered it. `LibraryToolbarTests` asserts the
+      negative by name — the toolbar must **not** contain `.disabled(selection.isActive)` — and
+      `BulkSelectionChromeTests` asserts it a second time from the other side. So this task's
+      own test contradicted this task's own prose until a verification pass read both. The "why" is the load-bearing half: a reader who went looking
       for a sort and came back holding a checklist did not ask for selection, which is why
       `library-browsing` words the allowance as *changes mode* rather than *is important*.
 - [x] 2.4 Both: every standalone control names itself to assistive technology whatever it
@@ -481,10 +487,12 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
 - [x] 3b.7 Captures, both platforms — **and the two defects they found are fixed rather than
       filed.** The pictures were the point: each of the three claims below passed every
       source-text guard in the repository and was false on a device.
-      iOS, done: ten frames in `docs/designs/screenshots/ios-selection-chrome-2026-09-04/`,
+      iOS, done: eleven frames in `docs/designs/screenshots/ios-selection-chrome-2026-09-04/`,
       on `StoryArc-iPhone17Pro` — the shelf selecting at **0** and at **2** picked, at the
       default text size and at `UICTContentSizeCategoryAccessibilityXXXL`, **light and dark**,
-      plus the end-of-scroll pair. Five walks, each run reporting `1 passed, 0 skipped`.
+      plus the end-of-scroll pair and a German one. Six walks, each run reporting
+      `1 passed, 0 skipped` — and a seventh test beside them that photographs nothing and
+      measures instead, `testTheInertCapsuleIsDimmerThanTheLiveOne`.
       Two walks are new (`…SelectingEmpty`, `…SelectingEmptyAtLargestText`) and the three
       that existed were hardened, because **none of them could say it had photographed the
       right screen**: they launched with `launch()`, which pins no appearance — so the app's
@@ -576,6 +584,17 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
       flagged **survived the rebuild** on the close, the three actions and the ticks. Captured
       dynamic-colour-on only, so the colour is re-confirmed and the "same in both schemes" half
       is not.
+      **The Android frames were retaken after the fixes, and a third defect came out of the
+      reading.** The first eight photographed the bar as it shipped and were the evidence for
+      the inert-state defect; what is on disk now is the bar as it stands. The action region
+      that had been **byte-identical** between nought picked and two picked differs by 1 182 of
+      17 141 pixels in light and 1 184 in dark. And mark-as-read left the bar: it was drawn
+      `Icons.Filled.CheckCircle` tinted `palette.accent`, which is exactly what `PickMark` puts
+      on every picked cover in the same frame — one symbol meaning *picked* and *mark as read*
+      four rows apart, visible in a single frame. It is a named overflow row now, which is this
+      platform's answer to the rule iOS answered by keeping the word beside the glyph. Neither
+      defect was reachable by any test in the repository at the time; both have one now.
+
       Also named and not reached, with reasons, in that folder's README: the undo capsule and
       §3b.6's `ShelfBulkActions` (both need a persisted write or a collection the corpus does
       not build), the *Add to…* menu open, Reduce Transparency and Increased Contrast (the

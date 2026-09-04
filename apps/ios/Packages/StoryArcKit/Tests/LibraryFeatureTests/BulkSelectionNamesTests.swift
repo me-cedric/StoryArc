@@ -100,11 +100,4 @@ struct BulkSelectionNamesTests {
             )
         }
     }
-
-    /// The names are drawn where there is room, and give way to glyphs only where there
-    /// is not.
-    ///
-    /// `ViewThatFits` is what makes that a measurement rather than a guess about widths:
-    /// the named row is offered first and the glyph row is the fallback, so the names are
-    /// present at every size that can hold them — including the accessibility text sizes,
 }

@@ -319,11 +319,22 @@ because the foot of an Android window is the navigation bar's territory. Each pl
 names the convention it follows and cites ADR-0001 as the licence. On both, the actions are
 inert-but-shown at nothing selected and the exit is never disabled.
 
-**Open: §3b.7's captures, and they are the only substantive gap.** iOS has three walks written
-and never run to disk; Android has none for the contextual bar. One question is still
-unanswered and only a picture answers it — whether the automatic button style colours its own
-labels over the ancestor `.storyArcGlassText(.primary)`. Either outcome is legible and neither
-tints the material, so no rule is broken; nobody knows which it is.
+**§3b.7 is closed, and the pictures found two defects that every test in the repository had
+passed.** iOS has eleven frames across six walks, Android eight across three routes. The open
+question — whether the automatic button style colours its own labels over the ancestor
+`.storyArcGlassText(.primary)` — is answered: the ancestor wins, the glyphs measuring
+saturation 0.000 beside a *Done* at 0.679, which is right, because it leaves the accent marking
+only what is picked and the way out.
+
+The two defects were both invisible to source-text guards. The capsule drew **three bare glyphs
+at the default text size**, not merely at the accessibility sizes — breaking a clause this
+change had already written, since a `ViewThatFits` fallback is room-saving by construction. And
+the **inert state was drawn identically to the live one** on both platforms, from mirror-image
+causes: an explicit `foregroundStyle` on iOS and an explicit `Icon` tint on Android, each
+defeating the dimming the platform would otherwise apply. Both are fixed, both now have checks
+that measure rendered pixels rather than read source, and a third collision came out of the
+same reading — Android's mark-as-read was drawn with the identical vector and tint that marks a
+picked cover in the same frame, so it moved into the overflow where its name is drawn.
 
 **A merge hazard this change surfaced, recorded because it is not about this change.** Two
 open changes held `MODIFIED` deltas on `library-browsing` → *Presentation* with disjoint

@@ -212,7 +212,17 @@ struct BulkSelectionChromeTests {
         )
     }
 
-    /// where the fallback is doing real work and the `Label` still carries the name.
+    /// Every tier draws a word until the width will not hold one, and no tier draws a glyph
+    /// the same frame already spends elsewhere.
+    ///
+    /// The row used to be styled as a whole — every name or none — so three names that never
+    /// fit 338 pt meant three bare glyphs at every size. It degrades by *control* now, and the
+    /// two glyphs that survive to the floor are ones the platform has established: a downward
+    /// arrow in a ring, and an ellipsis.
+    ///
+    /// (This comment was severed from its own test when the file was split at SwiftLint's
+    /// 400-line cap: the half above it went to `BulkSelectionNamesTests`, describing a design
+    /// tier 3 had already replaced, and this tail was left heading the wrong function.)
     @Test("The action names are drawn wherever the width allows")
     func theNamesAreDrawnWhereThereIsRoom() {
         #expect(
@@ -239,9 +249,11 @@ struct BulkSelectionChromeTests {
         for tier in ["row(.everything)", "row(.markReadOnly)", "row(.nothing)"] {
             #expect(Self.bar.contains(tier), "the `\(tier)` tier is gone")
         }
-        // **The assertion that pins the fix.** The tier a phone takes at the default text
-        // size still draws a word, and it is mark-as-read's — the action that writes state and
-        // the one whose glyph collides with the selection ticks forty points above it.
+        // **The assertion that pins the fix.** Every tier above the floor draws a word, and
+        // the word that survives longest is mark-as-read's — the action that writes state, and
+        // the one whose glyph collides with the selection ticks forty points above it. Which
+        // tier a given device takes is a thing only a photograph knows: English at the default
+        // size takes tier 1 and German takes tier 2, and this file cannot tell them apart.
         let middle = Self.bar.range(of: "case .markReadOnly:")
         let narrow = Self.bar.range(of: "case .nothing:")
         #expect(middle != nil && narrow != nil, "the tiers are no longer a switch over `Naming`")

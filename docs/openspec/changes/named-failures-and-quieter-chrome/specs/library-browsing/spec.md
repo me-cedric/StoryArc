@@ -11,9 +11,25 @@ the library currently aggregates all of that into a count. The count is the one 
 message that helps nobody.
 
 #### Scenario: One publication could not be opened
-- **WHEN** a scan or an import finds exactly one publication it cannot open
+- **WHEN** a scan finds exactly one publication it cannot open
 - **THEN** the notice names that publication and states the reason in the words `publication-formats` gives for it
-- **AND** it offers a way to act on it — reaching the file, or dismissing it from the list
+- **AND** the notice can be dismissed, and the list it summarises stays reachable afterwards
+
+> **This said "a scan or an import", and the import half was never built.** On both platforms
+> an import that cannot be indexed returns silently — iOS's `LibraryImports` and Android's
+> `LibraryViewModel.indexImport` each drop the failure and neither touches the skipped list —
+> so a reader who imports one unreadable file gets a transient alert naming the file and no
+> reason, and nothing in the notice. No task in §1 ever mentioned imports. Narrowed to what was
+> built rather than left promising what was not, and recorded here so the gap survives the
+> archive: giving imports the same treatment belongs with whichever change owns the import
+> path, and it is not free — the scan's settle **replaces** the list, which is what makes a
+> fixed publication leave it, so an import adding one entry needs an operation the scan does
+> not have.
+>
+> The second clause lost "reaching the file" for the same reason: no reveal, share or
+> open-in-Files exists on either platform, and *Dismiss* acknowledges the whole notice rather
+> than removing an entry — which §1.6 chose deliberately, so the clause now says what dismissal
+> actually does.
 
 #### Scenario: Several could not be opened
 - **WHEN** more than one cannot be opened

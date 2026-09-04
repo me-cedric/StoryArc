@@ -215,10 +215,19 @@ class BulkSelectionChromeTest {
         }
         compose.waitForIdle()
 
-        for (name in listOf(stopping, download, markRead, more)) {
+        for (name in listOf(stopping, download, more)) {
             assertTrue("a control in the selection bar has no name", name.isNotBlank())
             compose.onNodeWithContentDescription(name).assertIsDisplayed()
         }
+        // Mark-as-read is not in the bar any more: `PickMark` spends `Icons.Filled.CheckCircle`
+        // at `palette.accent` on every picked cover in the same frame, so a bar action drawn
+        // that way asks one mark to mean *picked* and *mark as read* at once. It is an
+        // overflow row now, where its name is drawn rather than merely announced.
+        assertTrue("mark-as-read has no name", markRead.isNotBlank())
+        compose.onNodeWithContentDescription(markRead).assertDoesNotExist()
+        compose.onNodeWithContentDescription(more).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(markRead).assertIsDisplayed()
     }
 
     /**
@@ -258,6 +267,49 @@ class BulkSelectionChromeTest {
     }
 
     /**
+     * The mark another control in the same frame already spends is not in the bar.
+     *
+     * `PickMark` (`CoverGrid.kt`) draws a picked cover as `Icons.Filled.CheckCircle` tinted
+     * `palette.accent`. The selection bar drew its mark-as-read action with the same vector and
+     * the same tint, four rows below dozens of them — one symbol asked to mean *picked* and
+     * *mark as read* in one frame. `native-experience`'s *Every action names itself* refuses a
+     * mark another control in the same frame already uses, whatever it means elsewhere, and a
+     * verification pass caught Android still doing it after iOS had been fixed for the weaker
+     * version of the same collision.
+     *
+     * Asserted as **absence from the bar plus presence in the menu**, because either alone is
+     * satisfiable by the wrong code: dropping the action entirely passes the first, and
+     * putting it in both passes the second.
+     */
+    @Test
+    fun `the picked mark is not spent twice`() {
+        var markRead = ""
+        var more = ""
+        var marked = false
+        compose.setContent {
+            StoryArcTheme {
+                markRead = stringResource(R.string.library_mark_read)
+                more = stringResource(R.string.library_more)
+                LibrarySelectionTopBar(
+                    selection = picking(2),
+                    onSelectionChange = {},
+                    onAddToShelf = {},
+                    onDownload = {},
+                    onMarkRead = { marked = true },
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithContentDescription(markRead).assertDoesNotExist()
+        compose.onNodeWithContentDescription(more).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(markRead).performClick()
+        compose.waitForIdle()
+        assertTrue("the named row does not reach mark-as-read", marked)
+    }
+
+    /**
      * Nothing picked, nothing to do — and the controls say so rather than vanishing.
      *
      * Same answer as iOS, and for the same reason: chrome that appeared on the first pick
@@ -289,14 +341,18 @@ class BulkSelectionChromeTest {
         }
         compose.waitForIdle()
 
-        for (name in listOf(download, markRead, more)) {
+        // The bar's own two, and only those: mark-as-read is an overflow row now, and a
+        // `DropdownMenu`'s rows do not exist in the tree until the menu is opened — so its
+        // inertness is the overflow button's, which is in this list.
+        for (name in listOf(download, more)) {
             compose.onNodeWithContentDescription(name).assertIsNotEnabled()
         }
         compose.onNodeWithContentDescription(stopping).assertIsEnabled()
+        assertTrue("mark-as-read has no name", markRead.isNotBlank())
 
         state.value = picking(1)
         compose.waitForIdle()
-        for (name in listOf(download, markRead, more)) {
+        for (name in listOf(download, more)) {
             compose.onNodeWithContentDescription(name).assertIsEnabled()
         }
         compose.onNodeWithContentDescription(stopping).assertIsEnabled()
@@ -558,10 +614,12 @@ class BulkSelectionChromeTest {
         var marked = false
         var download = ""
         var markRead = ""
+        var more = ""
         compose.setContent {
             StoryArcTheme {
                 download = stringResource(R.string.library_bulk_download)
                 markRead = stringResource(R.string.library_mark_read)
+                more = stringResource(R.string.library_more)
                 LibrarySelectionTopBar(
                     selection = picking(2),
                     onSelectionChange = {},
@@ -574,10 +632,15 @@ class BulkSelectionChromeTest {
         compose.waitForIdle()
 
         compose.onNodeWithContentDescription(download).performClick()
-        compose.onNodeWithContentDescription(markRead).performClick()
+        compose.waitForIdle()
+        // Through the overflow, which is where the mark that would collide with `PickMark`
+        // lives now — see `the picked mark is not spent twice`.
+        compose.onNodeWithContentDescription(more).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(markRead).performClick()
         compose.waitForIdle()
 
         assertTrue("the download action is drawn and wired to nothing", downloaded)
-        assertTrue("the mark-read action is drawn and wired to nothing", marked)
+        assertTrue("the mark-read row is drawn and wired to nothing", marked)
     }
 }

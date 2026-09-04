@@ -131,16 +131,22 @@ struct BulkActionBar: View {
     /// So the tiers degrade by *control* rather than by label style, and no tier draws a glyph
     /// that is not established on this screen:
     ///
-    /// | tier | draws | taken at |
+    /// | tier | draws | photographed at |
     /// | --- | --- | --- |
-    /// | 1 | `⬇ Download`  `✓ Mark as read`  `⋯` | wide windows and iPad |
-    /// | 2 | `⬇`  `✓ Mark as read`  `⋯` | a phone at the default size, in all four languages |
-    /// | 3 | `⬇`  `⋯` | the accessibility sizes |
+    /// | 1 | `⬇ Download`  `✓ Mark as read`  `⋯` | a 402 pt phone, **English**, default size |
+    /// | 2 | `⬇`  `✓ Als gelesen markieren`  `⋯` | the same phone in **German** |
+    /// | 3 | `⬇`  `⋯` | `AccessibilityXXXL` |
     ///
-    /// Tier 2 is the one that matters, and German is what sets it: *Als gelesen markieren* is
-    /// 21 characters against *Mark as read*'s 12, so a design that fits in English and not in
-    /// German ships broken to a German reader. Measured widths at the default size leave every
-    /// language clear of 338 pt, because only one name is drawn.
+    /// **The right-hand column is what the frames show, not what the arithmetic predicted.**
+    /// This table first said tier 1 was "wide windows and iPad" and tier 2 was a phone "in all
+    /// four languages" — and a phone in English takes **tier 1**, because moving *Add to…* into
+    /// the overflow left two names where there had been three. Estimating which tier a device
+    /// takes is exactly what got the original design wrong, so the frames in
+    /// `docs/designs/screenshots/ios-selection-chrome-2026-09-04/` are the authority here.
+    ///
+    /// German is what makes the middle tier exist: *Als gelesen markieren* is 21 characters
+    /// against *Mark as read*'s 12, so a design that fits in English and not in German ships
+    /// broken to a German reader.
     ///
     /// **Tier 3 loses no action.** Mark-as-read is `AddToShelfMenu`'s own first row, so at the
     /// width where its button goes it is still reachable and still named — which is the whole

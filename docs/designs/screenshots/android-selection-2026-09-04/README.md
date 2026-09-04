@@ -65,9 +65,14 @@ Codec* at that text size, so only one of the two ticks is on screen — the bar'
 state of this AVD's shelf (the corpus ships two deliberately broken files) and it appears in
 every frame here and in the before set alike.
 
-## Two things the frames say that the code's header does not
+## Two things the frames said that the code's header did not — and one the retake added
 
-### The three actions are inert when nothing is picked, and nothing shows it
+**These frames were retaken on 2026-09-04 after both defects below were fixed**, and after a
+third the fix surfaced. The originals photographed the bar as it shipped; what is on disk now
+is the bar as it stands. Everything the first pass measured is kept here, because the numbers
+are how the defects were found and the retake is what proves they are gone.
+
+### The actions were inert when nothing was picked, and nothing showed it — fixed
 
 `LibrarySelectionTopBar.kt` says the three "go inert together when nothing is picked, and are
 drawn rather than hidden". The first half is true — `enabled = false` reaches every one of
@@ -85,8 +90,31 @@ passes `tint = palette.accent` explicitly, which overrides it. So at `0 selected
 sees three controls drawn exactly as live as at `2 selected`, and two of them do nothing. The
 close affordance is genuinely live throughout and looks the same as the three that are not.
 
-Not fixed here: this pass was captures only, and
-`apps/android/feature/library/**` belonged to another worktree while it ran.
+**Fixed, and the retake measures it.** The accent now arrives as the `IconButton`'s
+`contentColor` through `IconButtonDefaults.iconButtonColors` instead of the `Icon`'s `tint`, so
+Material derives the disabled treatment from the colour it was given rather than from an alpha
+of ours. The same region that was byte-identical now differs by **1 182 of 17 141 pixels** in
+light and **1 184** in dark, worst channel delta 110 and 136. The close affordance keeps its
+explicit tint, and only it: the way out of a mode is never disabled, so nothing there can be
+taken away. `BulkSelectionChromeTest.a disabled action is drawn differently from a live one`
+rasterises the node in Robolectric and fails if the two states ever match again.
+
+### The mark-as-read glyph was the picked-cover mark — moved
+
+Found by reading these frames against the reworded requirement rather than by any test. The bar
+drew mark-as-read as `Icons.Filled.CheckCircle` tinted `palette.accent`; `PickMark` draws every
+**picked cover** in the same frame as `Icons.Filled.CheckCircle` tinted `palette.accent`. Same
+vector, same tint, one symbol asked to mean *picked* and *mark as read* at once, four rows
+apart — and `android-library-selection-two.png` shows both at once.
+
+`native-experience`'s *Every action names itself* refuses exactly that: a mark another control
+in the same frame already uses is not established here, whatever it means elsewhere. iOS had
+answered the weaker version of the same collision — `checkmark.circle` is the visual *union* of
+the picked disc and the unpicked ring rather than the picked mark itself — by keeping the word
+beside the glyph wherever a word fits. A top app bar's action slot has no room for a word at
+any width, so this platform's answer is the overflow, where the name is drawn in full. The bar
+is now close · count · download · overflow, and `android-library-selection-overflow.png` shows
+*Mark as read* and *Add to…* as two named rows.
 
 ### The accent is still the purple the sweep flagged
 
