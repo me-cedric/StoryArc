@@ -27,9 +27,9 @@ import org.junit.Test
  *
  * What it deliberately does **not** assert is that the two shelves show the same number of
  * columns. They cannot, and a test saying so would be asserting something untrue of the app:
- * on a 1067 dp emulator the library renders inside the ~340 dp list pane of a
- * `ListDetailPaneScaffold` and shows one cover, while Downloads is a full-width surface and
- * shows five. Same rule, same bounds, different room. What is shared is the rule.
+ * on a tablet the library renders inside the list pane of a `ListDetailPaneScaffold` while
+ * Downloads is a full-width surface, so the same bounds are spent in very different rooms.
+ * They no longer *measure* the same thing either — see the first test. What is shared is the rule.
  */
 class ShelvesAskOneRuleTest {
 
@@ -50,12 +50,48 @@ class ShelvesAskOneRuleTest {
         "feature/library/src/main/kotlin/app/storyarc/feature/library/CoverGrid.kt",
     )
 
+    /** Where the library shelf's own bounds are assembled. */
+    private val bounds =
+        listOf("feature/library/src/main/kotlin/app/storyarc/feature/library/ShelfColumns.kt")
+
+    /**
+     * Two shapes, and the second is why there are two.
+     *
+     * `rememberCoverColumns` reads the **window**, which is what a full-width surface wants.
+     * A shelf drawn inside a pane wants the pane, and asking the window there took the widest
+     * tier and drew one cover across a 360 dp list pane with 170 dp of it left empty — see
+     * `ShelfColumns`, which passes the shelf's own width to the same two bound functions.
+     * What is pinned is that a shelf asks the design system for both bounds, whichever width
+     * it hands them; what is still forbidden is a shelf answering for itself.
+     */
     @Test
     fun `every publication shelf asks the shared rule for its columns`() {
         for (shelf in shelves) {
+            val source = read(shelf)
+            val asksTheWindow = source.contains("columns = rememberCoverColumns()")
+            val asksItsOwnWidth = source.contains("ShelfColumns.of(")
             assertTrue(
-                "$shelf lays covers out without asking rememberCoverColumns",
-                read(shelf).contains("columns = rememberCoverColumns()"),
+                "$shelf lays covers out without asking the shared bounds",
+                asksTheWindow || asksItsOwnWidth,
+            )
+        }
+    }
+
+    /**
+     * And the bounds themselves are never rebuilt out of raw numbers.
+     *
+     * `ShelfColumns` is allowed to construct a `BoundedAdaptive` because it constructs it
+     * out of `coverMinimumWidth` and `coverMaximumWidth`; a shelf that passed two literals
+     * would satisfy the test above and be the defect it exists for.
+     */
+    @Test
+    fun `a shelf that builds its own bounds builds them out of the shared ones`() {
+        for (shelf in shelves + bounds) {
+            val source = read(shelf)
+            if (!source.contains("BoundedAdaptive(")) continue
+            assertTrue(
+                "$shelf constructs bounds without asking coverMinimumWidth",
+                source.contains("coverMinimumWidth(") && source.contains("coverMaximumWidth("),
             )
         }
     }

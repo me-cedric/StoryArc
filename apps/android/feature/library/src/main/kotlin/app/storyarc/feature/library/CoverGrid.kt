@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
@@ -57,7 +58,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.cover.CoverlessWell
 import app.storyarc.core.designsystem.grid.coverMaximumWidth
-import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.grid.steppedForFontScale
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcColor
@@ -80,11 +80,13 @@ private val CONTINUE_READING_WIDTH = 128.dp
  *
  * `library-browsing`: "the number of grid columns follows the available width, and
  * cover size stays within the readable range defined in the design tokens".
- * [rememberCoverColumns] is what does that — a fixed column count would give a phone
+ * [ShelfColumns] is what does that — a fixed column count would give a phone
  * postage stamps and a tablet a wall of enormous covers, and the platform's own
- * `GridCells.Adaptive` takes only the lower bound. The rule lives in
+ * `GridCells.Adaptive` takes only the lower bound. Every bound still lives in
  * `:core:designsystem` so that the Downloads shelf answers it identically; this screen
- * asks and does not restate.
+ * asks and does not restate. **"The available width" is this shelf's, not the window's** —
+ * inside a list pane those are different numbers, and reading the wrong one drew one cover
+ * across a 360 dp pane.
  *
  * iOS's `CoverGrid` uses the same two bounds for the same reason.
  *
@@ -164,66 +166,74 @@ internal fun CoverGrid(
 
     val gridState = rememberLazyGridState()
 
-    LazyVerticalGrid(
-        // The one column rule, asked rather than restated. The Downloads shelf asks the same
-        // question of the same window and has to get the same answer back — it did not, for
-        // as long as this arithmetic lived in this module behind `internal`.
-        columns = rememberCoverColumns(),
-        state = gridState,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            horizontal = StoryArcSpace.gutter,
-            vertical = StoryArcSpace.md,
-        ),
-        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
-    ) {
-        if (continueReading.isNotEmpty()) {
-            item(span = { GridItemSpan(maxLineSpan) }, key = "continue-reading") {
-                ContinueReadingRow(
-                    continueReading,
+    // The room the shelf actually has, not the window: on a tablet this grid is drawn
+    // inside the ~360 dp list pane of a `ListDetailPaneScaffold`, and reading the whole
+    // 1280 dp window took the widest tier and fitted one cover across it. See
+    // [ShelfColumns], which still asks the design system for every bound.
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val columns = remember(maxWidth, fontScale) { ShelfColumns.of(maxWidth, fontScale) }
+        LazyVerticalGrid(
+            // The one column rule, asked rather than restated. The Downloads shelf asks the
+            // same bounds of the same design system and has to get the same answer back for
+            // the same room — it did not, for as long as this arithmetic lived in this module
+            // behind `internal`.
+            columns = columns,
+            state = gridState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                horizontal = StoryArcSpace.gutter,
+                vertical = StoryArcSpace.md,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
+            verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
+        ) {
+            if (continueReading.isNotEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }, key = "continue-reading") {
+                    ContinueReadingRow(
+                        continueReading,
+                        viewModel,
+                        onResume,
+                        maxPixelSize,
+                        onAddToShelf,
+                    )
+                }
+            }
+            // `library-browsing`: while a search is running, results are "grouped by match
+            // kind". One heading and one run of covers per group rather than a second screen —
+            // the reader is looking at their library with a word typed over it, not somewhere
+            // else.
+            val cell: @Composable (Publication) -> Unit = { publication ->
+                CoverCell(
+                    publication,
                     viewModel,
-                    onResume,
+                    onOpen,
                     maxPixelSize,
                     onAddToShelf,
+                    isPicked = selection?.contains(publication.id),
+                    onToggle = onToggle,
                 )
             }
-        }
-        // `library-browsing`: while a search is running, results are "grouped by match
-        // kind". One heading and one run of covers per group rather than a second screen —
-        // the reader is looking at their library with a word typed over it, not somewhere
-        // else.
-        val cell: @Composable (Publication) -> Unit = { publication ->
-            CoverCell(
-                publication,
-                viewModel,
-                onOpen,
-                maxPixelSize,
-                onAddToShelf,
-                isPicked = selection?.contains(publication.id),
-                onToggle = onToggle,
-            )
-        }
-        if (groups.isEmpty() && sections.isEmpty()) {
-            items(publications, key = { it.id }) { cell(it) }
-        } else if (groups.isEmpty()) {
-            // One grid with headings pinned in it, rather than a second composable beside
-            // this one. iOS had to split them — its grid lives inside its own `ScrollView`
-            // and a pinned header has to share the lazy stack with the cells it heads — and
-            // `LazyVerticalGrid` has no such problem: a full-span sticky item is a heading,
-            // and the shelf keeps one scroll position, one column rule and one cell.
-            for (section in sections) {
-                stickyHeader(key = "section-${section.id}") {
-                    SectionHeading(section.title)
+            if (groups.isEmpty() && sections.isEmpty()) {
+                items(publications, key = { it.id }) { cell(it) }
+            } else if (groups.isEmpty()) {
+                // One grid with headings pinned in it, rather than a second composable beside
+                // this one. iOS had to split them — its grid lives inside its own `ScrollView`
+                // and a pinned header has to share the lazy stack with the cells it heads — and
+                // `LazyVerticalGrid` has no such problem: a full-span sticky item is a heading,
+                // and the shelf keeps one scroll position, one column rule and one cell.
+                for (section in sections) {
+                    stickyHeader(key = "section-${section.id}") {
+                        SectionHeading(section.title)
+                    }
+                    items(section.publications, key = { it.id }) { cell(it) }
                 }
-                items(section.publications, key = { it.id }) { cell(it) }
-            }
-        } else {
-            for (group in groups) {
-                item(span = { GridItemSpan(maxLineSpan) }, key = "heading-${group.kind}") {
-                    MatchHeading(group.kind)
+            } else {
+                for (group in groups) {
+                    item(span = { GridItemSpan(maxLineSpan) }, key = "heading-${group.kind}") {
+                        MatchHeading(group.kind)
+                    }
+                    items(group.publications, key = { it.id }) { cell(it) }
                 }
-                items(group.publications, key = { it.id }) { cell(it) }
             }
         }
     }
