@@ -227,6 +227,9 @@ internal fun AppShell(
             }
         },
         sheet = { sheet = it },
+        // Read when it is asked rather than captured now: the backoff loop asks each time it
+        // comes round, and this host is rebuilt on every recomposition anyway.
+        isReading = { navigation.current is Screen.Reader },
     )
 
     AppIntents(

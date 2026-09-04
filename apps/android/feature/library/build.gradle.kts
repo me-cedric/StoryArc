@@ -91,6 +91,20 @@ tasks.withType<Test>().configureEach {
     )
         .withPropertyName("skippedScanWiringSource")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // And the two source-retry files, for `SourceRetryWiringTest`. `:core:model`'s
+    // `SourceReachabilityTest` pins the decisions; every one of its sixteen cases passed for
+    // as long as nothing called any of them. What is left to guard is that the wiring reaches
+    // them, and a `ConnectivityManager.NetworkCallback` needs a device this gate has not got.
+    inputs.files(
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/library/SourceRetry.kt",
+        ),
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/library/SourceRetryTriggers.kt",
+        ),
+    )
+        .withPropertyName("sourceRetryWiringSource")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {

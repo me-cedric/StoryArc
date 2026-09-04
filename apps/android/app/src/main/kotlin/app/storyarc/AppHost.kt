@@ -70,4 +70,20 @@ internal class AppHost(
     val browse: (Source, String) -> Unit,
     /** Present, or dismiss, the one modal the app layer hosts. */
     val sheet: (AppSheet?) -> Unit,
+    /**
+     * Whether a reader has a publication open.
+     *
+     * `sources` forbids automatic recovery from interrupting reading, and the library is the
+     * wrong place to ask: it knows about sources and not about readers, and the reader is
+     * drawn *over* it. This is the one value that can see both. A function rather than a
+     * boolean, because the backoff loop asks each time it comes round — a reader opens a
+     * publication *while* it is waiting.
+     *
+     * **It answers for the comic reader, which is a screen in this activity.** The EPUB
+     * reader is an activity of its own, so while a reader is in a chapter of one this
+     * navigation state holds a library. `SourceRetryTriggers` covers that case by collecting
+     * only while this activity is started; the backoff loop does not, and `tasks.md` 3.3
+     * records it.
+     */
+    val isReading: () -> Boolean,
 )

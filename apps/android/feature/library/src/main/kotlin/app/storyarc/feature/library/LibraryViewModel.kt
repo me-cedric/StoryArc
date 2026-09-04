@@ -39,7 +39,6 @@ import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.model.Source
 import java.util.UUID
 import app.storyarc.core.catalogue.CertificatePins
-import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.LibraryCache
 import app.storyarc.core.persistence.KavitaProgressStore
@@ -64,8 +63,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -104,14 +101,18 @@ class LibraryViewModel(
      * value type. A folder is a source: the library's source list was handed an empty list,
      * so it never drew a row for the folder a reader had picked.
      */
-    private val _registry = MutableStateFlow(sourceStore?.registry() ?: SourceRegistry())
+    // Internal rather than private, these three, for the reason iOS's `LibraryModel` gives
+    // for the same fields: `private` is file-scoped in Kotlin as in Swift, and the source
+    // health half of this class lives in `SourceRetry.kt` because this file is at the length
+    // the line cap records for it.
+    internal val _registry = MutableStateFlow(sourceStore?.registry() ?: SourceRegistry())
 
-    private val _serverLists = MutableStateFlow<List<ServerList>>(emptyList())
+    internal val _serverLists = MutableStateFlow<List<ServerList>>(emptyList())
 
     /** The reading lists every known Kavita server holds, once they have been asked. */
     val serverLists: StateFlow<List<ServerList>> = _serverLists.asStateFlow()
 
-    private val _listServers = MutableStateFlow<List<KavitaPage>>(emptyList())
+    internal val _listServers = MutableStateFlow<List<KavitaPage>>(emptyList())
 
     /**
      * The servers that answered that question: reachable, and able to hold a list.
@@ -328,79 +329,12 @@ class LibraryViewModel(
     }
 
     /**
-     * Keeps asking, while any source is still away.
+     * The backoff loop, while one is running.
      *
-     * `sources` asks for more than one probe: an unreachable source is retried "with
-     * exponential backoff starting at 5 seconds and capping at 5 minutes", and one that
-     * comes back is reconnected "without user action". A single probe on appearance
-     * satisfies neither — a reader whose Wi-Fi returns while they are looking at the
-     * library would watch it say "Connecting…" until they left the screen and came back.
-     *
-     * The schedule is [SourceProbe.delayAfter], which is tested without a network. This is
-     * only the loop, and it holds a job rather than launching a second one, so a reader
-     * leaving and returning does not end up with two.
-     *
-     * iOS runs the same loop from its `task` modifier, where cancellation is the view's.
+     * A member because a job is per view model, while the loop that owns it lives in
+     * `SourceRetry.kt` — see that file's header for why the source-health half is not here.
      */
-    private var retryJob: Job? = null
-
-    fun retryUnreachableSources(credentials: CredentialStore?, pins: CertificatePins) {
-        retryJob?.cancel()
-        retryJob = viewModelScope.launch {
-            // The first answer, before the schedule. This used to be a separate call the
-            // screen made beside this one, so the loop's first check could run before any
-            // source had been asked -- and a loop that finds nothing unreachable stops. iOS
-            // awaits its probe and then starts the loop; this is the same order.
-            probeAndWait(credentials, pins)
-            var failures = 0
-            while (isActive) {
-                val away = _registry.value.sources.any { it.state is SourceConnectionState.Unreachable }
-                if (!away) return@launch
-                failures += 1
-                delay(SourceProbe.delayAfter(failures))
-                probeAndWait(credentials, pins)
-            }
-        }
-    }
-
-    /** Stops the retry loop. Called when the library goes away and nobody is looking. */
-    fun stopRetrying() {
-        retryJob?.cancel()
-        retryJob = null
-    }
-
-    private suspend fun probeAndWait(credentials: CredentialStore?, pins: CertificatePins) {
-        run {
-            val reason = getApplication<Application>()
-                .getString(R.string.source_state_unauthorized)
-            for (source in _registry.value.sources.filter(SourceHealth::canProbe)) {
-                val state = SourceHealth.probe(
-                    source,
-                    credentials,
-                    pins,
-                    System.currentTimeMillis(),
-                    reason,
-                )
-                _registry.update { it.marking(source.id, state) }
-            }
-            // Asked at the same moment, because it is the same question -- what does this
-            // server have -- and the add-to sheet cannot fetch it for itself without
-            // opening a connection every time a reader long-presses a cover.
-            val answered = mutableListOf<KavitaPage>()
-            _serverLists.value = _registry.value.sources.flatMap { source ->
-                val page = KavitaPage.of(source, credentials) ?: return@flatMap emptyList()
-                val lists = runCatching { KavitaClient(page.address).readingLists() }
-                    .getOrNull() ?: return@flatMap emptyList()
-                answered += page
-                lists.map { ServerList(page, it.id, it.title) }
-            }
-            // `collections-and-reading-lists` offers to copy a local list onto a server, and
-            // the offer has to be honest before it is taken: only a server that just answered
-            // can take one, so an unreachable one leaves the offer disabled rather than
-            // failing after the reader has already confirmed it.
-            _listServers.value = answered
-        }
-    }
+    internal var retryJob: Job? = null
 
     /**
      * Adds a publication to one of a server's reading lists.

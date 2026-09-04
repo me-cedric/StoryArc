@@ -21,6 +21,9 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.feature.library.LibraryScreen
 import app.storyarc.feature.library.SearchScreen
+import app.storyarc.feature.library.SourceRetryTriggers
+import app.storyarc.feature.library.probe
+import app.storyarc.feature.library.retryUnreachableSources
 import app.storyarc.navigation.AppDestination
 import app.storyarc.navigation.AppSheet
 import app.storyarc.navigation.Screen
@@ -73,6 +76,16 @@ private fun SearchDestination(host: AppHost) {
 @Composable
 private fun LibraryDestination(host: AppHost) {
     val dependencies = host.dependencies
+
+    // The two occasions `sources`' *Retry policy* names beside the backoff — connectivity
+    // regained, and the app returning to the foreground. Here rather than inside the library,
+    // beside `onProbeSources` below, because a probe needs the secrets and the pinned
+    // certificates and those are the app layer's. `SourceReachability` decides whether either
+    // occasion earns a request; this only reports that one happened.
+    SourceRetryTriggers { trigger ->
+        host.library.probe(trigger, dependencies.credentials, dependencies.pins, host.isReading())
+    }
+
     LibraryScreen(
         viewModel = host.library,
         // The same store the view model reads its query and layout from. The availability
@@ -102,7 +115,14 @@ private fun LibraryDestination(host: AppHost) {
             // Asks every source once and then keeps asking while anything is away, per
             // `sources`' backoff. Stopped when the library leaves the screen, which is when
             // nobody is looking at the answer.
-            host.library.retryUnreachableSources(dependencies.credentials, dependencies.pins)
+            host.library.retryUnreachableSources(
+                dependencies.credentials,
+                dependencies.pins,
+                // Checked each time the loop comes round, not once here: `sources`' automatic
+                // recovery must not "interrupt reading", and the loop used to run straight
+                // through a chapter — every 5 s, then every 10, up to every 5 minutes.
+                isReading = host.isReading,
+            )
         },
         onMark = { publication, isRead ->
             host.library.mark(
