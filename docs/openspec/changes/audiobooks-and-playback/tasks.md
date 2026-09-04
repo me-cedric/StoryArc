@@ -651,13 +651,21 @@ creep — see [`design.md`](design.md).
       which states the right interval and grows with the reader's text size.
       **Not done: the cover** (nothing extracts embedded artwork yet) **and the sleep
       timer** (5.3). iOS half outstanding.
-- [~] 4.6 Both: a publication with no chapter markers lists its parts in playing
+- [x] 4.6 Both: a publication with no chapter markers lists its parts in playing
       order rather than showing an empty list.
       **iOS done, and there is no branch for it.** A source with no chapter markers reports
       one part rather than none — the rule lives in `AudiobookReader`, where the container is
       read — so `ChapterListView` never has an empty case to handle. What is left is naming
       an unnamed part, which `PlayerLabels.chapter` answers with its number and never with
-      the file's name. *The Android half is not started.*
+      the file's name.
+      **The Android half was started and finished before this entry was read again**, and the
+      line above saying otherwise is stale. `PlayerScreen.kt` lists `playing.parts` with no
+      empty case to handle, and its comment gives the same reason iOS's does: a source's parts
+      are never empty because `AudiobookChapters` gives an unchaptered book one part. So the
+      structural property — no branch on either platform — holds on both, which is stronger
+      than the requirement asks for. `AudiobookChaptersTest` mutation-checks the rule at its
+      source: returning an empty list for an unchaptered book fails two cases.
+      Ticked 2026-09-04 after reading both surfaces, not the entry.
 - [~] 4.7 Both: the publication page's primary action says what a **listener** does.
       **Not in this list until now, and it should have been.** The page's one button said
       *Read* for an audiobook. The routing was never wrong — `StoryArcApp.open(_:at:)` has
@@ -956,7 +964,7 @@ creep — see [`design.md`](design.md).
       a publication with nothing to say. Ruled out by forcing the row to render
       unconditionally and finding the query still empty — the app was never the problem, the
       query was. The walk swipes now.
-- [~] 6.3 Both: reaching the end withdraws the highlight, dismisses the media
+- [x] 6.3 Both: reaching the end withdraws the highlight, dismisses the media
       controls and removes the compact bar.
       **Android: written, and seen happening.** `PlaybackCentre.publish` drops the surface
       the moment a source goes idle, and `AudiobookSource` reports `STATE_ENDED` as a
@@ -964,7 +972,21 @@ creep — see [`design.md`](design.md).
       `chaptered.m4b` is six seconds long, so the first run played it out before the screen
       could be photographed — logcat shows `PLAYING(3), position=5903` then `STOPPED(1)`,
       and the player drew "Nothing is playing." That is the requirement, arrived at the
-      wrong way round. `PlaybackSessionTest` pins the model half. iOS half outstanding.
+      wrong way round. `PlaybackSessionTest` pins the model half.
+      **iOS half done 2026-09-04, and two of its three clauses were already true and
+      unasserted.** The bar half was covered — `CompactPlayerTests.everyEndingWithdraws` drives
+      all three endings over both source kinds — and the highlight half is
+      `ReadAloudCentre.finish`, which calls `withdrawSpokenHighlight()` for a listener's stop
+      and a book that ran out alike. **The middle clause had no test at all**: nothing asserted
+      that a book *running out* reaches `PlaybackPlatform.sessionEnded()`, which is what clears
+      `MPNowPlayingInfoCenter` and drops the audio session. A lock screen left showing a
+      finished book for an hour is precisely the defect nobody reports, and the path was one
+      line inside `begin`'s `ended` closure with nothing standing on it.
+      `PlayerInterruptionTests.runningOutDismissesTheMediaControls`, over both source kinds;
+      mutation-checked by deleting the `sessionEnded()` call, which fails it by name.
+      **Not watched on either platform.** Android's evidence is a logcat trace of the corpus's
+      six-second fixture playing itself out, iOS's is three host tests. Nobody has sat through
+      the end of a book on a device and seen the shade and the bar go.
 
 ## 7. Position
 

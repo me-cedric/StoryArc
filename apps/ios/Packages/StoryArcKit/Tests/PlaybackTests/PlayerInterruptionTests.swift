@@ -197,6 +197,33 @@ struct PlayerInterruptionTests {
         centre.end()
         #expect(platform.ended == 1)
     }
+
+    /// `audio-playback` and `ebook-reader`: reaching the end of a publication "withdraws the
+    /// highlight, dismisses the media controls and removes the compact bar".
+    ///
+    /// The bar half is `CompactPlayerTests`' and the highlight half is `ReadAloudCentre`'s,
+    /// which withdraws it from the navigator that drew it. This is the middle one, and it is
+    /// the half nobody would notice missing until a lock screen sat there for an hour showing
+    /// a book that finished — ``PlaybackPlatform/sessionEnded()`` is what clears
+    /// `MPNowPlayingInfoCenter` and drops the audio session.
+    ///
+    /// Over both source kinds: a narrated file running out and a voice reaching the last
+    /// sentence leave the same silence, and the surfaces must not be able to tell them apart.
+    @Test("A book running out dismisses the media controls", arguments: SourceKind.allCases)
+    func runningOutDismissesTheMediaControls(_ kind: SourceKind) {
+        let centre = PlayerCentre()
+        let platform = PlatformDouble()
+        centre.platform = platform
+        let source = PlaybackSourceDouble(kind)
+        centre.begin(.stub(id: "a", title: "Sea Room"), source: source)
+        #expect(platform.ended == 0)
+
+        source.runOut()
+
+        #expect(platform.ended == 1, "the lock screen was left showing a finished book")
+        #expect(centre.compact == nil)
+        #expect(centre.hasReachedTheEnd, "and the record has to know it was the end")
+    }
 }
 
 @MainActor
