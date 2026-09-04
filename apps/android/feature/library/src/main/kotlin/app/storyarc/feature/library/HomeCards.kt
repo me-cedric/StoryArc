@@ -43,6 +43,7 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
+import app.storyarc.core.model.ReadState
 
 /** The proportions of a comic cover, near enough for every publisher. */
 internal const val HOME_COVER_ASPECT = 3f / 2f
@@ -276,13 +277,20 @@ internal fun Modifier.homeCardSemantics(entry: HomeEntry, label: String): Modifi
  * Pages when the publication says how many it has; otherwise the plain sentence that it is
  * part-read. Never a bare percentage — `home-screen` names that as the thing not to do, and
  * the wavy line above already carries the shape of the answer.
+ *
+ * **The state decides first, and it did not use to.** "Part-read" was the fallback for
+ * *this publication does not say how many pages it has*, and a book nobody has ever opened
+ * does not say either — so every cover on a plain shelf announced itself as part-read to a
+ * screen reader, on a device where nothing had been read at all. A finished one did too,
+ * because [HomeShelves.pagesRemaining] is deliberately null once the finished flag is set.
+ * Three sentences for three states, and an untouched book says nothing rather than
+ * something untrue: [Modifier.homeCardSemantics] drops a blank instead of joining it.
  */
 @Composable
-internal fun homeRemainingText(entry: HomeEntry): String {
-    val pages = entry.pagesRemaining
-    return if (pages == null) {
-        stringResource(R.string.home_part_read)
-    } else {
-        pluralStringResource(R.plurals.home_pages_left, pages, pages)
-    }
+internal fun homeRemainingText(entry: HomeEntry): String = when (entry.state) {
+    ReadState.UNREAD -> ""
+    ReadState.FINISHED -> stringResource(R.string.home_finished_one)
+    ReadState.IN_PROGRESS -> entry.pagesRemaining
+        ?.let { pages -> pluralStringResource(R.plurals.home_pages_left, pages, pages) }
+        ?: stringResource(R.string.home_part_read)
 }

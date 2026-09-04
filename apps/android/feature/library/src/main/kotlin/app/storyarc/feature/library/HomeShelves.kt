@@ -21,12 +21,21 @@ import kotlin.math.roundToInt
  * @property pagesRemaining null when the publication does not say how many pages it has,
  *   which is normal for a reflowable book. The surface then says nothing rather than
  *   falling back to a percentage, which `home-screen` refuses on its own.
+ * @property state whether the library considers this read, part-read or untouched.
+ *
+ *   **Carried rather than inferred from [pagesRemaining] or [fraction], and that is what
+ *   this field is for.** A caption assembled from those two announced every cover on Home
+ *   as "Part-read" — including books nobody had ever opened, because a publication with no
+ *   record has no page count either and the fallback for "does not say" was the same
+ *   sentence as the fallback for "part way through". Measured on an emulator with a freshly
+ *   cleared app: all three cells on *Recently added* said it.
  */
 data class HomeEntry(
     val publication: Publication,
     val isReadableNow: Boolean,
     val pagesRemaining: Int?,
     val fraction: Double,
+    val state: ReadState = ReadState.UNREAD,
 ) {
     val id: String get() = publication.id
 }
@@ -246,12 +255,15 @@ object HomeShelves {
         publication: Publication,
         progress: (Publication) -> ReadingProgress?,
         isReadableNow: (Publication) -> Boolean,
-    ): HomeEntry = HomeEntry(
-        publication = publication,
-        isReadableNow = isReadableNow(publication),
-        pagesRemaining = pagesRemaining(publication, progress(publication)),
-        fraction = LibraryIndex.Progress.of(progress(publication)).fraction,
-    )
+    ): HomeEntry = LibraryIndex.Progress.of(progress(publication)).let { record ->
+        HomeEntry(
+            publication = publication,
+            isReadableNow = isReadableNow(publication),
+            pagesRemaining = pagesRemaining(publication, progress(publication)),
+            fraction = record.fraction,
+            state = record.state,
+        )
+    }
 
     /**
      * What has been finished, newest first, in three buckets.

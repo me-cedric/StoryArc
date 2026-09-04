@@ -11,6 +11,7 @@ import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ReadState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -256,6 +257,9 @@ class SearchAtRestTest {
         title: String,
         fraction: Double = 0.0,
         pagesRemaining: Int? = null,
+        // The same reading `LibraryIndex.Progress.of` takes, so a fixture cannot describe a
+        // state the assembly would never produce.
+        state: ReadState = if (fraction > 0.0) ReadState.IN_PROGRESS else ReadState.UNREAD,
     ) = HomeEntry(
         publication = Publication(
             identity = PublicationIdentity(normalizedPath = "/library/$title.cbz"),
@@ -266,5 +270,6 @@ class SearchAtRestTest {
         isReadableNow = true,
         pagesRemaining = pagesRemaining,
         fraction = fraction,
+        state = state,
     )
 }

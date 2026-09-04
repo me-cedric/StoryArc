@@ -357,6 +357,7 @@
     <string name="home_show_all">Alle ansehen</string>
     <string name="home_away">L\u00e4sst sich gerade nicht \u00f6ffnen</string>
     <string name="home_part_read">Angefangen</string>
+    <string name="home_finished_one">Ausgelesen</string>
     <string name="library_open_comic">Comic \u00f6ffnen</string>
     <plurals name="home_pages_left">
         <item quantity="one">Noch %1$d Seite</item>
