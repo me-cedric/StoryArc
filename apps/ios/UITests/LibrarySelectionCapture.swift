@@ -109,6 +109,63 @@ extension ScreenshotTests {
     /// `AuditWalk.showTheShelf(in:)` would do the first half and it skips rather than fails
     /// when the shelf never draws — and a skipped capture walk passes and photographs
     /// nothing, which `capture-ios.mjs` can only report as "attached nothing".
+    /// The inert capsule is measurably dimmer than the live one, on a device.
+    ///
+    /// **A ratio, not a difference, because `.opacity` is a multiplication.** Compositing at
+    /// `inertOpacity` gives `pixel = α·ink + (1 − α)·background`, so every pixel's distance
+    /// from the background is scaled by exactly α — and the ratio of the two ink masses lands
+    /// on the opacity itself, near 0.4, wherever the glass happens to be and whatever cover is
+    /// passing under it. That is what makes one band work in both appearances and at both text
+    /// sizes without a per-appearance constant.
+    ///
+    /// The band is two-sided on purpose. Above 0.75 the inert control is not dimmed — and the
+    /// state this reproduces is not hypothetical, it is what shipped: the two states measured
+    /// **identical**, worst channel delta 0 to 2 of 255, so a regression returns 1.000 with
+    /// twenty-five points of headroom below the ceiling. Below 0.10 it has effectively been
+    /// hidden, which `§3b.4` refuses just as firmly: the actions are "present and inert rather
+    /// than absent", because a capsule arriving on the first pick is chrome appearing under a
+    /// thumb mid-tap.
+    ///
+    /// `pickTwo` ends by proving the navigation bar reads *2 selected*, which is the control
+    /// that the two measurements are of two different states rather than the same one twice.
+    ///
+    /// **Measured on 2026-09-04**, `StoryArc-iPhone17Pro`, light: ink mass 18.77 inert against
+    /// 45.45 live, a ratio of **0.4129** where the opacity is 0.4 — the constant recovered from
+    /// the device to within three per cent, which is the evidence that the model above is the
+    /// right model rather than a threshold that happens to hold. Dark passes the same band.
+    /// With the `.opacity` line deleted the ratio is **1.0** and the two ink masses are
+    /// identical to fourteen digits, which is precisely the state that shipped.
+    func testTheInertCapsuleIsDimmerThanTheLiveOne() throws {
+        let app = sweepLaunch()
+        try startSelecting(in: app)
+        let named = ["Download", "Mark as read", "More actions"]
+        let inert = named.map { CapsuleInk.mass(of: app.buttons[$0]) }
+        try pickTwo(in: app)
+        let live = named.map { CapsuleInk.mass(of: app.buttons[$0]) }
+
+        for (index, action) in named.enumerated() {
+            XCTAssertGreaterThan(
+                live[index],
+                0,
+                "\(action) drew no ink at all when live, so this measures nothing."
+            )
+            let ratio = inert[index] / live[index]
+            XCTAssertLessThan(
+                ratio,
+                0.75,
+                "\(action) is drawn the same inert as live — ratio \(ratio), "
+                    + "ink \(inert[index]) vs \(live[index]). `.disabled` cannot dim it: "
+                    + "`storyArcGlassText` sets a foreground style after it and wins."
+            )
+            XCTAssertGreaterThan(
+                ratio,
+                0.10,
+                "\(action) has all but vanished when inert — ratio \(ratio). The actions are "
+                    + "shown and inert rather than absent, so a reader can see what the mode is for."
+            )
+        }
+    }
+
     func startSelecting(
         in app: XCUIApplication,
         library: String = "Library",

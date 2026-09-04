@@ -131,6 +131,16 @@ four pairs:
 | light, AX5 | 0 of 110 500 (worst delta 1) | **26 426** differing |
 | dark, AX5 | — | **26 407** differing |
 
+**A device check now guards it**, because none of the above is visible to a host test:
+`ScreenshotTests/testTheInertCapsuleIsDimmerThanTheLiveOne` photographs each control with
+`XCUIElement.screenshot()` — the element, not a rectangle, so there is no scale arithmetic and
+no rect to get silently wrong — and measures *ink mass*, the mean distance of the crop's pixels
+from its own median luma. Since `.opacity` composites as `α·ink + (1 − α)·background`, the
+ratio of the two masses lands on α itself: measured **0.4129** against an `inertOpacity` of
+0.4, in both appearances. The band is two-sided — under 0.75 so an undimmed control fails
+(deleting the line returns exactly 1.000), over 0.10 so a hidden one fails too, because §3b.4
+wants the actions present and inert rather than absent.
+
 In light at the default size the glyph strokes go from `rgb(0,0,0)` to `rgb(148,146,146)`,
 which is what `0.4 × 0 + 0.6 × 245` predicts against the glass ground — so the remedy is
 measured rather than assumed. **Android had the same defect from the mirror-image cause**: an
