@@ -216,6 +216,29 @@ creep — see [`design.md`](design.md).
       that `truncated.m4b` still **opens** rather than being refused. What no test yet
       covers is a part that fails mid-decode — that is ExoPlayer's error path and belongs
       with 2.7 — and nothing yet draws the count, which belongs with 4.5.
+      **Both halves' "stating" clause is done, and both paragraphs above are stale about it.**
+      Checked in the source on 2026-09-04 rather than inferred: Android's `PlayerScreen` draws
+      `R.plurals.player_skipped_parts` from `playing.skippedPartCount` inside `if
+      (playing.isPartial)`, and iOS's `FullPlayerView.damage` draws `PlayerText.damage(
+      unreadableParts:)` from `PlayerCentre.unreadablePartCount`. Both are a line in the
+      player's own controls and neither is a dialog, which is what "without interrupting
+      playback" asks for. So this task is no longer waiting on §4/§5 on either platform.
+      **The one remaining half, on both platforms, is a part that fails *during* playback.**
+      The count both surfaces draw is the **index-time** one, and `truncated.m4b` is by
+      construction invisible to it: cut with `+faststart`, it reports a full `moov`, three
+      chapters and `isPlayable == true`, so nothing before playback knows the media is short.
+      Closing it means the engine noticing — `AVPlayerItem.status == .failed` and
+      `AVPlayerItemFailedToPlayToEndTime` on iOS, `Player.Listener.onPlayerError` with
+      `ERROR_CODE_DECODING_FAILED` on Android — carrying on to the next part rather than
+      stopping, and adding to the same count the surfaces already draw. **Neither platform has
+      any error listener at all today**: `grep` finds no `onPlayerError` in `:core:playback`
+      and no item-status observation in `NarratedSource`.
+      Doing that well means the decision in a pure type on each side, mirrored, so the rule is
+      host-asserted and only the subscription is engine code — and then it still owes a device,
+      because a decode failure is the one thing a host test cannot produce.
+      **Owed to finish it:** play `truncated.m4b` to its end on each platform and photograph
+      the player's controls stating the count, light and dark at the default text size.
+      `pnpm capture:android Player` reaches the screen; iOS's is `PlayerScreenshotTests`.
 - [x] 2.6 Add audiobook fixtures to the shared corpus: a chaptered M4B, the same
       chapters as ID3 CHAP frames, an unchaptered single file, a folder of parts
       whose names defeat lexical sort, a folder mixing audio and images, a truncated
@@ -485,6 +508,16 @@ creep — see [`design.md`](design.md).
       undoes a listener's pause. `PlayerInterruptionTest`, one case. What is still believed
       rather than checked is that a real disconnection produces that reason; that needs
       headphones and a device.
+      **Both halves are asserted on both platforms, and the whole of what is left is one
+      device exercise** — re-read 2026-09-04 rather than re-derived. iOS: `PlayerCentre.routeLost`
+      records the pause as the listener's, over both source kinds, and `PlaybackAudioSession`
+      acts only on `.oldDeviceUnavailable`. Android: `PlaybackFocus` leaves
+      `PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY` out of "lost for good" so it lands as
+      the listener's pause, one case in `PlayerInterruptionTest`.
+      **Owed, and it is the only thing owed:** on each platform, play a book over wired or
+      Bluetooth headphones, disconnect them, and confirm the audio pauses; then reconnect and
+      confirm it does *not* start again. Nothing else is unproved, and no host test and no
+      screenshot can stand in for it — a simulator and an emulator have no route to lose.
 
 ## 4. The surfaces
 
@@ -660,7 +693,30 @@ creep — see [`design.md`](design.md).
       `CoverlessWell` drops it. **The lock screen itself is not photographed** — XCUITest cannot
       reach a simulator's lock screen — but the render path is demonstrably exercised: it crashed
       the app the first time it ran (see the fix below).
-      *The Android half is not started.*
+      **The Android half is not started, and reading the source on 2026-09-04 makes it larger
+      than "not started" suggests. Two things, and the second is a live cross-platform
+      divergence this entry created.**
+      *One:* `PlayerScreen` draws **no artwork at all** — not a cover, not a well, not a glyph.
+      There is nothing to replace; there is something to add. And `PlaybackService` hands the
+      media session no artwork either, so the shade, the lock screen and a car display get
+      none.
+      *Two, and it is the one to settle first:* **the two platforms' shared well no longer
+      agrees.** iOS's `CoverlessWell(format:)` takes a format and draws the format's symbol over
+      the format's name — the treatment the paragraphs above adopted, and the one the amended
+      scenario now requires. Android's `CoverlessWell(title:format:)` still takes a **title** and
+      draws it, with the format as an optional caption underneath; the library shelf, Downloads,
+      Home's cards and the series shelf all call it that way. So "the same coverless treatment
+      every other surface draws" means one thing on iOS and another on Android, and giving the
+      Android player the well its neighbours draw would satisfy the sentence while widening the
+      gap.
+      **So the Android half is a `:core:designsystem` change before it is a player change**, and
+      it is visible on every coverless surface in the app rather than on one. Whoever takes it
+      owes frames for all of them, not for the player alone: the library shelf, Downloads,
+      Home's cards, the series shelf and the player, light and dark, at the default and largest
+      text sizes — `Library`, `Downloads`, `Home`, `Publication page > series` and `Player` are
+      all existing `pnpm capture:android` routes. `CoverlessWellTest` and `:app`'s
+      `DownloadsCoverlessWellTest` both assert the title is drawn and would have to change with
+      it, which is the honest measure of the size of this.
 - [~] 4.5 Both: the full player — cover, publication, chapter, position, duration,
       play/pause, skip both ways, scrub, chapter list, speed, sleep timer. Assert
       opening it never restarts, reloads or repositions the audio.
@@ -686,8 +742,20 @@ creep — see [`design.md`](design.md).
       `Replay10` and `Replay30` and **no `Replay15`**, so a numbered icon would have drawn
       "10" on a control that moves fifteen. The number is text beside the arrow instead,
       which states the right interval and grows with the reader's text size.
-      **Not done: the cover** (nothing extracts embedded artwork yet) **and the sleep
-      timer** (5.3). iOS half outstanding.
+      **Not done: the cover** (nothing extracts embedded artwork yet).
+      **The sleep-timer half of that sentence is stale, and so is the line after it.** 5.3's
+      Android half landed and `PlayerScreen.Sleep` draws it — the remaining time on the face of
+      the control, the five offered durations in a `FlowRow`, and *end of chapter* only where
+      there is one to stop at. And "iOS half outstanding" contradicts this entry's own opening
+      paragraph, which says the iOS player is done and photographed; it is the same pasted line
+      2.3, 4.1 and 4.6 each carried.
+      **So what is left of 4.5 is the cover, on both platforms, and it is one gap and not two.**
+      Nothing extracts embedded artwork from an audiobook container yet, so the player draws the
+      coverless treatment for every book — correctly on iOS, where `PlayerArtwork` is the shared
+      well, and not at all on Android, where `PlayerScreen` draws no artwork of any kind. That
+      second half is 4.4b's and is where the work should be done.
+      **Owed when the cover lands:** the player with real artwork, both platforms, light and
+      dark at the default and largest text sizes.
 - [x] 4.6 Both: a publication with no chapter markers lists its parts in playing
       order rather than showing an empty list.
       **iOS done, and there is no branch for it.** A source with no chapter markers reports
@@ -745,11 +813,13 @@ creep — see [`design.md`](design.md).
       "*DetailActionsTest*"` passes, as do `pnpm lint:android` and `pnpm test:android`.
       **Not photographed.** The button is a visible change and owes a frame on both platforms:
       **owed on Android**, the publication page of an audiobook that has not been started
-      (*Listen*) and one that has (*Continue listening*), light and dark. There is no route for
-      it: `scripts/android-routes.mjs` reaches a detail page by a format suffix — `Publication
-      page` is `[NAMES.library, ', CBZ']` — and no audio row is listed. `[', M4B']` reaches
-      `chaptered.m4b`, which is the one-line addition that would make it capturable. Not added
-      here: that file is shared and both devices were sweeping when this landed.
+      (*Listen*) and one that has (*Continue listening*), light and dark. There is no route
+      for it, and adding one is a single line: `scripts/android-routes.mjs` reaches a detail
+      page by a format suffix — `Publication page` is `[NAMES.library, ', CBZ']` — and the
+      audio matcher it wants is already in that file, since the three `Player` routes reach a
+      book with `'Audiobook folder|, M4B'`. A `Publication page > audiobook` row using the same
+      matcher is all that is missing. Not added here: that file is shared and both devices were
+      sweeping when this landed.
       **Owed on iOS too**, for the same button and for the same reason — `PrimaryActionTests`
       pins the four wordings and no frame shows one.
 
@@ -1005,6 +1075,13 @@ creep — see [`design.md`](design.md).
       **Not done: read-aloud does not drive this player yet.** It has its own host and its
       own notification; the session table is now shared (1.1) and the source interface is
       where the two meet, but nothing has been rewired. That is the honest state.
+      **Still true on 2026-09-04**, and checked rather than assumed: `ReadAloudController` in
+      `:feature:epubreader` names neither `PlayerSource` nor `PlaybackHost`. This is the one
+      remaining structural difference between the platforms in this change — iOS did the same
+      rewiring in 4.2 and deleted its second dock — and it is code rather than a capture. The
+      shape iOS used is the one to copy: a second `PlayerSource` implementation over the
+      existing speech engine, leaving the reader's own concerns (the sentence on a page, the
+      reflowable position a voice writes) where they are.
       No test asserts the outliving — it is a process fact, and proving it needs the
       instrumented pass §9 still owes.
       **iOS done, and photographed for both sources.** Read-aloud drives this player now (4.2),
@@ -1036,6 +1113,15 @@ creep — see [`design.md`](design.md).
       a publication with nothing to say. Ruled out by forcing the row to render
       unconditionally and finding the query still empty — the app was never the problem, the
       query was. The walk swipes now.
+      **The Android half is not started and this entry never said so.** Every paragraph above
+      is iOS's. Android's read-aloud keeps its own cursor in `ReadAloudController` and does not
+      drive this player at all (6.1), so "returning to a read-aloud session" is not yet a
+      question this change's player can be asked there. **6.1 is the blocker: do that first**,
+      and this becomes the same small piece of work it was on iOS.
+      **Owed on iOS besides the code, and it cannot be photographed:** asserting *which*
+      sentence is drawn on return needs the walk to read a decoration inside a `WKWebView`,
+      which XCUITest does not expose. A person going back into the reader and seeing the
+      highlight on the sentence being spoken is the only proof available.
 - [x] 6.3 Both: reaching the end withdraws the highlight, dismisses the media
       controls and removes the compact bar.
       **Android: written, and seen happening.** `PlaybackCentre.publish` drops the surface
@@ -1191,7 +1277,18 @@ creep — see [`design.md`](design.md).
       store, as it is for a comic. A source with no known duration never claims the end,
       which is the point of `PlaybackDuration.Estimated` carried through to the store.
       **Not done: the offers.** The next in the series and the delete-the-download prompt are
-      the reader's end-of-publication surface, and the player has none. iOS half outstanding.
+      the reader's end-of-publication surface, and the player has none.
+      **This is one gap and not two**, and the trailing "iOS half outstanding" is the pasted
+      line four other entries carried. Both platforms mark a listened-to publication finished
+      and both are asserted; neither offers anything when it happens, because the offers hang
+      off a reader's end-of-publication surface and a player has no equivalent. iOS's entry is
+      honest that `FinishedCleanup` and the next-in-series shelf "hang off the same
+      `isFinished` flag a comic sets, so the reasoning is that they follow; nobody watched
+      them" — and that reasoning is the same on Android.
+      **Owed:** trace a finished audiobook into both offers on each platform. That is a device
+      exercise, not a screenshot: play the corpus's six-second `chaptered.m4b` to its end and
+      confirm the delete-the-download prompt and the next-in-series row appear as they do for
+      a comic. A frame of each, light, at the default text size, is what would record it.
 
 > **§8.4's compact-bar half was a spec-versus-platform conflict. `/opsx:update` settled it on
 > 2026-09-01 and the requirement was what changed.** `audio-playback` asked the bar to "grow to
@@ -1216,6 +1313,18 @@ creep — see [`design.md`](design.md).
       listener nothing they can act on. **No sleep timer exists to announce** (5.3).
       **Not verified by an accessibility scan** — `pnpm a11y:android` has no player route,
       and adding one is part of §9.
+      **That sentence is stale as of 2026-09-04 and the remaining work is smaller than it says.**
+      `scripts/android-routes.mjs` carries three player routes already — `Player`,
+      `Player > chapters` and `Player > compact bar`, each reaching an audiobook by
+      `'Audiobook folder|, M4B'` — and `smoke-android.mjs` walks that same shared `ROUTES`
+      table and runs `a11y-scan`'s `scan()` at every one of them. So the route exists and the
+      scanner already visits it; nobody has run it since the player's controls landed.
+      Everything else this task asks for is asserted: `PlayerSemanticsTest` (8.3) reads the
+      names and values out of a real composition, and iOS's half is under
+      `performAccessibilityAudit`.
+      **Owed, and it is one command on a booted emulator:** `node scripts/smoke-android.mjs
+      Player`, which walks the three routes and reports the scan's findings per route. No
+      screenshot is required for this task — the scan's own output is the evidence.
       **iOS: the names and values exist, and are now under the platform's own audit.**
       `PlayerLabels` decides each announcement and `PlayerLabelsTests` pins it; what was
       missing was a tool rather than a reading. `UITests/PlayerAuditTests` walks to six
