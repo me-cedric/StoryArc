@@ -1339,17 +1339,35 @@ creep — see [`design.md`](design.md).
 
 ## 9. Docs and close-out
 
-- [~] 9.1 Module `README`s for the new player modules on both platforms.
+- [x] 9.1 Module `README`s for the new player modules on both platforms.
       **Android done**, as a side effect of §5.2 rather than as this task: `:core:playback`
       had none and now carries one — files, public API, the two preferences files and why
       they are not in `:core:persistence`, the data flow across the service boundary, and
       which claims rest on host tests rather than on anything that has been heard.
-      **Two things this does not cover.** iOS's `Playback` target has no `README`, and
-      `apps/android/README.md`'s own module table is three modules old: it lists four, and
-      the tree holds eight `core` modules and four `feature` ones. `:core:playback`,
-      `:core:format`, `:core:persistence`, `:core:catalogue`, `:core:kavita`, `:core:smb`,
-      `:feature:epubreader`, `:feature:reader` and `:feature:settings` are all missing from
-      it. Left alone here because two other agents held rows in that table this wave.
+      **Two things this did not cover, and one of them had already been done by somebody
+      else.** `apps/android/README.md`'s module table is **not** three modules old any more —
+      it lists all eight `core` modules and all four `feature` ones, `:core:playback` included,
+      and carries a note about that module having shipped a whole player without appearing
+      there. The paragraph above describes a table that no longer exists; checked rather than
+      trusted, 2026-09-04.
+      **iOS's half is now done, and it is two `README`s rather than one.** `Sources/Playback`
+      and `Sources/PlayerFeature` each carry one, to AGENTS.md §7's shape — purpose, the file
+      table, the public API, config, the data flow, and the test command. They are the **first
+      module `README`s in `StoryArcKit`**: no target in that package had one, so §7 is met for
+      the two modules this change created and unmet for the other ten, which is a gap this task
+      does not own and the next reader should know is there.
+      `Playback`'s links to `:core:playback`'s as its mirror, and says what neither half can
+      claim: **nothing here has been heard.** `PlayerFeature`'s records why the labels are split
+      across two files, which is a trap rather than a taste — `swift build` copies an
+      `.xcstrings` without compiling it, so `String(localized:)` answers with the key on the
+      host, and a test asserting English prose asserts a lookup that cannot work where it runs.
+      **One thing the `README`s cost, and it is worth recording because it is invisible until a
+      build says so.** SwiftPM treats any file it does not recognise inside a target as an
+      undeclared resource: adding the two took `swift build` from one *unhandled files* warning
+      to three. Both targets now carry `exclude: ["README.md"]` in `Package.swift` — excluded
+      rather than processed, because a module's documentation belongs in the repository and not
+      in the bundle a reader downloads. Back to the baseline of one; that remaining warning is
+      somebody else's and predates this.
 - [ ] 9.2 Update `docs/openspec/STATUS.md` and the format table in the docs.
 - [ ] 9.3 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.

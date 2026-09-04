@@ -96,6 +96,12 @@ let package = Package(
         .target(
             name: "Playback",
             dependencies: ["StoryArcCore"],
+            // AGENTS.md §7 asks every module for a `README.md`, and SwiftPM treats any file it
+            // does not recognise inside a target as an undeclared resource — it warns, and a
+            // warning nobody acts on is how the next one goes unread. Excluded rather than
+            // processed: the module's documentation belongs in the repository, not in the app
+            // bundle a reader downloads.
+            exclude: ["README.md"],
             // One string, and it has to be one answer: an unnamed part is called "Part 3"
             // on the compact bar and on the lock screen, and `audio-playback` requires
             // those two to match. A model target carrying a catalogue is unusual here, and
@@ -108,6 +114,8 @@ let package = Package(
         .target(
             name: "PlayerFeature",
             dependencies: ["DesignSystem", "Playback", "StoryArcCore"],
+            // See `Playback`'s own exclusion above.
+            exclude: ["README.md"],
             resources: [.process("Resources")]
         ),
         // ADR-0006 names SwiftData here and Room on Android. The schema semantics
