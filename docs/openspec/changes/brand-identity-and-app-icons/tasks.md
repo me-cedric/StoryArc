@@ -463,7 +463,8 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       delta names a mechanism: `settings-and-about`'s reset scenario says only "by the same
       route as any other choice", and `native-experience` does not mention aliases. The whole
       conflict lived in `design.md` and `tasks.md`, and neither of those syncs.
-      Marked `[~]`, not `[x]`, because the requirement as written is not what shipped.
+      It was `[~]` while the requirement as written was not what shipped; the `/opsx:update`
+      of 2026-09-04 made the artifacts say what shipped, and it is `[x]` above.
 
 ## 5. What a reader sees
 
@@ -670,8 +671,8 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
         also reading — and it was reasoned only at the call site. Recorded, with why inventing
         a `clayMuted` no gate covers was the worse trade.
 
-      **Still outstanding, and it is only §6.3**: the Android themed-icon capture. Named as a
-      gap in its own task rather than folded into this one.
+      **Nothing is outstanding here now.** This said "still outstanding, and it is only §6.3",
+      and §6.3 closed the same day the themed-icon frames landed.
 - [x] 6.5 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests` — all green on
       2026-09-04, on `main` with every one of this change's commits merged. 1857 iOS tests in
@@ -683,6 +684,42 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 - [x] 6.6 `pnpm spec:guard:strict` — 0 errors, 1 warning, and that warning is the pre-existing
       orphan list (six main specs named by no change, none of them this one's).
 - [ ] 6.7 `/opsx:verify brand-identity-and-app-icons`, then `/opsx:sync`.
+      **The verify pass of 2026-09-04 said *not safe to sync* and it was right on four counts.**
+      The delta's mechanics were clean — a strict superset of the main spec, a subset of
+      `publication-detail`'s block, the order recorded — and its *content* was not:
+
+      - **Two clauses this change's own screenshots disprove.** "Each option is shown as the
+        icon it actually is" and "the app SHALL never claim an icon is in use that the launcher
+        is not drawing" are both false on Android with themed icons on, because all five faces
+        declare the same monochrome drawable and collapse to one. §6.3 had recorded that as "a
+        design question for `settings-and-about`" — and this change **is** what publishes
+        `settings-and-about`'s requirement, so deferring it meant shipping the contradiction.
+        Both now carry a qualifier, and there is a scenario for the tinted case saying what is
+        true and checkable rather than what would need a themed-mode detector no app is given.
+      - **The requirement promised a case no scenario specified.** The rewrite that replaced
+        "The platform stops honouring it" was justified only by its unimplementable third
+        clause — the stored preference — and quietly took two implementable ones with it,
+        while the requirement statement went on promising survival of "everything short of the
+        platform withdrawing the ability". `supportsAlternateIcons` appeared nowhere in the
+        tree. **Built rather than narrowed further**: `AppIconPlatform` gained an `isOffered`
+        question, the chooser draws no rows and says why on a device that offers no choice, and
+        two tests assert both that the store reports it and that `choose` asks such a platform
+        nothing — because a store that reported it and still called `apply` would raise the
+        platform's own alert for a change it was about to refuse.
+      - **One clause read as cross-platform and is Android-only**: "where no icon is in use at
+        all" is structurally unreachable on iOS, where the absence of an alternate icon *is*
+        the default. Qualified.
+      - **`STATUS.md` had gone stale again**, in the same pass that fixed it everywhere else:
+        the heading still said "one gap left", the §6.3 paragraph still said the premise was
+        "neither tested nor photographed" two commits after the photographs landed, and the
+        count still read 31 of 36. Corrected.
+
+      Also from that pass, none of it reaching a main spec: §4.5's note said it was marked
+      `[~]` while ticked `[x]`; §6.4 closed saying §6.3 was still outstanding; two
+      `StoryArcCore` files still said the chooser tiles did not exist, three days after they
+      shipped and beside a capture showing all five drawn; and `AGENTS.md` named a SwiftLint
+      file count that had gone stale under a sentence telling every agent to compare against
+      it — 611 against a tree now at 660, so the rule would have condemned a correct run.
 
 ## A validator gap found while writing this
 

@@ -27,7 +27,9 @@ The app SHALL adopt each platform's dynamic-colour behaviour.
 ### Requirement: The icon a reader chose
 
 A chosen app icon SHALL survive everything short of the platform withdrawing the ability, and
-the app SHALL never claim an icon is in use that the launcher is not drawing.
+the app SHALL never claim an icon is in use that the launcher is not drawing — except where the
+system is drawing a tinted form of the icon itself, which no app is told about and none can
+detect.
 
 #### Scenario: Surviving a reinstall or a restore
 - **WHEN** the app is restored from a platform backup, or reinstalled on a device where a non-default icon had been chosen
@@ -38,6 +40,16 @@ the app SHALL never claim an icon is in use that the launcher is not drawing.
 - **WHEN** the platform declines to change the icon, at the moment a reader picks one
 - **THEN** the chooser says so, naming the icon that is still in use, and does not show the picked one as current
 - **AND** the refusal is not retried unprompted, so a reader who cannot have a face is told once rather than on every visit
+
+#### Scenario: The platform withdraws the ability
+- **WHEN** the platform does not offer a choice of app icon on this device at all
+- **THEN** the chooser says so before a reader tries, rather than offering five faces and refusing each in turn
+- **AND** no face is shown as in use, and nothing is asked of the platform
+
+#### Scenario: The system draws its own tinted icon
+- **WHEN** the system replaces the app's icon art with a tinted form of one layer of it, as Android's themed icons do
+- **THEN** every face reduces to that one layer's art, and the app neither works around it nor claims otherwise — the layer it ships is real single-colour art, so the mark's internal divisions survive being tinted flat
+- **AND** the chosen face is still recorded and unchanged, so it returns as itself when the system stops tinting
 
 #### Scenario: The platform is the only record
 - **WHEN** the app needs to know which icon is in use

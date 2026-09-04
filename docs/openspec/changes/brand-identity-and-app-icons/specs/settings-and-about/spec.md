@@ -13,6 +13,7 @@ option here.
 - **WHEN** a reader opens the icon chooser and picks a face
 - **THEN** each option is shown as the icon it actually is, at the size a home screen draws it, with the current one marked
 - **AND** the choice persists across launches, and across an appearance change — an icon is not a theme
+- **AND** where the system draws its own tinted form of the icon rather than the app's art — Android's themed icons, which flatten every face to the one monochrome layer — what the chooser marks is the face that was picked, which is what returns when the system stops tinting, rather than a promise about what the launcher is drawing this minute
 
 #### Scenario: What the platform does with it
 - **WHEN** a reader picks an icon on iOS
@@ -31,7 +32,7 @@ option here.
 #### Scenario: The platform refuses
 - **WHEN** the platform declines the change — an unsupported device, a launcher that does not honour it, an error from the system
 - **THEN** the app says the icon could not be changed, and names which one is still in use where one is
-- **AND** where no icon is in use at all, it says the change was refused without naming a face, because there is none to name
+- **AND** where no icon is in use at all — reachable on Android, where the aliases can all be disabled from outside the app, and structurally unreachable on iOS, where the absence of an alternate icon *is* the default — it says the change was refused without naming a face, because there is none to name
 - **AND** it does not retry silently, because an icon that changes minutes later with no action is indistinguishable from a bug
 
 #### Scenario: At the largest text size

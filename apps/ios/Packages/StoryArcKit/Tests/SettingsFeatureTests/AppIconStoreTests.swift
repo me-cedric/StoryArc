@@ -21,6 +21,8 @@ struct AppIconStoreTests {
     private final class FakePlatform {
         var current: AppIconChoice = .ink
         var accepts = true
+        /// Whether this device offers the choice at all — the withdrawal case.
+        var offers = true
         /// Every face the store asked for, in order. The count is what proves nothing retries.
         private(set) var asked: [AppIconChoice] = []
         /// Set when the answer is to be delivered by the test rather than immediately, which
@@ -38,7 +40,8 @@ struct AppIconStoreTests {
                         done(accepted)
                     }
                     if self.pending == nil { settle(answer) } else { self.pending = settle }
-                }
+                },
+                isOffered: { self.offers }
             )
         }
 
@@ -168,4 +171,37 @@ struct AppIconStoreTests {
         #expect(platform.asked == [.ink])
         #expect(AppIconChoice.ink.alternateIconName == nil)
     }
+    /// A device that does not offer the choice says so, and is asked for nothing.
+    ///
+    /// **This is the case a delta rewrite dropped and a verification pass caught.** The
+    /// requirement promises a chosen icon survives "everything short of the platform
+    /// withdrawing the ability", and after the rewrite no scenario specified the withdrawal —
+    /// so the requirement statement promised a case nothing described, and
+    /// `UIApplication.supportsAlternateIcons` appeared nowhere in the tree.
+    ///
+    /// Two assertions, because either alone is satisfiable by the wrong code: that the store
+    /// reports the platform's answer, and that a `choose` on such a device asks the platform
+    /// **nothing**. A store that reported `isOffered == false` and still called `apply` would
+    /// present the platform's own alert for a change it was about to refuse.
+    @Test("A platform that does not offer the choice is told, and is never asked")
+    @MainActor
+    func aWithdrawnChoiceIsNotOffered() {
+        let platform = FakePlatform()
+        platform.offers = false
+        let store = AppIconStore(platform: platform.seam)
+
+        #expect(store.isOffered == false)
+        store.choose(.arc)
+        #expect(platform.asked.isEmpty, "the store asked a platform that offers no choice")
+        #expect(store.applied == .ink, "the chooser moved without the platform agreeing")
+        #expect(store.refused == nil, "a device that offers nothing has refused nothing")
+    }
+
+    /// And the ordinary device still offers it, so the guard above cannot pass by refusing all.
+    @Test("A platform that offers the choice reports so")
+    @MainActor
+    func anOfferedChoiceIsOffered() {
+        #expect(AppIconStore(platform: FakePlatform().seam).isOffered)
+    }
+
 }

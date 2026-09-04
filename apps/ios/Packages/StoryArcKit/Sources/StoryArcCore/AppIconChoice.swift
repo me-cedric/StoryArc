@@ -63,22 +63,21 @@ public enum AppIconChoice: String, CaseIterable, Sendable, Codable {
     /// of `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES`.
     public var alternateIconName: String? { isDefault ? nil : assetName }
 
-    /// The bundle resource a chooser would draw this face from, if the app shipped one.
+    /// The bundle resource the chooser draws this face from.
     ///
-    /// **It does not yet, and this property is where that gap is written down.** An
-    /// `.appiconset` compiles into `Assets.car` as an *icon* asset, and an icon asset is not
-    /// fetchable by name: `Image("AppIcon-Paper")` and `UIImage(named: "AppIcon-Paper")` both
-    /// answer nothing, which is a blank tile rather than an error. Three routes were tried and
-    /// none works from here —
-    /// `ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS` emits no loose file, and listing the
-    /// generator's own PNG as a second resource in `project.yml` makes XcodeGen write a
-    /// flattened path that does not build, because the file is inside an asset catalogue.
+    /// **A second asset per face, because an `.appiconset` is not readable as an image.**
+    /// `UIImage(named:)` cannot draw one, so a chooser offering five faces has nothing to put
+    /// in its rows — which is why `scripts/brand-mark.swift` emits an ordinary `.imageset`
+    /// beside each icon set, from the same `renderPNG` call at the same inset. That is what
+    /// keeps the tile and the icon from drifting apart, and it is why the generator writes
+    /// twenty-four assets rather than the fifteen this repository's documents claimed for a
+    /// while.
     ///
-    /// The fix is in `scripts/brand-mark.swift`, which already writes these bytes: an
-    /// `.imageset` beside each `.appiconset`, named as below. Then `AppIconTile` draws the very
-    /// file the icon is built from and cannot drift from it. The generator belongs to the mark
-    /// rather than to this type, so the name is declared here and asserted by
-    /// `AppIconChoiceTests`, and the chooser draws a plain surface until the asset exists.
+    /// **This comment used to say the asset did not exist**, and described the chooser drawing
+    /// "a plain surface until the asset exists". The tiles shipped on 2026-09-02; the comment
+    /// was found still saying otherwise on 2026-09-04, beside a capture showing all five
+    /// drawn. `AppIconSettings` carried the correct account the whole time, which is the part
+    /// worth naming: one fact, stated in two places, corrected in one.
     public var tileResourceName: String { "AppIconTile-\(rawValue.capitalized)" }
 
     /// The face a platform's own answer names.

@@ -25,6 +25,22 @@ struct AppIconPlatform {
     /// had agreed to anything.
     var apply: @MainActor (AppIconChoice, @escaping @MainActor (Bool) -> Void) -> Void
 
+    /// Whether the platform offers the choice at all.
+    ///
+    /// **A third closure, because the requirement asks about a case the other two cannot
+    /// express.** `applied` and `apply` describe a platform that answers; this describes one
+    /// that never offers. `native-experience` says a chosen icon survives "everything short of
+    /// the platform withdrawing the ability" — and a delta rewrite on 2026-09-04 dropped the
+    /// withdrawal scenario along with a genuinely unimplementable clause about a stored
+    /// preference, leaving the requirement promising a case nothing specified. A verification
+    /// pass caught the dangling promise. This is the half that was implementable all along.
+    ///
+    /// Asked rather than inferred from a refusal: a refusal is per-attempt and tells a reader
+    /// their *last* choice failed, which is a different sentence from *this device does not do
+    /// this*. Answering the second only after a reader has tried is the pre-emptive affordance
+    /// the scenario asked for and did not get.
+    var isOffered: @MainActor () -> Bool
+
     #if canImport(UIKit)
     /// UIKit, which is the only implementation that ships.
     ///
@@ -42,7 +58,8 @@ struct AppIconPlatform {
                     // closure is main-actor-isolated so the compiler holds us to it.
                     MainActor.assumeIsolated { done(error == nil) }
                 }
-            }
+            },
+            isOffered: { UIApplication.shared.supportsAlternateIcons }
         )
     }
     #endif
@@ -57,7 +74,11 @@ struct AppIconPlatform {
         #if canImport(UIKit)
         uiKit
         #else
-        AppIconPlatform(applied: { .default }, apply: { _, done in done(false) })
+        AppIconPlatform(
+            applied: { .default },
+            apply: { _, done in done(false) },
+            isOffered: { false }
+        )
         #endif
     }
 }
@@ -90,11 +111,24 @@ final class AppIconStore {
     /// reader's act — pressing something else, or leaving.
     private(set) var refused: AppIconChoice?
 
+    /// Whether this device offers the choice at all.
+    ///
+    /// Read once, at init, and never again: `supportsAlternateIcons` is a property of the
+    /// platform and the build, not of anything a reader can do while the screen is up, so
+    /// re-asking it in ``reconcile()`` would be re-asking a constant.
+    ///
+    /// **Distinct from a refusal on purpose.** ``refused`` says one attempt failed and names
+    /// the face still in use; this says the device never offered the choice, so there is no
+    /// attempt to report and no face to name. `native-experience` asks the app to survive
+    /// "everything short of the platform withdrawing the ability" — this is the withdrawal.
+    let isOffered: Bool
+
     private let platform: AppIconPlatform
 
     init(platform: AppIconPlatform) {
         self.platform = platform
         applied = platform.applied()
+        isOffered = platform.isOffered()
     }
 
     /// Asks the platform again.
@@ -109,6 +143,10 @@ final class AppIconStore {
     /// Puts a face on the home screen, and moves nothing until the platform says so.
     func choose(_ choice: AppIconChoice) {
         refused = nil
+        // Nothing is asked of a platform that does not offer the choice — the chooser draws
+        // no controls in that state, so this is the belt to that screen's braces rather than
+        // a branch a reader can reach.
+        guard isOffered else { return }
         // A no-op is a no-op. Asking the platform for the icon it is already drawing would
         // present its alert for a change nobody made.
         guard choice != applied else { return }

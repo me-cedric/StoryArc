@@ -52,7 +52,7 @@ struct AppIconChoiceTests {
     /// The asset the chooser draws its tile from, which is **not** the `.appiconset`: an icon
     /// asset is not fetchable by name, so the mark's generator has to emit an ordinary imageset
     /// beside each icon set. Named here so the two sides cannot drift once it does — until then
-    /// the tile draws a plain surface, which the iOS chooser captures show.
+    /// the tiles ship, and `ios-app-icon-chooser-ax5.png` shows all five drawn.
     @Test("Each face names the imageset a chooser tile needs")
     func tileResourceNames() {
         #expect(AppIconChoice.ink.tileResourceName == "AppIconTile-Ink")

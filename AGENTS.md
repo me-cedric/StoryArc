@@ -108,10 +108,17 @@ that are **gone** and is safe to run mid-wave.
 root and SwiftLint looks for it in the *working directory*, not upwards from the files it is
 given. A run from `apps/ios` finds no config, falls back to SwiftLint's own defaults, and lints
 `.build/checkouts` as well — which reported **659 violations in 759 files** against a tree that
-has none. It cost three misread gate results in one session before the file count gave it away:
-the real gate is 611 files. `pnpm lint:ios` is safe because pnpm runs scripts from the root; a
-hand-run after a `cd` is not. **If the file count is not what you saw last time, you are
-measuring a different thing.**
+has none. It cost three misread gate results in one session before the file count gave it away.
+`pnpm lint:ios` is safe because pnpm runs scripts from the root; a hand-run after a `cd` is not.
+**If the file count is not what you saw last time, you are measuring a different thing.**
+
+**Do not memorise the number here — read it from the last run.** This line used to name a
+figure, and the figure went stale while the sentence beside it told every agent to compare
+against it: the tree grew from 611 files to 660 over four days of ordinary work, so an agent
+following the rule would have concluded a correct run was measuring the wrong thing. What is
+diagnostic is the *jump*, and the jump is unmistakable — a mis-scoped run lints
+`.build/checkouts` too, so it reports hundreds of files more and hundreds of violations against
+a tree that has none. A handful more files than yesterday is the repository growing.
 
 **A test that fails as though the code cannot write a file was diagnosed wrong twice here, and
 the real cause was a data-protection class.** `CoverCacheTests` failed on exactly two of its five

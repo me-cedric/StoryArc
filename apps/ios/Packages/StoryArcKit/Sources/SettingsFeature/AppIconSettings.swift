@@ -113,8 +113,16 @@ struct AppIconSettings: View {
 
     var body: some View {
         Section {
-            ForEach(AppIconChoice.allCases, id: \.self) { face in
-                row(for: face)
+            // **No rows at all where the platform does not offer the choice.** A list of five
+            // faces that cannot be picked is a screen offering something it will refuse, and
+            // `native-experience` asks the app never to "claim an icon is in use that the
+            // launcher is not drawing" — which a marked row would do. The footer carries the
+            // reason in its place, so the section says why it is empty rather than looking
+            // broken.
+            if store.isOffered {
+                ForEach(AppIconChoice.allCases, id: \.self) { face in
+                    row(for: face)
+                }
             }
         } header: {
             Text("appIcon.title", bundle: .module)
@@ -126,7 +134,13 @@ struct AppIconSettings: View {
             // `settings-and-about`: it "says the icon could not be changed and which one is
             // still in use". Both, in one sentence, because "it could not be changed" alone
             // leaves a reader guessing what they are now looking at.
-            if store.refused != nil {
+            if !store.isOffered {
+                // Said before a reader tries rather than after, which is the difference
+                // between this and a refusal: a refusal reports one failed attempt, and this
+                // reports a device that never offered the choice.
+                Text("appIcon.unsupported", bundle: .module)
+                    .foregroundStyle(theme.palette.textPrimary)
+            } else if store.refused != nil {
                 Text(
                     "appIcon.refused \(Text(store.applied.localizedNameKey, bundle: .module))",
                     bundle: .module

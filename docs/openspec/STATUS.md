@@ -215,7 +215,7 @@ media3 1.10.0 **does** parse ID3 chapters — only MP4 atoms need the 1.11.0 bum
 **13 of 45 tasks done, 14 partial.** The partials are labelled per platform rather than
 rounded up.
 
-### `brand-identity-and-app-icons` — the palette moved, the icons shipped, one gap left
+### `brand-identity-and-app-icons` — the palette moved and the icons shipped
 
 **§1 is complete and §2 was already.** The accent is now a violet from the middle of the app's
 own mark — `#8A4DF0`, **one value on every appearance**, measuring 4.06:1 on the dark canvas and
@@ -267,16 +267,24 @@ the component enabled states — so nothing about the choice is written to prefe
 backup, a log or a diagnostic. A delta scenario asking for a stored preference to be "kept
 rather than erased" was rewritten to match that decision rather than implemented against it.
 
-**One gap, honestly labelled: §6.3, the Android themed-icon capture.** A themed icon tints the
-monochrome layer, and shipping real single-colour art for it is the whole reason that layer
-exists — but turning themed icons on could not be automated on the emulator. What is asserted
-without a device is the wiring, for all five faces: `AppIconManifestTest` matches the exact
-`<monochrome>` element per mipmap, so a face re-pointed at the gradient foreground fails it.
-What is not asserted is the *premise* — that a gradient tinted flat loses the mark's internal
-divisions — which is neither tested nor photographed.
+**§6.3's gap closed, and the premise is now photographed rather than argued.** A themed icon
+tints the monochrome layer, and shipping real single-colour art for it is the whole reason that
+layer exists. Turning themed icons on had been recorded as un-automatable; it was one launcher
+restart away — the flags were already right and the launcher had simply not re-read them. The
+frames in `docs/designs/screenshots/android-themed-icon-2026-09-04/` show all five faces tinted
+flat with every cut, notch and negative-space gap intact, beside the same five in their own
+colours. The wiring was already asserted without a device: `AppIconManifestTest` matches the
+exact `<monochrome>` element per mipmap, so a face re-pointed at the gradient foreground fails.
 
-**31 of 36 tasks done, 2 partial, 3 close-out open.** This paragraph said "7 of 36 done, 1
-partial" and the four above it described §1.7, §3, §4 and §5 as unbuilt, for three days and
+**What the frames also settled is a limit worth publishing rather than burying.** All five
+adaptive icons declare the same monochrome drawable, so themed mode collapses the five faces
+into one — Arc and Paper draw identically once tinted. Correct for a themed icon, whose point
+is to take the wallpaper's colour rather than its own, and it does mean the delta could not
+promise that "each option is shown as the icon it actually is" without a qualifier. It now
+carries one, on both the requirement and the scenario.
+
+**35 of 36 tasks done, 0 partial, 1 open** — `/opsx:verify` then `/opsx:sync`. This paragraph
+said "7 of 36 done, 1 partial" and the four above it described §1.7, §3, §4 and §5 as unbuilt, for three days and
 about thirty commits. `CLAUDE.md` tells every agent to read this file **before** claiming a
 capability is missing, so an agent reading the old version would have built the chooser a
 second time. Corrected 2026-09-04, on the evidence of a verification pass rather than a
