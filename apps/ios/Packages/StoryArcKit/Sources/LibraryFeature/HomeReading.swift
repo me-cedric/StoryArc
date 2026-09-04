@@ -36,6 +36,41 @@ extension LibraryModel {
 
     /// How much of a publication is left, in the reader's own terms.
     ///
+    /// The decision is ``HomeShelves/remainder(of:record:)``'s; this looks the sentence up.
+    /// Split that way because the unit is the requirement and the sentence is not: `swift
+    /// build` copies an `.xcstrings` without compiling it, so a host test asserting prose
+    /// would be asserting a lookup that cannot work where it runs — the trade `PlayerLabels`
+    /// documents at length.
+    func remaining(of publication: Publication) -> String? {
+        switch HomeShelves.remainder(of: publication, record: record(of: publication)) {
+        case let .pages(count):
+            String(localized: "home.pagesLeft \(count)", bundle: .module, locale: .storyArc)
+        case let .percent(left):
+            String(localized: "home.percentLeft \(left)", bundle: .module, locale: .storyArc)
+        case .nothingToSay:
+            nil
+        }
+    }
+}
+
+/// What Home can honestly say is left of a publication.
+///
+/// A decision rather than a string, for the reason ``LibraryModel/remaining(of:)`` gives.
+/// ``HomeRemainderTests`` is where each case is pinned.
+enum HomeRemainder: Equatable, Sendable {
+    /// Pages, counted or estimated against a spine.
+    case pages(Int)
+    /// The last resort, and named as one: a percentage for a book whose length is unknown.
+    case percent(Int)
+    /// Nothing this surface can state truthfully — including a page or less of a comic,
+    /// which is about to leave the shelf anyway.
+    case nothingToSay
+}
+
+extension HomeShelves {
+
+    /// What remains of a publication, in whichever unit the app actually knows.
+    ///
     /// `home-screen` asks for what remains to be stated "as pages or time remaining, rather
     /// than as a percentage alone", and a paged comic answers exactly: the position is a
     /// page index out of a total, so the subtraction is the whole of it.
@@ -43,30 +78,51 @@ extension LibraryModel {
     /// A reflowable book has no such number — ADR-0006 is explicit that a reflowable page
     /// count is a function of the reader's own typography — so the estimate is made against
     /// the spine count when the app knows one, and only when it knows neither does the
-    /// percentage appear. Last resort, and named as one.
-    func remaining(of publication: Publication) -> String? {
-        guard let record = record(of: publication), !record.isFinished else { return nil }
+    /// percentage appear.
+    ///
+    /// **A listening position is answered with silence, and that is a decision rather than a
+    /// gap.** Home's hero read `2 pages left` for `Sea Room`, an M4B — the September sweep's
+    /// `ios-home-top.png`. The number was real and the unit was not:
+    /// `PublicationIndexer.audiobook` stores the *part* count in `pageCount`, on the
+    /// reasoning that "a comic missing pages and an audiobook missing a part are the same
+    /// question", so the fall-through below had a number and multiplied a fraction by it.
+    ///
+    /// The spec's other unit is not derivable here. `ReadingPosition.listening` carries the
+    /// offset into the current part and that part's length, and nothing about the parts after
+    /// it; `Publication` records no duration at all, because nothing has read one out of an
+    /// audiobook yet. A percentage would be one over *parts* — an equal-length guess, where
+    /// `reading-progress` asks for a percentage "derived from the total duration" and
+    /// `ReadingPosition.fraction` refuses to refine itself with a guess for exactly this
+    /// reason.
+    ///
+    /// So the line is absent rather than wrong. Android reached this first and wrote it down
+    /// at `HomeShelves.pagesRemaining`: "Null, which is the surface saying nothing, rather
+    /// than a page count invented from a chapter index." **One clause of `home-screen` goes
+    /// unmet by it** — "its progress is visible as well as stated" — and the card still draws
+    /// the fill, which is the visible half. Stating the wrong unit is not a way of meeting
+    /// the other half.
+    static func remainder(of publication: Publication, record: ReadingProgress?) -> HomeRemainder {
+        guard let record, !record.isFinished else { return .nothingToSay }
 
-        if case let .page(index, total) = record.position, total > 0 {
-            return Self.pagesLeft(max(0, total - index - 1))
+        switch record.position {
+        case let .page(index, total):
+            return total > 0 ? pagesLeft(max(0, total - index - 1)) : .nothingToSay
+
+        case .listening:
+            return .nothingToSay
+
+        case .reflowable:
+            let left = max(0, 1 - record.position.fraction)
+            if let pages = publication.pageCount, pages > 0 {
+                return pagesLeft(Int((left * Double(pages)).rounded()))
+            }
+            return .percent(Int((left * 100).rounded()))
         }
-
-        let left = max(0, 1 - record.position.fraction)
-        if let pages = publication.pageCount, pages > 0 {
-            return Self.pagesLeft(Int((left * Double(pages)).rounded()))
-        }
-
-        return String(
-            localized: "home.percentLeft \(Int((left * 100).rounded()))",
-            bundle: .module,
-            locale: .storyArc
-        )
     }
 
-    private static func pagesLeft(_ pages: Int) -> String? {
-        // Nought pages left is not a sentence anyone needs: the publication is on its last
-        // page and about to leave this shelf anyway.
-        guard pages > 0 else { return nil }
-        return String(localized: "home.pagesLeft \(pages)", bundle: .module, locale: .storyArc)
+    /// Nought pages left is not a sentence anyone needs: the publication is on its last page
+    /// and about to leave this shelf anyway.
+    private static func pagesLeft(_ pages: Int) -> HomeRemainder {
+        pages > 0 ? .pages(pages) : .nothingToSay
     }
 }
