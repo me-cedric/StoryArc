@@ -5,6 +5,8 @@ import app.storyarc.core.model.AppIconAliases
 import app.storyarc.core.model.AppIconChoice
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -12,9 +14,13 @@ import org.junit.Test
  * The part that touches `PackageManager`, driven without a device.
  *
  * `AppIconAliasesTest` in `:core:model` owns the invariant — never zero enabled, over every
- * transition and every mid-sequence failure. This asserts the three things the executor adds:
+ * transition and every mid-sequence failure. This asserts the four things the executor adds:
  * the writes reach the platform in the plan's order, a failure stops the sequence rather than
- * carrying on, and `applied()` answers from the platform rather than from anything remembered.
+ * carrying on, `applied()` answers from the platform rather than from anything remembered, and
+ * a device the invariant cannot reach on its own — every alias off, which a package tool or the
+ * platform's own `DISABLED_UNTIL_USED` can produce — reads as *no* face rather than as the
+ * default, because the chooser's no-op guard turns the latter into a refusal of the one press
+ * that recovers.
  */
 class AppIconSwitcherTest {
 
@@ -134,6 +140,13 @@ class AppIconSwitcherTest {
      * Reachable in ordinary use: a component the platform does not recognise answers with an
      * `IllegalArgumentException`, and `applied()` is called while a settings screen is being
      * composed — the one moment where a throw is a blank screen rather than a refusal.
+     *
+     * **The default here and `null` in the test below are deliberately different answers to
+     * two different devices**, and this pair used to be one assertion covering both. A device
+     * that cannot report a component's state is one where nothing has changed it, so the
+     * default is the honest answer and the chooser marks Ink. A device that reports every
+     * component *off* has had them changed and has no launcher entry left; answering the
+     * default there is the defect the next test pins.
      */
     @Test
     fun `a platform that will not report a component reads as the default`() {
@@ -142,6 +155,54 @@ class AppIconSwitcherTest {
             write = { _, _ -> },
         )
         assertEquals(AppIconChoice.DEFAULT, switcher.applied())
+    }
+
+    /**
+     * **Every alias off is the one state a reader cannot see their way out of, and the app must
+     * not be the thing standing in the way.**
+     *
+     * `AppIconAliases` calls zero enabled unrecoverable without a reinstall, and its own plans
+     * never produce it — but the platform can arrive there without this app: a package tool can
+     * disable the component that was on, and `COMPONENT_ENABLED_STATE_DISABLED_UNTIL_USED`,
+     * which the platform sets on a component it has parked, is read as off by `stateOf`.
+     *
+     * While `applied()` answered [AppIconChoice.DEFAULT] here, the chooser marked Ink as in use
+     * and `AppIconGroup`'s `if (applied != face)` guard then refused a press on Ink as a press
+     * on the face already drawn — so the single press that puts the launcher entry back was the
+     * one press the app would not perform. `null` equals no face, which is why the guard now
+     * lets it through, and that comparison is asserted here rather than left to be read off the
+     * composable.
+     */
+    @Test
+    fun `a device with every alias off reports no face and recovers on one press`() {
+        val device = FakeDevice()
+        AppIconChoice.entries.forEach { device.states[it] = AppIconAliasState.DISABLED }
+        val switcher = device.switcher
+        assertEquals("the device this test is about was not built", 0, device.visible())
+
+        assertNull("nothing is enabled, so no face is in use", switcher.applied())
+        // The chooser's own guard, as it is written. `null` must equal no face — least of all
+        // the default, whose row is the way back.
+        AppIconChoice.entries.forEach {
+            assertNotEquals("$it would read as in use on a device drawing nothing", it, switcher.applied())
+        }
+
+        assertTrue("the recovery press was refused", switcher.choose(AppIconChoice.DEFAULT))
+        assertEquals(1, device.visible())
+        assertEquals(AppIconChoice.DEFAULT, switcher.applied())
+    }
+
+    /** And from that state any face recovers, not only the default's row. */
+    @Test
+    fun `every face is a way back from a device with every alias off`() {
+        for (face in AppIconChoice.entries) {
+            val device = FakeDevice()
+            AppIconChoice.entries.forEach { device.states[it] = AppIconAliasState.DISABLED }
+            val switcher = device.switcher
+            assertTrue("$face was refused as a recovery", switcher.choose(face))
+            assertEquals("$face left more than one icon", 1, device.visible())
+            assertEquals(face, switcher.applied())
+        }
     }
 
     /** The default face goes by the same route, and lands on the manifest's own states. */

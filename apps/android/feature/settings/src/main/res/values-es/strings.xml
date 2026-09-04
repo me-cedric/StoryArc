@@ -183,6 +183,7 @@
     <string name="app_icon_note">Cinco caras de una misma marca. Tu lanzador mostrará el icono nuevo la próxima vez que dibuje su lista.</string>
     <string name="app_icon_default">Predeterminado</string>
     <string name="app_icon_refused">No se pudo cambiar el icono. StoryArc sigue usando %1$s.</string>
+    <string name="app_icon_refused_none">No se pudo cambiar el icono.</string>
     <string name="app_icon_ink">Tinta</string>
     <string name="app_icon_paper">Papel</string>
     <string name="app_icon_bloom">Flor</string>

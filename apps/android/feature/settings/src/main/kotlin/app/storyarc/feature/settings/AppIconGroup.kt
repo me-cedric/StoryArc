@@ -130,7 +130,8 @@ internal fun AppIconGroup(modifier: Modifier = Modifier) {
 
     // Read from the platform, not remembered across presses: an icon can change without this
     // screen — a restore, an update, a reader disabling a component — and the component states
-    // are the only thing that knows.
+    // are the only thing that knows. Null when the platform reports none enabled, which marks
+    // no row rather than claiming the default is in use while the app is off the launcher.
     var applied by remember { mutableStateOf(switcher.applied()) }
     var refused by remember { mutableStateOf<AppIconChoice?>(null) }
 
@@ -151,11 +152,16 @@ internal fun AppIconGroup(modifier: Modifier = Modifier) {
         // the change failed does not need the general note underneath. And it names the face
         // still in use, because "it could not be changed" alone leaves them guessing what they
         // are now looking at.
+        val inUse = applied
         Text(
-            text = if (refused == null) {
-                stringResource(R.string.app_icon_note)
-            } else {
-                stringResource(R.string.app_icon_refused, stringResource(applied.labelRes))
+            text = when {
+                refused == null -> stringResource(R.string.app_icon_note)
+                inUse != null ->
+                    stringResource(R.string.app_icon_refused, stringResource(inUse.labelRes))
+                // Nothing is enabled, so there is no face still in use to name. Naming one
+                // would tell a reader whose launcher entry is already gone that the app is
+                // using the icon they can no longer see.
+                else -> stringResource(R.string.app_icon_refused_none)
             },
             style = MaterialTheme.typography.labelLarge,
             color = if (refused == null) palette.textTertiary else palette.textPrimary,
@@ -168,6 +174,12 @@ internal fun AppIconGroup(modifier: Modifier = Modifier) {
                 onChoose = {
                     // A no-op is a no-op: rewriting five component states for the icon
                     // already drawn would ask the platform for nothing and could only fail.
+                    //
+                    // **A device with nothing enabled is not that state**, and this comparison
+                    // is why it is now pressable: `applied` is null there rather than the
+                    // default, so it equals no face and the guard lets every press through.
+                    // While it answered the default, the one press that puts the launcher
+                    // entry back — Ink — was the single press this refused.
                     if (applied != face) {
                         refused = if (switcher.choose(face)) null else face
                         // Re-read rather than assume. On success this is the face; on a

@@ -192,6 +192,7 @@
     <string name="app_icon_note">Five faces of one mark. Your launcher shows the new icon the next time it draws its list.</string>
     <string name="app_icon_default">Default</string>
     <string name="app_icon_refused">The icon could not be changed. StoryArc is still using %1$s.</string>
+    <string name="app_icon_refused_none">The icon could not be changed.</string>
     <string name="app_icon_ink">Ink</string>
     <string name="app_icon_paper">Paper</string>
     <string name="app_icon_bloom">Bloom</string>

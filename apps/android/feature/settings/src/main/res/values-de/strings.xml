@@ -183,6 +183,7 @@
     <string name="app_icon_note">Fünf Gesichter einer Marke. Ihr Launcher zeigt das neue Symbol, sobald er seine Liste das nächste Mal aufbaut.</string>
     <string name="app_icon_default">Standard</string>
     <string name="app_icon_refused">Das Symbol konnte nicht geändert werden. StoryArc verwendet weiterhin %1$s.</string>
+    <string name="app_icon_refused_none">Das Symbol konnte nicht geändert werden.</string>
     <string name="app_icon_ink">Tinte</string>
     <string name="app_icon_paper">Papier</string>
     <string name="app_icon_bloom">Blüte</string>

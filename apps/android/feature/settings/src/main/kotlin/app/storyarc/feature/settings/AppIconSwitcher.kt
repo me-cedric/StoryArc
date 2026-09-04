@@ -34,7 +34,8 @@ internal class AppIconSwitcher(
 ) {
 
     /**
-     * The face the launcher is drawing, as the platform reports it.
+     * The face the launcher is drawing, as the platform reports it, or `null` when it is
+     * drawing none.
      *
      * **The platform is the store**, so this is a query rather than a remembered value: a
      * component's enabled setting survives a launch, an update and a backup restore, and
@@ -44,16 +45,27 @@ internal class AppIconSwitcher(
      * More than one enabled should be impossible, and if it happens the first in the
      * chooser's own order wins rather than an arbitrary one — a deterministic answer is what
      * lets the next plan settle the device instead of flickering between two.
+     *
+     * **Nothing enabled is `null`, not the default, and that distinction is the only way back
+     * from it.** A device can reach zero enabled without this app's help — the platform parks
+     * an unused component as `COMPONENT_ENABLED_STATE_DISABLED_UNTIL_USED`, which [stateOf]
+     * reads as off, and a package tool can disable the one that was on. That is the state
+     * [AppIconAliases] calls unrecoverable, and answering [AppIconChoice.DEFAULT] for it was
+     * what made it so: the chooser marked Ink as in use, and its no-op guard then read the one
+     * press that would put the launcher entry back as a press on the face already drawn and
+     * refused it. `null` equals no face, so every row is pressable and the first press
+     * recovers.
      */
-    fun applied(): AppIconChoice = try {
+    fun applied(): AppIconChoice? = try {
         AppIconChoice.entries.firstOrNull { AppIconAliases.isEnabled(it, read(it)) }
-            ?: AppIconChoice.DEFAULT
     } catch (failure: RuntimeException) {
-        // A platform that will not say gets the default rather than a crash, for the same
-        // reason `choose` refuses rather than throwing: this is a settings row, and a reader
-        // who opened Appearance must not be shown a stack trace. The default is the honest
-        // answer too — a device that cannot report a component's state is one where nothing
-        // has changed it.
+        // A platform that will not say gets the default rather than a crash — and rather than
+        // the `null` above — for the same reason `choose` refuses rather than throwing: this is
+        // a settings row, and a reader who opened Appearance must not be shown a stack trace.
+        // The default is the honest answer too, and it is a different claim from the one
+        // `null` makes: a device that cannot report a component's state is one where nothing
+        // has changed it, where a device that reports every component off has had them
+        // changed and has no launcher entry left.
         AppIconChoice.DEFAULT
     }
 
