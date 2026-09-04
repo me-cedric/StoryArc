@@ -69,6 +69,20 @@ extension ReaderView {
 
                 skippedSection
             }
+            // The whole menu's words, on a material the page tints — see
+            // ``ReaderMenuOnGlassTests``. `.plain` is what stops each row's label taking the
+            // environment tint, which `ThemeResolver` sets to `theme.accent`: nine accent
+            // rows on glass that had picked up a salmon page is what the September sweep
+            // photographed, and it named this sheet the first thing a design reviewer should
+            // look at. `storyArcGlassText` is what they state instead — a hierarchical style
+            // while the material is live, the palette's own neutral once Reduce Transparency
+            // or Increase Contrast has made the ground knowable again.
+            //
+            // On the list rather than on each row, deliberately. `GlassIsUntintedTests`
+            // exists because a rule written in one file was reintroduced at five call sites
+            // that never opened it, and a menu grows rows.
+            .buttonStyle(.plain)
+            .storyArcGlassText(.primary)
             .navigationTitle(Text(verbatim: model.publication.displayTitle))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -163,7 +177,7 @@ extension ReaderView {
             Section {
                 Text("reader.skipped \(model.skippedPageCount)", bundle: .module)
                     .textRole(.caption)
-                    .foregroundStyle(.secondary)
+                    .storyArcGlassText(.secondary)
             }
         }
     }

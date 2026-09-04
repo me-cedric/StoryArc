@@ -40,7 +40,12 @@ extension EpubReaderView {
             }
             progressText
                 .textRole(.caption)
-                .foregroundStyle(theme.palette.textSecondary)
+                // **A fixed palette colour cannot sit here**, which is the finding
+                // `DesignSystem/Glass.swift` records from a booted device and the reason
+                // ``storyArcGlassText(_:)`` exists. This line sits on the menu's material,
+                // and that material picks up the page: `textSecondary` is a constant and the
+                // ground under it is not. See ``ReaderMenuOnGlassTests``.
+                .storyArcGlassText(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(alignment: .leading) { coarseFill }

@@ -30,7 +30,11 @@ extension ReaderView {
                 positionText
                     .textRole(.caption)
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
+                    // The quieter half of the row, and still on a material the page tints —
+                    // `storyArcGlassText` rather than a bare `.secondary` so it takes the
+                    // palette's neutral back under Reduce Transparency, where the sheet's
+                    // ground becomes `surfaceOverlay` and is knowable again.
+                    .storyArcGlassText(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(alignment: .leading) { coarseFill }

@@ -53,6 +53,13 @@ extension EpubReaderView {
                     Text(LocalizedStringKey(ReaderMenuEntry.settings.titleKey), bundle: .module)
                 }
             }
+            // The same rule the comic reader's menu carries, and for the same reason: this
+            // sheet is presented at `.medium` over the page, so a row's label drawn in the
+            // environment tint is the accent on a material the book has tinted.
+            // ``ReaderMenuOnGlassTests`` guards both, because `ReaderMenuEntry` gives the two
+            // readers one menu and the sweep photographed the same purple in both.
+            .buttonStyle(.plain)
+            .storyArcGlassText(.primary)
             .navigationTitle(Text(verbatim: model.publication.displayTitle))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

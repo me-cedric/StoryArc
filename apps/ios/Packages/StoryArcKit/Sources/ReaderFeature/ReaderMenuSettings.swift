@@ -94,15 +94,19 @@ extension ReaderView {
             }
         }
 
+        // The reason under a mode this device refuses, in the quieter of the two roles
+        // ``storyArcGlassText(_:)`` offers. Not a bare `.secondary`: this sheet is presented
+        // over the page, so the ground under these words is whatever the reader is looking
+        // at — see ``ReaderMenuOnGlassTests``.
         if let reason = choices.unavailable[choices.chosen] {
             Text(reason.titleKey, bundle: .module)
                 .textRole(.caption)
-                .foregroundStyle(.secondary)
+                .storyArcGlassText(.secondary)
         } else if choices.curlIsAbsent {
             // Once, and in the reader's language rather than the platform's.
             Text("reader.transition.noCurl", bundle: .module)
                 .textRole(.caption)
-                .foregroundStyle(.secondary)
+                .storyArcGlassText(.secondary)
         }
     }
 
