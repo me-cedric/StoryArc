@@ -195,7 +195,16 @@ Android only. Test-first; a visible change owes a before/after capture per
       silently discarding an APK whose install had reported `Success` — a capture taken
       straight afterwards was of another build, and only a dex check found it. `uiautomator
       dump` answered `null root node` on most attempts throughout.
-- [ ] 3.2 `pnpm lint`, `pnpm check`, `pnpm gradle`, `pnpm build:android:tests`.
-- [ ] 3.3 `pnpm spec:guard:strict`.
+- [x] 3.2 `pnpm lint`, `pnpm check`, `pnpm gradle`, `pnpm build:android:tests` — all green on
+      2026-09-04, on `main` with the change's commits merged. 1855 iOS tests in 235 suites,
+      SwiftLint 0 violations in 657 files, `pnpm gradle` and `assembleAndroidTest` clean.
+      `pnpm check` runs `swiftlint lint --strict` *with* its cache, so the strict no-cache run
+      this change's siblings ask for was made separately and read the same 657 files. That
+      count matters more than the verdict: SwiftLint silently reads no config when the working
+      directory has drifted into `apps/ios/Packages/StoryArcKit`, and reports 759 files and
+      hundreds of phantom violations. A file count that does not match the last run is
+      measuring a different thing.
+- [x] 3.3 `pnpm spec:guard:strict` — 0 errors, 1 warning, and that warning is the
+      pre-existing orphan list (six main specs named by no change).
 - [ ] 3.4 `/opsx:verify connected-button-groups`, then `/opsx:archive` — there is no
       `/opsx:sync` step, because this change declares `skip_specs` and has no delta.
