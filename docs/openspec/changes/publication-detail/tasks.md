@@ -364,7 +364,7 @@ when a cover was the resume affordance. Whoever syncs should add a
 
 ## Phase 2 — The screen
 
-- [ ] **2.1** **[F1]** iOS: the page — cover over the wash, title block, one
+- [~] **2.1** **[F1]** iOS: the page — cover over the wash, title block, one
       primary action, secondary actions in a menu, description, series shelf,
       provenance line. Screenshot: a downloaded local publication, a cached remote
       one, and one whose source is unreachable.
@@ -391,7 +391,27 @@ when a cover was the resume affordance. Whoever syncs should add a
       as a downloaded local publication, a cached remote one, or one whose source
       is unreachable**, which are the three states the provenance line and the
       primary action actually branch on.
-- [ ] **2.2** **[F2]** Android: the same content model with Material
+
+      **Partial, 2026-09-05.** Code re-read and still seven for seven; nothing in the note
+      above needed correcting. The three frames owed, named exactly — each in **light and
+      dark at the default text size**, since the states are what varies and the appearance
+      matrix is already covered by the ten captures above:
+
+      1. **A downloaded local publication.** Primary reads *Read* or *Continue*; provenance
+         reads *On this device*; the overflow carries *Remove download*.
+         Walk: Library ▸ tap a cover the shelf marks as on-device.
+      2. **A cached remote publication whose source is answering.** Primary is the download
+         (`DetailActions.swift:102`'s `canCopy` branch); provenance names the library by the
+         reader's own name for it and says it can be opened now.
+         Walk: `pnpm opds` ▸ add the source ▸ Library ▸ tap a cover that is not downloaded.
+      3. **One whose source is unreachable.** Primary states what it needs rather than
+         failing; provenance says the library is not answering.
+         Walk: the same publication with `pnpm opds` stopped.
+
+      The third is the one that cannot be faked from a preview, and it is why this is on the
+      list: `PublicationProvenance`'s readiness is what the sentence and the button both
+      branch on, and no capture in the tree has ever shown it.
+- [~] **2.2** **[F2]** Android: the same content model with Material
       composition. Same three screenshots.
 
       **Built, seven for seven, and composed as Material rather than transcribed
@@ -416,10 +436,29 @@ when a cover was the resume affordance. Whoever syncs should add a
       same non-null `onDownload`. iOS forbids this by construction
       (`DetailActions.swift:136`); Android does not.
 
+      **Both are fixed, and this note had not caught up — verified in the source 2026-09-05.**
+      `detail_action_refused` is gone: `PrimaryAction.label()` returns `null` for `REFUSED`
+      and `DetailActions.kt` records the deletion and why ("the button it would need is the
+      one the spec forbids"). The double control is gone too, and the fix is the better shape
+      rather than a second condition kept opposite by hand: `downloadControl(action:
+      canDownload:)` returns one of `PRIMARY`, `OVERFLOW` or `NONE`, decided once at
+      `PublicationDetailScreen.kt:181` and handed to exactly one of the two controls
+      (`:249` and `:213`). Its KDoc names iOS's partition as the thing it is porting — "a
+      function returning one of three cannot return two". So this task's remaining half is
+      captures alone.
+
       **The same three captures are owed as on iOS** — the four Android detail
       captures show phone light, phone dark, the overflow and the provenance-plus-series
-      pairing, none of them keyed to those three states.
-- [ ] **2.3** Every cover on every surface leads here; every resume affordance
+      pairing, none of them keyed to those three states. **Named exactly, light and dark at
+      the default text size:** a downloaded local publication (primary *Read*/*Continue*,
+      provenance *On this device*, overflow carrying *Remove download*); a cached remote one
+      with its source answering (the download as the **primary**, and **no second download in
+      the overflow** — that absence is the fix above, and a picture of it is the only proof
+      that survives a refactor); and one whose source is unreachable (`NEEDS_SOURCE`: the
+      explanation under the button, and the provenance line saying the library is not
+      answering). `pnpm capture:android` walks to the page; `pnpm opds` supplies the remote
+      source and stopping it supplies the third state.
+- [~] **2.3** Every cover on every surface leads here; every resume affordance
       still opens the book directly. Screenshot the two paths from the home
       surface.
 
@@ -468,8 +507,19 @@ when a cover was the resume affordance. Whoever syncs should add a
         time. **The page cannot serve those three until a catalogue entry can become
         a `Publication` before it is fetched**, which is not this change.
 
-      **Three iOS covers that still do not lead here, and the audit that found them
-      is why this is unticked:**
+      **All three of the iOS covers below now lead here — verified in the source 2026-09-05,
+      and the note had not caught up.** `CoverCell.swift:63` and `CoverList.swift:113` are
+      unconditional `NavigationLink`s outside selection mode, each carrying the argument in its
+      own doc comment: a refusal *is* what the page answers, so a cover that leads nowhere is a
+      cover a reader taps twice. `HomeRow.swift:125` is likewise unconditional, and its comment
+      records the same reversal — a dimmed card leads to the page because the page states *why*
+      it cannot be opened, which is the one question a dimmed card raises and the shelf cannot
+      answer. `ShelfDetail.swift:208` is a `NavigationLink` to `PublicationRoute`, matching
+      `AppScreens.kt:210`. `isOpenable` survives on those two cells in one place only —
+      `.accessibilityAddTraits(publication.isOpenable ? .isButton : [])` — which is a spoken
+      trait and not a gate. **So the three findings below are closed, and the only thing
+      keeping this task open is the two captures.** The findings are kept because the argument
+      in each is the reusable part:
 
       1. **A publication no decoder can open is not tappable at all on iOS.**
          `CoverCell.swift:53` and `CoverList.swift:103` still gate the
@@ -506,6 +556,25 @@ when a cover was the resume affordance. Whoever syncs should add a
       reaching the page, and Home's hero reaching the reader. What exists
       (`after-2026-08-31/{ios-detail-from-a-cover-dark,android-detail-from-a-cover-light}.png`)
       is the library shelf's path, not Home's.
+
+      **Named exactly, 2026-09-05 — two paths, and each is a pair, on both platforms.** A
+      single frame of a page proves nothing about which affordance opened it, so each path is
+      the surface *and* what it landed on, at the default text size:
+
+      1. **A cover on Home reaches the page.** Frame one: Home, with a *Up next* or *Recently
+         added* shelf card visible. Frame two: the publication page for that same card, after
+         tapping it. Light on one platform and dark on the other is not enough — the claim is
+         about the verb, so both frames must be the same appearance, and the pair is owed in
+         **light and dark**.
+      2. **Home's hero reaches the reader.** Frame one: Home with the *Keep reading* hero
+         showing a part-read publication. Frame two: the reader open at the stored position
+         with **no page in between** — which is the whole claim, and the only way to show it is
+         that the second frame is the reader rather than the page.
+
+      The hero is `HomeHero.swift:163` on iOS and `HomeScreen.kt:210`/`:240` on Android; the
+      shelf card is `HomeRow.swift:125` and `HomeScreen.kt:358`. `pnpm capture:android --list`
+      has the Home route; on iOS the walk is Home ▸ tap, twice, with
+      `xcrun simctl io booted screenshot` between.
 - [ ] **2.4** The page for a publication with no series, no year, no description
       and no cover — the composition has to hold up with a title and a placeholder.
       Screenshot both platforms.
