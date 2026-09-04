@@ -182,7 +182,12 @@ Android only. Test-first; a visible change owes a before/after capture per
       and the after APK 10, the two extra being the call sites.
 
       **`pnpm capture:android` could not take these.** Neither control is a listed route in
-      `scripts/android-routes.mjs`, and both sit four or five taps behind a reader. The walk
+      `scripts/android-routes.mjs`, and both sit four or five taps behind a reader.
+      **True as written, and half of it stopped being true on 2026-09-02**: `'EPUB reader >
+      axes'` is a listed route now — Library → *Harbour Lights 01* → Read → menu → themes →
+      Customise, which is where `AlignmentControl` lives. So whoever recaptures the alignment
+      picker should use `pnpm capture:android` rather than a throwaway script. The PDF text
+      sheet still has no route. The walk
       was driven by a throwaway script over that module's own exported `navigator`; nothing
       under `scripts/` was modified. Two things it had to learn, both recorded in the
       folder's README: the axes screen draws `AlignmentControl` only under a preset that
@@ -204,10 +209,26 @@ Android only. Test-first; a visible change owes a before/after capture per
       directory has drifted into `apps/ios/Packages/StoryArcKit`, and reports 759 files and
       hundreds of phantom violations. A file count that does not match the last run is
       measuring a different thing.
+      **Re-run after the verify pass's two code changes landed**, because a gate run before the
+      last edit is a claim rather than a record: the guard's fifth retired spelling, its
+      depth-independent input globs, and the `clearAndSetSemantics` that drops
+      `ToggleButton`'s spare checkbox state. Green again on the same counts.
 - [x] 3.3 `pnpm spec:guard:strict` — 0 errors, 1 warning, and that warning is the
       pre-existing orphan list (six main specs named by no change).
-- [ ] 3.4 `/opsx:verify connected-button-groups`, then `/opsx:archive` — there is no
+- [x] 3.4 `/opsx:verify connected-button-groups`, then `/opsx:archive` — there is no
       `/opsx:sync` step, because this change declares `skip_specs` and has no delta.
+      Verified and archived on 2026-09-04. The verify pass reported no critical issue in what
+      shipped: the component is assembled from `ConnectedSpaceBetween`, `ToggleButton` and the
+      three positional shape helpers with no reproduced fill, both call sites are replaced, no
+      `SegmentedButtonRow` remains in any Android source, the guard demonstrably works against
+      354 files in 13 module trees, and four of the sixteen captures were opened rather than
+      counted. Its two criticals were this section's own gate runs. Its documentation findings
+      are recorded above; two of its suggestions were taken as code.
+      **The skip is machine-accepted, not merely asserted**: the guard errors on a missing skip
+      declaration and warns on a reason under 20 characters, `openspec status` reports
+      `specs: skipped`, and there is no `specs/` directory to merge. `native-experience`
+      already carries the general ask that Android uses Material 3 Expressive components, which
+      is what makes the skip sound rather than convenient.
 
 ## Artifact corrections, 2026-09-04 — from `/opsx:verify`
 
