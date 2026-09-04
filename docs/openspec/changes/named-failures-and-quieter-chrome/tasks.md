@@ -424,17 +424,45 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
 - [x] 3b.6 **A second instance of the same slab, which the brief did not name.**
       `ShelfBulkActions` drew the identical full-bleed `BulkUndoBar` one screen over. Floated as
       an inset capsule in the same pass. The complaint had two homes and only one was reported.
-- [ ] 3b.7 Captures, owed and not taken — both devices were sweeping every screen when this
-      landed, and two UI-test runs on one device interfere.
-      iOS: `testCaptureLibrarySelectingAtTheEnd` (exists), plus `LibrarySelectionCapture.swift`'s
-      two new walks. **They live in a sibling extension because `ScreenshotTests.swift` sits one
-      line under SwiftLint's 400-line file warning** and had no room.
-      Android: the contextual bar at 0 and at many, light and dark, default and largest text — no
-      walk exists yet.
-      **One thing the pictures must settle**: the action row takes
-      `.storyArcGlassText(.primary)`, but the automatic button style may colour its own labels
-      with the tint and win over the ancestor `foregroundStyle`. Either outcome is legible and
-      neither tints the *material*, so no rule is broken — but only a picture says which it is.
+- [~] 3b.7 Captures. **The iOS half is taken; the Android half is not.**
+      iOS, done: ten frames in `docs/designs/screenshots/ios-selection-chrome-2026-09-04/`,
+      on `StoryArc-iPhone17Pro` — the shelf selecting at **0** and at **2** picked, at the
+      default text size and at `UICTContentSizeCategoryAccessibilityXXXL`, **light and dark**,
+      plus the end-of-scroll pair. Five walks, each run reporting `1 passed, 0 skipped`.
+      Two walks are new (`…SelectingEmpty`, `…SelectingEmptyAtLargestText`) and the three
+      that existed were hardened, because **none of them could say it had photographed the
+      right screen**: they launched with `launch()`, which pins no appearance — so the app's
+      stored `oledDark` could outrank `--appearance light`, the failure
+      `SweepLibraryTests.testCaptureCoverGrid` already records — they picked `shelf.buttons`
+      by index, which is what `realCovers(in:)` exists to replace, and nothing read the count
+      back, so a walk that picked nothing still passed. All five now use `sweepLaunch` and
+      assert `N selected`, *Done* and all three action names before the shutter.
+      They stay in a sibling extension on `ScreenshotTests`: that file sits at SwiftLint's
+      400-line file warning (396 after this) and the sweep README invokes the walks by the
+      class-qualified name.
+      **The question is settled, and the ancestor wins.** The capsule's glyphs measure
+      `#000000` on light and `#f4f4f4` on dark, saturation **0.000** in both; *Done*, in the
+      same navigation bar at the same moment, is `#8a4df0` at saturation **0.679**. So
+      `.storyArcGlassText(.primary)` beats the button style's tint, and it reads correctly —
+      the accent is left marking only what is picked and the way out, which would have been
+      flattened by three violet glyphs beside a violet *Done*.
+      **Two things the pictures settled that nobody asked, neither fixed here** — this was a
+      capture job, and each is a behaviour change wanting its own task:
+      (a) the `ViewThatFits` fallback is **already taken at the default text size** on a
+      402 pt iPhone, so the named row is never drawn on this phone and the surface shows
+      three bare glyphs — which §3b.5 and `BulkActionBar`'s own doc comment both say happens
+      only at the accessibility sizes. `BulkSelectionChromeTests` greps the source for
+      `.titleAndIcon` and so proves the fallback is *declared*, not which branch is taken;
+      (b) the inert capsule is **pixel-identical** to the live one — 0 of 27 900 pixels
+      differ, against 45 % over a cover's tick in the same pair — so §3b.4's inertness is
+      invisible. Likely the explicit `foregroundStyle` defeating the disabled dimming; stated
+      as an inference, not a measurement.
+      Android, still owed: the contextual bar at 0 and at many, light and dark, default and
+      largest text — no walk exists yet. **This section stays `[~]` until it does.**
+      Also named and not reached, with reasons, in that folder's README: the undo capsule and
+      §3b.6's `ShelfBulkActions` (both need a persisted write or a collection the corpus does
+      not build), the *Add to…* menu open, Reduce Transparency and Increased Contrast (the
+      other branch of `GlassText`, with no launch-argument lever), and iPad.
 
 ## 4. Close-out
 
