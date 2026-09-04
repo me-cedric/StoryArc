@@ -30,7 +30,9 @@ extension ReadingTheme {
         //
         // Which is also why `page-transitions`' four modes divide the way they do for
         // an EPUB: Slide is Readium paginated, Scroll is this flag, and the two that
-        // animate a picture of a page need the raster that does not exist yet.
+        // animate a picture of a page are drawn by StoryArc over a still. Fast fade
+        // takes that still in `EpubReaderModel.turnWithFade(forward:)`; Curl needs the
+        // incoming page as well, which is task 4.3b.
         preferences.scroll = transition.isScroll
 
         // Original means the publication as published. Everything below this line

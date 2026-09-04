@@ -180,10 +180,21 @@ The reached fraction is kept in the gesture loop, where the decision is made.
 
 **Follow-up**
 
-- **4.3b — rastering for reflowable content** is untouched and is the remaining
-  hard part. Comics avoid it; an EPUB page is live web content and the deforming
-  surface must be a texture, so `page-transitions`' "the turning page is a
-  faithful raster of the page it replaces" still has to be built.
+- **4.3b — rastering for reflowable content** is the remaining hard part. Comics
+  avoid it; an EPUB page is live web content and the deforming surface must be a
+  texture, so `page-transitions`' "the turning page is a faithful raster of the
+  page it replaces" still has to be built.
+
+  **No longer untouched, and the ADR said it was.** Fast fade over reflowable text
+  now ships on both platforms, which is the one-raster half. And 4.3b has since
+  established, from Readium's own source, that the *second* raster needs **no second
+  offscreen navigator** — the neighbouring resources are already loaded and laid out
+  (`PaginationView.loadedViews` at the navigator's default preload counts), and
+  within one resource the next page is a CSS column in the same web view. What is
+  unsettled is no longer the source of the texture but the frame cost of reaching
+  it: `PaginationView.slideToView` sleeps 100 ms on an unanimated resource-boundary
+  move, by construction. 4.3b in the change's `tasks.md` carries the measurement and
+  the two routes past it.
 - The frame-rate check, if a device ever justifies one.
 
 ## Revisit when

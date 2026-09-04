@@ -678,7 +678,7 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       for it. What is not: anything visual or tactile, because the simulator accepts no
       injected input — the limitation `apps/ios/README.md` already records. That is
       7.4's and 7.5's job, and it needs a device or a person.
-- [ ] **4.3b** Page rastering for reflowable content: raster at display scale,
+- [~] **4.3b** Page rastering for reflowable content: raster at display scale,
       hold at most the outgoing and incoming pages, restore live interaction the
       instant the turn completes. **Still the remaining hard part, and now visible in
       the product rather than only in this file**: the ebook reader's page-turn section
@@ -761,6 +761,79 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
 
       Reverify against Apple Books when the curl is built: the crease, the lit edge, and
       the mirrored text on the back are the three things to compare.
+
+      ---
+
+      **The second raster can be had, and it does not need a second navigator.** That
+      question is now answered from Readium's own source rather than guessed at, which is
+      what [ADR-0009](../../../decisions/0009-page-curl-as-a-fragment-shader.md) left open.
+      Read in `swift-toolkit` 3.11.0, the version `Package.swift` pins exactly:
+
+      - **The neighbouring resources are already loaded and laid out.**
+        `PaginationView.loadedViews` holds one live `UIView & PageView` per spread, each
+        positioned inside the scroll view at `xOffsetForIndex(index)`, and
+        `EPUBNavigatorViewController.Configuration` defaults to
+        `preloadPreviousPositionCount: 2` / `preloadNextPositionCount: 6`. StoryArc passes
+        only `fontFamilyDeclarations`, so those defaults are in force. **A second offscreen
+        navigator would duplicate what Readium already keeps**, and the note in
+        `TransitionChoices.needsTwoRasters` that named one has been corrected.
+      - **Within a resource there is no second view to raster, and no need of one.**
+        `EPUBReflowableSpreadView.go(to direction:)` is a single
+        `evaluateScript("window.scrollBy({ left: ±width, behavior: 'instant' })")` — the
+        next page is a CSS column in the *same* web view. So the incoming page is had the
+        way Fast fade already has the outgoing one: cover with a still, move with
+        `animated: false`, raster what is now underneath.
+
+      **What is unsettled is the timing, and one number is already known and bad.**
+      `PaginationView.slideToView` is the path a turn takes when it crosses a resource
+      boundary, and it ends with `if !animated { try? await Task.sleep(seconds: 0.1) }` —
+      Readium's own workaround for a WebKit compositing glitch
+      ([swift-toolkit#737](https://github.com/readium/swift-toolkit/issues/737)). So
+      `goForward(options: animated: false)` **cannot return in under 100 ms across a
+      chapter boundary, by construction**. At 120 Hz that is twelve frames with the finger
+      moving and the fold not yet started — one turn in every chapter. `page-transitions`
+      is explicit that "the app never ships a curl that stutters in preference to a slide
+      that does not", so that is a blocker for shipping, not a detail.
+
+      **So this stays `[~]`: the source is settled, the frame cost is not.** Two routes
+      past the 100 ms, and each needs a device to choose between:
+
+      1. **Raster ahead of the gesture**, on settle of the previous turn — which this note
+         already proposed for the *outgoing* page. For the *incoming* page it means moving
+         the navigator forward and back while idle, and Readium's locator stream is exactly
+         what StoryArc records the reading position from (`follow(locators)` on Android,
+         the model's `locator` on iOS). The round trip would write a position one page
+         ahead unless it is suppressed. **That suppression is the cost nobody has priced.**
+      2. **Do not raster the incoming page at all.** Move the navigator under an opaque
+         overlay at gesture start and leave the region *past the crease* transparent, so
+         the live page shows through it. One raster, not two, and the reveal is live text
+         rather than a picture of it — which is more than `page-transitions` asks for,
+         since its raster clause is about the *turning* page. The cost is a shader change
+         ADR-0009 does not have: an alpha ramp past the crease instead of a second
+         `texture2d<half>`.
+
+      **What to measure, and how, when a device is free.** Two numbers, both from
+      `xcrun simctl io recordVideo` plus `ffmpeg -vf fps=20` on a device rather than from a
+      walk — XCUITest has no primitive that holds a touch down across a screenshot, which
+      is the finding §4.3 and §7.5 already record:
+
+      - **Within a resource:** from `ACTION_DOWN` past the slop to the first frame in which
+        the fold has moved, with the move-and-snapshot in the path. The open question is
+        whether `WKWebView` has actually rendered the scrolled column by the time
+        `evaluateScript` returns — `snapshotView(afterScreenUpdates: false)` would capture
+        the *pre-scroll* pixels if it has not, and the reveal would show the outgoing page
+        twice. `takeSnapshot(with:)` is the reliable one and it is asynchronous.
+      - **Across a resource boundary:** the same interval, which the 100 ms sleep predicts
+        will be at least six frames at 60 Hz. If the measurement disagrees with the source,
+        the source is right and the harness is wrong — that is how §4.3's two false
+        readings were caught.
+
+      **Android is the cheaper half and is not measured either.** `FadeTurn`'s own note
+      already records that "the pager's neighbouring page is already laid out and
+      `goForward(animated = false)` returns before the next frame", so the within-resource
+      case is free there. The resource-boundary case has not been checked against
+      `kotlin-toolkit` 3.3.0 and should not be assumed to match iOS: the two toolkits are on
+      unrelated version lines and, as §7.8 found, do not even share one build of readium-css.
 - [x] **4.4** Scroll mode with the axis rule, including the webtoon default.
       **Done.** A lazy list on both platforms, pages stitched with no gap: each page
       fills the scroll's *cross* axis and takes what it needs along the scroll axis.
@@ -1255,7 +1328,7 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       that is not the same as listening to it. Reduce Transparency has no emulator switch
       that reaches a Compose equivalent, and iOS needs a device. Neither platform has been
       checked by anyone who uses a screen reader daily, which is the actual bar.
-- [ ] **7.8** **Compare Readium's pagination across the two toolkits** under
+- [~] **7.8** **Compare Readium's pagination across the two toolkits** under
       matched typography, on `fixture.epub`. Added here because this change is what
       unblocked it: [ADR-0005](../../../decisions/0005-format-and-rendering-libraries.md)'s
       spike 4b has been waiting for the type controls, and now the same nine axes can
@@ -1266,6 +1339,77 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       the same paragraph, and that a size change moves the reader by a comparable
       amount. A divergence here would undermine `reading-progress`' promise that a
       position is portable between devices.
+
+      **The half that needs no device is done, and it found two divergences and one
+      reassurance.** Read against `swift-toolkit` 3.11.0 and `kotlin-toolkit` 3.3.0 — the
+      versions `Package.swift` and `libs.versions.toml` pin. The two toolkits version on
+      unrelated lines, so the numbers are not a mismatch to fix; what matters is what they
+      ship.
+
+      **Reassurance first: StoryArc's own mapping does not diverge.** `ReadiumMapping.swift`
+      and `ReadiumMapping.kt` set the same thirteen preference keys to the same values with
+      the same null-versus-`false` semantics — including the Original early return, which on
+      both keeps `fontSize`, `publisherStyles` and `scroll` and nothing else. So a layout
+      divergence is not coming from this app.
+
+      **Divergence 1 — the two toolkits do not bundle the same build of readium-css, and
+      the difference is in the pagination geometry.** All three modules hash differently.
+      Normalising away minification (Android's copy is minified, iOS's is not) leaves:
+
+      - `ReadiumCSS-before.css`: **no behavioural difference.** All twenty `--RS__*` values
+        are identical; the only textual difference is the order of a `:lang()` selector list.
+      - `ReadiumCSS-after.css`: **one, and it is the column viewport.** Android declares
+        `--RS__viewportWidth: 100%` and uses it for `:root`'s `width`, `max-width` and
+        `min-width`; iOS hard-codes `100%` there and has no such variable. Android's
+        `readium-reflowable.js` then *overrides* it on load and on every `ResizeObserver`
+        tick with `calc(<Android.getViewportWidth()>px / window.devicePixelRatio)`. **So
+        Android pins the column viewport to the native view width converted to CSS pixels,
+        and iOS lets the web view's own `100%` decide.** On a device where
+        `widthPx ÷ dpr` is not an integer — 1080 ÷ 2.75 = 392.72… is the ordinary case — the
+        two derive a different column width from the same typography, and a fractional
+        column width is exactly what moves a word from the foot of one page to the head of
+        the next. Also Android-only and much smaller: `p:first-letter { text-indent: 0 }`
+        under `--USER__paraIndent`. iOS-only: the `readiumCSS-*-highlight` classes and
+        `readiumCSS-mo-active-default`, which are decoration and media-overlay styling, not
+        layout.
+      - `ReadiumCSS-default.css`: iOS declares `--RS__primaryColor` and
+        `--RS__secondaryColor` with empty values and Android omits them. Inert.
+
+      **Divergence 2 — a stored position carries no text anchor on either platform, so it
+      cannot resolve to the same paragraph except by arithmetic.** This is the one that
+      touches `reading-progress`, and it is the same on both sides:
+
+      - iOS: the navigator's current locator comes from
+        `EPUBViewportAndLocationCalculator.compute` over `spreadView.progression(in:)` —
+        `href` plus `locations.progression` and `locations.totalProgression`. No
+        `cssSelector`, no `text`. `firstVisibleElementLocator()` is the API that *would*
+        carry one, and StoryArc never calls it.
+      - Android: `readium-reflowable.js` emits `cssSelector` and `text.highlight` only from
+        `findFirstVisibleLocator()`, which StoryArc never calls either.
+      - Both apps already say so in their own comments — "a locator that came from a page
+        turn rather than from a search carries no text", in `EpubBookmarks.swift` and
+        `EpubReaderViewModel.kt`.
+
+      So a resumed position lands at *the same fraction of the same resource*, and that
+      fraction is turned into a scroll offset by the column geometry divergence 1 has just
+      shown is derived differently on each side. Bookmarks inherit the property, because a
+      bookmark's locator also comes from a page turn.
+
+      **This does not break `reading-progress`, and it does bound its promise.** What is
+      portable is `href` plus a fraction, which is what ADR-0006 chose and is the same
+      mechanism that survives a type-size change on one device. Across two devices the
+      resumed point can land a line or two out; it cannot land a chapter out. Tightening it
+      means storing the first-visible-element locator *beside* the progression so the
+      position is text-anchored — both toolkits expose it. That is a `reading-progress`
+      proposal, not a task in this change, and it is not taken here.
+
+      **Still owed, and it needs the two devices:** `fixture.epub` opened on both under one
+      theme with the nine axes at matched values, and then (a) the page counts recorded, (b)
+      a position stored on one and resumed on the other with the paragraph compared, and (c)
+      one font-size step applied on both with the change in `totalProgression` compared. The
+      source predicts (a) differs and says why; the *size* of the difference is not
+      derivable from source, and (b) is the number that decides whether this is a bounded
+      imprecision or a defect.
 - [ ] **7.7** `/opsx:sync` to merge the delta specs into the main specs.
       **Partly done: everything that shipped is merged, four things are held.**
 

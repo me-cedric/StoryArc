@@ -48,7 +48,9 @@ internal fun ReadingTheme.preferences(
     //
     // Which is also why `page-transitions`' four modes divide the way they do for an
     // EPUB: Slide is Readium paginated, Scroll is this flag, and the two that animate a
-    // picture of a page need the raster that does not exist yet.
+    // picture of a page are drawn by StoryArc over the pager. Fast fade dips through the
+    // page colour in `FadeTurn`; Curl needs the incoming page as a texture, which is
+    // task 4.3b.
     val scroll = transition.isScroll
 
     // Original means the publication as published, so it takes no override.

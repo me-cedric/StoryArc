@@ -186,9 +186,17 @@ extension PageTransition {
     /// reader takes that before the navigator moves.
     ///
     /// Curl cannot yet. It needs the *incoming* page as a second texture before it is on
-    /// screen, which means a second offscreen navigator or a snapshot round-trip. Task
-    /// 4.3b of `reader-theming-and-page-transitions` owns that, and Apple Books doing it
-    /// over reflowable text is the evidence that it can be done.
+    /// screen. Task 4.3b of `reader-theming-and-page-transitions` owns that, and Apple
+    /// Books doing it over reflowable text is the evidence that it can be done.
+    ///
+    /// **A second offscreen navigator is not what it needs, and this line used to say it
+    /// was.** Readium keeps the neighbouring resources loaded and laid out already —
+    /// `PaginationView.loadedViews`, at the navigator's default preload counts — and
+    /// within one resource the next page is a CSS column in the *same* web view. So the
+    /// incoming page is reachable by moving the navigator with no animation under a still
+    /// of the outgoing page, which is what Fast fade already does.
+    ///
+    /// What is unsettled is the *timing*, not the source. 4.3b records the measurement.
     public var needsTwoRasters: Bool { self == .pageCurl }
 
     /// Whether this is the continuous mode, in either axis.
