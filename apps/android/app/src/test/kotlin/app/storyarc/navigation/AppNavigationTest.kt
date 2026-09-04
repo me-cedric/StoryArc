@@ -5,6 +5,8 @@ import app.storyarc.core.model.MetadataOrigin
 import app.storyarc.core.model.Publication
 import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.Source
+import app.storyarc.core.model.SourceKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -57,6 +59,11 @@ class AppNavigationTest {
      * Four is inside Material's own range for both controls this list builds — 3–5 for the
      * navigation bar, 3–7 for the collapsed rail. iOS's `LibraryDestinationTests` asserts the
      * same four in the same order.
+     *
+     * **The sentence above claimed cases that did not exist until 2026-09-05.** It said the
+     * cases below held a nine-server registry to the same four, and no case below took a
+     * registry at all — `AppDestination` had nothing to hand one to. The three cases that
+     * follow are that claim made true, against task 1.3.
      */
     @Test
     fun `there are exactly four destinations`() {
@@ -69,6 +76,42 @@ class AppNavigationTest {
             ),
             AppDestination.entries.toList(),
         )
+    }
+
+    @Test
+    fun `a reader who has added nothing gets all four`() {
+        // A destination set that filled in as sources were added would be a navigation
+        // control that looked broken on first launch -- and Downloads is exactly the
+        // destination a reader with no server still needs.
+        assertEquals(AppDestination.entries.toList(), AppDestination.all(emptyList()))
+    }
+
+    @Test
+    fun `a source of every kind changes nothing`() {
+        val sources = SourceKind.entries.map { Source(displayName = "A $it", kind = it) }
+
+        assertEquals(AppDestination.entries.toList(), AppDestination.all(sources))
+    }
+
+    @Test
+    fun `nine servers do not put a navigation control over its ceiling`() {
+        // The promise `navigation-shell` makes: the app "SHALL NOT add, remove or reorder a
+        // destination in response to anything the reader configures". The shape it is
+        // written against is the old sidebar, which grew a row per browsable source -- nine
+        // servers was eleven rows, over Material's ceiling for the collapsed rail, and a
+        // reader's own navigation reading back the transports their books arrived over.
+        //
+        // Added, renamed, reordered and removed are all one assertion here, because the
+        // registry is never consulted: there is no ordering of it and no membership of it
+        // that the answer could depend on.
+        val servers = (1..9).map {
+            Source(displayName = "Server $it", kind = SourceKind.KAVITA_SERVER)
+        }
+
+        assertEquals(4, AppDestination.all(servers).size)
+        assertEquals(AppDestination.entries.toList(), AppDestination.all(servers))
+        assertEquals(AppDestination.all(servers), AppDestination.all(servers.reversed()))
+        assertEquals(AppDestination.all(servers), AppDestination.all(servers.drop(4)))
     }
 
     @Test

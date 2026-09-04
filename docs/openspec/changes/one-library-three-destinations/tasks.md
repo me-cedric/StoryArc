@@ -274,7 +274,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       light, dark and largest-text are all present
       (`ios-shell-iphone-{home,home-dark,library-light,library-dark,downloads-dark,search-dark,library-ax5-light}.png`).
       What is missing is one landscape pass per destination on iPad.
-- [ ] **1.3** Verify against the delta that the destination count does not change
+- [x] **1.3** Verify against the delta that the destination count does not change
       when a source is added, renamed, reordered or removed. A test with nine
       configured sources, on both platforms.
 
@@ -294,6 +294,28 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       which is a real argument and not the test the task asks for. Close it either
       by giving Android the same source-taking function iOS has, or by recording the
       by-construction argument as the answer and saying so here.
+
+      *Done, 2026-09-05, by the first of the two routes.* `AppDestination.all(sources)`
+      (`navigation/Destinations.kt`) now takes a registry and discards it, mirroring iOS's
+      `LibraryDestination.all(for:)` — which reads its parameter exactly as much, and for
+      the same stated reason: an answer that cannot be handed a registry cannot be tested
+      against one. Three cases in `AppNavigationTest.kt` call it — with nothing configured,
+      with one source of every kind, and with nine Kavita servers, the last also asserting
+      that reversing the list and dropping four of them changes nothing, which is *renamed,
+      reordered and removed* in the same assertion. `:app:testDebugUnitTest --tests
+      '*AppNavigationTest*'` green; the suite is 24 tests, up from 21.
+
+      **Three claims in the audit above were stale, and the third one mattered.**
+      (1) `AppDestination` is not a three-entry enum — it has had four since
+      `quiet-shell-and-search` made search a destination, and the same change is why iOS's
+      `LibraryDestinationTests` asserts **four**, not the three the note quotes. The
+      *"Nine servers"* test there reads `.count == 4`. (2) `AppNavigationTest.kt:48-55` no
+      longer asserts three entries; it asserts the four, in order. (3) That test's own doc
+      comment claimed **"the cases below still hold a nine-server registry to the same
+      four"** — and no case below took a registry, because there was nothing to hand one
+      to. A comment describing a test that does not exist is worse than a missing test: it
+      is what a reader checks *instead of* looking. The comment now says what it used to
+      claim and when the claim became true.
 
 ## Phase 2 — What the destinations hold
 

@@ -62,6 +62,22 @@ enum class AppDestination {
          * then it opens on the home surface".
          */
         val start: AppDestination = HOME
+
+        /**
+         * The destinations offered to a reader with these sources configured.
+         *
+         * **The parameter is not read, and that is what it is for.** The enum above keeps
+         * the promise by construction — there is no expression that could produce a fifth
+         * — but "kept by construction" is an argument, and the question a reader actually
+         * asks is *what does adding a server do to my navigation?* An answer that cannot
+         * be handed a registry cannot be tested against one, so this takes the registry
+         * and discards it. `AppNavigationTest` calls it with nine servers, with one source
+         * of every kind, and with none.
+         *
+         * Mirrors iOS's `LibraryDestination.all(for:)`, which exists for the same reason
+         * and reads its parameter exactly as much.
+         */
+        fun all(sources: List<Source>): List<AppDestination> = entries.toList()
     }
 }
 
