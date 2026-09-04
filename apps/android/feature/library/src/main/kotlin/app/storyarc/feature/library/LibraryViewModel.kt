@@ -440,11 +440,13 @@ class LibraryViewModel(
         val reachable = restored.filter { SafTree.displayName(resolver, it) != null }
         _unavailableFolders.value = (restored - reachable.toSet()).map { nameOf(it) }
         _folders.value = reachable
-        // Even with no folder to restore. `rescan` walks the managed folder when there are
-        // no trees — which is where a file shared to StoryArc lands, and what the emulator
-        // and the instrumented tests read. Returning early here meant nothing was scanned
-        // at launch at all, and a comic dropped into the app's own folder stayed invisible
-        // until someone pressed refresh.
+        // Connection state is never persisted, so a restored folder loads as *connecting*
+        // and stays there — nothing probes a folder. [register] is what answers, and it also
+        // corrects a name an older build derived. It adds nothing: a persisted tree
+        // permission is one a reader picked, so it is already a source.
+        reachable.forEach(::register)
+        // Even with no folder to restore: the app's own folder is walked on every scan, and
+        // it is where a file shared to StoryArc lands.
         rescan()
         startWatching()
     }
@@ -467,15 +469,15 @@ class LibraryViewModel(
     /**
      * Records a folder as a source, if it is not one already.
      *
-     * Matched on the tree's last path segment, which is what a reader recognises and what
-     * the persisted permission comes back as. A folder picked twice is one source, and the
-     * reader's own name for it survives — `sources` requires a rename to stick, so
+     * Named by the provider, and only then by its document id — [FolderSourceName] says why
+     * a folder was appearing as `primary:Audiobooks`. A folder picked twice is one source,
+     * and the reader's own name for it survives: `sources` requires a rename to stick, so
      * re-adding must not overwrite one.
      */
     private fun register(tree: Uri) {
-        val name = tree.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
-            ?: tree.toString()
+        val segment = tree.lastPathSegment
         val locator = tree.toString()
+        val name = FolderSourceName.of(SafTree.displayName(resolver, tree), segment, locator)
         // Matched on where the folder *is*, not on what it is called. A reader who renames a
         // source keeps its name; matching by name would fail to recognise it on the next
         // launch and add the same folder a second time.
@@ -495,6 +497,8 @@ class LibraryViewModel(
                         locator = locator,
                     ),
                 )
+                FolderSourceName.isRawDocumentId(existing.displayName, segment) ->
+                    it.renaming(existing.id, name).marking(existing.id, SourceConnectionState.Connected)
                 existing.state != SourceConnectionState.Connected ->
                     it.marking(existing.id, SourceConnectionState.Connected)
                 else -> return
@@ -773,29 +777,32 @@ class LibraryViewModel(
                 var found = _publications.value.size
                 // The pairs, not a tally -- see [SkippedPublications].
                 val refusals = mutableListOf<SkippedPublications.Entry>()
-                // What this walk actually saw, so what it did not see can go afterwards.
-                val seen = mutableSetOf<String>()
+                // What each walk actually saw, so what it did not see can go afterwards --
+                // per source, never pooled. See [ScanReconciliation].
+                val seenBySource = mutableMapOf<UUID?, MutableSet<String>>()
                 // Each walk carries the tree it came from, so a publication can be
                 // attributed to the source it was reached through. The managed folder is
-                // not a source, so its walk carries null.
+                // not a source, so its walk carries null -- and it is walked on every scan,
+                // never instead of the picked trees. See [ScanTargets].
                 val walks: List<Pair<Uri?, Flow<ScanEvent>>> =
-                    if (trees.isEmpty()) {
-                        listOf(null to LibraryScanner.scan(managedFolder))
-                    } else {
-                        trees.map { tree ->
-                            // Matched on the path, which is what a directory walk knows. A
-                            // publication whose identity is a content digest is still filed
-                            // under the document it came out of.
-                            val done = resumed[tree.toString()]
-                                .orEmpty()
-                                .mapNotNull { it.identity.normalizedPath }
-                                .toSet()
-                            tree to LibraryScanner.scan(resolver, tree, done)
-                        }
+                    ScanTargets.of(trees.map { it.toString() }).map { target ->
+                        if (target == null) return@map null to LibraryScanner.scan(managedFolder)
+                        val tree = Uri.parse(target)
+                        // Matched on the path, which is what a directory walk knows. A
+                        // publication whose identity is a content digest is still filed
+                        // under the document it came out of.
+                        val done = resumed[target]
+                            .orEmpty()
+                            .mapNotNull { it.identity.normalizedPath }
+                            .toSet()
+                        tree to LibraryScanner.scan(resolver, tree, done)
                     }
                 for ((tree, walk) in walks) {
                     scanningFolder = tree?.toString()
                     scanned = resumed[tree?.toString()].orEmpty().toMutableList()
+                    // Present and empty before the walk starts: a scope that was walked and
+                    // found nothing has to be distinguishable from one nothing walked.
+                    val seen = seenBySource.getOrPut(sourceOf(tree)) { mutableSetOf() }
                     walk.collect { event ->
                         when (event) {
                             is ScanEvent.Found -> {
@@ -814,21 +821,15 @@ class LibraryViewModel(
                         }
                     }
                 }
-                // Anything the walk did not meet is gone from the folders it walked.
+                // Anything a walk did not meet is gone from the folder that walk covered.
                 // Only ever a removal of rows, never a clear: a reader watching the screen
-                // sees the one book they deleted leave, not the whole shelf blink.
-                // Only when the walk actually saw something. A walk that found nothing at
-                // all is far more likely to be a folder it could not read — a permission
-                // dropped, a share offline, a card pulled — than a reader who deleted every
-                // book they own. `sources` promises cached content "remains browsable" when
-                // a source is unreachable, and emptying the shelf on a failed walk is
-                // exactly the opposite. A library genuinely emptied is reconciled by the
-                // next walk that finds anything.
-                val vanished = if (seen.isEmpty()) {
-                    emptyList()
-                } else {
-                    _publications.value.filterNot { it.id in seen }.map { it.id }
-                }
+                // sees the one book they deleted leave, not the whole shelf blink. And only
+                // from a source whose own walk saw something — [ScanReconciliation] carries
+                // the argument, and why asking it of the scan as a whole stopped being safe.
+                val vanished = ScanReconciliation.vanished(
+                    seenBySource,
+                    _publications.value.map { it.id to it.sourceId },
+                )
                 if (vanished.isNotEmpty()) {
                     _publications.update { list -> list.filterNot { it.id in vanished } }
                     vanished.forEach { covers.remove(it); locations.remove(it) }
