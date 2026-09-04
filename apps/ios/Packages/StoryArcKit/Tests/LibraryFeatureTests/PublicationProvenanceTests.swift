@@ -147,4 +147,82 @@ struct PublicationProvenanceTests {
         #expect(line.availability == .notHere)
         #expect(line.alsoIn == nil)
     }
+
+    // MARK: - The other reading of "in two places"
+
+    /// Task 3.2's own case, and the one this platform had never answered: the *shelf* holds
+    /// two rows for one publication, one from a picked folder and one from a server. Identity
+    /// is stable across sources, so they share an id and differ only in `sourceID`.
+    ///
+    /// Android has answered this since it was written; iOS answered only the other half — a
+    /// download plus the library it came from. Each was half of one requirement, and for a
+    /// book downloaded from one server that also sits on a second they disagreed outright.
+    @Test("Another library holding the same publication is named")
+    func anotherLibraryIsNamed() {
+        let nas = source(named: "Home NAS")
+        let here = publication()
+        let there = publication(from: nas.id)
+        let registry = SourceRegistry(sources: [nas])
+
+        #expect(
+            PublicationProvenance.alsoHolding(here, in: [here, there], registry: registry)
+                == "Home NAS"
+        )
+    }
+
+    @Test("One copy is in one place, and the line says nothing about a second")
+    func oneCopyIsNotElsewhere() {
+        let nas = source(named: "Home NAS")
+        let only = publication(from: nas.id)
+
+        #expect(
+            PublicationProvenance.alsoHolding(
+                only,
+                in: [only],
+                registry: SourceRegistry(sources: [nas])
+            ) == nil
+        )
+    }
+
+    /// The same guard the removed-source case gets, from the other direction. A second row
+    /// whose source the registry has forgotten is not a place the reader can be sent to, and
+    /// naming it would be the stale-name failure this line is most likely to produce.
+    @Test("A second copy whose source has been removed is not named")
+    func aRemovedSecondSourceIsNotNamed() {
+        let here = publication()
+        let there = publication(from: UUID())
+
+        #expect(
+            PublicationProvenance.alsoHolding(here, in: [here, there], registry: SourceRegistry())
+                == nil
+        )
+    }
+
+    /// And the union, at the point it is composed: a downloaded copy names the library it
+    /// came from, and where there is no such library the shelf's other row supplies the name.
+    @Test("The two readings compose into one line")
+    func theUnionIsWhatTheLineCarries() {
+        let attic = source(named: "Attic")
+        let downloaded = PublicationProvenance.of(
+            publication(from: attic.id),
+            isOnDevice: true,
+            hasFile: true,
+            source: attic,
+            elsewhere: "Home NAS"
+        )
+        // The library it was fetched from wins the naming: it is the place the *reader*
+        // chose, and the shelf's other row is a coincidence of identity.
+        #expect(downloaded.alsoIn == "Attic")
+
+        let imported = PublicationProvenance.of(
+            publication(),
+            isOnDevice: true,
+            hasFile: true,
+            source: nil,
+            elsewhere: "Home NAS"
+        )
+        // No library to fetch from, so the other row is the only second place there is.
+        #expect(imported.home == .thisDevice)
+        #expect(imported.alsoIn == "Home NAS")
+    }
 }

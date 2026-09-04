@@ -681,7 +681,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       library the reader added", and it **is** also on this device. Neither suite
       asserts the other's answer. One reader, one file, two sentences: pick one and
       mirror it.
-- [ ] **3.2** The same-publication-in-two-places case: the line names the copy
+- [~] **3.2** The same-publication-in-two-places case: the line names the copy
       this page will open and says another exists. Test with one publication
       present locally and on a server.
 
@@ -702,6 +702,68 @@ when a cover was the resume affordance. Whoever syncs should add a
       server"** at all. Add it, and decide which of the two definitions of
       "elsewhere" the delta means — they answer differently for a book downloaded
       from one server that also exists on a second.
+
+      ---
+
+      **Closed 2026-09-05. The decision: neither definition, and both — "elsewhere" is the
+      union, because each platform was answering half of one requirement.** The two facts are
+      genuinely different and both are the delta's scenario:
+
+      - **A copy on the device whose library still exists.** The server it was fetched from is
+        the other place. iOS's `alsoIn` had always meant this; Android had never asked.
+      - **Another source on the shelf holding the same publication.** Identity is stable
+        across sources (ADR-0006), so a folder copy and a server copy share an id and differ
+        only in `sourceID`. Android's `isAlsoElsewhere` had always meant this; iOS had never
+        asked.
+
+      The delta now says so at
+      [`specs/publication-detail/spec.md`](specs/publication-detail/spec.md), *The same
+      publication in two places*, whose WHEN carries both and whose new clauses fix the
+      question the two platforms were disagreeing under: **a copy on the device is always the
+      one this page will open**, so it is the place the line names and everything else is the
+      second one.
+
+      **That clause turned up a defect on Android, and it is fixed.** `provenanceOf` took its
+      device branch only when the source was absent or a picked folder, so a **downloaded
+      Kavita chapter read "From Home NAS"** — the line naming the copy the page will *not*
+      open, over bytes on the phone that `offline-downloads` promises stay readable. iOS had
+      always answered `.thisDevice` here, with the reason written at the branch ("the download
+      store's copy wins the question of *where*, whatever else is true"). Android now matches,
+      and the library becomes the second place rather than being lost:
+      *On this device · also elsewhere in your library*. **No new string** — the existing
+      `detail_provenance_also` wrapper already says it.
+
+      **A test had pinned the defect, and the assertion moved rather than the test being
+      deleted.** `aDownloadedCopyReadsAsReadyWhateverTheNetworkIsDoing` required
+      `libraryName == "Home NAS"` for a downloaded copy. It now asserts `Place.DEVICE`, a null
+      library name and `isAlsoElsewhere`, with the reason for the move written into the test
+      so the next reader does not restore it.
+
+      **And the two missing cases are written, one a side.** Android gains
+      `aBookHeldHereAndOnAServerSaysItIsHereAndAlsoSomewhereElse` — the task's own case,
+      one local row and one server row. iOS gains
+      `PublicationProvenance.alsoHolding(_:in:registry:)`, the shelf scan it never had, with
+      four cases: another library named, one copy naming none, a second copy whose source has
+      been removed staying unnamed, and the union composing at the point the line is built.
+      The naming order is decided rather than incidental — **the library a download came from
+      wins**, because it is the place the reader chose, and a coincidence of identity on the
+      shelf is not.
+
+      **The one difference left is the wording, and it is 3.5's.** iOS names the second place
+      (`detail.provenance.alsoIn %@`); Android does not (`… · also elsewhere in your
+      library`). The rule is the same on both now; the two string models are not, and 3.5
+      already hands that reconciliation to the vocabulary slice rather than adding a
+      thirty-third string here.
+
+      **Owed:** the sentence a reader sees changed on Android, so a frame is owed —
+      **the page for a downloaded server publication, light and dark at the default text
+      size**, showing *On this device · also elsewhere in your library* where it used to read
+      *From ‹server›*. Walk: `pnpm kavita`, add the source, download a chapter, open its page.
+      Recorded on 5.5's list too. **This stays a partial rather than a tick**: the task's own
+      deliverable — the test and the decision — is complete on both platforms, but the fix it
+      forced changes a sentence a reader sees, and AGENTS.md §6 binds the change rather than
+      the task. Neither of §6's two exceptions applies: nothing here is behind a flag, and the
+      screenshots would not be byte-identical — that is the whole point of the frame.
 - [x] **3.3** The removed-source case: the download survives, the line says "on
       this device", and no removed library is named. Test, not inspection — this
       is the case that will silently render a stale name.
@@ -718,7 +780,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       `PublicationProvenanceTest.kt:121-135`,
       `aRemovedSourceIsNotNamedAndTheCopyIsStillHere`. This is the one task in the
       phase that was closed the way it asked to be — with a test rather than a look.
-- [ ] **3.4** Confirm by inspection of the browse path that origin appears
+- [~] **3.4** Confirm by inspection of the browse path that origin appears
       nowhere else: home, library, on-device destination, search, shelves. This is
       the seam's only test and it is a `grep` plus four screenshots.
 
@@ -764,6 +826,49 @@ when a cover was the resume affordance. Whoever syncs should add a
 
       **The four screenshots — home, library, on-device, search, with no origin on
       any of them — are named in an earlier handoff and are not in the tree.**
+
+      ---
+
+      **The Android mirror is deleted, 2026-09-05, and this is now captures-only.**
+      `LibraryViewModel.sourceName(publication:)` is gone with the same kind of tombstone iOS
+      left at `LibraryLookups.swift` — the question no browse surface may ask, with zero
+      callers and a doc comment still quoting the superseded rule. Re-grepped after: the only
+      remaining `sourceName` in `apps/android` is `ShelvesScreen`'s **private** extension on
+      `ShelfOrigin`, which names which server *defines a collection* and which
+      `collections-and-reading-lists` requires in as many words. Two facts, one word, nothing
+      in common.
+
+      **One thing the deletion uncovered and did not fix, named here rather than swept.**
+      `sourceName` was the last production caller of
+      `SourceRegistry.attributesPublications` (`core/model/…/LibraryScope.kt`), whose doc
+      comment quotes the same superseded rule — "a publication shows its source only when more
+      than one source is configured". It is **not** dead on iOS: `LibraryNarrowing`
+      (`LibraryNarrowing.swift:94`) uses it for the legitimate question, whether to offer a
+      scope selector at all. On Android that selector reads neither `attributesPublications`
+      nor `SourceRegistry.scopes`, so both are production-dead there and mirrored-live on iOS.
+      That is `library-browsing`'s asymmetry rather than this change's, and deleting a
+      `:core:model` property from here would take a test with it. Left, named, with the
+      mirror's live caller cited so nobody deletes iOS's by symmetry.
+
+      **The four frames owed, named exactly.** Each is one surface with a publication that
+      *has* a source — a Kavita or OPDS row, so a leak would have something to leak — at the
+      default text size, and light and dark, because a caption that vanished into a ground
+      would pass a single-appearance check. On both platforms:
+
+      1. **Home**, showing the hero and at least one shelf of covers: no cover, card or
+         caption naming a server.
+      2. **The library**, in whichever layout draws captions — the **list** layout, because a
+         grid caption has less room to leak into and the list is where a source line would fit.
+      3. **The on-device destination**, whose rows are by definition downloads and therefore
+         the most tempting place to print where they came from.
+      4. **Search results**, which are the delta's one *exception* and therefore the frame
+         that has to show the opposite: a query answered by more than one place, with the rows
+         labelled. A search capture showing no labels would be evidence against the spec, not
+         for it.
+
+      Walks: `pnpm capture:android --list` names Home, Library, Downloads and Search;
+      on iOS the four are tab-bar destinations plus the search icon. `pnpm kavita` or
+      `pnpm opds` supplies the second source that makes case 4 meaningful.
 - [ ] **3.5** No new user-facing string ships from this change. If the provenance
       line needs one, hand it to the vocabulary slice rather than adding it here.
 

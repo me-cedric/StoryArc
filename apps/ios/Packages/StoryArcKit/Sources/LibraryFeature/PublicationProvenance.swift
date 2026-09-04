@@ -53,6 +53,14 @@ struct PublicationProvenance: Equatable, Sendable {
     /// there is one — that is the copy that survives a flight — so the *other* place is the
     /// library it was downloaded from, which the registry still knows by name.
     ///
+    /// **A second way a publication is in two places, added 2026-09-05.** The library can
+    /// hold it under *another source* as well: identity is stable across sources (ADR-0006),
+    /// so a folder copy and a server copy share an id and differ only in `sourceID`. That is
+    /// the reading Android's `isAlsoElsewhere` had always taken, and this one had never
+    /// taken; each platform answered half of one requirement, and for a book downloaded from
+    /// one server that also sits on a second they disagreed outright. Both are the delta's
+    /// scenario, so this is the union — see ``alsoHolding(_:in:registry:)``.
+    ///
     /// `nil` when there is no second place, and deliberately `nil` when the source has been
     /// removed: naming a library that no longer exists is the failure this field is most
     /// likely to produce, and `PublicationProvenanceTests` is what stops it.
@@ -69,11 +77,15 @@ struct PublicationProvenance: Equatable, Sendable {
     ///   - source: the source the registry still holds for it, or `nil` when the
     ///     publication is unattributed *or* its source has been removed. The two are
     ///     treated alike on purpose: neither is a library the reader can be sent to.
+    ///   - elsewhere: another library the *shelf* holds this same publication in, by name —
+    ///     ``alsoHolding(_:in:registry:)``. Separate from `source`, which is where the copy
+    ///     this page opens came from, and used where that one has no name to give.
     static func of(
         _ publication: Publication,
         isOnDevice: Bool,
         hasFile: Bool,
-        source: Source?
+        source: Source?,
+        elsewhere: String? = nil
     ) -> PublicationProvenance {
         // The download store's copy wins the question of *where*, whatever else is true.
         // `offline-downloads` promises a download stays readable when its source is
@@ -83,7 +95,10 @@ struct PublicationProvenance: Equatable, Sendable {
             return PublicationProvenance(
                 home: .thisDevice,
                 availability: .offline,
-                alsoIn: source?.displayName
+                // The library it was fetched from, and failing that any other shelf entry
+                // for it. `nil` for a removed source, which is the whole point of asking the
+                // registry rather than the publication.
+                alsoIn: source?.displayName ?? elsewhere
             )
         }
 
@@ -92,15 +107,44 @@ struct PublicationProvenance: Equatable, Sendable {
             // downloaded it — an import, or the folder the app itself owns. It reads as
             // being here, because it is.
             return hasFile
-                ? PublicationProvenance(home: .thisDevice, availability: .offline, alsoIn: nil)
-                : PublicationProvenance(home: .unattributed, availability: .notHere, alsoIn: nil)
+                ? PublicationProvenance(home: .thisDevice, availability: .offline, alsoIn: elsewhere)
+                : PublicationProvenance(home: .unattributed, availability: .notHere, alsoIn: elsewhere)
         }
 
         return PublicationProvenance(
             home: .library(name: source.displayName),
             availability: availability(hasFile: hasFile, state: source.state),
-            alsoIn: nil
+            alsoIn: elsewhere
         )
+    }
+
+    /// Another library on the shelf that holds this same publication, by name.
+    ///
+    /// `publication-detail`'s *The same publication in two places*, read literally: "the
+    /// library holds the same publication from more than one source". Identity is stable
+    /// across sources (ADR-0006), so the same volume from a picked folder and from a server
+    /// shares an id and differs only in ``Publication/sourceID`` — which is what makes this
+    /// answerable without asking either place anything.
+    ///
+    /// Named rather than counted, because the requirement's point is that "the reader can see
+    /// which copy they are about to read before they read it", and a second copy the line
+    /// will not name is a second copy the reader cannot go and find. The first match wins:
+    /// the same book in three libraries is a case this app has never seen, and a line that
+    /// listed them all would be the shelf's whole configuration typeset under a cover.
+    ///
+    /// `nil` where the other row's source has been removed, for the same reason ``of`` treats
+    /// a removed source as unnamed: naming a library that no longer exists is the failure
+    /// this line is most likely to produce.
+    static func alsoHolding(
+        _ publication: Publication,
+        in library: [Publication],
+        registry: SourceRegistry
+    ) -> String? {
+        library
+            .lazy
+            .filter { $0.id == publication.id && $0.sourceID != publication.sourceID }
+            .compactMap { $0.sourceID.flatMap { registry[$0] }?.displayName }
+            .first
     }
 
     /// What the second clause says for a publication held in a library.

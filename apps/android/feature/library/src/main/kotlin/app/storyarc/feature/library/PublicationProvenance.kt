@@ -33,12 +33,19 @@ internal data class Provenance(
     val libraryName: String?,
     val readiness: Readiness,
     /**
-     * Whether the library holds this same publication from another source too.
+     * Whether this publication is anywhere other than the copy this page will open.
      *
      * The delta: "the line names the one this page will open, and says the publication is
      * also available elsewhere". Without it, a reader who owns the same volume locally and
      * on a server cannot tell which one they are about to read — which is the exact failure
      * taking origin off the shelf would otherwise cause.
+     *
+     * **Two ways a second place arises, and the two platforms had one each until 2026-09-05.**
+     * A copy on the device whose library still exists — the server it was fetched from is the
+     * other place, which is what iOS's `alsoIn` had always meant — and another source in the
+     * library holding the same publication, which is what this field had always meant.
+     * Identity is stable across sources (ADR-0006), so the second is answerable by id. Both
+     * are the delta's scenario, so this is the union of them.
      */
     val isAlsoElsewhere: Boolean,
 ) {
@@ -69,16 +76,33 @@ internal fun provenanceOf(
     isOnDevice: Boolean,
     library: List<Publication>,
 ): Provenance {
-    val source = publication.sourceId?.let { registry[it] }
-    val isAlsoElsewhere = library.any { it.id == publication.id && it.sourceId != publication.sourceId }
+    // A picked folder is not a library the reader can be sent to, and neither is a source
+    // the registry has forgotten: both are already here.
+    val from = publication.sourceId
+        ?.let { registry[it] }
+        ?.takeIf { it.kind != SourceKind.LOCAL_FOLDER }
+    val anotherSourceHasIt =
+        library.any { it.id == publication.id && it.sourceId != publication.sourceId }
+    // The union the field documents. A download whose library is still configured is in two
+    // places even when the library holds exactly one row for it, and that row is the one this
+    // page is *not* opening.
+    val isAlsoElsewhere = anotherSourceHasIt || (isOnDevice && from != null)
 
-    // A source that is gone, a file handed over by the system, and a folder the reader
-    // pointed at are the same sentence: it is here. The first of those is the case the
-    // delta names outright — "the line says it is on this device, and does not name a
-    // library that no longer exists" — and it falls out of asking the registry rather than
-    // the publication, because a removed source is exactly a source the registry has not
-    // got.
-    if (source == null || source.kind == SourceKind.LOCAL_FOLDER) {
+    // A copy on the device, a source that is gone, a file handed over by the system, and a
+    // folder the reader pointed at are the same sentence: it is here.
+    //
+    // **`isOnDevice` joined that list on 2026-09-05, and it is a fix.** A downloaded Kavita
+    // chapter read "From Home NAS" — naming the copy the page will *not* open, while the
+    // bytes it opens are on the phone and readable on a train. The delta says the line "names
+    // the one this page will open", and `offline-downloads` promises the download outlives
+    // everything about the server; iOS had always answered `.thisDevice` here. The library is
+    // not lost, it becomes the second place — see [Provenance.isAlsoElsewhere].
+    //
+    // The removed-source case is the one the delta names outright — "the line says it is on
+    // this device, and does not name a library that no longer exists" — and it falls out of
+    // asking the registry rather than the publication, because a removed source is exactly a
+    // source the registry has not got.
+    if (isOnDevice || from == null) {
         return Provenance(
             place = Provenance.Place.DEVICE,
             libraryName = null,
@@ -87,17 +111,16 @@ internal fun provenanceOf(
         )
     }
 
-    val readiness = when {
-        // A downloaded copy is readable whatever the network is doing, which
-        // `offline-downloads` promises and this line must not contradict.
-        isOnDevice -> Provenance.Readiness.READY
-        source.state.canFetch -> Provenance.Readiness.NOT_DOWNLOADED
-        else -> Provenance.Readiness.SOURCE_AWAY
-    }
+    val readiness =
+        if (from.state.canFetch) {
+            Provenance.Readiness.NOT_DOWNLOADED
+        } else {
+            Provenance.Readiness.SOURCE_AWAY
+        }
 
     return Provenance(
         place = Provenance.Place.LIBRARY,
-        libraryName = source.displayName,
+        libraryName = from.displayName,
         readiness = readiness,
         isAlsoElsewhere = isAlsoElsewhere,
     )

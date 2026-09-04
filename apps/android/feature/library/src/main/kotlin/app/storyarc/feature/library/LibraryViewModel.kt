@@ -20,7 +20,6 @@ import app.storyarc.core.model.LibraryQuery
 import app.storyarc.core.model.LibraryScope
 import app.storyarc.core.model.MatchGroup
 import app.storyarc.core.model.Publication
-import app.storyarc.core.model.attributesPublications
 import app.storyarc.core.model.grouped
 import app.storyarc.core.model.inScope
 import app.storyarc.core.model.nameOf
@@ -1294,18 +1293,17 @@ class LibraryViewModel(
         setQuery(_query.value.copy(scope = LibraryScope.AllSources))
     }
 
-    /**
-     * What a publication's source is called, or `null` when saying so would add nothing.
-     *
-     * `library-browsing`: a publication "shows its source only when more than one source is
-     * configured", and a scoped view has already answered the question in its own selector --
-     * repeating it on every row would be a column of the same word.
-     */
-    fun sourceName(publication: Publication): String? {
-        if (!_registry.value.attributesPublications) return null
-        if (_query.value.scope != LibraryScope.AllSources) return null
-        return _registry.value.nameOf(publication.sourceId)
-    }
+    // `sourceName(publication:)` used to be here, and there is deliberately nothing in its
+    // place. It answered "which source is this publication from", which is the question no
+    // browse surface is allowed to ask: `library-browsing` requires that nothing on the shelf
+    // states a publication's origin, and `publication-detail` gives origin exactly one home --
+    // the provenance line on the publication's own page, which reads the registry itself.
+    //
+    // It had **zero callers** and a doc comment quoting the *superseded* rule, that a
+    // publication "shows its source only when more than one source is configured". iOS deleted
+    // its mirror for the same reason and left the same note at `LibraryLookups.swift`; this one
+    // outlived it by a wave because nothing fails when a leak is merely available. A public
+    // lookup that answers a forbidden question is an invitation to put the leak back.
 
     /** Recomputes what is on screen from the library and the query. */
     private fun rebuild() {

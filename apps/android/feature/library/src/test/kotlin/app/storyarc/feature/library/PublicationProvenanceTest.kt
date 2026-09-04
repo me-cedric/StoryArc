@@ -89,6 +89,14 @@ class PublicationProvenanceTest {
     fun aDownloadedCopyReadsAsReadyWhateverTheNetworkIsDoing() {
         // `offline-downloads` promises a downloaded publication stays readable. A line that
         // said "not answering" over a copy already on the device would contradict it.
+        //
+        // **The place this asserts changed on 2026-09-05, and the old assertion was the
+        // defect.** It required `libraryName == "Home NAS"` — the line naming the copy this
+        // page will *not* open, over bytes sitting on the phone and readable on a train. The
+        // delta says the line "names the one this page will open"; iOS had always answered
+        // `.thisDevice` here (`PublicationProvenance.swift`, "the download store's copy wins
+        // the question of *where*, whatever else is true"). The library is not lost: it
+        // becomes the second place, which is the assertion below it.
         val source = server("Home NAS", SourceConnectionState.Unreachable(sinceEpochMillis = 0))
         val book = publication("Bone", source.id)
 
@@ -100,7 +108,35 @@ class PublicationProvenanceTest {
         )
 
         assertEquals(Provenance.Readiness.READY, provenance.readiness)
-        assertEquals("Home NAS", provenance.libraryName)
+        assertEquals(Provenance.Place.DEVICE, provenance.place)
+        assertNull(provenance.libraryName)
+        assertTrue(provenance.isAlsoElsewhere)
+    }
+
+    @Test
+    fun aBookHeldHereAndOnAServerSaysItIsHereAndAlsoSomewhereElse() {
+        // Task 3.2's own case, and the one no Android test covered: "one publication present
+        // locally and on a server". The literal reading of the delta's WHEN — the library
+        // holds two rows for it, one from a picked folder and one from a server — and the
+        // copy this page opens is the local one.
+        //
+        // Distinct from the test above, which is one row that is *both*: a download of the
+        // server's own copy. Both are "the same publication in two places", which is why
+        // `isAlsoElsewhere` is the union of them rather than either one.
+        val nas = server("Home NAS")
+        val here = publication("Bone")
+        val there = publication("Bone", nas.id)
+
+        val provenance = provenanceOf(
+            here,
+            SourceRegistry(sources = listOf(nas)),
+            isOnDevice = true,
+            library = listOf(here, there),
+        )
+
+        assertEquals(Provenance.Place.DEVICE, provenance.place)
+        assertNull(provenance.libraryName)
+        assertTrue(provenance.isAlsoElsewhere)
     }
 
     @Test

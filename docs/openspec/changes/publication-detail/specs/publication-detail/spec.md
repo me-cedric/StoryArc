@@ -108,9 +108,11 @@ path where origin is named.
 - **AND** search results are the single exception, and only where more than one place could have answered the query, per [`library-browsing`](../library-browsing/spec.md): a search row is the choice itself, since a row a library supplied need not lead to this page at all, so the seam has nowhere else to be named
 
 #### Scenario: The same publication in two places
-- **WHEN** the library holds the same publication from more than one source
+- **WHEN** the library holds the same publication from more than one source, or a copy is on the device and the library it was fetched from is still configured
 - **THEN** the line names the one this page will open, and says the publication is also available elsewhere
 - **AND** the reader can see which copy they are about to read before they read it
+- **AND** a copy on the device is always the one this page will open, so it is the place the line names and every other place is the second one
+- **AND** a second place whose source has been removed is not named, per *Its source has been removed*
 
 #### Scenario: Its source has been removed
 - **WHEN** the publication's source has been removed but the download is still on the device

@@ -142,7 +142,15 @@ public struct PublicationDetailView: View {
             // `nil` when the publication is unattributed *and* when its source has been
             // removed. `offline-downloads` promises the download outlives the source, and
             // the line must not name a library that no longer exists.
-            source: publication.sourceID.flatMap { model.registry[$0] }
+            source: publication.sourceID.flatMap { model.registry[$0] },
+            // The other reading of "in two places": another row on the shelf, under another
+            // source. Android has always answered this one and iOS never did — see
+            // ``PublicationProvenance/alsoIn``.
+            elsewhere: PublicationProvenance.alsoHolding(
+                publication,
+                in: model.publications,
+                registry: model.registry
+            )
         )
     }
 
