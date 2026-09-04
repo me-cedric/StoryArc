@@ -72,16 +72,49 @@ is not archivable yet.
       `CertificatePins` and that was a defect**: the view loads the reader's pinned certificates
       into `@State`, so a fresh pair would have trusted nothing they pinned and failed against
       exactly the servers pinning exists for. It takes the view's own now.
-- [ ] 3.2 The same on Android with `ConnectivityManager.NetworkCallback`, asserted by the same mirrored test cases, and verify `pnpm gradle :core:model:testDebugUnitTest` passes
+- [x] 3.2 The same on Android with `ConnectivityManager.NetworkCallback`, asserted by the same mirrored test cases, and verify `pnpm gradle :core:model:testDebugUnitTest` passes
       `core/model/SourceReachability.kt` mirrors the iOS file function for function, and
       `SourceReachabilityTest` mirrors its sixteen cases name for name — including the
       eight-report flapping signal, which is the same list of booleans on both platforms.
       `:core:model:testDebugUnitTest` passes: 16 tests, 0 failures.
-      **The wiring is in `feature/library` and is not done.** A `callbackFlow` around
-      `ConnectivityManager.NetworkCallback` feeding `SourceReachability.triggers`, collected
-      in `LibraryViewModel`. The foreground half is a one-line addition to `LibraryScreen`'s
-      existing `LifecycleEventEffect(ON_RESUME)`, which today refreshes progress, imports and
-      watched folders and does **not** re-probe.
+      **Wired on 2026-09-05.** `NetworkPaths.satisfied(context)` is the observing half, a
+      `callbackFlow` around `ConnectivityManager.NetworkCallback`, beside `NetworkCost.kt` for
+      the reason iOS puts its own beside `NetworkCost.swift` — and deliberately a second
+      observer rather than a shared one, because the two questions have different lifetimes.
+      **It sends the current state before registering, and that is not tidiness.**
+      `registerDefaultNetworkCallback` is silent when there is *no* default network: it only
+      ever calls `onAvailable`. A collector that started offline would therefore keep
+      `triggers`' assumed `true`, read the regain as no change, and never fire the one trigger
+      the requirement is about. iOS gets that opening report free — `NWPathMonitor` reports an
+      unsatisfied path as readily as a satisfied one — so the divergence is in the platform,
+      not in the mirror.
+      **The foreground half is not the one-line addition this task expected.** It sits with
+      the connectivity half in `SourceRetryTriggers.kt`, one composable holding both, because
+      `SourceReachability`'s own note gives the reason: two call sites is how one of them ends
+      up without the reading guard. Both report to `LibraryViewModel.probe`, which is the only
+      caller of `shouldProbe`.
+      **And the collection is scoped to `repeatOnLifecycle(STARTED)`, which is the reading
+      guard's other half.** The EPUB reader is an activity of its own, so while a reader is in
+      a chapter of one the navigation state `isReading` asks holds a library, not a book — it
+      answers false and cannot answer otherwise. Suspending the collection is what stops a
+      dropped Wi-Fi mid-chapter probing every server behind the page. The backoff loop is
+      *not* covered by that and still runs through an EPUB chapter; 3.3 already records it,
+      and it now takes `isReading` and is correct for the comic reader.
+      **The loop's guard was the other half of 3.3 and is done here.** `retryUnreachableSources`
+      takes `isReading` and asks it after each wait rather than once at the top, because a
+      reader opens a publication *while* the loop is waiting. `AppHost.isReading` is the one
+      value that can see both a reader and a library.
+      **Six mutation-checked wiring cases** in `SourceRetryWiringTest`, which reads the two
+      source files for `SmbTransferWiringTest`'s reason: a `NetworkCallback` needs a device,
+      and `SourceReachabilityTest`'s sixteen cases all passed for as long as nothing called
+      any of them. Deleting the loop's guard fails exactly *the backoff loop asks whether a
+      reader is reading*; unwrapping `repeatOnLifecycle` fails exactly *the connectivity
+      signal is collected only while the activity is started*. Both restored byte for byte.
+      **`LibraryViewModel.kt` was at the length `scripts/line-cap.mjs` records for it**, so the
+      source-health block moved to `SourceRetry.kt` — the same split iOS made into
+      `LibrarySourceHealth.swift`, for the same reason and with the same consequence: three
+      backing flows are `internal` rather than `private`, because `private` is file-scoped in
+      Kotlin as in Swift.
 - [x] 3.3 Confirm neither platform reconnects while the reader is reading — the scenario's "does not interrupt reading" clause — and verify by a test that asserts no probe is scheduled while a reader session is open
       **The guard exists and is asserted; it is not yet consulted, and today both platforms
       do reconnect mid-read.** `shouldProbe` refuses on `isReading` before it looks at
