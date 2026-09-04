@@ -1,6 +1,7 @@
 import SwiftUI
 
 import DesignSystem
+import LibraryFeature
 import Persistence
 import StoryArcCore
 
@@ -134,6 +135,10 @@ private struct DownloadQueueRow: View {
         case .queued, .running, .finished:
             if let fraction = download.fraction {
                 ProgressView(value: fraction)
+                    // The line below states the same percentage and states the sizes as
+                    // well, so a reader on VoiceOver would otherwise hear the figure
+                    // twice — once with no units attached to it.
+                    .accessibilityHidden(progress != nil)
             } else {
                 // No size from the server, so no bar that could be honest about a
                 // fraction. `offline-downloads` would rather show an indeterminate state
@@ -141,6 +146,51 @@ private struct DownloadQueueRow: View {
                 ProgressView()
             }
         }
+
+        progressLine
+    }
+
+    /// How far through, and how much of what — the half of `offline-downloads` the bar
+    /// alone cannot carry.
+    ///
+    /// The spec asks a queued publication to have "its size shown, and progress visible on
+    /// the publication and in a single downloads view". The row had the bar and nothing
+    /// else, so the September sweep photographed three transfers stating no size and no
+    /// percentage between them. A bar answers *roughly how far*; the question a reader with
+    /// 400 MB free is actually asking is *how much*.
+    ///
+    /// Under the bar rather than beside the title, because it changes while a reader is
+    /// looking at it and a number on the first line is a number that makes the title jump.
+    ///
+    /// What there is to say is ``LibraryFeature/DownloadQueueProgress``'s and is pinned by
+    /// its own tests. Only the rendering is here, because the strings are in this bundle.
+    private var progress: DownloadQueueProgress.Statement? {
+        DownloadQueueProgress.statement(for: download)
+    }
+
+    @ViewBuilder
+    private var progressLine: some View {
+        if let progress {
+            Group {
+                switch progress {
+                case let .sized(percent, downloaded, expected):
+                    Text("downloads.progress \(percent) \(size(downloaded)) \(size(expected))")
+                case let .unsized(downloaded):
+                    Text("downloads.progress.unsized \(size(downloaded))")
+                }
+            }
+            .textRole(.footnote)
+            .foregroundStyle(theme.palette.textSecondary)
+        }
+    }
+
+    /// A byte count as a person reads it.
+    ///
+    /// `spellsOutZero: false`, which is the app's one way of writing a size — see
+    /// ``SettingsFeature/PrivacySettings``. A transfer that has not started yet reads
+    /// "0 bytes of 41 MB", never "Zero kB of 41 MB".
+    private func size(_ bytes: Int64) -> String {
+        bytes.formatted(.byteCount(style: .file, spellsOutZero: false))
     }
 
     private func reorder(later: Bool, symbol: String) -> some View {
