@@ -683,7 +683,7 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       violations. A file count that does not match the last run is measuring a different thing.
 - [x] 6.6 `pnpm spec:guard:strict` — 0 errors, 1 warning, and that warning is the pre-existing
       orphan list (six main specs named by no change, none of them this one's).
-- [ ] 6.7 `/opsx:verify brand-identity-and-app-icons`, then `/opsx:sync`.
+- [x] 6.7 `/opsx:verify brand-identity-and-app-icons`, then `/opsx:sync`.
       **The verify pass of 2026-09-04 said *not safe to sync* and it was right on four counts.**
       The delta's mechanics were clean — a strict superset of the main spec, a subset of
       `publication-detail`'s block, the order recorded — and its *content* was not:

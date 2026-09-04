@@ -633,4 +633,4 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
       file count that does not match the last run is measuring a different thing.
 - [x] 4.3 `pnpm spec:guard:strict` — 0 errors, 1 warning, and that warning is the pre-existing
       orphan list (six main specs named by no change, none of them this one's).
-- [ ] 4.4 `/opsx:verify named-failures-and-quieter-chrome`, then `/opsx:sync`.
+- [x] 4.4 `/opsx:verify named-failures-and-quieter-chrome`, then `/opsx:sync`.

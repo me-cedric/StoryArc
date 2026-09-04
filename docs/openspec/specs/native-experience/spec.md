@@ -67,6 +67,7 @@ The app SHALL adopt each platform's dynamic-colour behaviour.
 #### Scenario: Chrome accent
 - **WHEN** a surface has no publication context — settings, source management, the empty library
 - **THEN** it uses the StoryArc brand accent, not a cover-derived one
+- **AND** that accent is a single colour: the brand's pink-to-violet arc belongs to the mark, the app icon and brand surfaces, and chrome that gradients fights the direction the palette is built on
 
 ### Requirement: Adaptive layout
 
@@ -201,3 +202,79 @@ simulator or emulator, not against a preview.
 #### Scenario: Both appearances
 - **WHEN** a screen changes
 - **THEN** it is verified in light and dark appearance, and at the default and the largest text size
+
+### Requirement: The icon a reader chose
+
+A chosen app icon SHALL survive everything short of the platform withdrawing the ability, and
+the app SHALL never claim an icon is in use that the launcher is not drawing — except where the
+system is drawing a tinted form of the icon itself, which no app is told about and none can
+detect.
+
+#### Scenario: Surviving a reinstall or a restore
+- **WHEN** the app is restored from a platform backup, or reinstalled on a device where a non-default icon had been chosen
+- **THEN** the icon the platform is drawing is the icon the chooser shows as current, whatever the restore left behind
+- **AND** the default is shown as current when the platform is drawing the default
+
+#### Scenario: The platform refuses the change
+- **WHEN** the platform declines to change the icon, at the moment a reader picks one
+- **THEN** the chooser says so, naming the icon that is still in use, and does not show the picked one as current
+- **AND** the refusal is not retried unprompted, so a reader who cannot have a face is told once rather than on every visit
+
+#### Scenario: The platform withdraws the ability
+- **WHEN** the platform does not offer a choice of app icon on this device at all
+- **THEN** the chooser says so before a reader tries, rather than offering five faces and refusing each in turn
+- **AND** no face is shown as in use, and nothing is asked of the platform
+
+#### Scenario: The system draws its own tinted icon
+- **WHEN** the system replaces the app's icon art with a tinted form of one layer of it, as Android's themed icons do
+- **THEN** every face reduces to that one layer's art, and the app neither works around it nor claims otherwise — the layer it ships is real single-colour art, so the mark's internal divisions survive being tinted flat
+- **AND** the chosen face is still recorded and unchanged, so it returns as itself when the system stops tinting
+
+#### Scenario: The platform is the only record
+- **WHEN** the app needs to know which icon is in use
+- **THEN** it asks the platform rather than a preference of its own, so there is no second record that can disagree
+- **AND** nothing about the choice is written to preferences, a backup, a log or a diagnostic
+
+### Requirement: Chrome for a mode a reader is in
+
+When the app puts a reader into a mode — selecting several publications is the one that
+exists — the chrome for that mode SHALL take the place of the surface it belongs to rather
+than stacking on top of it, and SHALL take each platform's own form for a contextual mode.
+
+A mode is temporary and a reader has to be able to leave it. So the way out SHALL be
+present and SHALL NOT be one of the mode's own actions, which are inert until something is
+picked.
+
+> **This requirement is written after the behaviour, and that is worth saying.** The
+> selection chrome shipped as a full-bleed bar stacked above the tab bar, and nothing in the
+> specs made that wrong — `collections-and-reading-lists` says a reader may select in bulk,
+> and `native-experience` asks for the platform's conventions in general terms. Neither
+> reaches the shape. The owner reported it twice before it was fixed, which is what a missing
+> requirement costs.
+
+#### Scenario: The mode replaces its surface rather than stacking on it
+- **WHEN** a reader is selecting publications
+- **THEN** the mode's actions occupy the place the destination's own primary navigation held, and the two are never drawn at once
+- **AND** the actions carry the same material and shape as the chrome they replaced, so the surface still reads as one app — though a platform may change its **tone** to mark the mode, where that platform's convention asks a contextual bar to read as a different bar rather than the same one with different buttons
+
+#### Scenario: How many are chosen, and how to leave
+- **WHEN** a selection is running
+- **THEN** the number chosen is stated where the surface names itself, not inside the row of actions
+- **AND** one action leaves the mode, it is not among the actions that operate on the selection, and it is never disabled
+
+#### Scenario: Nothing chosen yet
+- **WHEN** the mode has just been entered and nothing is selected
+- **THEN** the actions are present and inert rather than absent
+- **AND** an inert action is **drawn** inert, so a reader can tell it apart from a live one without pressing it
+- **AND** entering or leaving the mode does not move the content under a reader's thumb mid-gesture
+
+#### Scenario: Each platform's own form
+- **WHEN** the mode is drawn on each platform
+- **THEN** it follows that platform's convention for a contextual mode rather than a translation of the other's
+- **AND** where the two therefore differ, each platform's source says which convention it is following
+
+#### Scenario: Every action names itself
+- **WHEN** assistive technology reaches an action in the mode
+- **THEN** it is announced by name whatever the action draws
+- **AND** an action drawn as a glyph alone is one whose meaning the platform already establishes **on this screen** — a mark another control in the same frame already uses for something else is not established here, whatever it means elsewhere
+- **AND** where the width will not hold a name, the action moves into a named menu rather than being reduced to a glyph a reader cannot read, so narrowing costs a reader taps and never meaning
