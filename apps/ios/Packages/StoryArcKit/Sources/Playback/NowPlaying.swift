@@ -182,8 +182,12 @@ public final class NowPlaying {
             return .success
         }
         commands.pauseCommand.addTarget { [weak self] _ in
-            guard let centre = self?.centre, centre.isPlaying else { return .commandFailed }
-            centre.toggle()
+            // ``PlayerCentre/pause()`` rather than ``PlayerCentre/toggle()``, and active
+            // rather than playing: a listener reaching for pause on a watch or a car control
+            // while a call has the audio has decided the book must not come back, and a
+            // toggle in that state means play. This guard used to read `isPlaying` and refuse.
+            guard let centre = self?.centre, centre.isRunning else { return .commandFailed }
+            centre.pause()
             return .success
         }
         commands.togglePlayPauseCommand.addTarget { [weak self] _ in

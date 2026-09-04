@@ -145,6 +145,20 @@ struct PlaybackTransitionTests {
         #expect(paused.endingInterruption(mayResume: false) == .lost)
     }
 
+    /// The one direction this table converts a cause in, and the case Android's half of
+    /// 3.8 found: a listener who reaches for pause *during* a call has decided.
+    ///
+    /// The platform lets go of the audio at that point, so the interruption ends by itself —
+    /// and a session still calling that pause the interruption's would start a book somebody
+    /// had deliberately silenced. Android pins the same in `PlaybackSessionTest`.
+    @Test("A pause the listener makes during an interruption becomes the listener's")
+    func pauseDuringAnInterruptionIsTheListeners() {
+        let paused = speaking.interrupted().pausedByListener()
+        #expect(paused.pausedBy == .listener)
+        #expect(paused.state == .paused)
+        #expect(paused.endingInterruption(mayResume: true) == .nothing)
+    }
+
     @Test("Nothing happens to a session that was never running")
     func idleIsNotInterrupted() {
         #expect(idle.endingInterruption(mayResume: true) == .nothing)

@@ -55,8 +55,21 @@ public struct PlaybackSession: Equatable, Sendable {
     public func started() -> PlaybackSession { PlaybackSession(state: .playing) }
 
     /// The listener pressed pause. Nothing but the listener starts this again.
+    ///
+    /// **A pause the platform had already made becomes the listener's**, which is the one
+    /// direction this converts in. A listener who reaches for pause while a call is in
+    /// progress has decided, and the interruption ending must not undo that decision — the
+    /// platform lets the audio go at that point, so the interruption ends by itself and a
+    /// session still calling the pause the interruption's would start a book somebody had
+    /// deliberately silenced. The other direction is forbidden, and ``interrupted()`` is
+    /// where that is enforced.
+    ///
+    /// An idle session is left alone: nothing was playing, so nothing was paused.
+    ///
+    /// Android widened the same guard first, in `PlaybackSession.kt`, and this is the mirror
+    /// of it — one table means one answer, or §1.1's "one session type" is a claim.
     public func pausedByListener() -> PlaybackSession {
-        isPlaying ? PlaybackSession(state: .paused, pausedBy: .listener) : self
+        isActive ? PlaybackSession(state: .paused, pausedBy: .listener) : self
     }
 
     /// Something else took the audio: a call, another app, a spoken direction.

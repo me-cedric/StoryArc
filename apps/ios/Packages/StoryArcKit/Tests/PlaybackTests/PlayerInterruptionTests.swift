@@ -67,6 +67,46 @@ struct PlayerInterruptionTests {
         #expect(!centre.isPlaying, "still paused, because the listener paused it")
     }
 
+    /// The other order, which the table used to lose: the call arrives *first* and the
+    /// listener reaches for pause while it is in progress.
+    ///
+    /// A lock screen belongs to the interrupting app during a call; a paired watch and a car
+    /// control do not, and both send a `pauseCommand`. Before this, ``PlaybackSession`` took
+    /// the pause only from a playing session, so the cause stayed the interruption's and the
+    /// book started again the moment the call ended. Android found it first — see
+    /// `PlayerInterruptionTest`'s "a pause the listener made during the call".
+    @Test("A pause made during an interruption is the listener's", arguments: SourceKind.allCases)
+    func pausingDuringAnInterruption(_ kind: SourceKind) {
+        let centre = PlayerCentre()
+        let source = PlaybackSourceDouble(kind)
+        centre.begin(.stub(id: "a", title: "Bone"), source: source)
+
+        centre.interrupt()
+        centre.pause()
+
+        #expect(!centre.isPlaying)
+        #expect(centre.isRunning, "the transport stays, because a listener may start it again")
+        #expect(centre.endingInterruption(mayResume: true) == .nothing)
+        centre.resumeAfterInterruption()
+        #expect(!centre.isPlaying, "silent, because the listener decided during the call")
+    }
+
+    /// ``PlayerCentre/pause()`` is what a pause control means, and a toggle is not it.
+    @Test("Pausing a session that is already silent leaves it silent", arguments: SourceKind.allCases)
+    func pauseNeverStarts(_ kind: SourceKind) {
+        let centre = PlayerCentre()
+        let source = PlaybackSourceDouble(kind)
+        centre.begin(.stub(id: "a", title: "Bone"), source: source)
+
+        centre.toggle()
+        centre.pause()
+        #expect(!centre.isPlaying, "a pause control never starts anything")
+
+        let idle = PlayerCentre()
+        idle.pause()
+        #expect(!idle.isRunning, "and it does not invent a session")
+    }
+
     /// `audio-playback`: "audio taken for good ends the session and records the position
     /// rather than leaving it paused for ever".
     @Test("Audio taken for good ends the session and writes the position first")

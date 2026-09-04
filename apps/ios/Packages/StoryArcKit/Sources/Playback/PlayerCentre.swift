@@ -237,6 +237,22 @@ public final class PlayerCentre {
         published()
     }
 
+    /// Pause, from a control that means *pause* rather than *pause or play*.
+    ///
+    /// Apart from ``toggle()`` because the lock screen, a paired watch and a car send a
+    /// `pauseCommand` and not a toggle, and the difference matters in exactly one state: a
+    /// session the platform has already silenced. A toggle there means *play*, and the
+    /// listener pressing a pause button means the opposite — so the two cannot be the same
+    /// call. `MPRemoteCommandCenter`'s pause target used to refuse in that state, which left
+    /// the pause recorded as the interruption's and the book resuming when the call ended.
+    /// Android's session pause has always taken this path; see `PlaybackSession.pausedByListener`.
+    public func pause() {
+        guard session.isActive, let source else { return }
+        session = session.pausedByListener()
+        source.pause()
+        published()
+    }
+
     /// Move by the listener's configured interval, or by one sentence.
     ///
     /// Skipping while paused starts playing again, which is what the gesture means: nobody
@@ -274,45 +290,6 @@ public final class PlayerCentre {
         self.speed = speed
         source?.setSpeed(speed)
         if let book { onRememberSpeed?(book.publication, speed) }
-        published()
-    }
-
-    // MARK: - What the platform does to it
-
-    /// What the end of an interruption means, asked of the session rather than decided
-    /// inside an audio callback. See ``PlaybackSession/endingInterruption(mayResume:)``.
-    public func endingInterruption(mayResume: Bool) -> InterruptionOutcome {
-        session.endingInterruption(mayResume: mayResume)
-    }
-
-    /// Something else took the audio: a call, another app, a spoken direction.
-    public func interrupt() {
-        guard session.isPlaying else { return }
-        session = session.interrupted()
-        source?.pause()
-        published()
-    }
-
-    /// The audio came back, and the platform said playback may carry on.
-    public func resumeAfterInterruption() {
-        let next = session.interruptionEnded(mayResume: true)
-        guard next != session else { return }
-        session = next
-        source?.play()
-        published()
-    }
-
-    /// Headphones were pulled out, so the audio would come out of the speaker.
-    ///
-    /// `audio-playback`: playback pauses "because a book suddenly playing out loud is never
-    /// what was intended", and "it does not resume by itself when they are reconnected" —
-    /// which is why the cause recorded is the listener's rather than an interruption's.
-    /// Reconnecting the headphones raises no interruption-ended event at all, but a route
-    /// change back would, and this is what makes that harmless.
-    public func routeLost() {
-        guard session.isPlaying else { return }
-        session = session.pausedByListener()
-        source?.pause()
         published()
     }
 

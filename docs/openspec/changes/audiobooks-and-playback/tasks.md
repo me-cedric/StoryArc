@@ -367,7 +367,7 @@ creep — see [`design.md`](design.md).
       3.4: the assertions are instrumented and were re-compiled rather than re-run —
       `pnpm gradle :app:connectedDebugAndroidTest --tests "app.storyarc.PlayerBrowseTreeTest"`
       re-proves them.
-- [~] 3.8 Both: interruption tests — audio taken and returned with the resume hint
+- [x] 3.8 Both: interruption tests — audio taken and returned with the resume hint
       resumes; a pause the listener made is never undone; audio taken for good ends
       the session and records the position.
       **iOS done.** All three, over both source kinds, in `PlayerInterruptionTests` —
@@ -398,8 +398,28 @@ creep — see [`design.md`](design.md).
       `PlaybackSession.pausedByListener` guarded on `isPlaying`, so a listener pausing *during*
       a call left the session marked as the interruption's — and the suppression then lifts by
       itself, because media3 gives the focus up, which would have started a book somebody had
-      deliberately silenced. The guard is `isActive` now. iOS's `pausedByListener()` still
-      guards on `isPlaying`.
+      deliberately silenced. The guard is `isActive` now.
+      **iOS's half landed 2026-09-04, and the widening alone would not have been reachable.**
+      `PlaybackSession.pausedByListener()` guards on `isActive` there too, mirrored comment for
+      comment — but the Android entry's claim that "the case is reachable there too" was
+      **false as the code stood**, and that is worth more than the tick. iOS has no session
+      pause: every caller went through `PlayerCentre.toggle()`, whose other branch is *play*,
+      and `MPRemoteCommandCenter`'s `pauseCommand` target guarded on `centre.isPlaying` and
+      answered `.commandFailed` for a session a call had already silenced. So a listener
+      pressing pause on a paired watch during a call was refused, the cause stayed the
+      interruption's, and the book started again when the call ended — the exact defect the
+      widening exists to prevent, arrived at from the other side.
+      `PlayerCentre.pause()` is the path: active rather than playing, and it never starts
+      anything, which is what separates a *pause* control from a *play/pause* one. The remote
+      target points at it and guards on `isRunning`. Two host cases in `PlayerInterruptionTests`
+      driven over **both** source kinds, plus the table case in `PlaybackTransitionTests`;
+      mutation-checked by restoring the `isPlaying` guard, which fails all three by name.
+      `PlayerCentre.swift` crossed SwiftLint's 400-line cap again on the way, so the events
+      nobody in the app raises — the interruption pair, the route loss — are `PlayerInterruption.swift`
+      now, the same seam `PlayerSkip.swift` and `PlayerSleep.swift` took.
+      **Still not heard, on either platform** — every assertion here is a host test, and no
+      call has been taken on a device with a book playing. `pnpm gradle :core:playback:test`
+      and `pnpm test:ios` are what stands behind it.
 - [~] 3.9 Both: route-change test — headphones removed pauses, and reconnecting does
       **not** resume.
       **iOS done.** `PlayerCentre.routeLost` records the pause as the *listener's*, which is

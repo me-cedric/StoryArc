@@ -60,9 +60,11 @@ data class PlaybackSession(
      *
      * An idle session is left alone: nothing was playing, so nothing was paused.
      *
-     * *iOS's `pausedByListener()` still guards on `isPlaying` and owes this widening. The
-     * case is reachable there too — a lock screen belongs to the interrupting app during a
-     * call, but a paired watch or a car control is not the interrupting app.*
+     * *iOS mirrors this guard now.* Reaching it there needed a second change: its
+     * `MPRemoteCommandCenter` pause target refused while the session was not playing, so the
+     * case this widening exists for could not arrive. `PlayerCentre.pause()` is the path — a
+     * lock screen belongs to the interrupting app during a call, but a paired watch or a car
+     * control is not the interrupting app, and both send a pause rather than a toggle.
      */
     fun pausedByListener(): PlaybackSession =
         if (isActive) PlaybackSession(PlaybackState.PAUSED, PauseCause.LISTENER) else this
