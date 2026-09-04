@@ -205,6 +205,7 @@ function survives(blob, sentence) {
 
 const problems = []
 const usedAllowances = new Set()
+const usedCollisions = new Set()
 
 function audit(root, allowlist) {
     const changesDir = join(root, 'changes')
@@ -274,10 +275,118 @@ function audit(root, allowlist) {
     }
 }
 
+/**
+ * Two active changes MODIFYing the *same* requirement, with different blocks.
+ *
+ * **This is case 2 of the docstring above, and the original check could not see it.** That
+ * case was a sibling's MODIFIED delta on a requirement this change had also modified, keeping
+ * neither of its additions — and everything `audit()` compares is a delta against the **main
+ * spec**. Two deltas are each perfectly clean against main and lethal to each other: whichever
+ * syncs second replaces the whole block and takes the first's scenarios with it. Nothing looks,
+ * because by then the first change's delta has been archived and its additions live only in the
+ * main spec the second one is about to overwrite.
+ *
+ * The gate was written from that incident and left the hazard open. When this check was first
+ * run it found **four** live instances, one of them on a requirement about to be synced.
+ *
+ * **Identical blocks are fine and are not reported.** Two changes that carry the same block
+ * are two changes that agree; order cannot matter. It is a difference in either direction that
+ * is a hazard — a superset is safe only if it syncs last, and no tool can know the order, so
+ * any difference is reported with the scenarios each side holds alone. That list is the merge
+ * instruction: put the union in whichever delta syncs first.
+ *
+ * Prose is compared too, and by the same ``survives`` rule as the main-spec check, so a
+ * re-wrap is not a difference and a vanished sentence is.
+ */
+function collisions(root, recorded = {}) {
+    const changesDir = join(root, 'changes')
+    if (!existsSync(changesDir)) return
+    const held = new Map()
+    for (const change of readdirSync(changesDir).sort()) {
+        if (change === 'archive') continue
+        const specsDir = join(changesDir, change, 'specs')
+        if (!existsSync(specsDir)) continue
+        for (const capability of readdirSync(specsDir)) {
+            const delta = join(specsDir, capability, 'spec.md')
+            if (!existsSync(delta)) continue
+            const reqs = requirements(readFileSync(delta, 'utf8'), 'MODIFIED Requirements')
+            for (const [name, entry] of Object.entries(reqs)) {
+                const key = `${capability} → "${name}"`
+                if (!held.has(key)) held.set(key, [])
+                held.get(key).push({ change, entry })
+            }
+        }
+    }
+
+    for (const [key, holders] of held) {
+        if (holders.length < 2) continue
+        for (let i = 0; i < holders.length; i += 1) {
+            for (let j = i + 1; j < holders.length; j += 1) {
+                const [a, b] = [holders[i], holders[j]]
+                const onlyA = a.entry.scenarios.filter((s) => !b.entry.scenarios.includes(s))
+                const onlyB = b.entry.scenarios.filter((s) => !a.entry.scenarios.includes(s))
+                const blobA = proseBlob(a.entry)
+                const blobB = proseBlob(b.entry)
+                const clauseOnlyA = a.entry.shalls.filter((s) => !survives(blobB, s))
+                const clauseOnlyB = b.entry.shalls.filter((s) => !survives(blobA, s))
+                if (!onlyA.length && !onlyB.length && !clauseOnlyA.length && !clauseOnlyB.length) {
+                    continue
+                }
+
+                // **A recorded order can save a nested pair, and nothing saves a disjoint
+                // one.** If the block that syncs first holds nothing the later one lacks, the
+                // later block is a superset and replacing with it loses nothing — so the pair
+                // is safe *in that order only*, which is why the order has to be written down
+                // rather than inferred. When each side holds something the other does not, no
+                // order helps: one of them is always overwritten, and the entry is refused so
+                // it cannot be used to wave the hazard through.
+                const order = recorded[key]
+                if (order?.order) {
+                    usedCollisions.add(key)
+                    const [first, second] = order.order
+                    const firstHolds = first === a.change
+                        ? { scenarios: onlyA, clauses: clauseOnlyA }
+                        : { scenarios: onlyB, clauses: clauseOnlyB }
+                    if (![first, second].every((c) => c === a.change || c === b.change)) {
+                        problems.push(
+                            `${ALLOWLIST}: collision "${key}" records an order `
+                            + `[${order.order.join(', ')}] that does not name this pair `
+                            + `(${a.change}, ${b.change}).`
+                        )
+                        continue
+                    }
+                    if (!firstHolds.scenarios.length && !firstHolds.clauses.length) continue
+                    problems.push(
+                        `${key}: the recorded order puts ${first} first, but ${first}'s block `
+                        + 'holds something the later one lacks, so no order saves this pair — '
+                        + 'the blocks are disjoint rather than nested. Merge them instead.'
+                    )
+                    continue
+                }
+                const side = (change, scenarios, clauses) => {
+                    const parts = []
+                    if (scenarios.length) parts.push(`scenario(s) ${scenarios.map((s) => `"${s}"`).join(', ')}`)
+                    if (clauses.length) parts.push(`clause(s) ${clauses.map((s) => `"${s}"`).join(', ')}`)
+                    return parts.length ? `        ${change} alone holds ${parts.join('; ')}` : ''
+                }
+                problems.push(
+                    `${key} is MODIFIED by two active changes with different blocks: `
+                    + `${a.change} and ${b.change}.\n`
+                    + [side(a.change, onlyA, clauseOnlyA), side(b.change, onlyB, clauseOnlyB)]
+                        .filter(Boolean).join('\n')
+                    + '\n      Whichever syncs second replaces the whole block and drops the '
+                    + "other's. Put the union in the one that syncs first."
+                )
+            }
+        }
+    }
+}
+
 // ── Self-test ────────────────────────────────────────────────────────────────
 //
-// Six cases, each a mutation of a tree that passes. A check that cannot fail is not a
-// check, and this repository has shipped two of those.
+// Each case is a mutation of a tree that passes. A check that cannot fail is not a check,
+// and this repository has shipped two of those. The last four cover the collision half,
+// which was added on 2026-09-04 and found four live instances on its first run.
 if (process.argv.includes('--self-test')) {
     const dir = join(tmpdir(), `delta-drop-selftest-${process.pid}`)
     const cases = []
@@ -460,6 +569,61 @@ if (process.argv.includes('--self-test')) {
         })(),
     ])
 
+    // ── The collision half ───────────────────────────────────────────────────
+    //
+    // Two changes, one requirement. `runPair` writes both deltas and asks only the collision
+    // check, so a failure here cannot be an artefact of the main-spec comparison.
+    const runPair = (bodyA, bodyB, recorded = {}) => {
+        rmSync(dir, { recursive: true, force: true })
+        write('openspec/specs/thing/spec.md', MAIN)
+        write('openspec/changes/one/specs/thing/spec.md', bodyA)
+        write('openspec/changes/two/specs/thing/spec.md', bodyB)
+        problems.length = 0
+        usedCollisions.clear()
+        collisions(join(dir, 'openspec'), recorded)
+        return problems.slice()
+    }
+    const KEY = 'thing → "Thing"'
+    const withScenario = complete.replace(
+        '#### Scenario: It works',
+        '#### Scenario: Only mine\n- **WHEN** x\n- **THEN** y\n\n#### Scenario: It works',
+    )
+    cases.push([
+        'two changes modifying one requirement identically pass',
+        runPair(complete, complete).length === 0,
+    ])
+    cases.push([
+        'a scenario only one side holds fails, and names it',
+        (() => {
+            const found = runPair(complete, withScenario)
+            return found.length === 1
+                && found[0].includes('"Only mine"')
+                && found[0].includes('two alone holds')
+        })(),
+    ])
+    cases.push([
+        'a re-wrap of the same prose is not a difference',
+        runPair(complete, complete.replace('The app SHALL do\nthe thing.', 'The app\nSHALL do the thing.')).length === 0,
+    ])
+    cases.push([
+        'a nested pair passes with the subset recorded first',
+        runPair(complete, withScenario, {
+            [KEY]: { order: ['one', 'two'], reason: 'test' },
+        }).length === 0,
+    ])
+    cases.push([
+        'the same nested pair fails with the superset recorded first',
+        runPair(withScenario, complete, {
+            [KEY]: { order: ['one', 'two'], reason: 'test' },
+        }).some((problem) => problem.includes('no order saves this pair')),
+    ])
+    cases.push([
+        'an order naming a change that is not in the pair fails',
+        runPair(complete, withScenario, {
+            [KEY]: { order: ['one', 'elsewhere'], reason: 'test' },
+        }).some((problem) => problem.includes('does not name this pair')),
+    ])
+
     rmSync(dir, { recursive: true, force: true })
     let failed = 0
     for (const [name, ok] of cases) {
@@ -473,9 +637,23 @@ if (process.argv.includes('--self-test')) {
 // ── Check ────────────────────────────────────────────────────────────────────
 
 const allowlist = existsSync(ALLOWLIST) ? JSON.parse(readFileSync(ALLOWLIST, 'utf8')) : {}
-audit(SPEC_ROOT, allowlist)
+// `collisions` is a reserved top-level key rather than a `change/capability`, so the drain
+// loop below has to skip it or it reports every recorded order as a malformed allowance.
+const { collisions: recordedCollisions = {}, ...perChange } = allowlist
+audit(SPEC_ROOT, perChange)
+collisions(SPEC_ROOT, recordedCollisions)
 
-for (const [where, byRequirement] of Object.entries(allowlist)) {
+for (const [key, entry] of Object.entries(recordedCollisions)) {
+    if (!entry.reason) {
+        problems.push(`${ALLOWLIST}: collision "${key}" has no reason. An allowance without one is a permission slip nobody can review.`)
+    } else if (!Array.isArray(entry.order) || entry.order.length !== 2) {
+        problems.push(`${ALLOWLIST}: collision "${key}" needs an \`order\` naming the two changes, earliest first.`)
+    } else if (!usedCollisions.has(key)) {
+        problems.push(`${ALLOWLIST}: collision "${key}" no longer matches two active MODIFIED deltas. Delete the entry, so the file drains.`)
+    }
+}
+
+for (const [where, byRequirement] of Object.entries(perChange)) {
     for (const [name, entry] of Object.entries(byRequirement)) {
         if (!entry.reason) {
             problems.push(`${ALLOWLIST}: ${where} → "${name}" has no reason. An allowance without one is a permission slip nobody can review.`)
@@ -491,4 +669,4 @@ if (problems.length) {
     console.error('A MODIFIED delta replaces its requirement\'s whole block. `openspec validate` does not check this.')
     process.exit(1)
 }
-console.log('delta-drop: no MODIFIED delta would drop a scenario or a normative clause on archive.')
+console.log('delta-drop: no MODIFIED delta would drop a scenario or a normative clause on archive, and no two active changes modify one requirement differently.')

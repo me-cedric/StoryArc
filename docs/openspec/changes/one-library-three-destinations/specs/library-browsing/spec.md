@@ -144,6 +144,17 @@ The app SHALL offer a cover grid and a compact list, SHALL adapt density to the
 display, and SHALL let a cover carry at most two marks: how far the reader has
 got, and whether it can be read with no network.
 
+The controls that change what the shelf shows SHALL be grouped rather than laid out as a row
+of similar icons. A reader who cannot tell two adjacent controls apart has as many controls as
+they can name.
+
+> **The grouping rule and the last three scenarios are carried from
+> `named-failures-and-quieter-chrome`, which syncs first.** A MODIFIED requirement replaces
+> the whole block, so two changes holding disjoint blocks on one requirement means whichever
+> syncs second deletes the other's scenarios. `pnpm delta:drop` now refuses that pair unless
+> the earlier block is a subset of this one, which is what these additions make true. Do not
+> remove them to "keep this delta about the destinations" — that reopens the drop.
+
 #### Scenario: Switching layout
 - **WHEN** a reader switches between grid and list
 - **THEN** the choice persists, so a dense list does not have to be chosen again on every visit
@@ -176,6 +187,21 @@ got, and whether it can be read with no network.
 - **WHEN** a publication is neither on the device nor currently reachable
 - **THEN** its cell is dimmed and still selectable, so it can be inspected, downloaded later, or added to a shelf
 - **AND** dimming is the only difference — it is not moved, grouped apart, or badged as an error
+
+#### Scenario: The controls that change the view are grouped
+- **WHEN** the library's own controls are shown
+- **THEN** the choices — what is shown, how it is grouped, how it is sorted, what is filtered out — are reached through named menus rather than as separate unlabelled buttons
+- **AND** a control that changes *mode* rather than presenting a choice may stand on its own, because entering selection is not the same kind of act as picking a sort
+
+#### Scenario: A control that stands alone carries a name
+- **WHEN** a control is not inside a menu
+- **THEN** it is identifiable without being pressed — by a label, or by a symbol whose meaning the platform already establishes
+- **AND** every one of them names itself to assistive technology whatever it draws
+
+#### Scenario: An ordering says that it is an ordering
+- **WHEN** the current sort is shown on a control
+- **THEN** it reads as an ordering rather than as a value — a reader seeing the field name alone cannot tell a sort from a filter
+- **AND** the same holds for grouping, which is neither
 
 ## REMOVED Requirements
 

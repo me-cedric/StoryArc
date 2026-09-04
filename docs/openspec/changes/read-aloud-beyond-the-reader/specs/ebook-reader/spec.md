@@ -5,15 +5,36 @@
 The app SHOULD read a publication aloud using the platform speech engine, and
 the session SHALL outlive the screen it was started from.
 
+Read-aloud SHALL drive the player defined in
+[`audio-playback`](../audio-playback/spec.md) rather than controls of its own, and
+SHALL NOT stop because the reader left the publication.
+
+> **The clause above and *The same controls as a narrated book* are carried from
+> `audiobooks-and-playback`, which syncs first.** Both changes MODIFY this requirement, and a
+> MODIFIED requirement replaces the whole block — so whichever synced second would delete the
+> other's scenarios. `pnpm delta:drop` refuses that pair unless the earlier block is a subset
+> of this one. The two changes also named one scenario twice: *Leaving the publication while
+> it speaks* and *Closing the publication while it is being read* are the same behaviour, and
+> this block keeps the richer wording under the **first** name, because that is the name that
+> reaches the main spec when `audiobooks-and-playback` syncs, and a rename in the second delta
+> reads to the gate as one scenario dropped and another added.
+
 #### Scenario: Starting playback
 - **WHEN** a user starts read-aloud on a reflowable publication
 - **THEN** speech begins at the current position, the spoken sentence is highlighted, and the page follows
+- **AND** the player's compact bar appears, naming the publication and the chapter being spoken
 
-#### Scenario: Closing the publication while it is being read
+#### Scenario: Leaving the publication while it speaks
 - **WHEN** a listener closes the publication while the voice is speaking
 - **THEN** speech continues, and the listener is returned to whatever they were doing in the app rather than being kept in the book
 - **AND** a transport is available from wherever they land, as *The transport outside the reader* requires
 - **AND** reopening the publication resumes at the sentence being spoken, without the voice stopping or repeating
+- **AND** returning resumes at the sentence being spoken then, not at the position from when they left, because the voice did not wait
+
+#### Scenario: The same controls as a narrated book
+- **WHEN** a listener opens the full player during read-aloud
+- **THEN** speed, skip, the sleep timer and the chapter list all work, per [`audio-playback`](../audio-playback/spec.md)
+- **AND** the voice is named on the publication's own page rather than in the player, because a listener is listening to the book either way
 
 #### Scenario: Background and lock screen
 - **WHEN** read-aloud is playing and the app is backgrounded
@@ -24,6 +45,7 @@ the session SHALL outlive the screen it was started from.
 - **WHEN** the voice reaches the end of the resource it is reading
 - **THEN** it carries on into the next one without being asked, because a chapter boundary is not something a listener asked to stop at
 - **AND** at the end of the publication it stops, the highlight is withdrawn, and the media controls go away rather than offering to play a book that has run out of words
+- **AND** the compact bar goes away with them
 
 #### Scenario: Where the listening got to
 - **WHEN** a reader has listened for a while and closes the publication

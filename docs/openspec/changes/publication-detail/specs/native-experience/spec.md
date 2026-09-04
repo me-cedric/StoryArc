@@ -20,6 +20,7 @@ compete with artwork.
 #### Scenario: Chrome accent
 - **WHEN** a surface has no publication context — settings, source management, the empty library
 - **THEN** it uses the StoryArc brand accent, not a cover-derived one
+- **AND** that accent is a single colour: the brand's pink-to-violet arc belongs to the mark, the app icon and brand surfaces, and chrome that gradients fights the direction the palette is built on
 
 #### Scenario: A cover that yields no usable colour
 - **WHEN** a cover is missing, cannot be decoded, or yields no colour that clears the contrast floor

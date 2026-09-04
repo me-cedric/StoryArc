@@ -1,0 +1,25 @@
+{
+    "collisions": {
+        "library-browsing → \"Presentation\"": {
+            "order": [
+                "named-failures-and-quieter-chrome",
+                "one-library-three-destinations"
+            ],
+            "reason": "named-failures adds three grouping and naming scenarios to a requirement one-library-three-destinations rewrites wholesale. Found by this check on 2026-09-04, and it is the same class that cost this repository six carried scenarios once already. one-library's block now carries named-failures' clause and its three scenarios, so it is a strict superset and syncing it second publishes rather than deletes them. Drains when one-library-three-destinations syncs."
+        },
+        "native-experience → \"Dynamic colour\"": {
+            "order": [
+                "brand-identity-and-app-icons",
+                "publication-detail"
+            ],
+            "reason": "brand-identity-and-app-icons changes one scenario of this requirement - that the chrome accent is a single colour and the pink-to-violet arc belongs to the identity - and carries the other two unchanged. publication-detail rewrites the same requirement richer. The chrome-accent clause was added to publication-detail's block so the later sync keeps it. Drains when publication-detail syncs."
+        },
+        "native-experience → \"Adaptive layout\"": {
+            "order": [
+                "reader-theming-and-page-transitions",
+                "one-library-three-destinations"
+            ],
+            "reason": "reader-theming's block is already a subset of one-library-three-destinations', which adds two scenarios about reaching destinations and a window too small for a layout. Nothing needed merging; the order is recorded because no tool can infer it and syncing one-library first would leave reader-theming's later sync deleting those two scenarios."
+        }
+    }
+}
