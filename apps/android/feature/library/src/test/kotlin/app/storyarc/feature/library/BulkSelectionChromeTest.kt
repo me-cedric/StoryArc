@@ -311,7 +311,10 @@ class BulkSelectionChromeTest {
                 " not a selection is running.",
             opening >= 0,
         )
-        val condition = topBar.substring(opening, topBar.indexOf('{', opening))
+        // The branch's own block, which bounds the condition as well: everything from the
+        // `if` to the brace that opens what it guards.
+        val picked = block(topBar, opening)
+        val condition = topBar.substring(opening, picked.first - 1)
         assertTrue(
             "The contextual bar is put up by `${condition.trim()}` rather than by the" +
                 " selection. It has to be exactly the selection: any other condition can be" +
@@ -319,10 +322,9 @@ class BulkSelectionChromeTest {
             condition.contains("selection.isActive"),
         )
 
-        // From the end of that `if`'s own block. An `else` here is what makes the two bars
-        // one choice; two `if`s in a row, which is the mutation this test exists for, leaves
-        // nothing at this offset and fails below.
-        val picked = block(topBar, opening)
+        // From the end of that block. An `else` here is what makes the two bars one choice;
+        // two `if`s in a row, which is the mutation this test exists for, leaves nothing at
+        // this offset and fails below.
         val rest = topBar.substring(picked.last + 2).trimStart()
         assertTrue(
             "The `if` that puts up the contextual bar has no `else`, so the shelf's own bar" +
