@@ -13,9 +13,17 @@ import org.junit.Test
  * Four files have to agree and no compiler reads any pair of them. A typo in
  * [AppIconChoice.componentClassName] is a chooser that throws on the one press it exists for;
  * a plate hex that drifts is a different Paper on each platform; an alias missing its launcher
- * filter is a face a reader can pick that puts nothing on the home screen. The Swift side has
- * `AppIconChoiceTests` asserting the asset-set names against the catalogue on disk, which is
- * the same shape of check for the same reason.
+ * filter is a face a reader can pick that puts nothing on the home screen.
+ *
+ * **The Swift side has no counterpart of this, and does not need one.** `AppIconChoiceTests`
+ * pins the asset-set names as string literals and reads nothing off disk — no `FileManager`,
+ * no `Bundle`, no path — so it is not the join it looks like. The join there is the build:
+ * every alternate face is listed in `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` in
+ * `apps/ios/project.yml`, and an entry naming an `.appiconset` the catalogue does not hold is
+ * an asset-catalogue error. This platform has no equivalent to lean on. An unresolvable
+ * `@mipmap/…` fails the build here too, but an alias pointing at the wrong plate, a face
+ * naming a component the manifest never declares, and a plate hex that has drifted from the
+ * generator are errors nowhere — which is why they are asserted below instead.
  *
  * Shaped on `:core:designsystem`'s `ArcStopsAreNotChromeTest`: the repository root is handed
  * over by `build.gradle.kts` rather than discovered, because a walk up from the working
