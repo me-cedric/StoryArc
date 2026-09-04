@@ -107,6 +107,22 @@ class ReaderChromeTest {
         }
     }
 
+    @Test
+    fun `the capsule carries the reader's own colours rather than Material's`() {
+        // The sweep of 2026-09-02 photographed this file's capsule as a pale lavender lozenge
+        // laid over running body text -- Material's `surfaceContainer`, because the colours
+        // were left to `standardFloatingToolbarColors()`. `readerChromeColours()` in
+        // `:core:designsystem` is the shared answer and `ReaderChromeColoursTest` measures the
+        // pair; what nothing else can see is whether this call site still passes it, because
+        // dropping the argument compiles and looks like a tidy-up.
+        assertTrue(
+            "The chrome no longer passes `readerChromeColours()`, so the capsule falls back to" +
+                " Material's own container -- the colour of the page it floats over. That is" +
+                " the defect the sweep photographed, and it is one deleted line away.",
+            code.contains("readerChromeColours()"),
+        )
+    }
+
     private companion object {
         /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
         const val MODULE_DIRECTORY = "storyarc.reader.projectDir"

@@ -7,16 +7,14 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.readerChromeColours
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 
 /*
@@ -46,16 +44,14 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
  * floats over artwork that can be white and its icons are white, so it carries the scrim the
  * hand-rolled pills used to. Losing it would be a contrast regression, not a restyle.
  *
+ * **They now live in `:core:designsystem` because the other reader did not have them.** The
+ * sweep of 2026-09-02 photographed `EpubChrome` drawing the same capsule in Material's
+ * `surfaceContainer` — a pale lozenge over running body text — while this one had the scrim.
+ * One definition, `readerChromeColours()`, so the two readers cannot drift apart again.
+ *
  * `ReaderChromeTest` counts the buttons in this file. Two. Adding a third here is the
  * regression the count exists to stop, and the menu is where the third one goes.
  */
-
-/** The scrim and white the chrome has always used, on Material's container. */
-@Composable
-private fun readerToolbarColours() = FloatingToolbarDefaults.standardFloatingToolbarColors(
-    toolbarContainerColor = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f),
-    toolbarContentColor = Color.White,
-)
 
 /**
  * The controls. One tap away, and gone while reading.
@@ -74,7 +70,7 @@ internal fun ReaderChrome(
     Box(modifier.fillMaxSize().safeDrawingPadding()) {
         HorizontalFloatingToolbar(
             expanded = true,
-            colors = readerToolbarColours(),
+            colors = readerChromeColours(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(StoryArcSpace.md),

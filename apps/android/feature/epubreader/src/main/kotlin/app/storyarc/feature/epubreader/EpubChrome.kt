@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.readerChromeColours
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 
 /**
@@ -46,6 +47,14 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
  * capsule, for "contextual actions relevant to the body content", and it is what the comic
  * reader's chrome uses — so both readers reveal the same shape in the same place. The band
  * across the top is gone with the five pills it existed to make legible.
+ *
+ * **And now the same colours, which it did not have.** It took
+ * `standardFloatingToolbarColors()`, so the capsule was Material's `surfaceContainer` — a
+ * pale lavender lozenge laid straight over running body text, with sentences visible around
+ * its edges and nothing behind it. `android-epub-chrome.png` in the sweep of 2026-09-02 is
+ * that; `android-comic-chrome.png` is the same two buttons over artwork with the scrim the
+ * comic reader had all along. `readerChromeColours()` in `:core:designsystem` is now the one
+ * definition, so the two readers cannot drift apart again.
  *
  * `ReaderChromeTest` counts the buttons in this file. Two.
  */
@@ -88,6 +97,7 @@ internal fun EpubChrome(
         Box(modifier = modifier.fillMaxSize().safeDrawingPadding()) {
             HorizontalFloatingToolbar(
                 expanded = true,
+                colors = readerChromeColours(),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(StoryArcSpace.md),
