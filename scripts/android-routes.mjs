@@ -351,6 +351,13 @@ export function navigator(sh) {
      * off-screen, and an off-screen tap does nothing and reports nothing.
      */
     const window = () => {
+        // `app=2400x1080` in the display dump is the rectangle the app is actually laid out
+        // in: it carries the density override *and* the rotation. `wm size` carries neither
+        // — it answers `Physical size: 1080x2400` in landscape as well, so a centre tap
+        // computed from it lands 1300 pixels below a rotated screen, does nothing, and
+        // reports nothing.
+        const app = /\bapp=(\d+)x(\d+)/.exec(sh('shell', 'dumpsys', 'window', 'displays'))
+        if (app) return [Number(app[1]), Number(app[2])]
         const sizes = [...sh('shell', 'wm', 'size').matchAll(/(\d+)x(\d+)/g)]
         const last = sizes.at(-1)
         return last ? [Number(last[1]), Number(last[2])] : [1080, 2400]
@@ -446,7 +453,10 @@ export function navigator(sh) {
             // tree before scrolling: a page offering *Continue* is not a page missing *Read*.
             const wanted = step.split('|')
             let spot = null
-            for (let attempt = 0; attempt < (optional ? 1 : 3) && !spot; attempt += 1) {
+            // Six scrolls rather than three. At `font_scale 2.0` a shelf shows roughly half
+            // as many cells, so a cover three rows down at the default size is six rows down
+            // there — and the walk gave up at three and called a present control missing.
+            for (let attempt = 0; attempt < (optional ? 1 : 6) && !spot; attempt += 1) {
                 const tree = dump()
                 for (const name of wanted) {
                     spot = centre(tree, name)
