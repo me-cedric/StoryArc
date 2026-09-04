@@ -51,11 +51,27 @@ extension LibraryView {
                 // `.minimize` collapses the field into a button that expands in place —
                 // which is the shape-changing `navigation-shell` forbids and the opposite of
                 // a field a reader lands on.
+                //
+                // **Guarded, because `.navigationBarDrawer` is iOS-only and this package also
+                // builds for macOS** so the pure targets can be host-tested. Unguarded it does
+                // not fail as an availability error — the Swift compiler crashes with a bare
+                // `error: fatalError` while emitting `LibraryFeature`, and `pnpm build:ios`
+                // passes throughout because Xcode builds for iOS. Three consecutive
+                // `pnpm test:ios` runs and a `pnpm clean:swift` looked like flakiness before
+                // the file was isolated. `LibraryView` wraps
+                // `.navigationBarTitleDisplayMode` for this same reason a few lines away.
+                #if os(iOS)
                 .searchable(
                     text: searchBinding,
                     placement: .navigationBarDrawer(displayMode: .always),
                     prompt: Text("library.search.prompt", bundle: .module)
                 )
+                #else
+                .searchable(
+                    text: searchBinding,
+                    prompt: Text("library.search.prompt", bundle: .module)
+                )
+                #endif
                 // **No `.searchSuggestions`.** It drew the recent queries — which was the
                 // missing half at the time, since no iOS reader had ever seen one — but it
                 // draws them as a list *attached to the field*, visible only while the field
