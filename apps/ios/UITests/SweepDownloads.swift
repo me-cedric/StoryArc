@@ -70,15 +70,26 @@ final class SweepDownloadsTests: XCTestCase {
         shutter(app, named: "downloads-queue-ax5")
     }
 
-    /// Stopping one: the confirmation, which names the title and what it will free.
+    /// Stopping one: the confirmation, which is about a transfer rather than about a file.
+    ///
+    /// **This assertion is the defect, pinned.** It read `Remove this download?` until
+    /// 2026-09-04, and passed, because *Stop* on a row still arriving put up the words for
+    /// deleting a finished download — "This deletes the copy of Harbour Lights 03 on this
+    /// device. Your reading position is kept" — over a publication with no copy on the
+    /// device and no reading position. The frame it took is
+    /// `docs/designs/screenshots/ios-sweep-2026-09-02/ios-downloads-stop-confirm.png`.
     func testCaptureDownloadStopConfirmation() throws {
         let app = sweepLaunch(downloads: Self.queue)
         try showQueue(in: app)
         try XCTUnwrap(hittable("Stop", in: app), "A queued row offers no Stop.").tap()
         XCTAssertTrue(
-            app.staticTexts["Remove this download?"].waitForExistence(timeout: 5),
-            "Stop asked for no confirmation. On screen: "
+            app.staticTexts["Stop this download?"].waitForExistence(timeout: 5),
+            "Stop asked for no confirmation, or asked the removal's question. On screen: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(15).map(\.label))"
+        )
+        XCTAssertFalse(
+            app.staticTexts["Remove this download?"].exists,
+            "Stopping a transfer is still confirmed with the words for deleting a download."
         )
         hold(0.5)
         shutter(app, named: "downloads-stop-confirm")

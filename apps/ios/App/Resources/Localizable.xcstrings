@@ -586,6 +586,93 @@
         }
       }
     },
+    "downloads.stop.body %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dies stoppt die Übertragung von %@. Nichts davon bleibt auf diesem Gerät, und er kann erneut heruntergeladen werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This stops the transfer of %@. Nothing of it is kept on this device, and it can be downloaded again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto detiene la transferencia de %@. No se conserva nada en este dispositivo, y se puede descargar otra vez."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cela arrête le transfert de %@. Rien n’en est conservé sur cet appareil, et il peut être téléchargé à nouveau."
+          }
+        }
+      }
+    },
+    "downloads.stop.confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download stoppen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop download"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detener la descarga"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter le téléchargement"
+          }
+        }
+      }
+    },
+    "downloads.stop.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diesen Download stoppen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop this download?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Detener esta descarga?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter ce téléchargement ?"
+          }
+        }
+      }
+    },
     "downloads.total": {
       "extractionState": "manual",
       "localizations": {

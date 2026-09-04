@@ -52,8 +52,16 @@ struct DownloadsDestination: View {
     /// is the kind of number that makes a reader distrust the whole screen.
     @State private var bytesOnDisk: Int64 = 0
 
-    /// The download a reader has asked to remove and not yet confirmed.
+    /// The download a reader has asked to take off this device, and not yet confirmed.
     @State private var removing: Download?
+
+    /// Which of the three questions the open confirmation is asking.
+    ///
+    /// Held beside ``removing`` rather than derived from it inside the alert. Dismissing
+    /// sets `removing` to `nil`, and an alert whose words are computed from it would swap
+    /// its title and its sentence during the dismissal animation — under the finger of the
+    /// reader who has just decided. This keeps saying what it said until it is gone.
+    @State private var confirmation = DownloadQueueRemoval.Confirmation.removing
 
     /// A removal inside its ten-second window, still offering to come back.
     @State private var removed: RemovedDownload?
@@ -82,7 +90,7 @@ struct DownloadsDestination: View {
                         DownloadQueueSection(
                             downloads: inFlight,
                             onReorder: reorder,
-                            onStop: { removing = $0 }
+                            onStop: ask
                         )
                     }
 
@@ -93,7 +101,7 @@ struct DownloadsDestination: View {
                             publications: onDevice,
                             model: model,
                             removable: { downloads[$0.id] != nil },
-                            onRemove: { removing = downloads[$0.id] }
+                            onRemove: { if let record = downloads[$0.id] { ask(record) } }
                         )
                         space
                     }
@@ -120,14 +128,23 @@ struct DownloadsDestination: View {
             reload()
         }
         .alert(
-            Text("downloads.remove.title"),
+            Text(confirmation.titleKey),
             isPresented: isConfirming,
             presenting: removing
         ) { download in
             Button(role: .cancel) {} label: { Text("downloads.cancel") }
-            Button(role: .destructive) { remove(download) } label: { Text("downloads.remove") }
+            Button(role: .destructive) { remove(download) } label: {
+                Text(confirmation.actionKey)
+            }
         } message: { download in
-            if ImportedCopies.isImported(download) {
+            switch confirmation {
+            case .stopping:
+                // Nothing of this one is on the device yet, so neither half of the removal
+                // sentence is true of it: there is no copy to delete, and there is no
+                // reading position to keep in a publication nobody has opened. What is true
+                // is that the transfer stops and can be started again.
+                Text("downloads.stop.body \(download.title)")
+            case .removingImport:
                 // `local-library` asks for more of this sentence than a download needs.
                 // Deleting an imported copy "confirms, naming the title and the space to be
                 // freed, and states that the original file elsewhere is untouched" — the
@@ -135,7 +152,7 @@ struct DownloadsDestination: View {
                 // somewhere, and a reader must not have to guess whether the app is about
                 // to reach outside itself.
                 Text("downloads.remove.body.imported \(download.title) \(size(download))")
-            } else {
+            case .removing:
                 Text("downloads.remove.body \(download.title)")
             }
         }
@@ -143,6 +160,16 @@ struct DownloadsDestination: View {
 
     private var isConfirming: Binding<Bool> {
         Binding(get: { removing != nil }, set: { if !$0 { removing = nil } })
+    }
+
+    /// Puts the question, having first settled which question it is.
+    ///
+    /// Both entry points come through here — *Stop* on a transfer and *Remove* on a cover —
+    /// so there is one place where the act and the words for it are decided together.
+    /// ``LibraryFeature/DownloadQueueRemoval`` decides; its tests pin the ordering.
+    private func ask(_ download: Download) {
+        confirmation = DownloadQueueRemoval.confirmation(for: download)
+        removing = download
     }
 
     /// Nothing is here yet: one sentence and the one action that changes it.
@@ -233,7 +260,13 @@ struct DownloadsDestination: View {
     /// removal to be undoable for the same window as any other, and an already-deleted file
     /// can only be put back by downloading it again — which is not an undo.
     private func remove(_ download: Download) {
-        guard let outcome = store.removeAfterFinishing(download.id, from: downloads) else {
+        // A transfer that has not landed has no file to sweep aside and nothing to undo:
+        // the bytes are in a temporary the system owns, and the undo bar's sentence —
+        // "removed from this device. Your place is kept." — would be as untrue here as the
+        // confirmation used to be. Forgetting the record is the whole of stopping it.
+        guard confirmation != .stopping,
+              let outcome = store.removeAfterFinishing(download.id, from: downloads)
+        else {
             // Nothing on disk to move aside — a record whose file the system reclaimed.
             // Forgetting it is the whole removal, and there is nothing to undo.
             downloads = store.removing(download.id, from: downloads)
@@ -262,5 +295,30 @@ struct DownloadsDestination: View {
         // The library holds a row for every imported copy, and a row whose file has just
         // been deleted is a book that opens onto nothing.
         Task { await model.refreshImports() }
+    }
+}
+
+extension DownloadQueueRemoval.Confirmation {
+    /// What the alert asks.
+    ///
+    /// Here rather than in `LibraryFeature`, for the reason ``Download/Pause/explanationKey``
+    /// is: the Downloads destination is the app target's screen and its strings are in the
+    /// app target's bundle, and a key looked up in the wrong bundle renders as the key.
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .stopping: "downloads.stop.title"
+        case .removing, .removingImport: "downloads.remove.title"
+        }
+    }
+
+    /// What the destructive button is called.
+    ///
+    /// Named for the act rather than for the screen it is on. *Remove download* under
+    /// *Stop this download?* would be the same mismatch one control further along.
+    var actionKey: LocalizedStringKey {
+        switch self {
+        case .stopping: "downloads.stop.confirm"
+        case .removing, .removingImport: "downloads.remove"
+        }
     }
 }
