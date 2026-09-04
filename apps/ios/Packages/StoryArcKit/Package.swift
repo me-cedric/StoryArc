@@ -112,7 +112,13 @@ let package = Package(
         ),
         // ADR-0006 names SwiftData here and Room on Android. The schema semantics
         // are shared; the implementations are not.
-        .target(name: "Persistence", dependencies: ["StoryArcCore"]),
+        // `Playback` because `SkipPreferences` stores a `SkipIntervals` — the value the
+        // listener configures and this target is the other half of. Declared rather than left
+        // to SwiftPM's implicit module search: `swift build` resolved it anyway and Xcode's
+        // explicit-module build did not, so `pnpm build:ios` failed on a clean checkout with
+        // "unable to resolve module dependency: 'Playback'" while `pnpm test:ios` passed. No
+        // cycle — `Playback` depends on `StoryArcCore` and nothing else.
+        .target(name: "Persistence", dependencies: ["StoryArcCore", "Playback"]),
         .target(name: "Catalogue", dependencies: ["StoryArcCore"]),
         .target(name: "Kavita", dependencies: ["StoryArcCore", "Catalogue"]),
         .target(

@@ -69,17 +69,12 @@ struct DetailHero: View {
             // The app's own placeholder, per the delta: legible, no colour derived from it,
             // and the title never rendered over an image that failed to load — because
             // there is no image here at all.
-            ZStack(alignment: .bottom) {
-                theme.palette.surfaceRaised
-                Image(systemName: "book.closed")
-                    .font(.system(size: 56))
-                    .foregroundStyle(theme.palette.textTertiary)
-                    .frame(maxHeight: .infinity)
-                Text(publication.format.displayName)
-                    .textRole(.caption)
-                    .foregroundStyle(theme.palette.textTertiary)
-                    .padding(.bottom, StoryArcSpace.sm)
-            }
+            //
+            // The glyph and the format were written out here, which is how this page came to
+            // give an *audiobook* a book: `book.closed` was hard-coded. ``CoverlessWell`` is
+            // the same two things chosen from the format, drawn on every surface that has a
+            // cover-shaped hole in it.
+            CoverlessWell(format: publication.format)
         }
     }
 }

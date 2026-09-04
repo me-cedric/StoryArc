@@ -16,9 +16,6 @@ struct CoverCell: View {
     @State private var restarting: Publication?
 
     @Environment(\.theme) private var theme
-    /// How large the reader has asked for text to be. Read for the coverless well only —
-    /// see ``coverlessWellDrawsTitle(at:)``; the column width is the grid's question.
-    @Environment(\.dynamicTypeSize) private var textSize
     /// A source coming back should not make a cover flick to full brightness — but a reader
     /// who asked for less motion gets the change with no crossfade at all.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -212,20 +209,15 @@ struct CoverCell: View {
                     .scaledToFit()
             }
         } else {
-            // A set title rather than an empty rectangle. A grid of publications with no
-            // cover art — and plenty of EPUBs carry none — was a wall of identical grey
-            // cards labelled with a format, which is the one thing every card in that wall
-            // had in common. The title is what tells them apart. The format stays, smaller,
-            // because it is still the answer to "why is there no picture".
+            // The shared well rather than an empty rectangle, and rather than this cell's
+            // own idea of one — see ``CoverlessWell``, which is in `DesignSystem` so that
+            // the publication page and the player draw the same thing.
             //
-            // The title at the reader's own size, and gone once that size is one this well
-            // cannot hold — never shrunk to fit. ``coverlessWellDrawsTitle(at:)`` carries
-            // the whole argument, and the caption below this cell is what keeps the title
-            // from being lost.
-            CoverlessWell(
-                title: publication.displayTitle,
-                format: publication.format.displayName
-            )
+            // It used to set the **title** into the well, which is what the September sweep
+            // found: `Foreign Codec` inside the well and `Foreign Codec` again in the caption
+            // eight points below it. The caption is where the title belongs on a shelf; what
+            // the well can say that the caption cannot is what kind of publication this is.
+            CoverlessWell(format: publication.format)
         }
     }
 

@@ -222,7 +222,7 @@ extension StoryArcApp {
         // lock screen showing a headphones symbol is the one place a listener looks for an
         // hour". Wired here rather than in `Playback`, which has no SwiftUI and must not.
         centre.onArtwork = { book in
-            PlayerArtworkImage.png(title: book.label.title)
+            PlayerArtworkImage.png(format: book.publication.format)
         }
     }
 

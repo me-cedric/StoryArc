@@ -1,58 +1,45 @@
 public import SwiftUI
 
+public import StoryArcCore
+
 internal import DesignSystem
 
-/// The player's artwork: the title set into a cover-shaped well.
+/// The player's artwork: the shared coverless well, at the player's own shape.
 ///
-/// `audio-playback`, *A publication with no cover*:
+/// `audio-playback`, *A publication with no cover*: the player "draws the same coverless
+/// treatment every other surface draws … rather than a generic glyph", and "the system's own
+/// media controls get that same artwork, because a lock screen showing a headphones symbol is
+/// the one place a listener looks for an hour".
 ///
-/// > **THEN** it draws the same coverless treatment every other surface draws — the title set
-/// > as artwork — rather than a generic glyph
-/// > **AND** the system's own media controls get that same artwork, because a lock screen
-/// > showing a headphones symbol is the one place a listener looks for an hour
+/// **It now literally is the same view.** `FullPlayerView` drew `Image(systemName:
+/// "headphones")` with a comment claiming it was "the same placeholder the library draws";
+/// that was replaced by a title set into a rounded rectangle here, which was a second
+/// implementation of the treatment rather than the treatment — the compromise
+/// `audiobooks-and-playback` §4.4b recorded, because ``CoverlessWell`` was in `LibraryFeature`
+/// and `Package.swift` forbids one feature depending on another. The well is in
+/// `DesignSystem` now, which `PlayerFeature` already depends on, so this file is a shape and
+/// nothing else.
 ///
-/// `FullPlayerView` drew `Image(systemName: "headphones")` and its own comment claimed that was
-/// "the same placeholder the library draws". **It was not** — the library draws `CoverlessWell`,
-/// which sets the title into the well — and the lock screen inherited the glyph.
+/// The glyph is chosen from the format rather than fixed, which is what makes the spec's
+/// "rather than a generic glyph" true of a read-aloud EPUB as well as of an M4B: the two are
+/// one player and two different things to look at.
 ///
-/// **Why this is not `CoverlessWell` itself, which would be better.** That view lives in
-/// `LibraryFeature`, and `Package.swift` records the rule it would break: "one module per
-/// screen area, and no feature depends on another". Its right home is `DesignSystem`, which
-/// both features already depend on and where the well would need no new module edge at all —
-/// that move is a follow-up, and until it happens this is the same treatment drawn where the
-/// player can reach it.
-///
-/// **One difference, and it is the well's own size that decides it.** `CoverlessWell` drops the
-/// title at an accessibility text size, because a `headline` in a 146 pt grid cell holds part of
-/// one word — `Broken Transfer` becomes `Bro…`, which identifies nothing. This well is 320 pt,
-/// more than twice as tall, and holds four lines of the largest accessibility size; and the one
-/// place the title cannot be dropped is the rendered image below, where a lock screen has no
-/// caption underneath it and no text size at all. So it is always drawn.
-///
-/// The format is not named here, which is `HomeArtwork`'s variant of the same well: "why is
-/// there no picture" is a question the publication's own page answers, and the player has room
-/// for the chapter instead.
+/// **A square rather than 2:3, and that is not a second treatment.** An audiobook's artwork is
+/// square everywhere a listener has seen one, and the rendered image below is what a lock
+/// screen and a car display are handed. The well fills whatever shape it is given and sizes
+/// its glyph off that shape, so the same view is right at 146 pt in a grid cell and at 320 pt
+/// here.
 public struct PlayerArtwork: View {
-    @Environment(\.theme) private var theme
+    private let format: PublicationFormat
 
-    private let title: String
-
-    public init(title: String) {
-        self.title = title
+    public init(format: PublicationFormat) {
+        self.format = format
     }
 
     public var body: some View {
-        RoundedRectangle(cornerRadius: StoryArcRadius.lg, style: .continuous)
-            .fill(theme.palette.surfaceRaised)
+        CoverlessWell(format: format)
             .aspectRatio(1, contentMode: .fit)
-            .overlay {
-                Text(title)
-                    .textRole(.headline)
-                    .foregroundStyle(theme.palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(4)
-                    .padding(StoryArcSpace.md)
-            }
+            .clipShape(.rect(cornerRadius: StoryArcRadius.lg, style: .continuous))
     }
 }
 
@@ -66,6 +53,10 @@ public struct PlayerArtwork: View {
 /// **Rendered from the same view the player draws**, rather than re-drawn in Core Graphics: a
 /// second implementation of the treatment is a second thing to keep in step, and the spec asks
 /// for "that same artwork" rather than a similar one.
+///
+/// The title is not in the picture and does not need to be: the lock screen sets
+/// `MPMediaItemPropertyTitle` beside the artwork, the same way every surface in the app states
+/// the title beside the well rather than inside it.
 @MainActor
 public enum PlayerArtworkImage {
 
@@ -78,7 +69,8 @@ public enum PlayerArtworkImage {
 
     /// The artwork for a publication with no cover of its own.
     ///
-    /// - Parameter title: what the well is set with.
+    /// - Parameter format: the publication's format, which chooses the glyph and names itself
+    ///   under it.
     ///
     /// **Drawn in the dark palette rather than the reader's, deliberately.** The system shows
     /// this over its own material, and an image that followed the app's appearance would have to
@@ -87,10 +79,10 @@ public enum PlayerArtworkImage {
     ///
     /// - Returns: PNG bytes, or `nil` where the renderer produced nothing — a `nil` the caller
     ///   publishes as *no artwork* rather than as a blank square.
-    public static func png(title: String) -> Data? {
+    public static func png(format: PublicationFormat) -> Data? {
         #if canImport(UIKit)
         let renderer = ImageRenderer(
-            content: PlayerArtwork(title: title)
+            content: PlayerArtwork(format: format)
                 .frame(width: side, height: side)
                 .environment(\.theme, Theme(palette: .dark))
         )

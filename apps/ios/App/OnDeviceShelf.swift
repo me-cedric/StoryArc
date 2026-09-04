@@ -185,10 +185,7 @@ private struct OnDeviceCover: View {
                 // Plenty of EPUBs carry no cover. Nothing caught this: the well is
                 // hidden from VoiceOver and the caption below carries the title, so the
                 // audit had no reason to look at it.
-                CoverlessWell(
-                    title: publication.displayTitle,
-                    format: publication.format.displayName
-                )
+                CoverlessWell(format: publication.format)
             }
         }
         .aspectRatio(2.0 / 3.0, contentMode: .fit)

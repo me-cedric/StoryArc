@@ -535,14 +535,15 @@ creep — see [`design.md`](design.md).
       no case composes it with null. The tick is a reading of two call sites, not a
       regression guard, and adding one belongs with `:core:designsystem`'s owner.
 - [~] 4.4b Both: a publication with no cover gets the **same coverless treatment every other
-      surface draws** — the title set as artwork — and so does the system's media controls.
+      surface draws** — the format's own symbol over the format's name — and so do the
+      system's media controls.
       From a design review on 2026-09-01: `FullPlayerView.swift:89` draws
       `Image(systemName: "headphones")`, and its own comment claims that is "the same
       placeholder the library draws", which is **wrong** — the library draws `CoverlessWell`.
       The player is the one surface a listener stares at for an hour, and the lock screen
       inherits whatever it uses.
-      **iOS done, and the misleading comment is gone with the glyph.** `PlayerArtwork` sets the
-      title into the well, and `PlayerArtworkImage.png` renders **that same view** at 512 square
+      **iOS done, and the misleading comment is gone with the glyph.** `PlayerArtwork` draws the
+      shared well, and `PlayerArtworkImage.png` renders **that same view** at 512 square
       for `MPMediaItemPropertyArtwork` — so the lock screen, Control Centre and a car display
       are given the picture the player draws rather than a second treatment that would have to
       be kept in step. `NowPlaying` caches it per book, because `publish()` runs four times a
@@ -550,19 +551,29 @@ creep — see [`design.md`](design.md).
       something that cannot have changed; the cache is cleared with the session so a second book
       cannot start under the first's cover. Bytes rather than an image across the seam, because
       `Playback` has no SwiftUI and must not — `Formats` depends on it for `AudiobookPart`.
-      **It is not `CoverlessWell` itself, and that is a compromise rather than a choice.** That
-      view lives in `LibraryFeature`, and `Package.swift` records the rule importing it would
-      break: "one module per screen area, and no feature depends on another". Its right home is
-      `DesignSystem`, which `LibraryFeature`, `PlayerFeature` and the app target **all already
-      depend on** — so the move needs no new module edge, only the file, its test, and one
-      `import` in `App/OnDeviceShelf.swift`. It was not done here because two other agents held
-      `LibraryFeature/**` and `DesignSystem/**` in the same wave. **Follow-up, and until it
-      happens there are two views drawing one treatment** — which is the drift
-      `CoverlessWell`'s own comment warns about at length.
-      One deliberate difference while they are apart: `CoverlessWell` drops the title at an
-      accessibility text size because a `headline` in a 146 pt grid cell holds part of one word,
-      and this well is 320 pt and holds four lines of the largest size. The rendered image must
-      draw it at any rate — a lock screen has no caption under it and no text size at all.
+      **The follow-up this task named is done on iOS, on 2026-09-04.** `CoverlessWell` is in
+      `DesignSystem` now — the move the paragraph below asked for, needing no new module edge —
+      and `PlayerArtwork` is a shape around it rather than a second implementation of it. The
+      two views are one view.
+      **And the treatment itself changed, which this task did not anticipate.** The September
+      sweep counted *three* fallbacks rather than two: the title on the shelf, a `book.closed`
+      glyph with the format on the publication page, and this well — "and an *audiobook* gets
+      the book glyph too". It also found the shelf's cell saying the title **twice**, once
+      inside the well and once in the caption eight points below it. That settles which of the
+      three the shared one should be: every surface that draws this well already states the
+      title beside it, so the title in the well was the caption repeated smaller, while the
+      *kind* of publication was said nowhere. The well now draws the format's own symbol over
+      the format's name, and `audio-playback`'s scenario is amended to say so — the clause it
+      used to carry, "the title set as artwork", is the treatment that was replaced.
+      Two things fall out of that and both are improvements: the lock screen stops being handed
+      a book for something a listener listens to, and the Dynamic Type rule this well needed
+      goes with the title. A format name is four to nine characters and wraps; a title is
+      neither, which is why it had to be dropped at an accessibility size and why the well drew
+      one thing at ordinary sizes and another at large ones.
+      The original argument for the title — "a wall of identical grey cards labelled with a
+      format has nothing in it that tells one book from another" — holds for the well
+      considered alone and not for the screens it is on. The caption is what tells them apart,
+      and it was always there.
       **Not done: a real cover.** Nothing extracts embedded artwork from an audiobook yet (4.5),
       and a read-aloud EPUB that *has* a cover still gets the coverless well here, because
       loading it needs the library's cover cache. No case is worse than the glyph it replaced.

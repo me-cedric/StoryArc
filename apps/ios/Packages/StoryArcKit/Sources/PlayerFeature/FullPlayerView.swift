@@ -91,16 +91,19 @@ public struct FullPlayerView: View {
     /// The artwork.
     ///
     /// No cover is read out of an audiobook yet — see `PublicationIndexer.audiobook` — so this
-    /// is the coverless treatment every other surface draws: **the title set as artwork**. It
-    /// drew `Image(systemName: "headphones")`, and the comment here claimed that was "the same
-    /// placeholder the library draws", which was wrong — see ``PlayerArtwork``, which is also
-    /// what the lock screen is given.
+    /// is the coverless treatment every other surface draws, and since the well moved to
+    /// `DesignSystem` it is the same view rather than a second one that resembles it. See
+    /// ``PlayerArtwork``, which is also what the lock screen is given.
+    @ViewBuilder
     private var cover: some View {
-        PlayerArtwork(title: centre.compact?.label.title ?? "")
-            .frame(maxWidth: 320)
-            // Decoration. The publication is named in words directly below, and a screen
-            // reader that stopped on a stand-in title first would hear it twice.
-            .accessibilityHidden(true)
+        if let format = centre.book?.publication.format {
+            PlayerArtwork(format: format)
+                .frame(maxWidth: 320)
+                // Decoration. The publication is named in words directly below, and a screen
+                // reader that stopped on the format first would hear the kind of thing before
+                // the thing.
+                .accessibilityHidden(true)
+        }
     }
 
     private var names: some View {

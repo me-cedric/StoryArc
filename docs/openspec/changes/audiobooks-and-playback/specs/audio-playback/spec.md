@@ -25,8 +25,9 @@ a reason to learn a second set of controls.
 
 #### Scenario: A publication with no cover
 - **WHEN** the player shows a publication the app holds no cover art for
-- **THEN** it draws the same coverless treatment every other surface draws — the title set as artwork — rather than a generic glyph
-- **AND** the system's own media controls get that same artwork, because a lock screen showing a headphones symbol is the one place a listener looks for an hour
+- **THEN** it draws the same coverless treatment every other surface draws — the publication's kind, as a symbol over the format's name — rather than one glyph for everything or a treatment of the player's own
+- **AND** the treatment does not repeat the publication's title, because every surface that draws this well states the title beside it and the lock screen states it too
+- **AND** the system's own media controls are given that same artwork rather than a second one, because the lock screen is where a listener looks for an hour
 
 #### Scenario: Both sources look the same
 - **WHEN** the player is driven by the read-aloud voice rather than by a narrated file
