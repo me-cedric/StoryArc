@@ -173,8 +173,8 @@ extension LibraryView {
                 ScanningView(state: model.scanState)
             } else if model.registry.sources.isEmpty {
                 EmptyLibraryView(
-                    openComic: { isImporting = true },
-                    addFolder: { isPickingFolder = true },
+                    openComic: { picking = .file },
+                    addFolder: { picking = .folder },
                     addCatalogue: { isAddingCatalogue = true },
                     addKavita: { isAddingKavita = true },
                     addShare: { isAddingShare = true }
@@ -188,7 +188,7 @@ extension LibraryView {
                 LibraryAway(
                     isEverythingAway: LibraryAway.everythingAway(in: model.registry),
                     retry: retrySources,
-                    openComic: { isImporting = true }
+                    openComic: { picking = .file }
                 )
             }
         }

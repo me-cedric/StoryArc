@@ -35,8 +35,14 @@ public struct HomeScreen: View {
     private let onOpen: (Publication, URL) -> Void
     private let onOpenSettings: () -> Void
 
-    @State private var isImporting = false
-    @State private var isPickingFolder = false
+    /// Which local picker is up, if either.
+    ///
+    /// One optional rather than two booleans, for the reason ``LocalPick`` gives: this screen
+    /// declared a `fileImporter` for each and SwiftUI presents only the last one applied. Home
+    /// had them in the opposite order to the shelf, so the defect here was the mirror image —
+    /// *Add a folder* worked and *Open a comic* opened nothing, on the empty state a reader
+    /// with nothing configured lands on first.
+    @State private var picking: LocalPick?
 
     public init(
         model: LibraryModel,
@@ -74,8 +80,8 @@ public struct HomeScreen: View {
             Group {
                 if model.publications.isEmpty {
                     HomeEmpty(
-                        onOpenFile: { isImporting = true },
-                        onAddFolder: { isPickingFolder = true }
+                        onOpenFile: { picking = .file },
+                        onAddFolder: { picking = .folder }
                     )
                 } else {
                     surface
@@ -117,18 +123,10 @@ public struct HomeScreen: View {
             .onChange(of: model.scanState) { _, state in
                 if case .finished = state { Task { await model.refreshProgress() } }
             }
-            .importingPublications(into: model, isPresented: $isImporting)
-            // `local-library`: a folder picked here is reachable again after a restart,
-            // which is what the security-scoped bookmark in the model is for.
-            .fileImporter(
-                isPresented: $isPickingFolder,
-                allowedContentTypes: [.folder],
-                allowsMultipleSelection: false
-            ) { result in
-                if case let .success(urls) = result, let folder = urls.first {
-                    model.addFolder(folder)
-                }
-            }
+            // `local-library`, both halves, through one presentation — see
+            // ``LocalPickerTests``. A folder picked here is reachable again after a restart,
+            // and a file handed over is copied into storage the app owns.
+            .pickingLocalLibrary(into: model, pick: $picking)
         }
     }
 

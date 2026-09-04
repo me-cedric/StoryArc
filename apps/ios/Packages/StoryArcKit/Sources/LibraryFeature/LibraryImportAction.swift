@@ -26,19 +26,71 @@ struct ImportPublicationButton: View {
     }
 }
 
+/// Which of the two local pickers a reader asked for.
+///
+/// **One value where there were two booleans, and that is the whole fix.** `isPickingFolder`
+/// and `isImporting` each drove a `fileImporter` of its own, both applied to
+/// ``LibraryView``'s body — and SwiftUI presents only the **last** such modifier applied,
+/// silently. The folder picker was declared first, so *Add a folder* opened nothing on a
+/// device while *Open a file* directly below it worked; see ``LocalPickerTests`` for how that
+/// was isolated. Two booleans can express "both at once", which is not a state the screen has
+/// or wants; one optional cannot.
+enum LocalPick: String, Identifiable, CaseIterable {
+    /// A folder the reader keeps, watched where it lies.
+    case folder
+    /// A file handed over to be copied into storage the app owns.
+    case file
+
+    var id: String { rawValue }
+
+    /// What the system browser is allowed to offer.
+    ///
+    /// The two sets are disjoint on purpose: a picker that offered both would let a reader
+    /// answer "add a folder" with a comic, and the two land in different places —
+    /// ``LibraryModel/addFolder(_:)`` remembers where a folder *is*, while
+    /// ``LibraryModel/importFile(_:)`` copies bytes the app then owns.
+    var contentTypes: [UTType] {
+        switch self {
+        case .folder: [.folder]
+        case .file: ImportableTypes.all
+        }
+    }
+}
+
 extension View {
-    /// Presents the picker for an import and says what happened when it did not work.
-    func importingPublications(
+    /// Presents the one document picker this screen has, and says what happened when an
+    /// import did not work.
+    ///
+    /// One `fileImporter`, told what to offer by ``LocalPick``, rather than one per kind.
+    /// Ordering is not the fix: an order is a thing the next edit re-shuffles without knowing
+    /// it was load-bearing, and no gate in this repository can see a presentation that was
+    /// dropped. A single presentation cannot be shadowed by a sibling that does not exist.
+    func pickingLocalLibrary(
         into model: LibraryModel,
-        isPresented: Binding<Bool>
+        pick: Binding<LocalPick?>
     ) -> some View {
         fileImporter(
-            isPresented: isPresented,
-            allowedContentTypes: ImportableTypes.all,
+            isPresented: Binding(
+                get: { pick.wrappedValue != nil },
+                set: { if !$0 { pick.wrappedValue = nil } }
+            ),
+            // Read in the same body pass that turns the presentation on, because the caller
+            // sets the pick and the flag with one assignment. The fallback is never the value
+            // the picker opens with — it is what the modifier reads while nothing is up.
+            allowedContentTypes: pick.wrappedValue?.contentTypes ?? ImportableTypes.all,
             allowsMultipleSelection: false
         ) { result in
-            guard case let .success(urls) = result, let file = urls.first else { return }
-            Task { await model.importFile(file) }
+            // Read before the sheet's dismissal clears it: `onCompletion` runs while the
+            // pick is still set, and routing on it is what keeps one presentation honest
+            // about which of the two questions it asked.
+            let asked = pick.wrappedValue
+            guard case let .success(urls) = result, let url = urls.first else { return }
+            switch asked {
+            case .folder: model.addFolder(url)
+            // `.file`, and also a completion that somehow outlived the pick: copying is the
+            // safe answer of the two, since it never adopts a directory as a library.
+            case .file, nil: Task { await model.importFile(url) }
+            }
         }
         .alert(
             Text("library.import.failed.title", bundle: .module),

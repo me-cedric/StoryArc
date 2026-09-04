@@ -23,8 +23,13 @@ public struct LibraryView: View {
     // states live in `LibraryContent.swift`, and `private` does not reach across a file.
     // Internal, not public: nothing outside this module can see them.
     @Environment(\.theme) var theme
-    @State var isPickingFolder = false
-    @State var isImporting = false
+    /// Which local picker is up, if either.
+    ///
+    /// One optional rather than the two booleans this replaced. Those declared a
+    /// `fileImporter` each, both on the body below, and SwiftUI presents only the last such
+    /// modifier applied — so *Add a folder* silently opened nothing. ``LocalPick`` and
+    /// ``LocalPickerTests`` carry the rest of that story.
+    @State var picking: LocalPick?
     @State var isAddingCatalogue = false
     @State var isAddingKavita = false
     @State var isAddingShare = false
@@ -60,14 +65,6 @@ public struct LibraryView: View {
     /// is why it is stored rather than held in `@State`.
     @AppStorage(LibraryAvailability.searchScopeKey)
     var searchScope: LibraryAvailability = .everywhere
-
-    /// Whether the file picker is open for an import.
-    ///
-    /// The empty states offer "Open a comic" as their primary action — two taps to a
-    /// readable page with nothing configured — and until this existed the library had no
-    /// way to present the picker that does it. Home had one; the shelf did not, so the same
-    /// offer could not be made on the destination a reader lands on when the library is
-    /// what is empty.
 
     /// The catalogue being browsed, by identifier.
     ///
@@ -201,21 +198,17 @@ public struct LibraryView: View {
         }
         // The shelf, asked for by name.
         .onChange(of: showLibrary) { _, _ in browsing = nil }
-        // `local-library`: a folder picked here is reachable again after a restart,
-        // which is what the security-scoped bookmark in the model is for.
-        .fileImporter(
-            isPresented: $isPickingFolder,
-            allowedContentTypes: [.folder],
-            allowsMultipleSelection: false
-        ) { result in
-            if case let .success(urls) = result, let folder = urls.first {
-                model.addFolder(folder)
-            }
-        }
-        // `local-library`: a file brought in from elsewhere is copied into storage the app
-        // owns, and a refusal names the file. Written, translated, and reachable from
-        // nothing until the add menu that offers it was finally the one on screen.
-        .importingPublications(into: model, isPresented: $isImporting)
+        // `local-library`, both halves, through one presentation: a folder picked here is
+        // reachable again after a restart — the security-scoped bookmark in the model — and a
+        // file brought in from elsewhere is copied into storage the app owns, with a refusal
+        // that names it.
+        //
+        // **One, because two did not work.** This was a `.fileImporter` for folders and a
+        // `.importingPublications` for files, stacked on this same view, and SwiftUI presented
+        // only the lower of the two. *Add a folder* therefore opened nothing on a device while
+        // *Open a file* worked, which is the shape the 2026-09-02 sweep photographed by
+        // failing to. ``LocalPickerTests`` counts the presentations so it cannot come back.
+        .pickingLocalLibrary(into: model, pick: $picking)
         .sheet(isPresented: $isAddingCatalogue) {
             CatalogueSheet(connection: catalogue) { model.add($0) }
         }
@@ -343,7 +336,7 @@ public struct LibraryView: View {
                 } else if let missing = model.unavailableFolders.first {
                     // Named, per `local-library`. "A folder is no longer available"
                     // sends someone hunting through four of them.
-                    UnavailableFolderNotice(name: missing) { isPickingFolder = true }
+                    UnavailableFolderNotice(name: missing) { picking = .folder }
                 } else if let cachedAt = model.cachedAt {
                     // Last, because it is the quietest thing this strip has to say: a
                     // selection in progress or a folder that has gone missing both need the

@@ -125,8 +125,8 @@ extension LibraryView {
             SearchAtRest(
                 model: model,
                 scope: $searchScope,
-                addFolder: { isPickingFolder = true },
-                importFile: { isImporting = true },
+                addFolder: { picking = .folder },
+                importFile: { picking = .file },
                 addCatalogue: { isAddingCatalogue = true },
                 addKavita: { isAddingKavita = true },
                 addShare: { isAddingShare = true }
