@@ -50,8 +50,8 @@ line is a third and wraps rather than truncating.
 
 ## Storage says what it is about
 
-`ios-settings-root.png`, `ios-settings-downloads.png`, `ios-settings-privacy.png`, and the
-`-dark` pair of the first two.
+`ios-settings-root.png`, `ios-settings-downloads.png`, `ios-settings-privacy.png`, and each
+one's `-dark` counterpart.
 
 The sweep found Settings' root saying *Downloads and storage — Nothing on this device* and its
 own screen *Space used — Zero kB*, while the Downloads destination listed nine publications
@@ -84,9 +84,10 @@ screens followed it; they did not.
 screen, `SettingsFeature/SourceDetail.swift:41`. That file belonged to another agent this
 wave.
 
-## What is not here
+## A note on the device, for whoever captures here next
 
-`ios-settings-privacy-dark.png`. Three attempts crashed with `signal kill` while another
-agent's UI test held the same simulator — the interference `AGENTS.md` §6 and the sweep both
-warn about, not anything about this screen. The light frame is above and the dark row is
-unchanged by this work: `privacy.downloads` already used the helper's formatting.
+`ios-settings-privacy-dark.png` took five attempts. Three died with `Test crashed with signal
+kill` and one with "Tapping Settings did not open a screen headed Settings" — every one of
+them while another agent's UI test held `StoryArc-iPhone17Pro`, which `pgrep` showed and the
+failure messages did not. It is the interference `AGENTS.md` §6 warns about, and it looks
+exactly like a defect in the screen under test. Wait for the device; do not read the noise.
