@@ -30,6 +30,7 @@ picked.
 #### Scenario: Nothing chosen yet
 - **WHEN** the mode has just been entered and nothing is selected
 - **THEN** the actions are present and inert rather than absent
+- **AND** an inert action is **drawn** inert, so a reader can tell it apart from a live one without pressing it
 - **AND** entering or leaving the mode does not move the content under a reader's thumb mid-gesture
 
 #### Scenario: Each platform's own form

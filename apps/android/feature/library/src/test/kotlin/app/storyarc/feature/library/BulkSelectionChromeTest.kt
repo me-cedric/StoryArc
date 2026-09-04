@@ -1,11 +1,13 @@
 package app.storyarc.feature.library
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -19,6 +21,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
@@ -61,6 +64,7 @@ import java.io.File
 // module's target. 34 is inside its range and above the minimum this app supports, and none
 // of the questions here has an API level in it.
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BulkSelectionChromeTest {
 
     @get:Rule
@@ -113,6 +117,72 @@ class BulkSelectionChromeTest {
             assertTrue("the count string for $count is empty", says.isNotBlank())
             compose.onNodeWithText(says).assertIsDisplayed()
         }
+    }
+
+    /**
+     * An inert action is **drawn** inert, which asserting `enabled` does not establish.
+     *
+     * `assertIsNotEnabled` reads the semantics tree: it says the node will refuse a tap. It
+     * says nothing about a single pixel, and for a while nothing was true about the pixels.
+     * Each `Icon` passed `tint = palette.accent`, and an `IconButton` shows a disabled child
+     * by lowering `LocalContentColor` — which an explicitly-tinted `Icon` never reads. So
+     * `enabled = false` changed the semantics and changed nothing a reader could see:
+     * cropping the action region out of the nought-picked and two-picked captures of
+     * 2026-09-04 gave **byte-identical** PNGs.
+     *
+     * That matters because §3b.4 chose shown-and-inert over hidden, and its whole argument is
+     * that a shown capsule "says what the mode is for before anything is picked". A control
+     * that says it is available and is not says something worse than nothing.
+     *
+     * **A rendered-pixel assertion, because every source-text guard in this file would have
+     * passed.** The defect was a colour that arrived by the wrong route, not a modifier that
+     * was missing — and its iOS twin went unnoticed for the same reason until a screenshot
+     * caught it. Robolectric in `NATIVE` graphics mode can rasterise a node, which
+     * `SliderTrackTouchesItsThumbTest` already relies on, so this runs in CI with no device.
+     */
+    @Test
+    fun `a disabled action is drawn differently from a live one`() {
+        val state = mutableStateOf(picking(0))
+        lateinit var downloadLabel: String
+        compose.setContent {
+            StoryArcTheme {
+                downloadLabel = stringResource(R.string.library_bulk_download)
+                LibrarySelectionTopBar(
+                    selection = state.value,
+                    onSelectionChange = {},
+                    onAddToShelf = {},
+                    onDownload = {},
+                    onMarkRead = {},
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        val inert = compose.onNodeWithContentDescription(downloadLabel)
+            .captureToImage().toPixelMap()
+        state.value = picking(2)
+        compose.waitForIdle()
+        val live = compose.onNodeWithContentDescription(downloadLabel)
+            .captureToImage().toPixelMap()
+
+        assertEquals("the two captures are different sizes", inert.width, live.width)
+        assertEquals("the two captures are different sizes", inert.height, live.height)
+        var differing = 0
+        for (y in 0 until inert.height) {
+            for (x in 0 until inert.width) {
+                if (inert[x, y] != live[x, y]) differing += 1
+            }
+        }
+        // A threshold rather than "any difference at all": a single anti-aliased pixel is
+        // noise, and the claim is that a reader can tell the two apart. The glyph's own
+        // strokes are a few per cent of the node's box, so one per cent is comfortably below
+        // a real dimming and far above a stray blend.
+        val total = inert.width * inert.height
+        assertTrue(
+            "the inert download action is drawn identically to the live one: " +
+                "$differing of $total pixels differ",
+            differing > total / 100,
+        )
     }
 
     /**

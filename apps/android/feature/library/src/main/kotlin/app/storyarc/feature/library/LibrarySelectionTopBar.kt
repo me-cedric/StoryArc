@@ -12,6 +12,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -109,6 +110,8 @@ internal fun LibrarySelectionTopBar(
             titleContentColor = palette.textPrimary,
         ),
         navigationIcon = {
+            // The one control that is never disabled, so an explicit tint is safe here and
+            // only here. The way out of a mode does not dim.
             IconButton(onClick = { onSelectionChange(selection.end()) }) {
                 Icon(
                     imageVector = Icons.Filled.Close,
@@ -118,18 +121,39 @@ internal fun LibrarySelectionTopBar(
             }
         },
         actions = {
-            IconButton(onClick = onDownload, enabled = enabled) {
+            // **The accent arrives as the button's content colour, not as the icon's tint.**
+            // These three carry `enabled`, and an `IconButton` shows a disabled child by
+            // lowering `LocalContentColor` — which an `Icon` that passes `tint = palette.accent`
+            // never reads. So `enabled = false` dimmed nothing: cropping the action region from
+            // the nought-picked and two-picked captures of 2026-09-04 gave **byte-identical**
+            // PNGs, and a reader saw three controls drawn exactly as live as the live ones,
+            // two of which do nothing.
+            //
+            // `iconButtonColors(contentColor:)` hands the dimming back to Material, which
+            // derives the disabled colour from the one given rather than from a hard-coded
+            // alpha of ours — so the accent still leads and the disabled treatment stays
+            // whatever the platform's current answer is. iOS had the same defect from the
+            // mirror-image cause: an explicit `foregroundStyle` there overriding the dimming
+            // `.disabled` applies. Same rule, both platforms: state the colour where the
+            // control can still take it away.
+            IconButton(
+                onClick = onDownload,
+                enabled = enabled,
+                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.accent),
+            ) {
                 Icon(
                     imageVector = Icons.Filled.Download,
                     contentDescription = stringResource(R.string.library_bulk_download),
-                    tint = palette.accent,
                 )
             }
-            IconButton(onClick = onMarkRead, enabled = enabled) {
+            IconButton(
+                onClick = onMarkRead,
+                enabled = enabled,
+                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.accent),
+            ) {
                 Icon(
                     imageVector = Icons.Filled.CheckCircle,
                     contentDescription = stringResource(R.string.library_mark_read),
-                    tint = palette.accent,
                 )
             }
             SelectionOverflowMenu(enabled = enabled, onAddToShelf = onAddToShelf)
@@ -154,11 +178,14 @@ private fun SelectionOverflowMenu(
     val palette = LocalStoryArcPalette.current
     var open by remember { mutableStateOf(false) }
 
-    IconButton(onClick = { open = true }, enabled = enabled) {
+    IconButton(
+        onClick = { open = true },
+        enabled = enabled,
+        colors = IconButtonDefaults.iconButtonColors(contentColor = palette.accent),
+    ) {
         Icon(
             imageVector = Icons.Filled.MoreVert,
             contentDescription = stringResource(R.string.library_more),
-            tint = palette.accent,
         )
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
