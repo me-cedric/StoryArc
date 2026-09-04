@@ -158,10 +158,26 @@ class AppIconManifestTest {
                 "name=\"$plate\"" in colours,
             )
             // The mark, and the reason "faces of one mark" is more than a slogan: every face
-            // draws generated art rather than art of its own.
-            assertTrue(
-                "$icon.xml draws a foreground the brand generator did not write",
-                "@drawable/ic_launcher_foreground" in xml || "@drawable/ic_launcher_monochrome" in xml,
+            // draws generated art rather than art of its own — and each face draws the *right*
+            // one of the two drawables the generator writes.
+            //
+            // **The disjunction that stood here asserted nothing.** Every one of these files
+            // carries the `<monochrome>` line checked below, so the
+            // `"@drawable/ic_launcher_monochrome" in xml` half was satisfied by that layer for
+            // all five faces — however the `<foreground>` was written, and whether it was
+            // written at all. Mono is the one face whose *coloured* layer is the flat art, which
+            // is what makes it a face rather than only a layer; the other four must point theirs
+            // at the gradient art, or a face would silently ship Mono's mark on its own plate.
+            val foreground = Regex("<foreground android:drawable=\"@drawable/([A-Za-z0-9_]+)\"")
+                .find(xml)
+                ?.groupValues
+                ?.get(1)
+            val wantedForeground =
+                if (face == AppIconChoice.MONO) "ic_launcher_monochrome" else "ic_launcher_foreground"
+            assertEquals(
+                "$icon.xml draws the wrong <foreground> for $face",
+                wantedForeground,
+                foreground,
             )
             // A themed icon retints the monochrome layer, and a gradient tinted flat loses the
             // mark's internal divisions. Task 4.2 is why every face points at the flat art.
