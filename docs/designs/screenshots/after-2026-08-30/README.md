@@ -1,54 +1,62 @@
-# The UI revamp, photographed — 2026-08-30
+# The publication page, 2026-08-30
 
-138 captures, 90 iOS and 48 Android, taken as the slices of
-[`ui-revamp-2026-08.md`](../../ui-revamp-2026-08.md) landed over one day. Its companion is
-`before-2026-08-30/`, which holds the same screens as they were before the revamp began.
+**This README covers the `*-detail-*` captures in this directory and nothing else.** The
+folder holds 139 files from several slices of that day's wave; the rest are still identified
+by filename alone, which is a gap `publication-detail` task 5.5 records and does not close.
 
-This README was written a day later, because the directory did not have one and its two
-siblings did — so 138 files were identified by filename alone, and one convention in those
-filenames is genuinely ambiguous. That is recorded below rather than left to be rediscovered.
+The reason these needed writing down: four of them are read as *increased contrast* by
+convention, and until now nothing outside a commit message said so. A filename that means one
+thing to the person who typed it and another to the next reader is not evidence.
 
-## How they were taken
+## iOS — `ios-detail-*`, from `82ad1d92`
 
-iOS: a booted iPhone 17 Pro or iPad Pro 13-inch simulator, `xcrun simctl io booted
-screenshot`. Android: an emulator at 1080 × 2400, `adb exec-out screencap -p`. Appearance
-and text size were set with `xcrun simctl ui` and `adb shell settings put system font_scale`
-respectively — never by driving the Settings app, so nothing was measured at the default
-size first.
+Booted iPhone 17 Pro and iPad simulators, StoryArc built from `main`. The source commit
+records the conditions: "iPhone and iPad, light and dark, largest text, increased contrast, a
+publication with no series or year, and one with no cover at all". Each screen is two files —
+`-top` and `-foot` — because the page is taller than the window.
 
-## The naming convention
+| Files | What is set | What it shows |
+| --- | --- | --- |
+| `ios-detail-iphone-{light,dark}-{top,foot}` | Default text size | The ordinary page. *The Ridge Road*, `Ashfall #1`, a red cover, one `Read` button and the overflow beside it. |
+| `ios-detail-iphone-{light,dark}-ax5-{top,foot}` | Largest text size | The same page at AX5. |
+| `ios-detail-iphone-contrast-{light,dark}-{top,foot}` | **Increase Contrast on**, default text size | The wash is **gone**, not softened. |
+| `ios-detail-iphone-bare-{light,dark}-{top,foot}` | Default | A publication with no series and no year — the lines are absent rather than empty. |
+| `ios-detail-iphone-nocover-dark-{top,foot}` | Dark | A publication with no cover: the placeholder well, and no derived colour taken from it. |
+| `ios-detail-ipad-{light,dark}-{top,foot}` | Default | The same page on iPad, with the content capped to a measure. |
 
-`<platform>-<subject>-<state>-<appearance>[-<text size>].png`
+### What the contrast pair actually proves, read off the pixels
 
-- **platform** — `ios` or `android`.
-- **subject** — what screen it is. The 16 subjects here, by count: `detail` 27, `shell` 18,
-  `library` 16, `home` 15, `search` 13, `shelves` 10, `downloads` 9, `iphone` 7, `ipad` 7,
-  `shelf` 5, `phone` 4, `type` 2, `cover` 2, and one each of `wave3`, `settings`, `firstrun`.
-- **state** — what is being shown: `empty`, `hero`, `two-panes`, `no-history`, `up-next`,
-  `overflow`, `late-and-silent`, and so on. This is the part that carries the meaning, and
-  it is the part a reader has to guess at without this file.
-- **appearance** — `light` or `dark`. Absent where the capture is of a control or a menu
-  whose appearance is not the point.
-- **text size** — `largest-text`, `ax5` (iOS's `accessibility-extra-extra-extra-large`),
-  `ax3`, or `scale2` (Android's `font_scale 2.0`). Absent means the default size.
+`publication-detail` requires the wash "replaced by a plain surface rather than being
+softened", and this is the pair that shows it. Compare
+`ios-detail-iphone-light-top` against `ios-detail-iphone-contrast-light-top` — the same
+device, the same publication, four minutes apart (21:12 against 21:08 on the status bar):
 
-## One ambiguity worth naming
+- **Without the setting**, the page ground is a pink wash pulled out of the red cover. It is
+  strongest behind the artwork and falls away toward the description.
+- **With it**, the ground is the palette's plain light surface, edge to edge. Not a paler
+  wash — no wash. The dark pair is the same story against near-black.
+- **And the platform's own increased-contrast treatment is visible beside it**: the cover, the
+  `Read` button and the overflow circle all gain a hairline border that the plain captures do
+  not have. That border is the control. A screenshot of a neutral page proves nothing on its
+  own — the app might simply have had no cover to sample — and the borders are what say the
+  setting was on when the shutter fired.
 
-**`ios-detail-iphone-contrast-{light,dark}-{top,foot}`** reads as *increased contrast* by
-convention alone — nothing in the name says so, and `contrast` could as easily have meant a
-contrast *measurement*. They are the publication page under **Increase Contrast**, which is
-one of the two settings `storyArcGlass` falls back to an opaque surface for. Its sibling
-`ios-detail-iphone-bare-*` is a publication with no series, no year and no description; and
-`ios-detail-iphone-nocover-*` is one with no cover art.
+## Android — `android-detail-*`, from `a836e8a2`
 
-**`-top` and `-foot`** are the same screen scrolled to each end, not two different screens.
-The publication page is taller than a phone, and the wash, the hero and the title block are
-at one end while the actions, the description and the series shelf are at the other.
+`android-detail-overflow`, `android-detail-phone-{dark,light}`,
+`android-detail-provenance-and-series`, `android-detail-tablet-two-panes`.
 
-## What this set does not contain
+**The source commit recorded no conditions beyond its subject line**, so the appearance in the
+two `phone-` files is taken from their filenames and the rest are unkeyed. Nothing here is
+keyed to a text size, and none of the five is keyed to the three states — a downloaded local
+publication, a cached remote one, one whose source is unreachable — that tasks 2.1 and 2.2
+ask for. Those captures are still owed on both platforms.
 
-Nothing from the reader, and nothing of the accessibility audit — both of which were only
-reachable a day later, once the UI-test target could be built at all. See
-`after-2026-08-31/` for those, and for the before/after pairs of the defects these captures
-turned out to be hiding in plain sight: a caption printing its title twice, and a
-fixed-layout book that could not be opened.
+## Still owed, and not in this directory
+
+Increased contrast is captured on iOS only; **Android's high-contrast branch has no capture at
+all**, and **reduced transparency is captured nowhere on either platform** — a `find` under
+`docs/designs/screenshots/` for `*transp*` and `*reduce*` returns nothing. The Android half is
+answered rather than missing: `DetailAccent.kt` returns no accent under `rememberHighContrast`
+and the platform ships no transparency switch, which the delta now carries as a clause rather
+than leaving in a code comment. The picture of it is still owed.

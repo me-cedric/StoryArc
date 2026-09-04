@@ -147,6 +147,7 @@ tokens rather than used as it comes out of the image.
 - **WHEN** the system asks for increased contrast or reduced transparency
 - **THEN** the wash is replaced by a plain surface rather than being softened
 - **AND** nothing on the page depends on the wash to be readable or to be found
+- **AND** where a platform offers only one of the two settings, that one answers the whole scenario and the app does not invent the other: Android ships contrast stops and no transparency switch, so its contrast branch is the whole of its obligation here
 
 ### Requirement: The page on a large screen
 

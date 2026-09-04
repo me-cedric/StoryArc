@@ -296,7 +296,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       64x64 `Bitmap` through it and asserts the census size and the dominant colour — iOS's
       `samplesToTheGrid`, mirrored. The doc comment is corrected in the same pass, so the
       extractor suites are 14 against 14 rather than 14 against 13.
-- [ ] **1.4** Screenshot the wash under increased contrast and reduced
+- [~] **1.4** Screenshot the wash under increased contrast and reduced
       transparency, where the delta requires a plain surface rather than a softened
       one.
 
@@ -316,14 +316,51 @@ when a cover was the resume affordance. Whoever syncs should add a
       That is a reasoned divergence rather than an oversight, and it wants writing
       into the delta rather than leaving in a code comment.
 
-      **The captures are the reason this stays open.** Four files exist —
-      `after-2026-08-30/ios-detail-iphone-contrast-{light,dark}-{top,foot}.png` —
-      and **nothing in the repository says that "contrast" there means *increased*
-      contrast.** That directory has no README, unlike its two siblings, and no
-      markdown file mentions those filenames. Reduced transparency is captured
-      nowhere on either platform (`find` for `*transp*` and `*reduce*` under
-      `docs/designs/screenshots/` returns nothing), and Android's high-contrast
-      branch has no capture at all.
+      **Half done, 2026-09-05. The divergence is in the delta and the increased-contrast
+      captures are identified; two frames are still owed, and they are the whole of what keeps
+      this at a partial.**
+
+      **The delta carries it now.** `specs/publication-detail/spec.md`, *High contrast and
+      reduced transparency*, gained a fourth clause: where a platform offers only one of the
+      two settings that one answers the whole scenario and the app does not invent the other,
+      naming Android as the case. That was the half of this task that did not need a device,
+      and it was sitting in a code comment at `DetailAccent.kt:73-77`.
+
+      **The four contrast captures are identified, and they prove more than the task hoped
+      for.** `after-2026-08-30/README.md` is written — scoped to this change's `*-detail-*`
+      files, because identifying all 139 in that folder is 5.5's problem and not this one's.
+      One correction to the finding: *something* in the repository did say what "contrast"
+      meant, in `82ad1d92`'s own commit message — "iPhone and iPad, light and dark, largest
+      text, increased contrast" — which is a record no reader of a screenshot folder will ever
+      find. It is a file now.
+
+      And the pair is read off the pixels rather than taken on trust. Against
+      `ios-detail-iphone-light-top`, four minutes earlier on the same device, the contrast
+      capture's ground is the palette's plain surface edge to edge where the plain capture
+      carries a pink wash pulled from the red cover — **replaced, not softened**, which is the
+      clause. `AGENTS.md` §6 asks for a control on a capture that could look the same for a
+      boring reason, and there is one in the frame: the cover, the `Read` button and the
+      overflow circle all gain the platform's increased-contrast hairline border, which the
+      plain captures do not have. A neutral page alone would only prove the app had no cover
+      to sample.
+
+      **The two frames still owed, named exactly:**
+
+      1. **iOS, the page under Reduce Transparency**, light and dark, default text size, on a
+         publication *with* a decodable colour cover — `The Ridge Road` is the one every other
+         capture in that folder uses, so it is the control. It has to show the same plain
+         ground the contrast pair shows, since `DetailBackground.swift:53` folds both switches
+         into one `isPlain`. Walk: Settings ▸ Accessibility ▸ Display & Text Size ▸ Reduce
+         Transparency on, then Library ▸ tap the cover. Nothing under
+         `docs/designs/screenshots/` matches `*transp*` or `*reduce*`.
+      2. **Android, the page under Increase Contrast**, light and dark, default text size, same
+         publication. It has to show `palette.surfaceSunken` in the hero rather than the
+         cover's wash — `DetailAccent.kt:84-87` returning null through
+         `rememberHighContrast()`. Walk: `pnpm capture:android` to the publication page with
+         the high-contrast stop set. Android's high-contrast branch has no capture at all.
+
+      There is no third frame for Android under reduced transparency, and that is the point of
+      the delta clause: the platform has no such setting to photograph.
 
 ## Phase 2 — The screen
 
