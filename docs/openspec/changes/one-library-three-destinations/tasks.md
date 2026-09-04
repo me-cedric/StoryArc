@@ -154,7 +154,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       in any `build.gradle.kts`, so every one is a deliberate per-file annotation.
       **To close this:** produce the graph, and either re-scope the containment
       promise or correct `Panes.kt:17`.
-- [ ] **0.3** Confirm the availability projection can be computed from the
+- [x] **0.3** Confirm the availability projection can be computed from the
       download record plus the local-file case for every source type, with no
       source consulted. Deliverable: a host unit test that answers it for one
       publication of each type with the network off.
@@ -176,6 +176,37 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `LibraryMarksTest.kt:183` loops all four kinds but only for the *Connecting*
       case. Add a `localFolder` case on iOS and `networkShare` + `opdsCatalog` cases
       on Android and this closes.
+
+      *Done, 2026-09-05.* One test per platform, each looping all four `SourceKind`
+      values so a fifth kind cannot be added without answering here.
+      `Tests/LibraryFeatureTests/LibraryAvailabilityTests.swift` — *"Every source kind
+      is answered from the download record alone, none of them asked"* — asserts for
+      every kind that bytes on the device outrank a downed library, that no bytes plus
+      a downed library is not readable, and that a reachable library's publications
+      are. `feature/library/src/test/…/LibraryAvailabilityTest.kt` — *"every source
+      kind is answered from the shelf alone, none of them asked"* — asserts the
+      Android rule, which is the different one: only `LOCAL_FOLDER` can answer no, and
+      it does so only when the system withdrew the persisted permission. Both
+      registries are in memory and neither implementation has a call that could reach
+      a source, which is what "with the network off" means here. 12 tests in the iOS
+      file, 8 in the Android one; `swift test --filter LibraryAvailabilityTests` and
+      `:feature:library:testDebugUnitTest --tests '*LibraryAvailabilityTest*'` both
+      green.
+
+      **Two claims in the audit above were wrong and are corrected here.** The iOS
+      implementation is `Sources/LibraryFeature/LibraryAvailability.swift`, not
+      `LibraryFeature/ScopeMenu.swift` — there is no file by that name in the package.
+      And the Android suite ran **7** tests before this task, not 5. Neither error
+      changed what was missing.
+
+      **What the two implementations do *not* share is worth recording.** iOS's
+      `isReadableNow` never reads `Source.kind` at all — location and state are the
+      whole answer — while Android's `isReadableOffline` branches on kind and returns
+      `true` unconditionally for the three network kinds. They agree on every case a
+      reader can produce because on Android a network row is on the shelf only if it
+      was downloaded; the divergence is in what each platform has to be told, not in
+      what a reader sees. Pinned from both sides now, so a change to either is a
+      failing test rather than a silent split.
 
 ## Phase 1 — The shells
 

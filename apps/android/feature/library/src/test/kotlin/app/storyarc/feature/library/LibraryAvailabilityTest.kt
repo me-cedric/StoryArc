@@ -78,6 +78,34 @@ class LibraryAvailabilityTest {
     }
 
     @Test
+    fun `every source kind is answered from the shelf alone, none of them asked`() {
+        // Task 0.3's deliverable: one publication of each of the four kinds, decided with
+        // no network. NETWORK_SHARE and OPDS_CATALOG were the two kinds this suite never
+        // named, and `isReadableOffline` branches on kind, so nothing else covered them.
+        //
+        // The rule under test: on Android every row is already a file, so only the one
+        // kind whose bytes the app can lose access to -- a picked folder whose persisted
+        // permission the system withdrew -- can answer no. A share, a catalogue and a
+        // server all reached the shelf by being downloaded, so a downed one changes
+        // nothing. The registry is in memory and no branch here can reach a source.
+        SourceKind.entries.forEach { kind ->
+            val down = source(kind, SourceConnectionState.Unreachable(sinceEpochMillis = 0L))
+            val up = source(kind, SourceConnectionState.Connected)
+            val registry = SourceRegistry(sources = listOf(down, up))
+
+            assertTrue(
+                "$kind: a reachable library's rows are on the device",
+                publication("Up", up.id).isReadableOffline(registry),
+            )
+            assertEquals(
+                "$kind: only a withdrawn folder permission can take a row off the device",
+                kind != SourceKind.LOCAL_FOLDER,
+                publication("Down", down.id).isReadableOffline(registry),
+            )
+        }
+    }
+
+    @Test
     fun `widening restores the whole shelf in the order it was in`() {
         val folder = source(
             SourceKind.LOCAL_FOLDER,

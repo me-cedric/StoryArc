@@ -153,6 +153,51 @@ struct UnreadableDimmingTests {
         )
     }
 
+    @Test("Every source kind is answered from the download record alone, none of them asked")
+    func everySourceKindIsAnsweredWithoutAsking() {
+        // Task 0.3's deliverable: one publication of each of the four kinds, decided with
+        // no network. `SourceKind.localFolder` was the one kind this suite never used, and
+        // it is the interesting one — on Android the kind changes the answer, and the
+        // reason it does not here is worth pinning rather than assuming. `isReadableNow`
+        // reads `location` and `Source.state`; it never touches `kind`, and no path out of
+        // it can reach a source. So a downed folder and a downed server agree, and so do a
+        // connected folder and a connected catalogue.
+        for kind in SourceKind.allCases {
+            var down = Source(displayName: "Down", kind: kind)
+            down.state = .unreachable(since: .now)
+            var up = Source(displayName: "Up", kind: kind)
+            up.state = .connected
+            let registry = SourceRegistry(sources: [down, up])
+
+            // Bytes on the device outrank whatever the library is doing, for every kind.
+            #expect(
+                LibraryAvailability.isReadableNow(
+                    publication(sourceID: down.id),
+                    location: URL(fileURLWithPath: "/comics/a.cbz"),
+                    registry: registry
+                ),
+                "\(kind.rawValue): a downloaded publication is readable with the library down"
+            )
+            // And with no bytes, the library's state is the whole answer — for every kind.
+            #expect(
+                !LibraryAvailability.isReadableNow(
+                    publication(sourceID: down.id),
+                    location: nil,
+                    registry: registry
+                ),
+                "\(kind.rawValue): nothing on the device and a downed library is not readable"
+            )
+            #expect(
+                LibraryAvailability.isReadableNow(
+                    publication(sourceID: up.id),
+                    location: nil,
+                    registry: registry
+                ),
+                "\(kind.rawValue): a reachable library's publications are readable"
+            )
+        }
+    }
+
     @Test("Being unreadable never removes a publication from what the shelf lists")
     func dimmingIsNotAFilter() {
         // The requirement's own sentence: "it is never removed from the shelf, because a
