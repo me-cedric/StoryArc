@@ -41,4 +41,5 @@ picked.
 #### Scenario: Every action names itself
 - **WHEN** assistive technology reaches an action in the mode
 - **THEN** it is announced by name whatever the action draws
-- **AND** an action drawn as a glyph alone is one whose meaning the platform already establishes, not one chosen to save room
+- **AND** an action drawn as a glyph alone is one whose meaning the platform already establishes **on this screen** — a mark another control in the same frame already uses for something else is not established here, whatever it means elsewhere
+- **AND** where the width will not hold a name, the action moves into a named menu rather than being reduced to a glyph a reader cannot read, so narrowing costs a reader taps and never meaning

@@ -112,84 +112,63 @@ struct BulkActionBar: View {
         }
     }
 
-    /// The three actions, named wherever the width allows.
+    /// The actions, and the width at which each gives up its word.
     ///
-    /// **Icon-only is what a design review objected to**, and the library's toolbar was cut
-    /// from six unlabelled glyphs to two controls and two *named* menus the day before this;
-    /// three bare glyphs here would repeat the mistake one surface over. So `ViewThatFits`
-    /// offers the named row first and falls back to glyphs only at a width that cannot hold
-    /// the names. The name survives the fallback either way: a `Label` keeps its title as its
-    /// accessibility label whatever the label style draws, which is exactly why these are
-    /// `Label`s rather than bare `Image`s.
+    /// **The old design offered one row twice — every name or no name — and a phone always got
+    /// no name.** Three names at `.controlSize(.large)` need more than the 338 pt this capsule
+    /// is offered (402 − 2 × gutter − 2 × md), so `ViewThatFits` took the `.iconOnly` branch at
+    /// the **default** text size, not only at the accessibility sizes as the comment here used
+    /// to claim. Photographed on 2026-09-04: three bare glyphs in every frame. The library's
+    /// toolbar had been cut from six unlabelled glyphs to two controls and two named menus the
+    /// day before this shipped, and this surface quietly put three back one screen over.
     ///
-    /// **On a phone the fallback is always taken, and this comment claimed it was taken only
-    /// at the accessibility text sizes.** Photographed on 2026-09-04: every frame in
-    /// `docs/designs/screenshots/ios-selection-chrome-2026-09-04/` shows three bare glyphs,
-    /// at the **default** size as well as at `AccessibilityXXXL`. The arithmetic says why —
-    /// a 402 pt window leaves the capsule 402 − 2×20 − 2×12 = 338 pt, and three names at
-    /// `.controlSize(.large)` need more than that. So the named row is a wider-window
-    /// affordance, not an accessibility one, and the objection this comment answers is
-    /// answered on a phone by the accessibility label rather than by drawn text.
+    /// It also broke a sentence this change had already written. `native-experience`'s *Every
+    /// action names itself* requires that a glyph standing alone be "one whose meaning the
+    /// platform already establishes, **not one chosen to save room**" — and a `ViewThatFits`
+    /// fallback is a room-saving mechanism by construction. Two of the three glyphs failed the
+    /// first half as well; see ``markRead`` and ``more``.
     ///
-    /// **The declaration is what `BulkSelectionChromeTests` can see, not the branch.** It
-    /// greps for `.titleAndIcon`, which proves the named row is offered and cannot prove
-    /// which of the two a device picks — that took a screenshot, and it is why the assertion
-    /// and the captures are both required rather than either standing alone.
+    /// So the tiers degrade by *control* rather than by label style, and no tier draws a glyph
+    /// that is not established on this screen:
+    ///
+    /// | tier | draws | taken at |
+    /// | --- | --- | --- |
+    /// | 1 | `⬇ Download`  `✓ Mark as read`  `⋯` | wide windows and iPad |
+    /// | 2 | `⬇`  `✓ Mark as read`  `⋯` | a phone at the default size, in all four languages |
+    /// | 3 | `⬇`  `⋯` | the accessibility sizes |
+    ///
+    /// Tier 2 is the one that matters, and German is what sets it: *Als gelesen markieren* is
+    /// 21 characters against *Mark as read*'s 12, so a design that fits in English and not in
+    /// German ships broken to a German reader. Measured widths at the default size leave every
+    /// language clear of 338 pt, because only one name is drawn.
+    ///
+    /// **Tier 3 loses no action.** Mark-as-read is `AddToShelfMenu`'s own first row, so at the
+    /// width where its button goes it is still reachable and still named — which is the whole
+    /// reason ``more`` holds the complete set rather than the leftovers.
+    ///
+    /// A name never survives only as an accessibility label: a `Label` keeps its title whatever
+    /// the style draws, so VoiceOver was correct throughout. This was always a legibility
+    /// defect for a sighted reader, and no host test could see it —
+    /// `BulkSelectionChromeTests` greps for `.titleAndIcon` and proves the named row is
+    /// *declared*, never which branch a device takes. That took a screenshot, which is why the
+    /// assertion and the captures are both required rather than either standing alone.
     @ViewBuilder
     private var actions: some View {
         ViewThatFits(in: .horizontal) {
-            actionRow.labelStyle(.titleAndIcon)
-            actionRow.labelStyle(.iconOnly)
+            row(.everything)
+            row(.markReadOnly)
+            row(.nothing)
         }
-        .padding(.horizontal, StoryArcSpace.md)
-        .padding(.vertical, StoryArcSpace.sm)
-    }
-
-    private var actionRow: some View {
-        HStack(spacing: StoryArcSpace.md) {
-            Menu {
-                // The same menu a long press on one cover opens, handed the whole set.
-                AddToShelfMenu(
-                    model: model,
-                    publications: picked,
-                    onRefused: { refusedServer = $0 },
-                    onChange: { offer($0) }
-                )
-            } label: {
-                Label {
-                    Text("shelves.addTo", bundle: .module)
-                } icon: {
-                    Image(systemName: "text.badge.plus")
-                }
-            }
-
-            Button {
-                askToDownload()
-            } label: {
-                Label {
-                    Text("library.bulk.download", bundle: .module)
-                } icon: {
-                    Image(systemName: "arrow.down.circle")
-                }
-            }
-
-            Button {
-                Task { await markRead() }
-            } label: {
-                Label {
-                    Text("library.mark.read", bundle: .module)
-                } icon: {
-                    Image(systemName: "checkmark.circle")
-                }
-            }
-        }
-        // All three go inert when nothing is picked — an action on nothing would silently do
-        // nothing, and the download would put up a confirmation naming nought items. They
-        // are shown rather than hidden, and that was the question worth asking: a capsule
-        // arriving on the first pick would be floating chrome appearing under a thumb that
-        // is mid-tap, and it would change the shelf's bottom inset in the middle of a
-        // scroll. Shown and inert it says what the mode is for before anything is picked,
-        // and the way out is in the navigation bar throughout, so it strands nobody.
+        // All of them go inert when nothing is picked — an action on nothing would silently do
+        // nothing, and the download would put up a confirmation naming nought items. They are
+        // shown rather than hidden, and that was the question worth asking: a capsule arriving
+        // on the first pick would be floating chrome appearing under a thumb that is mid-tap,
+        // and it would change the shelf's bottom inset in the middle of a scroll. Shown and
+        // inert it says what the mode is for before anything is picked, and the way out is in
+        // the navigation bar throughout, so it strands nobody.
+        //
+        // On the `ViewThatFits` rather than inside a row, so every tier inherits it and a
+        // fourth tier cannot be added without it.
         .disabled(selection.ids.isEmpty)
         // On glass, so the material decides — ``SwiftUI/View/storyArcGlassText(_:)`` says
         // why, and says it about a fixed colour that had been sitting on this very surface.
@@ -198,20 +177,123 @@ struct BulkActionBar: View {
         // **And the dimming is ours, because the line above took the system's away.**
         // `.disabled` normally dims a control by lowering its foreground; an explicit
         // `foregroundStyle` after it wins, so the inert capsule came out **pixel-identical**
-        // to the live one — 0 differing pixels across all four appearance and text-size pairs,
-        // measured on 2026-09-04 against frames that differ by 0.25–1.46 % elsewhere and 45 %
-        // over a cover's tick. So `.disabled` was doing its behavioural half and nothing at
-        // all visually, and the requirement that the actions be "present and inert rather
-        // than absent" was satisfied only for a reader who tried one.
+        // to the live one — 0 differing pixels across all four appearance and text-size pairs.
+        // Measured again on 2026-09-04 with this line in place: the glyph strokes go from
+        // `rgb(0,0,0)` to `rgb(148,146,146)` in light at the default size, which is exactly
+        // what `0.4 × 0 + 0.6 × 245` predicts against the glass ground, and the four pairs now
+        // differ by 3 100, 3 084, 26 426 and 26 407 pixels. Android had the same defect from
+        // the mirror-image cause — an `Icon` tint overriding `IconButton`'s `LocalContentColor`
+        // — so the rule is one rule: state the colour where the control can still take it away.
         //
         // The condition is deliberately the same expression as `.disabled`'s rather than a
         // second reading of the same state: two conditions is how one of them ends up
-        // inverted. `BulkSelectionChromeTests` asserts they are the same text.
+        // inverted. `BulkSelectionChromeTests` asserts they are the same text, and in order.
         .opacity(selection.ids.isEmpty ? Self.inertOpacity : 1)
         // Large, which is the scale the system draws floating chrome at and the scale
         // `ReaderChrome` uses for the same reason: a control with no bar to sit in has to
-        // carry its own presence.
+        // carry its own presence. Not the lever for the width problem above, either: the
+        // glyphs measure 18.6 pt inside a 34.3 pt capsule and there is no `.buttonStyle` here,
+        // so a smaller control size buys a few points and costs the tap target.
         .controlSize(.large)
+        .padding(.horizontal, StoryArcSpace.md)
+        .padding(.vertical, StoryArcSpace.sm)
+    }
+
+    /// Which of the row's controls draw their name at this width.
+    ///
+    /// A tier per answer rather than one row restyled, because the narrowest tier also drops a
+    /// control — and `.labelStyle` on the `HStack` is what made the old design all-or-nothing
+    /// across three labels.
+    private enum Naming { case everything, markReadOnly, nothing }
+
+    @ViewBuilder
+    private func row(_ naming: Naming) -> some View {
+        HStack(spacing: StoryArcSpace.md) {
+            switch naming {
+            case .everything:
+                download.labelStyle(.titleAndIcon)
+                markRead.labelStyle(.titleAndIcon)
+            case .markReadOnly:
+                download.labelStyle(.iconOnly)
+                markRead.labelStyle(.titleAndIcon)
+            case .nothing:
+                download.labelStyle(.iconOnly)
+            }
+            more.labelStyle(.iconOnly)
+        }
+    }
+
+    /// Download, whose glyph the platform has established well enough to stand alone.
+    ///
+    /// A downward arrow in a ring is the system's download mark in the App Store, Podcasts,
+    /// Music, Books, Files and Photos, and on a shelf that is selecting there is nothing else a
+    /// down arrow could mean.
+    private var download: some View {
+        Button {
+            askToDownload()
+        } label: {
+            Label {
+                Text("library.bulk.download", bundle: .module)
+            } icon: {
+                Image(systemName: "arrow.down.circle")
+            }
+        }
+    }
+
+    /// Mark as read — **the one that keeps its word for as long as any word fits.**
+    ///
+    /// `checkmark.circle` is a well-established glyph in general and is not established *here*:
+    /// forty points above this capsule, the picked covers carry a filled disc with a white
+    /// check and the unpicked carry an empty ring, so a ring-with-a-check in the same frame is
+    /// the visual union of the two selection states. One symbol, two meanings, one screen. It
+    /// compounds: of the three actions this is the only one that writes state, and it is the
+    /// one drawn with the most confusable mark.
+    private var markRead: some View {
+        Button {
+            Task { await markRead() }
+        } label: {
+            Label {
+                Text("library.mark.read", bundle: .module)
+            } icon: {
+                Image(systemName: "checkmark.circle")
+            }
+        }
+    }
+
+    /// Everything, behind the one glyph iOS has established for exactly this.
+    ///
+    /// **`text.badge.plus` used to be the row's first control and it should never have been.**
+    /// Magnified it reads as a plus badge on ruled lines — *add a line*, *new note*. Apple does
+    /// use it for *Add to Playlist*, but always as a named row inside a menu and never bare in
+    /// a toolbar; and the action opens a chooser rather than doing something, which on this
+    /// platform wants a name. Android reached the same verdict about the same glyph from its
+    /// own side, which is a shared *rule* rather than shared UI: a glyph stands alone only
+    /// where the platform has established it.
+    ///
+    /// Holding the whole set is what lets the narrowest tier drop a control without losing an
+    /// action: `AddToShelfMenu` already draws mark-as-read as its first row, so at the width
+    /// where the button goes the action is still here, named.
+    ///
+    /// `detail.more` rather than a key of its own: it already reads *More actions* in all four
+    /// languages, and a second key holding the same four strings is the same trade as a hex
+    /// typed twice.
+    private var more: some View {
+        Menu {
+            // The same menu a long press on one cover opens, handed the whole set.
+            AddToShelfMenu(
+                model: model,
+                publications: picked,
+                onRefused: { refusedServer = $0 },
+                onChange: { offer($0) }
+            )
+            download
+        } label: {
+            Label {
+                Text("detail.more", bundle: .module)
+            } icon: {
+                Image(systemName: "ellipsis")
+            }
+        }
     }
 
     /// How far the inert actions are dimmed, given the system's own dimming does not reach them.

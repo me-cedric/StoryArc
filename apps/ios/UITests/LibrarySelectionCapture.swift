@@ -82,7 +82,7 @@ extension ScreenshotTests {
     func testCaptureLibrarySelectingEmptyAtLargestText() throws {
         let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
         try startSelecting(in: app)
-        try assertSelectionChrome(app, count: 0)
+        try assertSelectionChrome(app, count: 0, namingMarkRead: false)
         hold(1)
         attach(app.screenshot(), named: "library-selecting-none-ax5")
     }
@@ -99,7 +99,7 @@ extension ScreenshotTests {
     func testCaptureLibrarySelectingAtLargestText() throws {
         let app = sweepLaunch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
         try startSelecting(in: app)
-        try pickTwo(in: app)
+        try pickTwo(in: app, namingMarkRead: false)
         hold(1)
         attach(app.screenshot(), named: "library-selecting-ax5")
     }
@@ -109,17 +109,50 @@ extension ScreenshotTests {
     /// `AuditWalk.showTheShelf(in:)` would do the first half and it skips rather than fails
     /// when the shelf never draws — and a skipped capture walk passes and photographs
     /// nothing, which `capture-ios.mjs` can only report as "attached nothing".
-    func startSelecting(in app: XCUIApplication) throws {
-        try XCTUnwrap(destination("Library", in: app), "The shell offers no Library tab.").tap()
+    func startSelecting(
+        in app: XCUIApplication,
+        library: String = "Library",
+        select: String = "Select",
+        done: String = "Done"
+    ) throws {
+        try XCTUnwrap(destination(library, in: app), "The shell offers no \(library) tab.").tap()
         XCTAssertTrue(
             app.scrollViews.firstMatch.waitForExistence(timeout: 10),
-            "The Library tab drew no shelf to select on."
+            "The \(library) tab drew no shelf to select on."
         )
-        try XCTUnwrap(hittable("Select", in: app), "The library toolbar offers no Select.").tap()
+        try XCTUnwrap(hittable(select, in: app), "The library toolbar offers no \(select).").tap()
         XCTAssertTrue(
-            app.buttons["Done"].waitForExistence(timeout: 5),
-            "Tapping Select did not put the shelf into selection mode: no Done in the toolbar."
+            app.buttons[done].waitForExistence(timeout: 5),
+            "Tapping \(select) did not put the shelf into selection mode: no \(done)."
         )
+    }
+
+    /// The capsule in **German**, which is the language the tiers exist for.
+    ///
+    /// *Als gelesen markieren* is 21 characters against *Mark as read*'s 12, and
+    /// *Herunterladen* is 13 against *Download*'s 8. So German is the case that decides how
+    /// many names the row can draw, and a design that fits in English and not in German ships
+    /// broken to a German reader — which is why shortening the English copy was rejected
+    /// outright rather than tried.
+    ///
+    /// What this walk proves is the **degradation**, not the layout: at the default text size
+    /// English draws both names and German cannot, so German falls to the tier that draws one.
+    /// The assertion is that the one it draws is *Als gelesen markieren* — the action whose
+    /// glyph is the one already spoken for by the selection ticks. Estimating this from
+    /// character counts is what the old comment did, and it was wrong by a whole tier.
+    func testCaptureLibrarySelectingInGerman() throws {
+        let app = sweepLaunch(language: "de")
+        try startSelecting(in: app, library: "Bibliothek", select: "Auswählen", done: "Fertig")
+        let covers = realCovers(in: app)
+        XCTAssertGreaterThanOrEqual(covers.count, 2, "The shelf offered fewer than two covers.")
+        for cover in covers.prefix(2) { cover.tap() }
+        XCTAssertTrue(
+            app.buttons["Als gelesen markieren"].waitForExistence(timeout: 5),
+            "The capsule draws no named action in German. On screen: "
+                + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
+        )
+        hold(1)
+        attach(app.screenshot(), named: "library-selecting-picked-de")
     }
 
     /// Picks the first two covers on the shelf, and proves the shelf agrees.
@@ -128,7 +161,7 @@ extension ScreenshotTests {
     /// hold decides the titles, and this walk is about the chrome rather than about which
     /// publication is in it. ``XCTestCase/realCovers(in:)`` is what makes "by position" safe
     /// — it filters on a format the spoken label carries, which no notice control does.
-    func pickTwo(in app: XCUIApplication) throws {
+    func pickTwo(in app: XCUIApplication, namingMarkRead: Bool = true) throws {
         let covers = realCovers(in: app)
         XCTAssertGreaterThanOrEqual(
             covers.count,
@@ -138,7 +171,7 @@ extension ScreenshotTests {
                 + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
         )
         for cover in covers.prefix(2) { cover.tap() }
-        try assertSelectionChrome(app, count: 2)
+        try assertSelectionChrome(app, count: 2, namingMarkRead: namingMarkRead)
     }
 
     /// That the chrome this change is about is on screen, in the state the filename claims.
@@ -148,7 +181,11 @@ extension ScreenshotTests {
     /// the actions are present whether or not anything is picked. The count is the one that
     /// makes a picture of two picks distinguishable from a picture of none — everything else
     /// about the two frames is identical.
-    func assertSelectionChrome(_ app: XCUIApplication, count: Int) throws {
+    func assertSelectionChrome(
+        _ app: XCUIApplication,
+        count: Int,
+        namingMarkRead: Bool = true
+    ) throws {
         let title = "\(count) selected"
         XCTAssertTrue(
             app.navigationBars.staticTexts[title].waitForExistence(timeout: 5),
@@ -156,14 +193,30 @@ extension ScreenshotTests {
                 + "\(app.navigationBars.staticTexts.allElementsBoundByIndex.map(\.label))"
         )
         XCTAssertTrue(app.buttons["Done"].exists, "The mode offers no way out.")
-        // `Label` keeps its title as its accessibility label whichever branch of the
-        // `ViewThatFits` drew it, so this holds at every text size — which is also the
-        // §3b.5 claim, checked here because these are the only walks that see the capsule.
-        for action in ["Add to…", "Download", "Mark as read"] {
+        // `Label` keeps its title as its accessibility label whichever tier drew it, so these
+        // two hold at every text size. *Add to…* is deliberately **not** here any more: it is
+        // inside the overflow now, because `text.badge.plus` is not a glyph a reader can read
+        // unaided and the action opens a chooser rather than doing something.
+        for action in ["Download", "More actions"] {
             XCTAssertTrue(
                 app.buttons[action].exists,
                 "The action capsule offers no \(action), so it is not on screen."
             )
         }
+        // **This is the assertion that pins the tier, and it is the one no host test can
+        // make.** The capsule degrades by control: at the default size it draws
+        // `⬇  ✓ Mark as read  ⋯`, and at the accessibility sizes the named button will not
+        // fit beside the other two, so it gives way and the action lives in the overflow.
+        // Asserting presence *and absence* is what stops the tier boundary drifting silently
+        // — which is exactly what happened before, when three names never fit at any size and
+        // every source-text guard still passed.
+        XCTAssertEqual(
+            app.buttons["Mark as read"].exists,
+            namingMarkRead,
+            namingMarkRead
+                ? "The capsule draws no named action at this size, so it is three bare glyphs."
+                : "The named action still fits at the largest text size, so this walk is "
+                    + "photographing the wrong tier."
+        )
     }
 }

@@ -28,6 +28,7 @@ settle are settled below — one of them not the way the change expected.
 | `ios-library-selecting-ax5-dark.png` | library shelf, top | selecting, **2 picked** | dark | `accessibility-extra-extra-extra-large` |
 | `ios-library-selecting-end.png` | library shelf, **end of scroll** | selecting, 0 picked | light | default |
 | `ios-library-selecting-end-dark.png` | library shelf, **end of scroll** | selecting, 0 picked | dark | default |
+| `ios-library-selecting-picked-de.png` | library shelf, top | selecting, **2 picked**, **German** | light | default |
 
 Every frame is produced by a walk that proves the screen before the shutter: the navigation
 bar is read back for `N selected` with the exact count the filename claims, *Done* is
@@ -60,59 +61,82 @@ glass. Three violet glyphs beside a violet *Done* would have flattened that hier
 over the dark shelf in `ios-library-selecting-picked-dark.png` they would have competed with
 the violet ticks a foot above them.
 
-## Two things the pictures settled that nobody asked
+## Two things the pictures settled that nobody asked — both now fixed
 
-### The named row is never drawn on this phone
+These frames were **retaken on 2026-09-04** after both were fixed. The originals are what
+found them, and the account below is what they showed then and what they show now.
 
-`BulkActionBar`'s `ViewThatFits` offers `.labelStyle(.titleAndIcon)` first and falls back to
-`.iconOnly`. Its own doc comment says the fallback is reached "at a width that cannot hold
-the names — which on a phone is the accessibility text sizes", and §3b.5 says glyph-only
-"survives in exactly two places, both on Android's top bar".
+### The named row was never drawn on this phone
 
-**Neither is true on a 402 pt iPhone.** The fallback is already taken at the **default** text
-size: every frame here, at both sizes, shows three bare glyphs. The arithmetic is not close —
-the capsule gets 402 − 2 × 20 pt of gutter − 2 × 12 pt of its own padding = 338 pt, and *Add
-to…* · *Download* · *Mark as read* at `.controlSize(.large)` with their icons and two 12 pt
-gaps need appreciably more than that.
+The `ViewThatFits` offered one row twice — every name or no name — and three names at
+`.controlSize(.large)` need more than the 338 pt the capsule is offered
+(402 − 2 × gutter − 2 × md). So the `.iconOnly` branch was taken at the **default** text
+size, not only at the accessibility sizes as the source comment and §3b.5 both claimed. Every
+original frame showed three bare glyphs: `text.badge.plus`, `arrow.down.circle`,
+`checkmark.circle`.
 
-So the design review's objection — three unlabelled glyphs — is live on iOS after all, one
-surface over from the toolbar that was cut down to answer it. The names survive for VoiceOver
-(`Label` keeps its title whichever style draws it, and the walks assert all three by name at
-both text sizes), so this is a legibility question rather than an accessibility one. It is
-**not fixed here**: this was a capture job, and the fix is a behaviour change that wants its
-own task — fewer actions in the capsule, an overflow menu, or a two-line capsule.
+That was not only ugly, it broke a sentence this change had already written.
+*Every action names itself* requires a glyph standing alone to be "one whose meaning the
+platform already establishes, **not one chosen to save room**" — and a `ViewThatFits` fallback
+is a room-saving mechanism by construction. Two of the three glyphs failed the first half too:
 
-`BulkSelectionChromeTests.theNamesAreDrawnWhereThereIsRoom` did not catch it and could not:
-it greps the source for `.titleAndIcon` and `ViewThatFits`. That proves the fallback is
-*declared*. Only a picture says which branch a phone takes, which is the argument §3b.7 made
-about the AX size and which turns out to apply at the default one.
+- **`text.badge.plus`** reads as a plus badge on ruled lines. Apple uses it for *Add to
+  Playlist* — always as a named row inside a menu, never bare in a toolbar — and the action
+  opens a chooser rather than doing something.
+- **`checkmark.circle`** is well established in general and **not established here**: forty
+  points above the capsule the picked covers carry a filled disc with a white check and the
+  unpicked carry an empty ring, so a ring-with-a-check in the same frame is the visual union of
+  the two selection states. One mark, two meanings, one screen.
+- **`arrow.down.circle`** is fine bare, and stays so.
 
-### The inert capsule is pixel-identical to the live one
+**What it draws now**, degrading by control rather than by label style — and each row below was
+photographed rather than predicted:
 
-§3b.4 chose to show the actions at nought picked rather than hide them, so that the chrome
-does not arrive under a thumb mid-tap. The actions are `.disabled(selection.ids.isEmpty)`.
+| tier | draws | proved by |
+| --- | --- | --- |
+| 1 | `⬇ Download`  `✓ Mark as read`  `⋯` | `ios-library-selecting-picked.png` — English, default size |
+| 2 | `⬇`  `✓ Als gelesen markieren`  `⋯` | `ios-library-selecting-picked-de.png` — German, default size |
+| 3 | `⬇`  `⋯` | `ios-library-selecting-ax5.png` — `AccessibilityXXXL` |
 
-**The disabled state is invisible.** Comparing the capsule's rectangle between the 0-picked
-and 2-picked frames of the same appearance and text size:
+German is why tier 2 exists: *Als gelesen markieren* is 21 characters against *Mark as read*'s
+12, so English draws both names and German draws one. Shortening the English copy was rejected
+outright — it cannot reach German, and `library.bulk.download` and `library.mark.read` are also
+used by the download confirmation dialog, `AddToShelfMenu` and `KavitaChapterList`, so it would
+have rewritten four surfaces that have no layout problem.
 
-```
-capsule, light,     0 vs 2 picked : 0 of  27 900 pixels differ, worst channel delta 0
-capsule, dark,      0 vs 2 picked : 0 of  27 900 pixels differ, worst channel delta 0
-capsule, light AX5, 0 vs 2 picked : 0 of 110 500 pixels differ, worst channel delta 1
-capsule, dark AX5,  0 vs 2 picked : 0 of 110 500 pixels differ, worst channel delta 2
-```
+**Tier 3 loses no action.** *Mark as read* is `AddToShelfMenu`'s own first row, so where the
+button will not fit the action is still there, named. *Add to…* is in that menu at every tier.
 
-All four pairs, so this is not one appearance's accident. The control says the two frames
-really are two different states: over the first cover's tick the light default pair differs
-on **45 %** of pixels with a worst channel delta of 202, and whole-frame the four pairs
-differ on 0.25 %, 0.29 %, 1.40 % and 1.46 % of pixels with worst deltas of 255, 234, 255 and
-234. So the frames are not duplicates and the capsule inside them is unchanged.
+### The inert capsule was pixel-identical to the live one
 
-The likely cause — stated as an inference, not a measurement — is the same modifier the
-question above is about: `.storyArcGlassText(.primary)` sets an explicit `foregroundStyle`
-outside the `.disabled(…)`, and an explicit foreground style defeats the dimming SwiftUI
-would otherwise apply to a disabled label. So the mode is inert in behaviour and says so
-nowhere. Also **not fixed here**, for the same reason.
+Cropping the capsule out of the 0-picked and 2-picked frames at the same appearance and text
+size gave **0 differing pixels** — in light, in dark, and at AX5 where the worst channel delta
+was 1. The control proves the frames were genuinely two states: over the first cover's tick the
+same pair differs on 45 % of pixels with a worst delta of 202.
+
+The cause is `.storyArcGlassText(.primary)` setting an explicit `foregroundStyle` *after*
+`.disabled(…)`; an explicit foreground style defeats the dimming `.disabled` would otherwise
+apply. So `.disabled` was doing its behavioural half and nothing visual, and §3b.4's whole
+argument — that a shown, inert capsule "says what the mode is for before anything is picked" —
+held only for a reader who tried one of the actions.
+
+Since the glass text takes the system's dimming away, the dimming is now the capsule's own: one
+`.opacity` tied to the same expression `.disabled` reads. Measured after the fix, on the same
+four pairs:
+
+| pair | before | after |
+| --- | --- | --- |
+| light, default | 0 of 27 900 | **3 100** differing |
+| dark, default | 0 of 27 900 | **3 084** differing |
+| light, AX5 | 0 of 110 500 (worst delta 1) | **26 426** differing |
+| dark, AX5 | — | **26 407** differing |
+
+In light at the default size the glyph strokes go from `rgb(0,0,0)` to `rgb(148,146,146)`,
+which is what `0.4 × 0 + 0.6 × 245` predicts against the glass ground — so the remedy is
+measured rather than assumed. **Android had the same defect from the mirror-image cause**: an
+`IconButton` dims a disabled child by lowering `LocalContentColor`, and every `Icon` there
+passed `tint = palette.accent`, which never reads it. Two platforms, two explicit colours, one
+bug, and one rule: state the colour where the control can still take it away.
 
 ## What the end-of-scroll pair says
 
@@ -194,6 +218,14 @@ for appearance in light dark; do
       --only "ScreenshotTests/$walk" --appearance $appearance
   done
 done
+```
+
+The German frame is light-only and runs once, outside that loop — the tier it proves is a
+function of the language, not the appearance:
+
+```bash
+node scripts/capture-ios.mjs --out docs/designs/screenshots/ios-selection-chrome-2026-09-04 \
+  --only "ScreenshotTests/testCaptureLibrarySelectingInGerman" --appearance light
 ```
 
 **Read the run summary, not the exit code.** `xcodebuild` exits 0 when a `-only-testing:`

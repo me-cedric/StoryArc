@@ -672,9 +672,16 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 
       **Still outstanding, and it is only §6.3**: the Android themed-icon capture. Named as a
       gap in its own task rather than folded into this one.
-- [ ] 6.5 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
-      `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
-- [ ] 6.6 `pnpm spec:guard:strict`.
+- [x] 6.5 `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
+      `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests` — all green on
+      2026-09-04, on `main` with every one of this change's commits merged. 1857 iOS tests in
+      235 suites; SwiftLint 0 violations in **658** files, the same count the cached run inside
+      `pnpm check` reports. That agreement is the point of running the no-cache pass separately:
+      SwiftLint silently reads no config when the working directory has drifted into
+      `apps/ios/Packages/StoryArcKit`, and then reports 759 files and hundreds of phantom
+      violations. A file count that does not match the last run is measuring a different thing.
+- [x] 6.6 `pnpm spec:guard:strict` — 0 errors, 1 warning, and that warning is the pre-existing
+      orphan list (six main specs named by no change, none of them this one's).
 - [ ] 6.7 `/opsx:verify brand-identity-and-app-icons`, then `/opsx:sync`.
 
 ## A validator gap found while writing this

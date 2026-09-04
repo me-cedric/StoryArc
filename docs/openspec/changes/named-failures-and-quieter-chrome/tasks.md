@@ -456,10 +456,16 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
         not two. *Add to…* is named in words, because `PlaylistAdd` is the ambiguous glyph the
         review objected to.
       - **iOS**: three bare glyphs, at the **default** text size and not only at the
-        accessibility sizes. `ViewThatFits` offers the named row first, and a phone never has
+        accessibility sizes. `ViewThatFits` offered the named row first, and a phone never had
         the width for it: 402 pt leaves the capsule 338 pt and three names at
-        `.controlSize(.large)` need more. `BulkActionBar`'s own doc comment made the same
-        claim and now carries the arithmetic.
+        `.controlSize(.large)` need more.
+        **Fixed on 2026-09-04, and it was a conformance defect rather than a missing
+        requirement** — see 3b.7. This scenario already required a glyph standing alone to be
+        one "whose meaning the platform already establishes, **not one chosen to save room**",
+        and a `ViewThatFits` fallback is a room-saving mechanism by construction. The capsule
+        now degrades by *control*: `⬇ Download  ✓ Mark as read  ⋯` in English, one name in
+        German, and `⬇  ⋯` at the accessibility sizes, where the two survivors are glyphs the
+        platform has established and mark-as-read is named inside the overflow.
 
       **The requirement holds on both, and it is the only reason this stays `[x]`.** Every one
       of those controls carries a name — a `contentDescription` from a string resource on
@@ -472,7 +478,9 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
 - [x] 3b.6 **A second instance of the same slab, which the brief did not name.**
       `ShelfBulkActions` drew the identical full-bleed `BulkUndoBar` one screen over. Floated as
       an inset capsule in the same pass. The complaint had two homes and only one was reported.
-- [~] 3b.7 Captures. **The iOS half is taken; the Android half is not.**
+- [x] 3b.7 Captures, both platforms — **and the two defects they found are fixed rather than
+      filed.** The pictures were the point: each of the three claims below passed every
+      source-text guard in the repository and was false on a device.
       iOS, done: ten frames in `docs/designs/screenshots/ios-selection-chrome-2026-09-04/`,
       on `StoryArc-iPhone17Pro` — the shelf selecting at **0** and at **2** picked, at the
       default text size and at `UICTContentSizeCategoryAccessibilityXXXL`, **light and dark**,
@@ -505,6 +513,40 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
       differ, against 45 % over a cover's tick in the same pair — so §3b.4's inertness is
       invisible. Likely the explicit `foregroundStyle` defeating the disabled dimming; stated
       as an inference, not a measurement.
+
+      **(a) is fixed, and it was a defect against a sentence this change had already
+      written.** The scenario *Every action names itself* forbids a glyph standing alone that
+      was "chosen to save room", and `ViewThatFits` chooses on width by construction — so the
+      fallback branch violated it whatever the glyphs were. Two of the three failed the other
+      half as well. `text.badge.plus` reads as a plus badge on ruled lines and Apple draws it
+      only as a named row inside a menu, for an action that opens a chooser rather than doing
+      something. And `checkmark.circle`, though well established in general, is **not
+      established here**: forty points above the capsule the picked covers carry a filled disc
+      with a white check and the unpicked an empty ring, so a ring-with-a-check in the same
+      frame is the visual union of the two selection states — one mark, two meanings, one
+      screen. Only `arrow.down.circle` was safe bare.
+
+      So *Add to…* moved into an `ellipsis` overflow, where its name is drawn, and the tiers
+      now drop a **control** rather than every label at once. Each was photographed rather
+      than predicted: `⬇ Download  ✓ Mark as read  ⋯` in English at the default size,
+      `⬇  ✓ Als gelesen markieren  ⋯` in German, `⬇  ⋯` at `AccessibilityXXXL` — and tier 3
+      loses no action, because mark-as-read is `AddToShelfMenu`'s own first row.
+      A **German walk** was added for this, since German is what the tiers exist for: *Als
+      gelesen markieren* is 21 characters against *Mark as read*'s 12, so a design that fits in
+      English and not in German ships broken to a German reader. Shortening the English copy
+      was rejected outright — it cannot reach German, and both keys are also used by the
+      download confirmation, `AddToShelfMenu` and `KavitaChapterList`.
+      The walk now asserts the tier by **presence and absence**: mark-as-read named at the
+      default size, gone at AX5. That is the assertion no host test can make, and its absence
+      is why this stood — `BulkSelectionChromeTests` greps for `.titleAndIcon` and so proves
+      the named row is *declared*, never which branch a device takes.
+
+      **Two things found on the way, neither of which anyone was looking for.** The capsule's
+      first control was a `Menu` labelled *Add to…* with `text.badge.plus`, whose contents
+      include a **nested** `Menu` labelled *Add to…* with the same glyph — invisible in every
+      capture because the corpus builds no collections, so the submenu never appears. And the
+      capsule measured about 31 % of the width it was offered, reading as an incidental pill
+      rather than a bar; naming two actions makes it a bar.
 
       **(b) is confirmed and fixed on both platforms, and the inference was right.** The
       remedy is measured rather than argued: iOS's capsule glyphs go from `rgb(0,0,0)` to

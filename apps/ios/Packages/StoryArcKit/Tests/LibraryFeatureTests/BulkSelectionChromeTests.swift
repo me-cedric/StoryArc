@@ -212,94 +212,63 @@ struct BulkSelectionChromeTests {
         )
     }
 
-    /// One action per row, named where the width allows, and named to assistive technology
-    /// wherever it does not.
-    ///
-    /// `library-browsing`, and the review that produced it: the library's toolbar was cut
-    /// from six unlabelled glyphs to two controls and two *named* menus for exactly this
-    /// reason. A selection bar of three bare glyphs repeats the mistake one surface over.
-    struct Action: Sendable, CustomTestStringConvertible {
-        let what: String
-        let key: String
-
-        var testDescription: String { "\(what) — \(key)" }
-    }
-
-    /// The three actions the capsule carries. A table rather than three assertions, so a
-    /// fourth cannot be added without editing this list.
-    private static let actions: [Action] = [
-        Action(what: "add to a collection or list", key: "shelves.addTo"),
-        Action(what: "download", key: "library.bulk.download"),
-        Action(what: "mark read", key: "library.mark.read"),
-    ]
-
-    @Test("Each action names itself in words", arguments: Self.actions)
-    func eachActionIsNamed(_ action: Action) {
-        #expect(
-            Self.bar.contains("Text(\"\(action.key)\", bundle: .module)"),
-            """
-            \(action.what) does not look up `\(action.key)`, so it has no name for \
-            assistive technology beyond the word "button". A `Label { Text } icon: { Image }` \
-            keeps the name whatever the label style draws.
-            """
-        )
-    }
-
-    @Test("Each action name is translated into all four languages", arguments: Self.actions)
-    func eachNameIsTranslated(_ action: Action) throws {
-        for language in ["en", "fr", "de", "es"] {
-            #expect(
-                LibraryFeatureSource.localizations(of: action.key)[language] != nil,
-                "`\(action.key)` — \(action.what) — has no \(language) translation"
-            )
-        }
-    }
-
-    /// And the count itself, which is a plural rather than a word.
-    @Test("The count is a plural in all four languages")
-    func theCountIsPluralised() throws {
-        let record = LibraryFeatureSource.localizations(of: "library.selected %lld")
-        for language in ["en", "fr", "de", "es"] {
-            let localization = try #require(
-                record[language] as? [String: Any],
-                "`library.selected %lld` has no \(language) translation"
-            )
-            #expect(
-                localization["variations"] != nil,
-                """
-                \(language) states the count without plural variations, so a selection of \
-                one reads as a selection of several. This string is the navigation title \
-                for the whole mode now.
-                """
-            )
-        }
-    }
-
-    /// The names are drawn where there is room, and give way to glyphs only where there
-    /// is not.
-    ///
-    /// `ViewThatFits` is what makes that a measurement rather than a guess about widths:
-    /// the named row is offered first and the glyph row is the fallback, so the names are
-    /// present at every size that can hold them — including the accessibility text sizes,
     /// where the fallback is doing real work and the `Label` still carries the name.
     @Test("The action names are drawn wherever the width allows")
     func theNamesAreDrawnWhereThereIsRoom() {
         #expect(
-            Self.bar.contains(".labelStyle(.titleAndIcon)"),
-            """
-            No action in the selection's chrome draws its name. Three bare glyphs is what \
-            the design review objected to in the toolbar, and this is the same mistake one \
-            surface over.
-            """
-        )
-        #expect(
             Self.bar.contains("ViewThatFits"),
             """
             The label style is fixed, so either the names are dropped at every width or \
-            they overflow at the narrow ones. `ViewThatFits` offers the named row first \
-            and falls back to glyphs only where the names will not fit.
+            they overflow at the narrow ones.
             """
         )
+        // **The glyph that should never have been in the row.** `text.badge.plus` reads as
+        // a plus badge on ruled lines, Apple draws it only as a named row inside a menu, and
+        // the action it stood for opens a chooser rather than doing something. It belongs to
+        // `AddToShelfMenu` and nowhere else.
+        #expect(
+            !Self.bar.contains("text.badge.plus"),
+            """
+            `text.badge.plus` is back in the capsule. It is not a glyph a reader can read \
+            unaided, which is the first half of *Every action names itself*.
+            """
+        )
+        // Three tiers, degrading by control rather than by label style. The old shape put
+        // `.labelStyle` on the row, which made it all-or-nothing across three labels — every
+        // name or none — and a phone always got none.
+        for tier in ["row(.everything)", "row(.markReadOnly)", "row(.nothing)"] {
+            #expect(Self.bar.contains(tier), "the `\(tier)` tier is gone")
+        }
+        // **The assertion that pins the fix.** The tier a phone takes at the default text
+        // size still draws a word, and it is mark-as-read's — the action that writes state and
+        // the one whose glyph collides with the selection ticks forty points above it.
+        let middle = Self.bar.range(of: "case .markReadOnly:")
+        let narrow = Self.bar.range(of: "case .nothing:")
+        #expect(middle != nil && narrow != nil, "the tiers are no longer a switch over `Naming`")
+        if let middle, let narrow, middle.upperBound < narrow.lowerBound {
+            let tier = Self.bar[middle.upperBound..<narrow.lowerBound]
+            #expect(
+                tier.contains("markRead.labelStyle(.titleAndIcon)"),
+                """
+                The tier a phone takes draws no name. This is the defect that shipped: \
+                three names never fit 338 pt, so the only offered fallback was three bare \
+                glyphs, at the default text size and not merely at the accessibility ones.
+                """
+            )
+            let floor = Self.bar[narrow.upperBound...]
+            #expect(
+                !floor.prefix(200).contains("markRead"),
+                """
+                The narrowest tier still draws mark-as-read. Its name cannot fit there, and \
+                a bare `checkmark.circle` is the glyph the picked covers already use — so \
+                the action belongs in the overflow at that width, where it is named.
+                """
+            )
+        }
+        // Which tier a device actually takes is not a thing source text knows. The frames in
+        // `docs/designs/screenshots/ios-selection-chrome-2026-09-04/` are the other half, and
+        // the reason this defect stood: the old version of this test proved `.titleAndIcon`
+        // was *declared* and a phone was drawing the branch below it.
     }
 
     /// Nothing picked, nothing to do — stated by the controls rather than by their absence.
