@@ -169,11 +169,21 @@ class ThemeSheetTest {
                 " separate element the requirement names.",
             level.contains("Modifier.clearAndSetSemantics {}"),
         )
+        // The call, not the whole call site: both variants now name `thumbTrackGapSize`,
+        // so the argument list is no longer one word. See `StoryArcSliderTrack` — an axis
+        // sitting at either end of its travel had its handle floating beside a rail it was
+        // not touching, which is the sweep's §7.
         assertTrue(
             "The mid-default axes do not use the centred track. `design.md`:" +
                 " `SliderDefaults.CenteredTrack` \"for character spacing, word spacing and" +
                 " margins, whose defaults sit mid-range\".",
-            level.contains("SliderDefaults.CenteredTrack(state)"),
+            level.contains("SliderDefaults.CenteredTrack("),
+        )
+        assertTrue(
+            "An axis slider leaves Material's gap between its handle and its rail. Both" +
+                " variants have to close it, or an axis at the end of its travel draws the" +
+                " detached handle `StoryArcSliderTrack` exists to prevent.",
+            level.contains("thumbTrackGapSize = 0.dp") && level.contains("StoryArcSliderTrack("),
         )
     }
 

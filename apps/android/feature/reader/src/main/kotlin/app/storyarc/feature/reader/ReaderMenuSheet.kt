@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.PageFit
@@ -299,6 +300,10 @@ private fun PageSlider(
             },
             valueRange = 0f..(count - 1).toFloat(),
             steps = (count - 2).coerceAtLeast(0),
+            // The handle stands on the rail rather than beside it. See `StoryArcSliderTrack`:
+            // at page one there is no active half to separate it from, and the sweep read the
+            // result as a rendering fault.
+            track = { state -> StoryArcSliderTrack(state) },
             // Named, and reading the page rather than the range percent Compose announces
             // by default.
             modifier = Modifier.fillMaxWidth().semantics {

@@ -46,7 +46,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.control.ConnectedButtonGroup
+import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -490,11 +492,18 @@ private fun FineAxes(
                     // a track filled from the left says the reader has *raised* an axis they
                     // have only nudged. Stable API, verified by `javap` over
                     // `material3-1.5.0-alpha26.aar`.
+                    // The gap between the handle and the rail goes, on both variants. See
+                    // `StoryArcSliderTrack`: at either end of an axis's travel one half of
+                    // the rail has no width, and the handle is then floating beside a rail
+                    // it is not touching.
                     track = { state ->
                         if (axis in CENTRED_AXES) {
-                            SliderDefaults.CenteredTrack(state)
+                            SliderDefaults.CenteredTrack(
+                                sliderState = state,
+                                thumbTrackGapSize = 0.dp,
+                            )
                         } else {
-                            SliderDefaults.Track(state)
+                            StoryArcSliderTrack(state)
                         }
                     },
                     // The name and the reading both belong on the slider itself. The

@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.playback.NowPlaying
 import app.storyarc.core.playback.PlaybackPosition
@@ -197,6 +198,9 @@ private fun Position(playing: NowPlaying, onSeek: (PlaybackPosition) -> Unit) {
                     onSeek(PlaybackPosition(playing.partIndex, it.toLong()))
                 },
                 valueRange = 0f..total.toFloat(),
+                // The handle stands on the rail. See `StoryArcSliderTrack`: at the start of
+                // a chapter there is no active half to hold Material's gap open.
+                track = { state -> StoryArcSliderTrack(state) },
                 modifier = Modifier.semantics {
                     contentDescription = "" // named by the row below it
                     // **In time, not as a percentage.** `audio-playback`: the scrub is
@@ -427,6 +431,7 @@ private fun Speed(speed: PlaybackSpeed, onSpeed: (PlaybackSpeed) -> Unit) {
             value = speed.rate.toFloat(),
             onValueChange = { onSpeed(PlaybackSpeed.of(it.toDouble())) },
             valueRange = PlaybackSpeed.SLOWEST.toFloat()..PlaybackSpeed.FASTEST.toFloat(),
+            track = { state -> StoryArcSliderTrack(state) },
             modifier = Modifier.semantics {
                 // The value, not a percentage: a screen reader saying "62 per cent" of a
                 // speed control tells a listener nothing they can act on.

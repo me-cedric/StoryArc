@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.ImageAdjustments
@@ -174,7 +175,14 @@ private fun AdjustmentSlider(
                 color = palette.textSecondary,
             )
         }
-        Slider(value = value, onValueChange = onChange, valueRange = range)
+        Slider(
+            value = value,
+            onValueChange = onChange,
+            valueRange = range,
+            // At zero — which is where all three of these rest — Material's gap leaves the
+            // handle floating beside a rail it is not touching. See `StoryArcSliderTrack`.
+            track = { state -> StoryArcSliderTrack(state) },
+        )
     }
 }
 
