@@ -168,4 +168,40 @@ extension HomeShelves {
     private static func pagesLeft(_ pages: Int) -> HomeRemainder {
         pages > 0 ? .pages(pages) : .nothingToSay
     }
+
+    /// Whether a page or less of this publication is left to read.
+    ///
+    /// `home-screen`, *A publication with nothing meaningful left*: at that point the card
+    /// "offers to finish it — marking it read — and offers the next in its series where
+    /// there is one, rather than offering to reopen its last page". Reopening the last page
+    /// is a resume that resumes nothing: the reader turns one page and the book is done, and
+    /// the card was the only thing standing between them and the next one.
+    ///
+    /// **Not derivable from ``remainder(of:record:)``, which is why this is its own
+    /// function.** That returns ``HomeRemainder/nothingToSay`` for four different situations
+    /// — a book never opened, a finished one, an audiobook, and a book on its last page —
+    /// and only the last is this one. A card that offered to finish an unopened book because
+    /// both were spelled the same way would be worse than one that offered nothing.
+    ///
+    /// A listening position answers `false`, for the reason ``remainder(of:record:)`` sets
+    /// out at length: the unit is not pages and *time remaining* is not derivable from what
+    /// the position carries. A reflowable book with no declared page count answers `false`
+    /// too — "a page or less" needs a page to be a thing, and there the app only has a
+    /// fraction.
+    static func isAtTheEnd(of publication: Publication, record: ReadingProgress?) -> Bool {
+        guard let record, !record.isFinished else { return false }
+
+        switch record.position {
+        case let .page(index, total):
+            return total > 0 && total - index - 1 <= 0
+
+        case .listening:
+            return false
+
+        case .reflowable:
+            guard let pages = publication.pageCount, pages > 0 else { return false }
+            let left = max(0, 1 - record.position.fraction)
+            return Int((left * Double(pages)).rounded()) <= 0
+        }
+    }
 }

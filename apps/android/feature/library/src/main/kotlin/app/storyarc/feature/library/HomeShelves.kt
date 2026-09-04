@@ -331,6 +331,38 @@ object HomeShelves {
     }
 
     /**
+     * Whether a page or less of this publication is left to read.
+     *
+     * `home-screen`, *A publication with nothing meaningful left*: at that point the card
+     * "offers to finish it — marking it read — and offers the next in its series where there
+     * is one, rather than offering to reopen its last page". Reopening the last page is a
+     * resume that resumes nothing: the reader turns one page and the book is done, and the
+     * card was the only thing standing between them and the next one.
+     *
+     * **Not `pagesRemaining(...) == 0`, and the difference is the whole point.** That returns
+     * null for four different situations — never opened, finished, an audiobook, and a
+     * reflowable book that declares no page count — and a card that offered to finish an
+     * unopened book because two of those were spelled the same way would be worse than one
+     * that offered nothing. This asks the narrower question and answers false wherever it
+     * cannot honestly answer true.
+     */
+    fun isAtTheEnd(publication: Publication, record: ReadingProgress?): Boolean {
+        if (record == null || record.isFinished) return false
+        return when (val position = record.position) {
+            is ReadingPosition.Page -> position.total > 0 && position.total - 1 - position.index <= 0
+
+            // The unit is not pages, and *time remaining* is not derivable from what the
+            // position carries — see `pagesRemaining` for the full reasoning.
+            is ReadingPosition.Listening -> false
+
+            is ReadingPosition.Reflowable -> publication.pageCount?.let { pages ->
+                pages > 0 &&
+                    ((1.0 - position.progression.coerceIn(0.0, 1.0)) * pages).roundToInt() <= 0
+            } ?: false
+        }
+    }
+
+    /**
      * An issue number as a number, so #10 follows #9.
      *
      * The same three lines as `LibraryIndex.issueNumber`, which is private there. Repeated

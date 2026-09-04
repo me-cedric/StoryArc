@@ -278,6 +278,66 @@ class HomeShelvesTest {
         assertNull(HomeShelves.pagesRemaining(publication("fresh"), null))
     }
 
+    // A page or less left
+    //
+    // `home-screen`, *A publication with nothing meaningful left*: the card then "offers to
+    // finish it -- marking it read -- and offers the next in its series where there is one,
+    // rather than offering to reopen its last page". Every case below is one `pagesRemaining`
+    // answers null or zero to, which is exactly why the predicate is separate: several
+    // different situations share those spellings and only one is *all but the last page*.
+
+    @Test
+    fun `the last page of a comic is a page or less left`() {
+        val book = publication("paged")
+        val at = { index: Int ->
+            ReadingProgress(
+                identity = book.identity,
+                position = ReadingPosition.Page(index = index, total = 31),
+                updatedAtEpochMillis = now,
+            )
+        }
+
+        assertTrue(HomeShelves.isAtTheEnd(book, at(30)))
+        assertFalse(HomeShelves.isAtTheEnd(book, at(29)))
+    }
+
+    @Test
+    fun `a book nobody has opened is not at its end, though it says nothing either`() {
+        // The failure this guards: `pagesRemaining` is null here too, so a card deriving the
+        // offer from that would offer to *finish* a book nobody has opened.
+        val fresh = publication("fresh")
+
+        assertNull(HomeShelves.pagesRemaining(fresh, null))
+        assertFalse(HomeShelves.isAtTheEnd(fresh, null))
+    }
+
+    @Test
+    fun `a finished book is not at its end either, because it is past it`() {
+        val book = publication("done")
+        val record = ReadingProgress(
+            identity = book.identity,
+            position = ReadingPosition.Page(index = 30, total = 31),
+            isFinished = true,
+            updatedAtEpochMillis = now,
+        )
+
+        assertFalse(HomeShelves.isAtTheEnd(book, record))
+    }
+
+    @Test
+    fun `a reflowable book rounds to its end only against a spine count`() {
+        val counted = publication("counted").copy(pageCount = 200)
+        val uncounted = publication("uncounted")
+        val nearlyDone = ReadingPosition.Reflowable(progression = 0.999, locator = "epubcfi(/6/4)")
+        val record = { book: Publication ->
+            ReadingProgress(identity = book.identity, position = nearlyDone, updatedAtEpochMillis = now)
+        }
+
+        assertTrue(HomeShelves.isAtTheEnd(counted, record(counted)))
+        // "A page or less" needs a page to be a thing, and here the app has only a fraction.
+        assertFalse(HomeShelves.isAtTheEnd(uncounted, record(uncounted)))
+    }
+
     // Fixtures
 
     private fun assemble(

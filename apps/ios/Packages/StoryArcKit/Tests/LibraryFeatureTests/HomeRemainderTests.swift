@@ -191,4 +191,74 @@ struct HomeRemainderTests {
 
         #expect(HomeShelves.remainder(of: ashfall, record: done) == .nothingToSay)
     }
+
+    // MARK: - A page or less left
+
+    /// `home-screen`, *A publication with nothing meaningful left*: the card then "offers to
+    /// finish it — marking it read — and offers the next in its series where there is one,
+    /// rather than offering to reopen its last page".
+    ///
+    /// Every case here is one `remainder(of:record:)` also answers `.nothingToSay` to, which
+    /// is exactly why the predicate is separate: four different situations share that one
+    /// spelling and only one of them is *the reader has finished all but the last page*.
+
+    @Test("The last page of a comic is a page or less left")
+    func theLastPageIsTheEnd() {
+        let ashfall = comic(pages: 24)
+
+        #expect(HomeShelves.isAtTheEnd(of: ashfall, record: record(ashfall, .page(index: 23, of: 24))))
+        #expect(!HomeShelves.isAtTheEnd(of: ashfall, record: record(ashfall, .page(index: 22, of: 24))))
+    }
+
+    @Test("A book nobody has opened is not at its end, though it says nothing either")
+    func neverOpenedIsNotTheEnd() {
+        // The failure this guards: `remainder` answers `.nothingToSay` here too, so a card
+        // deriving the offer from that string would offer to *finish* an unopened book.
+        let ashfall = comic(pages: 24)
+
+        #expect(HomeShelves.remainder(of: ashfall, record: nil) == .nothingToSay)
+        #expect(!HomeShelves.isAtTheEnd(of: ashfall, record: nil))
+    }
+
+    @Test("A finished book is not at its end either, because it is past it")
+    func finishedIsNotTheEnd() {
+        // It has already left Keep reading. Offering to finish it again would be an action
+        // with nothing to do.
+        let ashfall = comic(pages: 24)
+        let done = record(ashfall, .page(index: 23, of: 24), finished: true)
+
+        #expect(!HomeShelves.isAtTheEnd(of: ashfall, record: done))
+    }
+
+    @Test("An audiobook on its last part is not offered a page-shaped verdict")
+    func listeningIsNeverTheEnd() {
+        // Same reasoning as `listeningIsNeverPages` above: the unit is not pages, and the
+        // spec's other unit is not derivable from what the position carries.
+        let seaRoom = audiobook(parts: 3)
+        let last = record(seaRoom, .listening(part: 2, partCount: 3, offset: 599, of: 600))
+
+        #expect(!HomeShelves.isAtTheEnd(of: seaRoom, record: last))
+    }
+
+    @Test("A reflowable book rounds to its end against the spine count")
+    func reflowableRoundsToTheEnd() {
+        let harbour = book(pages: 200)
+
+        let nearlyDone = record(harbour, .reflowable(progression: 0.999, locator: "x"))
+        let someWayOff = record(harbour, .reflowable(progression: 0.97, locator: "x"))
+
+        #expect(HomeShelves.isAtTheEnd(of: harbour, record: nearlyDone))
+        #expect(!HomeShelves.isAtTheEnd(of: harbour, record: someWayOff))
+    }
+
+    @Test("A reflowable book with no spine count is never at its end")
+    func reflowableWithoutASpineIsNotTheEnd() {
+        // "A page or less" needs a page to be a thing. Here the app has a fraction and
+        // ADR-0006's warning that a reflowable page number is the reader's typography.
+        let harbour = book(pages: nil)
+
+        let nearlyDone = record(harbour, .reflowable(progression: 0.999, locator: "x"))
+
+        #expect(!HomeShelves.isAtTheEnd(of: harbour, record: nearlyDone))
+    }
 }
