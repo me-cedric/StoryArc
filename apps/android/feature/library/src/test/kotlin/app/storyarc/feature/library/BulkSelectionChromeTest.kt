@@ -19,6 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 
 /**
  * The chrome a selection puts up on Android, which is a **contextual top app bar**.
@@ -47,9 +48,13 @@ import org.robolectric.annotation.Config
  * `contentDescription` unconditionally, which is what the requirement asks for and what
  * these tests check.
  *
- * Compositions rather than source text: Robolectric composes real widgets here, so what a
- * reader is shown and what TalkBack is told can both be asked directly. iOS asserts its half
- * structurally in `BulkSelectionChromeTests`, because `swift test` has no window.
+ * **Compositions for what the bar holds; source text for what it replaces.** Robolectric
+ * composes real widgets here, so what a reader is shown and what TalkBack is told can both be
+ * asked directly of [LibrarySelectionTopBar] — and every question about the bar's own contents
+ * is asked that way. The last two tests are the exception and say why in their own words: the
+ * *swap* is a property of [LibraryScreen]'s `Scaffold`, not of either bar, and neither bar can
+ * see the chrome it stands in for. iOS asserts its whole half structurally in
+ * `BulkSelectionChromeTests`, because `swift test` has no window at all.
  */
 @RunWith(RobolectricTestRunner::class)
 // Robolectric ships an image per API level and has none for 37, so it cannot be handed the
@@ -259,6 +264,219 @@ class BulkSelectionChromeTest {
         val ended = requireNotNull(handedBack) { "the way out handed nothing back" }
         assertFalse("the shelf is still in selection mode", ended.isActive)
         assertEquals("the picks outlived the mode", 0, ended.ids.size)
+    }
+
+    /**
+     * **The assertion that pins the requirement's other half: one bar, never two.**
+     *
+     * Everything above asks the contextual bar about itself, and the requirement is not about
+     * the bar — it is that a selection *replaces* the shelf's chrome rather than adding to it.
+     * On Android that is one `if/else` in [LibraryScreen]'s `topBar` slot, and an `if/else` is
+     * the only shape that makes the two bars mutually exclusive by construction. Split into
+     * two independent conditionals it would draw both at once and every test in this file
+     * would still pass, because no test in this file had ever asked the screen anything.
+     *
+     * So the walk is the same one iOS makes: find the contextual bar, walk back to the `if`
+     * that encloses it, insist the condition is the selection, then insist the shelf's own bar
+     * is in that same statement's `else` and nowhere else in the slot.
+     *
+     * **This reads source text, and it is a tripwire rather than a proof.** The choice was
+     * forced rather than preferred: a composition cannot reach this question. Entering
+     * selection mode from the screen needs the way in, `onSelect`, which [LibraryScreen]
+     * hands over as null unless `viewModel != null && publications.isNotEmpty()` — so the
+     * assertion would need an `Application`, a `ContentResolver`, a document tree and a
+     * populated store before it could begin, which is the same wall `SkippedScanTest` records
+     * against the same view model. And a composition proves a state, where this is a claim
+     * about shape: two conditionals that happen to be exclusive for the one state a test
+     * composed would pass while the next state drew two bars. Text decides it exactly.
+     *
+     * The picture is the other half and is owed — the emulator screenshots of the contextual
+     * bar over a shelf, which is what says the swap looks right rather than merely reads it.
+     */
+    @Test
+    fun `the two top bars are one choice, not two conditionals`() {
+        val topBar = slot("topBar")
+
+        val contextual = topBar.indexOf(SELECTION_BAR)
+        assertTrue(
+            "`$SELECTION_BAR` is not in the Scaffold's topBar slot, so a selection puts its" +
+                " chrome up somewhere other than in place of the shelf's own bar — which is" +
+                " the stacked-chrome defect this change exists to remove.",
+            contextual >= 0,
+        )
+
+        val opening = topBar.lastIndexOf(IF, contextual)
+        assertTrue(
+            "`$SELECTION_BAR` is inside no `if`, so the contextual bar is drawn whether or" +
+                " not a selection is running.",
+            opening >= 0,
+        )
+        val condition = topBar.substring(opening, topBar.indexOf('{', opening))
+        assertTrue(
+            "The contextual bar is put up by `${condition.trim()}` rather than by the" +
+                " selection. It has to be exactly the selection: any other condition can be" +
+                " true while the shelf's own bar is up too.",
+            condition.contains("selection.isActive"),
+        )
+
+        // From the end of that `if`'s own block. An `else` here is what makes the two bars
+        // one choice; two `if`s in a row, which is the mutation this test exists for, leaves
+        // nothing at this offset and fails below.
+        val picked = block(topBar, opening)
+        val rest = topBar.substring(picked.last + 2).trimStart()
+        assertTrue(
+            "The `if` that puts up the contextual bar has no `else`, so the shelf's own bar" +
+                " is decided by a second condition of its own. Two conditionals can both be" +
+                " true — that is two top bars at once — where one `if/else` cannot.",
+            rest.startsWith(ELSE),
+        )
+
+        val ordinary = rest.substring(block(rest, 0))
+        assertTrue(
+            "`$ORDINARY_BAR` is not in that `else`, so the shelf gets no bar back when the" +
+                " selection ends.",
+            ordinary.contains(ORDINARY_BAR),
+        )
+        assertFalse(
+            "`$SELECTION_BAR` is in the `else` branch as well, so it is drawn whether or not" +
+                " a selection is running.",
+            ordinary.contains(SELECTION_BAR),
+        )
+
+        // And each is declared once, so a third copy cannot sit outside the `if/else` while
+        // the branches above stay honest.
+        assertEquals(
+            "The shelf's own bar is declared more than once in the topBar slot, so one of" +
+                " them is outside the choice that hides it.",
+            1,
+            topBar.occurrences(ORDINARY_BAR),
+        )
+        assertEquals(
+            "The contextual bar is declared more than once in the topBar slot, so one of" +
+                " them is outside the `if` that gates it.",
+            1,
+            topBar.occurrences(SELECTION_BAR),
+        )
+    }
+
+    /**
+     * And nothing at the foot of the window belongs to the selection.
+     *
+     * The other direction, and the one the KDoc at the top of this file is about: `native-
+     * experience` asks each app to follow its own platform, and on Android the foot of the
+     * window is the navigation bar's. iOS hides its tab bar and puts a floating capsule
+     * exactly there; Android must not, which is why `BulkActionBar`'s `Surface` of
+     * `surfaceRaised` across the foot of the shelf was removed rather than restyled.
+     *
+     * **An absence of a code path, which is why this is text and not a composition.** "The
+     * bottom bar decides nothing about the selection" is not a claim any single composition
+     * can settle — a composition reports what the inputs it was handed drew, and the inputs
+     * that would draw a bottom slab are the ones a test would have to think to supply. The
+     * slot either names the selection or it does not, and text answers that in one line.
+     *
+     * Scoped to the `Scaffold`'s `bottomBar`, which is where the slab was and the only place
+     * a bar can be a bar. Chrome floated over the shelf's own content would not be caught
+     * here; the emulator screenshots are what catch that.
+     */
+    @Test
+    fun `the bottom of the window is not the selection's to spend`() {
+        val bottomBar = slot("bottomBar")
+        assertFalse(
+            "The Scaffold's bottomBar slot names the selection. On Android the foot of the" +
+                " window belongs to the navigation bar for the whole mode — a count, an" +
+                " action or a way out down there is the bottom slab this change removed, and" +
+                " it would stack under the contextual bar rather than replace anything.",
+            Regex(SELECTION, RegexOption.IGNORE_CASE).containsMatchIn(bottomBar),
+        )
+    }
+
+    /**
+     * One named lambda argument of the screen's `Scaffold`, braces balanced.
+     *
+     * Balanced rather than read to the next `},`: every slot here holds nested lambdas, and
+     * inside `topBar` the first `},` closes `onSelect`'s own branch rather than the slot.
+     */
+    private fun slot(name: String): String {
+        val opening = screen.indexOf("$name = {")
+        if (opening < 0) {
+            error(
+                "`$name = {` is not in LibraryScreen.kt. Either the Scaffold's slot was" +
+                    " renamed or the screen no longer has one — this guard reads that slot" +
+                    " and cannot say anything without it.",
+            )
+        }
+        return screen.substring(block(screen, opening))
+    }
+
+    /** The body of the `{ … }` that opens at or after [from], as a range into [text]. */
+    private fun block(text: String, from: Int): IntRange {
+        var index = text.indexOf('{', from)
+        if (index < 0) error("nothing opens a block after offset $from of LibraryScreen.kt")
+        val start = index + 1
+        var depth = 0
+        while (index < text.length) {
+            if (text[index] == '{') {
+                depth++
+            } else if (text[index] == '}') {
+                depth--
+                if (depth == 0) return start until index
+            }
+            index++
+        }
+        error("a block opening at offset $from of LibraryScreen.kt is never closed")
+    }
+
+    private fun String.occurrences(needle: String): Int = split(needle).size - 1
+
+    /**
+     * The screen's own source, with `//` prose removed, at the path its build script hands
+     * over.
+     *
+     * Handed over rather than discovered, for the reason [LibrarySearchBarTest] and
+     * [SmbTransferWiringTest] both set out: a walk up from the working directory escapes the
+     * module, because this repository nests agent worktrees at `.claude/worktrees/<name>/`
+     * and the walk then reads the parent checkout's copy of a file that was never built here.
+     *
+     * The prose goes because both slots explain the very shape being checked. The `topBar`
+     * comment says, in words, that selecting "swaps the bar rather than adding one at the
+     * foot" and names `LibrarySelectionTopBar` while doing it; the `bottomBar` comment says
+     * what used to stand there. A guard that read those would pass on the documentation of
+     * the change rather than on the change.
+     *
+     * **Line comments only, and block comments deliberately not.** The `topBar` slot hands
+     * the file picker the any-type MIME wildcard, and that string's own characters open a
+     * block comment as far as a text scanner is concerned — a stripper would take it for one
+     * and swallow the rest of the file hunting for a close. Nothing inside either slot is a
+     * block comment anyway, and the brace walk below starts at the slot rather than at the
+     * top of the file, so the KDoc on the screen's own parameters never reaches it.
+     */
+    private val screen: String by lazy {
+        val module = System.getProperty(MODULE_DIRECTORY)?.let(::File)
+            ?: error(
+                "$MODULE_DIRECTORY is unset. This test reads the module's own source and" +
+                    " will not go looking for it elsewhere — run it through Gradle" +
+                    " (`pnpm gradle :feature:library:testDebugUnitTest`), which sets the" +
+                    " property from the module directory.",
+            )
+        val file = File(module, SCREEN_SOURCE)
+        if (!file.isFile) {
+            error("$SCREEN_SOURCE is not under ${module.absolutePath} — has it moved?")
+        }
+        file.readText().lineSequence().joinToString("\n") { it.substringBefore("//") }
+    }
+
+    private companion object {
+        const val MODULE_DIRECTORY = "storyarc.library.projectDir"
+        const val SCREEN_SOURCE =
+            "src/main/kotlin/app/storyarc/feature/library/LibraryScreen.kt"
+
+        /** The two bars, spelled with the parenthesis so neither name contains the other. */
+        const val SELECTION_BAR = "LibrarySelectionTopBar("
+        const val ORDINARY_BAR = "LibraryTopBar("
+
+        const val IF = "if ("
+        const val ELSE = "else {"
+        const val SELECTION = "selection"
     }
 
     /** The two icon actions reach their callbacks, so the bar is wired and not merely drawn. */

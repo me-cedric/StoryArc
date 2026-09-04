@@ -68,6 +68,18 @@ tasks.withType<Test>().configureEach {
     )
         .withPropertyName("librarySearchBarWiringSource")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // And the screen again, for `BulkSelectionChromeTest`. Its other six tests compose
+    // `LibrarySelectionTopBar` and ask the bar about itself; the two that matter here ask the
+    // *screen* whether the two top bars can be up at once, which is a property of the
+    // `Scaffold`'s slots and of neither bar. Reaching it by composition would need a view
+    // model with a populated library before the first assertion — see the test's own note.
+    inputs.files(
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/library/LibraryScreen.kt",
+        ),
+    )
+        .withPropertyName("bulkSelectionChromeSource")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {
