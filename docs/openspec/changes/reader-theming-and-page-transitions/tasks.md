@@ -609,7 +609,7 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       axes; Curl is absent with its reason; single edge taps turn in both directions
       in every mode; the slider turns; and each choice survives a process kill,
       per shelf and per scope.
-- [ ] **4.3** Curl, per the Phase 0 outcome. Finger-tracked, interruptible, lit
+- [x] **4.3** Curl, per the Phase 0 outcome. Finger-tracked, interruptible, lit
       edge, cast shadow, mirrored for right-to-left. Metal on iOS, AGSL on
       Android at API 33+. **Android done and verified; iOS built but unverified.**
 
@@ -648,6 +648,25 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       laid out has nothing to scroll, and asking it to animate does nothing at all.
       Curl and Fast fade now share the container-less `Paging.Indexed`.
 
+      **iOS is now verified too, on 2026-09-05** — five frames in
+      `docs/designs/screenshots/ios-curl-2026-09-05/`, judged against Android's own description
+      rather than a second one. The fold travels 83.6% → 76.7% → 69.6% → 62.5% across four
+      consecutive frames at 20 fps, which is what separates a fold that tracks the finger from
+      one painted at a fixed fraction. The flipped band's left edge sits at `2f − W` — the exact
+      mirror of the sheet that lay right of the fold — dimmed, with a pale lit strip at the fold
+      and the revealed page ramping from `rgb(73,86,107)` against the fold to `rgb(130,153,192)`
+      in the open. Releasing past halfway lands on page 2.
+
+      **A screenshot cannot catch this, and the first attempt produced a wrong answer.**
+      `press(forDuration:thenDragTo:withVelocity:thenHoldForDuration:)` returns after the hold
+      *and the lift*, so every shutter after it photographs a settled page. Two such frames were
+      read as proof the curl did not track the finger — a fold at 95.4% with the finger at 50%,
+      and at 2% with the finger at 22% — until the arithmetic gave the harness away: 0.42 of a
+      turn springs back and 0.70 completes, which is exactly `CurlTurn.settles`. The shader was
+      right and the walk was wrong. The frames come from `simctl io recordVideo` instead, which
+      is also what §7.5 asks for.
+
+      **This was the record before that run:**
       **iOS is built and compiles, and is not visually verified.** The Metal shader is
       the AGSL's twin down to the constants, which is what `design.md` asks for — one
       projection expressed twice rather than solved twice. The gesture is a
@@ -1163,8 +1182,21 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       here: `testReaderPassesTheAudit` tapped the screen centre right after opening "to
       bring the chrome back", and that reader's chrome starts *visible* and a centre tap
       toggles it — so the tap took away the chrome the audit was there to measure.
-- [ ] **7.5** Record the curl: a screen recording on each platform, because a
-      still frame cannot show interruptibility or finger tracking.
+- [~] **7.5** Record the curl: a screen recording on each platform, because a
+      still cannot show an interruptible gesture.
+      **iOS done on 2026-09-05.** `xcrun simctl io recordVideo` around
+      `CurlWalkTests.testCaptureCurlSettled`, frames pulled at 20 fps with `ffmpeg`, and the
+      four mid-turn frames kept in `docs/designs/screenshots/ios-curl-2026-09-05/` with the
+      exact command in its README. The recording is what made the verification possible at all:
+      XCUITest has no primitive that holds a touch down across a screenshot, so §4.3's iOS half
+      was unverifiable by the capture harness and had gone unverified for that reason.
+      **Android still owed**, and it is the cheaper half — that platform's curl was already
+      driven frame by frame with held `motionevent` gestures, so the gesture script exists;
+      what is missing is `adb shell screenrecord` wrapped around it.
+      **Interruption is photographed on neither**, and it is the one thing a recording was
+      supposed to show that these frames do not: a second drag taking the page over mid-settle
+      needs two overlapping touches, which one scripted walk cannot drive. Asserted in
+      `CurlTurnTests` on both platforms; unrecorded.
 - [ ] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce
       Motion, Reduce Transparency, largest text size. **Two of the four done on
       Android, and each found something.**
