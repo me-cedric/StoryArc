@@ -147,4 +147,45 @@ struct PlayerLabelsTests {
         #expect(PlayerLabels.length(of: PlaybackPart(index: 0, title: "One", duration: nil)) == nil)
         #expect(PlayerLabels.length(of: PlaybackPart(index: 0, title: "One", duration: 90)) == "1:30")
     }
+
+    // MARK: - What the compact bar cannot draw
+
+    /// `audio-playback`, the compact bar at the largest text size: "text the bar cannot show
+    /// is announced in full by assistive technology".
+    ///
+    /// The bar draws one truncated line, and the title is what the tail takes — so the title
+    /// is the one thing that has to be here whole. It was the one thing missing: the value
+    /// announced the *chapter* and fell back to the title only when there was no chapter, so
+    /// a listener on VoiceOver heard "Chapter Two" for a book whose name had been cut to
+    /// "The Living Moun…" on screen and was said nowhere at all.
+    @Test("The bar announces the whole title, however little of it is drawn")
+    func announcesTheUntruncatedTitle() {
+        let long = "The Living Mountain: A Celebration of the Cairngorm Mountains of Scotland"
+        let spoken = PlayerLabels.nowPlaying(SpokenLabel(title: long, detail: "Chapter Two"))
+        #expect(spoken == .titleAndChapter(title: long, chapter: "Chapter Two"))
+    }
+
+    @Test("A book with nothing under its title announces the title alone")
+    func announcesTitleAlone() {
+        // Never `.titleAndChapter(title:chapter: "")` — a view given an empty chapter would
+        // announce the separator with nothing after it.
+        #expect(PlayerLabels.nowPlaying(SpokenLabel(title: "Sea Room", detail: nil)) == .title("Sea Room"))
+        #expect(PlayerLabels.nowPlaying(SpokenLabel(title: "Sea Room", detail: "")) == .title("Sea Room"))
+        #expect(PlayerLabels.nowPlaying(SpokenLabel(title: "Sea Room", detail: "  ")) == .title("Sea Room"))
+    }
+
+    /// The whole point of the case that carries two: the chapter never *replaces* the title.
+    ///
+    /// That is what the bar did — its value was `detail ?? title`, so a book with a chapter
+    /// announced the chapter alone, and the truncated title was reachable nowhere.
+    @Test("A chapter is announced beside the title and never instead of it")
+    func theChapterNeverReplacesTheTitle() {
+        let spoken = PlayerLabels.nowPlaying(SpokenLabel(title: "Sea Room", detail: "Chapter Two"))
+        guard case let .titleAndChapter(title, chapter) = spoken else {
+            Issue.record("a book with a chapter lost its title from the announcement")
+            return
+        }
+        #expect(title == "Sea Room")
+        #expect(chapter == "Chapter Two")
+    }
 }

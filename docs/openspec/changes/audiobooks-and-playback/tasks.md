@@ -1229,11 +1229,36 @@ creep — see [`design.md`](design.md).
       Android satisfies the growth clause; iOS satisfies the honest-cut and reachable-in-full
       clauses. Neither is excused a clause — they satisfy different ones, and which is decided
       by who owns the height.
-      **Still outstanding on iOS**, and now implementable: `PlayerDock.wayIn` keeps its
-      `.lineLimit(1).truncationMode(.tail)` and must additionally carry the **untruncated**
-      title in its accessibility label, so what the bar cannot draw is still announced. Assert
-      it, and re-run the audit to confirm `Text clipped` is what remains rather than something
-      new. The comment at that call site should cite the scenario instead of arguing with it.
+      **The iOS half landed 2026-09-04, and the defect was larger than the entry described.**
+      The line limit stays, and the untruncated title is announced — but the entry read as
+      though the title were merely *missing* from the announcement. It was **replaced**:
+      `PlayerDock.wayIn`'s value was `bar.label.detail ?? bar.label.title`, so a book with a
+      chapter announced the chapter *instead of* the publication, and the one piece of text
+      the tail eats was the one piece a screen reader could not reach. A book with no chapter
+      announced its title and was fine; a real audiobook, which is the case this bar exists
+      for, was not.
+      `PlayerLabels.nowPlaying` is the decision — `NowPlayingLabel.titleAndChapter` carrying
+      both whole, or `.title` alone where there is no chapter and no author to fall back on,
+      so a view can never announce a separator with nothing after it. Three host cases in
+      `PlayerLabelsTests`; mutation-checked by restoring `detail ?? title`, which fails two by
+      name. The joining is the view's, through the new `player.nowPlaying.value %@ %@` in all
+      four languages, because the separator between two announced facts is a translator's
+      decision — and because `PlayerLabels` returns decisions and never prose, which its own
+      header explains: `swift build` copies an `.xcstrings` without compiling it, so a host
+      test asserting English would be asserting a lookup that cannot work where it runs. The
+      first draft of this ignored that and returned the assembled sentence; the suite answered
+      with the raw key.
+      The comment at the call site cites the scenario now instead of arguing with it.
+      **Still `[~]`, and the remainder is a device.** `PlayerAuditTests` has to be re-run on a
+      booted simulator to confirm the bar's `Text clipped` finding is what remains rather than
+      something new, and no frame has been taken since the change. **Owed, on an iPhone 17 Pro
+      simulator:** the shelf with the compact bar carrying a long title, light and dark, at the
+      default text size and at `AccessibilityXXXL` — four frames — plus the
+      `performAccessibilityAudit` output for the *Player* and *Chapters* surfaces at both
+      sizes. The command is `node scripts/capture-ios.mjs --out <dir> --only
+      PlayerAuditTests --appearance light` and again with `dark`; the class already visits all
+      six surfaces and calls `performAccessibilityAudit` on each. Nothing in this entry can be
+      settled by a host test.
       **The screenshot is now a test too.** `PlayerSemanticsTest` composes the player at font
       scale 2 and asserts all three transport controls and the chapter are still displayed —
       which a photograph proves for one build and a test proves for every one after it. The

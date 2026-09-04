@@ -121,6 +121,13 @@ public struct PlayerDock: View {
                         .foregroundStyle(theme.palette.textSecondary)
                 }
             }
+            // Truncated on purpose, and `audio-playback` says so rather than forbidding it:
+            // the height of `tabViewBottomAccessory` is the system's, so lifting this limit
+            // does not make the bar taller — it trades an honest tail for a line clipped
+            // mid-letter. The scenario asks instead that the cut be marked, that the text be
+            // announced in full, and that the player it opens onto show it in full. The
+            // second of those is `accessibilityValue` below; growth is required only "where
+            // the app owns the height", which here it does not.
             .lineLimit(1)
             .truncationMode(.tail)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -134,7 +141,24 @@ public struct PlayerDock: View {
                 ? Text("player.back", bundle: .module)
                 : Text("player.open", bundle: .module)
         )
-        .accessibilityValue(Text(bar.label.detail ?? bar.label.title))
+        .accessibilityValue(announcement(bar))
+    }
+
+    /// What the bar says it is playing, untruncated.
+    ///
+    /// **This used to be `bar.label.detail ?? bar.label.title`**, which announced the chapter
+    /// *instead of* the publication whenever there was a chapter — so the one piece of text
+    /// the tail eats was the one piece reachable nowhere. `audio-playback`'s compact-bar
+    /// scenario asks that "text the bar cannot show is announced in full", and the title is
+    /// what the bar cannot show. ``PlayerLabels/nowPlaying(_:)`` makes the decision and this
+    /// only joins it, because the separator between two announced facts is a translator's.
+    private func announcement(_ bar: CompactPlayer) -> Text {
+        switch PlayerLabels.nowPlaying(bar.label) {
+        case let .title(title):
+            Text(title)
+        case let .titleAndChapter(title, chapter):
+            Text("player.nowPlaying.value \(title) \(chapter)", bundle: .module)
+        }
     }
 
     /// Play, pause, and the way out.

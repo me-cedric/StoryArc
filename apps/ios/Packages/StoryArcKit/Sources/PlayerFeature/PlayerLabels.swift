@@ -38,6 +38,17 @@ public enum ChapterLabel: Equatable, Sendable {
     case number(Int)
 }
 
+/// What the compact bar announces, as opposed to what it has room to draw.
+///
+/// Two cases rather than one string with an optional in it, so the view cannot accidentally
+/// announce `nil` and a test can name which shape it got. The **title is in both**: it is the
+/// end of the line the bar truncates, and `audio-playback` asks for it in full.
+public enum NowPlayingLabel: Equatable, Sendable {
+    case titleAndChapter(title: String, chapter: String)
+    /// A book with no chapter and no author to fall back to.
+    case title(String)
+}
+
 /// What the player states, decided here and spoken by the surfaces.
 ///
 /// **A value with tests rather than string interpolation inside a view body**, because every
@@ -139,5 +150,24 @@ public enum PlayerLabels {
     /// than one showing no lengths at all, because the first states something false.
     public static func length(of part: PlaybackPart) -> String? {
         part.duration.map(time)
+    }
+
+    // MARK: - What the compact bar cannot draw
+
+    /// Everything the compact bar is about, whether or not the bar has room to draw it.
+    ///
+    /// `audio-playback`, at the largest text size: "text the bar cannot show is announced in
+    /// full by assistive technology, and shown in full on the player the bar opens onto".
+    /// The bar's line is `.lineLimit(1).truncationMode(.tail)` on purpose — the height of
+    /// `tabViewBottomAccessory` is the system's, so removing the limit trades a *truncated*
+    /// title for a *clipped* one — and this is the other half of that trade.
+    ///
+    /// The **title** is what the tail takes, so the title is what has to be here. Both cases
+    /// carry it whole; the view is what joins the two, with the separator a translator owns.
+    public static func nowPlaying(_ label: SpokenLabel) -> NowPlayingLabel {
+        guard let detail = label.detail?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !detail.isEmpty
+        else { return .title(label.title) }
+        return .titleAndChapter(title: label.title, chapter: detail)
     }
 }
