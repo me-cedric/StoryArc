@@ -280,7 +280,25 @@ public struct LibraryView: View {
             #if os(iOS)
             // Inline for the duration, so the count sits on one line beside *Done* rather
             // than under a large title that has nothing left to say.
-            .navigationBarTitleDisplayMode(selection.isActive ? .inline : .automatic)
+            //
+            // **`.large` on the other side of that question, and never `.automatic`, which
+            // is what this line said for two days and what took the search field off the
+            // Search tab.** `.automatic` and `.large` draw an identical navigation bar at the
+            // root of a stack — the same large title, at the same 119.7 pt, 40.7 pt high —
+            // and differ in exactly one thing: under `.automatic` the bar installs no
+            // `.searchable` field, so it measures 106 pt instead of 166 pt and a reader who
+            // taps *Search* gets a title, a scope bar and nothing to type in. Measured on
+            // iOS 26.5 with the modifier absent (field), `.large` (field), `.inline` (field,
+            // no large title) and `.automatic` (**no field**), one variable apart.
+            //
+            // So this is not a workaround for a default that happens to be unhelpful: at a
+            // stack root `.automatic` has no previous navigation item to inherit from, and
+            // saying "inherit" where there is nothing to inherit from is what the app should
+            // never have said. `.large` states the mode this screen has always drawn.
+            // ``LibrarySearchSurface`` states the field's placement as well, so the two
+            // questions are independent from here on, and `SweepSearchTests` fails if either
+            // regresses.
+            .navigationBarTitleDisplayMode(selection.isActive ? .inline : .large)
             // **And the tab bar goes down for exactly as long as the selection is up.**
             // This is the line that fixes what the owner reported: the actions used to be
             // drawn in a bar stacked *above* the rounded glass tab bar, so the foot of the

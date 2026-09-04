@@ -131,36 +131,76 @@ final class SweepSearchTests: XCTestCase {
                 + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
         ).tap()
         // A tap that missed leaves the at-rest screen up, and every state of this screen is a
-        // plausible picture of it — so this proves the screen *changed*, which the field's
-        // value used to prove and can no longer (see ``showSearch(in:)``). *Recent searches*
-        // is the at-rest screen's own heading and the results screen does not draw it.
+        // plausible picture of it — so this proves the screen *changed*. The field's own value
+        // would prove it too, and this is the sturdier of the two: it holds when the field is
+        // cleared by a walk that never typed, and it fails loudly the day a recent search
+        // stops asking. *Recent searches* is the at-rest screen's own heading, and the results
+        // screen does not draw it.
         XCTAssertTrue(
             app.staticTexts["Recent searches"].waitForNonExistence(timeout: 8),
             "Tapping “\(term)” left the at-rest screen up, so the results were never asked for."
         )
     }
 
+    /// The field itself, asserted rather than photographed.
+    ///
+    /// **A capture that photographs an empty screen still passes, and one did.** Every walk
+    /// in this file is a `shutter`, and for two days the frames they filed under
+    /// `search-at-rest` were pictures of a search screen with nothing to type in. This test
+    /// exists so that state is a red test rather than a picture somebody has to look at: it
+    /// names the field, its prompt, and the fact that the navigation bar is what holds it.
+    ///
+    /// The bar, specifically, because a field drawn in the *content* would satisfy
+    /// `app.searchFields` while being a different control in a different place —
+    /// ``SearchAtRest`` draws its own scope picker exactly that way, and the presence of that
+    /// picker is what made the missing field survive a sweep. `library-browsing`'s *Typing a
+    /// query* has no meaning without this element.
+    func testSearchOffersAFieldToTypeIn() throws {
+        let app = sweepLaunch()
+        try showSearch(in: app)
+        let field = app.navigationBars.searchFields.firstMatch
+        XCTAssertTrue(
+            field.waitForExistence(timeout: 10),
+            "The Search screen's navigation bar holds no search field. Search fields anywhere: "
+                + "\(app.searchFields.count). On screen: "
+                + "\(app.staticTexts.allElementsBoundByIndex.prefix(15).map(\.label))"
+        )
+        XCTAssertTrue(field.isHittable, "The search field is present but cannot be tapped.")
+        XCTAssertEqual(
+            field.placeholderValue,
+            "Search",
+            "The search field carries no prompt saying what it searches."
+        )
+    }
+
     /// Search, on screen, proved to be search.
     ///
-    /// **The landmark was the search field, and the search field is gone.** On 2026-09-02
-    /// `ios-search-at-rest.png` shows it drawn under the title; on 2026-09-04 the same walk on
-    /// the same simulator and the same runtime finds no `searchFields` element anywhere in the
-    /// hierarchy, and it finds none on an unmodified checkout of `main` either. Nothing in
-    /// `LibraryFeature` moved — the `.searchable` is still on `LibrarySearchSurface` — so the
-    /// change is underneath us, and it is recorded in
-    /// `docs/designs/screenshots/stated-axes-2026-09-04/README.md` as a defect of its own
-    /// rather than absorbed here.
+    /// **Two landmarks, because each one alone has already let this screen ship broken.**
     ///
-    /// So the landmark moves to the scope statement, which is *stronger* rather than weaker:
-    /// the segmented *Everywhere · On this device* control belongs to the search surface and
-    /// to nothing else, and — unlike the field, and unlike the shelf behind a tab that never
-    /// changed — it is on **every** state of this screen, at rest and in results alike. It was
-    /// the results half of that which the 2026-09-02 sweep found missing.
+    /// The field was the only landmark until 2026-09-04, and the 2026-09-02 sweep found the
+    /// *results* screen stating no scope at all — invisible to a walk that only looked for a
+    /// field. So the scope statement was added. It was then made the only landmark, on the
+    /// reading that the field had been taken away by the SDK; that reading was wrong. The
+    /// field was taken away by this repository, in `76d43b74`, which added
+    /// `.navigationBarTitleDisplayMode(selection.isActive ? .inline : .automatic)` to
+    /// `LibraryView` for the selection's inline title — and at a stack root `.automatic`
+    /// draws the large title while installing no search bar beneath it. Measured four ways,
+    /// one variable apart, on the same iOS 26.5 runtime that drew the field on 2026-09-02:
+    /// modifier absent → field; `.large` → field; `.inline` → field; `.automatic` → none.
+    ///
+    /// Both are asserted here now. The scope statement is on every state of this screen and
+    /// belongs to no other; the field is what the screen is *for*.
     private func showSearch(in app: XCUIApplication) throws {
         try XCTUnwrap(destination("Search", in: app), "The shell offers no Search tab.").tap()
         XCTAssertTrue(
             app.buttons["Everywhere"].waitForExistence(timeout: 10),
             "Tapping Search did not open a screen stating the scope it searches. On screen: "
+                + "\(app.staticTexts.allElementsBoundByIndex.prefix(15).map(\.label))"
+        )
+        XCTAssertTrue(
+            app.navigationBars.searchFields.firstMatch.waitForExistence(timeout: 10),
+            "Tapping Search did not open a screen with a search field on it. Search fields "
+                + "anywhere: \(app.searchFields.count). On screen: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(15).map(\.label))"
         )
     }

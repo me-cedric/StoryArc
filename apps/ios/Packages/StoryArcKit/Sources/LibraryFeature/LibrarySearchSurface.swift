@@ -31,8 +31,29 @@ extension LibraryView {
     func searching(_ inner: some View) -> some View {
         if surface == .search {
             searchSurface(inner)
+                // **The placement is stated, because the default dropped the field.**
+                // `.searchable` with `placement: .automatic` leaves the decision to the
+                // navigation bar, and the navigation bar answered *no field at all* for two
+                // days: `LibraryView`'s `.navigationBarTitleDisplayMode(.automatic)` — added
+                // for the selection's inline title on 2026-09-02 — draws the large title and
+                // installs no search bar under it. Measured on iOS 26.5, four ways, in
+                // ``SweepSearchTests``' own comment.
+                //
+                // `.navigationBarDrawer(displayMode: .always)` says the two things this
+                // screen actually needs: the field is in the bar's drawer under the title,
+                // and it is *always* drawn rather than revealed by scrolling up. Under the
+                // corrected `.large` it changes nothing — the bar measures the same 166 pt
+                // either way — and it is here so the field's existence no longer depends on
+                // a title's display mode at all.
+                //
+                // **Not `.searchToolbarBehavior`.** The symbol exists in this SDK and cannot
+                // express this: its two values are `.automatic` and `.minimize`, and
+                // `.minimize` collapses the field into a button that expands in place —
+                // which is the shape-changing `navigation-shell` forbids and the opposite of
+                // a field a reader lands on.
                 .searchable(
                     text: searchBinding,
+                    placement: .navigationBarDrawer(displayMode: .always),
                     prompt: Text("library.search.prompt", bundle: .module)
                 )
                 // **No `.searchSuggestions`.** It drew the recent queries — which was the
