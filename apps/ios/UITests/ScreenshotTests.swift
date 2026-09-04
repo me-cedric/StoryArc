@@ -104,16 +104,13 @@ final class ScreenshotTests: XCTestCase {
     /// reads as broken whether or not it can be scrolled clear. This is the capture that says
     /// which of the two it is.
     func testCaptureLibrarySelectingAtTheEnd() throws {
-        let app = launch()
-        try XCTUnwrap(destination("Library", in: app)).tap()
-        let shelf = app.scrollViews.firstMatch
-        _ = shelf.waitForExistence(timeout: 10)
-        try XCTUnwrap(app.buttons["Select"].firstMatch).tap()
-        XCTAssertTrue(
-            app.buttons["Done"].waitForExistence(timeout: 5),
-            "Tapping Select did not put the shelf into selection mode."
-        )
-        for _ in 0..<8 { shelf.swipeUp() }
+        // `sweepLaunch` rather than `launch`: it pins the appearance to `system` and every
+        // shelf choice besides, so a `--appearance light` run of this cannot come back a
+        // stored dark. The walk and the proof are shared with `LibrarySelectionCapture`.
+        let app = sweepLaunch()
+        try startSelecting(in: app)
+        try assertSelectionChrome(app, count: 0)
+        for _ in 0..<8 { app.scrollViews.firstMatch.swipeUp() }
         settle(1)
         attach(app.screenshot(), named: "library-selecting-end")
     }
