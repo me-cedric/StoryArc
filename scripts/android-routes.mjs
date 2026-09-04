@@ -203,6 +203,13 @@ export const ROUTES = [
     // nothing selected — a state of its own, and the one the bar is designed around.
     ['Library > selection none', [NAMES.library, NAMES.more, named('library_select')]],
     ['Library > selection two', [NAMES.library, NAMES.more, named('library_select'), 'Fine Print', 'Foreign Codec']],
+    // The one bulk action that is a word rather than a glyph. A top app bar's action slot
+    // has no room for *Add to…* at any width, so it is an overflow row with its name
+    // showing — and a row nobody photographs is a row nobody can check the wording of.
+    // The last step is the selection bar's own overflow: in this mode it is the only
+    // control on screen described as `library_more`, because the bar has replaced the
+    // library's own.
+    ['Library > selection overflow', [NAMES.library, NAMES.more, named('library_select'), 'Fine Print', 'Foreign Codec', NAMES.more]],
     ['Library > add to shelf', [NAMES.library, '@long Fine Print']],
 
     // --- The publication page, in the three shapes its own layout has ----------------
