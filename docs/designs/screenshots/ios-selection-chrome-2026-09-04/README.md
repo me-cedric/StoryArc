@@ -96,14 +96,17 @@ does not arrive under a thumb mid-tap. The actions are `.disabled(selection.ids.
 and 2-picked frames of the same appearance and text size:
 
 ```
-capsule, light, 0 picked vs 2 picked : 0 of 27 900 pixels differ, worst channel delta 0
-capsule, dark,  0 picked vs 2 picked : 0 of 27 900 pixels differ, worst channel delta 0
-capsule, light AX5, 0 vs 2 picked    : 0 of 110 500 pixels differ, worst channel delta 1
+capsule, light,     0 vs 2 picked : 0 of  27 900 pixels differ, worst channel delta 0
+capsule, dark,      0 vs 2 picked : 0 of  27 900 pixels differ, worst channel delta 0
+capsule, light AX5, 0 vs 2 picked : 0 of 110 500 pixels differ, worst channel delta 1
+capsule, dark AX5,  0 vs 2 picked : 0 of 110 500 pixels differ, worst channel delta 2
 ```
 
-The control says the two frames really are two different states: over the first cover's tick,
-the same pair differs on **45 %** of pixels with a worst delta of 202, and over the whole
-frame on 0.25 %.
+All four pairs, so this is not one appearance's accident. The control says the two frames
+really are two different states: over the first cover's tick the light default pair differs
+on **45 %** of pixels with a worst channel delta of 202, and whole-frame the four pairs
+differ on 0.25 %, 0.29 %, 1.40 % and 1.46 % of pixels with worst deltas of 255, 234, 255 and
+234. So the frames are not duplicates and the capsule inside them is unchanged.
 
 The likely cause — stated as an inference, not a measurement — is the same modifier the
 question above is about: `.storyArcGlassText(.primary)` sets an explicit `foregroundStyle`
