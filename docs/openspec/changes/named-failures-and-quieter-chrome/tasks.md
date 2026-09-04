@@ -30,7 +30,13 @@ worked around silently:
 
 - [x] 1.1 Both: the indexer's reasons are **kept**, not counted. `PublicationIndexer` already
       produces `IndexError.unsupported(format:)`, `.unreadable(reason:)` and
-      `.contentProtected`, each worded and translated; the scan keeps only the tally. Carry
+      `.contentProtected`, each worded — **and not translated**: they are English literals in
+      both scanners, and the `Formats` module carries no string catalogue at all. The notice's
+      own strings are localised in four languages; the reasons inside it are not. Confirmed by
+      a verification pass on 2026-09-04 against this change's own `ios-skipped-list.png`, which
+      shows two English rows inside a translated frame. The debt is written up in `design.md`
+      and belongs to `publication-formats` + `localization`, not here. The scan keeps only the
+      tally. Carry
       the pairs through. Test first, with `refused.cb7` and `rar4-solid.cbr` from the corpus —
       two files that fail *differently*, which is the case a merged reason would hide.
       **Done.** `SkippedPublications` on both platforms; `LibraryScanning.swift` and
@@ -142,9 +148,16 @@ worked around silently:
       keeps it out of the filter badge. Two things follow: `LibraryNarrowing.activeCount` is
       untouched, so iOS and Android still report the same number; and the requirement that the
       choice be "visible while it is active" needed a new home, because `ScopeMenu`'s own glyph
-      was holding it. `ViewMenu`'s icon holds it now — `ellipsis.circle` while the shelf shows
-      everything, the availability symbol while it does not — plus the `accessibilityValue` the
-      old control carried.
+      was holding it. `ViewMenu`'s icon holds it now, plus the `accessibilityValue` the old
+      control carried.
+      **This said `ellipsis.circle` while the shelf shows everything, the availability symbol
+      while it does not — and later work reversed it on 2026-09-04.**
+      `LibraryBrowsingControls.swift` now draws the availability symbol *unconditionally*, and
+      its own comment argues against the two-state version by name. The requirement is better
+      served: "visible while it is active" now holds in **both** states rather than one.
+      The proof moved with it — `quieter-toolbar-2026-09-02/ios-toolbar-after-light.png` shows
+      a `•••`-in-circle and is a picture of the superseded shape, while
+      `stated-axes-2026-09-04/` photographs what shipped.
       **The layout toggle became a picker rather than moving as a button.** It drew the layout it
       would switch *to*, which is unreadable inside a list of choices: a row saying "List" beside
       a shelf drawn as a grid states neither where the reader is nor where they would go.
@@ -287,7 +300,15 @@ worked around silently:
       grouping that gathered every "A" out of a shelf sorted by last-read would silently undo
       the sort). So on Android the clause is satisfied by the sort chip it follows from, and
       inventing a grouping control to have something to label would be building an unspecified
-      behaviour. Whether iOS has one is the other agent's half.
+      behaviour.
+      **iOS's half, answered 2026-09-04 rather than left open**: iOS shows no current-sort
+      value on any control, so the scenario's `WHEN` never fires there. `ViewMenu`'s toolbar
+      label is `library.view` ("View") with the availability glyph; the sort lives *inside* the
+      menu as a `Picker` labelled `library.sort`, with direction as a picker of its own. There
+      is no iOS grouping control either, exactly as on Android, where the headings are derived
+      from the sort. Vacuously compliant, which is worth writing down: an archived record that
+      leaves this as an open question reads as unfinished work rather than as a platform that
+      never draws the value.
       **Asserted, and the assertion was made to fail twice.** `SortChipNamesAnOrderingTest`
       checks two properties over all seven fields in all four locales — the label is not the
       bare field name, and the field name is still inside it. Neither alone is enough: the
@@ -392,9 +413,13 @@ and neither reaches the *shape*. A `native-experience` delta now states it; see
       Chrome that arrives on the first pick appears under a thumb mid-tap and changes the
       shelf's bottom inset mid-scroll; shown-and-inert says what the mode is for. The way out is
       never in the disabled group.
-- [x] 3b.5 Both: every action names itself to assistive technology. Glyph-only survives in
-      exactly two places, both on Android's top bar where an action slot holds no word at any
-      width, and both glyphs the platform already establishes. *Add to…* is named in words,
+- [x] 3b.5 Both: every action names itself to assistive technology. Glyph-only survives for
+      **two of the mode's actions**, both on Android's top bar where an action slot holds no
+      word at any width, and both glyphs the platform already establishes. (This said "exactly
+      two places", which undercounts the bar itself: `LibrarySelectionTopBar` draws four
+      glyph-only controls once the exit and the overflow are counted. All four carry a
+      `contentDescription` from a string resource and all four are platform-established
+      symbols, so the requirement holds — it is the count that was loose.) *Add to…* is named in words,
       because `PlaylistAdd` is the ambiguous glyph the review objected to.
 - [x] 3b.6 **A second instance of the same slab, which the brief did not name.**
       `ShelfBulkActions` drew the identical full-bleed `BulkUndoBar` one screen over. Floated as

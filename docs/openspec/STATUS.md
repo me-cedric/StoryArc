@@ -90,7 +90,7 @@ Recorded here rather than as capability rows, because two of the capabilities in
 capabilities that `one-library-three-destinations` introduces and has not synced, so there
 is nothing for a row to be a status *of* yet. When either change syncs, this becomes rows.
 
-Last updated **2026-09-01, mid-afternoon**. The per-capability rows below predate the day's
+Last updated **2026-09-04**. The per-capability rows below predate the day's
 merges and are therefore **understated** for `comic-reader`, `ebook-reader`, `reading-themes`,
 `library-browsing`, `settings-and-about` and `native-experience`. They have not been
 re-audited scenario by scenario, and this section says what landed rather than pretending they
@@ -215,7 +215,7 @@ media3 1.10.0 **does** parse ID3 chapters — only MP4 atoms need the 1.11.0 bum
 **13 of 45 tasks done, 14 partial.** The partials are labelled per platform rather than
 rounded up.
 
-### `brand-identity-and-app-icons` — the palette moved; the icons have not
+### `brand-identity-and-app-icons` — the palette moved, the icons shipped, one gap left
 
 **§1 is complete and §2 was already.** The accent is now a violet from the middle of the app's
 own mark — `#8A4DF0`, **one value on every appearance**, measuring 4.06:1 on the dark canvas and
@@ -240,10 +240,88 @@ than written once, because `pnpm test:ios` cannot fail for a Kotlin violation.
   the only value in the set that clears it. The gate now checks both halves of every pair, and
   Android gained the brand-scheme test it had never had.
 
-**Still outstanding, and it is the part a reader would notice:** the accent has not been
-applied to tab bars, chips, sliders or progress ticks on either platform — a rename finds a
-renamed token, not a surface that was never accented. And none of §3, §4 or §5 is built: no
-alternate `.appiconset`s, no `activity-alias` set, no chooser. **7 of 36 tasks done, 1 partial.**
+**§1.7 closed the part a reader would notice.** The accent now reaches tab bars, chips,
+sliders and progress ticks on both platforms, pinned by `AccentReachesTheControlsTests` on iOS
+and `AccentReachesTheControlsTest` plus `BrandSchemeTest` on Android. Three of the four control
+kinds were already accented on iOS by one line — `ThemeResolver`'s `.tint` reaches every
+unstyled control — and the fourth was not: a cover's progress rail drew its rail as
+`.black.opacity(0.35)`, a scrim rather than a colour, so it read as mid-grey on a pale cover
+and vanished on a dark one. It is `accentMuted` now, which is the role `design.md` had always
+given that token and which nothing in the app had been doing. iOS's segmented control is left
+neutral **deliberately**, and the reason is recorded at §1.7 rather than left as an omission.
+
+**§3, §4 and §5 are built on both platforms.** Five `.appiconset`s and five `.imageset` tiles
+on iOS, five `<activity-alias>`es on Android, and a chooser per platform reached from
+Appearance — searchable by six identical terms a side, announced by name and by whether it is
+in use, and holding at the largest accessibility text size. The generator emits twenty-four
+assets from one SVG. The refusal path is built on both sides, which is the scenario of this
+kind most often specified and not built: the platform declining the change names the icon
+still in use, and the refusal is asked once rather than on every visit.
+
+**Two device findings changed the design rather than the code.** Making the default *be* the
+manifest's own activity bricks the app — an `<activity-alias>` whose target is disabled stops
+resolving, so the launcher goes on drawing an icon that does nothing and a reader reinstalls.
+So there are five aliases, `MainActivityInk` among them, and no face may name the target
+activity. And the platform is the *whole* store on both sides — `alternateIconName`,
+the component enabled states — so nothing about the choice is written to preferences, a
+backup, a log or a diagnostic. A delta scenario asking for a stored preference to be "kept
+rather than erased" was rewritten to match that decision rather than implemented against it.
+
+**One gap, honestly labelled: §6.3, the Android themed-icon capture.** A themed icon tints the
+monochrome layer, and shipping real single-colour art for it is the whole reason that layer
+exists — but turning themed icons on could not be automated on the emulator. What is asserted
+without a device is the wiring, for all five faces: `AppIconManifestTest` matches the exact
+`<monochrome>` element per mipmap, so a face re-pointed at the gradient foreground fails it.
+What is not asserted is the *premise* — that a gradient tinted flat loses the mark's internal
+divisions — which is neither tested nor photographed.
+
+**31 of 36 tasks done, 2 partial, 3 close-out open.** This paragraph said "7 of 36 done, 1
+partial" and the four above it described §1.7, §3, §4 and §5 as unbuilt, for three days and
+about thirty commits. `CLAUDE.md` tells every agent to read this file **before** claiming a
+capability is missing, so an agent reading the old version would have built the chooser a
+second time. Corrected 2026-09-04, on the evidence of a verification pass rather than a
+re-read of the task list.
+
+### `named-failures-and-quieter-chrome` — §1, §2, §3 and §3b complete on both platforms
+
+**A failure names its publication, and the notice is a state rather than an event.** The
+indexer's reasons are kept instead of counted, so one failure names its publication and its
+reason and several state the count and lead to a list with a reason per row. The six-second
+`dwell` is deleted: the notice sits inline above the shelf, takes its own space rather than
+floating over covers, and is dismissed by the reader. One decision carries most of the
+requirement — the scan **replaces** the list rather than accumulating, and prunes
+acknowledgements to the surviving names — which is what makes a publication that later opens
+leave the list without being dismissed, a deleted file leave the same way, the same set not
+re-announce itself, and a fixed-then-broken-again publication be news. Four states rather
+than a bool and a count, so *nothing failed* is distinguishable from *failures you have seen*.
+
+**The library toolbar went from six unlabelled glyphs to two controls and two named menus.**
+Six was a measurement, not the review's five, and it is corroborated by the revamp document
+independently. The show and scope choices folded into the menus already there; *Select* stayed
+on its own, because entering a mode is not the same kind of act as picking a sort, and the
+test says so. Android needed no change to the same controls — it already used menus for three
+of the six — and its sort chip now reads *Sort: Title* rather than *Title*, which was the one
+place a value was passing for an ordering.
+
+**The selection chrome was rebuilt, and the two platforms diverge on purpose.** iOS follows
+Photos: the tab bar goes down, the actions are a glass capsule in its place, the count moves
+to the navigation title and *Select* becomes *Done*. Android follows Material's contextual top
+app bar: close at the start, the plural count as the title, and the navigation bar left alone,
+because the foot of an Android window is the navigation bar's territory. Each platform's source
+names the convention it follows and cites ADR-0001 as the licence. On both, the actions are
+inert-but-shown at nothing selected and the exit is never disabled.
+
+**Open: §3b.7's captures, and they are the only substantive gap.** iOS has three walks written
+and never run to disk; Android has none for the contextual bar. One question is still
+unanswered and only a picture answers it — whether the automatic button style colours its own
+labels over the ancestor `.storyArcGlassText(.primary)`. Either outcome is legible and neither
+tints the material, so no rule is broken; nobody knows which it is.
+
+**A merge hazard this change surfaced, recorded because it is not about this change.** Two
+open changes held `MODIFIED` deltas on `library-browsing` → *Presentation* with disjoint
+scenario sets, so whichever synced second would have deleted the other's. `pnpm delta:drop`
+gained a check for exactly that on 2026-09-04 and found **four** live instances. All four are
+resolved and the sync order of three is recorded in `.delta-drops.json`.
 
 ### The wave of 2026-09-01 — landed, gated, and four defects out of it
 

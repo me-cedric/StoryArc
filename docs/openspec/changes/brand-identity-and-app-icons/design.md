@@ -101,10 +101,21 @@ aspect came out at 0.796 against the viewBox's 0.794.
 ### What the script still owns
 
 The SVG cannot say which faces exist, what plate each sits on, how far the mark insets for
-each platform's icon mask, or that the output must be byte-identical run to run. Fifteen
-assets from one source: five iOS faces with their `Contents.json`, the Android adaptive
-foreground *and* its monochrome twin, `AccentColor.colorset`, and a plateless PNG for the
-docs.
+each platform's icon mask, or that the output must be byte-identical run to run.
+
+**Twenty-four assets from one source**, and this sentence said fifteen until the chooser
+needed tiles. Per face: an `.appiconset` PNG with its `Contents.json`, **and an ordinary
+`.imageset` PNG with its `Contents.json`** — 5 × 4 = 20. Then `AccentColor.colorset`, the
+Android adaptive foreground *and* its monochrome twin, and a plateless PNG for the docs.
+
+The `.imageset` half is the part worth naming, because it is not obvious why a face needs its
+art twice. An `.appiconset` is not readable as an image: `UIImage(named:)` cannot draw one, so
+a chooser that offers five faces has nothing to put in its rows. The tile is the same
+`renderPNG` call at the same inset, emitted beside the icon set two lines later, which is what
+keeps the tile and the icon from drifting apart. `pnpm brand:check` prints the count it
+actually wrote rather than a number in this document, so the two cannot silently disagree —
+but the sentence a reader trusts about what the generator owns is this one, and it was wrong
+for as long as the tiles existed.
 
 **Android gets the designer's path data verbatim**, wrapped in a `<group>` that scales and
 translates it into the 108dp viewport. Re-emitting the geometry would mean converting arcs to
@@ -175,6 +186,25 @@ Three constraints the spec is written around:
 - **`alternateIconName` is the truth**, not the preference. It is read on launch to reconcile,
   which is what makes the reinstall and restore scenario implementable at all.
 
+**And that decision went further than this document noticed: there is no preference at all.**
+The platform is the whole store on both sides — `alternateIconName` on iOS, the component
+enabled states on Android — so there is nothing to keep in sync and no second record that can
+disagree with the launcher. It also means the choice never reaches preferences, a backup, a
+log or a diagnostic, which is the repo's rule about what may leave memory applied to a setting
+that did not need to be stored in the first place.
+
+**The delta had a scenario this made unimplementable, and the scenario is what moved.** "The
+platform stops honouring it" asked for the stored preference to be "kept rather than erased,
+so a launcher that supports it again restores what the reader picked" — which needs a store
+this design deliberately does not have. It was rewritten rather than implemented, because
+adding a preference to satisfy it would reverse the decision above and give the app exactly
+the second record it avoids. In its place the delta now carries the refusal path that *is*
+built — the chooser names the icon still in use, and the refusal is asked once rather than on
+every visit — and a third scenario stating the platform-is-the-only-record rule outright, so
+the next agent inherits the decision instead of the contradiction. Recorded here because a
+delta rewritten to match its code is the move that needs an argument, not the one that needs
+no comment.
+
 ## Android: `activity-alias`, because there is no API
 
 Android has no equivalent of `setAlternateIconName`. The mechanism is one
@@ -190,9 +220,24 @@ Four consequences, all visible to a reader and all in the spec:
   disable and both must be `DONT_KILL_APP`.
 - **Every alias needs the launcher intent filter**, and exactly one may be enabled — zero
   makes the app vanish from the launcher entirely, which is unrecoverable without a reinstall.
-  A test asserts the invariant rather than trusting the sequencing.
-- **The default alias is the manifest's own activity**, not a sixth alias, so a fresh install
-  and a reset land in the same state.
+  A test asserts the invariant rather than trusting the sequencing. **And the component the
+  aliases point at is the sixth thing that can be zero**: it carries no launcher filter, is
+  never written to, and disabling it stops all five aliases resolving at once. That is the
+  rule which replaced the bullet below.
+- **The default is its own alias, and this bullet used to say the opposite.** It said "the
+  default alias is the manifest's own activity, not a sixth alias" — and the implementation
+  found that shape unbuildable, because an `<activity-alias>` cannot target an activity that is
+  itself a launcher entry without the launcher drawing two. So there are **five** aliases for
+  five faces, `MainActivityInk` among them, the target activity is not one of them, and no face
+  may name it — asserted twice, in `AppIconChoiceTest` and `AppIconManifestTest`.
+
+  **The half of the old bullet that survives is the reason it was written**: a fresh install
+  and a reset still land in the same state. `AppIconAliases.stateFor` writes
+  `COMPONENT_ENABLED_STATE_DEFAULT` — not `ENABLED`, not `DISABLED` — to every component whose
+  wanted state already equals the manifest's, so a reset leaves the component table holding
+  exactly what a fresh install holds rather than an explicit override that happens to agree.
+  Three-valued state is what `AppIconAliasState` exists for, and the only test that catches an
+  explicit `ENABLED` written in `DEFAULT`'s place is the one asserting that.
 
 - **No suppression of iOS's alert**, per above.
 - **No gradient in chrome**, per the palette's direction.

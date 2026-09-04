@@ -20,7 +20,7 @@ picked.
 #### Scenario: The mode replaces its surface rather than stacking on it
 - **WHEN** a reader is selecting publications
 - **THEN** the mode's actions occupy the place the destination's own primary navigation held, and the two are never drawn at once
-- **AND** the actions carry the same material and shape as the chrome they replaced, so the surface still reads as one app
+- **AND** the actions carry the same material and shape as the chrome they replaced, so the surface still reads as one app — though a platform may change its **tone** to mark the mode, where that platform's convention asks a contextual bar to read as a different bar rather than the same one with different buttons
 
 #### Scenario: How many are chosen, and how to leave
 - **WHEN** a selection is running

@@ -31,10 +31,15 @@ the app SHALL never claim an icon is in use that the launcher is not drawing.
 
 #### Scenario: Surviving a reinstall or a restore
 - **WHEN** the app is restored from a platform backup, or reinstalled on a device where a non-default icon had been chosen
-- **THEN** the stored choice is re-applied if the platform still honours it, and the default is used if it does not
-- **AND** what the chooser shows as current is what was actually applied, not what was stored
+- **THEN** the icon the platform is drawing is the icon the chooser shows as current, whatever the restore left behind
+- **AND** the default is shown as current when the platform is drawing the default
 
-#### Scenario: The platform stops honouring it
-- **WHEN** the platform or launcher no longer supports changing the icon
-- **THEN** the app falls back to the icon it ships with and the chooser says the platform is not offering the choice
-- **AND** the stored preference is kept rather than erased, so a launcher that supports it again restores what the reader picked
+#### Scenario: The platform refuses the change
+- **WHEN** the platform declines to change the icon, at the moment a reader picks one
+- **THEN** the chooser says so, naming the icon that is still in use, and does not show the picked one as current
+- **AND** the refusal is not retried unprompted, so a reader who cannot have a face is told once rather than on every visit
+
+#### Scenario: The platform is the only record
+- **WHEN** the app needs to know which icon is in use
+- **THEN** it asks the platform rather than a preference of its own, so there is no second record that can disagree
+- **AND** nothing about the choice is written to preferences, a backup, a log or a diagnostic

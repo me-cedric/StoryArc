@@ -108,8 +108,13 @@ Three data conditions. Each group below says which one it belongs to.
 
 ## Library — selection mode
 
-**Current, redesign in flight.** The Apple selection bar is being redesigned and Android's
-will follow. These are the bar as it stands, unchanged.
+**Superseded on 2026-09-03 — these seven are the *before*.** They photograph the full-bleed
+bottom slab, and `named-failures-and-quieter-chrome` §3b replaced it with a contextual
+`TopAppBar`: close at the start, the plural count as the title, download and mark-as-read as
+actions, *Add to…* named in words in the overflow, and the navigation bar left alone for the
+whole mode. `BulkActionBar.kt` is deleted. So the "four actions, Done" row below describes a
+bar that no longer exists — kept as the before, not as an inventory of the shipped app, and
+labelled because this table said "Current" for a day after it stopped being true.
 
 | Surface | File | State |
 | --- | --- | --- |

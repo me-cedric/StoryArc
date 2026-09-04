@@ -87,8 +87,9 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       old amber needed a darker twin on paper, and the violet clears both canvases with one
       value, which is the entire argument for choosing it. The pink pair is gone from the
       generator rather than left unused. **The icons are byte-identical**: the mark's gradient
-      comes from the SVG, so `pnpm brand:check` still passes on 14 assets and only the colorset
-      moved. design.md §2's claim that "`AccentColor` holds the same hex the token does" is true
+      comes from the SVG, so `pnpm brand:check` still passed and only the colorset
+      moved. (It said "14 assets" here and the generator's count was never 14 — see the note
+      at §2, and design.md, both corrected to 24 on 2026-09-04.) design.md §2's claim that "`AccentColor` holds the same hex the token does" is true
       again; it had quietly stopped being.
 
       **Both halves landed on 2026-09-02, from two agents that could not see each other's
@@ -97,16 +98,42 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       two platforms reached the same requirement by genuinely different routes and flattening
       that would lose the reason. iOS's is first, Android's second.
 
-      **Three of the four were already accented on iOS, by one line, and the pictures prove
-      it.** `ThemeResolver` applies `.tint(theme.accent)` once at the root of every window and
-      presentation, and every unstyled control on this platform draws itself in the
-      environment's tint. So the tab bar's selected item, the reader's page slider, the
-      adjustment sliders and every determinate `ProgressView` were violet before this task
-      started — `docs/designs/screenshots/named-failures-2026-09-01/ios-library-before*.png`
-      shows the tab bar, and `ios-search-before.png` shows a progress fill. That line is now
+      **Three of the four were already accented on iOS, by one line.** `ThemeResolver` applies
+      `.tint(theme.accent)` once at the root of every window and presentation, and every
+      unstyled control on this platform draws itself in the environment's tint. So the tab
+      bar's selected item, the reader's page slider, the adjustment sliders and every
+      determinate `ProgressView` took the accent before this task started. That line is now
       pinned by `AccentReachesTheControlsTests`, because nothing in the build would have
       noticed it going: the app keeps compiling and all of those controls quietly return to
       system blue.
+
+      **This paragraph cited two screenshots that have never existed, and a verification pass
+      caught it on 2026-09-04.** It named
+      `docs/designs/screenshots/named-failures-2026-09-01/ios-library-before*.png` and
+      `ios-search-before.png` as "the pictures prove it". That directory holds a README and ten
+      PNGs, every one of them named `*skipped*`; `git log --all --diff-filter=A` finds neither
+      filename anywhere in the repository's history. **The claim cited itself** — a repo-wide
+      grep for either string returns only the lines of this task. The tick stood on nothing.
+
+      What is provable, from files that do exist, and it is two claims rather than one:
+
+      - **The mechanism**, proved by
+        `named-failures-2026-09-01/ios-skipped-toast-before.png`: the tab bar's selected
+        *Library* item and all six toolbar glyphs are **ember**, not system blue. One line
+        reaching every unstyled control is exactly what that frame shows. It cannot support
+        the word *violet*, because it was shot before the palette moved — which is the honest
+        version of what this paragraph was reaching for. The controls were already accented;
+        the palette move is what made the accent violet.
+      - **The result**, proved by `ios-sweep-2026-09-02/ios-search-at-rest.png`: the tab bar's
+        selected *Search* item is violet, in the shipped build. The same frame carries the
+        evidence for the deliberate omission below, which is why it replaces the second
+        citation rather than a third being invented.
+
+      There is no picture of a violet progress fill and no *before* of the cover rail, and this
+      task is not going to manufacture one: a "before" cannot be re-captured once the palette
+      has moved. The rail is covered by `AccentReachesTheControlsTests` instead, which is the
+      exception AGENTS.md §6 asks to be named rather than left implied — the same treatment the
+      sliders already carry two paragraphs down.
 
       **The fourth was genuinely unaccented, and it is the one a compiler could never find.**
       A cover's progress bar drew its rail as `.black.opacity(0.35)` — a scrim, not a colour.
@@ -126,9 +153,11 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       current and idiomatic on that platform" and is not being replaced; and the only mechanism
       that would colour its selected segment is `UISegmentedControl.appearance()`, a global
       UIKit proxy that cannot follow the Natural theme's *two* accents and so would be right in
-      three appearances and wrong in two. `ios-search-before.png` is the picture of it — a grey
-      pill in an app that is violet everywhere else — filed as evidence for the decision rather
-      than as a defect.
+      three appearances and wrong in two.
+      `docs/designs/screenshots/ios-sweep-2026-09-02/ios-search-at-rest.png` is the picture of
+      it — *Everywhere* / *On this device* as a grey pill, four inches above a violet *Search*
+      in the tab bar, in the same frame — filed as evidence for the decision rather than as a
+      defect. It replaces a citation to `ios-search-before.png`, which never existed.
       Also left: the unfilled halves of `ThumbnailStrip` and `PickMark`, which sit on artwork
       and on a page, where a neutral is right and where `theme.accent` already carries the
       selected half; and the reader's own sliders, which take the tint and would defer to a
@@ -236,9 +265,14 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       gap to the declared one, so zeroing the declaration passed. Replaced by parameter bands
       plus the structural checks, and both gaps are now compared to each other as well.
 
-> **Section 2 landed, and did more than it said.** The generator emits fifteen assets, not
-> three: the five iOS faces with their `Contents.json`, the Android adaptive foreground *and*
-> its monochrome twin, `AccentColor.colorset`, the SVG and a plateless PNG for the docs.
+> **Section 2 landed, and did more than it said.** The generator emits **twenty-four** assets,
+> not three: per face an `.appiconset` PNG with its `Contents.json` *and* an `.imageset` PNG
+> with its `Contents.json` — 5 × 4 = 20 — then `AccentColor.colorset`, the Android adaptive
+> foreground *and* its monochrome twin, and a plateless PNG for the docs. This said fifteen
+> and omitted the five `.imageset` tiles, which are the artifact §5.3 added because an
+> `.appiconset` cannot be drawn by `UIImage(named:)` and a chooser needs something to put in
+> its rows. Counted from the generator's own `written` list and checked against the files on
+> disk, 2026-09-04.
 > `AccentColor` is generated for the reason the rest is — it holds the same hex the token
 > does, and a hex typed twice is a hex that will disagree once. That makes 4.2 and part of
 > 3.2 already true; both are ticked where they are.
@@ -290,7 +324,11 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 
 - [x] 4.1 One `<activity-alias>` per face in the manifest, each with its own `android:icon`
       and the launcher intent filter, all but the default `android:enabled="false"`.
-      **Four aliases, not five** — the default is `MainActivity`, per 4.5. Each carries
+      **Five aliases, one per face** — and this line read "four aliases, not five — the default
+      is `MainActivity`, per 4.5" until 2026-09-04, which the paragraph four lines below has
+      contradicted since the day a device disproved it. One ticked task holding both statements
+      is worse than either, so the first is now the corrected one and the second keeps the
+      story of how it changed. Each carries
       **only** the launcher filter: the VIEW and SEND filters stay on the activity, because
       they are how a file reaches the app rather than anything about an icon, and five copies
       of them would list StoryArc five times in "open with" the moment more than one component
@@ -353,8 +391,9 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       only writes what it thinks changed (4), an explicit `ENABLED` where the manifest's own
       `DEFAULT` belongs (**exactly 1** — the 4.5 test and nothing else), one face left enabled
       beside the target (5), and the target itself disabled (5).
-- [~] 4.5 The default is the manifest's own activity rather than a sixth alias, so a fresh
-      install and a reset land in the same state.
+- [x] 4.5 A fresh install and a reset land in the same state — **and the default is its own
+      alias, not the manifest's activity.** The task's original wording asked for the opposite;
+      the device disproved it and the artifacts now say so.
       **The requirement's reason is met. Its mechanism is wrong on this platform, and the
       device proved it.** `AppIconAliasState` has three values rather than two: a component
       whose wanted state is already the manifest's is written back to
@@ -373,9 +412,27 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       no launcher filter.** `AppIconChoice.TARGET_ACTIVITY` names it and two tests refuse to let
       a face claim it: one in `AppIconChoiceTest`, one reading the manifest. Verified after the
       change on the same device — choose Arc, force-stop, and the app starts through the alias.
-      **This contradicts `design.md`, and the artifact is what is wrong** (AGENTS.md §3b rule
-      5). `/opsx:update` has not been run: a planning workflow never edits code and this session
-      was implementing. The correction is recorded here and at all three call sites.
+      **This contradicted `design.md`, and the artifact was what was wrong** (AGENTS.md §3b
+      rule 5). The update ran on 2026-09-04, and a verification pass first named exactly which
+      sentences the device disproved so it could be precise rather than broad:
+
+      - `design.md`'s bullet "the default alias is the manifest's own activity, not a sixth
+        alias" is **replaced**, keeping the half that was the reason it existed — a fresh
+        install and a reset landing in the same state, which `stateFor`'s three-valued write
+        is what delivers.
+      - the launcher-filter bullet **gains the sixth component**: the activity the aliases
+        target carries no filter, is never written to, and disabling it stops all five
+        resolving at once.
+      - `design.md`'s "one `<activity-alias>` per face" needed no correction — it became
+        *literally* true when the set went to five, having meant four aliases for five faces
+        before.
+      - task 4.1's opening line said "four aliases, not five" four lines above its own
+        correction; the first is now the corrected one.
+
+      **No delta spec sentence needed changing, and that is what made the sync safe.** Neither
+      delta names a mechanism: `settings-and-about`'s reset scenario says only "by the same
+      route as any other choice", and `native-experience` does not mention aliases. The whole
+      conflict lived in `design.md` and `tasks.md`, and neither of those syncs.
       Marked `[~]`, not `[x]`, because the requirement as written is not what shipped.
 
 ## 5. What a reader sees
@@ -452,8 +509,10 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
       row grows taller instead of truncating. A tile that grew with the text would push the name
       it exists beside off the row, and the requirement is about the *names*.
       **Photographed on both platforms, both appearances** (6.2). Android's largest-text shots
-      show all three claims holding; iOS's show the layout holding with the tile artwork still
-      missing, which is 5.3's gap rather than this one's.
+      show all three claims holding, and so do iOS's — this line said iOS showed "the layout
+      holding with the tile artwork still missing", which was true of the frames it was written
+      against and not of the re-take that replaced them the same night. Corrected 2026-09-04
+      with 6.2.
 - [x] 5.7 Both: each option announced by name and by whether it is in use; the tile itself
       decorative, because the name is what identifies it.
       iOS combines the row's children and adds `.isSelected`, so "in use" is a trait rather than
@@ -465,8 +524,18 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 
 ## 6. Proof and close-out
 
-- [x] 6.1 Every face rendered and photographed on a device home screen, both platforms. The
-      icon is the deliverable, so a screenshot of the chooser is not sufficient on its own.
+- [x] 6.1 Every face rendered and photographed **where the system itself draws it** — iOS's
+      home screen, Android's All Apps list. The icon is the deliverable, so a screenshot of the
+      chooser is not sufficient on its own.
+      This asked for "a device home screen, both platforms", and the Android five are not home
+      screens: they are the All Apps pane with "storyarc" typed, two search suggestions and the
+      keyboard filling the lower half, so the icon occupies about a tenth of the frame. The
+      face is correctly drawn and circle-masked in every one — what the task claims is proved,
+      by a surface the headline named wrongly. The sentence four lines down had it right all
+      along ("the launcher's own All Apps list filtered to StoryArc"), and so does the
+      directory's README; only the headline overstated it. Reworded rather than re-captured,
+      because a launcher's All Apps list is a place the system draws the icon from the same
+      component state a home screen does.
       Ten captures in `docs/designs/screenshots/app-icon-chooser-2026-09-01/`, five a side, each
       driven through the app's **own** chooser rather than set behind its back.
       **iOS waits for the mark, not for a duration.** The chooser only marks a row once
@@ -485,8 +554,14 @@ two platforms' mechanisms with the constraints each imposes. Read it before this
 - [x] 6.2 The chooser captured at default and largest text size, light and dark.
       Eight captures, four a side. At the largest size the names stay readable in full, the
       tiles stay the size a launcher draws them, and the list scrolls.
-      **The iOS four show blank tiles, and that is the code's state rather than a bad
-      screenshot** — see 5.3. They are kept as the evidence of the gap.
+      **The iOS four used to show blank tiles, and the four on disk are the re-take.** This
+      line said the blanks were "kept as the evidence of the gap" — written at 01:27, six
+      minutes before the re-take landed at 01:29–01:33, and never revisited. That directory's
+      own README says so ("the four iOS pictures here are the re-take"). All five rows draw the
+      mark on its plate — Ink near-black, Paper off-white with its hairline, Bloom lavender, Arc
+      violet, Mono white on black — with Ink check-marked in violet and labelled *Default*.
+      An unusual staleness, because the tick made the change look **worse** than it was; still
+      stale evidence a reader would have acted on, and the only reason 5.6 read as half-failed.
 - [~] 6.3 Android: a themed-icon capture, since 4.2 is the reason the monochrome layer exists.
       **A gap, not an exception.** Turning themed icons on could not be automated on this
       emulator in the time available: writing `themed_icons` into the Pixel launcher's own

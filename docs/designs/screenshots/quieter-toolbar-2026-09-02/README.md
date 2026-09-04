@@ -8,6 +8,13 @@ Two claims, from two changes, in one folder because they were photographed in on
 - `named-failures-and-quieter-chrome` §2.6 — the library toolbar, **eight** pictures.
 - `brand-identity-and-app-icons` §1.7, the iOS half — a cover's progress rail, **four**.
 
+> **One glyph in the "after" shots is already superseded.** The View menu draws a
+> `•••`-in-circle here, which was the two-state icon — `ellipsis.circle` while the shelf shows
+> everything, the availability symbol otherwise. Later work made it draw the availability
+> symbol **unconditionally**, so the axis is visible in both states rather than one. See
+> `../stated-axes-2026-09-04/`. The item *count* in these frames — four items in three groups
+> — is unchanged and is what §2.6 is proof of.
+
 ## The toolbar
 
 | Picture | Appearance | Text size |

@@ -5,6 +5,13 @@
 A design review is a set of observations from a device, and observations from a device are
 sometimes about the device. Each item was read against the code first:
 
+**Line numbers in this table are as of 2026-09-01, before this change.** Three of them now
+point at moved or deleted code — `LibraryStates.swift:76` (`ScanSummary` is gone entirely,
+along with its `dwell`), `LibraryScreen.kt:425` (now the comment recording the count's
+removal) and `FullPlayerView.swift:89` (the player's artwork was answered by
+`audiobooks-and-playback`, exactly as the routing table predicted). They are historical
+observations that were true when written; do not follow them into current code.
+
 | The review said | Verdict |
 | --- | --- |
 | A toast says "1 couldn't be opened", names no book, offers no action | **Confirmed.** `LibraryStates.swift:76` / `LibraryScreen.kt:425`, string `library.skipped %lld`, a `dwell` of 6 seconds |
@@ -57,7 +64,24 @@ decision rather than an implementation detail:
   of files that were fixed weeks ago, and a reader learns to ignore it — which is the same
   failure as the toast, arrived at slowly.
 
-**No new text.** Every reason is already written and translated. This is about where the words
+**No new key, and the reasons are *not* translated** — this said "already written and
+translated" and a verification pass disproved it on 2026-09-04. The notice's own strings are
+fully localised, all four languages, on both platforms: `library.skipped %lld`,
+`library.skipped.one %@`, `library.skipped.list`, `library.skipped.dismiss` and their Android
+twins. **The reasons are English literals in the scanners.**
+`Formats/LibraryScanner.swift` builds `"\(format) is not a format StoryArc reads"` and
+`"it is protected by its store's content protection"` in Swift; `core/format/LibraryScanner.kt`
+and `PublicationIndexer.kt` build the same two in Kotlin; and the `Formats` module has no
+`Localizable.xcstrings` at all. This change's own capture `ios-skipped-list.png` shows it —
+two English rows inside a frame whose *What couldn't be opened* and *Done* are translated.
+
+**The delta spec is not wrong, which is why this is a debt rather than a defect in the
+requirement.** It asks only for the reason "in the words `publication-formats` gives for it",
+and it gets them. Closing it needs a localised reason type in both scanners, which is a
+`publication-formats` + `localization` change and not this one. Recorded here so the debt
+survives the archive, because this paragraph is what a future reader trusts.
+
+This is about where the words
 appear, not what they say.
 
 ## The toolbar
