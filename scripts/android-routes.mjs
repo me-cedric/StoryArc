@@ -304,6 +304,23 @@ export function centre(xml, needle) {
  * runner, and threading it through four call sites is how two of them end up talking to
  * different devices.
  */
+/**
+ * Where a scroll starts and ends, as a fraction of the window.
+ *
+ * **Both used to be inside the chrome on a short window, and a route that needed to scroll
+ * there reported a working screen as unreachable.** At 800 x 360 dp the navigation bar and
+ * its gesture inset are the bottom 88 dp — a quarter of the window — so a swipe beginning at
+ * 0.78 began inside it and moved nothing; the old target of 0.33 was inside the app bar for
+ * the same reason. Six attempts of a gesture that cannot touch the content is what the
+ * September sweep recorded as "six scroll attempts moved nothing" on the publication page.
+ *
+ * These two clear both bands at every window this app supports and still travel far enough
+ * on a tall one: on a 2400 px phone they are a 960 px drag, and on a 1080 px landscape
+ * window a 432 px one that starts 60 px above the navigation bar.
+ */
+const SCROLL_FROM = 0.70
+const SCROLL_TO = 0.30
+
 export function navigator(sh) {
     /**
      * The accessibility tree, retried, because a single attempt lies.
@@ -424,9 +441,9 @@ export function navigator(sh) {
                         return true
                     }
                 case '@swipe-up':
-                    return () => swipe(at(0.5, 0.78), at(0.5, 0.3))
+                    return () => swipe(at(0.5, SCROLL_FROM), at(0.5, SCROLL_TO))
                 case '@swipe-down':
-                    return () => swipe(at(0.5, 0.3), at(0.5, 0.78))
+                    return () => swipe(at(0.5, SCROLL_TO), at(0.5, SCROLL_FROM))
                 // A sheet that opens at one detent and has a second one is dragged, not tapped.
                 case '@drag-sheet-up':
                     return () => swipe(at(0.5, 0.55), at(0.5, 0.12), 500)
@@ -462,7 +479,7 @@ export function navigator(sh) {
                     spot = centre(tree, name)
                     if (spot) break
                 }
-                if (!spot && !optional) swipe(at(0.5, 0.78), at(0.5, 0.33))
+                if (!spot && !optional) swipe(at(0.5, SCROLL_FROM), at(0.5, SCROLL_TO))
             }
             if (!spot) {
                 if (optional) continue

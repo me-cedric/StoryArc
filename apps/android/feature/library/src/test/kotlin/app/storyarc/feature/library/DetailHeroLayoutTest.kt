@@ -22,8 +22,9 @@ class DetailHeroLayoutTest {
         val layout = DetailHeroLayout.of(windowHeight = 360.dp, room = 184.dp)
 
         assertTrue(layout.isSideBySide)
-        // The room, less the page's 16 dp above and below and the hero's 24 dp per edge.
-        assertEquals(104.dp, layout.coverHeight)
+        // The room, less the page's 16 dp above and below and the hero's 16 dp per edge.
+        assertEquals(120.dp, layout.coverHeight)
+        assertEquals(16.dp, layout.padding)
     }
 
     @Test
@@ -31,9 +32,10 @@ class DetailHeroLayoutTest {
         val room = 184.dp
         val layout = DetailHeroLayout.of(windowHeight = 360.dp, room = room)
 
-        // 16 above + 24 + cover + 24 + 16 below. Nothing is left below the fold, which is
-        // the whole point: there was no way to start the book in this window.
-        val used = 16.dp * 2 + 24.dp * 2 + layout.coverHeight
+        // 16 above and below for the page, then the hero's own padding around the cover.
+        // Nothing is left below the fold, which is the whole point: there was no way to
+        // start the book in this window.
+        val used = 16.dp * 2 + layout.padding * 2 + layout.coverHeight
         assertTrue("hero used $used of $room", used <= room)
     }
 

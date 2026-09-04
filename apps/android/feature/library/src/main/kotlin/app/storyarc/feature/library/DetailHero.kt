@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
@@ -34,6 +35,15 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
+
+/**
+ * The widest the primary action is drawn when it sits beside the cover.
+ *
+ * A filled button is emphasised by being the one filled thing on the screen, not by being
+ * long. Material's own guidance caps a button's text at a readable measure, and 800 dp of
+ * landscape phone offers three times that.
+ */
+private val ACTION_WIDTH = 320.dp
 
 /**
  * The cover, over the colour the cover gave the page.
@@ -96,22 +106,27 @@ internal fun DetailHero(
         modifier = modifier.fillMaxWidth(),
     ) {
         if (layout.isSideBySide) {
-            // The artwork keeps the leading edge and the action takes the width that was
-            // being spent on empty wash — 800 dp of it, around a 96 dp cover.
+            // The artwork and the action share the width that was being spent on empty wash
+            // — 800 dp of it, around a 96 dp cover. Centred as a pair and the action bounded,
+            // because a button stretched across 530 dp of landscape phone is not a button
+            // being emphasised, it is a button nobody drew.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.xl),
-                modifier = Modifier.fillMaxWidth().padding(StoryArcSpace.xl),
+                horizontalArrangement =
+                    Arrangement.spacedBy(StoryArcSpace.xl, Alignment.CenterHorizontally),
+                modifier = Modifier.fillMaxWidth().padding(layout.padding),
             ) {
                 DetailCover(publication = publication, cover = cover, height = layout.coverHeight)
-                Box(modifier = Modifier.weight(1f)) { action() }
+                Box(modifier = Modifier.weight(1f, fill = false).widthIn(max = ACTION_WIDTH)) {
+                    action()
+                }
             }
             return@Surface
         }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xl),
-            modifier = Modifier.fillMaxWidth().padding(StoryArcSpace.xl),
+            modifier = Modifier.fillMaxWidth().padding(layout.padding),
         ) {
             DetailCover(publication = publication, cover = cover, height = layout.coverHeight)
             action()

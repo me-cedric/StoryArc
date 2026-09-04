@@ -27,8 +27,16 @@ private const val COVER_SHARE_OF_WINDOW = 0.4f
 /** What the page spends above and below the hero: [PublicationDetailScreen]'s own padding. */
 private val PAGE_PADDING = StoryArcSpace.lg
 
-/** What the hero spends inside its own container, per edge. */
+/** What the hero spends inside its own container, per edge, when it stacks. */
 private val HERO_PADDING = StoryArcSpace.xl
+
+/**
+ * And per edge when it lays out side by side.
+ *
+ * Less, because on a short window every dp of padding comes straight off the artwork: at
+ * 800 x 360 the difference between this and [HERO_PADDING] is a sixth of the cover.
+ */
+private val HERO_PADDING_BESIDE = StoryArcSpace.lg
 
 /** The gap between the cover and the action when they are stacked. */
 private val HERO_GAP = StoryArcSpace.xl
@@ -60,8 +68,13 @@ private val ACTION_HEIGHT = 40.dp
  *
  * @property isSideBySide whether the cover and the action share a row.
  * @property coverHeight how tall the artwork is drawn; its width follows the 2:3 proportion.
+ * @property padding what the container spends inside itself, per edge.
  */
-internal data class DetailHeroLayout(val isSideBySide: Boolean, val coverHeight: Dp) {
+internal data class DetailHeroLayout(
+    val isSideBySide: Boolean,
+    val coverHeight: Dp,
+    val padding: Dp = HERO_PADDING,
+) {
 
     companion object {
         /**
@@ -77,12 +90,13 @@ internal data class DetailHeroLayout(val isSideBySide: Boolean, val coverHeight:
             val stacked =
                 PAGE_PADDING * 2 + HERO_PADDING * 2 + stackedCover + HERO_GAP + ACTION_HEIGHT
             if (stacked <= room) {
-                return DetailHeroLayout(isSideBySide = false, coverHeight = stackedCover)
+                return DetailHeroLayout(false, stackedCover, HERO_PADDING)
             }
-            val beside = room - PAGE_PADDING * 2 - HERO_PADDING * 2
+            val beside = room - PAGE_PADDING * 2 - HERO_PADDING_BESIDE * 2
             return DetailHeroLayout(
                 isSideBySide = true,
                 coverHeight = beside.coerceIn(COVER_MINIMUM, stackedCover),
+                padding = HERO_PADDING_BESIDE,
             )
         }
     }
