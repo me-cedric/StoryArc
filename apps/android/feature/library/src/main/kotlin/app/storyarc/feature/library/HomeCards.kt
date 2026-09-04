@@ -7,13 +7,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,6 +54,16 @@ import app.storyarc.core.model.ReadState
 
 /** The proportions of a comic cover, near enough for every publisher. */
 internal const val HOME_COVER_ASPECT = 3f / 2f
+
+/**
+ * The room the hero's resume button takes, for a carousel that must state its height before
+ * it lays anything out.
+ *
+ * Material's own button height plus the gap above it. In `dp` rather than `sp` because a
+ * button's height is a touch target and does not grow with the reader's text size; the
+ * caption above it is measured the other way, and [homeCaptionHeight] says why.
+ */
+internal val HOME_RESUME_ROW: Dp = 40.dp + StoryArcSpace.md
 
 /**
  * How tall the text under a cover is.
@@ -137,6 +154,8 @@ internal fun HomeKeepReadingCard(
     entry: HomeEntry,
     cover: suspend (Publication, Int) -> Bitmap?,
     width: Dp,
+    /** Opens the book where the reader stopped. Exactly what tapping the card does. */
+    onResume: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalStoryArcPalette.current
@@ -209,6 +228,32 @@ internal fun HomeKeepReadingCard(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+
+        // `home-screen`, *Resuming is an action, not only a target*: the card "carries a
+        // named action that resumes, as well as being tappable itself", and "the two do the
+        // same thing, because a card that is a button with no button on it teaches nothing
+        // about what tapping will do". A large piece of artwork does not read as a control,
+        // and the only reader who learns that it is one is the reader who tries.
+        //
+        // Filled, which is Material's highest emphasis, and it is safe here for the reason
+        // divergence #10 gives: this card emphasises by shape and containment, so it has no
+        // tint on it for a filled button to compete with. No `Modifier.semantics` of its
+        // own -- `homeCardSemantics` uses `clearAndSetSemantics`, so TalkBack gets the card
+        // as one target and not the book twice.
+        //
+        // Absent when the book cannot be opened. An action that would do nothing is worse
+        // than no action, and the line above already says why.
+        if (entry.isReadableNow) {
+            Button(onClick = onResume) {
+                Icon(
+                    imageVector = Icons.Filled.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize),
+                )
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text(stringResource(R.string.home_resume))
+            }
+        }
     }
 }
 

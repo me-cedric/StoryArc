@@ -221,6 +221,10 @@ private struct HomeHeroCard: View {
                     .foregroundStyle(.white.opacity(0.82))
                     .lineLimit(2)
             }
+
+            if isReadable {
+                resumeButton
+            }
         }
         .padding(StoryArcSpace.lg)
         .frame(width: width, alignment: .leading)
@@ -235,6 +239,40 @@ private struct HomeHeroCard: View {
 
     /// What this issue belongs to. ``HomeCardIdentity/kicker(of:)``.
     private var kicker: String? { HomeCardIdentity.kicker(of: publication) }
+
+    /// The named action, beside the card that already does the same thing.
+    ///
+    /// `home-screen`, *Resuming is an action, not only a target*: the card "carries a named
+    /// action that resumes, as well as being tappable itself", and "the two do the same
+    /// thing, because a card that is a button with no button on it teaches nothing about
+    /// what tapping will do". A large piece of artwork does not read as a control, and the
+    /// only reader who learns that it is one is the reader who tries.
+    ///
+    /// `.glassProminent`, which is how this app emphasises everywhere else — `KavitaSheet`,
+    /// `CatalogueSheet`, `SmbSheet` — and which is the register's divergence #10: iOS
+    /// emphasises with a prominent glass control, Android with shape and containment. The
+    /// register already said so; until now the iOS half of it was not true on this card.
+    ///
+    /// Hidden from assistive technology, and this is the one place that needs arguing. The
+    /// card is a single combined element already carrying `.isButton`, so VoiceOver has the
+    /// action; a nested button would be a second stop offering the same book the same way.
+    /// The button is here to teach a *sighted* reader what the artwork does, which is the
+    /// gap the scenario is about.
+    private var resumeButton: some View {
+        Button {
+            onOpen(publication)
+        } label: {
+            Label(
+                String(localized: "home.resume", bundle: .module, locale: .storyArc),
+                systemImage: "play.fill"
+            )
+            .textRole(.footnote)
+        }
+        .buttonStyle(.glassProminent)
+        .buttonSizing(.fitted)
+        .padding(.top, StoryArcSpace.xs)
+        .accessibilityHidden(true)
+    }
 
     /// Who wrote it, where the card has room to say so. ``HomeCardIdentity/byline(of:)``.
     private var byline: String? { HomeCardIdentity.byline(of: publication) }

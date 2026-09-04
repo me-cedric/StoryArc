@@ -207,6 +207,7 @@ private fun LazyListScope.keepReading(
                 entry = entry,
                 cover = cover,
                 width = homeHeroWidth(homeWindowWidthDp(), LocalDensity.current.fontScale),
+                onResume = { onResume(entry.publication) },
                 modifier = Modifier
                     .padding(horizontal = StoryArcSpace.gutter)
                     .clickable { onResume(entry.publication) }
@@ -232,7 +233,7 @@ private fun LazyListScope.keepReading(
                         // what is left (2). The byline arrived on 2026-09-05 and a height
                         // budget that did not move with it would clip the last line at
                         // exactly the text sizes it matters most at.
-                        homeCaptionHeight(lines = 6) + StoryArcSpace.xxl,
+                        homeCaptionHeight(lines = 6) + StoryArcSpace.xxl + HOME_RESUME_ROW,
                 ),
         ) { index ->
             val entry = surface.keepReading[index]
@@ -241,6 +242,7 @@ private fun LazyListScope.keepReading(
                 entry = entry,
                 cover = cover,
                 width = width,
+                onResume = { onResume(entry.publication) },
                 modifier = Modifier
                     .maskClip(RoundedCornerShape(StoryArcRadius.xl))
                     .clickable { onResume(entry.publication) }

@@ -2678,6 +2678,36 @@
         }
       }
     },
+    "home.resume": {
+      "comment": "The named action on a Keep reading card. Does exactly what tapping the card does - `home-screen` asks for both, because a card that is a button with no button on it teaches nothing about what tapping will do.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsetzen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre"
+          }
+        }
+      }
+    },
     "home.seeAll": {
       "comment": "Spoken hint on a Home section heading, which leads to the whole of that shelf.",
       "extractionState": "manual",

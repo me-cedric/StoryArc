@@ -127,9 +127,51 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       - Route: `pnpm capture:android Home --dark --font-scale 2.0` and the matching light
         and default runs; iOS by the `LibrarySelectionCapture`-style walk that opens a book,
         reads a page, backs out, and lands on Home with something in progress.
-- [ ] 0b.2 Both: a named resume action on the card, as well as the card being tappable. Both do
+- [~] 0b.2 Both: a named resume action on the card, as well as the card being tappable. Both do
       the same thing — a card that is a button with no button on it teaches nothing about what
       tapping does.
+
+      **Code landed on both platforms 2026-09-05; the frames are owed.** Neither card had a
+      button before this — iOS was an `.onTapGesture` on the artwork and Android a
+      `Modifier.clickable` wrapped round the whole card, so on both platforms the only reader
+      who learned the card was a control was the reader who tried.
+
+      iOS: a `.glassProminent` **Resume** in the caption, which also makes the divergence
+      register's #10 true for the first time. `HomeCards.kt`'s own KDoc has claimed since it
+      was written that "iOS emphasises with a prominent glass button and scale contrast,
+      Android with shape and containment" — and iOS's half of that sentence described a
+      button that did not exist. Android: a filled `Button`, which is safe on this card for
+      the reason #10 gives — the card emphasises by shape and containment, so there is no
+      tint on it for a filled button to compete with.
+
+      **Both are hidden from assistive technology, and that is deliberate.** Each card is
+      already one combined element carrying a button role — iOS by
+      `accessibilityElement(children: .combine)`, Android by `clearAndSetSemantics` — so the
+      action is there. A nested button would be a second stop offering the same book the same
+      way. The button exists to teach a *sighted* reader what the artwork does, which is the
+      gap the scenario is about.
+
+      **Neither draws the button where the book cannot be opened.** An action that would fail
+      is worse than no action, and the line above it already says why. That absence is the
+      assertion nothing else in either build would notice going, so it is a test on both.
+
+      New strings in all four languages on both platforms: `home.resume` /
+      `home_resume` — Resume, Fortsetzen, Continuar, Reprendre.
+
+      Tests: `HomeHeroProgressWiringTests` gains two cases (iOS), and
+      `HomeHeroResumeWiringTest.kt` is new (Android, 3 cases, reading `HomeCards.kt` and
+      `HomeScreen.kt` through the module's existing `storyarc.library.projectDir` wiring —
+      both files are declared as task inputs so the guard cannot sit UP-TO-DATE while the
+      card changes underneath it). All green.
+
+      **Frames owed**, same walk as 0b.1 and takeable in the same pass:
+      - iOS iPhone and Android phone, Home with something in progress: light and dark, at
+        default and largest text size (8 frames). What each has to show is the button
+        legible **over a pale cover** on iOS — it sits on the scrim, not on a surface — and
+        on Android that the button did not push the card past the carousel's height budget,
+        which grew by `HOME_RESUME_ROW` for it.
+      - One frame per platform of a publication whose source is away, showing **no** button
+        under the dimmed card.
 - [ ] 0b.3 Both: a publication with a page or less left offers to **finish** it and offers the
       next in its series, rather than offering to reopen its last page. Finishing removes it
       from Keep reading by the same rule finishing normally does.

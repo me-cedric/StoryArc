@@ -105,6 +105,21 @@ tasks.withType<Test>().configureEach {
     )
         .withPropertyName("sourceRetryWiringSource")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // And the hero card, for `HomeHeroResumeWiringTest`. `home-screen` asks the card to carry
+    // a named resume action *as well as* being tappable, and asks the two to do the same
+    // thing. That the two agree is not decidable from a JVM unit test that cannot compose one
+    // -- and the interesting half is an absence: no button at all where the book cannot be
+    // opened, which nothing would notice going.
+    inputs.files(
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/library/HomeCards.kt",
+        ),
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/library/HomeScreen.kt",
+        ),
+    )
+        .withPropertyName("homeHeroResumeWiringSource")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {

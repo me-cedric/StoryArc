@@ -356,6 +356,7 @@
     <string name="home_finished_earlier">Antes de eso</string>
     <string name="home_show_all">Ver todo</string>
     <string name="home_away">No se puede abrir ahora mismo</string>
+    <string name="home_resume">Continuar</string>
     <string name="home_part_read">Empezado</string>
     <string name="home_finished_one">Terminado</string>
     <string name="library_open_comic">Abrir un c\u00f3mic</string>

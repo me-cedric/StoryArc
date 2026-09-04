@@ -128,4 +128,25 @@ struct HomeHeroProgressWiringTests {
         // in two units, and `home-screen` names the percentage as the thing not to say.
         #expect(try heroSource().contains(".accessibilityHidden(true)"))
     }
+
+    @Test("There is a named action, and it does what the tap does")
+    func theButtonDoesWhatTheTapDoes() throws {
+        // `home-screen`, *Resuming is an action, not only a target*: the card "carries a
+        // named action that resumes, as well as being tappable itself", and "the two do the
+        // same thing". Both paths call `onOpen(publication)` — not two routes to one book
+        // that could one day disagree about which page it opens at.
+        let text = try heroSource()
+
+        #expect(text.contains("home.resume"))
+        #expect(text.contains(".buttonStyle(.glassProminent)"))
+        #expect(text.contains("onTapGesture { if isReadable { onOpen(publication) } }"))
+        #expect(text.contains("onOpen(publication)"))
+    }
+
+    @Test("A book that cannot be opened is offered no action that would do nothing")
+    func noActionWhereThereIsNoBook() throws {
+        // The card stays on the shelf, dimmed — `home-screen` insists on that. What it must
+        // not do is offer a button that fails, when the line above already says why.
+        #expect(try heroSource().contains("if isReadable {\n                resumeButton"))
+    }
 }
