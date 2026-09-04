@@ -337,13 +337,25 @@ when a cover was the resume affordance. Whoever syncs should add a
       naming Android as the case. That was the half of this task that did not need a device,
       and it was sitting in a code comment at `DetailAccent.kt:73-77`.
 
-      **The four contrast captures are identified, and they prove more than the task hoped
-      for.** `after-2026-08-30/README.md` is written — scoped to this change's `*-detail-*`
-      files, because identifying all 139 in that folder is 5.5's problem and not this one's.
-      One correction to the finding: *something* in the repository did say what "contrast"
-      meant, in `82ad1d92`'s own commit message — "iPhone and iPad, light and dark, largest
-      text, increased contrast" — which is a record no reader of a screenshot folder will ever
-      find. It is a file now.
+      **The four contrast captures are identified — and this task's finding about them was
+      wrong twice, which is worth more than the tick.** It said "that directory has no README,
+      unlike its two siblings, and no markdown file mentions those filenames". Both halves are
+      false: `after-2026-08-30/README.md` has existed since a day after the captures were
+      taken, it names those four files explicitly, and it already carries a section called
+      *One ambiguity worth naming* saying they are the page under **Increase Contrast**. The
+      finding was true when the captures landed and stopped being true without the task being
+      re-read — and I nearly made it true again by overwriting that README before checking
+      `git` for it.
+
+      What is added instead is the half the existing README could not have: **the pair read
+      off the pixels.** Against `ios-detail-iphone-light-top`, four minutes earlier on the same
+      device, the contrast capture's ground is the palette's plain surface edge to edge where
+      the plain capture carries a pink wash pulled from the red cover — **replaced, not
+      softened**, which is the clause. And `AGENTS.md` §6's control is in the frame: the cover,
+      the `Read` button and the overflow circle all carry the platform's increased-contrast
+      hairline, which the plain captures do not. Without that, a neutral page would prove only
+      that the app had no cover to sample. A second new section names the five Android detail
+      captures and says plainly what `a836e8a2` did *not* record about them.
 
       And the pair is read off the pixels rather than taken on trust. Against
       `ios-detail-iphone-light-top`, four minutes earlier on the same device, the contrast
@@ -1211,14 +1223,19 @@ when a cover was the resume affordance. Whoever syncs should add a
       is added, and every remaining frame is named by surface, state, appearance and the walk
       that takes it — in the task it belongs to, not only here.**
 
-      **Discharged: the identification problem.** `after-2026-08-30/README.md` now exists,
-      scoped to this change's own `*-detail-*` captures and saying so in its first line, so
-      the four contrast frames are identified and read off the pixels: against the plain
-      capture four minutes earlier on the same device, the contrast ground is the palette's
-      plain surface where the other carries a wash pulled from the cover, and the platform's
-      increased-contrast hairline on the cover, the button and the overflow is the control
-      that makes it evidence. Identifying the folder's other ~110 files is still nobody's, and
-      it is still this task's finding rather than its work.
+      **Withdrawn, not discharged: the identification problem was already solved and this
+      list was wrong about it.** The paragraph above says `after-2026-08-30/` "has **no
+      README**, unlike its two siblings, so its 133 captures are identified by filename
+      alone", and that nothing says what `contrast` means there. The folder has had a README
+      since a day after the captures were taken; it documents the naming convention subject by
+      subject, and it has a section named *One ambiguity worth naming* devoted to exactly
+      those four files. The stale finding nearly cost the README itself — it was overwritten
+      before `git` was asked whether one existed, and restored from `main`.
+
+      What that README gained instead is the half it could not have had: the contrast pair
+      **read off the pixels**, with the platform's increased-contrast hairline named as the
+      control that makes a neutral page evidence rather than a coincidence; and a section
+      saying what `a836e8a2` did *not* record about the five Android detail captures.
 
       **The list, nine frames or sequences, seven of them still owed as they were:**
 
