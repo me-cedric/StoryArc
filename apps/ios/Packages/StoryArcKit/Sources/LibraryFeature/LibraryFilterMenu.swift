@@ -86,7 +86,11 @@ struct FilterMenu: View {
                         .monospacedDigit()
                 }
             }
-            // The words, for a reader who gets neither the glyph nor the digit.
+            // One element, then the words. Without the `.ignore` the glyph and the digit are
+            // two children with labels of their own, the container's label does not take, and
+            // the control stops being findable as *Filter* at all — which is how it went
+            // missing from `LibraryToolbarTests`' own walk the first time this was drawn.
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text("library.filter", bundle: .module))
         }
         .accessibilityValue(

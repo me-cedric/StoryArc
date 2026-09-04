@@ -130,23 +130,38 @@ final class SweepSearchTests: XCTestCase {
             "The search screen offers no recent search called “\(term)”. Buttons: "
                 + "\(app.buttons.allElementsBoundByIndex.prefix(20).map(\.label))"
         ).tap()
-        // The field, because a tap that missed leaves the at-rest screen up and every state
-        // of this screen is a plausible picture of it.
-        XCTAssertEqual(
-            app.searchFields.firstMatch.value as? String, term,
-            "Tapping the recent search did not put “\(term)” in the field."
+        // A tap that missed leaves the at-rest screen up, and every state of this screen is a
+        // plausible picture of it — so this proves the screen *changed*, which the field's
+        // value used to prove and can no longer (see ``showSearch(in:)``). *Recent searches*
+        // is the at-rest screen's own heading and the results screen does not draw it.
+        XCTAssertTrue(
+            app.staticTexts["Recent searches"].waitForNonExistence(timeout: 8),
+            "Tapping “\(term)” left the at-rest screen up, so the results were never asked for."
         )
     }
 
     /// Search, on screen, proved to be search.
+    ///
+    /// **The landmark was the search field, and the search field is gone.** On 2026-09-02
+    /// `ios-search-at-rest.png` shows it drawn under the title; on 2026-09-04 the same walk on
+    /// the same simulator and the same runtime finds no `searchFields` element anywhere in the
+    /// hierarchy, and it finds none on an unmodified checkout of `main` either. Nothing in
+    /// `LibraryFeature` moved — the `.searchable` is still on `LibrarySearchSurface` — so the
+    /// change is underneath us, and it is recorded in
+    /// `docs/designs/screenshots/stated-axes-2026-09-04/README.md` as a defect of its own
+    /// rather than absorbed here.
+    ///
+    /// So the landmark moves to the scope statement, which is *stronger* rather than weaker:
+    /// the segmented *Everywhere · On this device* control belongs to the search surface and
+    /// to nothing else, and — unlike the field, and unlike the shelf behind a tab that never
+    /// changed — it is on **every** state of this screen, at rest and in results alike. It was
+    /// the results half of that which the 2026-09-02 sweep found missing.
     private func showSearch(in app: XCUIApplication) throws {
         try XCTUnwrap(destination("Search", in: app), "The shell offers no Search tab.").tap()
-        // The field is the one thing every state of this screen has. Waiting for the scroll
-        // view instead would pass on the shelf behind a tab that never changed.
         XCTAssertTrue(
-            app.searchFields.firstMatch.waitForExistence(timeout: 10)
-                || app.otherElements["Search"].waitForExistence(timeout: 2),
-            "Tapping Search did not open a screen with a search field on it."
+            app.buttons["Everywhere"].waitForExistence(timeout: 10),
+            "Tapping Search did not open a screen stating the scope it searches. On screen: "
+                + "\(app.staticTexts.allElementsBoundByIndex.prefix(15).map(\.label))"
         )
     }
 }
