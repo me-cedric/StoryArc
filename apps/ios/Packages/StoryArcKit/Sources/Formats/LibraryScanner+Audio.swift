@@ -22,6 +22,32 @@ extension LibraryScanner {
         FolderKind.audioExtensions.contains(url.pathExtension.lowercased())
     }
 
+    /// Audio containers worth **opening** that can never be part of anything.
+    ///
+    /// A store-locked audiobook. `publication-formats` requires it to be "refused by name",
+    /// stating the store's content protection — and a refusal by name needs the file opened,
+    /// because the brand at offset 8 is the fact and the extension is only a hint.
+    ///
+    /// **Its own set rather than a member of either of the others, and both exclusions are
+    /// load-bearing.** In ``candidateExtensions`` it would be a packed publication, so a
+    /// folder of chapter MP3s holding one locked bonus file would stop being a folder of
+    /// parts and become a shelf. In ``FolderKind/audioExtensions`` it would be a *playable
+    /// part*, so that same folder would gain a fourth chapter nothing can decode. So: opened,
+    /// and never counted.
+    ///
+    /// **Android found this on a device and iOS had it too.** Neither set held `.aax`, so the
+    /// walk indexed `publicationFiles + audioFiles` and a protected audiobook produced no
+    /// row, no skip and no count. The sniffer named it, the indexer threw
+    /// `IndexError.contentProtected` for it, `RefusedFile` worded the refusal — and nothing
+    /// in a scanned folder ever called any of them. It was not refused by name; it was not
+    /// refused at all.
+    static let protectedAudioExtensions: Set<String> = ["aax", "aaxc"]
+
+    /// Whether a file is worth opening only so that it can be refused by name.
+    static func isProtectedAudio(_ url: URL) -> Bool {
+        protectedAudioExtensions.contains(url.pathExtension.lowercased())
+    }
+
     /// Whether a directory holding audio *is* an audiobook rather than a shelf with one on it.
     ///
     /// **The subdirectory clause is a regression fix and it was found by a screenshot.**

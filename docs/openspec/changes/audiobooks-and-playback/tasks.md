@@ -118,7 +118,7 @@ creep — see [`design.md`](design.md).
       the rule and `AudiobookReaderTests` and `AudiobookIndexingTests` drive it from the corpus;
       Android's `AudiobookFolder`, `PublicationIndexer` and `LibraryScanner` carry theirs. Two
       halves done, neither outstanding, and a stale sentence held the task open.
-- [~] 2.4 Both: an `.aax`/`.aaxc` is refused by name, states the store's content
+- [x] 2.4 Both: an `.aax`/`.aaxc` is refused by name, states the store's content
       protection as the reason, prompts for no key or account, and is distinct from
       an unsupported container. **Detection done and mutation-checked** — the brand is
       read at offset 8 and gets its own container case, so the refusal is structural
@@ -158,9 +158,46 @@ creep — see [`design.md`](design.md).
       fact. `LibraryScannerTest` asserts the skip carries the protection as its reason;
       the emulator now reports "1 couldn't be opened" where it previously showed nothing —
       `docs/designs/screenshots/audiobooks-2026-09-01/07-protected-counted-light.png`.
-      **Still partial:** on the *scan* path the reason is carried by `ScanEvent.Skipped`
-      and the library shows only a count. The words land on the open-with path, which is
-      where a reader who chose the file is looking. iOS half outstanding.
+      **The scan path's own half is closed, and not by this change.**
+      `named-failures-and-quieter-chrome` shipped the notice that names each skipped
+      publication with its own reason on both platforms — iOS's `SkippedPublications` and
+      Android's `SkippedNotice`, each carrying `ScanEvent.skipped(path:reason:)`'s wording
+      rather than merging it into a count. The paragraph above was written when the library
+      showed a bare number; it does not now.
+      **And iOS had Android's device defect the whole time, unfound.** The note above records
+      that Android's `LibraryScanner` dropped every protected audiobook in silence because its
+      extension pre-filter had no `.aax` in it. **iOS had the identical hole**, and the entry
+      said "iOS wording done" over it: `.aax` was in neither `LibraryScanner.candidateExtensions`
+      nor `FolderKind.audioExtensions`, and the walk indexes `publicationFiles + audioFiles` —
+      so a scanned folder produced no row, no skip and no count for a locked file. The sniffer
+      named it, `PublicationIndexer` threw `.contentProtected` for it, `RefusedFile` worded the
+      refusal, and **nothing in a scanned folder ever called any of them**. It was not refused
+      by name; it was not refused at all. Reproduced before it was fixed: the new test
+      recorded `skipped.count == 0`.
+      `LibraryScanner.protectedAudioExtensions` is the fix, and it is a *third* set rather than
+      an addition to either of the other two — Android's own distinction, reached
+      independently. In `candidateExtensions` a locked file would be a packed publication, so a
+      folder of chapter MP3s with one bonus `.aax` would stop being a folder of parts and
+      become a shelf; in `FolderKind.audioExtensions` it would be a playable *part*, so that
+      folder would gain a fourth chapter nothing can decode. Opened, and counted towards
+      nothing. Both the walk and the listing take it, because `local-library` reconciles the
+      two against each other and a file one reports and the other omits is a file called newly
+      gone on every launch.
+      Two cases in `AudiobookScanningTests`, and the pair is what makes the fix safe rather
+      than merely present. Mutation-checked twice: dropping the locked files from the walk's
+      loop restores the silence, and the naive fix — putting `.aax` in `audioExtensions` —
+      turns a folder holding one locked file into an audiobook publication, `found == 1` where
+      the requirement wants a refusal. The scan reason is asserted to name the content
+      protection and to mention no key, account, activation code, password or sign-in, which is
+      `ProtectedAudiobookPromptsForNothingTest`'s rule on the path Android's guard does not
+      reach.
+      **Not seen on a device.** Android's half has a frame —
+      `docs/designs/screenshots/audiobooks-2026-09-01/07-protected-counted-light.png`, taken
+      when the library still showed a count. **Owed on both platforms, and both are now worth
+      retaking:** the skipped notice and the list behind it with a locked audiobook among the
+      skips, light and dark, at the default text size — `Library > skipped list` is an existing
+      `pnpm capture:android` route, and iOS's is `SkippedNoticeTests` in `UITests`. Neither has
+      been photographed since the notice learnt to name the file.
 - [~] 2.5 Both: a truncated audiobook plays what it can and states how much it could
       not, in the player's controls, without interrupting playback.
       **iOS half done, and the other half is named rather than claimed.** A *folder* with an

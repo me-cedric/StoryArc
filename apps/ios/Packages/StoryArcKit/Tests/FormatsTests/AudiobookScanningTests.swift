@@ -78,6 +78,69 @@ struct AudiobookScanningTests {
         #expect(Set(found.map(\.format)) == [.audioFolder, .imageFolder])
     }
 
+    // MARK: - A locked file the walk never opened
+
+    /// `publication-formats`: a store-locked audiobook "is refused **by name**", stating the
+    /// content protection as the reason.
+    ///
+    /// **Android found this on a device and iOS had it too.** The sniffer names a locked file
+    /// by its `aavd` brand and `PublicationIndexer` throws `.contentProtected` for it — both
+    /// asserted, both true, and both reached only by a caller that opens the file. A scanned
+    /// folder never did: `.aax` is in neither ``LibraryScanner/candidateExtensions`` nor
+    /// ``FolderKind/audioExtensions``, and the walk indexes `publicationFiles + audioFiles`.
+    /// So a protected audiobook produced no row, no skip and no count — it was not refused by
+    /// name, it was not refused at all, and the reader saw an empty shelf.
+    @Test("A protected audiobook is refused by name rather than dropped in silence")
+    func aProtectedAudiobookIsRefusedByName() async throws {
+        let library = try scratchFolder()
+        try FileManager.default.copyItem(
+            at: corpus.appending(path: "protected.aax"),
+            to: library.appending(path: "Sea Room.aax")
+        )
+
+        var skipped: [(path: String, reason: String)] = []
+        var found = 0
+        for await event in LibraryScanner.scan(folderAt: library) {
+            switch event {
+            case .found: found += 1
+            case let .skipped(path, reason): skipped.append((path, reason))
+            case .finished: break
+            }
+        }
+
+        #expect(found == 0, "a locked file is not a publication")
+        #expect(skipped.count == 1, "and it is not nothing either — it was dropped in silence")
+        #expect(skipped.first?.path.hasSuffix("Sea Room.aax") == true)
+        let reason = try #require(skipped.first?.reason)
+        #expect(reason.contains("content protection"), "the reason is the lock, not the container")
+        // The refusal prompts for nothing, here as everywhere else it is worded.
+        for asked in ["key", "account", "activation", "password", "sign in"] {
+            #expect(!reason.lowercased().contains(asked), "the scan reason asked for a \(asked)")
+        }
+    }
+
+    /// The half that makes the fix safe: a locked file is worth *opening* and is not a part.
+    ///
+    /// Android records the same distinction — the extension is "a hint about what is worth
+    /// opening, kept apart from the playable set so a locked file cannot become a folder's
+    /// chapter". Without it, a folder holding parts and one `.aax` would either count the
+    /// locked file as a chapter nothing can decode, or stop being a folder of parts at all.
+    @Test("A locked file beside a folder's parts is not one of its parts")
+    func aLockedFileIsNotAPart() async throws {
+        let library = try scratchFolder()
+        let book = library.appending(path: "The Peregrine")
+        try FileManager.default.copyItem(at: corpus.appending(path: "folder-parts"), to: book)
+        try FileManager.default.copyItem(
+            at: corpus.appending(path: "protected.aax"),
+            to: book.appending(path: "bonus.aax")
+        )
+
+        let found = await LibraryScanner.scanAll(folderAt: library)
+        #expect(found.count == 1, "still one audiobook, not a shelf")
+        #expect(found.first?.format == .audioFolder)
+        #expect(found.first?.pageCount == 3, "three parts — the locked file is not a fourth")
+    }
+
     private func scratchFolder() throws -> URL {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appending(path: "scan-\(UUID().uuidString)")

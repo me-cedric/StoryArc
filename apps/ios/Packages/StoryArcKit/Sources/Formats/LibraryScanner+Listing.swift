@@ -52,6 +52,10 @@ extension LibraryScanner {
         }
         let images = files.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
         let audio = files.filter { isAudio($0) }
+        // A locked file is a row here for the same reason it is one in the walk: the two
+        // lists are compared against each other, so a file the walk reports as skipped and
+        // this one omits is a file the reconcile calls newly gone on every launch.
+        let locked = files.filter { isProtectedAudio($0) }
         // The same rule the walk uses, and it has to be the same one: `local-library`
         // reconciles a returning app by comparing this listing against what was scanned, and
         // a listing that called a folder one publication where the walk called it a shelf
@@ -63,7 +67,7 @@ extension LibraryScanner {
         }
         // A lone audiobook beside packed comics is its own row. It is not in
         // `candidateExtensions` on purpose — see that property's own note.
-        for file in publications + audio { found.append(entry(for: file)) }
+        for file in publications + audio + locked { found.append(entry(for: file)) }
         for child in directories { list(child, into: &found) }
     }
 

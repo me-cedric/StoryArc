@@ -212,6 +212,11 @@ public enum LibraryScanner {
         }
         let imageFiles = files.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
         let audioFiles = files.filter { isAudio($0) }
+        // Opened so it can be refused by name, and counted towards nothing — see
+        // ``protectedAudioExtensions``. Deliberately absent from the folder question below:
+        // a locked file is not a chapter, and a folder of parts with one in it is still a
+        // folder of parts.
+        let lockedFiles = files.filter { isProtectedAudio($0) }
 
         if publicationFiles.isEmpty, !imageFiles.isEmpty || isAudiobookFolder(audioFiles, directories) {
             // Its subdirectories are chapters of it, not separate publications.
@@ -226,7 +231,7 @@ public enum LibraryScanner {
 
         // Audio beside packed publications is indexed file by file, because a folder holding
         // comics is a shelf and an audiobook standing on it is one book.
-        for file in publicationFiles + audioFiles {
+        for file in publicationFiles + audioFiles + lockedFiles {
             guard !Task.isCancelled else { return tally }
             // Already done by the scan this one is picking up from. Not counted either: the
             // caller put those publications back itself and has already counted them.
