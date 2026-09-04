@@ -42,7 +42,21 @@ private val UNUSED: Player = Proxy.newProxyInstance(
  * table. That a real focus loss produces those signals is media3's contract rather than
  * this suite's finding, and hearing it happen on a device is a separate exercise.
  */
-internal class FakePlayer : Player by UNUSED {
+internal class FakePlayer(
+    /**
+     * Whether the first sound arrives in the same call that asks for it.
+     *
+     * True is a convenience the other suites lean on and no player has: a real one — a
+     * `MediaController` above all, which masks the change and reports it before the
+     * request has crossed to the service — answers `play()` by setting `playWhenReady`
+     * and reporting *that*, and leaves `isPlaying` false until the decoder has buffered
+     * enough to make a sound. [sound] is that moment.
+     *
+     * The distinction is not cosmetic: everything between the two is a callback carrying
+     * "not playing, and nobody paused it", which is the state a surface has to survive.
+     */
+    private val soundsImmediately: Boolean = true,
+) : Player by UNUSED {
 
     private val listeners = mutableListOf<Player.Listener>()
 
@@ -92,10 +106,19 @@ internal class FakePlayer : Player by UNUSED {
 
     override fun play() {
         if (wantsToPlay && playing) return
-        wantsToPlay = true
+        // Inside the body, exactly as [pause] sets it. Set above the call it was invisible
+        // to [change], which compares what it was told before the body ran — so a `play()`
+        // that produced no sound reported *nothing at all*, and the one callback a real
+        // player always sends first was the one this fake could not send.
         change(playWhenReadyReason = Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST) {
-            playing = suppression == Player.PLAYBACK_SUPPRESSION_REASON_NONE
+            wantsToPlay = true
+            playing = soundsImmediately && suppression == Player.PLAYBACK_SUPPRESSION_REASON_NONE
         }
+    }
+
+    /** The decoder has buffered enough, and the first sound comes out. See [soundsImmediately]. */
+    fun sound() {
+        change { playing = wantsToPlay && suppression == Player.PLAYBACK_SUPPRESSION_REASON_NONE }
     }
 
     override fun pause() {

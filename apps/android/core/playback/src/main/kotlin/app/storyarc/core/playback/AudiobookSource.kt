@@ -178,10 +178,28 @@ class AudiobookSource(
         onChange?.invoke()
     }
 
+    /**
+     * The listener asked for audio.
+     *
+     * **Started before the player is asked, not after it answers**, and the order is the
+     * whole of the Android player's biggest defect. [PlaybackCentre.start] attaches its
+     * listener and *then* calls this; a real player answers inside the call below — a
+     * `MediaController` masks the change and reports it before the request has crossed to
+     * the service — with `playWhenReady` true and `isPlaying` still false, because nothing
+     * has buffered. [PlaybackFocus.silenced] rightly reads that as neither a pause nor a
+     * start and leaves the session alone, so with the assignment underneath it the session
+     * was still `IDLE` when the callback reached [PlaybackCentre.publish] — which reads an
+     * inactive session as *the book ran out*. The centre dropped the source it had just
+     * started, published null, and never heard from it again, while the controller had
+     * already told the service to play.
+     *
+     * That is the sweep's §3: audio playing, `PlayerFinishedScreen` on top of it, no
+     * compact bar. Pinned by `PlayerStartTest`.
+     */
     override fun play() {
+        session = session.started()
         if (player.currentMediaItem == null) prepare()
         player.play()
-        session = session.started()
         onChange?.invoke()
     }
 
