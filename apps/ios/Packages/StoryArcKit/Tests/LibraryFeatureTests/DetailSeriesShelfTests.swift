@@ -98,4 +98,33 @@ struct DetailSeriesShelfTests {
 
         #expect(DetailSeriesShelf.rest(of: library[0], in: library).isEmpty)
     }
+
+    /// `<Series>Bone </Series>` on one issue and `<Series>Bone</Series>` on the next is the
+    /// ordinary shape of a hand-written `ComicInfo.xml`, not a corruption. Android's
+    /// `restOfSeries` has trimmed both sides of this comparison since it was written; iOS
+    /// compared raw, so one run drew as one shelf on Android and as two on iOS.
+    @Test("Space around a series name does not split one run into two shelves")
+    func whitespaceDoesNotSplitTheRun() {
+        let library = [
+            issue("Bone 1", series: "Bone", number: "1"),
+            issue("Bone 2", series: "Bone ", number: "2"),
+            issue("Bone 3", series: " Bone", number: "3"),
+        ]
+
+        #expect(DetailSeriesShelf.rest(of: library[0], in: library).count == 2)
+    }
+
+    /// A series of nothing but spaces is an absence. Untrimmed, it was a series name like
+    /// any other, so every publication whose scan produced one joined one shelf together.
+    @Test("A series of whitespace is no series at all")
+    func whitespaceIsNotASeries() {
+        // The same whitespace on both, deliberately: two *different* blank strings would not
+        // have matched each other untrimmed either, and the test would pass against the bug.
+        let library = [
+            issue("Field Notes", series: "   "),
+            issue("Sealed Archive", series: "   "),
+        ]
+
+        #expect(DetailSeriesShelf.rest(of: library[0], in: library).isEmpty)
+    }
 }

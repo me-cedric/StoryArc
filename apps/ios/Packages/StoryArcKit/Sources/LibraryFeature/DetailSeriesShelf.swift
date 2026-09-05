@@ -58,9 +58,20 @@ struct DetailSeriesShelf: View {
         of publication: Publication,
         in library: [Publication]
     ) -> [Publication] {
-        guard let series = publication.series, !series.isEmpty else { return [] }
+        // Trimmed on both sides of the comparison, matching Android's `restOfSeries`. A
+        // `ComicInfo.xml` writing `<Series>Harbour Lights </Series>` on one issue and
+        // `<Series>Harbour Lights</Series>` on the next is ordinary, and an untrimmed
+        // comparison split one run into two shelves on iOS while Android drew it whole. A
+        // series of nothing but whitespace is an absence, not a shelf every other untitled
+        // publication joins. The values themselves are never rewritten — the trim decides
+        // membership and nothing is drawn from it.
+        let series = publication.series?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let series, !series.isEmpty else { return [] }
         return library
-            .filter { $0.series == series && $0.id != publication.id }
+            .filter {
+                $0.series?.trimmingCharacters(in: .whitespacesAndNewlines) == series
+                    && $0.id != publication.id
+            }
             .sorted { one, other in
                 let left = one.volume ?? Int.max
                 let right = other.volume ?? Int.max
