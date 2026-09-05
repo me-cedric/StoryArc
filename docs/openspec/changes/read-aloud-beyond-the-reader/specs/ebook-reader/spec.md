@@ -70,6 +70,37 @@ While a read-aloud session is running and its publication is not open, the app
 SHALL offer a transport that says what is being spoken, controls it, and returns
 to it — and SHALL offer nothing when no session is running.
 
+That transport SHALL be the compact bar
+[`audio-playback`](../audio-playback/spec.md) already requires, on every platform
+that draws one. A read-aloud session SHALL take that bar on the same terms as a
+narrated one, and the app SHALL NOT draw a second bar for the voice, nor withhold
+the one it has from it.
+
+> **This requirement forbade that bar on Android until 2026-09-05, and the owner reversed
+> it.** *The transport on Android* used to end "no docked bar is added inside the app". The
+> reasoning for reversing it is the justification and not a preference, so it is recorded
+> here rather than only in a task list:
+>
+> The clause was written when the voice had no bar to appear in. Material had no persistent
+> slot above a navigation bar, so the only in-app bar Android could have grown would have
+> been a control invented to make two screenshots match. `audiobooks-and-playback` then built
+> the slot — `AdaptiveNavigationShell`'s `aboveNavigation`, carrying `CompactPlayerBar` —
+> because `audio-playback` requires a compact bar "above the navigation control" whenever
+> something plays. **The clause therefore encoded an implementation accident, not an intent
+> about readers.** A listener who has left the reader wants the same transport whether the
+> words come from a narrator or a synthesiser, which is this change's own premise.
+>
+> **The timing is the point.** The two requirements are reconciled on Android today only by
+> the engine split: the bar reads `PlaybackHost.nowPlaying`, and a voice runs on
+> `ReadAloudHost` behind Readium. `audiobooks-and-playback` task 6.1 collapses those engines,
+> and on the day it lands a read-aloud session starts arriving in that bar — reversing this
+> requirement by a merge nobody read as a product change, with every gate green. Amending it
+> **before** 6.1 lands is what makes that merge compliance rather than a violation.
+>
+> **What Android does not lose.** The media notification and the lock-screen controls stay.
+> They are not the bar's alternative; they are what survives the app being backgrounded,
+> which a bar cannot. The scenario below now asks for both.
+
 #### Scenario: Getting back to the book
 - **WHEN** a listener chooses the transport while the voice is speaking
 - **THEN** the publication opens at the sentence being spoken, without the voice stopping
@@ -108,12 +139,14 @@ to it — and SHALL offer nothing when no session is running.
 #### Scenario: The transport on iOS
 - **WHEN** a session is running on iOS and the publication is closed
 - **THEN** the transport is a compact control carried by the app's own navigation, above it at full size and inline when the navigation is minimised
+- **AND** it is the same compact bar a narrated book is carried by, not a second one for the voice
 - **AND** it is the only persistent transport in the app, because the platform already offers the rest on the lock screen
 
 #### Scenario: The transport on Android
 - **WHEN** a session is running on Android and the publication is closed
-- **THEN** the transport is the system media notification and the lock-screen controls the session already publishes
-- **AND** no docked bar is added inside the app, because the platform's navigation has no such slot and the notification survives the app being backgrounded, which a bar cannot
+- **THEN** the transport is the compact bar above the navigation, carrying the voice on the same terms it carries a narrated book, together with the system media notification and the lock-screen controls the session already publishes
+- **AND** it is the bar the app already draws rather than a second one grown for the voice, because a listener has one transport to learn and not two
+- **AND** the notification is not withdrawn in the bar's favour, because it survives the app being backgrounded and the reader's process being trimmed, which a bar cannot
 
 #### Scenario: The session cannot continue
 - **WHEN** the platform stops the session for a reason the app does not control — the process is reclaimed, speech becomes unavailable, or the audio is taken for good
