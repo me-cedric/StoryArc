@@ -1110,7 +1110,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       - **Settings open on a 13-inch iPad**, which is the frame this pass earned and the only
         one that can show whether 720 is the right number. Before/after would be ideal;
         after alone still answers the clause.
-- [ ] **4.2** **[K2]** Android: Material's five breakpoints replacing the
+- [~] **4.2** **[K2]** Android: Material's five breakpoints replacing the
       two-valued window class, the collapsed and expanded rail, and the two-pane
       scaffold. Screenshot: compact, medium and expanded, and a foldable half-open.
 
@@ -1136,6 +1136,26 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       adds the tablet at 1600 × 2560. Nothing in the tree shows a fold at half-open.
       `WindowClassTest.kt:117` argues a fold is an ordinary resize because only the
       width is read, which lowers the risk but is not the capture the task asks for.
+
+      *Re-verified 2026-09-05 and the code half stands, with one wording correction.* The
+      five cases are `COMPACT(0)`, `MEDIUM(...)`, `EXPANDED(...)`, `LARGE(...)`,
+      `EXTRA_LARGE(...)` — but they are declared against **named constants**, not the
+      literals the note quotes: `WIDTH_MEDIUM_DP` and its three siblings, which
+      `WindowClassTest.kt` in turn asserts equal to Material's own
+      `WindowSizeClass.WIDTH_DP_*_LOWER_BOUND`. That is better than the note's version of it,
+      not worse — the numbers 600/840/1200/1600 appear once, next to the assertion that ties
+      them to Material, rather than five times in an enum where one could drift.
+      `after-k2-android-tablet/` holds ten frames across compact, medium and large with its
+      own README.
+
+      **Frame owed: exactly one.** A foldable at **half-open**, with its posture on record.
+      Nothing in `docs/designs/screenshots/` shows a fold in any posture. The risk is genuinely
+      low — `WindowClassTest.kt:117` argues a fold is an ordinary resize because only the width
+      is read, and 4.3's new resize cases now assert the sequence that argument rests on — but
+      what neither can see is the hinge itself: a two-pane layout whose seam lands **on** the
+      fold, which is the one thing a half-open capture is for and the one thing no width can
+      predict. Take it on a foldable AVD at its half-open posture, in the library with a page
+      open, so the seam and the pane boundary are in the same frame.
 - [~] **4.3** Verify the resize path: a two-pane window narrowed to one pane keeps
       what the reader was looking at, and widening restores the second pane.
 
