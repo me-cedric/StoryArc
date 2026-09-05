@@ -97,6 +97,14 @@ public final class PlayerCentre {
     /// out has. Cleared by ``begin(_:source:)``, so a second book cannot inherit it.
     public private(set) var hasReachedTheEnd = false
 
+    /// The word a listener is owed because opening a publication stopped their voice.
+    ///
+    /// Armed only by ``displace()`` and spent only by ``takeVoiceStopped()``, both in
+    /// `PlayerDisplacement.swift`; the two rules it carries are ``VoiceStoppedNotice``'s.
+    /// `internal(set)` for the reason ``session`` is: the methods that move it live in a second
+    /// file, and nothing outside this module may set it.
+    public internal(set) var voiceStopped: VoiceStoppedNotice = .none
+
     // MARK: - What the app wires in
 
     /// Where a session's position goes.
@@ -184,7 +192,11 @@ public final class PlayerCentre {
     /// begins". ``end()`` writes the position, so the order below is the requirement — not a
     /// tidy-up that happens to come first.
     public func begin(_ book: SpokenBook, source: any PlaybackSource) {
-        if self.book != nil { end() }
+        // Starting the same book again is a restart; starting a different one is the
+        // displacement `ebook-reader` owes a word for. See ``displace()``.
+        if let outgoing = self.book {
+            if outgoing.id == book.id { end() } else { displace() }
+        }
 
         self.source = source
         parts = source.parts

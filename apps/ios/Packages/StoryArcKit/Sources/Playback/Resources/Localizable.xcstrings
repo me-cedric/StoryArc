@@ -29,6 +29,36 @@
           }
         }
       }
+    },
+    "player.voice.stopped %@" : {
+      "comment" : "Told once when opening another publication stopped the read-aloud voice; names the publication that went quiet. The one new key read-aloud-beyond-the-reader 5.5 allows, by the owner's 2026-09-05 decision.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ wird nicht mehr vorgelesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopped reading “%@” aloud."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se dejó de leer «%@» en voz alta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture à voix haute de « %@ » arrêtée."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
